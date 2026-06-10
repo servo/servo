@@ -162,6 +162,8 @@ pub enum DomMutation {
 #[serde(rename_all = "camelCase")]
 pub struct ObjectPreview {
     pub kind: String,
+    pub size: Option<u32>,
+    pub entries: Option<Vec<(DebuggerValue, DebuggerValue)>>,
     pub own_properties: Option<Vec<PropertyDescriptor>>,
     pub own_properties_length: Option<u32>,
     pub function: Option<FunctionPreview>,
@@ -237,7 +239,7 @@ pub enum DebuggerValue {
         uuid: String,
         class: String,
         own_property_length: Option<u32>,
-        preview: Option<ObjectPreview>,
+        preview: Option<Box<ObjectPreview>>,
     },
 }
 

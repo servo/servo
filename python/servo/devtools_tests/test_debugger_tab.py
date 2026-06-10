@@ -164,6 +164,28 @@ class TestDebuggerTab:
             assert not eval_result.get("hasException", True)
             assert eval_result.get("result") == 42
 
+    def test_map_preview(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+        with Devtools.connect() as devtools:
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            evaluation_result = Future()
+
+            async def on_evaluation_result(data):
+                evaluation_result.set_result(data)
+
+            devtools.client.add_event_listener(
+                console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation_result
+            )
+            console.evaluate_js_async("new Map([['a', 1], ['b', true]])")
+
+            map_value = evaluation_result.result(1)["result"]
+            assert map_value["type"] == "object"
+            assert map_value["class"] == "Map"
+            preview = map_value["preview"]
+            assert preview["kind"] == "MapLike"
+            assert preview["size"] == 2
+            assert preview["entries"] == [["a", 1], ["b", True]]
+
     def test_manual_pause(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:

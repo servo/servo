@@ -1017,8 +1017,13 @@ pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerVa
             own_property_length,
             preview,
         } => {
-            let object_name =
-                ObjectActor::register(registry, Some(uuid), class, own_property_length, preview);
+            let object_name = ObjectActor::register(
+                registry,
+                Some(uuid),
+                class,
+                own_property_length,
+                preview.map(|preview| *preview),
+            );
             let object_msg = registry.encode::<ObjectActor, _>(&object_name);
             let value = serde_json::to_value(object_msg).unwrap_or_default();
             Value::Object(value.as_object().cloned().unwrap_or_default())

@@ -176,6 +176,87 @@ function extractOwnProperties(obj, depth) {
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#80>
 const previewers = {};
 
+// <https://searchfox.org/firefox-main/source/devtools/shared/DevToolsUtils.js#182>
+function getProperty(object, name) {
+    const root = object;
+    while (object) {
+        let desc;
+        try {
+            desc = object.getOwnPropertyDescriptor(name);
+        } catch (e) {
+            return undefined;
+        }
+
+        if (desc) {
+            if ("value" in desc) {
+                return desc.value;
+            }
+
+            if (desc.get) {
+                try {
+                    return desc.get.call(root)?.return;
+                } catch (e) { }
+            }
+
+            return undefined;
+        }
+
+        object = object.proto;
+    }
+
+    return undefined;
+}
+
+// Calls the property with the given `name` on the given `object`, where
+// `name` is a string, and `object` a Debugger.Object instance.
+// <https://searchfox.org/firefox-main/source/devtools/shared/DevToolsUtils.js#943>
+function callPropertyOnObject(object, name, ...args) {
+    let descriptor;
+    let proto = object;
+    do {
+        descriptor = proto.getOwnPropertyDescriptor(name);
+        if (descriptor !== undefined) {
+            break;
+        }
+        proto = proto.proto;
+    } while (proto !== null);
+
+    if (descriptor === undefined) {
+        throw new Error("No such property");
+    }
+
+    const value = descriptor.value;
+    if (typeof value !== "object" || value === null || !("callable" in value)) {
+        throw new Error("Not a callable object.");
+    }
+
+    if (value.script !== undefined) {
+        throw new Error(
+            "The property isn't a native function and will execute code in the debuggee"
+        );
+    }
+
+    const result = value.call(object, ...args);
+    if (result === null) {
+        throw new Error("Code was terminated.");
+    }
+    if ("throw" in result) {
+        throw result.throw;
+    }
+    return result.return;
+}
+
+// <https://searchfox.org/firefox-main/source/devtools/shared/DevToolsUtils.js#983>
+function* makeDebuggeeIterator(object) {
+    while (true) {
+        const nextValue = callPropertyOnObject(object, "next");
+        if (getProperty(nextValue, "done")) {
+            break;
+        }
+        yield getProperty(nextValue, "value");
+    }
+}
+
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
 previewers.Function = [ function FunctionPreviewer(obj, depth) {
     let functionDetails = {
@@ -218,6 +299,45 @@ previewers.Array = [ function ArrayPreviewer(obj, depth) {
         } catch (e) {
             // For now skip properties that throw on access
         }
+    }
+
+    return preview;
+} ];
+
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/object/property-iterator.js#298>
+function enumMapEntries(obj, depth) {
+    const entries = makeDebuggeeIterator(callPropertyOnObject(obj, "entries"));
+    return {
+        *[Symbol.iterator]() {
+            for (const entry of entries) {
+                yield [
+                    getProperty(entry, 0),
+                    getProperty(entry, 1),
+                ].map(value => createValueGrip(value, depth));
+            }
+        }
+    };
+}
+
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#450>
+previewers.Map = [ function MapPreviewer(object, depth) {
+    const size = getProperty(object, "size");
+    if (typeof size !== "number") {
+        return undefined;
+    }
+
+    let preview = { kind: "MapLike", size };
+    if (depth > 1) {
+        return preview;
+    }
+
+    preview.entries = [];
+    try {
+        for (const entry of enumMapEntries(object, depth)) {
+            preview.entries.push(entry);
+        }
+    } catch (e) {
+        return undefined;
     }
 
     return preview;

@@ -214,7 +214,7 @@ fn console_argument_from_handle_value(
                     uuid: uuid::Uuid::new_v4().to_string(),
                     class,
                     own_property_length: preview.own_properties_length,
-                    preview: Some(preview),
+                    preview: Some(Box::new(preview)),
                 });
             }
 
@@ -409,6 +409,8 @@ fn console_object_from_handle_value(
         class,
         ObjectPreview {
             kind,
+            size: None,
+            entries: None,
             own_properties_length: Some(own_properties.len() as u32),
             own_properties: Some(own_properties),
             function,
