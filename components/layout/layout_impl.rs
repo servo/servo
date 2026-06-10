@@ -1221,6 +1221,7 @@ impl LayoutThread {
         };
 
         let mut box_tree = self.box_tree.borrow_mut();
+        let mut layout_roots = Vec::new();
         let damage = {
             let box_tree = &mut *box_tree;
             let mut compute_damage_and_build_box_tree = || {
@@ -1230,6 +1231,7 @@ impl LayoutThread {
                     dirty_root.layout_node(),
                     root_node,
                     damage_from_environment,
+                    &mut layout_roots,
                 )
             };
 
@@ -1258,8 +1260,21 @@ impl LayoutThread {
                     .clear_scrollable_overflow();
             }
 
-            layout_context.style_context.stylist.rule_tree().maybe_gc();
-            return (ReflowPhasesRun::empty(), IFrameSizes::default());
+            if !damage.contains(LayoutDamage::DescendantCollectedAsLayoutRoot) {
+                layout_context.style_context.stylist.rule_tree().maybe_gc();
+                return (ReflowPhasesRun::empty(), IFrameSizes::default());
+            }
+
+            debug_assert!(!layout_roots.is_empty());
+            if layout_roots
+                .into_iter()
+                .all(|layout_root| layout_root.try_layout(&layout_context))
+            {
+                return (
+                    ReflowPhasesRun::RanLayout,
+                    std::mem::take(&mut *layout_context.iframe_sizes.lock()),
+                );
+            }
         }
 
         let box_tree = &*box_tree;

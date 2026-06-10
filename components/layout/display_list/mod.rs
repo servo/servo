@@ -2447,10 +2447,6 @@ impl BaseFragment {
                 builder.reflow_statistics.restyle_fragment_count += 1;
                 self.set_status(FragmentStatus::Clean)
             },
-            FragmentStatus::OnlyDescendantsChanged => {
-                builder.reflow_statistics.only_descendants_changed_count += 1;
-                self.set_status(FragmentStatus::Clean)
-            },
             FragmentStatus::Clean => {},
         }
     }

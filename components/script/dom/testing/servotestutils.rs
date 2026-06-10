@@ -61,7 +61,6 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
             phases,
             statistics.rebuilt_fragment_count,
             statistics.restyle_fragment_count,
-            statistics.only_descendants_changed_count,
             CanGc::from_cx(cx),
         )
     }
