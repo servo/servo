@@ -178,7 +178,7 @@ class PackageCommands(CommandBase):
             # Inform the android build of where `libservoshell.so` is located.
             env["SERVO_TARGET_DIR"] = target_dir
 
-            dir_to_resources = path.join(self.get_top_dir(), "target", "android", "resources")
+            dir_to_resources = path.join(self.get_top_dir(), "target", target_triple, "resources")
             if path.exists(dir_to_resources):
                 delete(dir_to_resources)
 

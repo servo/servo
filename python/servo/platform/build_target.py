@@ -258,12 +258,6 @@ class AndroidTarget(CrossBuildTarget):
         # These two variables are needed for the mozjs compilation.
         env["ANDROID_API_LEVEL"] = android_api
         env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
-
-        # Set output dir for gradle aar files
-        env["AAR_OUT_DIR"] = path.join(topdir, "target", "android", "aar")
-        if not os.path.exists(env["AAR_OUT_DIR"]):
-            os.makedirs(env["AAR_OUT_DIR"])
-
         env["TARGET_PKG_CONFIG_SYSROOT_DIR"] = path.join(llvm_toolchain, "sysroot")
 
     def binary_name(self) -> str:
@@ -277,7 +271,7 @@ class AndroidTarget(CrossBuildTarget):
 
     def get_package_path(self, build_type_directory: str) -> str:
         base_path = util.get_target_dir()
-        base_path = path.join(base_path, "android", self.triple())
+        base_path = path.join(base_path, self.triple())
         apk_name = "servoapp.apk"
         return path.join(base_path, build_type_directory, apk_name)
 
