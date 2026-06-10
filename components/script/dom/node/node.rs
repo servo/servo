@@ -111,7 +111,9 @@ use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::html::input_element::HTMLInputElement;
-use crate::dom::iterators::ShadowIncluding;
+use crate::dom::iterators::{
+    ShadowIncluding, UnrootedFollowingNodeIterator, UnrootedPrecedingNodeIterator,
+};
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use crate::dom::node::iterators::{
     FollowingNodeIterator, PrecedingNodeIterator, SimpleNodeIterator, TreeIterator,
@@ -1028,14 +1030,57 @@ impl Node {
         )
     }
 
+    pub(crate) fn following_nodes_unrooted<'a, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+        root: &Node,
+        shadow_including: ShadowIncluding,
+    ) -> UnrootedFollowingNodeIterator<'a, 'b>
+    where
+        'b: 'a,
+    {
+        UnrootedFollowingNodeIterator::new(
+            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
+            shadow_including,
+            no_gc,
+        )
+    }
+
     pub(crate) fn preceding_nodes(&self, root: &Node) -> PrecedingNodeIterator {
         PrecedingNodeIterator::new(Some(DomRoot::from_ref(self)), DomRoot::from_ref(root))
+    }
+
+    pub(crate) fn preceding_nodes_unrooted<'a, 'b>(
+        &self,
+        root: &'a Node,
+        no_gc: &'b NoGC,
+    ) -> UnrootedPrecedingNodeIterator<'a, 'b>
+    where
+        'b: 'a,
+    {
+        UnrootedPrecedingNodeIterator::new(
+            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
+            no_gc,
+        )
     }
 
     /// Return an iterator that moves from `self` down the tree, choosing the last child
     /// at each step of the way.
     pub(crate) fn descending_last_children(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator::new(self.GetLastChild(), |n| n.GetLastChild())
+    }
+
+    pub(crate) fn descending_last_children_unrooted<'b>(
+        &self,
+        no_gc: &'b NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'b, Node>> {
+        UnrootedSimpleNodeIterator::new(
+            self.get_last_child_unrooted(no_gc),
+            |n, no_gc| n.get_last_child_unrooted(no_gc),
+            no_gc,
+        )
     }
 
     pub(crate) fn is_parent_of(&self, child: &Node) -> bool {
@@ -1845,8 +1890,8 @@ impl Node {
             } else {
                 let items = get_items(cx);
                 let node = match items
-                    .elements_iter()
-                    .map(DomRoot::upcast::<Node>)
+                    .elements_iter(cx.no_gc())
+                    .map(UnrootedDom::upcast::<Node>)
                     .map(Some)
                     .chain(iter::once(None))
                     .nth(index as usize)
@@ -1854,7 +1899,7 @@ impl Node {
                     None => return Err(Error::IndexSize(None)),
                     Some(node) => node,
                 };
-                self.InsertBefore(cx, tr_node, node.as_deref())?;
+                self.InsertBefore(cx, tr_node, node.map(|node| node.as_rooted()).as_deref())?;
             }
         }
 
@@ -1887,7 +1932,7 @@ impl Node {
                     None => return Ok(()),
                 }
             },
-            index => match get_items(cx).Item(index as u32) {
+            index => match get_items(cx).Item(cx, index as u32) {
                 Some(element) => element,
                 None => return Err(Error::IndexSize(None)),
             },
@@ -3519,6 +3564,10 @@ impl Node {
         no_gc: &'a NoGC,
     ) -> Option<UnrootedDom<'a, Node>> {
         self.first_child.get_unrooted(no_gc)
+    }
+
+    fn get_last_child_unrooted<'b>(&self, no_gc: &'b NoGC) -> Option<UnrootedDom<'b, Node>> {
+        self.last_child.get_unrooted(no_gc)
     }
 
     pub(crate) fn get_parent_node_unrooted<'a>(

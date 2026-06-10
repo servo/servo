@@ -84,8 +84,8 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     // https://github.com/servo/servo/issues/5875
     //
     /// <https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem>
-    fn NamedGetter(&self, name: DOMString) -> Option<DomRoot<Element>> {
-        self.upcast().NamedItem(name)
+    fn NamedGetter(&self, cx: &JSContext, name: DOMString) -> Option<DomRoot<Element>> {
+        self.upcast().NamedItem(cx, name)
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
@@ -98,8 +98,8 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     // https://github.com/servo/servo/issues/5875
     //
     /// <https://dom.spec.whatwg.org/#dom-htmlcollection-item>
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
-        self.upcast().IndexedGetter(index)
+    fn IndexedGetter(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Element>> {
+        self.upcast().IndexedGetter(cx, index)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-setter>
@@ -111,7 +111,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     ) -> ErrorResult {
         if let Some(value) = value {
             // Step 2
-            let length = self.upcast().Length();
+            let length = self.upcast().Length(cx);
 
             // Step 3
             let n = index as i32 - length as i32;
@@ -127,7 +127,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
             if n >= 0 {
                 Node::pre_insert(cx, node, &root, None).map(|_| ())
             } else {
-                let child = self.upcast().IndexedGetter(index).unwrap();
+                let child = self.upcast().IndexedGetter(cx, index).unwrap();
                 let child_node = child.upcast::<Node>();
 
                 root.ReplaceChild(cx, node, child_node).map(|_| ())
@@ -140,14 +140,14 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
-    fn Length(&self) -> u32 {
-        self.upcast().Length()
+    fn Length(&self, cx: &JSContext) -> u32 {
+        self.upcast().Length(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
     fn SetLength(&self, cx: &mut JSContext, length: u32) {
         // Step 1. Let current be the number of nodes represented by the collection.
-        let current = self.upcast().Length();
+        let current = self.upcast().Length(cx);
 
         match length.cmp(&current) {
             // Step 2. If the given value is greater than current, then:
@@ -223,7 +223,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
             HTMLElementOrLong::HTMLElement(element) => Some(DomRoot::upcast::<Node>(element)),
             HTMLElementOrLong::Long(index) => self
                 .upcast()
-                .IndexedGetter(index as u32)
+                .IndexedGetter(cx, index as u32)
                 .map(DomRoot::upcast::<Node>),
         });
 
@@ -242,18 +242,18 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>
     fn Remove(&self, cx: &mut JSContext, index: i32) {
-        if let Some(element) = self.upcast().IndexedGetter(index as u32) {
+        if let Some(element) = self.upcast().IndexedGetter(cx, index as u32) {
             element.Remove(cx);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex>
-    fn SelectedIndex(&self) -> i32 {
+    fn SelectedIndex(&self, cx: &JSContext) -> i32 {
         self.upcast()
             .root_node()
             .downcast::<HTMLSelectElement>()
             .expect("HTMLOptionsCollection not rooted on a HTMLSelectElement")
-            .SelectedIndex()
+            .SelectedIndex(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex>
