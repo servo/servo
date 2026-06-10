@@ -26,6 +26,7 @@ glow = { workspace = true }
 half = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
+num-traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { workspace = true }

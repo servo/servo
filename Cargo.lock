@@ -9000,6 +9000,7 @@ dependencies = [
  "half",
  "itertools 0.14.0",
  "log",
+ "num-traits",
  "parking_lot",
  "rustc-hash 2.1.2",
  "servo-base",
