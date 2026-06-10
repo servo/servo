@@ -10,7 +10,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::OriginBinding::OriginMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, SafeFromJSValConvertible, StringificationBehavior, root_from_handlevalue,
+    ConversionResult, FromJSValConvertible, StringificationBehavior, root_from_handlevalue,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
@@ -123,11 +123,10 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
 
         // Step 2. If value is a string:
         if value.get().is_string() {
-            let s = match DOMString::safe_from_jsval(
+            let s = match FromJSValConvertible::safe_from_jsval(
                 cx,
                 value,
                 StringificationBehavior::Default,
-                can_gc,
             ) {
                 Ok(ConversionResult::Success(s)) => s,
                 _ => return Err(Error::Type(c"Failed to convert value to string".to_owned())),

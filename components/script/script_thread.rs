@@ -120,7 +120,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, SafeFromJSValConvertible, StringificationBehavior,
+    ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -3850,11 +3850,10 @@ impl ScriptThread {
             return None;
         }
 
-        let strval = DOMString::safe_from_jsval(
-            cx.into(),
+        let strval = FromJSValConvertible::safe_from_jsval(
+            cx,
             jsval.handle(),
             StringificationBehavior::Empty,
-            CanGc::from_cx(cx),
         );
         match strval {
             Ok(ConversionResult::Success(s)) => {
