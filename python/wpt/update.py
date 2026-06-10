@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from typing import Any
 
 from wptrunner import wptcommandline  # noqa: F401
@@ -176,3 +176,8 @@ def download_run_results_and_then_run_update(kwargs: dict[str, Any]) -> bool:
 
 def create_parser() -> ArgumentParser:
     return wptcommandline.create_parser_update()
+
+
+def parse_args_update(update_paths: list[str]) -> Namespace:
+    parser = wptcommandline.create_parser_update()
+    return parser.parse_args(update_paths)
