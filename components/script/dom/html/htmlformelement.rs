@@ -1248,7 +1248,12 @@ impl HTMLFormElement {
                 match element {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
-                        data_set.append(&mut input.form_datums(submitter, encoding));
+                        let (ref mut form_datums, should_continue) =
+                            input.form_datums(submitter, encoding);
+                        data_set.append(form_datums);
+                        if should_continue {
+                            continue;
+                        }
                     },
                     HTMLElementTypeId::HTMLButtonElement => {
                         let button = child.downcast::<HTMLButtonElement>().unwrap();
