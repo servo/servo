@@ -17,8 +17,8 @@ use std::ffi::CStr;
 use std::rc::{Rc, Weak};
 
 use js::jsapi::{AddRawValueRoot, Heap, RemoveRawValueRoot};
-use js::jsval::JSVal;
-use js::rust::Runtime;
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::{HandleValue, Runtime};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 use crate::script_runtime::JSContext;
@@ -57,6 +57,18 @@ impl ReflectorRootInternal {
         }
         if let Some(cx) = Runtime::get() {
             unsafe { RemoveRawValueRoot(cx.as_ptr(), self.value.get_unsafe()) };
+            // Clear the value via `set()` to get a post_barrier.
+            // This prevents UB when `value` is later dropped, which also
+            // invoked a post_barrier (but is skipped for UndefinedValue)
+            // and UB for a freed value.
+            self.value.set(UndefinedValue());
+        } else {
+            // Clear the value so the `Heap` drop doesn't cause UB in mozjs.
+            // Opposed to the above `set` we don't want to run a post_barrier
+            // here, since the value would already be garbage if the runtime
+            // is gone.
+            // SAFETY: No concurrent access, safe to overwrite the garbage value.
+            unsafe { self.value.get_unsafe().write(UndefinedValue()) };
         }
     }
 }
