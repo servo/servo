@@ -278,7 +278,6 @@ addEventListener("eval", event => {
         resultValue = {
             completionType: "terminated",
             value: createValueGrip(undefined, 0),
-            exceptionMessage: "",
             hasException: false,
         };
     } else if ("throw" in completionValue) {
@@ -297,7 +296,6 @@ addEventListener("eval", event => {
         resultValue = {
             completionType: "return",
             value: createValueGrip(completionValue.return, 0),
-            exceptionMessage: "",
             hasException: false,
         };
     }
@@ -305,7 +303,7 @@ addEventListener("eval", event => {
     evalResult(event, {
         completionType: resultValue.completionType,
         serializedValue: JSON.stringify(resultValue.value),
-        exceptionMessage: resultValue.exceptionMessage,
+        exceptionMessage: resultValue.hasException ? resultValue.exceptionMessage : null,
         hasException: resultValue.hasException,
     });
 });

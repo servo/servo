@@ -19,6 +19,6 @@ partial interface DebuggerGlobalScope {
 dictionary EvalResult {
     required DOMString serializedValue;
     required DOMString completionType;
-    required DOMString exceptionMessage;
+    required DOMString? exceptionMessage;
     boolean hasException;
 };

@@ -537,7 +537,10 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             },
         };
 
-        let exception_message = result.exceptionMessage.str().to_string();
+        let exception_message = result
+            .exceptionMessage
+            .as_ref()
+            .map(|message| message.str().to_string());
 
         let reply = EvaluateJSReply {
             value,
