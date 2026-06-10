@@ -48,14 +48,11 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
         // 1. If v is a DOMString, then follow the below steps:
         if v.get().is_string() {
             // 1.1 Let dataAsBytes be the result of UTF-8 encoding v.
-            let data_as_bytes = match FromJSValConvertible::safe_from_jsval(
-                cx,
-                v,
-                StringificationBehavior::Default,
-            ) {
-                Ok(ConversionResult::Success(s)) => s.as_bytes().to_owned(),
-                _ => return,
-            };
+            let data_as_bytes =
+                match DOMString::safe_from_jsval(cx, v, StringificationBehavior::Default) {
+                    Ok(ConversionResult::Success(s)) => s.as_bytes().to_owned(),
+                    _ => return,
+                };
 
             // 1.2 Let blobData be a Blob created using dataAsBytes with its type set to mimeType, serialized.
             let blob_data = Blob::new(
@@ -68,7 +65,7 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
             self.promise.resolve_native_with_cx(cx, &blob_data);
         }
         // 2. If v is a Blob, then follow the below steps:
-        else if DomRoot::<Blob>::safe_from_jsval(cx.into(), v, (), CanGc::from_cx(cx))
+        else if DomRoot::<Blob>::safe_from_jsval(cx, v, ())
             .is_ok_and(|result| result.get_success_value().is_some())
         {
             // 2.1 Resolve p with v.

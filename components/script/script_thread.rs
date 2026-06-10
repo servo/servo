@@ -3850,11 +3850,7 @@ impl ScriptThread {
             return None;
         }
 
-        let strval = FromJSValConvertible::safe_from_jsval(
-            cx,
-            jsval.handle(),
-            StringificationBehavior::Empty,
-        );
+        let strval = DOMString::safe_from_jsval(cx, jsval.handle(), StringificationBehavior::Empty);
         match strval {
             Ok(ConversionResult::Success(s)) => {
                 // Step 11. Let response be a new response with
