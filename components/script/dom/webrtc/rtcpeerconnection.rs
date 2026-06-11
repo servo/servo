@@ -52,7 +52,7 @@ use crate::dom::rtcrtptransceiver::RTCRtpTransceiver;
 use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
@@ -554,24 +554,23 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addicecandidate>
     fn AddIceCandidate(
         &self,
+        current_realm: &mut CurrentRealm,
         candidate: &RTCIceCandidateInit,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp, can_gc);
+        let p = Promise::new_in_realm(current_realm);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
-            p.reject_error(
+            p.reject_error_with_cx(
+                current_realm,
                 Error::Type(c"one of sdpMid and sdpMLineIndex must be set".to_owned()),
-                can_gc,
             );
             return p;
         }
 
         // XXXManishearth add support for sdpMid
         if candidate.sdpMLineIndex.is_none() {
-            p.reject_error(
+            p.reject_error_with_cx(
+                current_realm,
                 Error::Type(c"servo only supports sdpMLineIndex right now".to_owned()),
-                can_gc,
             );
             return p;
         }
@@ -589,15 +588,19 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             });
 
         // XXXManishearth add_ice_candidate should have a callback
-        p.resolve_native(&(), can_gc);
+        p.resolve_native_with_cx(current_realm, &());
         p
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer>
-    fn CreateOffer(&self, _options: &RTCOfferOptions, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp, can_gc);
+    fn CreateOffer(
+        &self,
+        current_realm: &mut CurrentRealm,
+        _options: &RTCOfferOptions,
+    ) -> Rc<Promise> {
+        let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
-            p.reject_error(Error::InvalidState(None), can_gc);
+            p.reject_error_with_cx(current_realm, Error::InvalidState(None));
             return p;
         }
         self.offer_promises.borrow_mut().push(p.clone());
@@ -608,13 +611,12 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer>
     fn CreateAnswer(
         &self,
+        current_realm: &mut CurrentRealm,
         _options: &RTCAnswerOptions,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp, can_gc);
+        let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
-            p.reject_error(Error::InvalidState(None), can_gc);
+            p.reject_error_with_cx(current_realm, Error::InvalidState(None));
             return p;
         }
         self.answer_promises.borrow_mut().push(p.clone());
@@ -635,12 +637,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setlocaldescription>
     fn SetLocalDescription(
         &self,
+        current_realm: &mut CurrentRealm,
         desc: &RTCSessionDescriptionInit,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_current_realm(comp, can_gc);
+        let p = Promise::new_in_realm(current_realm);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.convert();
         let trusted_promise = TrustedPromise::new(p.clone());
@@ -656,7 +657,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             .set_local_description(
                 desc.clone(),
                 Box::new(move || {
-                    task_source.queue(task!(local_description_set: move || {
+                    task_source.queue(task!(local_description_set: move |current_realm| {
                         // XXXManishearth spec actually asks for an intricate
                         // dance between pending/current local/remote descriptions
                         let this = this.root();
@@ -668,7 +669,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             &desc,
                         ).unwrap();
                         this.local_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&(), CanGc::deprecated_note())
+                        trusted_promise.root().resolve_native_with_cx(current_realm, &())
                     }));
                 }),
             );
@@ -678,12 +679,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setremotedescription>
     fn SetRemoteDescription(
         &self,
+        current_realm: &mut CurrentRealm,
         desc: &RTCSessionDescriptionInit,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_current_realm(comp, can_gc);
+        let p = Promise::new_in_realm(current_realm);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.convert();
         let trusted_promise = TrustedPromise::new(p.clone());
@@ -699,7 +699,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             .set_remote_description(
                 desc.clone(),
                 Box::new(move || {
-                    task_source.queue(task!(remote_description_set: move || {
+                    task_source.queue(task!(remote_description_set: move |current_realm| {
                         // XXXManishearth spec actually asks for an intricate
                         // dance between pending/current local/remote descriptions
                         let this = this.root();
@@ -707,11 +707,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                         let desc = RTCSessionDescription::Constructor(
                             this.global().as_window(),
                             None,
-                            CanGc::deprecated_note(),
+                            CanGc::from_cx(current_realm),
                             &desc,
                         ).unwrap();
                         this.remote_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&(), CanGc::deprecated_note())
+                        trusted_promise.root().resolve_native_with_cx(current_realm, &())
                     }));
                 }),
             );
