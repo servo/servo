@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::ffi::CString;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -252,6 +253,35 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
                 indirect_buffer.id().0,
                 indirect_offset,
             );
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup>
+    #[expect(unsafe_code)]
+    fn PushDebugGroup(&self, group_label: USVString) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
+            let label = CString::new(group_label.0).unwrap_or_default();
+            unsafe {
+                wgpu_bundle::wgpu_render_bundle_push_debug_group(encoder, label.as_ptr());
+            }
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup>
+    fn PopDebugGroup(&self) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
+            wgpu_bundle::wgpu_render_bundle_pop_debug_group(encoder);
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
+    #[expect(unsafe_code)]
+    fn InsertDebugMarker(&self, marker_label: USVString) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
+            let label = CString::new(marker_label.0).unwrap_or_default();
+            unsafe {
+                wgpu_bundle::wgpu_render_bundle_insert_debug_marker(encoder, label.as_ptr());
+            }
         }
     }
 

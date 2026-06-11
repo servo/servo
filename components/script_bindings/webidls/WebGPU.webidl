@@ -980,9 +980,9 @@ interface mixin GPUBindingCommandsMixin {
 };
 
 interface mixin GPUDebugCommandsMixin {
-    //undefined pushDebugGroup(USVString groupLabel);
-    //undefined popDebugGroup();
-    //undefined insertDebugMarker(USVString markerLabel);
+    undefined pushDebugGroup(USVString groupLabel);
+    undefined popDebugGroup();
+    undefined insertDebugMarker(USVString markerLabel);
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]

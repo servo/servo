@@ -178,4 +178,51 @@ impl GPUComputePassEncoderMethods<crate::DomTypeHolder> for GPUComputePassEncode
             warn!("Error sending WebGPURequest::ComputePassSetPipeline: {e:?}")
         }
     }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup>
+    fn PushDebugGroup(&self, group_label: USVString) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassPushDebugGroup {
+                compute_pass_id: self.droppable.compute_pass.0,
+                label: group_label.to_string(),
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassPushDebugGroup: {e:?}")
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup>
+    fn PopDebugGroup(&self) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassPopDebugGroup {
+                compute_pass_id: self.droppable.compute_pass.0,
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassPopDebugGroup: {e:?}")
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
+    fn InsertDebugMarker(&self, marker_label: USVString) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassInsertDebugMarker {
+                compute_pass_id: self.droppable.compute_pass.0,
+                label: marker_label.to_string(),
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassInsertDebugMarker: {e:?}")
+        }
+    }
 }

@@ -264,4 +264,19 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
         let bundle_ids: Vec<_> = bundles.iter().map(|b| b.id().0).collect();
         self.send_render_command(RenderCommand::ExecuteBundles(bundle_ids))
     }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup>
+    fn PushDebugGroup(&self, group_label: USVString) {
+        self.send_render_command(RenderCommand::PushDebugGroup(group_label.to_string()))
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup>
+    fn PopDebugGroup(&self) {
+        self.send_render_command(RenderCommand::PopDebugGroup)
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
+    fn InsertDebugMarker(&self, marker_label: USVString) {
+        self.send_render_command(RenderCommand::InsertDebugMarker(marker_label.to_string()))
+    }
 }
