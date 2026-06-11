@@ -4,7 +4,6 @@
 
 pub mod adapter;
 pub mod bluetooth;
-mod macros;
 pub mod test;
 
 use std::borrow::ToOwned;
@@ -137,8 +136,8 @@ async fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) 
     }
 
     // Step 1.
-    if let Some(name) = filter.get_name() &&
-        device.get_name().await.ok() != Some(name.to_string())
+    if let Some(name) = filter.get_name()
+        && device.get_name().await.ok() != Some(name.to_string())
     {
         return false;
     }
@@ -155,8 +154,8 @@ async fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) 
     }
 
     // Step 3.
-    if !filter.get_services().is_empty() &&
-        let Ok(device_uuids) = device.get_uuids().await
+    if !filter.get_services().is_empty()
+        && let Ok(device_uuids) = device.get_uuids().await
     {
         for service in filter.get_services() {
             if !device_uuids.iter().any(|x| x == service) {
@@ -535,8 +534,8 @@ impl BluetoothManager {
     }
 
     fn device_is_cached(&self, device_id: &str) -> bool {
-        self.cached_devices.contains_key(device_id) &&
-            self.address_to_id.values().any(|v| v == device_id)
+        self.cached_devices.contains_key(device_id)
+            && self.address_to_id.values().any(|v| v == device_id)
     }
 
     async fn device_matches_filter(
@@ -564,8 +563,9 @@ impl BluetoothManager {
         };
 
         services.retain(|s| {
-            !uuid_is_blocklisted(&s.get_uuid().unwrap_or_default(), Blocklist::All) &&
-                self.allowed_services
+            !uuid_is_blocklisted(&s.get_uuid().unwrap_or_default(), Blocklist::All)
+                && self
+                    .allowed_services
                     .get(device_id)
                     .is_some_and(|uuids| uuids.contains(&s.get_uuid().unwrap_or_default()))
         });
@@ -591,8 +591,8 @@ impl BluetoothManager {
     }
 
     fn service_is_cached(&self, service_id: &str) -> bool {
-        self.cached_services.contains_key(service_id) &&
-            self.service_to_device.contains_key(service_id)
+        self.cached_services.contains_key(service_id)
+            && self.service_to_device.contains_key(service_id)
     }
 
     // Characteristic
@@ -655,8 +655,9 @@ impl BluetoothManager {
     }
 
     fn characteristic_is_cached(&self, characteristic_id: &str) -> bool {
-        self.cached_characteristics.contains_key(characteristic_id) &&
-            self.characteristic_to_service
+        self.cached_characteristics.contains_key(characteristic_id)
+            && self
+                .characteristic_to_service
                 .contains_key(characteristic_id)
     }
 
@@ -830,8 +831,8 @@ impl BluetoothManager {
                     return Err(BluetoothError::InvalidState);
                 }
                 // Step 6.
-                if let Some(ref uuid) = uuid &&
-                    !self
+                if let Some(ref uuid) = uuid
+                    && !self
                         .allowed_services
                         .get(&id)
                         .is_some_and(|s| s.contains(uuid))
@@ -844,8 +845,8 @@ impl BluetoothManager {
                 }
                 let mut services_vec = vec![];
                 for service in services {
-                    if service.is_primary().unwrap_or(false) &&
-                        let Ok(uuid) = service.get_uuid()
+                    if service.is_primary().unwrap_or(false)
+                        && let Ok(uuid) = service.get_uuid()
                     {
                         services_vec.push(BluetoothServiceMsg {
                             uuid,
