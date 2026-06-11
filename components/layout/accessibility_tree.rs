@@ -391,7 +391,7 @@ impl AccessibilityNode {
         damage
     }
 
-    /// Recursively mark this subtree as having the given `TreeChange `.
+    /// Recursively mark this subtree as having the given `TreeChange`.
     ///
     /// This is used when a node is `Moved` or `Removed`, since its entire subtree will also need to
     /// be marked accordingly. When a node is `New`, it's marked as such when it is created. We
