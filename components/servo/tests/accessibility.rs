@@ -398,6 +398,49 @@ fn test_accessibility_text_change() {
     );
 }
 
+#[test]
+fn test_accessibility_partial_subtree_move_and_delete() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <div id='div1'><div><h1 id='h1'>This is an h1</h1></div></div>\
+               <div id='div2'><h2 id='h2'>This is an h2</h2></div>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 2);
+    let div1 = children[0];
+    assert_eq!(div1.role(), Role::GenericContainer);
+    let h1 = find_all_matching_nodes(div1, |node| node.role() == Role::Heading)[0];
+    assert_eq!(h1.label(), Some("This is an h1".to_owned()));
+    let div2 = children[1];
+    assert_eq!(div2.role(), Role::GenericContainer);
+    let h2 = find_all_matching_nodes(div2, |node| node.role() == Role::Heading)[0];
+    assert_eq!(h2.label(), Some("This is an h2".to_owned()));
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "div2.moveBefore(div1, h2);\
+         div1.remove();\
+         window.ServoTestUtils.forceAccessibilityUpdate();",
+    );
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 1);
+    let div2 = children[0];
+    assert_eq!(div2.role(), Role::GenericContainer);
+    let headings: Vec<accesskit_consumer::Node> = div2.children().collect();
+    assert_eq!(headings.len(), 2);
+    let h1 = headings[0];
+    assert_eq!(h1.label(), Some("This is an h1".to_owned()));
+    let h2 = headings[1];
+    assert_eq!(h2.label(), Some("This is an h2".to_owned()));
+}
+
 fn build_test() -> ServoTest {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
