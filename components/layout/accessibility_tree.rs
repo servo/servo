@@ -326,7 +326,13 @@ impl AccessibilityTree {
 
         // If this fails, then the tree has orphaned nodes (a leak).
         // Dangling references are already caught in the loop above.
-        assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
+        let mut known_nodes = self.nodes.keys().copied().collect();
+        assert_eq!(seen_node_ids, known_nodes);
+
+        // All node IDs other than the root node should be keys in `node_to_parent`, and no others.
+        known_nodes.remove(&root_node_id);
+        let nodes_with_parents: FxHashSet<NodeId> = self.node_to_parent.keys().copied().collect();
+        assert_eq!(nodes_with_parents, known_nodes);
     }
 
     /// Recursively check the integrity of the subtree rooted at node for `node_id`, and check that
@@ -346,7 +352,7 @@ impl AccessibilityTree {
         let node = self.assert_node_for_id(&node_id);
         let node = node.borrow();
 
-        assert_eq!(self.node_to_parent.get(&node.id).cloned(), parent_id);
+        assert_eq!(self.parent_for_node(&node.id), parent_id);
         for child_id in node.children().iter() {
             self.assert_subtree_integrity_recursive(*child_id, Some(node_id), seen_node_ids);
         }
