@@ -3,7 +3,9 @@ resolver = "2"
 members = [
     "components/media/examples",
     "components/xpath",
+    "ffi/capi",
     "ports/servoshell",
+    "tests/capi",
     "tests/unit/*",
 ]
 default-members = ["ports/servoshell"]
@@ -162,6 +164,7 @@ num-complex = "0.4.6"
 num-derive = "0.4.2"
 num-traits = "0.2"
 num_cpus = "1.17.0"
+num_enum = "0.7"
 objc2 = "0.6.4"
 objc2-app-kit = { version = "0.3.2", default-features = false }
 objc2-core-foundation = "0.3.2"

@@ -796,6 +796,7 @@ pub enum MediaSessionActionType {
 }
 
 /// The status of the load in this `WebView`.
+#[repr(i32)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum LoadStatus {
     /// The load has started, but the headers have not yet been parsed.
@@ -1094,6 +1095,7 @@ pub enum JavaScriptEvaluationError {
     SerializationError(JavaScriptEvaluationResultSerializationError),
 }
 
+#[repr(i32)]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum ScreenshotCaptureError {
     /// The screenshot request failed to read the screenshot image from the `WebView`'s
