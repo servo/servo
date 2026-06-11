@@ -398,7 +398,6 @@ fn test_accessibility_text_change() {
     );
 }
 
-
 fn build_test() -> ServoTest {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
