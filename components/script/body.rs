@@ -492,6 +492,19 @@ pub(crate) trait Extractable {
     ) -> Fallible<ExtractedBody>;
 }
 
+/// Part of <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
+fn stream_from_body_init_bytes(
+    cx: &mut js::context::JSContext,
+    global: &GlobalScope,
+    bytes: Vec<u8>,
+) -> Fallible<DomRoot<ReadableStream>> {
+    // Step 4: "Otherwise, set stream to a new ReadableStream object, and set up stream with byte reading support."
+    // Step 11: "If source is a byte sequence, then set action to a step that returns source and length to source’s length."
+    // Step 12.1: "Whenever one or more bytes are available and stream is not errored, enqueue the result of creating a Uint8Array from the available bytes into stream."
+    // Step 12.1: "When running action is done, close stream."
+    ReadableStream::new_from_bytes_with_byte_reading_support(cx, global, bytes)
+}
+
 impl Extractable for BodyInit {
     /// <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
     fn extract(
@@ -508,7 +521,7 @@ impl Extractable for BodyInit {
             BodyInit::ArrayBuffer(typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
-                let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
+                let stream = stream_from_body_init_bytes(cx, global, bytes)?;
                 Ok(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -519,7 +532,7 @@ impl Extractable for BodyInit {
             BodyInit::ArrayBufferView(typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
-                let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
+                let stream = stream_from_body_init_bytes(cx, global, bytes)?;
                 Ok(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -561,7 +574,7 @@ impl Extractable for Vec<u8> {
     ) -> Fallible<ExtractedBody> {
         let bytes = self.clone();
         let total_bytes = self.len();
-        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
+        let stream = stream_from_body_init_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -606,7 +619,7 @@ impl Extractable for DOMString {
         let bytes = self.as_bytes().to_owned();
         let total_bytes = bytes.len();
         let content_type = Some(DOMString::from("text/plain;charset=UTF-8"));
-        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
+        let stream = stream_from_body_init_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -630,7 +643,7 @@ impl Extractable for FormData {
             "multipart/form-data; boundary={}",
             boundary
         )));
-        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
+        let stream = stream_from_body_init_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -652,7 +665,7 @@ impl Extractable for URLSearchParams {
         let content_type = Some(DOMString::from(
             "application/x-www-form-urlencoded;charset=UTF-8",
         ));
-        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
+        let stream = stream_from_body_init_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
