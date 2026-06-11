@@ -148,7 +148,10 @@ impl Fragment {
     pub(crate) fn scrolling_area(&self, layout_thread: &LayoutThread) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
-                .offset_by_containing_block(&fragment.scrollable_overflow(), layout_thread.into()),
+                .offset_by_containing_block(
+                    &fragment.with_style().scrollable_overflow(),
+                    layout_thread.into(),
+                ),
             _ => self.scrollable_overflow_for_parent(),
         }
     }
@@ -169,7 +172,7 @@ impl Fragment {
     pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.scrollable_overflow_for_parent()
+                fragment.with_style().scrollable_overflow_for_parent()
             },
             Fragment::Positioning(fragment) => fragment.scrollable_overflow_for_parent(),
             Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
@@ -243,6 +246,7 @@ impl Fragment {
     pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {
         let rect = match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                let fragment = fragment.with_style();
                 // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
                 // " If the element has no associated CSS layout box or if the
                 //   CSS layout box is inline, return zero." For this check we
