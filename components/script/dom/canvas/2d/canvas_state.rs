@@ -82,12 +82,6 @@ use crate::script_runtime::CanGc;
 
 const HANGING_BASELINE_DEFAULT: f64 = 0.8;
 const IDEOGRAPHIC_BASELINE_DEFAULT: f64 = 0.5;
-/// Maximum number of buffered canvas commands before an automatic flush is triggered.
-/// A lower value keeps the paint thread fed with work (better parallelism),
-/// while a higher value improves batching efficiency (fewer channel operations, lower power).
-///
-/// See <https://github.com/servo/servo/pull/45301> for measurements.
-const BUFFER_SIZE: usize = 16;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -267,7 +261,7 @@ impl CanvasState {
             buffered_sender: GenericBufferedSender::new(
                 canvas_thread_sender,
                 Box::new(move |cmds| (canvas_id, CanvasCommand::ProcessBatchMessages(cmds))),
-                BUFFER_SIZE,
+                servo_config::pref!(dom_canvas_msg_buffer_size) as usize,
             ),
         })
     }
