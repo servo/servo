@@ -38,8 +38,8 @@ impl AccessibilityData {
     ///   the case of the document itself, by a strong reference in the [`Window`]). See
     ///   [`Node::first_child`], [`Node::next_sibling`], etc.
     ///    - Note that this means we only need to root nodes which are removed from the document,
-    ///      and not their ancestors, as ancestor nodes will still be rooted via these properties as
-    ///      long as the subtree root is stored here.
+    ///      and not their descendants, as descendant nodes will still be rooted via these
+    ///      properties as long as the subtree root is stored here.
     /// - After a node is removed from the tree, those strong references are removed, and it _may_
     ///   become a candidate for GC if its DOM object isn't held (directly or indirectly) in script
     ///   and it isn't immediately inserted elsewhere in the DOM.
