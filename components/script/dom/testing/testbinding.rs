@@ -568,9 +568,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn GetDictionaryWithTypedArray(
         &self,
+        cx: &mut JSContext,
         _dictionary: RootedTraceableBox<TestDictionaryWithTypedArray>,
     ) {
-        self.global().as_window().gc();
+        self.global().as_window().gc(cx);
     }
     fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
         RootedTraceableBox::new(TestDictionary {

@@ -29,15 +29,15 @@ use embedder_traits::{
     ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
     WebDriverJSResult, WebDriverLoadStatus,
 };
-use euclid::default::Rect as UntypedRect;
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
 use js::context::JSContext;
 use js::glue::DumpJSStack;
-use js::jsapi::{GCReason, Heap, JS_GC, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
+use js::jsapi::{GCReason, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
 use js::jsval::{NullValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::JS_DefineProperty;
+use js::rust::wrappers2::JS_GC;
 use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
     MutableHandleValue,
@@ -207,7 +207,7 @@ use crate::{fetch, window_named_properties};
 pub struct PendingImageCallback(
     #[ignore_malloc_size_of = "dyn Fn is currently impossible to measure"]
     #[expect(clippy::type_complexity)]
-    Box<dyn Fn(PendingImageResponse, &mut js::context::JSContext) + 'static>,
+    Box<dyn Fn(PendingImageResponse, &mut JSContext) + 'static>,
 );
 
 /// Current state of the window object
@@ -556,15 +556,6 @@ impl Window {
         self.globalscope.origin()
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn get_cx(&self) -> SafeJSContext {
-        unsafe { SafeJSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
-    }
-
-    pub(crate) fn get_js_runtime(&self) -> Ref<'_, Option<Rc<Runtime>>> {
-        self.js_runtime.borrow()
-    }
-
     pub(crate) fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
         &self.script_chan
     }
@@ -703,7 +694,7 @@ impl Window {
     pub(crate) fn register_image_cache_listener(
         &self,
         id: PendingImageId,
-        callback: impl Fn(PendingImageResponse, &mut js::context::JSContext) + 'static,
+        callback: impl Fn(PendingImageResponse, &mut JSContext) + 'static,
     ) -> ImageCacheResponseCallback {
         self.pending_image_callbacks
             .borrow_mut()
@@ -767,7 +758,7 @@ impl Window {
     pub(crate) fn pending_image_notification(
         &self,
         response: PendingImageResponse,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) {
         // We take the images here, in order to prevent maintaining a mutable borrow when
         // image callbacks are called. These, in turn, can trigger garbage collection.
@@ -840,7 +831,7 @@ impl Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#nav-stop>
-    fn stop_loading(&self, cx: &mut js::context::JSContext) {
+    fn stop_loading(&self, cx: &mut JSContext) {
         // 1. Let document be navigable's active document.
         let doc = self.Document();
 
@@ -860,7 +851,7 @@ impl Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-top-level-traversable>
-    fn destroy_top_level_traversable(&self, cx: &mut js::context::JSContext) {
+    fn destroy_top_level_traversable(&self, cx: &mut JSContext) {
         // Step 1. Let browsingContext be traversable's active browsing context.
         // TODO
         // Step 2. For each historyEntry in traversable's session history entries:
@@ -874,7 +865,7 @@ impl Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#definitely-close-a-top-level-traversable>
-    fn definitely_close(&self, cx: &mut js::context::JSContext) {
+    fn definitely_close(&self, cx: &mut JSContext) {
         let document = self.Document();
         // Step 1. Let toUnload be traversable's active document's inclusive descendant navigables.
         //
@@ -923,7 +914,7 @@ impl Window {
         false
     }
 
-    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
         self.script_thread().perform_a_microtask_checkpoint(cx);
     }
 
@@ -953,9 +944,9 @@ impl Window {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn gc(&self) {
+    pub(crate) fn gc(&self, cx: &mut JSContext) {
         unsafe {
-            JS_GC(*self.get_cx(), GCReason::API);
+            JS_GC(cx, GCReason::API);
         }
     }
 }
@@ -1276,7 +1267,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-stop>
-    fn Stop(&self, cx: &mut js::context::JSContext) {
+    fn Stop(&self, cx: &mut JSContext) {
         // 1. If this's navigable is null, then return.
         // Note: Servo doesn't have a concept of navigable yet.
 
@@ -1285,7 +1276,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-focus>
-    fn Focus(&self, cx: &mut js::context::JSContext) {
+    fn Focus(&self, cx: &mut JSContext) {
         // Step 1. Let current be this's navigable.
         // Note: We don't necessarily have access to the navigable, because it might
         // be in another process.
@@ -1448,12 +1439,12 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
-    fn Location(&self, cx: &mut js::context::JSContext) -> DomRoot<Location> {
+    fn Location(&self, cx: &mut JSContext) -> DomRoot<Location> {
         self.location.or_init(|| Location::new(cx, self))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-sessionstorage>
-    fn GetSessionStorage(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<Storage>> {
+    fn GetSessionStorage(&self, cx: &mut JSContext) -> Fallible<DomRoot<Storage>> {
         // Step 1. If this's associated Document's session storage holder is non-null,
         // then return this's associated Document's session storage holder.
         if let Some(storage) = self.session_storage.get() {
@@ -1480,7 +1471,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-localstorage>
-    fn GetLocalStorage(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<Storage>> {
+    fn GetLocalStorage(&self, cx: &mut JSContext) -> Fallible<DomRoot<Storage>> {
         // Step 1. If this's associated Document's local storage holder is non-null,
         // then return this's associated Document's local storage holder.
         if let Some(storage) = self.local_storage.get() {
@@ -1543,7 +1534,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
-    fn ReportError(&self, cx: &mut js::context::JSContext, error: HandleValue) {
+    fn ReportError(&self, cx: &mut JSContext, error: HandleValue) {
         self.as_global_scope().report_an_exception(cx, error);
     }
 
@@ -1561,7 +1552,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-settimeout>
     fn SetTimeout(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -1592,7 +1583,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval>
     fn SetInterval(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -2179,7 +2170,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
     fn FetchLater(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         input: RequestInfo,
         init: RootedTraceableBox<DeferredRequestInit>,
     ) -> Fallible<DomRoot<FetchLaterResult>> {
@@ -2187,7 +2178,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     #[cfg(feature = "bluetooth")]
-    fn TestRunner(&self, cx: &mut js::context::JSContext) -> DomRoot<TestRunner> {
+    fn TestRunner(&self, cx: &mut JSContext) -> DomRoot<TestRunner> {
         self.test_runner
             .or_init(|| TestRunner::new(cx, self.upcast()))
     }
@@ -2238,11 +2229,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-nameditem>
-    fn NamedGetter(
-        &self,
-        cx: &mut js::context::JSContext,
-        name: DOMString,
-    ) -> Option<NamedPropertyValue> {
+    fn NamedGetter(&self, cx: &mut JSContext, name: DOMString) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
@@ -2332,7 +2319,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, cx: &mut JSContext) -> Vec<DOMString> {
         let document = self.Document();
         let mut names_with_first_named_element_map = HashMap::new();
         document
@@ -2467,10 +2454,6 @@ impl Window {
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub(crate) fn paint_worklet(&self, cx: &mut JSContext) -> DomRoot<Worklet> {
         self.paint_worklet.or_init(|| self.new_paint_worklet(cx))
-    }
-
-    pub(crate) fn has_document(&self) -> bool {
-        self.document.get().is_some()
     }
 
     pub(crate) fn clear_js_runtime(&self) {
@@ -2744,15 +2727,12 @@ impl Window {
         )
     }
 
-    pub(crate) fn request_screenshot_readiness(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn request_screenshot_readiness(&self, cx: &mut JSContext) {
         self.has_pending_screenshot_readiness_request.set(true);
         self.maybe_resolve_pending_screenshot_readiness_requests(cx);
     }
 
-    pub(crate) fn maybe_resolve_pending_screenshot_readiness_requests(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) {
+    pub(crate) fn maybe_resolve_pending_screenshot_readiness_requests(&self, cx: &mut JSContext) {
         let pending_request = self.has_pending_screenshot_readiness_request.get();
         if !pending_request {
             return;
@@ -3321,7 +3301,7 @@ impl Window {
         self.unhandled_resize_event.borrow().is_some()
     }
 
-    pub(crate) fn suspend(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn suspend(&self, cx: &mut JSContext) {
         // Suspend timer events.
         self.as_global_scope().suspend();
 
@@ -3334,7 +3314,7 @@ impl Window {
         // GC any unreachable objects generated by user script,
         // or unattached DOM nodes. Attached DOM nodes can't be GCd yet,
         // as the document might be reactivated later.
-        self.gc();
+        self.gc(cx);
     }
 
     pub(crate) fn resume(&self, can_gc: CanGc) {
@@ -3409,7 +3389,7 @@ impl Window {
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
     ///
     /// Handle the pending viewport resize.
-    fn run_resize_steps_for_layout_viewport(&self, cx: &mut js::context::JSContext) -> bool {
+    fn run_resize_steps_for_layout_viewport(&self, cx: &mut JSContext) -> bool {
         let Some((new_size, size_type)) = self.take_unhandled_resize_event() else {
             return false;
         };
@@ -3460,7 +3440,7 @@ impl Window {
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
     ///
     /// Returns true if there were any pending viewport resize events.
-    pub(crate) fn run_the_resize_steps(&self, cx: &mut js::context::JSContext) -> bool {
+    pub(crate) fn run_the_resize_steps(&self, cx: &mut JSContext) -> bool {
         let layout_viewport_resized = self.run_resize_steps_for_layout_viewport(cx);
 
         if self.has_changed_visual_viewport_dimension.get() {
@@ -3486,10 +3466,7 @@ impl Window {
 
     /// Evaluate media query lists and report changes
     /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
-    pub(crate) fn evaluate_media_queries_and_report_changes(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) {
+    pub(crate) fn evaluate_media_queries_and_report_changes(&self, cx: &mut JSContext) {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
         rooted_vec!(let mut mql_list);
@@ -3711,7 +3688,7 @@ impl Window {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         webview_id: WebViewId,
         runtime: Rc<Runtime>,
         script_chan: Sender<MainThreadScriptMsg>,
@@ -3904,30 +3881,6 @@ impl<T: Copy + MallocSizeOf> LayoutValue<T> {
         }
         Err(())
     }
-}
-
-fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f32>) -> bool {
-    let clip_rect = UntypedRect::new(
-        Point2D::new(
-            clip_rect.origin.x.to_f32_px(),
-            clip_rect.origin.y.to_f32_px(),
-        ),
-        Size2D::new(
-            clip_rect.size.width.to_f32_px(),
-            clip_rect.size.height.to_f32_px(),
-        ),
-    );
-
-    // We only need to move the clip rect if the viewport is getting near the edge of
-    // our preexisting clip rect. We use half of the size of the viewport as a heuristic
-    // for "close."
-    static VIEWPORT_SCROLL_MARGIN_SIZE: f32 = 0.5;
-    let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
-
-    (clip_rect.origin.x - new_viewport.origin.x).abs() <= viewport_scroll_margin.width ||
-        (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
-        (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
-        (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
 impl Window {
