@@ -1,17 +1,17 @@
-use rustenium_bidi_definitions::emulation::{
-    commands::{
-        EmulationCommand, SetForcedColorsModeThemeOverrideParams, SetGeolocationOverrideParams,
-        SetLocaleOverrideParams, SetNetworkConditionsParams, SetScreenOrientationOverrideParams,
-        SetScriptingEnabledParams, SetTimezoneOverrideParams, SetUserAgentOverrideParams,
-    },
-    results::{
-        SetForcedColorsModeThemeOverrideResult, SetGeolocationOverrideResult,
-        SetLocaleOverrideResult, SetNetworkConditionsResult, SetScreenOrientationOverrideResult,
-        SetScriptingEnabledResult, SetTimezoneOverrideResult, SetUserAgentOverrideResult,
+use servo_webdriver::bidi::{
+    EmulationCommand, EmulationResult,
+    emulation::{
+        SetForcedColorsModeThemeOverrideParameters, SetForcedColorsModeThemeOverrideResult,
+        SetGeolocationOverrideParameters, SetGeolocationOverrideResult,
+        SetLocaleOverrideParameters, SetLocaleOverrideResult, SetNetworkConditionsParameters,
+        SetNetworkConditionsResult, SetScreenOrientationOverrideParameters,
+        SetScreenOrientationOverrideResult, SetScriptingEnabledParameters,
+        SetScriptingEnabledResult, SetTimezoneOverrideParameters, SetTimezoneOverrideResult,
+        SetUserAgentOverrideParameters, SetUserAgentOverrideResult,
     },
 };
 
-use crate::{error::WebDriverBidiError, handler::Handler, model::EmulationResult};
+use crate::{error::WebDriverBidiError, handler::Handler};
 
 impl Handler {
     pub(super) async fn handle_emulation(
@@ -22,42 +22,45 @@ impl Handler {
             EmulationCommand::SetForcedColorsModeThemeOverride(cmd) => self
                 .handle_emulation_set_forced_colors_mode_theme_override(cmd.params)
                 .await
-                .map(EmulationResult::SetForcedColorsModeThemeOverride),
+                .map(EmulationResult::SetForcedColorsModeThemeOverrideResult),
             EmulationCommand::SetGeolocationOverride(cmd) => self
                 .handle_emulation_set_geolocation_override(cmd.params)
                 .await
-                .map(EmulationResult::SetGeolocationOverride),
+                .map(EmulationResult::SetGeolocationOverrideResult),
             EmulationCommand::SetLocaleOverride(cmd) => self
                 .handle_emulation_set_locale_override(cmd.params)
                 .await
-                .map(EmulationResult::SetLocaleOverride),
+                .map(EmulationResult::SetLocaleOverrideResult),
             EmulationCommand::SetNetworkConditions(cmd) => self
                 .handle_emulation_set_network_conditions(cmd.params)
                 .await
-                .map(EmulationResult::SetNetworkConditions),
+                .map(EmulationResult::SetNetworkConditionsResult),
             EmulationCommand::SetScreenOrientationOverride(cmd) => self
                 .handle_emulation_set_screen_orientation_override(cmd.params)
                 .await
-                .map(EmulationResult::SetScreenOrientationOverride),
+                .map(EmulationResult::SetScreenOrientationOverrideResult),
             EmulationCommand::SetUserAgentOverride(cmd) => self
                 .handle_emulation_set_user_agent_override(cmd.params)
                 .await
-                .map(EmulationResult::SetUserAgentOverride),
+                .map(EmulationResult::SetUserAgentOverrideResult),
             EmulationCommand::SetScriptingEnabled(cmd) => self
                 .handle_emulation_set_scripting_enabled(cmd.params)
                 .await
-                .map(EmulationResult::SetScriptingEnabled),
+                .map(EmulationResult::SetScriptingEnabledResult),
             EmulationCommand::SetTimezoneOverride(cmd) => self
                 .handle_emulation_set_timezone_override(cmd.params)
                 .await
-                .map(EmulationResult::SetTimezoneOverride),
+                .map(EmulationResult::SetTimezoneOverrideResult),
+            EmulationCommand::SetScreenSettingsOverride(set_screen_settings_override) => todo!(),
+            EmulationCommand::SetScrollbarTypeOverride(set_scrollbar_type_override) => todo!(),
+            EmulationCommand::SetTouchOverride(set_touch_override) => todo!(),
         }
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setForcedColorsModeThemeOverride>
     async fn handle_emulation_set_forced_colors_mode_theme_override(
         &self,
-        command_parameters: SetForcedColorsModeThemeOverrideParams,
+        command_parameters: SetForcedColorsModeThemeOverrideParameters,
     ) -> Result<SetForcedColorsModeThemeOverrideResult, WebDriverBidiError> {
         // 1. Let theme be command parameters["theme"].
 
@@ -80,7 +83,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setGeolocationOverride>
     async fn handle_emulation_set_geolocation_override(
         &self,
-        command_parameters: SetGeolocationOverrideParams,
+        command_parameters: SetGeolocationOverrideParameters,
     ) -> Result<SetGeolocationOverrideResult, WebDriverBidiError> {
         // 1. If command parameters contains "coordinates" and command parameters["coordinates"] contains "altitudeAccuracy" and command parameters["coordinates"] doesn’t contain "altitude", return error with error code invalid argument.
 
@@ -109,7 +112,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setLocaleOverride>
     async fn handle_emulation_set_locale_override(
         &self,
-        command_parameters: SetLocaleOverrideParams,
+        command_parameters: SetLocaleOverrideParameters,
     ) -> Result<SetLocaleOverrideResult, WebDriverBidiError> {
         // 1. If command parameters contains "userContexts" and command parameters contains "contexts", return error with error code invalid argument.
 
@@ -156,7 +159,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setNetworkConditions>
     async fn handle_emulation_set_network_conditions(
         &self,
-        command_parameters: SetNetworkConditionsParams,
+        command_parameters: SetNetworkConditionsParameters,
     ) -> Result<SetNetworkConditionsResult, WebDriverBidiError> {
         // If command parameters contains "userContexts" and command parameters contains "context", return error with error code invalid argument.
 
@@ -195,7 +198,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setScreenOrientationOverride>
     async fn handle_emulation_set_screen_orientation_override(
         &self,
-        command_parameters: SetScreenOrientationOverrideParams,
+        command_parameters: SetScreenOrientationOverrideParameters,
     ) -> Result<SetScreenOrientationOverrideResult, WebDriverBidiError> {
         // If the implementation is unable to adjust the screen orientations parameters with the given command parameters for any reason, return error with error code unsupported operation.
 
@@ -240,7 +243,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setUserAgentOverride>
     async fn handle_emulation_set_user_agent_override(
         &self,
-        command_parameters: SetUserAgentOverrideParams,
+        command_parameters: SetUserAgentOverrideParameters,
     ) -> Result<SetUserAgentOverrideResult, WebDriverBidiError> {
         //
         // If command parameters contains "userContexts" and command parameters contains "contexts", return error with error code invalid argument.
@@ -281,7 +284,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setScriptingEnabled>
     async fn handle_emulation_set_scripting_enabled(
         &self,
-        command_parameters: SetScriptingEnabledParams,
+        command_parameters: SetScriptingEnabledParameters,
     ) -> Result<SetScriptingEnabledResult, WebDriverBidiError> {
         // If command parameters contains "userContexts" and command parameters contains "contexts", return error with error code invalid argument.
 
@@ -317,7 +320,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setTimezoneOverride>
     async fn handle_emulation_set_timezone_override(
         &self,
-        command_parameters: SetTimezoneOverrideParams,
+        command_parameters: SetTimezoneOverrideParameters,
     ) -> Result<SetTimezoneOverrideResult, WebDriverBidiError> {
         // If command parameters contains "userContexts" and command parameters contains "contexts", return error with error code invalid argument.
 

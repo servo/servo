@@ -20,9 +20,9 @@ embedder_traits = { workspace = true }
 futures-util = { workspace = true }
 indexmap = { workspace = true }
 log = { workspace = true }
-rustenium-bidi-definitions = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo-base = { workspace = true }
+servo-webdriver = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 uuid = { workspace = true }

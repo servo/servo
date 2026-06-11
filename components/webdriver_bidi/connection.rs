@@ -4,7 +4,7 @@ use async_tungstenite::tungstenite::Message as WsMessage;
 use log::error;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::model::Message as BidiMessage;
+use servo_webdriver::bidi::Message as BidiMessage;
 
 static CONNECTION_ID: AtomicU64 = AtomicU64::new(0);
 

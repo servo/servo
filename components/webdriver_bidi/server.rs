@@ -8,7 +8,7 @@ use async_tungstenite::{
 };
 use futures_util::StreamExt;
 use log::error;
-use rustenium_bidi_definitions::base::{CommandMessage, ErrorCode, ErrorEnum, ErrorResponse};
+use servo_webdriver::bidi::{Command, ErrorCode, ErrorResponse};
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::mpsc,
@@ -82,7 +82,7 @@ async fn handle_ws_stream(
             send_invalid_argument_error(stream, None).await;
             return;
         };
-        let Ok(command) = serde_json::from_str::<CommandMessage>(&text) else {
+        let Ok(command) = serde_json::from_str::<Command>(&text) else {
             send_invalid_argument_error(stream, None).await;
             return;
         };
@@ -105,7 +105,6 @@ async fn handle_ws_stream(
         id: Option<u64>,
     ) {
         let error = ErrorResponse {
-            r#type: ErrorEnum::Error,
             id,
             error: ErrorCode::InvalidArgument,
             message: "invalid argumennt".to_string(),

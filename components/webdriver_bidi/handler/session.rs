@@ -1,18 +1,16 @@
 use crossbeam_channel::{Sender, bounded};
 use indexmap::{IndexMap, IndexSet};
-use rustenium_bidi_definitions::{
-    base::ErrorCode,
+use servo_webdriver::bidi::{
+    ErrorCode, SessionCommand, SessionResult,
     session::{
-        self,
-        commands::{New, SessionCommand},
-        types::UnsubscribeParameters,
+        New, NewResult, NewResultCapabilities, StatusResult, UnsubscribeParameters,
+        UnsubscribeResult,
     },
 };
 use uuid::Uuid;
 
 use crate::{
-    dispatcher::DispatchMessage, error::WebDriverBidiError, handler::Handler, model::SessionResult,
-    session::SessionId,
+    dispatcher::DispatchMessage, error::WebDriverBidiError, handler::Handler, session::SessionId,
 };
 
 impl Handler {
@@ -24,7 +22,7 @@ impl Handler {
             SessionCommand::Status(status) => self.handle_session_status().await,
             SessionCommand::New(session_new) => {
                 self.handle_session_new(
-                    session_new,
+                    *session_new,
                     // self.0.dispatch_tx
                     todo!(),
                 )
@@ -33,8 +31,7 @@ impl Handler {
             SessionCommand::End(end) => self.handle_session_end().await,
             SessionCommand::Subscribe(subscribe) => self.handle_session_subscribe().await,
             SessionCommand::Unsubscribe(unsubscribe) => {
-                self.handle_session_unsubscribe(&unsubscribe.params.unsubscribe_parameters)
-                    .await
+                self.handle_session_unsubscribe(&unsubscribe.params).await
             },
         }
     }
@@ -45,7 +42,7 @@ impl Handler {
         // capabilities communication between handler and embedder.
 
         // Step 1. let body
-        let body = session::results::StatusResult {
+        let body = StatusResult {
             ready: true,
             message: "".to_string(),
         };
@@ -82,16 +79,16 @@ impl Handler {
 
         // Step 8. let body be session.NewResult
 
-        let body = session::results::NewResult {
+        let body = NewResult {
             session_id: session_id.to_string(),
-            capabilities: session::types::NewResultCapabilities {
+            capabilities: NewResultCapabilities {
                 // TODO: fields below are hard coded or randomly filled
                 accept_insecure_certs: false,
                 browser_name: "servoshell".to_string(),
                 browser_version: "0.2.0".to_string(),
                 platform_name: "unknown".to_string(),
                 set_window_rect: false,
-                user_agent: None,
+                user_agent: "".to_string(),
                 proxy: None,
                 unhandled_prompt_behavior: None,
                 web_socket_url: None,
@@ -175,8 +172,6 @@ impl Handler {
         &self,
         cmd_params: &UnsubscribeParameters,
     ) -> Result<SessionResult, WebDriverBidiError> {
-        use session::types::UnsubscribeParameters;
-
         match cmd_params {
             // 1. If `command parameters` does not contain `subscriptions`:
             UnsubscribeParameters::UnsubscribeByIdRequest(unsubscribe_by_id_request) => {
@@ -213,10 +208,8 @@ impl Handler {
         };
 
         // 3. return success with data null.
-        Ok(SessionResult::Unsubscribe(
-            session::results::UnsubscribeResult {
-                extensible: Default::default(),
-            },
-        ))
+        Ok(SessionResult::UnsubscribeResult(UnsubscribeResult {
+            extensible: Default::default(),
+        }))
     }
 }

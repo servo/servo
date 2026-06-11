@@ -1,4 +1,5 @@
 ; https://www.w3.org/TR/2026/WD-webdriver-bidi-20260601/#cddl-index-cddl-module-local-end-definition
+; patches EmulationResult += SetNetworkConditionResult
 
 Message = (
   CommandResponse /
@@ -528,6 +529,7 @@ EmulationResult = (
   emulation.SetForcedColorsModeThemeOverrideResult /
   emulation.SetGeolocationOverrideResult /
   emulation.SetLocaleOverrideResult /
+  emulation.SetNetworkConditionsResult /
   emulation.SetScreenOrientationOverrideResult /
   emulation.SetScriptingEnabledResult /
   emulation.SetScrollbarTypeOverrideResult /

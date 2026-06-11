@@ -39,12 +39,11 @@ use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::webdriver_bidi::RequestId;
 use indexmap::IndexMap;
 use log::error;
-use rustenium_bidi_definitions::base::CommandMessage;
+use servo_webdriver::bidi::{Command, Message as BidiMessage};
 
 use crate::{
     connection::{Connection, ConnectionId},
     handler::WebDriverBidiHandler,
-    model::Message as BidiMessage,
     session::{Session, SessionId},
 };
 
@@ -54,7 +53,7 @@ use crate::{
 #[derive(Debug)]
 pub enum DispatchMessage {
     /// Deserialized BiDi command message, along with connection id.
-    Command(ConnectionId, Box<CommandMessage>),
+    Command(ConnectionId, Box<Command>),
     // TODO: new connection may connect to existing session
     NewConnection(Connection),
     // TODO: connection close/lost
@@ -251,7 +250,7 @@ impl<T: WebDriverBidiHandler> Dispatcher<T> {
     }
 
     /// Handle dispatch message, command branch
-    fn handle_dispatch_command(&mut self, conn_id: ConnectionId, cmd_msg: Box<CommandMessage>) {
+    fn handle_dispatch_command(&mut self, conn_id: ConnectionId, cmd_msg: Box<Command>) {
         let request_id = RequestId::next();
 
         let Some(target) = self.get_response_target(conn_id, cmd_msg.id) else {

@@ -208,7 +208,6 @@ rsa = { version = "0.9.10", features = ["sha1", "sha2"] }
 rusqlite = "0.37"
 rustc-demangle = "0.1"
 rustc-hash = "2.1.2"
-rustenium-bidi-definitions = "0.1.1"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
@@ -351,6 +350,7 @@ servo-media-webrtc = { version = "=0.2.0", path = "components/media/webrtc" }
 servo-tracing = { version = "=0.2.0", path = "components/servo_tracing" }
 servo-url = { version = "=0.2.0", path = "components/url" }
 servo-wakelock = { version = "=0.2.0", path = "components/wakelock" }
+servo-webdriver = { package = "servo-webdriver", version = "=0.2.0", path = "components/shared/webdriver" }
 storage = { package = "servo-storage", version = "=0.2.0", path = "components/storage" }
 storage_traits = { package = "servo-storage-traits", version = "=0.2.0", path = "components/shared/storage" }
 timers = { package = "servo-timers", version = "=0.2.0", path = "components/timers" }

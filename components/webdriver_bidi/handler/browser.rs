@@ -1,10 +1,14 @@
 use std::collections::HashSet;
 
-use rustenium_bidi_definitions::browser::{
-    self, commands::BrowserCommand, results::GetClientWindowsResult, types::ClientWindowInfo,
+use servo_webdriver::bidi::{
+    BrowserCommand, BrowserResult, EmptyParams,
+    browser::{
+        ClientWindowInfo, CreateUserContextParameters, GetClientWindowsResult,
+        RemoveUserContextParameters, SetClientWindowStateParameters, SetDownloadBehaviorParameters,
+    },
 };
 
-use crate::{error::WebDriverBidiError, handler::Handler, model::BrowserResult};
+use crate::{error::WebDriverBidiError, handler::Handler};
 
 impl Handler {
     pub(super) async fn handle_browser(
@@ -35,7 +39,7 @@ impl Handler {
 
     async fn handle_browser_close(
         &self,
-        _command_parameters: browser::commands::CloseParams,
+        _command_parameters: EmptyParams,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // 1. `End the session` with `session`.
 
@@ -51,7 +55,7 @@ impl Handler {
 
     async fn handle_browser_create_user_context(
         &self,
-        _command_parameters: browser::commands::CreateUserContextParams,
+        _command_parameters: CreateUserContextParameters,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // 1. Let user context be a new user context.
 
@@ -92,7 +96,7 @@ impl Handler {
         let result = GetClientWindowsResult { client_windows };
 
         // 5. Return success with data result.
-        Ok(BrowserResult::GetClientWindows(result))
+        Ok(BrowserResult::GetClientWindowsResult(result))
     }
 
     async fn handle_browser_get_user_contexts(&self) -> Result<BrowserResult, WebDriverBidiError> {
@@ -109,7 +113,7 @@ impl Handler {
 
     async fn handle_browser_remove_user_context(
         &self,
-        command_parameters: browser::commands::RemoveUserContextParams,
+        command_parameters: RemoveUserContextParameters,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // 1. Let user context id be command parameters["userContext"].
         // 2. If user context id is "default", return error with error code invalid argument.
@@ -127,7 +131,7 @@ impl Handler {
 
     async fn handle_browser_set_client_window_state(
         &self,
-        command_parameters: browser::commands::SetClientWindowStateParams,
+        command_parameters: SetClientWindowStateParameters,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // The remote end steps with session and command parameters are:
         //
@@ -155,7 +159,7 @@ impl Handler {
 
     async fn handle_browser_set_download_behavior(
         &self,
-        command_parameters: browser::commands::SetDownloadBehaviorParams,
+        command_parameters: SetDownloadBehaviorParameters,
     ) -> Result<BrowserResult, WebDriverBidiError> {
         // If command parameters["downloadBehavior"] is null, let download behavior be null.
         //

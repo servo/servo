@@ -1,9 +1,12 @@
-use rustenium_bidi_definitions::input::{
-    commands::{InputCommand, PerformActionsParams, ReleaseActionsParams, SetFilesParams},
-    results::{PerformActionsResult, ReleaseActionsResult, SetFilesResult},
+use servo_webdriver::bidi::{
+    InputCommand, InputResult,
+    input::{
+        PerformActionsParameters, PerformActionsResult, ReleaseActionsParameters,
+        ReleaseActionsResult, SetFilesParameters, SetFilesResult,
+    },
 };
 
-use crate::{error::WebDriverBidiError, handler::Handler, model::InputResult};
+use crate::{error::WebDriverBidiError, handler::Handler};
 
 impl Handler {
     pub(super) async fn handle_input(
@@ -14,22 +17,22 @@ impl Handler {
             InputCommand::PerformActions(cmd) => self
                 .handle_input_perform_actions(cmd.params)
                 .await
-                .map(InputResult::PerformActions),
+                .map(InputResult::PerformActionsResult),
             InputCommand::ReleaseActions(cmd) => self
                 .handle_input_release_actions(cmd.params)
                 .await
-                .map(InputResult::ReleaseActions),
+                .map(InputResult::ReleaseActionsResult),
             InputCommand::SetFiles(cmd) => self
                 .handle_input_set_files(cmd.params)
                 .await
-                .map(InputResult::SetFiles),
+                .map(InputResult::SetFilesResult),
         }
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-input-performActions>
     async fn handle_input_perform_actions(
         &self,
-        command_parameters: PerformActionsParams,
+        command_parameters: PerformActionsParameters,
     ) -> Result<PerformActionsResult, WebDriverBidiError> {
         // 1. Let `navigable id` be the value of the `context` field of `command parameters`.
 
@@ -55,7 +58,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-input-releaseActions>
     async fn handle_input_release_actions(
         &self,
-        command_parameters: ReleaseActionsParams,
+        command_parameters: ReleaseActionsParameters,
     ) -> Result<ReleaseActionsResult, WebDriverBidiError> {
         // 1. Let `navigable id` be the value of the context field of `command parameters`.
 
@@ -84,7 +87,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-input-setFiles>
     async fn handle_input_set_files(
         &self,
-        command_parameters: SetFilesParams,
+        command_parameters: SetFilesParameters,
     ) -> Result<SetFilesResult, WebDriverBidiError> {
         // 1. Let `navigable id` be the value of the context field of `command parameters`.
 

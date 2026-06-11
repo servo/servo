@@ -1,26 +1,18 @@
 use std::collections::{HashMap, HashSet};
 
-use rustenium_bidi_definitions::{
-    base::ErrorCode,
-    browsing_context::types::BrowsingContext,
+use servo_webdriver::bidi::{
+    ErrorCode, ScriptCommand, ScriptResult,
+    browsing_context::BrowsingContext,
     script::{
-        commands::{
-            AddPreloadScriptParams, CallFunctionParams, DisownParams, EvaluateParams,
-            GetRealmsParams, RemovePreloadScriptParams, ScriptCommand,
-        },
-        results::{
-            AddPreloadScriptResult, CallFunctionResult, DisownResult, EvaluateResult,
-            GetRealmsResult, RemovePreloadScriptResult,
-        },
-        types::{
-            EvaluateResultSuccess, EvaluateResultSuccessType, Handle, PreloadScript, RealmInfo,
-            Target,
-        },
+        AddPreloadScriptParameters, AddPreloadScriptResult, CallFunctionParameters,
+        CallFunctionResult, DisownParameters, DisownResult, EvaluateParameters, EvaluateResult,
+        EvaluateResultSuccess, GetRealmsParameters, GetRealmsResult, Handle, PreloadScript,
+        RealmInfo, RemovePreloadScriptParameters, RemovePreloadScriptResult, Target,
     },
 };
 use uuid::Uuid;
 
-use crate::{error::WebDriverBidiError, handler::Handler, model::ScriptResult};
+use crate::{error::WebDriverBidiError, handler::Handler};
 
 impl Handler {
     pub(super) async fn handle_script(
@@ -31,34 +23,34 @@ impl Handler {
             ScriptCommand::AddPreloadScript(cmd) => self
                 .handle_script_add_preload_script(cmd.params)
                 .await
-                .map(ScriptResult::AddPreloadScript),
+                .map(ScriptResult::AddPreloadScriptResult),
             ScriptCommand::Disown(cmd) => self
                 .handle_script_disown(cmd.params)
                 .await
-                .map(ScriptResult::Disown),
+                .map(ScriptResult::DisownResult),
             ScriptCommand::CallFunction(cmd) => self
                 .handle_script_call_function(cmd.params)
                 .await
-                .map(ScriptResult::CallFunction),
+                .map(ScriptResult::CallFunctionResult),
             ScriptCommand::Evaluate(cmd) => self
                 .handle_script_evaluate(cmd.params)
                 .await
-                .map(ScriptResult::Evaluate),
+                .map(ScriptResult::EvaluateResult),
             ScriptCommand::GetRealms(cmd) => self
                 .handle_script_get_realms(cmd.params)
                 .await
-                .map(ScriptResult::GetRealms),
+                .map(ScriptResult::GetRealmsResult),
             ScriptCommand::RemovePreloadScript(cmd) => self
                 .handle_script_remove_preload_script(cmd.params)
                 .await
-                .map(ScriptResult::RemovePreloadScript),
+                .map(ScriptResult::RemovePreloadScriptResult),
         }
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-script-addPreloadScript>
     async fn handle_script_add_preload_script(
         &self,
-        command_parameters: AddPreloadScriptParams,
+        command_parameters: AddPreloadScriptParameters,
     ) -> Result<AddPreloadScriptResult, WebDriverBidiError> {
         // 1. If `command parameters` [contains] "userContexts" and `command parameters` [contains] "contexts",
         // return [error] with [error code] [invalid argument].
@@ -135,7 +127,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-script-disown>
     async fn handle_script_disown(
         &self,
-        command_parameters: DisownParams,
+        command_parameters: DisownParameters,
     ) -> Result<DisownResult, WebDriverBidiError> {
         // 1. Let `realm` be the result of [trying] to [get a realm from a target] given the value of the `target` field of
         // `command parameters`.
@@ -161,7 +153,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-script-callFunction>
     async fn handle_script_call_function(
         &self,
-        command_parameters: CallFunctionParams,
+        command_parameters: CallFunctionParameters,
     ) -> Result<CallFunctionResult, WebDriverBidiError> {
         // 1. Let realm be the result of trying to get a realm from a target given the value of the target field of command parameters.
         // 2. Let realm id be realm’s realm id.
@@ -203,7 +195,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-script-evaluate>
     async fn handle_script_evaluate(
         &self,
-        command_parameters: EvaluateParams,
+        command_parameters: EvaluateParameters,
     ) -> Result<EvaluateResult, WebDriverBidiError> {
         // 1. Let realm be the result of trying to get a realm from a target given the value of the target field of command parameters.
         // 2. Let realm id be realm’s realm id.
@@ -236,7 +228,6 @@ impl Handler {
         // field set to `realm id`, and the `result` field set to result.
         Ok(EvaluateResult::EvaluateResultSuccess(
             EvaluateResultSuccess {
-                r#type: EvaluateResultSuccessType::Success,
                 result: todo!(),
                 realm: todo!(),
             },
@@ -246,7 +237,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-script-getRealms>
     async fn handle_script_get_realms(
         &self,
-        command_parameters: GetRealmsParams,
+        command_parameters: GetRealmsParameters,
     ) -> Result<GetRealmsResult, WebDriverBidiError> {
         // 1. Let `environment settings` be a [list] of all the [environment settings objects] that have their [execution
         // ready flag] set.
@@ -316,7 +307,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-script-removePreloadScript>
     async fn handle_script_remove_preload_script(
         &self,
-        command_parameters: RemovePreloadScriptParams,
+        command_parameters: RemovePreloadScriptParameters,
     ) -> Result<RemovePreloadScriptResult, WebDriverBidiError> {
         // 1. Let `script` be the value of the `"script"` field in `command parameters`.
         let script = command_parameters.script;

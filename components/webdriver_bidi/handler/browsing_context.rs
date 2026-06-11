@@ -1,11 +1,11 @@
 use embedder_traits::webdriver_bidi::{WaitCondition, WebDriverBidiToEmbedderMsg};
-use rustenium_bidi_definitions::{
-    base::ErrorCode,
-    browsing_context::{self, commands::BrowsingContextCommand, types::ReadinessState},
-};
 use servo_base::id::{BrowsingContextId, WebViewId};
+use servo_webdriver::bidi::{
+    BrowsingContextCommand, BrowsingContextResult, ErrorCode,
+    browsing_context::{self, ReadinessState},
+};
 
-use crate::{error::WebDriverBidiError, handler::Handler, model::BrowsingContextResult};
+use crate::{error::WebDriverBidiError, handler::Handler};
 
 impl Handler {
     pub(super) async fn handle_browsing_context(
@@ -47,18 +47,21 @@ impl Handler {
                 self.handle_browsing_context_traverse_history(traverse_history.params.delta)
                     .await
             },
+            BrowsingContextCommand::SetBypassCsp(set_bypass_csp) => todo!(),
+            BrowsingContextCommand::StartScreencast(start_screencast) => todo!(),
+            BrowsingContextCommand::StopScreencast(stop_screencast) => todo!(),
         }
     }
 
     async fn handle_browsing_context_activate(
         &self,
-        command_parameters: browsing_context::commands::ActivateParams,
+        command_parameters: browsing_context::ActivateParameters,
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         // 1. Let `navigable id` be the value of the `command parameters["context"]` field.
         let navigable_id = &command_parameters.context;
 
         // 2. Let `navigable` be the result of trying to get a navigable with navigable id.
-        let navigable = self.get_a_navigable(navigable_id.as_ref()).await;
+        let navigable = self.get_a_navigable(&navigable_id.to_string()).await;
 
         // 3. If `navigable` is not a [top-level traversable], return [error] with [error code invalid argument].
         if !self.is_navigable_top_level_traversable(navigable).await {
@@ -74,7 +77,7 @@ impl Handler {
 
     async fn handle_browsing_context_capture_screenshot(
         &self,
-        command_parameters: browsing_context::commands::CaptureScreenshotParams,
+        command_parameters: browsing_context::CaptureScreenshotParameters,
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         // Let navigable id be the value of the context field of command parameters if present, or null otherwise.
         //
@@ -145,7 +148,7 @@ impl Handler {
     /// The remote end steps with command parameters are:
     async fn handle_browsing_context_close(
         &self,
-        command_paramters: browsing_context::commands::CloseParams,
+        command_paramters: browsing_context::CloseParameters,
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         // The remote end steps with command parameters are:
         // Let navigable id be the value of the context field of command parameters.
@@ -210,7 +213,7 @@ impl Handler {
 
     async fn handle_browsing_context_reload(
         &self,
-        cmd: browsing_context::commands::Reload,
+        cmd: browsing_context::Reload,
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         // Step 1: let navigable id be "context"
         let navigable_id = &cmd.params.context;
@@ -300,8 +303,8 @@ impl Handler {
         // 2. Run implementation-specific steps to set the system focus on the navigable if it is not focused.
 
         // 3. Return [success] with data null.
-        Ok(crate::model::BrowsingContextResult::Activate(
-            browsing_context::results::ActivateResult {
+        Ok(BrowsingContextResult::ActivateResult(
+            browsing_context::ActivateResult {
                 extensible: Default::default(),
             },
         ))

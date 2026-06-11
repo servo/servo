@@ -2,12 +2,11 @@
 
 use std::path::PathBuf;
 
-use rustenium_bidi_definitions::{
-    base::ErrorCode,
+use servo_webdriver::bidi::{
+    ErrorCode, WebExtensionCommand, WebExtensionResult,
     web_extension::{
-        commands::{InstallParams, UninstallParams, WebExtensionCommand},
-        results::{InstallResult, UninstallResult},
-        types::{Extension, ExtensionData},
+        Extension, ExtensionData, InstallParameters, InstallResult, UninstallParameters,
+        UninstallResult,
     },
 };
 use uuid::Uuid;
@@ -18,7 +17,6 @@ use crate::{
         Handler,
         common::{DirectoryEntry, DirectoryLocator, FileLocator},
     },
-    model::WebExtensionResult,
 };
 
 // NOTE: Servo currently does not support web extensions.
@@ -33,18 +31,18 @@ impl Handler {
             WebExtensionCommand::Install(cmd) => self
                 .handle_web_extension_install(cmd.params)
                 .await
-                .map(WebExtensionResult::Install),
+                .map(WebExtensionResult::InstallResult),
             WebExtensionCommand::Uninstall(cmd) => self
                 .handle_web_extension_uninstall(cmd.params)
                 .await
-                .map(WebExtensionResult::Uninstall),
+                .map(WebExtensionResult::UninstallResult),
         }
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-webExtension-install>
     async fn handle_web_extension_install(
         &self,
-        command_parameters: InstallParams,
+        command_parameters: InstallParameters,
     ) -> Result<InstallResult, WebDriverBidiError> {
         // 1. If installing web extensions isn’t supported return [error] with error code [unsupported operation].
         if !IS_WEB_EXTENSION_SUPPORTED {
@@ -87,7 +85,7 @@ impl Handler {
         // 6. Let `result` be a [map] matching the `webExtension.InstallResult` production with the `extension` field
         // set to `extension id`.
         let result = InstallResult {
-            extension: Extension::new(extension_id),
+            extension: extension_id.to_string(),
         };
 
         // 7. Return [success] with data `result`.
@@ -97,7 +95,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-webExtension-uninstall>
     async fn handle_web_extension_uninstall(
         &self,
-        command_parameters: UninstallParams,
+        command_parameters: UninstallParameters,
     ) -> Result<UninstallResult, WebDriverBidiError> {
         // 1. Let `extension` be `command parameters["extension"]`.
         let extension = &command_parameters.extension;

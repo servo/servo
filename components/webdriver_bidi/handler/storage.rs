@@ -1,13 +1,13 @@
-use rustenium_bidi_definitions::{
-    network::types::{BytesValue, Cookie as SerializedCookie},
+use servo_webdriver::bidi::{
+    StorageCommand, StorageResult,
+    network::{BytesValue, Cookie as SerializedCookie},
     storage::{
-        commands::{DeleteCookiesParams, GetCookiesParams, SetCookieParams, StorageCommand},
-        results::{DeleteCookiesResult, GetCookiesResult, SetCookieResult},
-        types::{CookieFilter, PartitionDescriptor, PartitionKey},
+        CookieFilter, DeleteCookiesParameters, DeleteCookiesResult, GetCookiesParameters,
+        GetCookiesResult, PartitionDescriptor, PartitionKey, SetCookieParameters, SetCookieResult,
     },
 };
 
-use crate::{error::WebDriverBidiError, handler::Handler, model::StorageResult};
+use crate::{error::WebDriverBidiError, handler::Handler};
 
 impl Handler {
     pub(super) async fn handle_storage(
@@ -18,22 +18,22 @@ impl Handler {
             StorageCommand::GetCookies(cmd) => self
                 .handle_storage_get_cookies(cmd.params)
                 .await
-                .map(StorageResult::GetCookies),
+                .map(StorageResult::GetCookiesResult),
             StorageCommand::SetCookie(cmd) => self
                 .handle_storage_set_cookie(cmd.params)
                 .await
-                .map(StorageResult::SetCookie),
+                .map(StorageResult::SetCookieResult),
             StorageCommand::DeleteCookies(cmd) => self
                 .handle_storage_delete_cookies(cmd.params)
                 .await
-                .map(StorageResult::DeleteCookies),
+                .map(StorageResult::DeleteCookiesResult),
         }
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-getCookies>
     async fn handle_storage_get_cookies(
         &self,
-        command_parameters: GetCookiesParams,
+        command_parameters: GetCookiesParameters,
     ) -> Result<GetCookiesResult, WebDriverBidiError> {
         // 1. Let `filter` be the value of the `filter` field of `command parameters` if it is present or an empty [map] if it
         // isn’t.
@@ -89,7 +89,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-setCookie>
     async fn handle_storage_set_cookie(
         &self,
-        command_parameters: SetCookieParams,
+        command_parameters: SetCookieParameters,
     ) -> Result<SetCookieResult, WebDriverBidiError> {
         // 1. Let `cookie spec` be the value of the `cookie` field of `command parameters`.
         let cookie_spec = command_parameters.cookie;
@@ -146,7 +146,7 @@ impl Handler {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-deleteCookies>
     async fn handle_storage_delete_cookies(
         &self,
-        command_parameters: DeleteCookiesParams,
+        command_parameters: DeleteCookiesParameters,
     ) -> Result<DeleteCookiesResult, WebDriverBidiError> {
         // 1. Let `filter` be the value of the `filter` field of `command parameters` if it is present or an empty [map] if it
         // isn’t.

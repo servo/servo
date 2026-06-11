@@ -297,7 +297,7 @@ impl Display for ItemStruct {
             } else {
                 format_args!("{}", field.name)
             };
-            writeln!(f, "{indent_mod}{INDENT}{}: {},", field_name, field.ty)?;
+            writeln!(f, "{indent_mod}{INDENT}pub {}: {},", field_name, field.ty)?;
         }
         writeln!(f, "{indent_mod}}}")?;
         Ok(())

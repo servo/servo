@@ -1,6 +1,6 @@
-use rustenium_bidi_definitions::network::commands::NetworkCommand;
+use servo_webdriver::bidi::{NetworkCommand, NetworkResult};
 
-use crate::{error::WebDriverBidiError, handler::Handler, model::NetworkResult};
+use crate::{error::WebDriverBidiError, handler::Handler};
 
 impl Handler {
     pub(super) async fn handle_network(
