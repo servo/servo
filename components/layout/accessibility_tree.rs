@@ -234,7 +234,7 @@ impl AccessibilityTree {
 
     /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
     /// the tree.
-    fn remove_stale_nodes(&mut self, mut update: AccessibilityUpdate) {
+    fn drop_removed_nodes(&mut self, mut update: AccessibilityUpdate) {
         if let Some(rooted_nodes) = std::mem::take(&mut update.rooted_nodes) {
             self.assert_removed_nodes_were_rooted(&update, rooted_nodes);
         }
@@ -743,7 +743,7 @@ impl AccessibilityUpdate {
             tree_id: tree.tree_id,
         };
 
-        tree.remove_stale_nodes(self);
+        tree.drop_removed_nodes(self);
 
         Some(tree_update)
     }
