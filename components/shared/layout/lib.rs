@@ -663,6 +663,9 @@ pub struct ReflowStatistics {
     pub rebuilt_fragment_count: u32,
     /// A count of the number of fragments that are reused, but have had their style change.
     pub restyle_fragment_count: u32,
+    /// A count of the number of fragments that are reused, but may have had some descendant
+    /// fragment change.
+    pub only_descendants_changed_count: u32,
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle

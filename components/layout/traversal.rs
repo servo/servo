@@ -419,6 +419,7 @@ impl<'a> ElementDamageSet<'a> {
 
                 self.node.with_layout_box_base_including_pseudos(|base| {
                     base.invalidate_caches(&self);
+                    base.mark_fragments_as_descendants_changed();
                 });
                 LayoutDamage::RecalculateOverflow |
                     LayoutDamage::DescendantCollectedAsLayoutRoot |
@@ -434,6 +435,7 @@ impl<'a> ElementDamageSet<'a> {
                 let mut inline_size_depends_on_content = false;
                 self.node.with_layout_box_base_including_pseudos(|base| {
                     inline_size_depends_on_content |= base.invalidate_caches(&self);
+                    base.mark_fragments_as_descendants_changed();
                 });
                 self.adjust_inline_content_size_damage(
                     &mut damage_for_parent,
