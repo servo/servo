@@ -277,17 +277,17 @@ impl IDBFactory {
                 let connection = request.get_or_init_connection(
                     cx,
                     &self.global(),
-                    name.clone(),
+                    name,
                     version,
+                    object_store_names,
                     upgraded,
                 );
-                connection.set_object_store_names_from_backend(object_store_names);
 
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
                 // set request’s done flag,
                 // and fire an event named success at request.
-                request.dispatch_success(cx, name, version, upgraded);
+                request.dispatch_success(cx, connection);
             },
             ConnectionMsg::Upgrade {
                 name,
@@ -306,10 +306,16 @@ impl IDBFactory {
                     );
                 };
 
-                let connection = request.get_or_init_connection(cx, &global, name, version, false);
+                let connection = request.get_or_init_connection(
+                    cx,
+                    &global,
+                    name,
+                    version,
+                    object_store_names,
+                    false,
+                );
                 // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
                 // Step 3. Set transaction’s scope to connection’s object store set.
-                connection.set_object_store_names_from_backend(object_store_names);
                 request.upgrade_db_version(cx, &connection, old_version, version, transaction);
             },
             ConnectionMsg::VersionError { name, id } => {
@@ -337,8 +343,7 @@ impl IDBFactory {
                         "There should be a request to handle ConnectionMsg::VersionChange."
                     );
                 };
-                let connection =
-                    request.get_or_init_connection(cx, &global, name.clone(), version, false);
+                let connection = request.get_connection();
 
                 // Step 10.2: fire a version change event named versionchange at entry with db’s version and version.
                 connection.dispatch_versionchange(cx, old_version, Some(version));
