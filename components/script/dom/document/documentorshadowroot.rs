@@ -8,11 +8,11 @@ use std::fmt;
 
 use embedder_traits::UntrustedNodeAddress;
 use js::context::JSContext;
+use js::conversions::FromJSValConvertible;
 use js::rust::HandleValue;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::error::{Error, ErrorResult};
-use script_bindings::script_runtime::CanGc;
 use servo_arc::Arc;
 use servo_config::pref;
 use style::media_queries::MediaList;
@@ -25,7 +25,7 @@ use crate::dom::Document;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
-use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertible};
+use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -399,12 +399,8 @@ impl DocumentOrShadowRoot {
         incoming_value: HandleValue,
         owner: &StyleSheetListOwner,
     ) -> ErrorResult {
-        let maybe_stylesheets = Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(
-            cx.into(),
-            incoming_value,
-            (),
-            CanGc::from_cx(cx),
-        );
+        let maybe_stylesheets =
+            Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(cx, incoming_value, ());
 
         match maybe_stylesheets {
             Ok(ConversionResult::Success(stylesheets)) => {

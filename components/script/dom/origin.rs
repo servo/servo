@@ -10,7 +10,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::OriginBinding::OriginMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, SafeFromJSValConvertible, StringificationBehavior, root_from_handlevalue,
+    ConversionResult, FromJSValConvertible, StringificationBehavior, root_from_handlevalue,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
@@ -111,24 +111,25 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-origin-from>
-    fn From(cx: JSContext, global: &GlobalScope, value: HandleValue) -> Fallible<DomRoot<Origin>> {
+    fn From(
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+        value: HandleValue,
+    ) -> Fallible<DomRoot<Origin>> {
         let can_gc = CanGc::deprecated_note();
 
         // Step 1. If value is a platform object:
         //   1. Let origin be the result of executing value's extract an origin operation.
         //   2. If origin is not null, then return a new Origin object whose origin is origin.
-        if let Some(origin) = Origin::extract_an_origin_from_platform_object(value, cx, global) {
+        if let Some(origin) =
+            Origin::extract_an_origin_from_platform_object(value, cx.into(), global)
+        {
             return Ok(Origin::new(global, None, origin, can_gc));
         }
 
         // Step 2. If value is a string:
         if value.get().is_string() {
-            let s = match DOMString::safe_from_jsval(
-                cx,
-                value,
-                StringificationBehavior::Default,
-                can_gc,
-            ) {
+            let s = match DOMString::safe_from_jsval(cx, value, StringificationBehavior::Default) {
                 Ok(ConversionResult::Success(s)) => s,
                 _ => return Err(Error::Type(c"Failed to convert value to string".to_owned())),
             };

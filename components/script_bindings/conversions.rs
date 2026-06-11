@@ -78,32 +78,6 @@ pub enum StringificationBehavior {
     Empty,
 }
 
-/// A safe wrapper for `FromJSValConvertible`.
-pub trait SafeFromJSValConvertible: Sized {
-    type Config;
-
-    #[allow(clippy::result_unit_err)] // Type definition depends on mozjs
-    fn safe_from_jsval(
-        cx: SafeJSContext,
-        value: HandleValue,
-        option: Self::Config,
-        _can_gc: CanGc,
-    ) -> Result<ConversionResult<Self>, ()>;
-}
-
-impl<T: FromJSValConvertible> SafeFromJSValConvertible for T {
-    type Config = <T as FromJSValConvertible>::Config;
-
-    fn safe_from_jsval(
-        cx: SafeJSContext,
-        value: HandleValue,
-        option: Self::Config,
-        _can_gc: CanGc,
-    ) -> Result<ConversionResult<Self>, ()> {
-        unsafe { T::from_jsval(*cx, value, option) }
-    }
-}
-
 // https://heycam.github.io/webidl/#es-DOMString
 impl FromJSValConvertible for DOMString {
     type Config = StringificationBehavior;
