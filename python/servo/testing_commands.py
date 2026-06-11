@@ -1154,39 +1154,86 @@ keep_logging = True
 memory_usage_data = []
 
 
-def log_memory_usage():
+def windows_commit_info() -> Optional[dict[str, int]]:
+    if sys.platform != "win32":
+        return None
+    import ctypes
+    from ctypes import wintypes
+
+    class PERFORMANCE_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("cb", wintypes.DWORD),
+            ("CommitTotal", ctypes.c_size_t),
+            ("CommitLimit", ctypes.c_size_t),
+            ("CommitPeak", ctypes.c_size_t),
+            ("PhysicalTotal", ctypes.c_size_t),
+            ("PhysicalAvailable", ctypes.c_size_t),
+            ("SystemCache", ctypes.c_size_t),
+            ("KernelTotal", ctypes.c_size_t),
+            ("KernelPaged", ctypes.c_size_t),
+            ("KernelNonpaged", ctypes.c_size_t),
+            ("PageSize", ctypes.c_size_t),
+            ("HandleCount", wintypes.DWORD),
+            ("ProcessCount", wintypes.DWORD),
+            ("ThreadCount", wintypes.DWORD),
+        ]
+
+    info = PERFORMANCE_INFORMATION()
+    info.cb = ctypes.sizeof(info)
+    if not ctypes.windll.psapi.GetPerformanceInfo(ctypes.byref(info), info.cb):
+        return None
+    return {
+        "total": info.CommitTotal * info.PageSize,
+        "limit": info.CommitLimit * info.PageSize,
+        "peak": info.CommitPeak * info.PageSize,
+    }
+
+
+def log_memory_usage() -> None:
     while keep_logging:
         system_memory = psutil.virtual_memory()
+        commit = windows_commit_info()
         process_memory = []
         processes = []
         for process in psutil.process_iter():
             try:
+                memory_info = process.memory_info()
                 processes.append(
                     {
                         "name": process.name(),
-                        "rss": process.memory_info().rss,
+                        "rss": memory_info.rss,
+                        "vms": memory_info.vms,
                         "cmdline": process.cmdline(),
                     }
                 )
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
+        commit_summary = ""
+        if commit is not None:
+            commit_summary = (
+                f" commit charge {commit['total'] // 1048576}M/{commit['limit'] // 1048576}M"
+                f" (peak {commit['peak'] // 1048576}M),"
+            )
         print(
-            f">>> memory usage: {system_memory.available // 1048576}M/{system_memory.total // 1048576}M available, {len(processes)} processes:",
+            f">>> memory usage: {system_memory.available // 1048576}M/{system_memory.total // 1048576}M available,"
+            f"{commit_summary} {len(processes)} processes:",
             end="",
         )
-        processes.sort(key=lambda process: -process["rss"])
-        for i, process in enumerate(processes):
+        sort_key = "vms" if sys.platform == "win32" else "rss"
+        processes.sort(key=lambda entry: -entry[sort_key])
+        for i, entry in enumerate(processes):
             if i < 10:
-                print(f" {process['name']} ({process['rss'] // 1024}K)", end="")
+                print(f" {entry['name']} ({entry['rss'] // 1024}K rss, {entry['vms'] // 1024}K vms)", end="")
             else:
-                process["cmdline"] = None
-            process_memory.append(process)
+                entry["cmdline"] = None
+            process_memory.append(entry)
         memory_usage_data.append(
             {
                 "system_memory": {
                     "available": system_memory.available,
                     "total": system_memory.total,
                 },
+                "commit": commit,
                 "process_memory": process_memory,
             }
         )
