@@ -23,6 +23,9 @@ on:
       unit-tests:
         required: true
         type: boolean
+      devtools-tests:
+        required: true
+        type: boolean
       build-libservo:
         required: true
         type: boolean
@@ -95,6 +98,7 @@ jobs:
       wpt: ${{ inputs.wpt }}
       number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
       unit-tests: ${{ inputs.unit-tests }}
+      devtools-tests: ${{ inputs.devtools-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}

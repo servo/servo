@@ -24,6 +24,9 @@ on:
       unit-tests:
         required: false
         type: boolean
+      devtools-tests:
+        required: false
+        type: boolean
       bencher:
         required: false
         type: boolean
@@ -112,6 +115,7 @@ jobs:
       wpt: ${{ matrix.wpt }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
+      devtools-tests: ${{ matrix.devtools_tests }}
       build-libservo: ${{ matrix.build_libservo }}
       build-args: ${{ matrix.build_args }}
       wpt-args: ${{ matrix.wpt_args }}

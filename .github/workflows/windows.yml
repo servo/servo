@@ -203,9 +203,6 @@ jobs:
           disable_search: true
           flags: unittests,unittests-windows,unittests-windows-${{ inputs.profile }}
           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Devtools tests
-        if: ${{ false && inputs.unit-tests }}  # FIXME #39273
-        run: .\mach test-devtools --profile ${{ inputs.profile }}
       - name: Archive build timing
         uses: actions/upload-artifact@v7
         with:
