@@ -83,7 +83,6 @@ use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 /// Supported image MIME types as defined by
@@ -1341,20 +1340,20 @@ impl HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-    fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>, can_gc: CanGc) {
+    fn react_to_decode_image_sync_steps(&self, cx: &mut JSContext, promise: Rc<Promise>) {
         // Step 2.2. If any of the following are true: this's node document is not fully active; or
         // this's current request's state is broken, then reject promise with an "EncodingError"
         // DOMException.
         if !self.owner_document().is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
-            promise.reject_error(Error::Encoding(None), can_gc);
+            promise.reject_error_with_cx(cx, Error::Encoding(None));
         } else if matches!(
             self.current_request.borrow().state,
             State::CompletelyAvailable
         ) {
             // this doesn't follow the spec, but it's been discussed in <https://github.com/whatwg/html/issues/4217>
-            promise.resolve_native(&(), can_gc);
+            promise.resolve_native_with_cx(cx, &());
         } else if matches!(self.current_request.borrow().state, State::Unavailable) &&
             self.current_request.borrow().source_url.is_none()
         {
@@ -1362,7 +1361,7 @@ impl HTMLImageElement {
             // request's state is unavailable and current URL is empty string (<img> without "src"
             // and "srcset" attributes) then reject promise with an "EncodingError" DOMException.
             // <https://github.com/whatwg/html/issues/11769>
-            promise.reject_error(Error::Encoding(None), can_gc);
+            promise.reject_error_with_cx(cx, Error::Encoding(None));
         } else {
             self.image_decode_promises.borrow_mut().push(promise);
         }
@@ -1657,7 +1656,7 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                 ref elem,
                 ref promise,
             } => {
-                elem.react_to_decode_image_sync_steps(promise.clone(), CanGc::from_cx(cx));
+                elem.react_to_decode_image_sync_steps(cx, promise.clone());
             },
         }
     }
