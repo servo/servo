@@ -29,4 +29,5 @@ interface LayoutResult {
     readonly attribute /* FrozenArray<DOMString> */ any phases;
     readonly attribute unsigned long rebuiltFragmentCount;
     readonly attribute unsigned long restyleFragmentCount;
+    readonly attribute unsigned long onlyDescendantsChangedCount;
 };

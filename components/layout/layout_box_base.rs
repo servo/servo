@@ -23,7 +23,8 @@ use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::flow::CollapsibleWithParentStartMargin;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, SpecificLayoutInfo,
+    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, FragmentStatus,
+    SpecificLayoutInfo,
 };
 use crate::geom::LogicalSides1D;
 use crate::positioned::{PositioningContext, relative_adjustement};
@@ -320,6 +321,14 @@ impl LayoutBoxBase {
     pub(crate) fn clear_scrollable_overflow_all_on_fragments(&self) {
         for fragment in self.fragments.borrow().iter() {
             fragment.clear_scrollable_overflow();
+        }
+    }
+
+    pub(crate) fn mark_fragments_as_descendants_changed(&self) {
+        for fragment in self.fragments.borrow().iter() {
+            if let Some(base) = fragment.base() {
+                base.set_status(FragmentStatus::OnlyDescendantsChanged);
+            }
         }
     }
 }
