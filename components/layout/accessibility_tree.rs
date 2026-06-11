@@ -15,7 +15,7 @@ use servo_base::Epoch;
 use servo_base::print_tree::PrintTree;
 use servo_config::opts::{self, DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::pref;
-use style::dom::{NodeInfo, OpaqueNode};
+use style::dom::OpaqueNode;
 use web_atoms::{LocalName, local_name};
 
 use crate::ArcRefCell;
@@ -130,28 +130,30 @@ impl AccessibilityTree {
         rooted_nodes: Option<FxHashSet<OpaqueNode>>,
     ) -> Option<accesskit::TreeUpdate> {
         let mut update = AccessibilityUpdate::new(rooted_nodes);
-        let (root_node_id, _) = self.get_or_create_node(root_dom_node, &mut update);
+        let (root_node_id, root_node) = self.get_or_create_node(root_dom_node, &mut update);
         self.root_node_id = Some(root_node_id);
 
-        self.update_node_and_descendants(root_dom_node, &mut update);
+        self.update_node_and_descendants_from_dom_node(&root_node, root_dom_node, &mut update);
 
         update.finalize(self)
     }
 
-    /// Update this tree starting at the given DOM node, adding any changed nodes to the given
-    /// [`AccessibilityUpdate`].
-    fn update_node_and_descendants(
+    /// Update the given AccessibilityNode from its corresponding DOM node.
+    /// If it has new children, those will be recursively populated here.
+    // Any changed nodes will be added to the given [`AccessibilityUpdate`].
+    fn update_node_and_descendants_from_dom_node(
         &mut self,
+        node: &ArcRefCell<AccessibilityNode>,
         dom_node: &ServoLayoutNode<'_>,
         update: &mut AccessibilityUpdate,
     ) -> bool {
-        let node = self.assert_node_for_dom_node(dom_node);
         let mut node = node.borrow_mut();
 
-        // TODO: read accessibility damage (right now, assume damage is complete)
-        let any_descendant_updated = node.update_descendants(dom_node, self, update);
+        // TODO: read accessibility damage from DOM (right now, assume damage is complete)
+        let node_updated = node.update_node_from_dom_node(dom_node);
+        let any_descendant_updated = node.update_descendants_from_dom_node(dom_node, self, update);
 
-        node.update_node(dom_node, self, any_descendant_updated);
+        node.update_node_local(node_updated || any_descendant_updated, self);
 
         if node.updated {
             update.add(&mut node);
@@ -184,16 +186,8 @@ impl AccessibilityTree {
         (id, node.clone())
     }
 
-    fn assert_node_for_dom_node(
-        &self,
-        dom_node: &ServoLayoutNode<'_>,
-    ) -> ArcRefCell<AccessibilityNode> {
-        let Some(id) = self.existing_id_for_opaque(dom_node.opaque()) else {
-            panic!("Node {dom_node:?} not found in accessibility tree.");
-        };
-        let node = self.assert_node_for_id(id);
-        assert!(node.borrow().opaque_node == Some(dom_node.opaque()));
-        node
+    fn node_for_id(&self, id: &NodeId) -> Option<ArcRefCell<AccessibilityNode>> {
+        self.nodes.get(id).cloned()
     }
 
     fn assert_node_for_id(&self, id: &NodeId) -> ArcRefCell<AccessibilityNode> {
@@ -269,10 +263,6 @@ impl AccessibilityTree {
                 "Found node removed from DOM tree but not accessibility tree"
             );
         }
-    }
-
-    fn existing_id_for_opaque(&self, opaque: OpaqueNode) -> Option<&NodeId> {
-        self.opaque_node_to_id.get(&opaque)
     }
 
     fn id_for_opaque(&mut self, opaque: OpaqueNode) -> NodeId {
@@ -353,57 +343,28 @@ impl AccessibilityNode {
         }
     }
 
-    fn update_descendants<'dom>(
+    /// Update this node's [`Self::children`] from its corresponding DOM node. If any children are
+    /// newly added to the tree, populate them and recursively populate their children.
+    fn update_descendants_from_dom_node<'dom>(
         &mut self,
         dom_node: &ServoLayoutNode<'dom>,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) -> bool {
         let mut any_descendant_updated = false;
-        let mut newly_created = FxHashSet::default();
-        let new_children: Vec<_> = dom_node
-            .flat_tree_children()
-            .map(|dom_child| {
-                let child_node_id = match tree.existing_id_for_opaque(dom_child.opaque()) {
-                    Some(&id) => id,
-                    None => {
-                        let (new_child_id, _) = tree.get_or_create_node(&dom_child, update);
-                        newly_created.insert(new_child_id);
-                        new_child_id
-                    },
-                };
 
-                // TODO: We actually need to propagate damage within the accessibility tree, rather than
-                // assuming it matches the DOM tree, but this will do for now.
-                any_descendant_updated |= tree.update_node_and_descendants(&dom_child, update);
-
-                child_node_id
-            })
+        let dom_children: Vec<ServoLayoutNode> = dom_node.flat_tree_children().collect();
+        let new_children: Vec<NodeId> = dom_children
+            .iter()
+            .map(|dom_child| tree.id_for_opaque(dom_child.opaque()))
             .collect();
 
-        if new_children != self.children() {
-            let old_children = self.children();
-            for old_child_id in old_children {
-                if !new_children.contains(old_child_id) {
-                    let removed_child = tree.assert_node_for_id(old_child_id);
-                    removed_child.borrow().set_subtree_state_change(
-                        TreeChange::Removed,
-                        tree,
-                        update,
-                    );
-                }
-            }
-            for new_child_id in new_children.iter() {
-                if !newly_created.contains(new_child_id) && !old_children.contains(new_child_id) {
-                    let moved_child = tree.assert_node_for_id(new_child_id);
-                    moved_child.borrow().set_subtree_state_change(
-                        TreeChange::PendingMove,
-                        tree,
-                        update,
-                    );
-                }
-            }
-            self.set_children(new_children);
+        any_descendant_updated |= self.set_children(new_children, tree, update);
+
+        for dom_child in dom_children {
+            let (_, child_node) = tree.get_or_create_node(&dom_child, update);
+            any_descendant_updated |=
+                tree.update_node_and_descendants_from_dom_node(&child_node, &dom_child, update);
         }
 
         any_descendant_updated
@@ -442,23 +403,39 @@ impl AccessibilityNode {
         }
     }
 
-    fn update_node(
-        &mut self,
-        dom_node: &ServoLayoutNode<'_>,
-        tree: &mut AccessibilityTree,
-        any_descendant_updated: bool,
-    ) {
+    /// Update this node's properties from its corresponding DOM node.
+    fn update_node_from_dom_node(&mut self, dom_node: &ServoLayoutNode<'_>) -> bool {
         self.set_role(role_from_dom_node(dom_node));
-        if dom_node.is_element() {
-            if any_descendant_updated && let Some(text) = self.label_from_descendants(tree) {
-                self.set_label(text.as_str());
-            }
-        } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
+        if dom_node.type_id() == Some(LayoutNodeType::Text) {
             let text_content = dom_node.text_content();
             trace!("node text content = {text_content:?}");
             // FIXME: this should take into account editing selection units (grapheme clusters?)
             self.set_value(&text_content);
         }
+
+        false
+    }
+
+    /// Update this node's properties based on changes already made to the accessibility tree.
+    /// For example, if there were nodes added or removed in its subtree, its computed text may have
+    /// changed, so that will be recomputed here.
+    /// If any changes are made, add this node to the given [`AccessibilityUpdate`].
+    fn update_node_local(
+        &mut self,
+        self_or_descendants_updated: bool,
+        tree: &mut AccessibilityTree,
+    ) -> bool {
+        if !self_or_descendants_updated {
+            return false;
+        }
+
+        if let Some(text) = self.label_from_descendants(tree) {
+            self.set_label(text.as_str());
+        } else {
+            self.clear_label();
+        }
+
+        false
     }
 
     fn label_from_descendants(&self, tree: &AccessibilityTree) -> Option<String> {
@@ -507,9 +484,42 @@ impl AccessibilityNode {
         self.accesskit_node.children()
     }
 
-    fn set_children(&mut self, children: Vec<NodeId>) {
+    /// Set the children for this node, and set the subtree state change for any moved or removed
+    /// children.
+    fn set_children(
+        &mut self,
+        children: Vec<NodeId>,
+        tree: &mut AccessibilityTree,
+        update: &mut AccessibilityUpdate,
+    ) -> bool {
+        if children == self.children() {
+            return false;
+        }
+        let old_children = self.children();
+        for old_child_id in old_children {
+            if !children.contains(old_child_id) {
+                let removed_child = tree.assert_node_for_id(old_child_id);
+                removed_child
+                    .borrow()
+                    .set_subtree_state_change(TreeChange::Removed, tree, update);
+            }
+        }
+        for new_child_id in children.iter() {
+            if !old_children.contains(new_child_id) &&
+                let Some(moved_child) = tree.node_for_id(new_child_id)
+            {
+                moved_child.borrow().set_subtree_state_change(
+                    TreeChange::PendingMove,
+                    tree,
+                    update,
+                );
+            }
+        }
+
         self.accesskit_node.set_children(children);
         self.updated = true;
+
+        true
     }
 
     fn role(&self) -> Role {
@@ -533,6 +543,14 @@ impl AccessibilityNode {
             return;
         }
         self.accesskit_node.set_label(label);
+        self.updated = true;
+    }
+
+    fn clear_label(&mut self) {
+        if self.accesskit_node.label().is_none() {
+            return;
+        }
+        self.accesskit_node.clear_label();
         self.updated = true;
     }
 
