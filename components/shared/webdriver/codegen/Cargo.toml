@@ -1,0 +1,12 @@
+[package]
+name = "servo-webdriver-codegen"
+version = "0.1.0"
+edition = "2024"
+
+[bin]
+path = "main.rs"
+
+[dependencies]
+cddl = "0.10.5"
+indexmap = "2.14.0"
+

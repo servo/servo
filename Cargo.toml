@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "components/media/examples",
+    "components/media/examples", "components/shared/webdriver",
     "components/xpath",
     "ports/servoshell",
     "tests/unit/*",
@@ -57,6 +57,7 @@ byteorder = "1.5"
 bytes = "1.0"
 cbc = "0.1.2"
 cc = "1.2"
+cddl = "0.10.5"
 cfg-if = "1.0.4"
 chacha20poly1305 = "0.10"
 chardetng = "0.1"

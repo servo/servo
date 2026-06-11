@@ -1,0 +1,1364 @@
+; https://www.w3.org/TR/2026/WD-webdriver-bidi-20260601/#cddl-index-cddl-module-local-end-definition
+
+Message = (
+  CommandResponse /
+  ErrorResponse /
+  Event
+)
+
+CommandResponse = {
+  type: "success",
+  id: js-uint,
+  result: ResultData,
+  Extensible
+}
+
+ErrorResponse = {
+  type: "error",
+  id: js-uint / null,
+  error: ErrorCode,
+  message: text,
+  ? stacktrace: text,
+  Extensible
+}
+
+ResultData = (
+  BrowserResult /
+  BrowsingContextResult /
+  EmulationResult /
+  InputResult /
+  NetworkResult /
+  ScriptResult /
+  SessionResult /
+  StorageResult /
+  WebExtensionResult
+)
+
+EmptyResult = {
+  Extensible
+}
+
+Event = {
+  type: "event",
+  EventData,
+  Extensible
+}
+
+EventData = (
+  BrowsingContextEvent //
+  InputEvent //
+  LogEvent //
+  NetworkEvent //
+  ScriptEvent
+)
+
+Extensible = (*text => any)
+
+js-int = -9007199254740991..9007199254740991
+js-uint = 0..9007199254740991
+
+ErrorCode = "invalid argument" /
+            "invalid selector" /
+            "invalid session id" /
+            "invalid web extension" /
+            "move target out of bounds" /
+            "no such alert" /
+            "no such network collector" /
+            "no such element" /
+            "no such frame" /
+            "no such handle" /
+            "no such history entry" /
+            "no such intercept" /
+            "no such network data" /
+            "no such node" /
+            "no such request" /
+            "no such screencast" /
+            "no such script" /
+            "no such storage partition" /
+            "no such user context" /
+            "no such web extension" /
+            "session not created" /
+            "unable to capture screen" /
+            "unable to close browser" /
+            "unable to set cookie" /
+            "unable to set file input" /
+            "unavailable network data" /
+            "underspecified storage partition" /
+            "unknown command" /
+            "unknown error" /
+            "unsupported operation"
+
+SessionResult = (
+  session.EndResult /
+  session.NewResult /
+  session.StatusResult /
+  session.SubscribeResult /
+  session.UnsubscribeResult
+)
+
+session.CapabilitiesRequest = {
+  ? alwaysMatch: session.CapabilityRequest,
+  ? firstMatch: [*session.CapabilityRequest]
+}
+
+session.CapabilityRequest = {
+  ? acceptInsecureCerts: bool,
+  ? browserName: text,
+  ? browserVersion: text,
+  ? platformName: text,
+  ? proxy: session.ProxyConfiguration,
+  ? unhandledPromptBehavior: session.UserPromptHandler,
+  Extensible
+}
+
+session.ProxyConfiguration = {
+   session.AutodetectProxyConfiguration //
+   session.DirectProxyConfiguration //
+   session.ManualProxyConfiguration //
+   session.PacProxyConfiguration //
+   session.SystemProxyConfiguration
+}
+
+session.AutodetectProxyConfiguration = (
+   proxyType: "autodetect",
+   Extensible
+)
+
+session.DirectProxyConfiguration = (
+   proxyType: "direct",
+   Extensible
+)
+
+session.ManualProxyConfiguration = (
+   proxyType: "manual",
+   ? httpProxy: text,
+   ? sslProxy: text,
+   ? session.SocksProxyConfiguration,
+   ? noProxy: [*text],
+   Extensible
+)
+
+session.SocksProxyConfiguration = (
+   socksProxy: text,
+   socksVersion: 0..255,
+)
+
+session.PacProxyConfiguration = (
+   proxyType: "pac",
+   proxyAutoconfigUrl: text,
+   Extensible
+)
+
+session.SystemProxyConfiguration = (
+   proxyType: "system",
+   Extensible
+)
+
+
+session.UserPromptHandler = {
+  ? alert: session.UserPromptHandlerType,
+  ? beforeUnload: session.UserPromptHandlerType,
+  ? confirm: session.UserPromptHandlerType,
+  ? default: session.UserPromptHandlerType,
+  ? file: session.UserPromptHandlerType,
+  ? prompt: session.UserPromptHandlerType,
+}
+
+session.UserPromptHandlerType = "accept" / "dismiss" / "ignore";
+
+session.Subscription = text
+
+session.StatusResult = {
+  ready: bool,
+  message: text,
+}
+
+session.NewResult = {
+  sessionId: text,
+  capabilities: {
+    acceptInsecureCerts: bool,
+    browserName: text,
+    browserVersion: text,
+    platformName: text,
+    setWindowRect: bool,
+    userAgent: text,
+    ? proxy: session.ProxyConfiguration,
+    ? unhandledPromptBehavior: session.UserPromptHandler,
+    ? webSocketUrl: text,
+    Extensible
+  }
+}
+
+session.EndResult = EmptyResult
+
+session.SubscribeResult = {
+  subscription: session.Subscription,
+}
+
+session.UnsubscribeResult = EmptyResult
+
+BrowserResult = (
+  browser.CloseResult /
+  browser.CreateUserContextResult /
+  browser.GetClientWindowsResult /
+  browser.GetUserContextsResult /
+  browser.RemoveUserContextResult /
+  browser.SetClientWindowStateResult /
+  browser.SetDownloadBehaviorResult
+)
+
+browser.ClientWindow = text;
+
+browser.ClientWindowInfo = {
+  active: bool,
+  clientWindow: browser.ClientWindow,
+  height: js-uint,
+  state: "fullscreen" / "maximized" / "minimized" / "normal",
+  width: js-uint,
+  x: js-int,
+  y: js-int,
+}
+
+browser.UserContext = text;
+
+browser.UserContextInfo = {
+  userContext: browser.UserContext
+}
+
+browser.CloseResult = EmptyResult
+
+browser.CreateUserContextResult = browser.UserContextInfo
+
+browser.GetClientWindowsResult = {
+  clientWindows: [ * browser.ClientWindowInfo]
+}
+
+browser.GetUserContextsResult = {
+  userContexts: [ + browser.UserContextInfo]
+}
+
+browser.RemoveUserContextResult = EmptyResult
+
+browser.SetClientWindowStateResult = browser.ClientWindowInfo
+
+browser.SetDownloadBehaviorResult = EmptyResult
+
+BrowsingContextResult = (
+  browsingContext.ActivateResult /
+  browsingContext.CaptureScreenshotResult /
+  browsingContext.CloseResult /
+  browsingContext.CreateResult /
+  browsingContext.GetTreeResult /
+  browsingContext.HandleUserPromptResult /
+  browsingContext.LocateNodesResult /
+  browsingContext.NavigateResult /
+  browsingContext.PrintResult /
+  browsingContext.ReloadResult /
+  browsingContext.SetBypassCSPResult /
+  browsingContext.SetViewportResult /
+  browsingContext.StartScreencastResult /
+  browsingContext.StopScreencastResult /
+  browsingContext.TraverseHistoryResult
+)
+
+BrowsingContextEvent = (
+  browsingContext.ContextCreated //
+  browsingContext.ContextDestroyed //
+  browsingContext.DomContentLoaded //
+  browsingContext.DownloadEnd //
+  browsingContext.DownloadWillBegin //
+  browsingContext.FragmentNavigated //
+  browsingContext.HistoryUpdated //
+  browsingContext.Load //
+  browsingContext.NavigationAborted //
+  browsingContext.NavigationCommitted //
+  browsingContext.NavigationFailed //
+  browsingContext.NavigationStarted //
+  browsingContext.UserPromptClosed //
+  browsingContext.UserPromptOpened
+)
+
+browsingContext.BrowsingContext = text;
+
+browsingContext.InfoList = [*browsingContext.Info]
+
+browsingContext.Info = {
+  children: browsingContext.InfoList / null,
+  clientWindow: browser.ClientWindow,
+  context: browsingContext.BrowsingContext,
+  originalOpener: browsingContext.BrowsingContext / null,
+  url: text,
+  userContext: browser.UserContext,
+  ? parent: browsingContext.BrowsingContext / null,
+}
+
+browsingContext.Locator = (
+   browsingContext.AccessibilityLocator /
+   browsingContext.CssLocator /
+   browsingContext.ContextLocator /
+   browsingContext.InnerTextLocator /
+   browsingContext.XPathLocator
+)
+
+browsingContext.AccessibilityLocator = {
+   type: "accessibility",
+   value: {
+    ? name: text,
+    ? role: text,
+   }
+}
+
+browsingContext.CssLocator = {
+   type: "css",
+   value: text
+}
+
+browsingContext.ContextLocator = {
+  type: "context",
+  value: {
+    context: browsingContext.BrowsingContext,
+  }
+}
+
+browsingContext.InnerTextLocator = {
+   type: "innerText",
+   value: text,
+   ? ignoreCase: bool
+   ? matchType: "full" / "partial",
+   ? maxDepth: js-uint,
+}
+
+browsingContext.XPathLocator = {
+   type: "xpath",
+   value: text
+}
+
+browsingContext.Navigation = text;
+
+browsingContext.Download = text;
+
+browsingContext.BaseNavigationInfo = (
+  context: browsingContext.BrowsingContext,
+  navigation: browsingContext.Navigation / null,
+  timestamp: js-uint,
+  url: text,
+  ? userContext: browser.UserContext,
+)
+
+browsingContext.NavigationInfo = {
+  browsingContext.BaseNavigationInfo
+}
+
+browsingContext.UserPromptType = "alert" / "beforeunload" / "confirm" / "prompt";
+
+browsingContext.ActivateResult = EmptyResult
+
+browsingContext.CaptureScreenshotResult = {
+  data: text
+}
+
+browsingContext.CloseResult = EmptyResult
+
+browsingContext.CreateResult = {
+  context: browsingContext.BrowsingContext,
+  ? userContext: browser.UserContext
+}
+
+browsingContext.GetTreeResult = {
+  contexts: browsingContext.InfoList
+}
+
+browsingContext.HandleUserPromptResult = EmptyResult
+
+browsingContext.LocateNodesResult = {
+    nodes: [ * script.NodeRemoteValue ]
+}
+
+browsingContext.NavigateResult = {
+  navigation: browsingContext.Navigation / null,
+  url: text,
+}
+
+browsingContext.PrintResult = {
+  data: text
+}
+
+browsingContext.ReloadResult = browsingContext.NavigateResult
+
+browsingContext.SetBypassCSPResult = EmptyResult
+
+browsingContext.SetViewportResult = EmptyResult
+
+browsingContext.StartScreencastResult = {
+   screencast: browsingContext.Screencast,
+   path: text
+}
+
+
+browsingContext.Screencast = text
+
+browsingContext.StopScreencastResult = {
+   path: text,
+   ? error: text
+}
+
+browsingContext.TraverseHistoryResult = EmptyResult
+
+browsingContext.ContextCreated = (
+ method: "browsingContext.contextCreated",
+ params: browsingContext.Info
+)
+
+browsingContext.ContextDestroyed = (
+ method: "browsingContext.contextDestroyed",
+ params: browsingContext.Info
+)
+
+browsingContext.NavigationStarted = (
+ method: "browsingContext.navigationStarted",
+ params: browsingContext.NavigationInfo
+)
+
+browsingContext.FragmentNavigated = (
+ method: "browsingContext.fragmentNavigated",
+ params: browsingContext.NavigationInfo
+)
+
+browsingContext.HistoryUpdated = (
+  method: "browsingContext.historyUpdated",
+  params: browsingContext.HistoryUpdatedParameters
+)
+
+browsingContext.HistoryUpdatedParameters = {
+  context: browsingContext.BrowsingContext,
+  timestamp: js-uint,
+  url: text,
+  ? userContext: browser.UserContext
+}
+
+browsingContext.DomContentLoaded = (
+ method: "browsingContext.domContentLoaded",
+ params: browsingContext.NavigationInfo
+)
+
+browsingContext.Load = (
+ method: "browsingContext.load",
+ params: browsingContext.NavigationInfo
+)
+
+browsingContext.DownloadWillBegin = (
+ method: "browsingContext.downloadWillBegin",
+ params: browsingContext.DownloadWillBeginParams
+)
+
+browsingContext.DownloadWillBeginParams = {
+  download: browsingContext.Download,
+  suggestedFilename: text,
+  browsingContext.BaseNavigationInfo
+}
+
+browsingContext.DownloadEnd = (
+  method: "browsingContext.downloadEnd",
+  params: browsingContext.DownloadEndParams
+)
+
+browsingContext.DownloadEndParams = {
+  (
+    browsingContext.DownloadCanceledParams //
+    browsingContext.DownloadCompleteParams
+  )
+}
+
+browsingContext.DownloadCanceledParams = (
+  status: "canceled",
+  download: browsingContext.Download,
+  browsingContext.BaseNavigationInfo
+)
+
+browsingContext.DownloadCompleteParams = (
+  status: "complete",
+  download: browsingContext.Download,
+  filepath: text / null,
+  browsingContext.BaseNavigationInfo
+)
+
+browsingContext.NavigationAborted = (
+ method: "browsingContext.navigationAborted",
+ params: browsingContext.NavigationInfo
+)
+
+browsingContext.NavigationCommitted = (
+ method: "browsingContext.navigationCommitted",
+ params: browsingContext.NavigationInfo
+)
+
+browsingContext.NavigationFailed = (
+ method: "browsingContext.navigationFailed",
+ params: browsingContext.NavigationInfo
+)
+
+browsingContext.UserPromptClosed = (
+  method: "browsingContext.userPromptClosed",
+  params: browsingContext.UserPromptClosedParameters
+)
+
+browsingContext.UserPromptClosedParameters = {
+  context: browsingContext.BrowsingContext,
+  accepted: bool,
+  type: browsingContext.UserPromptType,
+  ? userContext: browser.UserContext,
+  ? userText: text
+}
+
+browsingContext.UserPromptOpened = (
+  method: "browsingContext.userPromptOpened",
+  params: browsingContext.UserPromptOpenedParameters
+)
+
+browsingContext.UserPromptOpenedParameters = {
+  context: browsingContext.BrowsingContext,
+  handler: session.UserPromptHandlerType,
+  message: text,
+  type: browsingContext.UserPromptType,
+  ? userContext: browser.UserContext,
+  ? defaultValue: text
+}
+
+EmulationResult = (
+  emulation.SetForcedColorsModeThemeOverrideResult /
+  emulation.SetGeolocationOverrideResult /
+  emulation.SetLocaleOverrideResult /
+  emulation.SetScreenOrientationOverrideResult /
+  emulation.SetScriptingEnabledResult /
+  emulation.SetScrollbarTypeOverrideResult /
+  emulation.SetTimezoneOverrideResult /
+  emulation.SetTouchOverrideResult /
+  emulation.SetUserAgentOverrideResult
+)
+
+emulation.SetForcedColorsModeThemeOverrideResult = EmptyResult
+
+emulation.SetGeolocationOverrideResult = EmptyResult
+
+emulation.SetLocaleOverrideResult = EmptyResult
+
+emulation.SetNetworkConditionsResult = EmptyResult
+
+emulation.SetScreenSettingsOverrideResult = EmptyResult
+
+emulation.SetScreenOrientationOverrideResult = EmptyResult
+
+emulation.SetUserAgentOverrideResult = EmptyResult
+
+emulation.SetScriptingEnabledResult = EmptyResult
+
+emulation.SetScrollbarTypeOverrideResult = EmptyResult
+
+emulation.SetTimezoneOverrideResult = EmptyResult
+
+emulation.SetTouchOverrideResult = EmptyResult
+
+NetworkResult = (
+  network.AddDataCollectorResult /
+  network.AddInterceptResult /
+  network.ContinueRequestResult /
+  network.ContinueResponseResult /
+  network.ContinueWithAuthResult /
+  network.DisownDataResult /
+  network.FailRequestResult /
+  network.GetDataResult /
+  network.ProvideResponseResult /
+  network.RemoveDataCollectorResult /
+  network.RemoveInterceptResult /
+  network.SetCacheBehaviorResult /
+  network.SetExtraHeadersResult
+)
+
+NetworkEvent = (
+    network.AuthRequired //
+    network.BeforeRequestSent //
+    network.FetchError //
+    network.ResponseCompleted //
+    network.ResponseStarted
+)
+
+
+network.AuthChallenge = {
+  scheme: text,
+  realm: text,
+}
+
+network.BaseParameters = (
+    context: browsingContext.BrowsingContext / null,
+    isBlocked: bool,
+    navigation: browsingContext.Navigation / null,
+    redirectCount: js-uint,
+    request: network.RequestData,
+    timestamp: js-uint,
+    ? userContext: browser.UserContext / null,
+    ? intercepts: [+network.Intercept]
+)
+
+network.BytesValue = network.StringValue / network.Base64Value;
+
+network.StringValue = {
+  type: "string",
+  value: text,
+}
+
+network.Base64Value = {
+  type: "base64",
+  value: text,
+}
+
+network.Collector = text
+
+network.CollectorType = "blob"
+
+network.SameSite = "strict" / "lax" / "none" / "default"
+
+
+network.Cookie = {
+    name: text,
+    value: network.BytesValue,
+    domain: text,
+    path: text,
+    size: js-uint,
+    httpOnly: bool,
+    secure: bool,
+    sameSite: network.SameSite,
+    ? expiry: js-uint,
+    Extensible,
+}
+
+network.DataType = "request" / "response"
+
+network.FetchTimingInfo = {
+    timeOrigin: float,
+    requestTime: float,
+    redirectStart: float,
+    redirectEnd: float,
+    fetchStart: float,
+    dnsStart: float,
+    dnsEnd: float,
+    connectStart: float,
+    connectEnd: float,
+    tlsStart: float,
+
+    requestStart: float,
+    responseStart: float,
+
+    responseEnd: float,
+}
+
+network.Header = {
+  name: text,
+  value: network.BytesValue,
+}
+
+network.Initiator = {
+    ? columnNumber: js-uint,
+    ? lineNumber: js-uint,
+    ? request: network.Request,
+    ? stackTrace: script.StackTrace,
+    ? type: "parser" / "script" / "preflight" / "other"
+}
+
+network.Intercept = text
+
+network.Request = text;
+
+network.RequestData = {
+    request: network.Request,
+    url: text,
+    method: text,
+    headers: [*network.Header],
+    cookies: [*network.Cookie],
+    headersSize: js-uint,
+    bodySize: js-uint / null,
+    destination: text,
+    initiatorType: text / null,
+    timings: network.FetchTimingInfo,
+}
+
+network.ResponseContent = {
+    size: js-uint
+}
+
+network.ResponseData = {
+    url: text,
+    protocol: text,
+    status: js-uint,
+    statusText: text,
+    fromCache: bool,
+    headers: [*network.Header],
+    mimeType: text,
+    bytesReceived: js-uint,
+    headersSize: js-uint / null,
+    bodySize: js-uint / null,
+    content: network.ResponseContent,
+    ?authChallenges: [*network.AuthChallenge],
+}
+
+network.AddDataCollectorResult = {
+  collector: network.Collector
+}
+
+network.AddInterceptResult = {
+  intercept: network.Intercept
+}
+
+network.ContinueRequestResult = EmptyResult
+
+network.ContinueResponseResult = EmptyResult
+
+network.ContinueWithAuthResult = EmptyResult
+
+network.DisownDataResult = EmptyResult
+
+network.FailRequestResult = EmptyResult
+
+network.GetDataResult = {
+  bytes: network.BytesValue,
+}
+
+network.ProvideResponseResult = EmptyResult
+
+network.RemoveDataCollectorResult = EmptyResult
+
+network.RemoveInterceptResult = EmptyResult
+
+network.SetCacheBehaviorResult = EmptyResult
+
+network.SetExtraHeadersResult = EmptyResult
+
+network.AuthRequired = (
+  method: "network.authRequired",
+  params: network.AuthRequiredParameters
+)
+
+network.AuthRequiredParameters = {
+  network.BaseParameters,
+  response: network.ResponseData
+}
+
+network.BeforeRequestSent = (
+  method: "network.beforeRequestSent",
+  params: network.BeforeRequestSentParameters
+ )
+
+network.BeforeRequestSentParameters = {
+  network.BaseParameters,
+  ? initiator: network.Initiator,
+}
+
+network.FetchError = (
+  method: "network.fetchError",
+  params: network.FetchErrorParameters
+ )
+
+network.FetchErrorParameters = {
+  network.BaseParameters,
+  errorText: text,
+}
+
+network.ResponseCompleted = (
+  method: "network.responseCompleted",
+  params: network.ResponseCompletedParameters
+ )
+
+network.ResponseCompletedParameters = {
+  network.BaseParameters,
+  response: network.ResponseData,
+}
+
+network.ResponseStarted = (
+  method: "network.responseStarted",
+  params: network.ResponseStartedParameters
+ )
+
+network.ResponseStartedParameters = {
+  network.BaseParameters,
+  response: network.ResponseData,
+}
+
+ScriptResult = (
+  script.AddPreloadScriptResult /
+  script.CallFunctionResult /
+  script.DisownResult /
+  script.EvaluateResult /
+  script.GetRealmsResult /
+  script.RemovePreloadScriptResult
+)
+
+ScriptEvent = (
+  script.Message //
+  script.RealmCreated //
+  script.RealmDestroyed
+)
+
+script.Channel = text;
+
+script.ChannelValue = {
+  type: "channel",
+  value: script.ChannelProperties,
+}
+
+script.ChannelProperties = {
+  channel: script.Channel,
+  ? serializationOptions: script.SerializationOptions,
+  ? ownership: script.ResultOwnership,
+}
+
+script.EvaluateResult = (
+  script.EvaluateResultSuccess /
+  script.EvaluateResultException
+)
+
+script.EvaluateResultSuccess = {
+  type: "success",
+  result: script.RemoteValue,
+  realm: script.Realm
+}
+
+script.EvaluateResultException = {
+  type: "exception",
+  exceptionDetails: script.ExceptionDetails
+  realm: script.Realm
+}
+
+script.ExceptionDetails = {
+  columnNumber: js-uint,
+  exception: script.RemoteValue,
+  lineNumber: js-uint,
+  stackTrace: script.StackTrace,
+  text: text,
+}
+
+script.Handle = text;
+
+script.InternalId = text;
+
+script.LocalValue = (
+  script.RemoteReference /
+  script.PrimitiveProtocolValue /
+  script.ChannelValue /
+  script.ArrayLocalValue /
+  { script.DateLocalValue } /
+  script.MapLocalValue /
+  script.ObjectLocalValue /
+  { script.RegExpLocalValue } /
+  script.SetLocalValue
+)
+
+script.ListLocalValue = [*script.LocalValue];
+
+script.ArrayLocalValue = {
+  type: "array",
+  value: script.ListLocalValue,
+}
+
+script.DateLocalValue = (
+  type: "date",
+  value: text
+)
+
+script.MappingLocalValue = [*[(script.LocalValue / text), script.LocalValue]];
+
+script.MapLocalValue = {
+  type: "map",
+  value: script.MappingLocalValue,
+}
+
+script.ObjectLocalValue = {
+  type: "object",
+  value: script.MappingLocalValue,
+}
+
+script.RegExpValue = {
+  pattern: text,
+  ? flags: text,
+}
+
+script.RegExpLocalValue = (
+  type: "regexp",
+  value: script.RegExpValue,
+)
+
+script.SetLocalValue = {
+  type: "set",
+  value: script.ListLocalValue,
+}
+
+script.PreloadScript = text;
+
+script.Realm = text;
+
+script.PrimitiveProtocolValue = (
+  script.UndefinedValue /
+  script.NullValue /
+  script.StringValue /
+  script.NumberValue /
+  script.BooleanValue /
+  script.BigIntValue
+)
+
+script.UndefinedValue = {
+  type: "undefined",
+}
+
+script.NullValue = {
+  type: "null",
+}
+
+script.StringValue = {
+  type: "string",
+  value: text,
+}
+
+script.SpecialNumber = "NaN" / "-0" / "Infinity" / "-Infinity";
+
+script.NumberValue = {
+  type: "number",
+  value: number / script.SpecialNumber,
+}
+
+script.BooleanValue = {
+  type: "boolean",
+  value: bool,
+}
+
+script.BigIntValue = {
+  type: "bigint",
+  value: text,
+}
+
+script.RealmInfo = (
+  script.WindowRealmInfo /
+  script.DedicatedWorkerRealmInfo /
+  script.SharedWorkerRealmInfo /
+  script.ServiceWorkerRealmInfo /
+  script.WorkerRealmInfo /
+  script.PaintWorkletRealmInfo /
+  script.AudioWorkletRealmInfo /
+  script.WorkletRealmInfo
+)
+
+script.BaseRealmInfo = (
+  realm: script.Realm,
+  origin: text
+)
+
+script.WindowRealmInfo = {
+  script.BaseRealmInfo,
+  type: "window",
+  context: browsingContext.BrowsingContext,
+  ? userContext: browser.UserContext,
+  ? sandbox: text
+}
+
+script.DedicatedWorkerRealmInfo = {
+  script.BaseRealmInfo,
+  type: "dedicated-worker",
+  owners: [script.Realm]
+}
+
+script.SharedWorkerRealmInfo = {
+  script.BaseRealmInfo,
+  type: "shared-worker"
+}
+
+script.ServiceWorkerRealmInfo = {
+  script.BaseRealmInfo,
+  type: "service-worker"
+}
+
+script.WorkerRealmInfo = {
+  script.BaseRealmInfo,
+  type: "worker"
+}
+
+script.PaintWorkletRealmInfo = {
+  script.BaseRealmInfo,
+  type: "paint-worklet"
+}
+
+script.AudioWorkletRealmInfo = {
+  script.BaseRealmInfo,
+  type: "audio-worklet"
+}
+
+script.WorkletRealmInfo = {
+  script.BaseRealmInfo,
+  type: "worklet"
+}
+
+script.RealmType = "window" / "dedicated-worker" / "shared-worker" / "service-worker" /
+                   "worker" / "paint-worklet" / "audio-worklet" / "worklet"
+
+script.RemoteReference = (
+  script.SharedReference /
+  script.RemoteObjectReference
+)
+
+script.SharedReference = {
+   sharedId: script.SharedId
+
+   ? handle: script.Handle,
+   Extensible
+}
+
+script.RemoteObjectReference = {
+   handle: script.Handle,
+
+   ? sharedId: script.SharedId
+   Extensible
+}
+
+script.RemoteValue = (
+  script.PrimitiveProtocolValue /
+  script.SymbolRemoteValue /
+  script.ArrayRemoteValue /
+  script.ObjectRemoteValue /
+  script.FunctionRemoteValue /
+  script.RegExpRemoteValue /
+  script.DateRemoteValue /
+  script.MapRemoteValue /
+  script.SetRemoteValue /
+  script.WeakMapRemoteValue /
+  script.WeakSetRemoteValue /
+  script.GeneratorRemoteValue /
+  script.ErrorRemoteValue /
+  script.ProxyRemoteValue /
+  script.PromiseRemoteValue /
+  script.TypedArrayRemoteValue /
+  script.ArrayBufferRemoteValue /
+  script.NodeListRemoteValue /
+  script.HTMLCollectionRemoteValue /
+  script.NodeRemoteValue /
+  script.WindowProxyRemoteValue
+)
+
+script.ListRemoteValue = [*script.RemoteValue];
+
+script.MappingRemoteValue = [*[(script.RemoteValue / text), script.RemoteValue]];
+
+script.SymbolRemoteValue = {
+  type: "symbol",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.ArrayRemoteValue = {
+  type: "array",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+  ? value: script.ListRemoteValue,
+}
+
+script.ObjectRemoteValue = {
+  type: "object",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+  ? value: script.MappingRemoteValue,
+}
+
+script.FunctionRemoteValue = {
+  type: "function",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.RegExpRemoteValue = {
+  script.RegExpLocalValue,
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.DateRemoteValue = {
+  script.DateLocalValue,
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.MapRemoteValue = {
+  type: "map",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+  ? value: script.MappingRemoteValue,
+}
+
+script.SetRemoteValue = {
+  type: "set",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+  ? value: script.ListRemoteValue
+}
+
+script.WeakMapRemoteValue = {
+  type: "weakmap",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.WeakSetRemoteValue = {
+  type: "weakset",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.GeneratorRemoteValue = {
+  type: "generator",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.ErrorRemoteValue = {
+  type: "error",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.ProxyRemoteValue = {
+  type: "proxy",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.PromiseRemoteValue = {
+  type: "promise",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.TypedArrayRemoteValue = {
+  type: "typedarray",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.ArrayBufferRemoteValue = {
+  type: "arraybuffer",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+}
+
+script.NodeListRemoteValue = {
+  type: "nodelist",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+  ? value: script.ListRemoteValue,
+}
+
+script.HTMLCollectionRemoteValue = {
+  type: "htmlcollection",
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+  ? value: script.ListRemoteValue,
+}
+
+script.NodeRemoteValue = {
+  type: "node",
+  ? sharedId: script.SharedId,
+  ? handle: script.Handle,
+  ? internalId: script.InternalId,
+  ? value: script.NodeProperties,
+}
+
+script.NodeProperties = {
+  nodeType: js-uint,
+  childNodeCount: js-uint,
+  ? attributes: {*text => text},
+  ? children: [*script.NodeRemoteValue],
+  ? localName: text,
+  ? mode: "open" / "closed",
+  ? namespaceURI: text,
+  ? nodeValue: text,
+  ? shadowRoot: script.NodeRemoteValue / null,
+}
+
+script.WindowProxyRemoteValue = {
+  type: "window",
+  value: script.WindowProxyProperties,
+  ? handle: script.Handle,
+  ? internalId: script.InternalId
+}
+
+script.WindowProxyProperties = {
+  context: browsingContext.BrowsingContext
+}
+
+script.ResultOwnership = "root" / "none"
+
+script.SerializationOptions = {
+  ? maxDomDepth: (js-uint / null) .default 0,
+  ? maxObjectDepth: (js-uint / null) .default null,
+  ? includeShadowTree: ("none" / "open" / "all") .default "none",
+}
+
+script.SharedId = text;
+
+script.StackFrame = {
+  columnNumber: js-uint,
+  functionName: text,
+  lineNumber: js-uint,
+  url: text,
+}
+
+script.StackTrace = {
+  callFrames: [*script.StackFrame],
+}
+
+script.Source = {
+  realm: script.Realm,
+  ? context: browsingContext.BrowsingContext,
+  ? userContext: browser.UserContext
+}
+
+script.AddPreloadScriptResult = {
+  script: script.PreloadScript
+}
+
+script.DisownResult = EmptyResult
+
+script.CallFunctionResult = script.EvaluateResult
+
+script.GetRealmsResult = {
+  realms: [*script.RealmInfo]
+}
+
+script.RemovePreloadScriptResult = EmptyResult
+
+script.Message = (
+  method: "script.message",
+  params: script.MessageParameters
+ )
+
+script.MessageParameters = {
+  channel: script.Channel,
+  data: script.RemoteValue,
+  source: script.Source,
+}
+
+script.RealmCreated = (
+ method: "script.realmCreated",
+ params: script.RealmInfo
+)
+
+script.RealmDestroyed = (
+  method: "script.realmDestroyed",
+  params: script.RealmDestroyedParameters
+)
+
+script.RealmDestroyedParameters = {
+  realm: script.Realm
+}
+
+
+StorageResult = (
+  storage.DeleteCookiesResult /
+  storage.GetCookiesResult /
+  storage.SetCookieResult
+)
+
+storage.PartitionKey = {
+  ? userContext: text,
+  ? sourceOrigin: text,
+  Extensible,
+}
+
+storage.GetCookiesResult = {
+  cookies: [*network.Cookie],
+  partitionKey: storage.PartitionKey,
+}
+
+storage.SetCookieResult = {
+  partitionKey: storage.PartitionKey
+}
+
+storage.DeleteCookiesResult = {
+  partitionKey: storage.PartitionKey
+}
+
+LogEvent = (
+  log.EntryAdded
+)
+
+log.Level = "debug" / "info" / "warn" / "error"
+
+log.Entry = (
+  log.GenericLogEntry /
+  log.ConsoleLogEntry /
+  log.JavascriptLogEntry
+)
+
+log.BaseLogEntry = (
+  level: log.Level,
+  source: script.Source,
+  text: text / null,
+  timestamp: js-uint,
+  ? stackTrace: script.StackTrace,
+)
+
+log.GenericLogEntry = {
+  log.BaseLogEntry,
+  type: text,
+}
+
+log.ConsoleLogEntry = {
+  log.BaseLogEntry,
+  type: "console",
+  method: text,
+  args: [*script.RemoteValue],
+}
+
+log.JavascriptLogEntry = {
+  log.BaseLogEntry,
+  type: "javascript",
+}
+
+log.EntryAdded = (
+ method: "log.entryAdded",
+ params: log.Entry,
+)
+
+InputResult = (
+  input.PerformActionsResult /
+  input.ReleaseActionsResult /
+  input.SetFilesResult
+)
+
+InputEvent = (
+  input.FileDialogOpened
+)
+
+input.PerformActionsResult = EmptyResult
+
+input.ReleaseActionsResult = EmptyResult
+
+input.SetFilesResult = EmptyResult
+
+input.FileDialogOpened = (
+   method: "input.fileDialogOpened",
+   params: input.FileDialogInfo
+)
+
+input.FileDialogInfo = {
+   context: browsingContext.BrowsingContext,
+   ? userContext: browser.UserContext,
+   ? element: script.SharedReference,
+   multiple: bool,
+}
+
+WebExtensionResult = (
+  webExtension.InstallResult /
+  webExtension.UninstallResult
+)
+
+webExtension.Extension = text
+
+webExtension.InstallResult = {
+  extension: webExtension.Extension
+}
+
+webExtension.UninstallResult = EmptyResult
