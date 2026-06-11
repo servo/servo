@@ -1,8 +1,0 @@
-To generate a layout trace:
-
-```
-./mach run -d -Z trace-layout <url>
-```
-
-A few `layout_trace_<reflow_count>.json` files will be written to the current directory that can be loaded by the viewer.
-
