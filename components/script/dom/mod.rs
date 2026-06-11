@@ -400,7 +400,6 @@ pub(crate) mod webrtc;
 pub(crate) use self::webrtc::*;
 pub(crate) mod webvtt;
 pub(crate) use self::webvtt::*;
-#[expect(dead_code)]
 pub(crate) mod window;
 pub(crate) mod windowclient;
 pub(crate) mod windowproxy;

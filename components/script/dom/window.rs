@@ -29,7 +29,6 @@ use embedder_traits::{
     ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
     WebDriverJSResult, WebDriverLoadStatus,
 };
-use euclid::default::Rect as UntypedRect;
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
 use js::context::JSContext;
@@ -555,15 +554,6 @@ impl Window {
 
     pub(crate) fn origin(&self) -> &MutableOrigin {
         self.globalscope.origin()
-    }
-
-    #[expect(unsafe_code)]
-    pub(crate) fn get_cx(&self) -> SafeJSContext {
-        unsafe { SafeJSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
-    }
-
-    pub(crate) fn get_js_runtime(&self) -> Ref<'_, Option<Rc<Runtime>>> {
-        self.js_runtime.borrow()
     }
 
     pub(crate) fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -2466,10 +2456,6 @@ impl Window {
         self.paint_worklet.or_init(|| self.new_paint_worklet(cx))
     }
 
-    pub(crate) fn has_document(&self) -> bool {
-        self.document.get().is_some()
-    }
-
     pub(crate) fn clear_js_runtime(&self) {
         self.as_global_scope()
             .remove_web_messaging_and_dedicated_workers_infra();
@@ -3895,30 +3881,6 @@ impl<T: Copy + MallocSizeOf> LayoutValue<T> {
         }
         Err(())
     }
-}
-
-fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f32>) -> bool {
-    let clip_rect = UntypedRect::new(
-        Point2D::new(
-            clip_rect.origin.x.to_f32_px(),
-            clip_rect.origin.y.to_f32_px(),
-        ),
-        Size2D::new(
-            clip_rect.size.width.to_f32_px(),
-            clip_rect.size.height.to_f32_px(),
-        ),
-    );
-
-    // We only need to move the clip rect if the viewport is getting near the edge of
-    // our preexisting clip rect. We use half of the size of the viewport as a heuristic
-    // for "close."
-    static VIEWPORT_SCROLL_MARGIN_SIZE: f32 = 0.5;
-    let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
-
-    (clip_rect.origin.x - new_viewport.origin.x).abs() <= viewport_scroll_margin.width ||
-        (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
-        (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
-        (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
 impl Window {
