@@ -363,6 +363,9 @@ pub struct Preferences {
     /// Whether to run accessibility tree integrity checks, and any other expensive checks.
     /// This should only be true in tests.
     pub expensive_accessibility_test_assertions_enabled: bool,
+    /// Exposes internal JS API functions that are usually restricted to `about:...` pages
+    /// Useful if you want to get memory report or force GC in a test page
+    pub expose_servointernals_globally: bool,
 }
 
 impl Preferences {
@@ -536,6 +539,7 @@ impl Preferences {
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),
             viewport_meta_enabled: false,
+            expose_servointernals_globally: false,
         }
     }
 
