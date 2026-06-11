@@ -252,6 +252,7 @@ impl AccessibilityTree {
                 _ => None,
             })
         {
+            self.node_to_parent.remove(&id);
             if let Some(node) = self.nodes.remove(&id) &&
                 let Some(opaque_node) = node.borrow().opaque_node
             {
