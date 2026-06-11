@@ -396,61 +396,65 @@ pub fn convert_value_to_multientry_key(
     input: HandleValue,
 ) -> Result<ConversionResult, Error> {
     // Step 1: If input is an Array exotic object, then:
+    let mut is_array = false;
     unsafe {
-        let mut is_array = false;
         if !IsArrayObject(cx, input, &mut is_array) {
             return Err(Error::JSFailed);
         }
-        if is_array {
-            rooted!(&in(cx) let object = input.to_object());
+    }
+    if is_array {
+        rooted!(&in(cx) let object = input.to_object());
 
-            // Step 1.1: Let len be ? ToLength( ? Get(input, "length")).
-            let mut len = 0;
+        // Step 1.1: Let len be ? ToLength( ? Get(input, "length")).
+        let mut len = 0;
+        unsafe {
             if !GetArrayLength(cx, object.handle(), &mut len) {
                 return Err(Error::JSFailed);
             }
+        }
 
-            // Step 1.2: Let seen be a new set containing only input.
-            let seen: Vec<HandleValue> = vec![input];
+        // Step 1.2: Let seen be a new set containing only input.
+        let seen: Vec<HandleValue> = vec![input];
 
-            // Step 1.3: Let keys be a new empty list.
-            let mut keys = vec![];
+        // Step 1.3: Let keys be a new empty list.
+        let mut keys = vec![];
 
-            // Step 1.4: Let index be 0.
-            let mut index: u32 = 0;
+        // Step 1.4: Let index be 0.
+        let mut index: u32 = 0;
 
-            // Step 1.5: While index is less than len:
-            while index < len {
-                // Step 1.5.1: Let entry be Get(input, index).
-                rooted!(&in(cx) let mut id: PropertyKey);
+        // Step 1.5: While index is less than len:
+        while index < len {
+            // Step 1.5.1: Let entry be Get(input, index).
+            rooted!(&in(cx) let mut id: PropertyKey);
+            rooted!(&in(cx) let mut entry = UndefinedValue());
+            unsafe {
                 if !JS_IndexToId(cx, index, id.handle_mut()) {
                     return Err(Error::JSFailed);
                 }
-                rooted!(&in(cx) let mut entry = UndefinedValue());
                 if !JS_GetPropertyById(cx, object.handle(), id.handle(), entry.handle_mut()) {
                     return Err(Error::JSFailed);
                 }
-
-                // Step 1.5.2: If entry is not an abrupt completion, then:
-                if !entry.get().is_null() {
-                    // Step 1.5.2.1: Let key be the result of converting a value to a key with arguments entry and seen.
-                    // Step 1.5.2.2: If key is not "invalid value" or "invalid type" or an abrupt completion, and there
-                    // is no item in keys equal to key, then append key to keys.
-                    if let ConversionResult::Valid(key) =
-                        convert_value_to_key(cx, entry.handle(), Some(seen.clone()))? &&
-                        !keys.contains(&key)
-                    {
-                        keys.push(key);
-                    };
-                }
-
-                // Step 1.5.3: Increase index by 1.
-                index += 1;
             }
 
-            // Step 1.6: Return a new array key with value set to keys.
-            return Ok(ConversionResult::Valid(IndexedDBKeyType::Array(keys)));
+            // Step 1.5.2: If entry is not an abrupt completion, then:
+            if !entry.get().is_null() {
+                // Step 1.5.2.1: Let key be the result of converting a value to a key with arguments entry and seen.
+                // Step 1.5.2.2: If key is not "invalid value" or "invalid type" or an abrupt completion, and there
+                // is no item in keys equal to key, then append key to keys.
+                if let ConversionResult::Valid(key) =
+                    convert_value_to_key(cx, entry.handle(), Some(seen.clone()))? &&
+                    !keys.contains(&key)
+                {
+                    keys.push(key);
+                };
+            }
+
+            // Step 1.5.3: Increase index by 1.
+            index += 1;
         }
+
+        // Step 1.6: Return a new array key with value set to keys.
+        return Ok(ConversionResult::Valid(IndexedDBKeyType::Array(keys)));
     }
 
     // Step 2: Otherwise, return the result of running the steps to convert a value
