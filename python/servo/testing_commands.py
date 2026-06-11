@@ -1191,5 +1191,5 @@ def log_memory_usage():
             }
         )
         print(flush=True)
-        time.sleep(1)
+        time.sleep(0.2)
     json.dump(memory_usage_data, open("memory_usage_data.json", "w"))
