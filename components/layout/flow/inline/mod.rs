@@ -235,7 +235,7 @@ impl BlockLevelBox {
             true, /* has_inline_parent */
         );
 
-        let Fragment::Box(fragment) = fragment else {
+        let Some(fragment) = fragment.retrieve_box_fragment() else {
             unreachable!("The fragment should be a Fragment::Box()");
         };
 
@@ -247,7 +247,7 @@ impl BlockLevelBox {
 
         layout.push_line_item_to_unbreakable_segment(LineItem::BlockLevel(
             layout.current_inline_box_identifier(),
-            fragment,
+            fragment.clone(),
         ));
 
         layout.commit_current_segment_to_line();

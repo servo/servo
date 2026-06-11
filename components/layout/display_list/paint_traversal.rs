@@ -198,6 +198,12 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         let mut saw_inline_level_or_replaced = false;
 
         match fragment {
+            Fragment::LayoutRoot(layout_root_fragment) => {
+                saw_inline_level_or_replaced = self.traverse_block_level_descendants_decorations(
+                    state,
+                    &layout_root_fragment.inner(),
+                );
+            },
             Fragment::Box(box_fragment) => {
                 // If this box establishes a stacking context or stacking container, do not paint
                 // it during this phase. Instead it is painted when the stacking context or container
@@ -304,6 +310,11 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         at_root_of_stacking_context: bool,
     ) {
         match fragment {
+            Fragment::LayoutRoot(layout_root_fragment) => self.traverse_line_boxes_and_replaced(
+                state,
+                &layout_root_fragment.inner(),
+                at_root_of_stacking_context,
+            ),
             Fragment::Box(box_fragment) => {
                 // If this box establishes a stacking context or stacking container, do not paint
                 // it during this phase. Instead it is painted when the stacking context or container
@@ -343,6 +354,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
 
     fn traverse_fragment_in_a_line_box(&mut self, state: &TraversalState, fragment: &Fragment) {
         match fragment {
+            Fragment::LayoutRoot(layout_root_fragment) => {
+                self.traverse_fragment_in_a_line_box(state, &layout_root_fragment.inner())
+            },
             Fragment::Box(box_fragment) => self.traverse_box_in_a_line_box(
                 state,
                 box_fragment,
@@ -428,6 +442,13 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
     ) {
         for child in &box_fragment.children {
             match child {
+                Fragment::LayoutRoot(layout_root_fragment) => {
+                    self.traverse_stacking_container(
+                        &state.without_text_decorations(),
+                        &layout_root_fragment.inner_box_fragment(),
+                        true, /* is_block_level */
+                    );
+                },
                 Fragment::Image(image_fragment) => {
                     let containing_block =
                         PhysicalRect::new(state.origin, box_fragment.content_rect().size);

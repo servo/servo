@@ -6,7 +6,7 @@ use std::fmt;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use malloc_size_of_derive::MallocSizeOf;
 
 #[derive(MallocSizeOf)]
@@ -91,5 +91,21 @@ impl<T> Clone for WeakRefCell<T> {
 impl<T> WeakRefCell<T> {
     pub(crate) fn upgrade(&self) -> Option<ArcRefCell<T>> {
         self.value.upgrade().map(|value| ArcRefCell { value })
+    }
+}
+
+pub(crate) enum RefOrAtomicRef<'a, T> {
+    Ref(&'a T),
+    AtomicRef(AtomicRef<'a, T>),
+}
+
+impl<T> Deref for RefOrAtomicRef<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Ref(value) => value,
+            Self::AtomicRef(value) => value.deref(),
+        }
     }
 }

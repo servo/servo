@@ -1861,7 +1861,9 @@ impl<'container> PlacementState<'container> {
         self.place_fragment(fragment, sequential_layout_state);
 
         let box_fragment = match fragment {
-            Fragment::Box(box_fragment) => box_fragment,
+            Fragment::LayoutRoot(..) | Fragment::Box(..) => fragment
+                .retrieve_box_fragment()
+                .expect("Should be guaranteed by surrounding check"),
             _ => return,
         };
 
@@ -1896,7 +1898,11 @@ impl<'container> PlacementState<'container> {
         sequential_layout_state: Option<&mut SequentialLayoutState>,
     ) {
         match fragment {
-            Fragment::Box(fragment) => {
+            Fragment::LayoutRoot(..) | Fragment::Box(..) => {
+                let fragment = fragment
+                    .retrieve_box_fragment()
+                    .expect("Should be guaranteed by surrounding condition");
+
                 // If this child is a marker positioned outside of a list item, then record its
                 // size, but also ensure that it doesn't advance the block position of the placment.
                 // This ensures item content is placed next to the marker.
@@ -2015,7 +2021,7 @@ impl<'container> PlacementState<'container> {
                 );
             },
             Fragment::Positioning(_) => {},
-            _ => unreachable!(),
+            _ => unreachable!("Unexpected Fragment type encountered during flow layout"),
         }
     }
 

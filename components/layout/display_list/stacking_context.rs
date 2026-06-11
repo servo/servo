@@ -278,10 +278,7 @@ impl StackingContextTree {
         fragment: &Fragment,
         point_in_viewport: PhysicalPoint<Au>,
     ) -> Option<Point2D<Au, CSSPixel>> {
-        let Fragment::Box(fragment) = fragment else {
-            return None;
-        };
-
+        let fragment = fragment.retrieve_box_fragment()?;
         let spatial_tree_node = fragment.spatial_tree_node()?;
         let transform = self
             .paint_info
@@ -491,6 +488,10 @@ impl Fragment {
                     stacking_context,
                     text_decorations,
                 );
+            },
+            Fragment::LayoutRoot(..) => {
+                // These fragments are processed at their originating
+                // `Fragment::AbsoluteOrFixedPositionedPlaceholder` position.
             },
             Fragment::AbsoluteOrFixedPositionedPlaceholder(fragment) => {
                 let shared_fragment = fragment.borrow();
@@ -1295,6 +1296,9 @@ impl BoxFragment {
         fn assign_spatial_tree_node_on_fragments(fragments: &[Fragment]) {
             for fragment in fragments.iter() {
                 match fragment {
+                    Fragment::LayoutRoot(layout_root_fragment) => layout_root_fragment
+                        .inner_box_fragment()
+                        .clear_spatial_tree_node_including_descendants(),
                     Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
                         box_fragment.clear_spatial_tree_node_including_descendants();
                     },

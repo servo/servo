@@ -57,19 +57,14 @@ impl FragmentTree {
     /// block as their containing block are also direct children of the fragment tree
     /// root, but they are not returned by this getter.
     pub(crate) fn root_box_fragment(&self) -> Option<Arc<BoxFragment>> {
-        self.root_fragments
-            .iter()
-            .find_map(|root_fragment| match root_fragment {
-                Fragment::Box(box_fragment) | Fragment::Float(box_fragment)
-                    if box_fragment
-                        .base
-                        .flags
-                        .contains(FragmentFlags::IS_ROOT_ELEMENT) =>
-                {
-                    Some(box_fragment.clone())
-                },
-                _ => None,
-            })
+        self.root_fragments.iter().find_map(|root_fragment| {
+            let box_fragment = root_fragment.retrieve_box_fragment()?;
+            box_fragment
+                .base
+                .flags
+                .contains(FragmentFlags::IS_ROOT_ELEMENT)
+                .then(|| box_fragment.clone())
+        })
     }
 
     pub fn print(&self) {
@@ -95,7 +90,7 @@ impl FragmentTree {
     /// Calculate the scrollable overflow / scrolling area for this [`FragmentTree`] according
     /// to <https://drafts.csswg.org/cssom-view/#scrolling-area>.
     fn calculate_scrollable_overflow(&self) -> PhysicalRect<Au> {
-        let Some(first_root_fragment) = self.root_fragments.first() else {
+        let Some(first_root_fragment) = self.root_box_fragment() else {
             return self.initial_containing_block;
         };
 
@@ -120,17 +115,8 @@ impl FragmentTree {
                     overflow.union(&fragment.scrollable_overflow_for_parent())
                 });
 
-        // Assuming that the first fragment is the root element, ensure that
-        // scrollable overflow that is unreachable is not included in the final
-        // rectangle. See
-        // <https://drafts.csswg.org/css-overflow/#scrolling-direction>.
-        let first_root_fragment = match first_root_fragment {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => fragment,
-            _ => return scrollable_overflow,
-        };
-        if !first_root_fragment.is_root_element() {
-            return scrollable_overflow;
-        }
+        // Ensure that scrollable overflow that is unreachable is not included in the final
+        // rectangle. See <https://drafts.csswg.org/css-overflow/#scrolling-direction>.
         first_root_fragment.clip_wholly_unreachable_scrollable_overflow(
             scrollable_overflow,
             self.initial_containing_block,
@@ -153,25 +139,34 @@ impl FragmentTree {
 
     /// Find the `<body>` element's [`Fragment`], if it exists in this [`FragmentTree`].
     pub(crate) fn body_fragment(&self) -> Option<Arc<BoxFragment>> {
+        fn find_body_from_box_fragment(
+            box_fragment: &Arc<BoxFragment>,
+        ) -> Option<Arc<BoxFragment>> {
+            if box_fragment.is_body_element_of_html_element_root() {
+                return Some(box_fragment.clone());
+            }
+
+            // The fragment for the `<body>` element is typically a child of the root (though,
+            // not if it's absolutely positioned), so we need to recurse into the children of
+            // the root to find it.
+            //
+            // Additionally, recurse into any anonymous fragments, as the `<body>` fragment may
+            // have created anonymous parents (for instance by creating an inline formatting context).
+            if box_fragment.is_root_element() || box_fragment.base.is_anonymous() {
+                find_body(&box_fragment.children)
+            } else {
+                None
+            }
+        }
+
         fn find_body(children: &[Fragment]) -> Option<Arc<BoxFragment>> {
             children.iter().find_map(|fragment| {
                 match fragment {
+                    Fragment::LayoutRoot(layout_root) => {
+                        find_body_from_box_fragment(&layout_root.inner_box_fragment())
+                    },
                     Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                        if box_fragment.is_body_element_of_html_element_root() {
-                            return Some(box_fragment.clone());
-                        }
-
-                        // The fragment for the `<body>` element is typically a child of the root (though,
-                        // not if it's absolutely positioned), so we need to recurse into the children of
-                        // the root to find it.
-                        //
-                        // Additionally, recurse into any anonymous fragments, as the `<body>` fragment may
-                        // have created anonymous parents (for instance by creating an inline formatting context).
-                        if box_fragment.is_root_element() || box_fragment.base.is_anonymous() {
-                            find_body(&box_fragment.children)
-                        } else {
-                            None
-                        }
+                        find_body_from_box_fragment(box_fragment)
                     },
                     Fragment::Positioning(positioning_fragment)
                         if positioning_fragment.base.is_anonymous() =>
