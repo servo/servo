@@ -22,10 +22,16 @@ use web_atoms::{LocalName, local_name};
 use crate::ArcRefCell;
 
 bitflags! {
+    /// Damage which was caused by changes to the accessibility tree. These changes can cause other
+    /// properties to need to be re-computed based on the updated values, either on the same node or
+    /// on other nodes.
     #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
     pub struct LocalDamage: u16 {
+        /// This node's children changed, and/or any node in its subtree changed.
         const SUBTREE_CHANGED = 0b0001;
+        /// This node's computed role changed.
         const ROLE_CHANGED = 0b0010;
+        /// This node's computed label or text value (for a text node) changed.
         const TEXT_CHANGED = 0b0100;
     }
 }
