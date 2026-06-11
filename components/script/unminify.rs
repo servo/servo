@@ -72,6 +72,18 @@ pub(crate) fn create_output_file(
 ) -> Result<File, Error> {
     let path = PathBuf::from(unminified_dir);
 
+    // A `data:` URL carries the whole script inline, so deriving a file system
+    // path from it (as is done below for other URLs) can easily exceed the
+    // operating system's file name length limit and fail to write the script to
+    // disk (for example on reddit.com). There is no meaningful URL path to
+    // mirror, so store the script under a generated name in the base directory.
+    if url.scheme() == "data" {
+        create_dir_all(&path)?;
+        let path = path.join(Uuid::new_v4().to_string());
+        debug!("Unminified files will be stored in {:?}", path);
+        return File::create(path);
+    }
+
     let (base, has_name) = match url.as_str().ends_with('/') {
         true => (
             path.join(&url[url::Position::BeforeHost..])
