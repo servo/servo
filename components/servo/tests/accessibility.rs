@@ -209,7 +209,7 @@ fn test_accessibility_basic_mapping() {
         url.push_str(format!("<{element}></{element}>").as_str());
     }
 
-    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url.as_str());
+    let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url.as_str());
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     assert_eq!(root.children().len(), element_role_pairs.len());
@@ -229,7 +229,7 @@ fn test_accessibility_basic_mapping() {
 #[test]
 fn test_accessibility_basic_name_from_contents() {
     let url = "data:text/html,<!DOCTYPE html><h1>Servo</h1>";
-    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+    let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let first_child = root
         .children()
@@ -245,7 +245,7 @@ fn test_accessibility_name_from_contents_subtree() {
                <h1>Servo aims to empower <code>developers</code> with a <em>lightweight</em>, \
                <strong>high-performance</strong> alternative for <span>embedding \
                <span>web technologies</span> in <span>applications</span></span>.</h1>";
-    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+    let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let heading = root
@@ -393,7 +393,7 @@ fn build_webview_and_tree(
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
     let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
-    let mut tree = build_tree(updates);
+    let tree = build_tree(updates);
     (servo_test, delegate, webview, tree)
 }
 
