@@ -141,7 +141,7 @@ pub struct Preferences {
     /// while a higher value improves batching efficiency (fewer channel operations, lower power).
     ///
     /// See <https://github.com/servo/servo/pull/45301> for measurements.
-    pub dom_canvas_buffer_size: u64,
+    pub dom_canvas_msg_buffer_size: u64,
     pub dom_clipboardevent_enabled: bool,
     pub dom_composition_event_enabled: bool,
     // feature: CookieStore | #37674 | Web/API/CookieStore
@@ -382,7 +382,7 @@ impl Preferences {
             dom_canvas_capture_enabled: false,
             dom_canvas_text_enabled: true,
             dom_canvas_backend: String::new(),
-            dom_canvas_buffer_size: 16,
+            dom_canvas_msg_buffer_size: 16,
             dom_clipboardevent_enabled: true,
             dom_composition_event_enabled: false,
             dom_cookiestore_enabled: false,

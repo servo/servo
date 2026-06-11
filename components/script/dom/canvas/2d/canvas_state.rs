@@ -261,7 +261,7 @@ impl CanvasState {
             buffered_sender: GenericBufferedSender::new(
                 canvas_thread_sender,
                 Box::new(move |cmds| (canvas_id, CanvasCommand::ProcessBatchMessages(cmds))),
-                servo_config::pref!(dom_canvas_buffer_size) as usize,
+                servo_config::pref!(dom_canvas_msg_buffer_size) as usize,
             ),
         })
     }
