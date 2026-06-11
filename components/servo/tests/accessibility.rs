@@ -401,8 +401,13 @@ fn test_accessibility_text_change() {
 #[test]
 fn test_accessibility_partial_subtree_move_and_delete() {
     let url = "data:text/html,<!DOCTYPE html>\
-               <div id='div1'><div><h1 id='h1'>This is an h1</h1></div></div>\
-               <div id='div2'><h2 id='h2'>This is an h2</h2></div>";
+               <div id='div1'>\
+                 <div id='div2'>\
+                   <h1 id='h1'>This is an h1</h1>\
+                   <p id='p'>This is a paragraph</p>\
+                 </div>\
+               </div>\
+               <div id='div3'><h2 id='h2'>This is an h2</h2></div>";
     let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
@@ -412,6 +417,10 @@ fn test_accessibility_partial_subtree_move_and_delete() {
     assert_eq!(div1.role(), Role::GenericContainer);
     let h1 = find_all_matching_nodes(div1, |node| node.role() == Role::Heading)[0];
     assert_eq!(h1.label(), Some("This is an h1".to_owned()));
+    let _p = find_all_matching_nodes(div1, |node| node.role() == Role::Paragraph)
+        .pop()
+        .expect("Should be exactly one Paragraph node");
+
     let div2 = children[1];
     assert_eq!(div2.role(), Role::GenericContainer);
     let h2 = find_all_matching_nodes(div2, |node| node.role() == Role::Heading)[0];
@@ -420,7 +429,9 @@ fn test_accessibility_partial_subtree_move_and_delete() {
     let _ = evaluate_javascript(
         &servo_test,
         webview.clone(),
-        "div2.moveBefore(div1, h2);\
+        "div3.moveBefore(div2, h2);\
+         div3.moveBefore(h1, div2);\
+         p.remove();\
          div1.remove();\
          window.ServoTestUtils.forceAccessibilityUpdate();",
     );
@@ -433,11 +444,15 @@ fn test_accessibility_partial_subtree_move_and_delete() {
     assert_eq!(children.len(), 1);
     let div2 = children[0];
     assert_eq!(div2.role(), Role::GenericContainer);
-    let headings: Vec<accesskit_consumer::Node> = div2.children().collect();
-    assert_eq!(headings.len(), 2);
-    let h1 = headings[0];
+    let children: Vec<accesskit_consumer::Node> = div2.children().collect();
+    assert_eq!(children.len(), 3);
+    let h1 = children[0];
+    assert_eq!(h1.role(), Role::Heading);
     assert_eq!(h1.label(), Some("This is an h1".to_owned()));
-    let h2 = headings[1];
+    let div2 = children[1];
+    assert_eq!(div2.role(), Role::GenericContainer);
+    let h2 = children[2];
+    assert_eq!(h2.role(), Role::Heading);
     assert_eq!(h2.label(), Some("This is an h2".to_owned()));
 }
 
