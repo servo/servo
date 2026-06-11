@@ -24,7 +24,7 @@ use embedder_traits::{
 use futures_util::Stream;
 use servo_webdriver::bidi::{Command, CommandData, Event, ResultData};
 
-use crate::{dispatcher::DispatchMessage, error::WebDriverBidiError};
+use crate::bidi::{dispatcher::DispatchMessage, error::WebDriverBidiError};
 
 pub trait WebDriverBidiHandler: Sized {
     fn to_sessioned(&self) -> Option<Self>;

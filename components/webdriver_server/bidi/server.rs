@@ -14,7 +14,7 @@ use tokio::{
     sync::mpsc,
 };
 
-use crate::{
+use crate::bidi::{
     connection::{Connection, ConnectionId},
     dispatcher::DispatchMessage,
 };

@@ -9,7 +9,7 @@ use servo_webdriver::bidi::{
 };
 use uuid::Uuid;
 
-use crate::{
+use crate::bidi::{
     dispatcher::DispatchMessage, error::WebDriverBidiError, handler::Handler, session::SessionId,
 };
 

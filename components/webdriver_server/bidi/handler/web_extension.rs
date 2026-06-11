@@ -11,7 +11,7 @@ use servo_webdriver::bidi::{
 };
 use uuid::Uuid;
 
-use crate::{
+use crate::bidi::{
     error::WebDriverBidiError,
     handler::{
         Handler,

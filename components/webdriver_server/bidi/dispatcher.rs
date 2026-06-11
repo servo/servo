@@ -41,7 +41,7 @@ use indexmap::IndexMap;
 use log::error;
 use servo_webdriver::bidi::{Command, Message as BidiMessage};
 
-use crate::{
+use crate::bidi::{
     connection::{Connection, ConnectionId},
     handler::WebDriverBidiHandler,
     session::{Session, SessionId},

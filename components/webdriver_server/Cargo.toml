@@ -14,15 +14,18 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
+async-tungstenite = { workspace = true, features = ["tokio-runtime"] }
 base64 = { workspace = true }
 bytes = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
+futures-util = { workspace = true }
 http = { workspace = true }
 http02 = { workspace = true }
 image = { workspace = true }
+indexmap = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 rustc-hash = { workspace = true }
@@ -31,10 +34,11 @@ serde_json = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-geometry = { workspace = true }
+servo-webdriver = { workspace = true }
 servo-url = { workspace = true }
 stylo_traits = { workspace = true }
 time = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros"] }
 url = { workspace = true }
 uuid = { workspace = true }
 warp = { workspace = true, features = ["server"] }

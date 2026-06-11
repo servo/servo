@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use servo_base::id::{BrowsingContextId, WebViewId};
 use uuid::Uuid;
 
-use crate::{
+use crate::bidi::{
     connection::{Connection, ConnectionId},
     handler::WebDriverBidiHandler,
 };

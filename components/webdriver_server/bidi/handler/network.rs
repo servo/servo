@@ -1,6 +1,6 @@
 use servo_webdriver::bidi::{NetworkCommand, NetworkResult};
 
-use crate::{error::WebDriverBidiError, handler::Handler};
+use crate::bidi::{error::WebDriverBidiError, handler::Handler};
 
 impl Handler {
     pub(super) async fn handle_network(

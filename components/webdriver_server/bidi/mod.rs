@@ -7,9 +7,9 @@ use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiToEmbedderMsg
 use log::info;
 use tokio::net::TcpListener;
 
-use crate::{
+use crate::bidi::{
     dispatcher::{DispatchMessage, Dispatcher},
-    handler::{Handler, WebDriverBidiHandler},
+    handler::Handler,
     server::serve,
 };
 

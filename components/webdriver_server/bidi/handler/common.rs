@@ -1,6 +1,6 @@
 use std::{collections::HashSet, path::PathBuf};
 
-use crate::handler::Handler;
+use crate::bidi::handler::Handler;
 
 impl Handler {
     /// <https://fs.spec.whatwg.org/#locating-an-entry>

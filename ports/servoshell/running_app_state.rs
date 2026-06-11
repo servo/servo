@@ -260,7 +260,7 @@ impl RunningAppState {
                 .get()
                 .map(|port| {
                     let (embedder_sender, embedder_receiver) = unbounded();
-                    webdriver_bidi::start_server(port, embedder_sender, event_loop_waker);
+                    webdriver_server::bidi::start_server(port, embedder_sender, event_loop_waker);
                     embedder_receiver
                 });
 
