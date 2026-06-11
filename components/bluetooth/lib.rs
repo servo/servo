@@ -4,7 +4,6 @@
 
 pub mod adapter;
 pub mod bluetooth;
-mod macros;
 pub mod test;
 
 use std::borrow::ToOwned;

@@ -17,7 +17,6 @@ use btleplug::api::{Central, CentralState, Manager};
 use btleplug::platform::{Adapter, Manager as PlatformManager};
 
 use super::bluetooth::{BluetoothDevice, BluetoothDiscoverySession};
-use crate::macros::get_inner_and_call_test_func;
 
 #[cfg(feature = "native-bluetooth")]
 #[derive(Clone, Debug)]
@@ -146,27 +145,38 @@ impl BluetoothAdapter {
     }
 
     #[cfg(feature = "bluetooth-test")]
+    fn mock(&self) -> Result<&FakeBluetoothAdapter, Box<dyn Error>> {
+        match self {
+            Self::Mock(adapter) => Ok(adapter),
+            #[cfg(feature = "native-bluetooth")]
+            _ => Err(Box::from(
+                "Error! Test functions are not supported on real devices!",
+            )),
+        }
+    }
+
+    #[cfg(feature = "bluetooth-test")]
     pub fn set_name(&self, name: String) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothAdapter, set_name, name)
+        self.mock()?.set_name(name)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_powered(&self, powered: bool) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothAdapter, set_powered, powered)
+        self.mock()?.set_powered(powered)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn is_present(&self) -> Result<bool, Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothAdapter, is_present)
+        self.mock()?.is_present()
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_present(&self, present: bool) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothAdapter, set_present, present)
+        self.mock()?.set_present(present)
     }
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_discoverable(&self, discoverable: bool) -> Result<(), Box<dyn Error>> {
-        get_inner_and_call_test_func!(self, BluetoothAdapter, set_discoverable, discoverable)
+        self.mock()?.set_discoverable(discoverable)
     }
 }
