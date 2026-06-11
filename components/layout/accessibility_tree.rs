@@ -268,6 +268,7 @@ impl AccessibilityTree {
         {
             let node = self.nodes.remove(&id);
             debug_assert!(node.is_some(), "Node for id {id:?} was already removed");
+            self.node_to_parent.remove(&id);
             if let Some(opaque_node) = self.id_to_opaque_node.remove(&id) {
                 self.opaque_node_to_id.remove(&opaque_node);
             }
@@ -361,7 +362,13 @@ impl AccessibilityTree {
         }
         // If this fails, then the tree has orphaned nodes (a leak).
         // Dangling references are already caught in the loop above.
-        assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
+        let mut known_nodes = self.nodes.keys().copied().collect();
+        assert_eq!(seen_node_ids, known_nodes);
+
+        // All node IDs other than the root node should be keys in `node_to_parent`, and no others.
+        known_nodes.remove(&root_node_id);
+        let nodes_with_parents: FxHashSet<NodeId> = self.node_to_parent.keys().copied().collect();
+        assert_eq!(nodes_with_parents, known_nodes);
     }
 
     fn print(&self) {
