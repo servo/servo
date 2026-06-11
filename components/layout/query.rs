@@ -452,9 +452,6 @@ fn should_honor_min_size_auto(fragment: Option<&Fragment>, style: &ComputedValue
     // <https://github.com/w3c/csswg-drafts/issues/11716>
     // However, when a box is generated and `aspect-ratio` isn't `auto`, we need to preserve
     // the automatic minimum size as `auto`.
-    if let Some(Fragment::Float(..)) = fragment {
-        return false;
-    };
     let Some(box_fragment) = fragment.and_then(|fragment| fragment.retrieve_box_fragment()) else {
         return false;
     };

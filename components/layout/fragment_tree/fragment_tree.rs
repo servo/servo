@@ -57,31 +57,14 @@ impl FragmentTree {
     /// block as their containing block are also direct children of the fragment tree
     /// root, but they are not returned by this getter.
     pub(crate) fn root_box_fragment(&self) -> Option<Arc<BoxFragment>> {
-        self.root_fragments
-            .iter()
-            .find_map(|root_fragment| match root_fragment {
-                Fragment::LayoutRoot(layout_root_fragment) => {
-                    let box_fragment = layout_root_fragment.inner_box_fragment();
-                    if box_fragment
-                        .base
-                        .flags
-                        .contains(FragmentFlags::IS_ROOT_ELEMENT)
-                    {
-                        Some(box_fragment.clone())
-                    } else {
-                        None
-                    }
-                },
-                Fragment::Box(box_fragment) | Fragment::Float(box_fragment)
-                    if box_fragment
-                        .base
-                        .flags
-                        .contains(FragmentFlags::IS_ROOT_ELEMENT) =>
-                {
-                    Some(box_fragment.clone())
-                },
-                _ => None,
-            })
+        self.root_fragments.iter().find_map(|root_fragment| {
+            let box_fragment = root_fragment.retrieve_box_fragment()?;
+            box_fragment
+                .base
+                .flags
+                .contains(FragmentFlags::IS_ROOT_ELEMENT)
+                .then(|| box_fragment.clone())
+        })
     }
 
     pub fn print(&self) {

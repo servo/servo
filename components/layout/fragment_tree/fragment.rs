@@ -179,14 +179,15 @@ impl Fragment {
     }
 
     pub(crate) fn scrolling_area(&self, layout_thread: &LayoutThread) -> PhysicalRect<Au> {
-        self.retrieve_box_fragment()
-            .map(|box_fragment| {
+        self.retrieve_box_fragment().map_or_else(
+            || self.scrollable_overflow_for_parent(),
+            |box_fragment| {
                 box_fragment.offset_by_containing_block(
                     &box_fragment.scrollable_overflow(),
                     layout_thread.into(),
                 )
-            })
-            .unwrap_or_else(|| self.scrollable_overflow_for_parent())
+            },
+        )
     }
 
     /// Clear the scrollable overflow on this [`Fragment`]. This is called during damage
