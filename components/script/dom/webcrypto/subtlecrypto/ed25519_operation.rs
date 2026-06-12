@@ -5,8 +5,8 @@
 use aws_lc_rs::encoding::{AsBigEndian, AsDer};
 use aws_lc_rs::signature::{ED25519, Ed25519KeyPair, KeyPair, ParsedPublicKey, UnparsedPublicKey};
 use js::context::JSContext;
-use rand::TryRngCore;
-use rand::rngs::OsRng;
+use rand::TryRng;
+use rand::rngs::SysRng;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
@@ -102,7 +102,7 @@ pub(crate) fn generate_key(
 
     // Step 2. Generate an Ed25519 key pair, as defined in [RFC8032], section 5.1.5.
     let mut seed = vec![0u8; ED25519_SEED_LENGTH];
-    if OsRng.try_fill_bytes(&mut seed).is_err() {
+    if SysRng.try_fill_bytes(&mut seed).is_err() {
         return Err(Error::Operation(Some("Error getting random data".into())));
     }
     let key_pair = Ed25519KeyPair::from_seed_unchecked(&seed).map_err(|error| {

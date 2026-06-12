@@ -204,6 +204,7 @@ skip = [
     "hmac",
     "sha1",
     "sha2",
+    "chacha20",
 ]
 
 # github.com organizations to allow git sources for

@@ -21,7 +21,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use profile_traits::mem::ReportsChan;
-use rand::{RngCore, rng};
+use rand::{Rng, rng};
 use request::RequestId;
 use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
