@@ -172,10 +172,11 @@ pub(crate) struct DocumentEventHandler {
     click_counting_info: DomRefCell<ClickCountingInfo>,
     #[no_trace]
     last_mouse_button_down_point: Cell<Option<Point2D<f32, CSSPixel>>>,
-    /// The number of mouse buttons currently being pressed. This is used to ensure
-    /// that `pointerup` and `pointerdown` events are only sent when transitioning from
+    /// The current button state of the mouse. This is used to ensure that
+    /// `pointerup` and `pointerdown` events are only sent when transitioning from
     /// having no mouse buttons pressed to having any and vice-versa.
-    mouse_buttons_down_count: Cell<u32>,
+    #[no_trace]
+    mouse_button_state: Cell<MouseButtons>,
     /// The element that is currently hovered by the cursor.
     current_hover_target: MutNullableDom<Element>,
     /// The element that was most recently activated during a mouse button press or touch
@@ -224,7 +225,7 @@ impl DocumentEventHandler {
             coalesced_wheel_event_ids: Default::default(),
             click_counting_info: Default::default(),
             last_mouse_button_down_point: Default::default(),
-            mouse_buttons_down_count: Cell::new(0),
+            mouse_button_state: Cell::new(MouseButtons::empty()),
             current_hover_target: Default::default(),
             current_active_element: Default::default(),
             most_recently_clicked_element: Default::default(),
@@ -990,8 +991,7 @@ impl DocumentEventHandler {
                     .set(Some(hit_test_result.point_in_frame));
 
                 // Step 6. Dispatch pointerdown event.
-                let mouse_buttons_down = self.mouse_buttons_down_count.get();
-                let pointer_event_name = if mouse_buttons_down == 0 {
+                let pointer_event_name = if self.mouse_button_state.get().is_empty() {
                     // From <https://w3c.github.io/pointerevents/#dfn-pointerdown>
                     // > The user agent MUST fire a pointer event named pointerdown when a pointer enters
                     // > the active buttons state. For mouse, this is when the device transitions from no
@@ -1020,8 +1020,9 @@ impl DocumentEventHandler {
                     .map(DomRoot::upcast::<EventTarget>)
                     .unwrap_or_else(|| DomRoot::from_ref(node.upcast::<EventTarget>()));
 
-                // Increment button count before firing so setPointerCapture works in handler.
-                self.mouse_buttons_down_count.set(mouse_buttons_down + 1);
+                // Update button state before firing so setPointerCapture works in handler.
+                self.mouse_button_state
+                    .set(input_event.pressed_mouse_buttons);
 
                 pointer_event.upcast::<Event>().fire(cx, &pointer_target);
 
@@ -1057,8 +1058,9 @@ impl DocumentEventHandler {
             // https://w3c.github.io/pointerevents/#dfn-handle-native-mouse-up
             MouseButtonAction::Up => {
                 // Step 6. Dispatch pointerup event.
-                let mouse_buttons_down = self.mouse_buttons_down_count.get();
-                let pointer_event_name = if mouse_buttons_down == 1 {
+                let mouse_button_state = self.mouse_button_state.get();
+                let exactly_one_button = mouse_button_state.exactly_one_button_pressed();
+                let pointer_event_name = if exactly_one_button {
                     // From <https://w3c.github.io/pointerevents/#dfn-pointerup>:
                     // > The user agent MUST fire a pointer event named pointerup when a pointer leaves
                     // > the active buttons state. For mouse, this is when the device transitions from at
@@ -1089,10 +1091,10 @@ impl DocumentEventHandler {
 
                 pointer_event.upcast::<Event>().fire(cx, &pointer_target);
 
-                // Decrement button count after firing event, so setPointerCapture/releasePointerCapture
+                // Update button state after firing event, so setPointerCapture/releasePointerCapture
                 // work during the pointerup handler (pointer is still "active").
-                self.mouse_buttons_down_count
-                    .set(mouse_buttons_down.saturating_sub(1));
+                self.mouse_button_state
+                    .set(input_event.pressed_mouse_buttons);
 
                 // Process pending pointer capture after decrementing button count, but skip
                 // if we just released a disconnected capture to avoid immediately re-capturing.
@@ -1102,7 +1104,7 @@ impl DocumentEventHandler {
                 }
 
                 // Implicitly release pointer capture when last button was released
-                if mouse_buttons_down == 1 {
+                if exactly_one_button {
                     self.implicit_release_pointer_capture(cx, pointer_id, "mouse", true);
                 }
 
@@ -2557,7 +2559,7 @@ impl DocumentEventHandler {
     pub(crate) fn is_active_pointer(&self, pointer_id: i32) -> bool {
         if pointer_id == PointerId::Mouse as i32 {
             // Mouse is active when buttons are down
-            self.mouse_buttons_down_count.get() > 0
+            !self.mouse_button_state.get().is_empty()
         } else {
             // Touch pointers are tracked in active_pointer_ids
             self.active_pointer_ids
@@ -2727,13 +2729,6 @@ impl DocumentEventHandler {
         target: &Element,
         related_target: Option<&Element>,
     ) {
-        // TODO: This is wrong when the button pressed is not the primary one.
-        let mouse_buttons = if self.mouse_buttons_down_count.get() != 0 {
-            MouseButtons::Primary
-        } else {
-            MouseButtons::empty()
-        };
-
         let pointer_event = PointerEvent::new(
             cx,
             &self.window,
@@ -2747,7 +2742,7 @@ impl DocumentEventHandler {
             Point2D::new(0, 0),
             Modifiers::empty(),
             MouseButton::None,
-            mouse_buttons,
+            self.mouse_button_state.get(),
             related_target.map(|el| el.upcast::<EventTarget>()),
             None,
             pointer_id,
