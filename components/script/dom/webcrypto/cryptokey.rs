@@ -62,10 +62,6 @@ pub(crate) enum Handle {
     MlKem512PublicKey(ml_kem::EncapsulationKey<ml_kem::MlKem512>),
     MlKem768PublicKey(ml_kem::EncapsulationKey<ml_kem::MlKem768>),
     MlKem1024PublicKey(ml_kem::EncapsulationKey<ml_kem::MlKem1024>),
-    // Make sure the `alloc` feature of the `module-lattice` crate is enabled so that the `MaybeBox`
-    // used within the `ml_dsa::SigningKey` and `ml_dsa::VerifyingKey` is allocated on the heap
-    // rather the stack. Otherwise, these keys can easily overflow the stack.
-    // <https://docs.rs/module-lattice/0.2.3/module_lattice/struct.MaybeBox.html>
     MlDsa44PrivateKey(ml_dsa::SigningKey<ml_dsa::MlDsa44>),
     MlDsa65PrivateKey(ml_dsa::SigningKey<ml_dsa::MlDsa65>),
     MlDsa87PrivateKey(ml_dsa::SigningKey<ml_dsa::MlDsa87>),

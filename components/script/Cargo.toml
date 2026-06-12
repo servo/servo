@@ -104,7 +104,6 @@ mime = { workspace = true }
 mime_guess = { workspace = true }
 ml-dsa = { workspace = true }
 ml-kem = { workspace = true }
-module-lattice = { workspace = true }
 net_traits = { workspace = true }
 nom-rfc8288 = { workspace = true }
 num-bigint-dig = { workspace = true }
