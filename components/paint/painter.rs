@@ -1261,7 +1261,7 @@ impl Painter {
         self.set_needs_repaint(RepaintReason::Resize);
     }
 
-    pub(crate) fn set_device_size(
+    pub(crate) fn set_screen_size(
         &mut self,
         webview_id: WebViewId,
         new_size: Size2D<f32, DevicePixel>,
@@ -1269,12 +1269,9 @@ impl Painter {
         let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return;
         };
-        if !webview_renderer.set_device_size(new_size) {
+        if !webview_renderer.set_screen_size(new_size) {
             return;
         }
-
-        self.send_root_pipeline_display_list();
-        self.set_needs_repaint(RepaintReason::Resize);
     }
 
     pub(crate) fn resize_rendering_context(&mut self, new_size: PhysicalSize<u32>) {

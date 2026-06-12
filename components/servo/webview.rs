@@ -115,7 +115,6 @@ pub(crate) struct WebViewInner {
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-    device_size: Size2D<f32, DevicePixel>,
     load_status: LoadStatus,
     status_text: Option<String>,
     page_title: Option<String>,
@@ -164,7 +163,6 @@ impl WebView {
             grafted_accesskit_tree_id: None,
             grafted_accesskit_tree_epoch: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
-            device_size: builder.device_size,
             load_status: LoadStatus::Started,
             status_text: None,
             page_title: None,
@@ -251,12 +249,17 @@ impl WebView {
         // The division by 1 represents the page's default zoom of 100%,
         // and gives us the appropriate CSSPixel type for the viewport.
         let inner = self.inner();
-        let scaled_viewport_size =
-            inner.rendering_context.size2d().to_f32() / inner.hidpi_scale_factor;
+        let viewport_size = inner.rendering_context.size2d().to_f32();
+        let scaled_viewport_size = viewport_size / inner.hidpi_scale_factor;
+        let device_size = self
+            .delegate()
+            .screen_geometry(self.clone())
+            .map(|geometry| geometry.size.to_f32())
+            .unwrap_or_else(|| viewport_size);
         ViewportDetails {
             size: scaled_viewport_size / Scale::new(1.0),
             hidpi_scale_factor: Scale::new(inner.hidpi_scale_factor.0),
-            device_size: inner.device_size,
+            device_size,
         }
     }
 
@@ -474,18 +477,6 @@ impl WebView {
             .servo
             .paint()
             .set_hidpi_scale_factor(self.id(), new_scale_factor);
-    }
-
-    pub fn set_device_size(&self, new_size: Size2D<f32, DevicePixel>) {
-        if self.inner().device_size == new_size {
-            return;
-        }
-
-        self.inner_mut().device_size = new_size;
-        self.inner()
-            .servo
-            .paint()
-            .set_device_size(self.id(), new_size);
     }
 
     /// Make this [`WebView`] visible within its [`RenderingContext`].

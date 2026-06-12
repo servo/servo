@@ -745,7 +745,6 @@ impl WebViewDelegate for RunningAppState {
         let webview = request
             .builder(platform_window.rendering_context())
             .hidpi_scale_factor(platform_window.hidpi_scale_factor())
-            .device_size(platform_window.screen_geometry().size.cast())
             .delegate(parent_webview.delegate())
             .build();
 
