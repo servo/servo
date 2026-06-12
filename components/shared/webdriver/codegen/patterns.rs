@@ -41,6 +41,7 @@ fn override_rule<'a>(rule: &Rule<'a>) -> Option<RulePattern<'a>> {
         | "browsingContext.Download"
         | "network.Collector"
         | "network.Intercept"
+        | "script.InternalId"
         | "script.PreloadScript" => Some(RulePattern::Alias("uuid".into())),
         _ => None,
     }
