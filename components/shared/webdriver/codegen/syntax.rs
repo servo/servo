@@ -2,7 +2,7 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use super::util::is_rust_keyword;
+use crate::util::is_rust_keyword;
 
 pub struct File {
     /// top level items.

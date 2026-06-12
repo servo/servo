@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Write};
 
 use indexmap::IndexMap;
 
-use super::{
+use crate::{
     common::Name,
     patterns::{
         BarewordVariant, EnumVariant, FieldVariant, InlineVariant, RulePattern, VecVariant,

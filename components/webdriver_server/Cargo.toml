@@ -34,7 +34,6 @@ serde_json = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-geometry = { workspace = true }
-servo-webdriver = { workspace = true }
 servo-url = { workspace = true }
 stylo_traits = { workspace = true }
 time = { workspace = true }
@@ -43,3 +42,4 @@ url = { workspace = true }
 uuid = { workspace = true }
 warp = { workspace = true, features = ["server"] }
 webdriver = { workspace = true }
+webdriver_traits = { workspace = true }

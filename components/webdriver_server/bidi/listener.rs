@@ -41,10 +41,12 @@ impl Listener {
                 self.active_sessions
                     .read()
                     .await
+                    // TODO: clone to minimize
                     // TODO: impl parse session id and send to specific session
                     .get(&None)
                     .expect("static session missing")
-                    .associate(ws_stream.into());
+                    .associate(ws_stream.into())
+                    .await;
             }
         }
     }

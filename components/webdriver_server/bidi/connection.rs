@@ -4,7 +4,7 @@ use async_tungstenite::{WebSocketStream, tokio::TokioAdapter, tungstenite::Messa
 use log::error;
 use tokio::{net::TcpStream, sync::mpsc::UnboundedSender};
 
-use servo_webdriver::bidi::Message as BidiMessage;
+use webdriver_traits::bidi::Message as BidiMessage;
 
 /// A WebSocket connection is a network connection that follows the requirements of
 /// the WebSocket protocol.

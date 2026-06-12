@@ -4,19 +4,18 @@ use std::rc::Rc;
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use servo_base::id::BrowsingContextId;
-use servo_webdriver::bidi::{
-    self, ErrorCode, script::PreloadScript as PreloadScriptId,
-    session::Subscription as SubscriptionId,
-};
 use tokio::{
     sync::{
         RwLock,
         mpsc::{self, UnboundedReceiver, UnboundedSender},
-        oneshot::{self, Sender},
     },
     task,
 };
 use uuid::Uuid;
+use webdriver_traits::bidi::{
+    self, ErrorCode, script::PreloadScript as PreloadScriptId,
+    session::Subscription as SubscriptionId,
+};
 
 use crate::bidi::{ActiveSessions, connection::Connection};
 

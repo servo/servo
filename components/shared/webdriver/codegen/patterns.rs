@@ -4,7 +4,7 @@ use cddl::ast::{
 };
 use indexmap::IndexMap;
 
-use super::common::Name;
+use crate::common::Name;
 
 /// In first iteration we build index.
 pub fn parse_into_patterns<'a>(

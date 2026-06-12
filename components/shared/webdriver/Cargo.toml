@@ -1,5 +1,5 @@
 [package]
-name = "servo-webdriver"
+name = "servo-webdriver-traits"
 version.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -10,7 +10,7 @@ publish.workspace = true
 rust-version.workspace = true
 
 [lib]
-name = "servo_webdriver"
+name = "webdriver_traits"
 path = "lib.rs"
 
 [dependencies]
@@ -19,6 +19,6 @@ serde_json = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
 
 [build-dependencies]
-cddl = { workspace = true }
+webdriver_traits_codegen = { workspace = true }
 indexmap = { workspace = true }
 

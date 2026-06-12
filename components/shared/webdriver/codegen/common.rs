@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use super::util::{to_pascal_case, to_snake_case};
+use crate::util::{to_pascal_case, to_snake_case};
 
 /// To better distinguish the name (ident).
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]

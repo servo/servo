@@ -1,13 +1,26 @@
 [package]
-name = "servo-webdriver-codegen"
-version = "0.1.0"
-edition = "2024"
+name = "servo-webdriver-traits-codegen"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+description.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
 
-[[bin]]
-name = "servo_webdriver_codegen"
+[lib]
+name = "webdriver_traits_codegen"
+path = "lib.rs"
+
+[[example]]
+name = "webdriver_traits_codegen"
 path = "main.rs"
 
 [dependencies]
-cddl = "0.10.5"
-indexmap = "2.14.0"
+cddl = { workspace = true }
+indexmap = { workspace = true }
+
+[dev-dependencies]
+bpaf = { workspace = true }
 

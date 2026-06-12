@@ -1,7 +1,6 @@
 use std::{env, path::PathBuf};
 
-#[path = "codegen/main.rs"]
-mod codegen;
+use webdriver_traits_codegen::io;
 
 fn main() {
     println!("cargo::rerun-if-changed=cddls");
@@ -14,5 +13,5 @@ fn main() {
         let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
         Some(out.join("webdriver_bidi.rs").to_str().unwrap().to_string())
     };
-    codegen::io(input_paths, output_path, false);
+    io(input_paths, output_path, false);
 }

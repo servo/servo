@@ -4,7 +4,7 @@ use std::io;
 
 use async_tungstenite::tungstenite;
 use embedder_traits::webdriver_bidi::WebDriverBidiToEmbedderMessage;
-use servo_webdriver::bidi::{ErrorCode, ErrorResponse};
+use webdriver_traits::bidi::{ErrorCode, ErrorResponse};
 
 /// This is basically a mirror of ruustenium `ErrorResponse` except `id`.
 #[derive(Debug)]
