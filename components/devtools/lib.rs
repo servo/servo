@@ -31,7 +31,7 @@ use log::{trace, warn};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::path;
-use rand::{RngCore, rng};
+use rand::{Rng, rng};
 use resource::{ResourceArrayType, ResourceAvailable};
 use rustc_hash::FxHashMap;
 use serde::Serialize;

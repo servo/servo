@@ -15,7 +15,7 @@ use std::time::Duration;
 use bitflags::bitflags;
 use embedder_traits::{BluetoothDeviceDescription, EmbedderMsg, EmbedderProxy};
 use log::warn;
-use rand::{self, Rng};
+use rand::{self, RngExt};
 #[cfg(not(feature = "native-bluetooth"))]
 use servo_base::generic_channel::GenericReceiver;
 use servo_base::generic_channel::{self, GenericSender};

@@ -134,7 +134,7 @@ use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;
 use rand::seq::IndexedRandom;
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng, make_rng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, NewPipelineInfo,
@@ -716,7 +716,7 @@ where
                     random_pipeline_closure: random_pipeline_closure_probability.map(|probability| {
                         let rng = random_pipeline_closure_seed
                             .map(|seed| SmallRng::seed_from_u64(seed as u64))
-                            .unwrap_or_else(SmallRng::from_os_rng);
+                            .unwrap_or_else(make_rng);
                         warn!("Randomly closing pipelines using seed {random_pipeline_closure_seed:?}.");
                         (rng, probability)
                     }),

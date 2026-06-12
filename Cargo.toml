@@ -202,7 +202,7 @@ proc-macro2 = "1"
 quick_cache = { version = "0.6.18", default-features = false }
 quickcheck = "1"
 quote = "1"
-rand = "0.9"
+rand = "0.10"
 raw-window-handle = "0.6"
 rayon = "1"
 read-fonts = "0.39.2"

@@ -1230,13 +1230,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "chacha20"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f8d983286843e49675a4b7a2d174efe136dc93a18d69130dd18198a6c167601"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.3.0",
+ "rand_core 0.10.1",
+]
+
+[[package]]
 name = "chacha20poly1305"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10cd79432192d1c0f4e1a0fef9527696cc039165d729fb41b3f4f4f354c2dc35"
 dependencies = [
  "aead",
- "chacha20",
+ "chacha20 0.9.1",
  "cipher",
  "poly1305",
  "zeroize",
@@ -6723,6 +6734,7 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
 dependencies = [
+ "chacha20 0.10.0",
  "getrandom 0.4.1",
  "rand_core 0.10.1",
 ]
@@ -7660,7 +7672,7 @@ dependencies = [
  "btleplug",
  "futures",
  "log",
- "rand 0.9.4",
+ "rand 0.10.1",
  "servo-base",
  "servo-bluetooth-traits",
  "servo-config",
@@ -7782,7 +7794,7 @@ dependencies = [
  "keyboard-types",
  "log",
  "parking_lot",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rustc-hash 2.1.2",
  "serde",
  "servo-background-hang-monitor",
@@ -7879,7 +7891,7 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "parking_lot",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rustc-hash 2.1.2",
  "serde",
  "serde_json",
@@ -8271,7 +8283,7 @@ name = "servo-media-examples"
 version = "0.3.0"
 dependencies = [
  "euclid",
- "rand 0.9.4",
+ "rand 0.10.1",
  "serde",
  "servo-media",
  "servo-media-auto",
@@ -8527,7 +8539,7 @@ dependencies = [
  "num-traits",
  "parking_lot",
  "percent-encoding",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rustc-hash 2.1.2",
  "rustls-pki-types",
  "serde",
@@ -8745,7 +8757,7 @@ dependencies = [
  "phf",
  "pkcs8 0.10.2",
  "postcard",
- "rand 0.9.4",
+ "rand 0.10.1",
  "regex",
  "rsa",
  "rustc-hash 2.1.2",
