@@ -8729,7 +8729,6 @@ dependencies = [
  "mime_guess",
  "ml-dsa",
  "ml-kem",
- "module-lattice",
  "mozangle",
  "mozjs",
  "nom-rfc8288",
