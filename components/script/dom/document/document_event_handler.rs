@@ -14,7 +14,7 @@ use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
-    TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
@@ -1274,6 +1274,12 @@ impl DocumentEventHandler {
             TouchEventType::Cancel => "pointercancel",
         };
 
+        // Map the embedder-side subtype to the spec `pointerType` string.
+        let pointer_type = match event.pointer_type {
+            TouchPointerType::Pen => "pen",
+            TouchPointerType::Touch => "touch",
+        };
+
         // Get or create pointer ID for this touch
         let pointer_id = self.get_or_create_pointer_id_for_touch(identifier);
         let is_primary = self.is_primary_pointer(pointer_id);
@@ -1287,6 +1293,7 @@ impl DocumentEventHandler {
                 "pointerover",
                 pointer_id,
                 is_primary,
+                pointer_type,
                 input_event.active_keyboard_modifiers,
                 true, // cancelable
                 Some(hit_test_result.point_in_node),
@@ -1302,6 +1309,7 @@ impl DocumentEventHandler {
                 pointer_id,
                 "pointerenter",
                 is_primary,
+                pointer_type,
                 input_event,
                 &hit_test_result,
             );
@@ -1313,7 +1321,7 @@ impl DocumentEventHandler {
         let released_disconnected = if matches!(event.event_type, TouchEventType::Cancel) {
             false
         } else {
-            self.release_disconnected_pointer_capture(cx, pointer_id, "touch", is_primary)
+            self.release_disconnected_pointer_capture(cx, pointer_id, pointer_type, is_primary)
         };
 
         // Get the current capture target (before processing pending changes)
@@ -1327,6 +1335,7 @@ impl DocumentEventHandler {
             pointer_event_name,
             pointer_id,
             is_primary,
+            pointer_type,
             input_event.active_keyboard_modifiers,
             event.is_cancelable(),
             Some(hit_test_result.point_in_node),
@@ -1340,7 +1349,7 @@ impl DocumentEventHandler {
         // pointerdown, pointermove, and pointerup, not pointercancel.
         // https://w3c.github.io/pointerevents/#process-pending-pointer-capture
         if !released_disconnected && !matches!(event.event_type, TouchEventType::Cancel) {
-            self.process_pending_pointer_capture(cx, pointer_id, "touch", is_primary);
+            self.process_pending_pointer_capture(cx, pointer_id, pointer_type, is_primary);
         }
 
         // Implicitly release pointer capture on pointerup or pointercancel
@@ -1349,7 +1358,7 @@ impl DocumentEventHandler {
             event.event_type,
             TouchEventType::Up | TouchEventType::Cancel
         ) {
-            self.implicit_release_pointer_capture(cx, pointer_id, "touch", is_primary);
+            self.implicit_release_pointer_capture(cx, pointer_id, pointer_type, is_primary);
         }
 
         // For touch devices, fire pointerout/pointerleave after pointerup/pointercancel
@@ -1364,6 +1373,7 @@ impl DocumentEventHandler {
                 "pointerout",
                 pointer_id,
                 is_primary,
+                pointer_type,
                 input_event.active_keyboard_modifiers,
                 true, // cancelable
                 Some(hit_test_result.point_in_node),
@@ -1379,6 +1389,7 @@ impl DocumentEventHandler {
                 pointer_id,
                 "pointerleave",
                 is_primary,
+                pointer_type,
                 input_event,
                 &hit_test_result,
             );
@@ -2341,6 +2352,7 @@ impl DocumentEventHandler {
         pointer_id: i32,
         event_name: &str,
         is_primary: bool,
+        pointer_type: &str,
         input_event: &ConstellationInputEvent,
         hit_test_result: &HitTestResult,
     ) {
@@ -2363,6 +2375,7 @@ impl DocumentEventHandler {
                 event_name,
                 pointer_id,
                 is_primary,
+                pointer_type,
                 input_event.active_keyboard_modifiers,
                 false,
                 Some(hit_test_result.point_in_node),

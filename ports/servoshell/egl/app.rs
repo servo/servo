@@ -15,8 +15,8 @@ use servo::{
     KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Opts, Preferences, RefreshDriver,
     RenderingContext, ScreenGeometry, Scroll, Servo, ServoBuilder, SimpleDialog, TouchEvent,
-    TouchEventType, TouchId, UserContentManager, WebView, WebViewId, WindowRenderingContext,
-    convert_rect_to_css_pixel,
+    TouchEventType, TouchId, TouchPointerType, UserContentManager, WebView, WebViewId,
+    WindowRenderingContext, convert_rect_to_css_pixel,
 };
 use url::Url;
 
@@ -485,6 +485,7 @@ impl App {
                 TouchEventType::Down,
                 TouchId(pointer_id),
                 DevicePoint::new(x, y).into(),
+                TouchPointerType::Touch,
             )));
             self.spin_event_loop();
         }
@@ -497,6 +498,7 @@ impl App {
                 TouchEventType::Move,
                 TouchId(pointer_id),
                 DevicePoint::new(x, y).into(),
+                TouchPointerType::Touch,
             )));
             self.spin_event_loop();
         }
@@ -509,6 +511,7 @@ impl App {
                 TouchEventType::Up,
                 TouchId(pointer_id),
                 DevicePoint::new(x, y).into(),
+                TouchPointerType::Touch,
             )));
             self.spin_event_loop();
         }
@@ -521,6 +524,7 @@ impl App {
                 TouchEventType::Cancel,
                 TouchId(pointer_id),
                 DevicePoint::new(x, y).into(),
+                TouchPointerType::Touch,
             )));
             self.spin_event_loop();
         }
