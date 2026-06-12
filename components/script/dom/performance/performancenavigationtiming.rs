@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use script_bindings::reflector::reflect_dom_object;
-use servo_base::cross_process_instant::CrossProcessInstant;
 
 use super::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
@@ -29,16 +29,15 @@ pub(crate) struct PerformanceNavigationTiming {
 }
 
 impl PerformanceNavigationTiming {
-    fn new_inherited(
-        navigation_start: CrossProcessInstant,
-        document: &Document,
-    ) -> PerformanceNavigationTiming {
+    fn new_inherited(document: &Document) -> PerformanceNavigationTiming {
         PerformanceNavigationTiming {
             performanceresourcetiming: PerformanceResourceTiming::new_inherited(
                 document.url(),
                 InitiatorType::Navigation,
-                None,
-                Some(navigation_start),
+                document
+                    .resource_fetch_timing()
+                    .as_ref()
+                    .unwrap_or(&ResourceFetchTiming::new(ResourceTimingType::None)),
             ),
             document: Dom::from_ref(document),
             nav_type: NavigationTimingType::Navigate,
@@ -47,15 +46,11 @@ impl PerformanceNavigationTiming {
 
     pub(crate) fn new(
         global: &GlobalScope,
-        fetch_start: CrossProcessInstant,
         document: &Document,
         can_gc: CanGc,
     ) -> DomRoot<PerformanceNavigationTiming> {
         reflect_dom_object(
-            Box::new(PerformanceNavigationTiming::new_inherited(
-                fetch_start,
-                document,
-            )),
+            Box::new(PerformanceNavigationTiming::new_inherited(document)),
             global,
             can_gc,
         )

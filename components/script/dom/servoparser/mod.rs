@@ -36,7 +36,6 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
-use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
 use servo_constellation_traits::{LoadOrigin, TargetSnapshotParams};
@@ -1260,10 +1259,8 @@ impl ParserContext {
 
         let document = &parser.document;
 
-        // TODO: Pass a proper fetch start time here.
         let performance_entry = PerformanceNavigationTiming::new(
             &document.global(),
-            CrossProcessInstant::now(),
             document,
             CanGc::deprecated_note(),
         );
@@ -1561,15 +1558,10 @@ impl FetchResponseListener for ParserContext {
         }
 
         // TODO: Only update if this is the current document resource.
-        // TODO(mrobinson): Pass a proper fetch_start parameter here instead of `CrossProcessInstant::now()`.
         if let Some(pushed_index) = self.pushed_entry_index {
             let document = &parser.document;
-            let performance_entry = PerformanceNavigationTiming::new(
-                &document.global(),
-                CrossProcessInstant::now(),
-                document,
-                CanGc::from_cx(cx),
-            );
+            let performance_entry =
+                PerformanceNavigationTiming::new(&document.global(), document, CanGc::from_cx(cx));
             document
                 .global()
                 .performance()

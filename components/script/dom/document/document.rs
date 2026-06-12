@@ -3925,8 +3925,7 @@ impl Document {
     }
 
     pub(crate) fn get_redirect_count(&self) -> u16 {
-        self.resource_fetch_timing
-            .borrow()
+        self.resource_fetch_timing()
             .as_ref()
             .map_or(0, |resource_fetch_timing| {
                 resource_fetch_timing.redirect_count
@@ -3935,6 +3934,10 @@ impl Document {
 
     pub(crate) fn set_resource_fetch_timing(&self, timing: ResourceFetchTiming) {
         self.resource_fetch_timing.replace(Some(timing));
+    }
+
+    pub(crate) fn resource_fetch_timing(&self) -> Ref<'_, Option<ResourceFetchTiming>> {
+        self.resource_fetch_timing.borrow()
     }
 
     pub(crate) fn performance_timing_attribute(
@@ -3951,8 +3954,7 @@ impl Document {
             "loadEventStart" => self.get_load_event_start(),
             "loadEventEnd" => self.get_load_event_end(),
             "redirectStart" | "redirectEnd" | "secureConnectionStart" | "responseEnd" => self
-                .resource_fetch_timing
-                .borrow()
+                .resource_fetch_timing()
                 .as_ref()
                 .and_then(|resource_fetch_timing| match name {
                     "redirectStart" => resource_fetch_timing.redirect_start,
