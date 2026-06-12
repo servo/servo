@@ -168,7 +168,7 @@ use crate::dom::sanitizer::Sanitizer;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
-use crate::dom::svg::svgsvgelement::SVGSVGElement;
+use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::text::Text;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
@@ -1155,6 +1155,8 @@ impl<'dom> LayoutDom<'dom, Element> {
     where
         V: Push<ApplicableDeclarationBlock>,
     {
+        // TODO: Move HTML presentational hints handling into 
+        // HTMLElement::synthesize_presentational_hints_for_legacy_attributes
         let document = self.upcast::<Node>().owner_doc_for_layout();
         let mut property_declaration_block = None;
         let mut push = |declaration| {
@@ -1352,18 +1354,11 @@ impl<'dom> LayoutDom<'dom, Element> {
             },
         }
 
-        if let Some(this) = self.downcast::<SVGSVGElement>() {
-            let data = this.data();
-            if let Some(width) = data.width.and_then(AttrValue::as_length_percentage) {
-                push(PropertyDeclaration::Width(
-                    specified::Size::LengthPercentage(NonNegative(width.clone())),
-                ));
-            }
-            if let Some(height) = data.height.and_then(AttrValue::as_length_percentage) {
-                push(PropertyDeclaration::Height(
-                    specified::Size::LengthPercentage(NonNegative(height.clone())),
-                ));
-            }
+        if let Some(svg_element) = self.downcast::<SVGElement>() {
+            svg_element.synthesize_presentational_hints(
+                document,
+                &mut push,
+            );
         }
 
         // Aspect ratio when providing both width and height.
@@ -1648,6 +1643,10 @@ impl<'dom> LayoutDom<'dom, Element> {
 impl Element {
     pub(crate) fn is_html_element(&self) -> bool {
         self.namespace == ns!(html)
+    }
+
+    pub(crate) fn is_svg_element(&self) -> bool {
+        self.namespace == ns!(svg)
     }
 
     pub(crate) fn html_element_in_html_document(&self) -> bool {
