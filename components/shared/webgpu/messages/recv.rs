@@ -21,7 +21,7 @@ use wgpu_core::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
 use wgpu_core::command::{
-    RenderBundleDescriptor, RenderBundleEncoder, RenderPassColorAttachment,
+    PassTimestampWrites, RenderBundleDescriptor, RenderBundleEncoder, RenderPassColorAttachment,
     RenderPassDepthStencilAttachment, TexelCopyBufferInfo, TexelCopyTextureInfo,
 };
 use wgpu_core::device::HostMap;
@@ -40,7 +40,7 @@ pub use wgpu_core::id::{
 use wgpu_core::instance::RequestAdapterOptions;
 use wgpu_core::pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor};
 use wgpu_core::resource::{
-    BufferAccessError, BufferDescriptor, SamplerDescriptor, TextureDescriptor,
+    BufferAccessError, BufferDescriptor, QuerySetDescriptor, SamplerDescriptor, TextureDescriptor,
     TextureViewDescriptor,
 };
 use wgpu_types::{
@@ -271,6 +271,7 @@ pub enum WebGPURequest {
         command_encoder_id: CommandEncoderId,
         compute_pass_id: ComputePassId,
         label: Label<'static>,
+        timestamp_writes: Option<PassTimestampWrites>,
         device_id: DeviceId,
     },
     ComputePassSetPipeline {
@@ -323,6 +324,7 @@ pub enum WebGPURequest {
         label: Label<'static>,
         color_attachments: Vec<Option<RenderPassColorAttachment>>,
         depth_stencil_attachment: Option<RenderPassDepthStencilAttachment<TextureViewId>>,
+        timestamp_writes: Option<PassTimestampWrites>,
         device_id: DeviceId,
     },
     RenderPassCommand {
@@ -386,5 +388,19 @@ pub enum WebGPURequest {
         pipeline_id: RenderPipelineId,
         index: u32,
         id: BindGroupLayoutId,
+    },
+    CreateQuerySet {
+        device_id: DeviceId,
+        query_set_id: QuerySetId,
+        descriptor: QuerySetDescriptor<'static>,
+    },
+    ResolveQuerySet {
+        device_id: DeviceId,
+        command_encoder_id: CommandEncoderId,
+        query_set_id: QuerySetId,
+        start_query: u32,
+        query_count: u32,
+        destination: BufferId,
+        destination_offset: u64,
     },
 }
