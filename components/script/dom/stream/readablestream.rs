@@ -721,7 +721,7 @@ impl PipeTo {
         *self.state.borrow_mut() = PipeToState::Finalized;
 
         // Perform ! WritableStreamDefaultWriterRelease(writer).
-        self.writer.release(cx.into(), global, CanGc::from_cx(cx));
+        self.writer.release(cx, global);
 
         // If reader implements ReadableStreamBYOBReader,
         // perform ! ReadableStreamBYOBReaderRelease(reader).
