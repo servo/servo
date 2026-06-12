@@ -32,7 +32,7 @@ use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::style_structs::Border;
-use style::values::computed::basic_shape::ClipPath;
+use style::values::computed::basic_shape::ClipPath as ComputedClipPath;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
@@ -40,7 +40,6 @@ use style::values::computed::{
 use style::values::generics::NonNegative;
 use style::values::generics::color::ColorOrAuto;
 use style::values::generics::rect::Rect as StyleRect;
-use style::values::specified::TransformStyle;
 use style::values::specified::text::TextDecorationLine;
 use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
 use webrender_api::units::{
@@ -49,8 +48,9 @@ use webrender_api::units::{
 use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
-    NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding,
-    PropertyBindingKey, RasterSpace, SpatialId, StackingContextFlags, units,
+    MixBlendMode, NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags,
+    PropertyBinding, PropertyBindingKey, RasterSpace, SpatialId, StackingContextFlags,
+    TransformStyle, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -400,47 +400,86 @@ impl DisplayListBuilder<'_> {
             return false;
         }
 
-        let StackingContextFragments::Fragment(fragment) = &stacking_context.fragment else {
-            return false;
+        let is_blend_container = stacking_context.children.iter().any(|child| {
+            child.fragment().is_some_and(|fragment| {
+                fragment.style().clone_mix_blend_mode() != ComputedMixBlendMode::Normal
+            })
+        });
+
+        let primitive_flags;
+        let transform_style;
+        let mix_blend_mode;
+        let mut filters: Vec<_>;
+        let mut stacking_context_flags = StackingContextFlags::empty();
+        match &stacking_context.fragment {
+            StackingContextFragments::Fragment(fragment) => {
+                let style = fragment.style();
+                let effects = style.get_effects();
+
+                transform_style = style.get_used_transform_style().to_webrender();
+                mix_blend_mode = effects.mix_blend_mode.to_webrender();
+                primitive_flags = style.get_webrender_primitive_flags();
+
+                // Do not push another blend container for stacking contexts started by the root
+                // element, because the root background is painted above of it (at the root
+                // stacking context, which sits above the root fragment).
+                //
+                // TODO: Would it be cleaner to paint the root background at the root fragment
+                // instead of the root stacking context?
+                let needs_blend_container = is_blend_container &&
+                    !fragment.base.flags.contains(FragmentFlags::IS_ROOT_ELEMENT);
+
+                // WebRender only uses the stacking context to apply certain effects. If we don't
+                // actually need to create a stacking context, just avoid creating one.
+                if !needs_blend_container &&
+                    effects.filter.0.is_empty() &&
+                    effects.opacity == 1.0 &&
+                    effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
+                    !style.has_effective_transform_or_perspective(FragmentFlags::empty()) &&
+                    style.get_svg().clip_path == ComputedClipPath::None &&
+                    transform_style == TransformStyle::Flat
+                {
+                    return false;
+                }
+
+                // Create the filter pipeline.
+                let current_color = &style.get_inherited_text().color;
+                filters = effects
+                    .filter
+                    .0
+                    .iter()
+                    .map(|filter| FilterToWebRender::to_webrender(filter, current_color))
+                    .collect();
+                if effects.opacity != 1.0 {
+                    filters.push(wr::FilterOp::Opacity(
+                        effects.opacity.into(),
+                        effects.opacity,
+                    ));
+                }
+
+                if needs_blend_container {
+                    stacking_context_flags.insert(StackingContextFlags::IS_BLEND_CONTAINER);
+                }
+            },
+            StackingContextFragments::Root => {
+                // `is_blend_container` is true only when the root element itself has a
+                // mix-blend-mode as the root stacking context sits above any stacking context the
+                // root element creates. In that case it's important to push a parent stacking
+                // context in order to contain any extra stacking context created by the root
+                // element if it has a mix-blend-mode. This works around a bug in WebRender around
+                // extreme transformations). Adding IS_BLEND_CONTAINER here seems to triggers
+                // *another* bug in WebRender though. It's harmless to not enable it as the root
+                // stacking context is by its nature a blend container as it contains all other
+                // display items.
+                if !is_blend_container {
+                    return false;
+                }
+                transform_style = TransformStyle::Flat;
+                primitive_flags = PrimitiveFlags::empty();
+                mix_blend_mode = MixBlendMode::Normal;
+                filters = Vec::new();
+            },
         };
-
-        // WebRender only uses the stacking context to apply certain effects. If we don't
-        // actually need to create a stacking context, just avoid creating one.
-        let style = fragment.style();
-        let effects = style.get_effects();
-        let transform_style = style.get_used_transform_style();
-        if effects.filter.0.is_empty() &&
-            effects.opacity == 1.0 &&
-            effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
-            !style.has_effective_transform_or_perspective(FragmentFlags::empty()) &&
-            style.get_svg().clip_path == ClipPath::None &&
-            transform_style == TransformStyle::Flat
-        {
-            return false;
-        }
-
-        // Create the filter pipeline.
-        let current_color = style.clone_color();
-        let mut filters: Vec<wr::FilterOp> = effects
-            .filter
-            .0
-            .iter()
-            .map(|filter| FilterToWebRender::to_webrender(filter, &current_color))
-            .collect();
-        if effects.opacity != 1.0 {
-            filters.push(wr::FilterOp::Opacity(
-                effects.opacity.into(),
-                effects.opacity,
-            ));
-        }
-
-        // TODO(jdm): WebRender now requires us to create stacking context items
-        //            with the IS_BLEND_CONTAINER flag enabled if any children
-        //            of the stacking context have a blend mode applied.
-        //            This will require additional tracking during layout
-        //            before we start collecting stacking contexts so that
-        //            information will be available when we reach this point.
-        let spatial_id = self.spatial_id(stacking_context.scroll_tree_node_id);
 
         // WebRender has two different ways of expressing "no clip." ClipChainId::INVALID
         // should be used for primitives, but `None` is used for stacking contexts and
@@ -450,17 +489,18 @@ impl DisplayListBuilder<'_> {
             ClipId::INVALID => None,
             clip_id => Some(self.clip_chain_id(clip_id)),
         };
+        let spatial_id = self.spatial_id(stacking_context.scroll_tree_node_id);
 
         self.wr().push_stacking_context(
             spatial_id,
-            style.get_webrender_primitive_flags(),
+            primitive_flags,
             clip_chain_id,
-            transform_style.to_webrender(),
-            effects.mix_blend_mode.to_webrender(),
+            transform_style,
+            mix_blend_mode,
             &filters,
             &[], // filter_datas
             wr::RasterSpace::Screen,
-            wr::StackingContextFlags::empty(),
+            stacking_context_flags,
             None, // snapshot
         );
 
@@ -1605,7 +1645,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 spatial_id,
                 PrimitiveFlags::empty(),
                 None,
-                webrender_api::TransformStyle::Flat,
+                TransformStyle::Flat,
                 blend_mode.to_webrender(),
                 &[],
                 &[],
