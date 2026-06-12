@@ -29,6 +29,9 @@ use js::rust::{
     describe_scripted_caller,
 };
 use script_bindings::conversions::get_dom_class;
+use webdriver_traits::ScriptToWebDriverMessage;
+use webdriver_traits::bidi::log::{BaseLogEntry, ConsoleLogEntry};
+use webdriver_traits::bidi::script::RemoteValue;
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 use crate::dom::bindings::error::report_pending_exception;
@@ -68,6 +71,34 @@ impl Console {
             stacktrace,
         }
     }
+
+    // fn build_log_entry(global: &GlobalScope) -> ConsoleLogEntry {
+    //     // TODO: currently test message, should actual build
+
+    //     // TODO: WebDriver BiDi requires Realm id to be opaque,
+    //     // we will patch that in session.
+    //     let pipeline_id = global.pipeline_id();
+    //     let worker_id = global
+    //         .downcast::<WorkerGlobalScope>()
+    //         .map(|worker| worker.worker_id());
+    //     let realm_id = format!("{}-{:?}", global.pipeline_id(), worker_id);
+
+    //     ConsoleLogEntry {
+    //         base_log_entry: BaseLogEntry {
+    //             level: webdriver_traits::bidi::log::Level::Info,
+    //             source: webdriver_traits::bidi::script::Source {
+    //                 realm: realm_id,
+    //                 context: Some(pipeline_id.namespace_id),
+    //                 user_context: None,
+    //             },
+    //             text: Some("hello, test".to_string()),
+    //             timestamp: get_time_stamp(),
+    //             stack_trace: None,
+    //         },
+    //         method: "log".to_string(),
+    //         args: vec![],
+    //     }
+    // }
 
     /// Helper to send a message that only consists of a single string
     fn send_string_message(
@@ -131,6 +162,10 @@ impl Console {
 
         Console::send_to_devtools(global, console_message);
 
+        // let log_entry = Self::build_log_entry();
+
+        // Self::send_to_webdriver(global, log_entry);
+
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{embedder_msg}");
 
@@ -145,6 +180,90 @@ impl Console {
             let devtools_message =
                 ScriptToDevtoolsControlMsg::ConsoleAPI(global.pipeline_id(), message, worker_id);
             chan.send(devtools_message).unwrap();
+        }
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#event-log-entryAdded>
+    fn send_to_webdriver(
+        global: &GlobalScope,
+        method: ConsoleLogLevel,
+        log_entry: ConsoleLogEntry,
+    ) {
+        use webdriver_traits::bidi::{
+            get_the_source,
+            log::{Entry, EntryAdded, EntryAddedMethod, Level},
+            script::{RemoteValue, ResultOwnership, SerializationOptions},
+            serialize_as_a_remote_value,
+        };
+
+        let args = Vec::<()>::new();
+
+        // 1.
+        // TODO: session id
+        for chan in global.webdriver_chans() {
+            // 1.1.
+            let level = match method {
+                ConsoleLogLevel::Error => Level::Error,
+                ConsoleLogLevel::Debug | ConsoleLogLevel::Trace => Level::Debug,
+                ConsoleLogLevel::Warn => Level::Warn,
+                // TODO: "assert" should be "error", but it is merged into `ConsoleLogLevel::Log`
+                _ => Level::Info,
+            };
+            // 1.2.
+            let timestamp = get_time_stamp();
+            // 1.3.
+            let mut text = String::new();
+            // 1.4.
+
+            // 1.5.
+            // 1.6.
+            let realm = {
+                let pipeline_id = global.pipeline_id();
+                let worker_id = global
+                    .downcast::<WorkerGlobalScope>()
+                    .map(|worker| worker.worker_id());
+                format!("{}-{:?}", pipeline_id, worker_id);
+            };
+            // 1.7.
+            let mut serialized_args = Vec::<RemoteValue>::new();
+            // 1.8.
+            let serialization_options = SerializationOptions::default();
+            // 1.9.
+            for arg in args.iter() {
+                // // 1.9.1.
+                // let serialized_arg = serialize_as_a_remote_value(
+                //     // *arg,
+                //     &serialization_options,
+                //     ResultOwnership::None,
+                // );
+                // // 1.9.2
+                // serialized_args.push(serialized_arg);
+            }
+            // 1.10.
+            let source = get_the_source();
+            // 1.11.
+            // TODO: stack
+            let stack = None;
+            // 1.12
+            let entry = ConsoleLogEntry {
+                base_log_entry: BaseLogEntry {
+                    level,
+                    source,
+                    text: Some(text),
+                    timestamp,
+                    stack_trace: stack,
+                },
+                method: "".to_string(),
+                args: vec![],
+            };
+            // 1.13
+            // TODO: fix entry added method
+            // let body = EntryAdded {
+            //     method: EntryAddedMethod::EntryAdded,
+            //     params: entry,
+            // };
+            // let message = ScriptToWebDriverMessage::ConsoleEntryAdded(log_entry.clone());
+            // chan.send(message).unwrap();
         }
     }
 
@@ -251,9 +370,9 @@ fn console_object_from_handle_value(
     if !unsafe { GetBuiltinClass(cx, object.handle(), &mut object_class as *mut _) } {
         return None;
     }
-    if object_class != ESClass::Object &&
-        object_class != ESClass::Array &&
-        object_class != ESClass::Function
+    if object_class != ESClass::Object
+        && object_class != ESClass::Array
+        && object_class != ESClass::Function
     {
         return None;
     }
@@ -505,8 +624,8 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
         }
         parents.push(value_bits);
 
-        if value.is_object() &&
-            let Some(repr) = maybe_stringify_dom_object(cx, value)
+        if value.is_object()
+            && let Some(repr) = maybe_stringify_dom_object(cx, value)
         {
             return repr;
         }
@@ -691,6 +810,13 @@ fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMS
 enum IncludeStackTrace {
     Yes,
     No,
+}
+
+/// <https://we.org/TR/webdriver-bidi/#serialize-as-a-remote-value>
+// TODO: if we have a trait on `HandleValue`, we can move this to webdriver_traits.
+fn serialize_as_a_remote_value(cx: &mut JSContext, handle_value: HandleValue) -> RemoteValue {
+    if handle_value.is_symbol() {}
+    todo!()
 }
 
 impl consoleMethods<crate::DomTypeHolder> for Console {

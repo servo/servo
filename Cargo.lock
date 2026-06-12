@@ -9051,6 +9051,7 @@ dependencies = [
  "servo-timers",
  "servo-tracing",
  "servo-url",
+ "servo-webdriver-traits",
  "servo-webgpu-traits",
  "servo-webxr-api",
  "servo-xpath",

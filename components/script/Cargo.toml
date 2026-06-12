@@ -165,6 +165,7 @@ urlpattern = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
 web_atoms = { workspace = true }
 webdriver = { workspace = true }
+webdriver_traits = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, optional = true }
