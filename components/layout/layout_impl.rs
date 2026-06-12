@@ -87,12 +87,12 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
 use crate::query::{
-    find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
-    process_box_areas_request, process_client_rect_request, process_containing_block_query,
-    process_current_css_zoom_query, process_effective_overflow_query,
-    process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
-    process_resolved_font_style_query, process_resolved_style_request,
-    process_scroll_container_query,
+    containing_block_chain_for_node, find_character_offset_in_fragment_descendants,
+    get_the_text_steps, process_box_area_request, process_box_areas_request,
+    process_client_rect_request, process_containing_block_query, process_current_css_zoom_query,
+    process_effective_overflow_query, process_node_scroll_area_request,
+    process_offset_parent_query, process_padding_request, process_resolved_font_style_query,
+    process_resolved_style_request, process_scroll_container_query,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_rebuild_box_tree};
 use crate::{BoxTree, FragmentTree};
@@ -364,6 +364,15 @@ impl Layout for LayoutThread {
         with_layout_state(|| {
             let node = unsafe { ServoLayoutNode::new(&node) };
             process_containing_block_query(node)
+        })
+    }
+
+    /// Return the full containing block chain for the provided node.
+    #[servo_tracing::instrument(skip_all)]
+    fn query_containing_block_chain(&self, node: TrustedNodeAddress) -> Vec<UntrustedNodeAddress> {
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            containing_block_chain_for_node(node)
         })
     }
 

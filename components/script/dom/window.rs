@@ -2892,6 +2892,21 @@ impl Window {
             .map(|address| unsafe { from_untrusted_node_address(address) })
     }
 
+    /// Query the full containing block chain for the given node, returning all
+    /// containing block ancestors in a single layout query (avoiding repeated walks).
+    #[expect(unsafe_code)]
+    pub(crate) fn containing_block_chain_query_without_reflow(
+        &self,
+        node: &Node,
+    ) -> Vec<DomRoot<Node>> {
+        self.layout
+            .borrow()
+            .query_containing_block_chain(node.to_trusted_node_address())
+            .into_iter()
+            .map(|address| unsafe { from_untrusted_node_address(address) })
+            .collect()
+    }
+
     /// Query the used padding values for the given node, but do not force a reflow.
     /// This is used for things like `ResizeObserver` which should observe the value
     /// from the most recent reflow, but do not need it to reflect the current state of

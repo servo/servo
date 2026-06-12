@@ -356,6 +356,9 @@ pub trait Layout {
     ) -> NodeRenderingType;
 
     fn query_containing_block(&self, node: TrustedNodeAddress) -> Option<UntrustedNodeAddress>;
+    /// Return the full chain of containing block ancestors for the given node.
+    /// Each entry is the next containing block going up the tree.
+    fn query_containing_block_chain(&self, node: TrustedNodeAddress) -> Vec<UntrustedNodeAddress>;
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides>;
     fn query_box_area(
         &self,

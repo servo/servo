@@ -782,9 +782,30 @@ fn style_and_flags_for_node(
     layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
 }
 
+/// Like [`style_and_flags_for_node`], but skips the `AtomicRefCell` borrow check on
+/// `InnerDOMLayoutData` and `self_box`, and avoids cloning the style Arc.
+/// Returns whether the node is a containing block for the given position, plus the
+/// node's own position value (needed to continue the walk).
+#[expect(unsafe_code)]
+fn check_containing_block_unchecked(
+    node: &ServoLayoutNode,
+    position: Position,
+) -> Option<(bool, Position)> {
+    let layout_data = node.inner_layout_data_unchecked()?;
+    let layout_box = unsafe { &*layout_data.self_box.as_ptr() };
+    let layout_box = layout_box.as_ref()?;
+
+    layout_box.with_base(|base| {
+        let flags = base.base_fragment_info.flags;
+        let is_cb = is_containing_block_for_position(position, &base.style, flags);
+        let node_position = base.style.clone_position();
+        (is_cb, node_position)
+    })
+}
+
 fn is_containing_block_for_position(
     position: Position,
-    ancestor_style: &ServoArc<ComputedValues>,
+    ancestor_style: &ComputedValues,
     ancestor_flags: FragmentFlags,
 ) -> bool {
     match position {
@@ -809,6 +830,7 @@ fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayou
     #[expect(unsafe_code)]
     while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
         let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
+            current_ancestor = ancestor;
             continue;
         };
 
@@ -821,6 +843,38 @@ fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayou
         current_ancestor = ancestor;
     }
     None
+}
+
+/// Walk the containing block chain starting from `node`, collecting all containing
+/// block ancestors in a single tree walk. Each ancestor is visited exactly once.
+#[expect(unsafe_code)]
+pub fn containing_block_chain_for_node(node: ServoLayoutNode) -> Vec<UntrustedNodeAddress> {
+    let mut chain = Vec::new();
+
+    let Some((_, start_position)) = check_containing_block_unchecked(&node, Position::Static)
+    else {
+        return chain;
+    };
+    let mut current_position_value = start_position;
+    let mut current_ancestor = node;
+
+    while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
+        let Some((is_cb, ancestor_position)) =
+            check_containing_block_unchecked(&ancestor, current_position_value)
+        else {
+            current_ancestor = ancestor;
+            continue;
+        };
+
+        if is_cb {
+            chain.push(ancestor.opaque().into());
+        }
+
+        current_position_value = ancestor_position;
+        current_ancestor = ancestor;
+    }
+
+    chain
 }
 
 /// An implementation of `scrollParent` that can also be used to for `scrollIntoView`:
