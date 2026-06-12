@@ -131,7 +131,7 @@ pub(crate) fn value_for_fontsize_command(
     // the effective command value of the active range's start node,
     // in either case interpreted as a number of pixels.
     let command_value = active_range
-        .first_formattable_contained_node()
+        .first_formattable_contained_node(cx.no_gc())
         .unwrap_or_else(|| active_range.start_container())
         .effective_command_value(&CommandName::FontSize)?;
     // Step 3. Return the legacy font size for pixel size.

@@ -7,7 +7,7 @@ use std::ops::Deref;
 
 use cssparser::color::OPAQUE;
 use html5ever::local_name;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::inheritance::Castable;
 use style::attr::parse_legacy_color;
 use style::values::specified::box_::DisplayOutside;
@@ -434,14 +434,16 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
         .children()
         .next()
         .is_some_and(|first_child| node_list.contains(&first_child.deref()));
-    let follows_line_break = first_child_is_in_node_list && original_parent.follows_a_line_break();
+    let follows_line_break =
+        first_child_is_in_node_list && original_parent.follows_a_line_break(cx.no_gc());
     // Step 5. If the last child of original parent is in node list, and original parent precedes a line break,
     // set precedes line break to true. Otherwise, set precedes line break to false.
     let last_child_is_in_node_list = original_parent
         .children()
         .last()
         .is_some_and(|last_child| node_list.contains(&last_child.deref()));
-    let precedes_line_break = last_child_is_in_node_list && original_parent.precedes_a_line_break();
+    let precedes_line_break =
+        last_child_is_in_node_list && original_parent.precedes_a_line_break(cx.no_gc());
     // Step 6. If the first child of original parent is not in node list, but its last child is:
     if !first_child_is_in_node_list && last_child_is_in_node_list {
         // Step 6.1. For each node in node list, in reverse order,
@@ -456,7 +458,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
         // call createElement("br") on the context object and insert the result immediately after the last member of node list.
         if precedes_line_break &&
             let Some(last) = node_list.last() &&
-            !last.precedes_a_line_break()
+            !last.precedes_a_line_break(cx.no_gc())
         {
             let br = context_object.create_element(cx, "br");
             if last
@@ -517,7 +519,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
     // call createElement("br") on the context object and insert the result immediately before the first member of node list.
     if follows_line_break &&
         let Some(first) = node_list.first() &&
-        !first.follows_a_line_break()
+        !first.follows_a_line_break(cx.no_gc())
     {
         let br = context_object.create_element(cx, "br");
         if first
@@ -551,7 +553,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
         // call createElement("br") on the context object and insert the result immediately after the last member of node list.
         if precedes_line_break &&
             let Some(last) = node_list.last() &&
-            !last.precedes_a_line_break()
+            !last.precedes_a_line_break(cx.no_gc())
         {
             let br = context_object.create_element(cx, "br");
             if last
@@ -592,7 +594,7 @@ where
     // and none is a br, return null and abort these steps.
     if node_list
         .iter()
-        .all(|node| node.is_invisible() && !node.is::<HTMLBRElement>())
+        .all(|node| node.is_invisible(cx.no_gc()) && !node.is::<HTMLBRElement>())
     {
         return None;
     }
@@ -612,7 +614,7 @@ where
     // Step 4. While node list's first member's previousSibling is invisible, prepend it to node list.
     while let Some(previous_of_first) = node_list.first().and_then(|last| last.GetPreviousSibling())
     {
-        if previous_of_first.is_invisible() {
+        if previous_of_first.is_invisible(cx.no_gc()) {
             node_list.insert(0, previous_of_first);
             continue;
         }
@@ -620,7 +622,7 @@ where
     }
     // Step 5. While node list's last member's nextSibling is invisible, append it to node list.
     while let Some(next_of_last) = node_list.last().and_then(|last| last.GetNextSibling()) {
-        if next_of_last.is_invisible() {
+        if next_of_last.is_invisible(cx.no_gc()) {
             node_list.push(next_of_last);
             continue;
         }
@@ -698,11 +700,11 @@ where
         if !new_parent.is_inline_node() &&
             new_parent
                 .rev_children()
-                .find(|child| child.is_visible())
+                .find(|child| child.is_visible(cx.no_gc()))
                 .is_some_and(|child| child.is_inline_node()) &&
             node_list
                 .iter()
-                .find(|node| node.is_visible())
+                .find(|node| node.is_visible(cx.no_gc()))
                 .is_some_and(|node| node.is_inline_node()) &&
             new_parent
                 .children_unrooted(cx.no_gc())
@@ -728,12 +730,12 @@ where
         if !new_parent.is_inline_node() &&
             new_parent
                 .children_unrooted(cx.no_gc())
-                .find(|child| child.is_visible())
+                .find(|child| child.is_visible(cx.no_gc()))
                 .is_some_and(|child| child.is_inline_node()) &&
             node_list
                 .iter()
                 .rev()
-                .find(|node| node.is_visible())
+                .find(|node| node.is_visible(cx.no_gc()))
                 .is_some_and(|node| node.is_inline_node()) &&
             node_list
                 .last()
@@ -1195,7 +1197,7 @@ impl Node {
             );
         }
         // Step 5. If node is invisible, abort this algorithm.
-        if self.is_invisible() {
+        if self.is_invisible(cx.no_gc()) {
             return;
         }
         // Step 6. If the effective command value of command is loosely equivalent to new value on node, abort this algorithm.
@@ -1520,7 +1522,7 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#visible>
-    pub(crate) fn is_visible(&self) -> bool {
+    pub(crate) fn is_visible(&self, no_gc: &NoGC) -> bool {
         for parent in self.inclusive_ancestors(ShadowIncluding::No) {
             // > excluding any node with an inclusive ancestor Element whose "display" property has resolved value "none".
             if parent
@@ -1538,7 +1540,7 @@ impl Node {
         // > or a Text node that is not a collapsed whitespace node,
         if self
             .downcast::<Text>()
-            .is_some_and(|text| !text.is_collapsed_whitespace_node())
+            .is_some_and(|text| !text.is_collapsed_whitespace_node(no_gc))
         {
             return true;
         }
@@ -1553,7 +1555,7 @@ impl Node {
             return true;
         }
         for child in self.children() {
-            if child.is_visible() {
+            if child.is_visible(no_gc) {
                 return true;
             }
         }
@@ -1561,16 +1563,16 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#invisible>
-    pub(crate) fn is_invisible(&self) -> bool {
+    pub(crate) fn is_invisible(&self, no_gc: &NoGC) -> bool {
         // > Something is invisible if it is a node that is not visible.
-        !self.is_visible()
+        !self.is_visible(no_gc)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#formattable-node>
-    pub(crate) fn is_formattable(&self) -> bool {
+    pub(crate) fn is_formattable(&self, no_gc: &NoGC) -> bool {
         // > A formattable node is an editable visible node that is either a Text node, an img, or a br.
         self.is_editable() &&
-            self.is_visible() &&
+            self.is_visible(no_gc) &&
             (self.is::<Text>() || self.is::<HTMLImageElement>() || self.is::<HTMLBRElement>())
     }
 
@@ -1589,19 +1591,19 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#block-start-point>
-    pub(crate) fn is_block_start_point(&self, offset: usize) -> bool {
+    pub(crate) fn is_block_start_point(&self, offset: usize, no_gc: &NoGC) -> bool {
         // > A boundary point (node, offset) is a block start point if either node's parent is null and offset is zero;
         if offset == 0 {
             return self.GetParentNode().is_none();
         }
         // > or node has a child with index offset − 1, and that child is either a visible block node or a visible br.
         self.children().nth(offset - 1).is_some_and(|child| {
-            child.is_visible() && (child.is_block_node() || child.is::<HTMLBRElement>())
+            child.is_visible(no_gc) && (child.is_block_node() || child.is::<HTMLBRElement>())
         })
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#block-end-point>
-    pub(crate) fn is_block_end_point(&self, offset: u32) -> bool {
+    pub(crate) fn is_block_end_point(&self, offset: u32, no_gc: &NoGC) -> bool {
         // > A boundary point (node, offset) is a block end point if either node's parent is null and offset is node's length;
         if self.GetParentNode().is_none() && offset == self.len() {
             return true;
@@ -1609,13 +1611,13 @@ impl Node {
         // > or node has a child with index offset, and that child is a visible block node.
         self.children()
             .nth(offset as usize)
-            .is_some_and(|child| child.is_visible() && child.is_block_node())
+            .is_some_and(|child| child.is_visible(no_gc) && child.is_block_node())
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#block-boundary-point>
-    pub(crate) fn is_block_boundary_point(&self, offset: u32) -> bool {
+    pub(crate) fn is_block_boundary_point(&self, offset: u32, no_gc: &NoGC) -> bool {
         // > A boundary point is a block boundary point if it is either a block start point or a block end point.
-        self.is_block_start_point(offset as usize) || self.is_block_end_point(offset)
+        self.is_block_start_point(offset as usize, no_gc) || self.is_block_end_point(offset, no_gc)
     }
 
     pub(crate) fn is_no_allowed_child_in_same_editing_host(&self) -> bool {
@@ -1742,7 +1744,7 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#collapsed-block-prop>
-    pub(crate) fn is_collapsed_block_prop(&self) -> bool {
+    pub(crate) fn is_collapsed_block_prop(&self, no_gc: &NoGC) -> bool {
         // > A collapsed block prop is either a collapsed line break that is not an extraneous line break,
 
         // TODO: Check for collapsed line break
@@ -1760,12 +1762,12 @@ impl Node {
             return false;
         }
         let mut at_least_one_collapsed_block_prop = false;
-        for child in self.children() {
-            if child.is_collapsed_block_prop() {
+        for child in self.children_unrooted(no_gc) {
+            if child.is_collapsed_block_prop(no_gc) {
                 at_least_one_collapsed_block_prop = true;
                 continue;
             }
-            if child.is_invisible() {
+            if child.is_invisible(no_gc) {
                 continue;
             }
 
@@ -1776,12 +1778,12 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#follows-a-line-break>
-    fn follows_a_line_break(&self) -> bool {
+    fn follows_a_line_break(&self, no_gc: &NoGC) -> bool {
         // Step 1. Let offset be zero.
         let mut offset = 0;
         // Step 2. While (node, offset) is not a block boundary point:
         let mut node = DomRoot::from_ref(self);
-        while !node.is_block_boundary_point(offset) {
+        while !node.is_block_boundary_point(offset, no_gc) {
             // Step 2.2. If offset is zero or node has no children, set offset to node's index, then set node to its parent.
             if offset == 0 || node.children_count() == 0 {
                 offset = node.index();
@@ -1793,7 +1795,7 @@ impl Node {
             let Some(child) = child else {
                 return false;
             };
-            if child.is_visible() {
+            if child.is_visible(no_gc) {
                 return false;
             }
             // Step 2.3. Otherwise, set node to its child with index offset minus one, then set offset to node's length.
@@ -1805,17 +1807,17 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#precedes-a-line-break>
-    fn precedes_a_line_break(&self) -> bool {
+    fn precedes_a_line_break(&self, no_gc: &NoGC) -> bool {
         let mut node = DomRoot::from_ref(self);
         // Step 1. Let offset be node's length.
         let mut offset = node.len();
         // Step 2. While (node, offset) is not a block boundary point:
-        while !node.is_block_boundary_point(offset) {
+        while !node.is_block_boundary_point(offset, no_gc) {
             // Step 2.1. If node has a visible child with index offset, return false.
             if node
                 .children()
                 .nth(offset as usize)
-                .is_some_and(|child| child.is_visible())
+                .is_some_and(|child| child.is_visible(no_gc))
             {
                 return false;
             }
@@ -1921,7 +1923,7 @@ impl Node {
             // and start node's parent is in the same editing host, set start offset to start node's index,
             // then set start node to its parent.
             if start_offset == 0 &&
-                !start_node.follows_a_line_break() &&
+                !start_node.follows_a_line_break(cx.no_gc()) &&
                 let Some(parent) = start_node.GetParentNode() &&
                 parent.same_editing_host(&start_node)
             {
@@ -1951,7 +1953,7 @@ impl Node {
         // Step 5. Let length equal zero.
         let mut length = 0;
         // Step 6. Let collapse spaces be true if start offset is zero and start node follows a line break, otherwise false.
-        let mut collapse_spaces = start_offset == 0 && start_node.follows_a_line_break();
+        let mut collapse_spaces = start_offset == 0 && start_node.follows_a_line_break(cx.no_gc());
         // Step 7. Repeat the following steps:
         loop {
             // Step 7.1. If end node has a child in the same editing host with index end offset,
@@ -1967,7 +1969,7 @@ impl Node {
             // and end node does not precede a line break
             // and end node's parent is in the same editing host,
             // set end offset to one plus end node's index, then set end node to its parent.
-            if end_offset == end_node.len() && !end_node.precedes_a_line_break() {
+            if end_offset == end_node.len() && !end_node.precedes_a_line_break(cx.no_gc()) {
                 if let Some(parent) = end_node.GetParentNode() &&
                     parent.same_editing_host(&end_node)
                 {
@@ -2055,7 +2057,7 @@ impl Node {
                         text.data().len() as u32,
                         &[&'\u{0020}'],
                     ) &&
-                    end_node.precedes_a_line_break()
+                    end_node.precedes_a_line_break(cx.no_gc())
                 {
                     // Step 8.3.1. Subtract one from end offset.
                     end_offset -= 1;
@@ -2080,8 +2082,8 @@ impl Node {
         // non-breaking end is true if end offset is end node's length and end node precedes a line break, and false otherwise.
         let replacement_whitespace = Node::canonical_space_sequence(
             length,
-            start_offset == 0 && start_node.follows_a_line_break(),
-            end_offset == end_node.len() && end_node.precedes_a_line_break(),
+            start_offset == 0 && start_node.follows_a_line_break(cx.no_gc()),
+            end_offset == end_node.len() && end_node.precedes_a_line_break(cx.no_gc()),
         );
         let mut replacement_whitespace_chars = replacement_whitespace.chars();
         // Step 10. While (start node, start offset) is before (end node, end offset):
@@ -2144,7 +2146,7 @@ impl Node {
         // Step 4. While ref is invisible but not an extraneous line break,
         // and ref does not equal node's parent, set ref to the node before it in tree order.
         loop {
-            if ref_.is_invisible() &&
+            if ref_.is_invisible(cx.no_gc()) &&
                 ref_.downcast::<HTMLBRElement>()
                     .is_none_or(|br| !br.is_extraneous_line_break()) &&
                 let Some(parent) = parent.as_ref() &&
@@ -2179,7 +2181,7 @@ impl Node {
         // Step 3. While ref is invisible but not an extraneous line break, and ref does not equal node,
         // set ref to the node before it in tree order.
         loop {
-            if ref_.is_invisible() &&
+            if ref_.is_invisible(cx.no_gc()) &&
                 *ref_ != *self &&
                 ref_.downcast::<HTMLBRElement>()
                     .is_none_or(|br| !br.is_extraneous_line_break()) &&
@@ -2202,7 +2204,7 @@ impl Node {
             loop {
                 if let Some(parent) = ref_.GetParentNode() &&
                     parent.is_editable() &&
-                    parent.is_invisible()
+                    parent.is_invisible(cx.no_gc())
                 {
                     ref_ = parent;
                     continue;

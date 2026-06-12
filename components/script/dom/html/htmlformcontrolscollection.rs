@@ -60,8 +60,8 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
     // HTMLFormControlsCollection) implements Length
     /// <https://dom.spec.whatwg.org/#dom-htmlcollection-length>
-    fn Length(&self) -> u32 {
-        self.collection.Length()
+    fn Length(&self, cx: &JSContext) -> u32 {
+        self.collection.Length(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
@@ -72,37 +72,41 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
         }
 
         let name = Atom::from(name);
+        {
+            let mut filter_map = self
+                .collection
+                .elements_iter(cx.no_gc())
+                .filter_map(|elem| {
+                    if elem.get_name().is_some_and(|n| n == name) ||
+                        elem.get_id().is_some_and(|i| i == name)
+                    {
+                        Some(elem)
+                    } else {
+                        None
+                    }
+                })
+                .peekable();
 
-        let mut filter_map = self.collection.elements_iter().filter_map(|elem| {
-            if elem.get_name().is_some_and(|n| n == name) ||
-                elem.get_id().is_some_and(|i| i == name)
-            {
-                Some(elem)
-            } else {
-                None
-            }
-        });
-
-        if let Some(elem) = filter_map.next() {
-            let mut peekable = filter_map.peekable();
+            // This if is more complicated because of lifetimes.
             // Step 2
-            if peekable.peek().is_none() {
-                Some(RadioNodeListOrElement::Element(elem))
+            if filter_map.peek().is_none() {
+                return None;
             } else {
-                // Step 4-5
-                let global = self.global();
-                let window = global.as_window();
-                // There is only one way to get an HTMLCollection,
-                // specifically HTMLFormElement::Elements(),
-                // and the collection filter excludes image inputs.
-                Some(RadioNodeListOrElement::RadioNodeList(
-                    RadioNodeList::new_controls_except_image_inputs(cx, window, &self.form, &name),
-                ))
+                let elem = filter_map.next().unwrap();
+                if filter_map.peek().is_none() {
+                    return Some(RadioNodeListOrElement::Element(elem.as_rooted()));
+                }
             }
-        // Step 3
-        } else {
-            None
         }
+        // Step 4-5
+        let global = self.global();
+        let window = global.as_window();
+        // There is only one way to get an HTMLCollection,
+        // specifically HTMLFormElement::Elements(),
+        // and the collection filter excludes image inputs.
+        Some(RadioNodeListOrElement::RadioNodeList(
+            RadioNodeList::new_controls_except_image_inputs(cx, window, &self.form, &name),
+        ))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
@@ -120,7 +124,7 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     // https://github.com/servo/servo/issues/5875
     //
     /// <https://dom.spec.whatwg.org/#dom-htmlcollection-item>
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
-        self.collection.IndexedGetter(index)
+    fn IndexedGetter(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Element>> {
+        self.collection.IndexedGetter(cx, index)
     }
 }

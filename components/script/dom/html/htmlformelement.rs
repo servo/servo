@@ -436,13 +436,13 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-length>
     fn Length(&self, cx: &mut JSContext) -> u32 {
-        self.Elements(cx).Length()
+        self.Elements(cx).Length(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-item>
     fn IndexedGetter(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<Element>> {
         let elements = self.Elements(cx);
-        elements.IndexedGetter(index)
+        elements.IndexedGetter(cx, index)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property>
@@ -454,12 +454,12 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         // Step 1
         let mut candidates =
             RadioNodeList::new_controls_except_image_inputs(cx, &window, self, &name);
-        let mut candidates_length = candidates.Length();
+        let mut candidates_length = candidates.Length(cx);
 
         // Step 2
         if candidates_length == 0 {
             candidates = RadioNodeList::new_images(cx, &window, self, &name);
-            candidates_length = candidates.Length();
+            candidates_length = candidates.Length(cx);
         }
 
         let mut past_names_map = self.past_names_map.borrow_mut();
@@ -1228,9 +1228,9 @@ impl HTMLFormElement {
     /// 5.x substeps are mostly handled inside element-specific methods
     fn get_unclean_dataset(
         &self,
+        cx: &mut JSContext,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
-        can_gc: CanGc,
     ) -> Vec<FormDatum> {
         let mut data_set = Vec::new();
         for child in self.controls.borrow().iter() {
@@ -1266,7 +1266,7 @@ impl HTMLFormElement {
                     },
                     HTMLElementTypeId::HTMLSelectElement => {
                         let select = child.downcast::<HTMLSelectElement>().unwrap();
-                        select.push_form_data(&mut data_set);
+                        select.push_form_data(cx.no_gc(), &mut data_set);
                     },
                     HTMLElementTypeId::HTMLTextAreaElement => {
                         let textarea = child.downcast::<HTMLTextAreaElement>().unwrap();
@@ -1283,8 +1283,9 @@ impl HTMLFormElement {
                         let custom = child.downcast::<HTMLElement>().unwrap();
                         if custom.is_form_associated_custom_element() {
                             // https://html.spec.whatwg.org/multipage/#face-entry-construction
-                            let internals =
-                                custom.upcast::<Element>().ensure_element_internals(can_gc);
+                            let internals = custom
+                                .upcast::<Element>()
+                                .ensure_element_internals(CanGc::from_cx(cx));
                             internals.perform_entry_construction(&mut data_set);
                             // Otherwise no form value has been set so there is nothing to do.
                         }
@@ -1340,7 +1341,7 @@ impl HTMLFormElement {
         self.constructing_entry_list.set(true);
 
         // Step 3-6
-        let ret = self.get_unclean_dataset(submitter, encoding, CanGc::from_cx(cx));
+        let ret = self.get_unclean_dataset(cx, submitter, encoding);
 
         let window = self.owner_window();
 
@@ -1466,7 +1467,7 @@ impl Element {
         if let Some(input_element) = self.downcast::<HTMLInputElement>() {
             input_element.reset(cx);
         } else if let Some(select_element) = self.downcast::<HTMLSelectElement>() {
-            select_element.reset();
+            select_element.reset(cx);
         } else if let Some(textarea_element) = self.downcast::<HTMLTextAreaElement>() {
             textarea_element.reset(cx);
         } else if let Some(output_element) = self.downcast::<HTMLOutputElement>() {

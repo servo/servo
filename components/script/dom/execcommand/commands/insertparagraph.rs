@@ -398,7 +398,10 @@ pub(crate) fn execute_insert_paragraph_command(
     // Step 32. If container has no visible children,
     // call createElement("br") on the context object,
     // and append the result as the last child of container.
-    if container.children().all(|child| child.is_invisible()) {
+    if container
+        .children()
+        .all(|child| child.is_invisible(cx.no_gc()))
+    {
         let br = document.create_element(cx, "br");
         if container.AppendChild(cx, br.upcast()).is_err() {
             unreachable!("Must always be able to append");
@@ -409,7 +412,7 @@ pub(crate) fn execute_insert_paragraph_command(
     // and append the result as the last child of new container.
     if new_container_node
         .children()
-        .all(|child| child.is_invisible())
+        .all(|child| child.is_invisible(cx.no_gc()))
     {
         let br = document.create_element(cx, "br");
         if new_container_node.AppendChild(cx, br.upcast()).is_err() {
