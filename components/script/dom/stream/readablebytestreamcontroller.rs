@@ -428,7 +428,7 @@ impl ReadableByteStreamController {
                         self.error(cx, error.handle());
 
                         // Perform readIntoRequest’s error steps, given e.
-                        read_into_request.error_steps(error.handle(), CanGc::from_cx(cx));
+                        read_into_request.error_steps(cx, error.handle());
 
                         // Return.
                         return;
@@ -458,7 +458,7 @@ impl ReadableByteStreamController {
                     rval.handle_mut(),
                     CanGc::from_cx(cx),
                 );
-                read_into_request.error_steps(rval.handle(), CanGc::from_cx(cx));
+                read_into_request.error_steps(cx, rval.handle());
 
                 // Return.
             },

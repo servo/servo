@@ -442,8 +442,7 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
     pub(crate) fn release(&self, cx: &mut js::context::JSContext) -> Fallible<()> {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
-        self.generic_release(CanGc::from_cx(cx))
-            .expect("Generic release failed");
+        self.generic_release(cx).expect("Generic release failed");
         // Let e be a new TypeError exception.
         rooted!(&in(cx) let mut error = UndefinedValue());
         Error::Type(c"Reader is released".to_owned()).to_jsval(
