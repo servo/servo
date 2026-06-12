@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use script::test::unminify::create_output_file;
+use std::borrow::Cow;
+use std::io::Write;
+
+use script::test::unminify::{create_output_file, substitute_with_local_script};
 use servo_url::ServoUrl;
 
 #[test]
@@ -18,7 +21,9 @@ fn test_create_output_file_with_query_string() {
         "expected file at path without query string"
     );
     assert!(
-        !dir.path().join("example.com/app.js?v=abc123&t=456").exists(),
+        !dir.path()
+            .join("example.com/app.js?v=abc123&t=456")
+            .exists(),
         "file must not have '?' in its name (reserved on Windows)"
     );
 }
@@ -32,4 +37,36 @@ fn test_create_output_file_without_query_string() {
 
     assert!(result.is_ok());
     assert!(dir.path().join("example.com/app.js").exists());
+}
+
+#[test]
+fn replace_script_with_query_string() {
+    let dir = tempfile::tempdir().expect("create temp dir");
+    let url = ServoUrl::parse("https://example.com/app.js?query=true").unwrap();
+
+    {
+        let mut result =
+            create_output_file(dir.path().to_str().unwrap().to_owned(), &url, Some(true)).unwrap();
+        result.write(b"pass").unwrap();
+    }
+
+    let mut script = Cow::from("fail");
+    substitute_with_local_script(&format!("{}", dir.path().display()), &mut script, url);
+    assert_eq!(script, "pass");
+}
+
+#[test]
+fn replace_script_without_query_string() {
+    let dir = tempfile::tempdir().expect("create temp dir");
+    let url = ServoUrl::parse("https://example.com/app.js").unwrap();
+
+    {
+        let mut result =
+            create_output_file(dir.path().to_str().unwrap().to_owned(), &url, Some(true)).unwrap();
+        result.write(b"pass").unwrap();
+    }
+
+    let mut script = Cow::from("fail");
+    substitute_with_local_script(&format!("{}", dir.path().display()), &mut script, url);
+    assert_eq!(script, "pass");
 }

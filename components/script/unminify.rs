@@ -78,19 +78,8 @@ pub fn create_output_file(
     let url_path = &url[url::Position::BeforeHost..url::Position::AfterPath];
 
     let (base, has_name) = match url.as_str().ends_with('/') {
-        true => (
-            path.join(url_path)
-                .as_path()
-                .to_owned(),
-            false,
-        ),
-        false => (
-            path.join(url_path)
-                .parent()
-                .unwrap()
-                .to_owned(),
-            true,
-        ),
+        true => (path.join(url_path).as_path().to_owned(), false),
+        false => (path.join(url_path).parent().unwrap().to_owned(), true),
     };
 
     create_dir_all(&base)?;

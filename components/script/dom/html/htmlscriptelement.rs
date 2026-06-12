@@ -426,8 +426,10 @@ impl FetchResponseListener for ClassicContext {
         let elem = self.elem.root();
         let global = elem.global();
 
-        if let Some(window) = global.downcast::<Window>() {
-            substitute_with_local_script(window, &mut source_text, final_url.clone());
+        if let Some(window) = global.downcast::<Window>() &&
+            let Some(script_source) = window.local_script_source()
+        {
+            substitute_with_local_script(script_source, &mut source_text, final_url.clone());
         }
 
         // Step 5.6. Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
@@ -1455,16 +1457,9 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 }
 
-pub(crate) fn substitute_with_local_script(
-    window: &Window,
-    script: &mut Cow<'_, str>,
-    url: ServoUrl,
-) {
-    if window.local_script_source().is_none() {
-        return;
-    }
-    let mut path = PathBuf::from(window.local_script_source().clone().unwrap());
-    path = path.join(&url[url::Position::BeforeHost..]);
+pub fn substitute_with_local_script(script_source: &str, script: &mut Cow<'_, str>, url: ServoUrl) {
+    let mut path = PathBuf::from(script_source);
+    path = path.join(&url[url::Position::BeforeHost..url::Position::AfterPath]);
     debug!("Attempting to read script stored at: {:?}", path);
     match read_to_string(path.clone()) {
         Ok(local_script) => {

@@ -5,8 +5,6 @@
 #[cfg(test)]
 mod encoding_detection;
 #[cfg(test)]
-mod unminify;
-#[cfg(test)]
 mod htmlareaelement;
 #[cfg(test)]
 mod htmlimageelement;
@@ -18,6 +16,8 @@ mod size_of;
 mod textinput;
 #[cfg(test)]
 mod timeranges;
+#[cfg(test)]
+mod unminify;
 
 /**
 ```compile_fail,E0277

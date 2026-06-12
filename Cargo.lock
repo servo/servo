@@ -7181,6 +7181,7 @@ dependencies = [
  "servo-base",
  "servo-script",
  "servo-url",
+ "tempfile",
 ]
 
 [[package]]
