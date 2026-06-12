@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use log::warn;
-use servo::webdriver_bidi::WebDriverBidiToEmbedderMsg;
+use servo::webdriver_bidi::WebDriverBidiToEmbedderMessage;
 
 use crate::running_app_state::RunningAppState;
 
@@ -15,7 +15,7 @@ impl RunningAppState {
             // TODO: match and handle
             match msg {
                 // NOTE: as a reference for others
-                WebDriverBidiToEmbedderMsg::TraverseHistory(web_view_id, delta) => {
+                WebDriverBidiToEmbedderMessage::TraverseHistory(web_view_id, delta) => {
                     if let Some(webview) = self.webview_by_id(web_view_id) {
                         // BiDi does not support wait for traverseHistory, see Step 10.
                         // TODO: set sender may still be needed for events?
@@ -33,21 +33,21 @@ impl RunningAppState {
                         }
                     }
                 },
-                WebDriverBidiToEmbedderMsg::Navigate(web_view_id, url, request_sender) => todo!(),
+                WebDriverBidiToEmbedderMessage::Navigate(web_view_id, url, request_sender) => todo!(),
                 // WebDriverBidiCommandMsg::Reload(web_view_id) => {
                 //     if let Some(webview) = self.webview_by_id(web_view_id) {
                 //         // self.set_load_status_sender(webview_id, sender);
                 //         webview.reload();
                 //     }
                 // },
-                WebDriverBidiToEmbedderMsg::ScriptCommand(
+                WebDriverBidiToEmbedderMessage::ScriptCommand(
                     namespace_index,
                     web_driver_bidi_script_command,
                 ) => todo!(),
-                WebDriverBidiToEmbedderMsg::Shutdown => {
+                WebDriverBidiToEmbedderMessage::Shutdown => {
                     self.schedule_exit();
                 },
-                WebDriverBidiToEmbedderMsg::BrowsingContextReload(
+                WebDriverBidiToEmbedderMessage::BrowsingContextReload(
                     namespace_index,
                     _,
                     wait_condition,

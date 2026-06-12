@@ -19,12 +19,12 @@ use std::rc::Rc;
 use crossbeam_channel::Sender;
 use embedder_traits::{
     EventLoopWaker,
-    webdriver_bidi::{RequestId, WebDriverBidiToEmbedderMsg},
+    webdriver_bidi::{RequestId, WebDriverBidiToEmbedderMessage},
 };
 use futures_util::Stream;
 use servo_webdriver::bidi::{Command, CommandData, Event, ResultData};
 
-use crate::bidi::{dispatcher::DispatchMessage, error::WebDriverBidiError};
+use crate::bidi::error::WebDriverBidiError;
 
 pub trait WebDriverBidiHandler: Sized {
     fn to_sessioned(&self) -> Option<Self>;
@@ -42,7 +42,7 @@ pub trait WebDriverBidiHandler: Sized {
 
 struct HandlerInner {
     event_loop_waker: Box<dyn EventLoopWaker>,
-    embedder_sender: Sender<WebDriverBidiToEmbedderMsg>,
+    embedder_sender: Sender<WebDriverBidiToEmbedderMessage>,
     is_static: bool,
 }
 
@@ -52,7 +52,7 @@ pub struct Handler(Rc<HandlerInner>);
 impl Handler {
     pub fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
-        embedder_sender: crossbeam_channel::Sender<WebDriverBidiToEmbedderMsg>,
+        embedder_sender: crossbeam_channel::Sender<WebDriverBidiToEmbedderMessage>,
     ) -> Self {
         Self(Rc::new(HandlerInner {
             event_loop_waker,

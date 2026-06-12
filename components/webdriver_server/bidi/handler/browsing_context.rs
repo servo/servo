@@ -1,4 +1,4 @@
-use embedder_traits::webdriver_bidi::{WaitCondition, WebDriverBidiToEmbedderMsg};
+use embedder_traits::webdriver_bidi::{WaitCondition, WebDriverBidiToEmbedderMessage};
 use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_webdriver::bidi::{
     BrowsingContextCommand, BrowsingContextResult, ErrorCode,
@@ -252,7 +252,7 @@ impl Handler {
         // Step 10: await a navigation
         // TODO: check id
         let browser_context_id = BrowsingContextId::new();
-        let cmd_msg = WebDriverBidiToEmbedderMsg::BrowsingContextReload(
+        let cmd_msg = WebDriverBidiToEmbedderMessage::BrowsingContextReload(
             todo!(),
             ignore_cache,
             wait_condition,
@@ -275,7 +275,7 @@ impl Handler {
     ) -> Result<BrowsingContextResult, WebDriverBidiError> {
         let webview_id: WebViewId = todo!();
         // TODO: verify context open? is this in bidi spec
-        self.send_message_to_embedder(WebDriverBidiToEmbedderMsg::TraverseHistory(
+        self.send_message_to_embedder(WebDriverBidiToEmbedderMessage::TraverseHistory(
             webview_id, delta,
         ))?;
         // TODO: fix return type

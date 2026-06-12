@@ -1,10 +1,25 @@
 use std::sync::atomic::{AtomicU64, Ordering::SeqCst};
 
-use async_tungstenite::tungstenite::Message as WsMessage;
+use async_tungstenite::{WebSocketStream, tokio::TokioAdapter, tungstenite::Message as WsMessage};
 use log::error;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::{net::TcpStream, sync::mpsc::UnboundedSender};
 
 use servo_webdriver::bidi::Message as BidiMessage;
+
+/// A WebSocket connection is a network connection that follows the requirements of
+/// the WebSocket protocol.
+pub enum Connection {
+    Tcp(WebSocketStream<TokioAdapter<TcpStream>>),
+    // TODO: Tls
+}
+
+impl From<WebSocketStream<TokioAdapter<TcpStream>>> for Connection {
+    fn from(value: WebSocketStream<TokioAdapter<TcpStream>>) -> Self {
+        Self::Tcp(value)
+    }
+}
+
+// TODO: do we need connection id now? e.g. for log?
 
 static CONNECTION_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -25,12 +40,12 @@ impl ConnectionId {
 
 /// A handle to the WebSocket connection on BiDi server thread.
 #[derive(Debug)]
-pub struct Connection {
+pub struct ConnectionOld {
     id: ConnectionId,
     tx: UnboundedSender<WsMessage>,
 }
 
-impl Connection {
+impl ConnectionOld {
     pub fn new(id: ConnectionId, tx: UnboundedSender<WsMessage>) -> Self {
         Self { id, tx }
     }

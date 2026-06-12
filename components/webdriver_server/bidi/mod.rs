@@ -1,117 +1,69 @@
+mod connection;
+mod error;
+mod listener;
+mod session;
+
 use std::{
-    net::{SocketAddr, SocketAddrV4, TcpListener as StdTcpListener},
-    thread::{self, JoinHandle},
+    collections::HashMap,
+    net::{SocketAddr, SocketAddrV4},
+    rc::Rc,
+    thread::{self},
 };
 
-use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiToEmbedderMsg};
-use log::info;
-use tokio::net::TcpListener;
+use crossbeam_channel::Sender;
+use embedder_traits::{EventLoopWaker, webdriver_bidi::WebDriverBidiToEmbedderMessage};
+use tokio::{join, sync::RwLock};
 
 use crate::bidi::{
-    dispatcher::{DispatchMessage, Dispatcher},
-    handler::Handler,
-    server::serve,
+    listener::Listener,
+    session::{Session, SessionId, SessionProxy},
 };
 
-pub mod connection;
-pub mod dispatcher;
-pub mod error;
-pub mod handler;
-pub mod recv_async;
-pub mod server;
-pub mod session;
-
-pub fn start_server(
+// Later BiDi and Classic may be merged into one thread.
+pub struct WebDriverBidiThread {
     port: u16,
-    embedder_tx: crossbeam_channel::Sender<WebDriverBidiToEmbedderMsg>,
+    embedder_sender: Sender<WebDriverBidiToEmbedderMessage>,
     event_loop_waker: Box<dyn EventLoopWaker>,
-) {
-    thread::Builder::new()
-        .name("WebDriverBiDiServer".to_owned())
-        .spawn(move || {
-            let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-            match start(SocketAddr::V4(address), embedder_tx, event_loop_waker) {
-                Ok(listening) => {
-                    info!("WebDriver BiDi server listening on {}", listening.socket)
-                },
-                Err(e) => {
-                    panic!("Unable to start WebDriver BiDi server {e:?}");
-                },
-            }
-        })
-        .expect("Thread spawning failed");
+    active_sessions: Rc<RwLock<ActiveSessions>>,
 }
 
-/// A WebSocket Listener.
-///
-/// See <https://www.w3.org/TR/webdriver-bidi/#websocket-listener>.
-pub struct Listener {
-    guard: Option<thread::JoinHandle<()>>,
-    /// Host and port
-    pub socket: SocketAddr,
-}
-
-impl Drop for Listener {
-    fn drop(&mut self) {
-        let _ = self.guard.take().map(JoinHandle::join);
-    }
-}
-
-/// To start listening for a WebSocket connection.
-///
-/// See <https://www.w3.org/TR/webdriver-bidi/#start-listening-for-a-websocket-connection>.
-///
-/// ## NOTE
-///
-/// Currently this implementation only supports [BiDi-only sesion](https://www.w3.org/TR/webdriver-bidi/#supports-bidi-only-sessions)
-/// and does not support upgrade from WebDriver classic. So the only WebSocket resource is `/session`.
-///
-/// ## NOTE
-///
-/// WebDriver Bidi allows implementation to reuse existing listener, and there is no reason to
-/// have multiple active listeners for non-intermediary node like servo, thus step 4 is ignored.
-pub fn start(
-    mut address: SocketAddr,
-    embedder_tx: crossbeam_channel::Sender<WebDriverBidiToEmbedderMsg>,
-    event_loop_waker: Box<dyn EventLoopWaker>,
-    // TODO: implementation defined check like allow_hosts
-) -> ::std::io::Result<Listener> {
-    let listener = StdTcpListener::bind(address)?;
-    listener.set_nonblocking(true)?;
-    let addr = listener.local_addr()?;
-    if address.port() == 0 {
-        address.set_port(addr.port());
-    }
-
-    let (dispatch_tx, dispatch_rx) = crossbeam_channel::unbounded::<DispatchMessage>();
-
-    let builder = thread::Builder::new().name("webdriver bidi server".to_string());
-    let handle = builder.spawn({
-        let dispatch_tx = dispatch_tx.clone();
-        {
-            move || {
-                let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_io()
-                    .build()
-                    .expect("fail to create tokio runtime");
-                rt.block_on(async {
-                    // from_std must be called in IO-enabled runtime
-                    let listener = TcpListener::from_std(listener)
-                        .expect("fail to convert TcpListener to tokio");
-                    serve(listener, dispatch_tx).await
-                });
-            }
+impl WebDriverBidiThread {
+    pub fn new(
+        port: u16,
+        embedder_sender: Sender<WebDriverBidiToEmbedderMessage>,
+        event_loop_waker: Box<dyn EventLoopWaker>,
+    ) -> Self {
+        Self {
+            port,
+            embedder_sender,
+            event_loop_waker,
+            active_sessions: Rc::new(RwLock::new(Default::default())),
         }
-    })?;
+    }
 
-    let builder = thread::Builder::new().name("webdriver dispatcher".to_string());
-    builder.spawn(move || {
-        let handler = Handler::new(event_loop_waker, embedder_tx);
-        Dispatcher::new(handler, dispatch_tx, dispatch_rx).run();
-    })?;
+    pub fn start(&self) {
+        let address = SocketAddr::V4(SocketAddrV4::new("0.0.0.0".parse().unwrap(), self.port));
+        tokio::runtime::LocalRuntime::new()
+            .expect("Runtime creation failed")
+            .block_on(async move {
+                let mut listener = Listener::new(address, self.active_sessions.clone());
+                let mut session = Session::new(self.active_sessions.clone());
+                join!(listener.start(), session.start());
+            });
+    }
 
-    Ok(Listener {
-        guard: Some(handle),
-        socket: addr,
-    })
+    pub fn spawn(
+        port: u16,
+        embedder_sender: Sender<WebDriverBidiToEmbedderMessage>,
+        event_loop_waker: Box<dyn EventLoopWaker>,
+    ) {
+        thread::Builder::new()
+            .name("WebDriverBiDi".to_string())
+            .spawn(move || {
+                WebDriverBidiThread::new(port, embedder_sender, event_loop_waker).start();
+            })
+            .expect("Thread spawning failed");
+    }
 }
+
+type ActiveSessions = HashMap<Option<SessionId>, SessionProxy>;

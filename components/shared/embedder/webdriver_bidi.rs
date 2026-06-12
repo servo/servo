@@ -56,7 +56,7 @@ pub struct RequestSender<T: Serialize> {
 /// Messages to the constellation originating from the WebDriver BiDi server.
 // TODO: incomplete
 #[derive(Debug)]
-pub enum WebDriverBidiToEmbedderMsg {
+pub enum WebDriverBidiToEmbedderMessage {
     TraverseHistory(WebViewId, i64),
     Navigate(WebViewId, Url, RequestSender<()>),
     Shutdown,
