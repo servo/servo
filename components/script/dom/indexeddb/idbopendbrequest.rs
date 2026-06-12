@@ -128,9 +128,9 @@ impl IDBOpenDBRequest {
         self.id
     }
 
-    pub(crate) fn get_connection(&self) -> DomRoot<IDBDatabase> {
+    pub(crate) fn connection(&self) -> DomRoot<IDBDatabase> {
         self.pending_connection
-            .take()
+            .get()
             .expect("A connection should exist for the db.")
     }
 

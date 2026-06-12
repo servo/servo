@@ -343,7 +343,7 @@ impl IDBFactory {
                         "There should be a request to handle ConnectionMsg::VersionChange."
                     );
                 };
-                let connection = request.get_connection();
+                let connection = request.connection();
 
                 // Step 10.2: fire a version change event named versionchange at entry with db’s version and version.
                 connection.dispatch_versionchange(cx, old_version, Some(version));
