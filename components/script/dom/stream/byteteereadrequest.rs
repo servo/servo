@@ -131,12 +131,7 @@ impl ByteTeeReadRequest {
         // Helper to surface clone failures exactly once
         let handle_clone_error = |cx: &mut JSContext, error: Error| {
             rooted!(&in(cx) let mut error_value = UndefinedValue());
-            error.to_jsval(
-                cx.into(),
-                &self.global(),
-                error_value.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            error.to_jsval(cx, &self.global(), error_value.handle_mut());
 
             let branch_1_controller = self.branch_1.get_byte_controller();
             let branch_2_controller = self.branch_2.get_byte_controller();

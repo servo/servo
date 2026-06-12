@@ -16,7 +16,7 @@ use js::rust::wrappers2::JS_SetPendingException;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
@@ -32,7 +32,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
 use crate::fetch::{DeferredFetchRecordId, FetchContext};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 impl js::gc::Rootable for AbortAlgorithm {}
 
@@ -105,15 +105,15 @@ impl AbortSignal {
     }
 
     pub(crate) fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<AbortSignal> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(AbortSignal::new_inherited()),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -133,12 +133,7 @@ impl AbortSignal {
             self.abort_reason.set(abort_reason);
         } else {
             rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-            Error::Abort(None).to_jsval(
-                cx.into(),
-                &global,
-                rooted_error.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            Error::Abort(None).to_jsval(cx, &global, rooted_error.handle_mut());
             self.abort_reason.set(rooted_error.get())
         }
 
@@ -239,12 +234,12 @@ impl AbortSignal {
 
     /// <https://dom.spec.whatwg.org/#create-a-dependent-abort-signal>
     pub(crate) fn create_dependent_abort_signal(
+        cx: &mut JSContext,
         signals: Vec<DomRoot<AbortSignal>>,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> DomRoot<AbortSignal> {
         // Step 1. Let resultSignal be a new object implementing signalInterface using realm.
-        let result_signal = Self::new_with_proto(global, None, can_gc);
+        let result_signal = Self::new_with_proto(cx, global, None);
         // Step 2. For each signal of signals: if signal is aborted,
         // then set resultSignal’s abort reason to signal’s abort reason and return resultSignal.
         for signal in signals.iter() {
@@ -346,13 +341,12 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-abort>
     fn Abort(
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         reason: HandleValue,
-        can_gc: CanGc,
     ) -> DomRoot<AbortSignal> {
         // Step 1. Let signal be a new AbortSignal object.
-        let signal = AbortSignal::new_with_proto(global, None, can_gc);
+        let signal = AbortSignal::new_with_proto(cx, global, None);
 
         // Step 2. Set signal’s abort reason to reason if it is given;
         // otherwise to a new "AbortError" DOMException.
@@ -360,8 +354,8 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
         if !abort_reason.is_undefined() {
             signal.abort_reason.set(abort_reason);
         } else {
-            rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            Error::Abort(None).to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
+            rooted!(&in(cx) let mut rooted_error = UndefinedValue());
+            Error::Abort(None).to_jsval(cx, global, rooted_error.handle_mut());
             signal.abort_reason.set(rooted_error.get())
         }
 
@@ -370,9 +364,13 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-timeout>
-    fn Timeout(global: &GlobalScope, milliseconds: u64, can_gc: CanGc) -> DomRoot<AbortSignal> {
+    fn Timeout(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        milliseconds: u64,
+    ) -> DomRoot<AbortSignal> {
         // Step 1. Let signal be a new AbortSignal object.
-        let signal = AbortSignal::new_with_proto(global, None, can_gc);
+        let signal = AbortSignal::new_with_proto(cx, global, None);
 
         // Step 2. Let global be signal’s relevant global object.
         // We already have `global`.
@@ -400,10 +398,9 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
 
                     rooted!(&in(cx) let mut reason = UndefinedValue());
                     Error::Timeout(None).to_jsval(
-                        cx.into(),
+                        cx,
                         &signal_for_task.global(),
                         reason.handle_mut(),
-                        CanGc::from_cx(cx),
                     );
 
                     let mut realm = enter_auto_realm(cx, &*signal_for_task.global());
@@ -424,13 +421,13 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-any>
     fn Any(
+        cx: &mut JSContext,
         global: &GlobalScope,
         signals: Vec<DomRoot<AbortSignal>>,
-        can_gc: CanGc,
     ) -> DomRoot<AbortSignal> {
         // The static any(signals) method steps are to return the result
         // of creating a dependent abort signal from signals using AbortSignal and the current realm.
-        Self::create_dependent_abort_signal(signals, global, can_gc)
+        Self::create_dependent_abort_signal(cx, signals, global)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-reason>

@@ -17,11 +17,11 @@ use js::error::{throw_range_error, throw_type_error};
 use js::gc::{HandleObject, HandleValue, MutableHandleValue};
 #[cfg(feature = "js_backtrace")]
 use js::jsapi::StackFormat as JSStackFormat;
-use js::jsapi::{ExceptionStackBehavior, JS_ClearPendingException, JS_IsExceptionPending};
+use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
-use js::rust::wrappers::{JS_ErrorFromException, JS_GetPendingException, JS_SetPendingException};
-use js::rust::wrappers2::JS_GetProperty;
+use js::rust::wrappers::{JS_ErrorFromException, JS_SetPendingException};
+use js::rust::wrappers2::{JS_ClearPendingException, JS_GetPendingException, JS_GetProperty};
 use js::rust::{describe_scripted_caller, error_info_from_exception_stack};
 use libc::c_uint;
 #[cfg(feature = "js_backtrace")]
@@ -435,33 +435,21 @@ pub(crate) fn take_and_report_pending_exception_for_api(
 }
 
 pub(crate) trait ErrorToJsval {
-    fn to_jsval(
-        self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        rval: MutableHandleValue,
-        can_gc: CanGc,
-    );
+    fn to_jsval(self, cx: &mut JSContext, global: &GlobalScope, rval: MutableHandleValue);
 }
 
 impl ErrorToJsval for Error {
     /// Convert this error value to a JS value, consuming it in the process.
-    fn to_jsval(
-        self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        rval: MutableHandleValue,
-        can_gc: CanGc,
-    ) {
+    fn to_jsval(self, cx: &mut JSContext, global: &GlobalScope, rval: MutableHandleValue) {
         match self {
             Error::JSFailed => (),
-            _ => unsafe { assert!(!JS_IsExceptionPending(*cx)) },
+            _ => unsafe { assert!(!JS_IsExceptionPending(cx.raw_cx())) },
         }
-        throw_dom_exception(cx, global, self, can_gc);
+        throw_dom_exception(cx.into(), global, self, CanGc::from_cx(cx));
         unsafe {
-            assert!(JS_IsExceptionPending(*cx));
-            assert!(JS_GetPendingException(*cx, rval));
-            JS_ClearPendingException(*cx);
+            assert!(JS_IsExceptionPending(cx.raw_cx()));
+            assert!(JS_GetPendingException(cx, rval));
+            JS_ClearPendingException(cx);
         }
     }
 }

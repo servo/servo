@@ -175,7 +175,7 @@ impl ReadRequest {
                     Err(err) => {
                         // Step 1. If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort.
                         rooted!(&in(cx) let mut v = UndefinedValue());
-                        err.to_jsval(cx.into(), &global, v.handle_mut(), CanGc::from_cx(cx));
+                        err.to_jsval(cx, &global, v.handle_mut());
                         (failure_steps)(cx, v.handle());
                     },
                 }
@@ -448,10 +448,9 @@ impl ReadableStreamDefaultReader {
         // Let e be a new TypeError exception.
         rooted!(&in(cx) let mut error = UndefinedValue());
         Error::Type(c"Reader is released".to_owned()).to_jsval(
-            cx.into(),
+            cx,
             &self.global(),
             error.handle_mut(),
-            CanGc::from_cx(cx),
         );
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
@@ -643,10 +642,9 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
         if self.stream.get().is_none() {
             rooted!(&in(cx) let mut error = UndefinedValue());
             Error::Type(c"stream is undefined".to_owned()).to_jsval(
-                cx.into(),
+                cx,
                 &self.global(),
                 error.handle_mut(),
-                CanGc::from_cx(cx),
             );
             return Promise::new_rejected(cx, &self.global(), error.handle());
         }
