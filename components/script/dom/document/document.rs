@@ -6397,8 +6397,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen>
-    fn ExitFullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
-        self.exit_fullscreen(can_gc)
+    fn ExitFullscreen(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        self.exit_fullscreen(cx)
     }
 
     // check-tidy: no specs after this line

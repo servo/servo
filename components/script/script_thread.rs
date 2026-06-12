@@ -2758,7 +2758,7 @@ impl ScriptThread {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             let mut realm = enter_auto_realm(cx, &*document);
-            document.exit_fullscreen(CanGc::from_cx(&mut realm));
+            document.exit_fullscreen(&mut realm);
         }
     }
 

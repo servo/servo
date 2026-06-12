@@ -751,7 +751,7 @@ impl HTMLMediaElement {
     /// we pass true to that method again.
     ///
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
-    pub(crate) fn delay_load_event(&self, delay: bool, cx: &mut js::context::JSContext) {
+    pub(crate) fn delay_load_event(&self, delay: bool, cx: &mut JSContext) {
         let blocker = &self.delaying_the_load_event_flag;
 
         if delay {
@@ -779,7 +779,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#internal-play-steps>
-    fn internal_play_steps(&self, cx: &mut js::context::JSContext) {
+    fn internal_play_steps(&self, cx: &mut JSContext) {
         // Step 1. If the media element's networkState attribute has the value NETWORK_EMPTY, invoke
         // the media element's resource selection algorithm.
         if self.network_state.get() == NetworkState::Empty {
@@ -847,13 +847,13 @@ impl HTMLMediaElement {
             self.owner_global()
                 .task_manager()
                 .media_element_task_source()
-                .queue(task!(resolve_pending_play_promises: move || {
+                .queue(task!(resolve_pending_play_promises: move |cx| {
                     let this = this.root();
                     if generation_id != this.generation_id.get() {
                         return;
                     }
 
-                    this.fulfill_in_flight_play_promises(|| {});
+                    this.fulfill_in_flight_play_promises(cx, |_| {});
                 }));
         }
 
@@ -889,7 +889,7 @@ impl HTMLMediaElement {
                         return;
                     }
 
-                    this.fulfill_in_flight_play_promises(|| {
+                    this.fulfill_in_flight_play_promises(cx, |cx| {
                         // Step 2.3.1. Fire an event named timeupdate at the element.
                         this.upcast::<EventTarget>().fire_event(cx, atom!("timeupdate"));
 
@@ -933,7 +933,7 @@ impl HTMLMediaElement {
                     return;
                 }
 
-                this.fulfill_in_flight_play_promises(|| {
+                this.fulfill_in_flight_play_promises(cx, |cx| {
                     // Step 2.1. Fire an event named playing at the element.
                     this.upcast::<EventTarget>().fire_event(cx, atom!("playing"));
 
@@ -1063,7 +1063,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn invoke_resource_selection_algorithm(&self, cx: &mut js::context::JSContext) {
+    fn invoke_resource_selection_algorithm(&self, cx: &mut JSContext) {
         // Step 1. Set the element's networkState attribute to the NETWORK_NO_SOURCE value.
         self.network_state.set(NetworkState::NoSource);
 
@@ -1094,11 +1094,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn resource_selection_algorithm_sync(
-        &self,
-        base_url: ServoUrl,
-        cx: &mut js::context::JSContext,
-    ) {
+    fn resource_selection_algorithm_sync(&self, base_url: ServoUrl, cx: &mut JSContext) {
         // TODO Step 5. If the media element's blocked-on-parser flag is false, then populate the
         // list of pending text tracks.
         // FIXME(ferjm): Implement blocked_on_parser logic
@@ -1321,7 +1317,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn select_next_source_child(&self, cx: &mut js::context::JSContext) {
+    fn select_next_source_child(&self, cx: &mut JSContext) {
         // Step 9.children.12. Forget the media element's media-resource-specific tracks.
         self.AudioTracks(cx).clear();
         self.VideoTracks(CanGc::from_cx(cx)).clear();
@@ -1634,7 +1630,7 @@ impl HTMLMediaElement {
                     return;
                 }
 
-                this.fulfill_in_flight_play_promises(|| {
+                this.fulfill_in_flight_play_promises(cx, |cx| {
                     // Step 1. Set the error attribute to the result of creating a MediaError with
                     // MEDIA_ERR_SRC_NOT_SUPPORTED.
                     this.error.set(Some(&*MediaError::new(
@@ -1705,7 +1701,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#media-element-load-algorithm>
-    fn media_element_load_algorithm(&self, cx: &mut js::context::JSContext) {
+    fn media_element_load_algorithm(&self, cx: &mut JSContext) {
         // Reset the flag that signals whether loadeddata was ever fired for
         // this invokation of the load algorithm.
         self.fired_loadeddata_event.set(false);
@@ -1727,7 +1723,7 @@ impl HTMLMediaElement {
         // pending play promises, immediately resolve or reject those promises in the order the
         // corresponding tasks were queued.
         while !self.in_flight_play_promises_queue.borrow().is_empty() {
-            self.fulfill_in_flight_play_promises(|| ());
+            self.fulfill_in_flight_play_promises(cx, |_| ());
         }
 
         // Step 5. Remove each task in pending tasks from its task queue.
@@ -1778,7 +1774,7 @@ impl HTMLMediaElement {
                 // Step 7.6.2. Take pending play promises and reject pending play promises with the
                 // result and an "AbortError" DOMException.
                 self.take_pending_play_promises(Err(Error::Abort(None)));
-                self.fulfill_in_flight_play_promises(|| ());
+                self.fulfill_in_flight_play_promises(cx, |_| ());
             }
 
             // Step 7.7. If seeking is true, set it to false.
@@ -1866,20 +1862,20 @@ impl HTMLMediaElement {
     /// the promises because that would mean putting
     /// `#[cfg_attr(crown, expect(crown::unrooted_must_root))]` on even more functions, potentially
     /// hiding actual safety bugs.
-    fn fulfill_in_flight_play_promises<F>(&self, f: F)
+    fn fulfill_in_flight_play_promises<F>(&self, cx: &mut JSContext, f: F)
     where
-        F: FnOnce(),
+        F: FnOnce(&mut JSContext),
     {
         let (promises, result) = self
             .in_flight_play_promises_queue
             .borrow_mut()
             .pop_front()
             .expect("there should be at least one list of in flight play promises");
-        f();
+        f(cx);
         for promise in &*promises {
             match result {
-                Ok(ref value) => promise.resolve_native(value, CanGc::deprecated_note()),
-                Err(ref error) => promise.reject_error(error.clone(), CanGc::deprecated_note()),
+                Ok(ref value) => promise.resolve_native_with_cx(cx, value),
+                Err(ref error) => promise.reject_error_with_cx(cx, error.clone()),
             }
         }
     }
@@ -1887,7 +1883,7 @@ impl HTMLMediaElement {
     pub(crate) fn handle_source_child_insertion(
         &self,
         source: &HTMLSourceElement,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) {
         // <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-insertion-steps>
         // Step 2. If parent is a media element that has no src attribute and whose networkState has
@@ -1923,7 +1919,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn select_next_source_child_after_wait(&self, cx: &mut js::context::JSContext) {
+    fn select_next_source_child_after_wait(&self, cx: &mut JSContext) {
         // Step 9.children.24. Set the element's delaying-the-load-event flag back to true (this
         // delays the load event again, in case it hasn't been fired yet).
         self.delay_load_event(true, cx);
@@ -1952,7 +1948,7 @@ impl HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
     /// => "If the connection is interrupted after some media data has been received..."
     /// => "If the media data is corrupted"
-    fn media_data_processing_fatal_steps(&self, error: u16, cx: &mut js::context::JSContext) {
+    fn media_data_processing_fatal_steps(&self, error: u16, cx: &mut JSContext) {
         *self.source_children_pointer.borrow_mut() = None;
         self.current_source_child.set(None);
 
@@ -2335,7 +2331,7 @@ impl HTMLMediaElement {
                     // Step 3.2.3. Take pending play promises and reject pending play promises with
                     // the result and an "AbortError" DOMException.
                     this.take_pending_play_promises(Err(Error::Abort(None)));
-                    this.fulfill_in_flight_play_promises(|| ());
+                    this.fulfill_in_flight_play_promises(cx, |_| ());
                 }
 
                 // Step 3.3. Fire an event named ended at the media element.
@@ -2369,7 +2365,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_error(&self, error: &str, cx: &mut js::context::JSContext) {
+    fn playback_error(&self, error: &str, cx: &mut JSContext) {
         error!("Player error: {:?}", error);
 
         // If we have already flagged an error condition while processing
@@ -2928,7 +2924,7 @@ impl HTMLMediaElement {
     pub(crate) fn set_audio_renderer(
         &self,
         audio_renderer: Option<Arc<Mutex<dyn AudioRenderer>>>,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) {
         *self.audio_renderer.borrow_mut() = audio_renderer;
 
@@ -3069,7 +3065,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
-    fn SetSrcObject(&self, cx: &mut js::context::JSContext, value: Option<MediaStreamOrBlob>) {
+    fn SetSrcObject(&self, cx: &mut JSContext, value: Option<MediaStreamOrBlob>) {
         *self.src_object.borrow_mut() = value.map(|value| value.into());
         self.media_element_load_algorithm(cx);
     }
@@ -3093,7 +3089,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-load>
-    fn Load(&self, cx: &mut js::context::JSContext) {
+    fn Load(&self, cx: &mut JSContext) {
         self.media_element_load_algorithm(cx);
     }
 
@@ -3142,7 +3138,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-pause>
-    fn Pause(&self, cx: &mut js::context::JSContext) {
+    fn Pause(&self, cx: &mut JSContext) {
         // Step 1. If the media element's networkState attribute has the value NETWORK_EMPTY, invoke
         // the media element's resource selection algorithm.
         if self.network_state.get() == NetworkState::Empty {
@@ -3298,7 +3294,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-audiotracks>
-    fn AudioTracks(&self, cx: &mut js::context::JSContext) -> DomRoot<AudioTrackList> {
+    fn AudioTracks(&self, cx: &mut JSContext) -> DomRoot<AudioTrackList> {
         let window = self.owner_window();
         self.audio_tracks_list
             .or_init(|| AudioTrackList::new(cx, &window, &[], Some(self)))
@@ -3393,7 +3389,7 @@ impl VirtualMethods for HTMLMediaElement {
 
     fn attribute_mutated(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
@@ -3435,7 +3431,7 @@ impl VirtualMethods for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document>
-    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
         self.remove_controls();
@@ -3496,7 +3492,7 @@ pub(crate) enum MediaElementMicrotask {
 }
 
 impl MicrotaskRunnable for MediaElementMicrotask {
-    fn handler(&self, cx: &mut js::context::JSContext) {
+    fn handler(&self, cx: &mut JSContext) {
         match self {
             &MediaElementMicrotask::ResourceSelection {
                 ref elem,
@@ -3742,7 +3738,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn process_response(
         &mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -3833,12 +3829,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
     }
 
-    fn process_response_chunk(
-        &mut self,
-        _: &mut js::context::JSContext,
-        _: RequestId,
-        chunk: Vec<u8>,
-    ) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
         let element = self.element.root();
 
         self.fetched_content_length += chunk.len() as u64;
@@ -3895,7 +3886,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn process_response_eof(
         self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -4043,12 +4034,7 @@ impl HTMLMediaElementEventHandler {
         }
     }
 
-    fn handle_player_event(
-        &self,
-        player_id: usize,
-        event: PlayerEvent,
-        cx: &mut js::context::JSContext,
-    ) {
+    fn handle_player_event(&self, player_id: usize, event: PlayerEvent, cx: &mut JSContext) {
         let Some(element) = self.element.root() else {
             return;
         };

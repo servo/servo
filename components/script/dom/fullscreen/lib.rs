@@ -6,6 +6,8 @@ use std::rc::Rc;
 
 use embedder_traits::EmbedderMsg;
 use html5ever::{local_name, ns};
+use js::context::JSContext;
+use js::realm::CurrentRealm;
 use servo_config::pref;
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
@@ -28,30 +30,26 @@ use crate::dom::promise::Promise;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::types::HTMLDialogElement;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
-use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
+use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::TaskOnce;
 use crate::task_source::TaskSourceName;
 
 impl Document {
     /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
-    pub(crate) fn enter_fullscreen(&self, pending: &Element, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn enter_fullscreen(&self, cx: &mut CurrentRealm, pending: &Element) -> Rc<Promise> {
         // Step 1
         // > Let pendingDoc be this’s node document.
         // `Self` is the pending document.
 
         // Step 2
         // > Let promise be a new promise.
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 3
         // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
         if !self.is_fully_active() {
-            promise.reject_error(
-                Error::Type(c"Document is not fully active".to_owned()),
-                can_gc,
-            );
+            promise
+                .reject_error_with_cx(cx, Error::Type(c"Document is not fully active".to_owned()));
             return promise;
         }
 
@@ -152,22 +150,22 @@ impl Document {
     }
 
     /// <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
-    pub(crate) fn exit_fullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn exit_fullscreen(&self, cx: &mut JSContext) -> Rc<Promise> {
         let global = self.global();
 
         // Step 1
         // > Let promise be a new promise
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+        let mut realm = CurrentRealm::assert(cx);
+        let promise = Promise::new_in_realm(&mut realm);
 
         // Step 2
         // > If doc is not fully active or doc’s fullscreen element is null, then reject promise with a TypeError exception and return promise.
         if !self.is_fully_active() || self.fullscreen_element().is_none() {
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::Type(
                     c"No fullscreen element to exit or document is not fully active".to_owned(),
                 ),
-                can_gc,
             );
             return promise;
         }
