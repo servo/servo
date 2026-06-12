@@ -199,7 +199,7 @@ impl WritableStreamDefaultWriter {
             ready_promise.set_promise_is_handled();
         } else {
             // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
-            let promise = Promise::new_rejected(global, cx.into(), error, CanGc::from_cx(cx));
+            let promise = Promise::new_rejected(cx, global, error);
 
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
             promise.set_promise_is_handled();
@@ -225,7 +225,7 @@ impl WritableStreamDefaultWriter {
             closed_promise.set_promise_is_handled();
         } else {
             // Otherwise, set writer.[[closedPromise]] to a promise rejected with error.
-            let promise = Promise::new_rejected(global, cx.into(), error, CanGc::from_cx(cx));
+            let promise = Promise::new_rejected(cx, global, error);
 
             // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
             promise.set_promise_is_handled();

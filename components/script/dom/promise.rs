@@ -27,13 +27,12 @@ use js::jsapi::{
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
-    CallOriginalPromiseReject, CallOriginalPromiseResolve, GetPromiseIsHandled, GetPromiseState,
-    IsPromiseObject, NewPromiseObject, SetAnyPromiseIsHandled,
-    SetPromiseUserInputEventHandlingState,
+    CallOriginalPromiseResolve, GetPromiseIsHandled, GetPromiseState, IsPromiseObject,
+    NewPromiseObject, SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::wrappers2::{
-    AddPromiseReactions, JS_ClearPendingException, NewFunctionWithReserved, RejectPromise,
-    ResolvePromise,
+    AddPromiseReactions, CallOriginalPromiseReject, JS_ClearPendingException,
+    NewFunctionWithReserved, RejectPromise, ResolvePromise,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -196,19 +195,17 @@ impl Promise {
 
     #[expect(unsafe_code)]
     pub(crate) fn new_rejected(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
-        cx: SafeJSContext,
         value: impl SafeToJSValConvertible,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        value.safe_to_jsval(cx, rval.handle_mut(), can_gc);
-        unsafe {
-            rooted!(in(*cx) let p = CallOriginalPromiseReject(*cx, rval.handle()));
-            assert!(!p.handle().is_null());
-            Promise::new_with_js_promise(p.handle(), cx)
-        }
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm.current_realm();
+        rooted!(&in(cx) let mut rval = UndefinedValue());
+        value.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+        rooted!(&in(cx) let p = unsafe { CallOriginalPromiseReject(cx, rval.handle()) });
+        assert!(!p.handle().is_null());
+        Promise::new_with_js_promise(p.handle(), cx.into())
     }
 
     pub(crate) fn resolve_native<T>(&self, val: &T, can_gc: CanGc)

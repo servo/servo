@@ -8,12 +8,15 @@ use std::mem;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
+use script_bindings::reflector::{
+    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+};
 
 use super::byteteereadrequest::ByteTeeReadRequest;
 use super::readablebytestreamcontroller::ReadableByteStreamController;
@@ -342,41 +345,40 @@ pub(crate) struct ReadableStreamDefaultReader {
 
 impl ReadableStreamDefaultReader {
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<ReadableStreamDefaultReader> {
-        reflect_dom_object_with_proto(
-            Box::new(ReadableStreamDefaultReader::new_inherited(global, can_gc)),
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(ReadableStreamDefaultReader::new_inherited(cx, global)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
-    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamDefaultReader {
+    fn new_inherited(cx: &mut JSContext, global: &GlobalScope) -> ReadableStreamDefaultReader {
         ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_requests: DomRefCell::new(Default::default()),
-            closed_promise: DomRefCell::new(Promise::new(global, can_gc)),
+            closed_promise: DomRefCell::new(Promise::new2(cx, global)),
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ReadableStreamDefaultReader> {
-        reflect_dom_object(
-            Box::new(Self::new_inherited(global, can_gc)),
-            global,
-            can_gc,
-        )
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> DomRoot<ReadableStreamDefaultReader> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(cx, global)), global, cx)
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-reader>
     pub(crate) fn set_up(
         &self,
+        cx: &mut JSContext,
         stream: &ReadableStream,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         // If ! IsReadableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
@@ -384,7 +386,7 @@ impl ReadableStreamDefaultReader {
         }
         // Perform ! ReadableStreamReaderGenericInitialize(reader, stream).
 
-        self.generic_initialize(global, stream, can_gc);
+        self.generic_initialize(cx, global, stream);
 
         // Set reader.[[readRequests]] to a new empty list.
         self.read_requests.borrow_mut().clear();
@@ -622,15 +624,15 @@ impl ReadableStreamDefaultReader {
 impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
-        let reader = Self::new_with_proto(global, proto, can_gc);
+        let reader = Self::new_with_proto(cx, global, proto);
 
         // Perform ? SetUpReadableStreamDefaultReader(this, stream).
-        Self::set_up(&reader, stream, global, can_gc)?;
+        reader.set_up(cx, stream, global)?;
 
         Ok(reader)
     }
@@ -646,12 +648,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
                 error.handle_mut(),
                 CanGc::from_cx(cx),
             );
-            return Promise::new_rejected(
-                &self.global(),
-                cx.into(),
-                error.handle(),
-                CanGc::from_cx(cx),
-            );
+            return Promise::new_rejected(cx, &self.global(), error.handle());
         }
         // Let promise be a new promise.
         let promise = Promise::new2(cx, &self.global());

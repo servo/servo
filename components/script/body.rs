@@ -216,7 +216,7 @@ impl TransmitBodyConnectHandler {
                     // TODO: Step 2, If body is null.
 
                     // Step 3, get a reader for stream.
-                    rooted_stream.acquire_default_reader(CanGc::from_cx(cx))
+                    rooted_stream.acquire_default_reader(cx)
                         .expect("Couldn't acquire a reader for the body stream.");
 
                     // Note: this algorithm continues when the first chunk is requested by `net`.
@@ -761,7 +761,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     // Let reader be the result of getting a reader for body’s stream.
     // If that threw an exception,
     // then run errorSteps with that exception and return.
-    let reader = match stream.acquire_default_reader(CanGc::from_cx(cx)) {
+    let reader = match stream.acquire_default_reader(cx) {
         Ok(r) => r,
         Err(e) => {
             promise.reject_error_with_cx(cx, e);

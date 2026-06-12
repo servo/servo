@@ -16,7 +16,9 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
+use script_bindings::reflector::{
+    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+};
 use script_bindings::root::Dom;
 
 use super::byteteereadintorequest::ByteTeeReadIntoRequest;
@@ -192,41 +194,40 @@ pub(crate) struct ReadableStreamBYOBReader {
 
 impl ReadableStreamBYOBReader {
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<ReadableStreamBYOBReader> {
-        reflect_dom_object_with_proto(
-            Box::new(ReadableStreamBYOBReader::new_inherited(global, can_gc)),
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(ReadableStreamBYOBReader::new_inherited(cx, global)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
-    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamBYOBReader {
+    fn new_inherited(cx: &mut JSContext, global: &GlobalScope) -> ReadableStreamBYOBReader {
         ReadableStreamBYOBReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_into_requests: DomRefCell::new(Default::default()),
-            closed_promise: DomRefCell::new(Promise::new(global, can_gc)),
+            closed_promise: DomRefCell::new(Promise::new2(cx, global)),
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ReadableStreamBYOBReader> {
-        reflect_dom_object(
-            Box::new(Self::new_inherited(global, can_gc)),
-            global,
-            can_gc,
-        )
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> DomRoot<ReadableStreamBYOBReader> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(cx, global)), global, cx)
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-byob-reader>
     pub(crate) fn set_up(
         &self,
+        cx: &mut JSContext,
         stream: &ReadableStream,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         // If ! IsReadableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
@@ -241,7 +242,7 @@ impl ReadableStreamBYOBReader {
         }
 
         // Perform ! ReadableStreamReaderGenericInitialize(reader, stream).
-        self.generic_initialize(global, stream, can_gc);
+        self.generic_initialize(cx, global, stream);
 
         // Set reader.[[readIntoRequests]] to a new empty list.
         self.read_into_requests.borrow_mut().clear();
@@ -399,15 +400,15 @@ impl ReadableStreamBYOBReader {
 impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#byob-reader-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
-        let reader = Self::new_with_proto(global, proto, can_gc);
+        let reader = Self::new_with_proto(cx, global, proto);
 
         // Perform ? SetUpReadableStreamBYOBReader(this, stream).
-        Self::set_up(&reader, stream, global, can_gc)?;
+        reader.set_up(cx, stream, global)?;
 
         Ok(reader)
     }

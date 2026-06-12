@@ -553,7 +553,7 @@ impl ReadableStreamDefaultController {
             rooted!(&in(cx) let mut rval = UndefinedValue());
             // TODO: check if `self.global()` is the right globalscope.
             error.to_jsval(cx.into(), &global, rval.handle_mut(), CanGc::from_cx(cx));
-            Promise::new_rejected(&global, cx.into(), rval.handle(), CanGc::from_cx(cx))
+            Promise::new_rejected(cx, &global, rval.handle())
         });
         promise.append_native_handler(cx, &handler);
     }

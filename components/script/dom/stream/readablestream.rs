@@ -1290,13 +1290,13 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
     pub(crate) fn acquire_default_reader(
         &self,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
         // Let reader be a new ReadableStreamDefaultReader.
-        let reader = ReadableStreamDefaultReader::new(&self.global(), can_gc);
+        let reader = ReadableStreamDefaultReader::new(cx, &self.global());
 
         // Perform ? SetUpReadableStreamDefaultReader(reader, stream).
-        reader.set_up(self, &self.global(), can_gc)?;
+        reader.set_up(cx, self, &self.global())?;
 
         // Return reader.
         Ok(reader)
@@ -1305,12 +1305,12 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-byob-reader>
     pub(crate) fn acquire_byob_reader(
         &self,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) -> Fallible<DomRoot<ReadableStreamBYOBReader>> {
         // Let reader be a new ReadableStreamBYOBReader.
-        let reader = ReadableStreamBYOBReader::new(&self.global(), can_gc);
+        let reader = ReadableStreamBYOBReader::new(cx, &self.global());
         // Perform ? SetUpReadableStreamBYOBReader(reader, stream).
-        reader.set_up(self, &self.global(), can_gc)?;
+        reader.set_up(cx, self, &self.global())?;
 
         // Return reader.
         Ok(reader)
@@ -1697,7 +1697,7 @@ impl ReadableStream {
         // Assert: stream.[[controller]] implements ReadableByteStreamController.
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
-        let reader = self.acquire_default_reader(CanGc::from_cx(cx))?;
+        let reader = self.acquire_default_reader(cx)?;
         let reader = Rc::new(RefCell::new(ReaderType::Default(MutNullableDom::new(
             Some(&reader),
         ))));
@@ -1800,7 +1800,7 @@ impl ReadableStream {
         let clone_for_branch_2 = Rc::new(Cell::new(clone_for_branch_2));
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
-        let reader = self.acquire_default_reader(CanGc::from_cx(cx))?;
+        let reader = self.acquire_default_reader(cx)?;
 
         // Let reading be false.
         let reading = Rc::new(Cell::new(false));
@@ -1923,7 +1923,7 @@ impl ReadableStream {
 
         // Otherwise, let reader be ! AcquireReadableStreamDefaultReader(source).
         let reader = self
-            .acquire_default_reader(CanGc::from_cx(cx))
+            .acquire_default_reader(cx)
             .expect("Acquiring a default reader for pipe_to cannot fail");
 
         // Let writer be ! AcquireWritableStreamDefaultWriter(dest).
@@ -2204,13 +2204,13 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-get-reader>
     fn GetReader(
         &self,
+        cx: &mut JSContext,
         options: &ReadableStreamGetReaderOptions,
-        can_gc: CanGc,
     ) -> Fallible<ReadableStreamReader> {
         // 1, If options["mode"] does not exist, return ? AcquireReadableStreamDefaultReader(this).
         if options.mode.is_none() {
             return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
-                self.acquire_default_reader(can_gc)?,
+                self.acquire_default_reader(cx)?,
             ));
         }
         // 2. Assert: options["mode"] is "byob".
@@ -2218,7 +2218,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
         // 3. Return ? AcquireReadableStreamBYOBReader(this).
         Ok(ReadableStreamReader::ReadableStreamBYOBReader(
-            self.acquire_byob_reader(can_gc)?,
+            self.acquire_byob_reader(cx)?,
         ))
     }
 

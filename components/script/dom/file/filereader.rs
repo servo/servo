@@ -560,7 +560,7 @@ impl FileReader {
         let stream = blob.get_stream(cx);
 
         // Let reader be the result of getting a reader from stream.
-        let reader = stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx)))?;
+        let reader = stream.and_then(|s| s.acquire_default_reader(cx))?;
 
         let load_data = ReadMetaData::new(
             String::from(blob.Type()),

@@ -248,12 +248,7 @@ impl TransformStreamDefaultController {
                             error_val.handle_mut(),
                             CanGc::from_cx(cx),
                         );
-                        Promise::new_rejected(
-                            global,
-                            cx.into(),
-                            error_val.handle(),
-                            CanGc::from_cx(cx),
-                        )
+                        Promise::new_rejected(cx, global, error_val.handle())
                     } else {
                         // Otherwise, return a promise resolved with undefined.
                         Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
