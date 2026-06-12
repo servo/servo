@@ -641,7 +641,6 @@ impl Painter {
                     should_snap: true,
                     paired_with_perspective: false,
                 },
-                webview_renderer.id.into(),
             );
 
             let scaled_webview_rect = webview_renderer.rect /
@@ -950,13 +949,11 @@ impl Painter {
         };
 
         let items_data = display_list_data.items_data;
-        let cache_data = display_list_data.cache_data;
         let spatial_tree = display_list_data.spatial_tree;
 
         let built_display_list = BuiltDisplayList::from_data(
             DisplayListPayload {
                 items_data,
-                cache_data,
                 spatial_tree,
             },
             display_list_descriptor,

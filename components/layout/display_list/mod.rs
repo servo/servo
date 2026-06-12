@@ -50,7 +50,7 @@ use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
     NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding,
-    PropertyBindingKey, RasterSpace, SpatialId, SpatialTreeItemKey, StackingContextFlags, units,
+    PropertyBindingKey, RasterSpace, SpatialId, StackingContextFlags, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -271,15 +271,11 @@ impl DisplayListBuilder<'_> {
         // A count of the number of SpatialTree nodes pushed to the WebRender display
         // list. This is merely to ensure that the currently-unused SpatialTreeItemKey
         // produced for every SpatialTree node is unique.
-        let mut spatial_tree_count = 0;
         let mut scroll_tree = std::mem::take(&mut self.paint_info.scroll_tree);
         let mut mapping = Vec::with_capacity(scroll_tree.nodes.len());
 
         mapping.push(SpatialId::root_reference_frame(self.pipeline_id()));
         mapping.push(SpatialId::root_scroll_node(self.pipeline_id()));
-
-        let pipeline_id = self.pipeline_id();
-        let pipeline_tag = ((pipeline_id.0 as u64) << 32) | pipeline_id.1 as u64;
 
         for node in scroll_tree.nodes.iter().skip(2) {
             let parent_scroll_node_id = node
@@ -289,11 +285,6 @@ impl DisplayListBuilder<'_> {
                 .get(parent_scroll_node_id.index)
                 .expect("Should add spatial nodes to display list in order");
 
-            // Produce a new SpatialTreeItemKey. This is currently unused by WebRender,
-            // but has to be unique to the entire scene.
-            spatial_tree_count += 1;
-            let spatial_tree_item_key = SpatialTreeItemKey::new(pipeline_tag, spatial_tree_count);
-
             mapping.push(match &node.info {
                 SpatialTreeNodeInfo::ReferenceFrame(info) => {
                     let spatial_id = self.wr().push_reference_frame(
@@ -302,7 +293,6 @@ impl DisplayListBuilder<'_> {
                         info.transform_style,
                         PropertyBinding::Value(*info.transform.to_transform()),
                         info.kind,
-                        spatial_tree_item_key,
                     );
                     self.wr().pop_reference_frame();
                     spatial_id
@@ -316,7 +306,6 @@ impl DisplayListBuilder<'_> {
                         LayoutVector2D::zero(), /* external_scroll_offset */
                         0,                      /* scroll_offset_generation */
                         wr::HasScrollLinkedEffect::No,
-                        spatial_tree_item_key,
                     )
                 },
                 SpatialTreeNodeInfo::Sticky(info) => {
@@ -327,8 +316,7 @@ impl DisplayListBuilder<'_> {
                         info.vertical_offset_bounds,
                         info.horizontal_offset_bounds,
                         LayoutVector2D::zero(), /* previously_applied_offset */
-                        spatial_tree_item_key,
-                        None, /* transform */
+                        None,                   /* transform */
                     )
                 },
             });
@@ -464,7 +452,6 @@ impl DisplayListBuilder<'_> {
         };
 
         self.wr().push_stacking_context(
-            LayoutPoint::zero(), // origin
             spatial_id,
             style.get_webrender_primitive_flags(),
             clip_chain_id,
@@ -472,7 +459,6 @@ impl DisplayListBuilder<'_> {
             effects.mix_blend_mode.to_webrender(),
             &filters,
             &[], // filter_datas
-            &[], // filter_primitives
             wr::RasterSpace::Screen,
             wr::StackingContextFlags::empty(),
             None, // snapshot
@@ -1616,13 +1602,11 @@ impl<'a> BuilderForBoxFragment<'a> {
          -> bool {
             let spatial_id = builder.spatial_id(state.spatial_id);
             builder.wr().push_stacking_context(
-                LayoutPoint::zero(), // origin
                 spatial_id,
                 PrimitiveFlags::empty(),
                 None,
                 webrender_api::TransformStyle::Flat,
                 blend_mode.to_webrender(),
-                &[],
                 &[],
                 &[],
                 RasterSpace::Screen,
@@ -2151,8 +2135,15 @@ impl<'a> BuilderForBoxFragment<'a> {
                         .inflate(extra_size_from_blur, extra_size_from_blur)
                 },
             };
+            let border_radius = self.border_radius();
+            let shadow_radius = offset_radii(
+                border_radius,
+                SideOffsets2D::new_all_same(match clip_mode {
+                    BoxShadowClipMode::Inset => -spread,
+                    BoxShadowClipMode::Outset => spread,
+                }),
+            );
             let common = builder.common_properties(state, clip_rect, &style);
-
             builder.wr().push_box_shadow(
                 &common,
                 rect,
@@ -2160,7 +2151,8 @@ impl<'a> BuilderForBoxFragment<'a> {
                 rgba(style.resolve_color(&box_shadow.base.color)),
                 blur,
                 spread,
-                self.border_radius(),
+                border_radius,
+                shadow_radius,
                 clip_mode,
             );
         }
