@@ -2588,12 +2588,12 @@ impl Activatable for HTMLInputElement {
         event: &Event,
         target: &EventTarget,
     ) {
-        let input_type = {
+        let input_type_name = {
             let input_type = self.input_type();
-            InputType::new_from_atom(&Atom::from(input_type.as_str()))
+            Atom::from(input_type.as_str())
         };
 
-        input_type
+        InputType::new_from_atom(&input_type_name)
             .as_specific()
             .activation_behavior(cx, self, event, target);
     }
