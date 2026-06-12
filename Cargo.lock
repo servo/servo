@@ -9078,6 +9078,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-webnn"
+version = "0.3.0"
+
+[[package]]
 name = "servo-webxr"
 version = "0.3.0"
 dependencies = [
