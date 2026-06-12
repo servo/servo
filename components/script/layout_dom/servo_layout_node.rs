@@ -26,7 +26,8 @@ use style::selector_parser::PseudoElement;
 use super::ServoLayoutElement;
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::element::Element;
-use crate::dom::node::{Node, NodeFlags, NodeTypeIdWrapper};
+use crate::dom::layout_dom::NodeTypeIdWrapper;
+use crate::dom::node::{Node, NodeFlags};
 use crate::layout_dom::{
     ServoDangerousStyleNode, ServoLayoutDomTypeBundle, ServoLayoutNodeChildrenIterator,
 };

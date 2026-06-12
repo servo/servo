@@ -9,6 +9,7 @@ use style::selector_parser::PseudoElement;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 
+use crate::dom::UniqueId;
 use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementRegistry, CustomElementState,
@@ -18,7 +19,6 @@ use crate::dom::elementinternals::ElementInternals;
 use crate::dom::html::htmlslotelement::SlottableData;
 use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
-use crate::dom::node::UniqueId;
 use crate::dom::nodelist::NodeList;
 use crate::dom::range::{Range, WeakRangeVec};
 use crate::dom::shadowroot::ShadowRoot;
