@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, QualName, local_name, namespace_url, ns};
+use js::context::NoGC;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use style::str::split_html_space_chars;
 use stylo_atoms::Atom;
@@ -485,7 +486,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
     }
 
     /// <https://dom.spec.whatwg.org/#interface-htmlcollection>
-    fn SupportedPropertyNames(&self, _: &mut js::context::JSContext) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
         // Step 1
         let mut result = vec![];
 

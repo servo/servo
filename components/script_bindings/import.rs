@@ -7,7 +7,7 @@ pub(crate) mod base {
     pub(crate) use std::rc::Rc;
 
     #[allow(unused_imports)]
-    pub(crate) use js::context::{JSContext, RawJSContext};
+    pub(crate) use js::context::{JSContext, NoGC, RawJSContext};
     pub(crate) use js::conversions::{
         ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
     };

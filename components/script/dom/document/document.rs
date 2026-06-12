@@ -3026,10 +3026,6 @@ impl Document {
         &self.id_map
     }
 
-    pub(crate) fn name_map(&self) -> &TreeOrderedIndexMap {
-        &self.name_map
-    }
-
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
     pub(crate) fn add_resize_observer(&self, resize_observer: &ResizeObserver) {
         self.resize_observers
@@ -5995,10 +5991,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self, cx: &mut js::context::JSContext) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
         let mut names_with_first_named_element_map = HashMap::new();
         self.name_map
-            .for_each(cx.no_gc(), self.upcast(), |name, elements| {
+            .for_each(no_gc, self.upcast(), |name, elements| {
                 if name.is_empty() {
                     return;
                 }
@@ -6010,25 +6006,24 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 }
             });
 
-        self.id_map
-            .for_each(cx.no_gc(), self.upcast(), |id, elements| {
-                if id.is_empty() {
-                    return;
+        self.id_map.for_each(no_gc, self.upcast(), |id, elements| {
+            if id.is_empty() {
+                return;
+            }
+            let mut id_iter = elements
+                .iter()
+                .filter(|elem| is_named_element_with_id_attribute(elem));
+            if let Some(first) = id_iter.next() {
+                match names_with_first_named_element_map.entry(id.clone()) {
+                    Vacant(entry) => drop(entry.insert(first.as_rooted())),
+                    Occupied(mut entry) => {
+                        if first.upcast::<Node>().is_before(entry.get().upcast()) {
+                            *entry.get_mut() = first.as_rooted();
+                        }
+                    },
                 }
-                let mut id_iter = elements
-                    .iter()
-                    .filter(|elem| is_named_element_with_id_attribute(elem));
-                if let Some(first) = id_iter.next() {
-                    match names_with_first_named_element_map.entry(id.clone()) {
-                        Vacant(entry) => drop(entry.insert(first.as_rooted())),
-                        Occupied(mut entry) => {
-                            if first.upcast::<Node>().is_before(entry.get().upcast()) {
-                                *entry.get_mut() = first.as_rooted();
-                            }
-                        },
-                    }
-                }
-            });
+            }
+        });
 
         let mut names_with_first_named_element_vec: Vec<_> =
             names_with_first_named_element_map.into_iter().collect();
