@@ -4,9 +4,8 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
-use std::cmp;
+use std::collections::HashSet;
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
@@ -2320,61 +2319,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
     fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
-        let document = self.Document();
-        let mut names_with_first_named_element_map = HashMap::new();
-        document
-            .name_map()
-            .for_each(no_gc, document.upcast(), |name, elements| {
-                if name.is_empty() {
-                    return;
-                }
-                let mut name_iter = elements
-                    .iter()
-                    .filter(|elem| is_named_element_with_name_attribute(elem));
-                if let Some(first) = name_iter.next() {
-                    names_with_first_named_element_map.insert(name.clone(), first.as_rooted());
-                }
-            });
-
-        document
-            .id_map()
-            .for_each(no_gc, document.upcast(), |id, elements| {
-                if id.is_empty() {
-                    return;
-                }
-                let mut id_iter = elements
-                    .iter()
-                    .filter(|elem| is_named_element_with_id_attribute(elem));
-                if let Some(first) = id_iter.next() {
-                    match names_with_first_named_element_map.entry(id.clone()) {
-                        Entry::Vacant(entry) => drop(entry.insert(first.as_rooted())),
-                        Entry::Occupied(mut entry) => {
-                            if first.upcast::<Node>().is_before(entry.get().upcast()) {
-                                *entry.get_mut() = first.as_rooted();
-                            }
-                        },
-                    }
-                }
-            });
-
-        let mut names_with_first_named_element_vec: Vec<_> =
-            names_with_first_named_element_map.into_iter().collect();
-        names_with_first_named_element_vec.sort_unstable_by(|a, b| {
-            if a.1 == b.1 {
-                // This can happen if an img has an id different from its name,
-                // spec does not say which string to put first.
-                a.0.cmp(&b.0)
-            } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
-                cmp::Ordering::Less
-            } else {
-                cmp::Ordering::Greater
-            }
-        });
-
-        names_with_first_named_element_vec
-            .iter()
-            .map(|(k, _v)| DOMString::from(&**k))
-            .collect()
+        self.Document().SupportedPropertyNames(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>

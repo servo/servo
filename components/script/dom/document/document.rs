@@ -3026,10 +3026,6 @@ impl Document {
         &self.id_map
     }
 
-    pub(crate) fn name_map(&self) -> &TreeOrderedIndexMap {
-        &self.name_map
-    }
-
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
     pub(crate) fn add_resize_observer(&self, resize_observer: &ResizeObserver) {
         self.resize_observers
