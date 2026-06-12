@@ -262,7 +262,7 @@ pub struct TouchId(pub i32);
 /// Servo routes both pen and finger-touch input through the touch event path,
 /// but the originating subtype determines the `pointerType` reported to script.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum PointerSubtype {
+pub enum TouchPointerType {
     Pen,
     Touch,
 }
@@ -272,7 +272,7 @@ pub struct TouchEvent {
     pub event_type: TouchEventType,
     pub touch_id: TouchId,
     pub point: WebViewPoint,
-    pub pointer_subtype: PointerSubtype,
+    pub pointer_type: TouchPointerType,
     /// cancelable default value is true, once the first move has been processed by script disable it.
     cancelable: bool,
 }
@@ -282,13 +282,13 @@ impl TouchEvent {
         event_type: TouchEventType,
         touch_id: TouchId,
         point: WebViewPoint,
-        pointer_subtype: PointerSubtype,
+        pointer_type: TouchPointerType,
     ) -> Self {
         TouchEvent {
             event_type,
             touch_id,
             point,
-            pointer_subtype,
+            pointer_type,
             cancelable: true,
         }
     }

@@ -23,9 +23,10 @@ use servo::{
     EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult,
     InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
-    OffscreenRenderingContext, PermissionRequest, PointerSubtype, RenderingContext, ScreenGeometry,
-    Theme, TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WebViewId,
-    WheelDelta, WheelEvent, WheelMode, WindowRenderingContext, convert_rect_to_css_pixel,
+    OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
+    TouchEvent, TouchEventType, TouchId, TouchPointerType, WebRenderDebugOption, WebView,
+    WebViewId, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    convert_rect_to_css_pixel,
 };
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -708,7 +709,7 @@ impl HeadedWindow {
                         winit_phase_to_touch_event_type(touch.phase),
                         TouchId(touch.id as i32),
                         DevicePoint::new(touch.location.x as f32, touch.location.y as f32).into(),
-                        PointerSubtype::Touch,
+                        TouchPointerType::Touch,
                     )));
                 },
                 WindowEvent::PinchGesture { delta, .. } => {
@@ -1322,7 +1323,7 @@ impl TouchEventSimulator {
                 TouchEventType::Down,
                 TouchId(0),
                 point.into(),
-                PointerSubtype::Touch,
+                TouchPointerType::Touch,
             )));
             self.left_mouse_button_down.set(true);
         } else if action == ElementState::Released {
@@ -1330,7 +1331,7 @@ impl TouchEventSimulator {
                 TouchEventType::Up,
                 TouchId(0),
                 point.into(),
-                PointerSubtype::Touch,
+                TouchPointerType::Touch,
             )));
             self.left_mouse_button_down.set(false);
         }
@@ -1351,7 +1352,7 @@ impl TouchEventSimulator {
             TouchEventType::Move,
             TouchId(0),
             point.into(),
-            PointerSubtype::Touch,
+            TouchPointerType::Touch,
         )));
         true
     }

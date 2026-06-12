@@ -13,8 +13,8 @@ use std::time::{Duration, Instant};
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, PointerSubtype, TouchEvent as EmbedderTouchEvent,
-    TouchEventType, TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
+    TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
@@ -1275,9 +1275,9 @@ impl DocumentEventHandler {
         };
 
         // Map the embedder-side subtype to the spec `pointerType` string.
-        let pointer_type = match event.pointer_subtype {
-            PointerSubtype::Pen => "pen",
-            PointerSubtype::Touch => "touch",
+        let pointer_type = match event.pointer_type {
+            TouchPointerType::Pen => "pen",
+            TouchPointerType::Touch => "touch",
         };
 
         // Get or create pointer ID for this touch
