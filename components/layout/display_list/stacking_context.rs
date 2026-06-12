@@ -26,7 +26,9 @@ use style::computed_values::text_decoration_style::T as TextDecorationStyle;
 use style::values::computed::angle::Angle;
 use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
 use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
-use style::values::generics::transform::{self, GenericRotate, GenericScale, GenericTranslate};
+use style::values::generics::transform::{
+    self, GenericRotate, GenericScale, GenericTranslate, get_normalized_vector_and_angle,
+};
 use style_traits::CSSPixel;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
@@ -1219,7 +1221,11 @@ impl BoxFragment {
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         let rotate = match style.clone_rotate() {
             GenericRotate::Rotate(angle) => (0., 0., 1., angle),
-            GenericRotate::Rotate3D(x, y, z, angle) => (x, y, z, angle),
+            GenericRotate::Rotate3D(x, y, z, angle) => {
+                // These are the raw, unormalized values from CSS, but euclid expects
+                // rotation input to be normalized, so we must do that first.
+                get_normalized_vector_and_angle(x, y, z, angle)
+            },
             GenericRotate::None => (0., 0., 1., Angle::zero()),
         };
         let scale = match style.clone_scale() {
