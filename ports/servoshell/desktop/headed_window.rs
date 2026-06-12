@@ -931,7 +931,7 @@ impl PlatformWindow for HeadedWindow {
             .expect("No monitor detected");
         if self.fullscreen.get() != state {
             self.winit_window.set_fullscreen(if state {
-                Some(winit::window::Fullscreen::Borderless(Some(monitor.clone())))
+                Some(winit::window::Fullscreen::Borderless(Some(monitor)))
             } else {
                 None
             });
