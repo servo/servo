@@ -317,6 +317,12 @@ numericTags = [
 lineStartDetector = re.compile("^(?=[^\n#])", re.MULTILINE)
 
 
+# We'll want to insert the indent at the beginnings of lines, but we
+# don't want to indent empty lines.  So only indent lines that have a
+# non-newline character on them.
+lineStartDetector = re.compile("^(?=[^\n])", re.MULTILINE)
+
+
 def indent(s: str, indentLevel: int = 2) -> str:
     """
     Indent C++ code.
@@ -2298,12 +2304,6 @@ class ConstDefiner(PropertyDefiner[IDLConst]):
             None,
             'ConstantSpec',
             PropertyDefiner.getControllingCondition, specData)
-
-
-# We'll want to insert the indent at the beginnings of lines, but we
-# don't want to indent empty lines.  So only indent lines that have a
-# non-newline character on them.
-lineStartDetector = re.compile("^(?=[^\n])", re.MULTILINE)
 
 
 class CGIndenter(CGThing):
@@ -6527,72 +6527,34 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                                         templateArgs=['D: DomTypes'])
         self.descriptor = descriptor
 
-    def getBody(self) -> str:
-        body = dedent(
-            """
-            let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
-            let mut cx = CurrentRealm::assert(&mut cx);
-            let cx = &mut cx;
-            let unwrapped_proxy = UnwrapProxy::<D>(proxy);
-            """)
-
+    def definition_body(self) -> CGThing:
         if self.descriptor.isMaybeCrossOriginObject():
-            body += dedent(
-                """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::cross_origin_own_property_keys(
-                        cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), props
-                    );
-                }
-
-                // Safe to enter the Realm of proxy now.
-                let mut cx = AutoRealm::new_from_handle(cx, Handle::from_raw(proxy));
-                let cx = &mut cx;
-                """)
-
+            cross_origin = "Some(CROSS_ORIGIN_PROPERTIES.get())"
+        else:
+            cross_origin = "None"
         if self.descriptor.operations['IndexedGetter']:
             if "Length" in self.descriptor.cxMethods:
-                length_call = "(*unwrapped_proxy).Length(cx)"
+                length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, cx| unwrapped_proxy.Length(cx))"
             else:
-                length_call = "(*unwrapped_proxy).Length()"
-            body += dedent(
-                """
-                for i in 0..""" + length_call + """ {
-                    rooted!(&in(cx) let mut rooted_jsid: jsid);
-                    int_to_jsid(i as i32, rooted_jsid.handle_mut());
-                    AppendToIdVector(props, rooted_jsid.handle());
-                }
-                """)
+                length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, _cx| unwrapped_proxy.Length())"
+        else:
+            length = "None"
 
         if self.descriptor.supportsNamedProperties():
-            body += dedent(
-                """
-                for name in (*unwrapped_proxy).SupportedPropertyNames(cx) {
-                    let cstring = CString::new(name).unwrap();
-                    let jsstring = JS_AtomizeAndPinString(cx.raw_cx(), cstring.as_ptr());
-                    rooted!(&in(cx) let rooted = jsstring);
-                    rooted!(&in(cx) let mut rooted_jsid: jsid);
-                    RUST_INTERNED_STRING_TO_JSID(cx.raw_cx(), rooted.handle().get(), rooted_jsid.handle_mut());
-                    AppendToIdVector(props, rooted_jsid.handle());
-                }
-                """)
+            properties = f"Some(|unwrapped_proxy: *const {self.descriptor.concreteType}, cx| (*unwrapped_proxy).SupportedPropertyNames(cx))"
+        else:
+            properties = "None"
 
-        body += dedent(
-            """
-            rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
-            get_expando_object(proxy, expando.handle_mut());
-            if !expando.is_null() &&
-                !GetPropertyKeys(cx.raw_cx(), expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props) {
-                return false;
-            }
-
-            true
-            """)
-
-        return body
-
-    def definition_body(self) -> CGThing:
-        return CGGeneric(self.getBody())
+        return CGGeneric(f"""
+            let cross_origin = {cross_origin};
+            let config = crate::proxyhandler::JSProxyHandlerOwnPropertyKeysConfig {{
+                indexed_getter_and_length: {length},
+                supported_named_properties: {properties},
+                cross_origin,
+                unwrapped_proxy: UnwrapProxy::<D>,
+            }};
+            crate::proxyhandler::JSProxyHandlerOwnPropertyKeys::<D, _>(config, cx, proxy, props)
+        """)
 
 
 class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
@@ -6607,58 +6569,29 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
                                         "getOwnEnumerablePropertyKeys", "bool", args, templateArgs=['D: DomTypes'])
         self.descriptor = descriptor
 
-    def getBody(self) -> str:
-        body = dedent(
-            """
-            let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
-            let unwrapped_proxy = UnwrapProxy::<D>(proxy);
-            let mut cx = CurrentRealm::assert(&mut cx);
-            let cx = &mut cx;
-            """)
-
-        if self.descriptor.isMaybeCrossOriginObject():
-            body += dedent(
-                """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
-                    // There are no enumerable cross-origin props, so we're done.
-                    return true;
-                }
-
-                // Safe to enter the Realm of proxy now.
-                let mut cx = AutoRealm::new_from_handle(cx, Handle::from_raw(proxy));
-                let cx = &mut cx;
-                """)
-
-        if self.descriptor.operations['IndexedGetter']:
-            if "Length" in self.descriptor.cxMethods:
-                length_call = "(*unwrapped_proxy).Length(cx)"
-            else:
-                length_call = "(*unwrapped_proxy).Length()"
-            body += dedent(
-                """
-                for i in 0..""" + length_call + """ {
-                    rooted!(&in(cx) let mut rooted_jsid: jsid);
-                    int_to_jsid(i as i32, rooted_jsid.handle_mut());
-                    AppendToIdVector(props, rooted_jsid.handle());
-                }
-                """)
-
-        body += dedent(
-            """
-            rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
-            get_expando_object(proxy, expando.handle_mut());
-            if !expando.is_null() &&
-                !GetPropertyKeys(cx.raw_cx(), expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props) {
-                return false;
-            }
-
-            true
-            """)
-
-        return body
+    def python_bool_to_rust(self, b: bool) -> str:
+        if b:
+            return "true"
+        else:
+            return "false"
 
     def definition_body(self) -> CGThing:
-        return CGGeneric(self.getBody())
+        if self.descriptor.operations['IndexedGetter']:
+            if "Length" in self.descriptor.cxMethods:
+                length = f"Some(Box::new(|unwrapped_proxy: &{self.descriptor.concreteType}, cx| unwrapped_proxy.Length(cx)))"
+            else:
+                length = f"Some(Box::new(|unwrapped_proxy: &{self.descriptor.concreteType}, _cx| unwrapped_proxy.Length()))"
+        else:
+            length = "None"
+        return CGGeneric(f"""
+            let config = crate::proxyhandler::JSProxyHandlerOwnEnumerablePropertyKeysConfig {{
+                unwrapped_proxy: UnwrapProxy::<D>,
+                indexed_getter_and_length: {length},
+                cross_origin: {self.python_bool_to_rust(self.descriptor.isMaybeCrossOriginObject())},
+            }};
+
+            crate::proxyhandler::JSProxyHandlerGetOwnEnumerablePropertyKeys::<_,D>(config, cx, proxy, props)
+            """)
 
 
 class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):

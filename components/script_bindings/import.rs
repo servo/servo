@@ -50,7 +50,6 @@ pub(crate) mod base {
 
 pub(crate) mod module {
     pub(crate) use std::cmp;
-    pub(crate) use std::ffi::CString;
     pub(crate) use std::ptr::NonNull;
 
     pub(crate) use js::conversions::ToJSValConvertible;
@@ -60,10 +59,9 @@ pub(crate) mod module {
     pub(crate) use js::jsapi::{
         __BindgenBitfieldUnit, CallArgs, GCContext, GetRealmFunctionPrototype, GetWellKnownSymbol,
         Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
-        JS_AtomizeAndPinString, JS_ForwardGetPropertyTo, JS_GetPropertyDescriptorById,
-        JS_HasPropertyById, JS_NewPlainObject, JS_SetReservedSlot, JSAutoRealm,
-        JSCLASS_FOREGROUND_FINALIZE, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
-        JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSJitGetterCallArgs,
+        JS_ForwardGetPropertyTo, JS_GetPropertyDescriptorById, JS_HasPropertyById,
+        JS_NewPlainObject, JS_SetReservedSlot, JSAutoRealm, JSCLASS_FOREGROUND_FINALIZE,
+        JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps, JSFunctionSpec, JSJitGetterCallArgs,
         JSJitInfo, JSJitInfo__bindgen_ty_1, JSJitInfo__bindgen_ty_2, JSJitInfo__bindgen_ty_3,
         JSJitInfo_AliasSet, JSJitInfo_ArgType, JSJitInfo_OpType, JSJitMethodCallArgs,
         JSJitSetterCallArgs, JSNativeWrapper, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY,
@@ -77,10 +75,9 @@ pub(crate) mod module {
     };
     pub(crate) use js::panic::wrap_panic;
     pub(crate) use js::rust::wrappers::{
-        AppendToIdVector, Call, GetPropertyKeys, JS_CopyOwnPropertiesAndPrivateFields,
-        JS_DefineProperty, JS_DefinePropertyById2, JS_GetProperty, JS_NewObjectWithoutMetadata,
-        JS_SetImmutablePrototype, JS_SetProperty, JS_SetPrototype, RUST_INTERNED_STRING_TO_JSID,
-        RUST_SYMBOL_TO_JSID, int_to_jsid,
+        Call, JS_CopyOwnPropertiesAndPrivateFields, JS_DefineProperty, JS_DefinePropertyById2,
+        JS_GetProperty, JS_NewObjectWithoutMetadata, JS_SetImmutablePrototype, JS_SetProperty,
+        JS_SetPrototype, RUST_SYMBOL_TO_JSID,
     };
     pub(crate) use js::rust::{CustomAutoRooterGuard, GCMethods, Handle, MutableHandle};
     pub(crate) use js::{
