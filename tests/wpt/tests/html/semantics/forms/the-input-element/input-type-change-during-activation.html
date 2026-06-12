@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Input type changes during activation events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(() => {
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  document.body.append(input);
+
+  input.addEventListener("input", () => {
+    input.type = "text";
+  });
+
+  input.click();
+
+  assert_equals(input.type, "text");
+}, "Changging checkbox input type from an input event listener should not crashs");
+</script>
