@@ -682,8 +682,7 @@ impl EventTarget {
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
         let url = cformat!("{}", handler.url);
-        let mut options =
-            CompileOptionsWrapper::new(cx, url, handler.line as u32);
+        let mut options = CompileOptionsWrapper::new(cx, url, handler.line as u32);
         options.set_introduction_type(IntroductionType::EVENT_HANDLER);
 
         // Step 3.9, subsection Scope steps 1-6
