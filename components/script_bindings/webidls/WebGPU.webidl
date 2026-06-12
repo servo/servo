@@ -898,12 +898,20 @@ dictionary GPUTexelCopyTextureInfo {
 };
 
 dictionary GPUCopyExternalImageDestInfo : GPUTexelCopyTextureInfo {
-    //GPUPredefinedColorSpace colorSpace = "srgb"; //TODO
+    PredefinedColorSpace colorSpace = "srgb";
     boolean premultipliedAlpha = false;
 };
 
-dictionary GPUImageCopyExternalImage {
-    required (ImageBitmap or HTMLCanvasElement or OffscreenCanvas) source;
+typedef (ImageBitmap or
+         ImageData or
+         HTMLImageElement or
+         HTMLVideoElement or
+         //VideoFrame or
+         HTMLCanvasElement or
+         OffscreenCanvas) GPUCopyExternalImageSource;
+
+dictionary GPUCopyExternalImageSourceInfo {
+    required GPUCopyExternalImageSource source;
     GPUOrigin2D origin = {};
     boolean flipY = false;
 };
@@ -1148,11 +1156,11 @@ interface GPUQueue {
       GPUTexelCopyBufferLayout dataLayout,
       GPUExtent3D size);
 
-    //[Throws]
-    //undefined copyExternalImageToTexture(
-    //  GPUImageCopyExternalImage source,
-    //  GPUCopyExternalImageDestInfo destination,
-    //  GPUExtent3D copySize);
+    [Throws]
+    undefined copyExternalImageToTexture(
+        GPUCopyExternalImageSourceInfo source,
+        GPUCopyExternalImageDestInfo destination,
+        GPUExtent3D copySize);
 };
 GPUQueue includes GPUObjectBase;
 

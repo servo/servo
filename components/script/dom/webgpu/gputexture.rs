@@ -9,7 +9,7 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
-use wgpu_core::resource;
+use wgpu_core::resource::{self, TextureDescriptor};
 
 use super::gpuconvert::convert_texture_descriptor;
 use crate::conversions::Convert;
@@ -131,6 +131,19 @@ impl GPUTexture {
 impl GPUTexture {
     pub(crate) fn id(&self) -> WebGPUTexture {
         self.droppable.texture
+    }
+
+    pub(crate) fn wgpu_texture_descriptor(&self) -> TextureDescriptor<'static> {
+        TextureDescriptor {
+            label: Some(self.label.borrow().to_string().into()),
+            size: self.texture_size,
+            mip_level_count: self.mip_level_count,
+            sample_count: self.sample_count,
+            dimension: self.dimension.convert(),
+            format: self.format.convert(),
+            usage: wgpu_types::TextureUsages::from_bits_retain(self.texture_usage),
+            view_formats: vec![],
+        }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>

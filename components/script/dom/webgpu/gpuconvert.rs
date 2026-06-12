@@ -14,15 +14,17 @@ use wgpu_core::resource::TextureDescriptor;
 use wgpu_types::{self, AstcBlock, AstcChannel};
 
 use crate::conversions::{Convert, TryConvert};
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::PredefinedColorSpace;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
     GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
     GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUIndexFormat,
-    GPULoadOp, GPUMipmapFilterMode, GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState,
-    GPUPrimitiveTopology, GPUProgrammableStage, GPUSamplerBindingType, GPUStencilOperation,
-    GPUStorageTextureAccess, GPUStoreOp, GPUTexelCopyBufferInfo, GPUTexelCopyBufferLayout,
-    GPUTexelCopyTextureInfo, GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension,
-    GPUTextureFormat, GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
+    GPULoadOp, GPUMipmapFilterMode, GPUObjectDescriptorBase, GPUOrigin2D, GPUOrigin3D,
+    GPUPrimitiveState, GPUPrimitiveTopology, GPUProgrammableStage, GPUSamplerBindingType,
+    GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp, GPUTexelCopyBufferInfo,
+    GPUTexelCopyBufferLayout, GPUTexelCopyTextureInfo, GPUTextureAspect, GPUTextureDescriptor,
+    GPUTextureDimension, GPUTextureFormat, GPUTextureSampleType, GPUTextureViewDimension,
+    GPUVertexFormat,
 };
 use crate::dom::bindings::codegen::UnionTypes::GPUTextureOrGPUTextureView;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -527,6 +529,29 @@ impl TryConvert<wgpu_types::Origin3d> for &GPUOrigin3D {
     }
 }
 
+impl TryConvert<wgpu_types::Origin2d> for &GPUOrigin2D {
+    type Error = Error;
+
+    /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuorigin2d-shape>
+    fn try_convert(self) -> Result<wgpu_types::Origin2d, Self::Error> {
+        match self {
+            GPUOrigin2D::RangeEnforcedUnsignedLongSequence(v) => {
+                if v.len() > 2 {
+                    Err(Error::Type(
+                        c"sequence is too long for GPUOrigin2D".to_owned(),
+                    ))
+                } else {
+                    Ok(wgpu_types::Origin2d {
+                        x: v.first().copied().unwrap_or(0),
+                        y: v.get(1).copied().unwrap_or(0),
+                    })
+                }
+            },
+            GPUOrigin2D::GPUOrigin2DDict(d) => Ok(wgpu_types::Origin2d { x: d.x, y: d.y }),
+        }
+    }
+}
+
 impl TryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo {
     type Error = Error;
 
@@ -746,6 +771,14 @@ impl Convert<wgpu_types::TextureDimension> for GPUTextureDimension {
             GPUTextureDimension::_1d => wgpu_types::TextureDimension::D1,
             GPUTextureDimension::_2d => wgpu_types::TextureDimension::D2,
             GPUTextureDimension::_3d => wgpu_types::TextureDimension::D3,
+        }
+    }
+}
+
+impl Convert<wgpu_types::PredefinedColorSpace> for PredefinedColorSpace {
+    fn convert(self) -> wgpu_types::PredefinedColorSpace {
+        match self {
+            PredefinedColorSpace::Srgb => wgpu_types::PredefinedColorSpace::Srgb,
         }
     }
 }

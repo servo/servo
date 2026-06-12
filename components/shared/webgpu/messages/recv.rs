@@ -113,6 +113,14 @@ pub enum WebGPURequest {
         destination: TexelCopyTextureInfo,
         copy_size: Extent3d,
     },
+    CopyExternalImageToTexture {
+        device_id: DeviceId,
+        queue_id: QueueId,
+        usable_source: Option<SharedSnapshot>,
+        destination: TexelCopyTextureInfo,
+        dest_tex_descriptor: TextureDescriptor<'static>,
+        copy_size: Extent3d,
+    },
     CommandEncoderPushDebugGroup {
         device_id: DeviceId,
         command_encoder_id: CommandEncoderId,
