@@ -30,7 +30,7 @@ rust-version = "1.88.0"
 
 [workspace.dependencies]
 accesskit = { version = "0.24.0", features = ["serde"] }
-accesskit_consumer = "0.35.0"
+accesskit_consumer = "0.36.0"
 aes = "0.8.4"
 aes-gcm = "0.10.3"
 aes-kw = { version = "0.2.1", features = ["alloc"] }
