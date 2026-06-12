@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/40730">
+<div id="a">
+  <div id="b"></div>
+</div>
+<style>
+  #a {
+      display: grid;
+      grid: repeat(2,0) / auto-flow;
+  }
+  #b {
+      grid-column-start: custom-ident;
+  }
+</style>
