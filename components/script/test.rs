@@ -79,3 +79,8 @@ pub mod encoding_detection {
         get_xml_encoding, prescan_the_byte_stream_to_determine_the_encoding,
     };
 }
+
+pub mod unminify {
+    pub use crate::dom::html::htmlscriptelement::substitute_with_local_script;
+    pub use crate::unminify::create_output_file;
+}

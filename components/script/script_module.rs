@@ -798,8 +798,10 @@ impl FetchResponseListener for ModuleContext {
             if SCRIPT_JS_MIMES.contains(&mime.essence_str()) &&
                 matches!(module_type, ModuleType::JavaScript)
             {
-                if let Some(window) = global.downcast::<Window>() {
-                    substitute_with_local_script(window, &mut source_text, final_url.clone());
+                if let Some(window) = global.downcast::<Window>() &&
+                    let Some(script_souce) = window.local_script_source()
+                {
+                    substitute_with_local_script(script_souce, &mut source_text, final_url.clone());
                 }
 
                 let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
