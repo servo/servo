@@ -4,8 +4,6 @@ plugins {
     id("com.android.library")
 }
 
-layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gradle/servoview")
-
 android {
     compileSdk = 34
     buildToolsVersion = "36.0.0"
