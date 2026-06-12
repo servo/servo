@@ -1084,6 +1084,10 @@ fn test_preferences_change() {
     let servo_test = ServoTest::new();
     let delegate = Rc::new(WebViewDelegateImpl::default());
 
+    servo_test
+        .servo()
+        .set_preference("layout_grid_enabled", PrefValue::Bool(false));
+
     let test_page = Url::parse(
         "data:text/html,\
         <div style=\"display: grid;\">\
