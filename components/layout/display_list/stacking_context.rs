@@ -617,7 +617,7 @@ impl BoxFragment {
             reference_frame_data.origin.to_webrender(),
             frame_origin_for_query,
             containing_block.scroll_node_id,
-            style.get_box().transform_style.to_webrender(),
+            style.used_transform_style(self.base.flags).to_webrender(),
             reference_frame_data.transform,
             reference_frame_data.kind,
         );
