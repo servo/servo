@@ -877,10 +877,59 @@ class MachCommands(CommandBase):
             args.append("-M")
         return PostBuildCommands(self.context)._run(servo_binary, params + args)
 
-    @Command("try", description="Runs try jobs by force pushing to try branch", category="testing")
+    @Command(
+        "try",
+        description="""
+        Runs try jobs by force pushing to try branch.
+
+        Try strings:
+
+          Platforms (combine with modifiers, e.g. linux-wpt):
+            linux
+            mac/macos
+            mac-arm/macos-arm64
+            win/windows
+            android
+            ohos/openharmony
+            lint/tidy
+
+          Modifiers (runs on linux by default if no platform given):
+            unit-tests          Run unit tests
+            build-libservo      Build libservo library
+            wpt                 Run web-platform-tests
+            bencher             Run benchmarking
+            coverage            Run code coverage
+            capi                Run C API build
+            production          Use production build profile
+            release             Use release build profile
+            debug               Use dev build profile
+          e.g. linux-unit-tests
+
+          Special presets:
+            webgpu              WebGPU CTS (linux, production)
+            webdriver/wd        WebDriver classic tests (linux)
+            vello               Vello canvas WPT subsuite (linux)
+
+          Meta keywords:
+            full                Run all jobs (default)
+            fail-fast           Cancel remaining jobs on first failure
+            bencher             All platform bencher jobs
+            production-bencher  All platform production-profile bencher jobs
+
+          Examples:
+            ./mach try full
+            ./mach try coverage
+            ./mach try linux-bencher-capi-production
+            ./mach try webgpu
+        """,
+        category="testing",
+    )
     @CommandArgument("--remote", "-r", default="origin", help="A git remote to run the try job on")
     @CommandArgument(
-        "try_strings", default=["full"], nargs="...", help="A list of try strings specifying what kind of job to run."
+        "try_strings",
+        default=["full"],
+        nargs="...",
+        help="Try strings specifying which CI jobs to run. See above for full list of options.",
     )
     def try_command(self, remote: str, try_strings: list[str]) -> int:
         if subprocess.check_output(["git", "diff", "--cached", "--name-only"]).strip():
