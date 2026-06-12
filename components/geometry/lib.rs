@@ -86,9 +86,15 @@ impl MaxRect for UntypedRect<Au> {
 impl MaxRect for LayoutRect {
     #[inline]
     fn max_rect() -> Self {
+        // `LayoutRect` is always consumed by WebRender. WebRender does not accept coordinates
+        // outside of the range of 1e9 * 2. We duplicate this range here.
+        //
+        // See webrender/src/util.rs in the WebRender source directory:
+        // <https://github.com/servo/webrender/blob/fa9f41d84b903b43faa129e2bedbd4e1cc54f2e2/webrender/src/util.rs#L968>
+        const MAX_COORDINATE: f32 = 1.0e9;
         Self::from_origin_and_size(
-            LayoutPoint::new(f32::MIN / 2.0, f32::MIN / 2.0),
-            LayoutSize::new(f32::MAX, f32::MAX),
+            LayoutPoint::new(-MAX_COORDINATE, -MAX_COORDINATE),
+            LayoutSize::new(2.0 * MAX_COORDINATE, 2.0 * MAX_COORDINATE),
         )
     }
 }
