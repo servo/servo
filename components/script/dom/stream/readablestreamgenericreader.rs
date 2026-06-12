@@ -23,7 +23,12 @@ use crate::script_runtime::CanGc;
 pub(crate) trait ReadableStreamGenericReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-initialize>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn generic_initialize(&self, global: &GlobalScope, stream: &ReadableStream, can_gc: CanGc) {
+    fn generic_initialize(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        stream: &ReadableStream,
+    ) {
         // Set reader.[[stream]] to stream.
         self.set_stream(Some(stream));
 
@@ -40,21 +45,24 @@ pub(crate) trait ReadableStreamGenericReader {
         if stream.is_readable() {
             // If stream.[[state]] is "readable
             // Set reader.[[closedPromise]] to a new promise.
-            self.set_closed_promise(Promise::new(global, can_gc));
+            self.set_closed_promise(Promise::new2(cx, global));
         } else if stream.is_closed() {
             // Otherwise, if stream.[[state]] is "closed",
             // Set reader.[[closedPromise]] to a promise resolved with undefined.
-            let cx = GlobalScope::get_cx();
-            self.set_closed_promise(Promise::new_resolved(global, cx, (), can_gc));
+            self.set_closed_promise(Promise::new_resolved(
+                global,
+                cx.into(),
+                (),
+                CanGc::from_cx(cx),
+            ));
         } else {
             // Assert: stream.[[state]] is "errored"
             assert!(stream.is_errored());
 
             // Set reader.[[closedPromise]] to a promise rejected with stream.[[storedError]].
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut error = UndefinedValue());
+            rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
-            self.set_closed_promise(Promise::new_rejected(global, cx, error.handle(), can_gc));
+            self.set_closed_promise(Promise::new_rejected(cx, global, error.handle()));
 
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true
             self.get_closed_promise().set_promise_is_handled();
@@ -111,10 +119,9 @@ pub(crate) trait ReadableStreamGenericReader {
                 );
 
                 self.set_closed_promise(Promise::new_rejected(
+                    cx,
                     &stream.global(),
-                    cx.into(),
                     error.handle(),
-                    CanGc::from_cx(cx),
                 ));
             }
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.

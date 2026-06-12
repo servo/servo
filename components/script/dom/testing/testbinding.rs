@@ -1031,8 +1031,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Promise::new_resolved(&self.global(), cx, v, CanGc::deprecated_note())
     }
 
-    fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_rejected(&self.global(), cx, v, CanGc::deprecated_note())
+    fn ReturnRejectedPromise(&self, cx: &mut JSContext, v: HandleValue) -> Rc<Promise> {
+        Promise::new_rejected(cx, &self.global(), v)
     }
 
     fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {

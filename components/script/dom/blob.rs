@@ -343,7 +343,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
 
         // 2. Let reader be the result of getting a reader from stream.
         //    If that threw an exception, return a new promise rejected with that exception.
-        let reader = match stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx))) {
+        let reader = match stream.and_then(|s| s.acquire_default_reader(cx)) {
             Ok(reader) => reader,
             Err(error) => {
                 promise.reject_error_with_cx(cx, error);
@@ -386,7 +386,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
 
         // 2. Let reader be the result of getting a reader from stream.
         //    If that threw an exception, return a new promise rejected with that exception.
-        let reader = match stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx))) {
+        let reader = match stream.and_then(|s| s.acquire_default_reader(cx)) {
             Ok(r) => r,
             Err(e) => {
                 p.reject_error_with_cx(cx, e);
