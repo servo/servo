@@ -607,7 +607,7 @@ impl Font {
         self.shaper.get_or_init(|| Shaper::new(self)).baseline()
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", target_os = "android")))]
     pub(crate) fn find_fallback_using_system_font_api(
         &self,
         _: &FallbackFontSelectionOptions,
@@ -702,7 +702,8 @@ impl FontGroup {
             _ => codepoint,
         };
 
-        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint, language);
+        let options =
+            FallbackFontSelectionOptions::new(codepoint, next_codepoint, language, &self.families);
 
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             options.character.is_ascii_lowercase();
@@ -861,7 +862,7 @@ impl FontGroup {
 /// character. Unicode ranges are specified by the [`FontGroupFamilyTemplate::template`]
 /// member.
 #[derive(MallocSizeOf)]
-struct FontGroupFamilyTemplate {
+pub(crate) struct FontGroupFamilyTemplate {
     #[ignore_malloc_size_of = "This measured in the FontContext template cache."]
     template: FontTemplateRef,
     #[ignore_malloc_size_of = "This measured in the FontContext font cache."]
@@ -908,9 +909,9 @@ impl FontGroupFamilyTemplate {
 /// only if actually needed. A single `FontGroupFamily` can have multiple fonts, in the case that
 /// individual fonts only cover part of the Unicode range.
 #[derive(MallocSizeOf)]
-struct FontGroupFamily {
-    family_descriptor: FontFamilyDescriptor,
-    members: OnceLock<Vec<FontGroupFamilyTemplate>>,
+pub(crate) struct FontGroupFamily {
+    pub(crate) family_descriptor: FontFamilyDescriptor,
+    pub(crate) members: OnceLock<Vec<FontGroupFamilyTemplate>>,
 }
 
 impl From<FontFamilyDescriptor> for FontGroupFamily {
