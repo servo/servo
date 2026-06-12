@@ -8,10 +8,10 @@ use std::default::Default;
 use std::ffi::CStr;
 use std::rc::Rc;
 
-use js::jsapi::{AddRawValueRoot, Heap, IsCallable, JSObject, RemoveRawValueRoot};
+use js::jsapi::{Heap, IsCallable, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers2::{EnterRealm, JS_GetProperty, JS_WrapObject, LeaveRealm};
-use js::rust::{HandleObject, MutableHandleValue, Runtime};
+use js::rust::{HandleObject, MutableHandleValue};
 
 use crate::codegen::GenericBindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::error::{Error, Fallible};
@@ -19,6 +19,7 @@ use crate::inheritance::Castable;
 use crate::interfaces::{DocumentHelpers, DomHelpers, GlobalScopeHelpers};
 use crate::realms::enter_auto_realm;
 use crate::reflector::DomObject;
+use crate::reflector_root::ReflectorRoot;
 use crate::root::Dom;
 use crate::script_runtime::JSContext;
 use crate::settings_stack::{run_a_callback, run_a_script};
@@ -57,8 +58,9 @@ pub struct CallbackObject<D: DomTypes> {
     /// The underlying `JSObject`.
     #[ignore_malloc_size_of = "measured by mozjs"]
     callback: Heap<*mut JSObject>,
-    #[ignore_malloc_size_of = "measured by mozjs"]
-    permanent_js_root: Heap<JSVal>,
+    /// Holds this callback's reflector root (after `init()`).
+    /// This acts like a perma-root, but can be manually unrooted.
+    root: Option<ReflectorRoot>,
 
     /// The ["callback context"], that is, the global to use as incumbent
     /// global when calling the callback.
@@ -80,7 +82,7 @@ impl<D: DomTypes> CallbackObject<D> {
     fn new() -> Self {
         Self {
             callback: Heap::default(),
-            permanent_js_root: Heap::default(),
+            root: None,
             incumbent: D::GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
         }
     }
@@ -90,27 +92,11 @@ impl<D: DomTypes> CallbackObject<D> {
     }
 
     #[expect(unsafe_code)]
-    unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
+    unsafe fn init(&mut self, mut cx: JSContext, callback: *mut JSObject) {
         self.callback.set(callback);
-        self.permanent_js_root.set(ObjectValue(callback));
-        unsafe {
-            assert!(AddRawValueRoot(
-                *cx,
-                self.permanent_js_root.get_unsafe(),
-                c"CallbackObject::root".as_ptr()
-            ));
-        }
-    }
-}
-
-impl<D: DomTypes> Drop for CallbackObject<D> {
-    #[expect(unsafe_code)]
-    fn drop(&mut self) {
-        unsafe {
-            if let Some(cx) = Runtime::get() {
-                RemoveRawValueRoot(cx.as_ptr(), self.permanent_js_root.get_unsafe());
-            }
-        }
+        let root = ReflectorRoot::new(&mut cx, ObjectValue(callback), c"CallbackObject::root");
+        unsafe { D::GlobalScope::from_object(callback) }.register_reflector_root(root.get_weak());
+        self.root = Some(root);
     }
 }
 

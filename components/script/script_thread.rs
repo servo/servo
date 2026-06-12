@@ -3240,6 +3240,10 @@ impl ScriptThread {
 
             debug!("{pipeline_id}: Clearing JavaScript runtime");
             window.clear_js_runtime();
+
+            // SAFETY: This is after `clear_js_runtime()`, so nothing can
+            // dereference the reflectors we unroot here.
+            unsafe { window.as_global_scope().release_reflector_roots() };
         }
 
         // Prevent any further work for this Pipeline.
