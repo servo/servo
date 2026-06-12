@@ -52,6 +52,7 @@ impl WebDriverBidiThread {
             });
     }
 
+    // TODO: return a channel, like in devtools
     pub fn spawn(
         port: u16,
         embedder_sender: Sender<WebDriverBidiToEmbedderMessage>,

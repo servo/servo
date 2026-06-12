@@ -31,7 +31,7 @@ pub struct Session {
     /// The WebDriver specication includes the concept of static commands
     /// (commands executed without an active session). A value of `None`
     /// corresponds to cases where `session` is `null`  in the specification.
-    id: Option<SessionId>,
+    session_id: Option<SessionId>,
     /// WebDriver BiDi extends the session concept from WebDriver.
     ///
     /// BiDi-specific components are grouped in this sub-struct via composition.
@@ -46,22 +46,44 @@ impl Session {
     pub fn new(active_sessions: Rc<RwLock<ActiveSessions>>) -> Self {
         let (send, recv) = mpsc::unbounded_channel();
         let bidi = Some(SessionBidi::new());
-        Self {
-            id: None,
+        let session = Self {
+            session_id: None,
             bidi,
             active_sessions,
-            send,
+            send: send.clone(),
             recv,
-        }
+        };
+        session.register();
+        session
     }
 
-    async fn register(&self) {
+    /// Register self to `active_sessions`.
+    ///
+    /// This should be called when new session is created,
+    /// regardless of static session or `create_a_session`.
+    fn register(&self) {
         let proxy = SessionProxy {
+            bidi_flag: self.bidi.is_some(),
             send: self.send.clone(),
         };
-        {
-            self.active_sessions.write().await.insert(self.id, proxy);
-        }
+        task::spawn_local({
+            let id = self.session_id;
+            let active_sessions = self.active_sessions.clone();
+            async move {
+                active_sessions.write().await.insert(id, proxy);
+            }
+        });
+    }
+
+    /// Unregister self from `active_sessions`.
+    ///
+    /// This should be called in `Drop`.
+    fn unregister(&self) {
+        task::spawn_local({
+            let active_sessions = self.active_sessions.clone();
+            let id = self.session_id;
+            async move { active_sessions.write().await.remove(&id) }
+        });
     }
 
     pub async fn start(&mut self) {}
@@ -72,26 +94,23 @@ impl Session {
         let session_id = Uuid::new_v4();
 
         // 2. let session be a new session with session ID session id, and HTTP flags contains "http".
-        // NOTE: we do not set HTTP flag in BiDi.
-        // let session = BidiSession {
-        //     connections: IndexSet::new(),
-        // };
+        // NOTE: the bidi spec says "A session created this way will not be accessible via HTTP."
+        let session = Self {
+            session_id: Some(session_id.into()),
+            // TODO: bidi
+            bidi: None,
+            active_sessions: todo!(),
+            send: todo!(),
+            recv: todo!(),
+        };
 
-        todo!()
-
-        // match self.id {
-        //     Some(_) => Err(ErrorCode::SessionNotCreated),
-        //     None => Ok(Self { id: Some(self.id) }),
-        // }
+        session.register();
     }
 }
 
-/// Unregister self from `active_sessions` when drop.
 impl Drop for Session {
     fn drop(&mut self) {
-        let active_sessions = self.active_sessions.clone();
-        let id = self.id;
-        task::spawn_local(async move { active_sessions.write().await.remove(&id) });
+        self.unregister();
     }
 }
 
@@ -119,23 +138,16 @@ impl From<SessionId> for Uuid {
 pub enum SessionMessage {
     /// Associate a WebSocket connection to a session.
     Connection(Connection),
-    IsBidi(Sender<bool>),
 }
 
 /// In rust we have single ownership rule.
 /// So only session itself owns the data, while others only channel to it.
 pub struct SessionProxy {
+    bidi_flag: bool,
     send: UnboundedSender<SessionMessage>,
 }
 
 impl SessionProxy {
-    /// Ask the session whether it is a BiDi session.
-    async fn is_bidi(&self) -> bool {
-        let (send, recv) = oneshot::channel();
-        self.send.send(SessionMessage::IsBidi(send));
-        recv.await.unwrap()
-    }
-
     pub(crate) async fn associate(&self, connection: Connection) {
         self.send.send(SessionMessage::Connection(connection));
     }
