@@ -86,7 +86,7 @@ pub(crate) struct GPUBuffer {
     #[conditional_malloc_size_of]
     pending_map: DomRefCell<Option<Rc<Promise>>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
-    mapping: DomRefCell<Option<RootedTraceableBox<ActiveBufferMapping>>>,
+    mapping: DomRefCell<Option<ActiveBufferMapping>>,
 }
 
 impl GPUBuffer {
@@ -108,7 +108,7 @@ impl GPUBuffer {
             pending_map: DomRefCell::new(None),
             size,
             usage,
-            mapping: DomRefCell::new(mapping),
+            mapping: DomRefCell::new(mapping.map(|mapping| *mapping.into_box())),
         }
     }
 
@@ -211,7 +211,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             promise.reject_error(Error::Abort(None), CanGc::deprecated_note());
         }
         // Step 2
-        let mut mapping = self.mapping.borrow_mut().take();
+        let mut mapping = RootedTraceableBox::new(self.mapping.borrow_mut().take());
         let mapping = if let Some(mapping) = mapping.as_mut() {
             mapping
         } else {
@@ -327,6 +327,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .mapping
             .borrow_mut()
             .take()
+            .map(|mapping| RootedTraceableBox::new(mapping))
             .ok_or(Error::Operation(None))?;
 
         let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
@@ -334,7 +335,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             offset >= mapping.range.start &&
             offset + range_size <= mapping.range.end;
         if !valid {
-            self.mapping.borrow_mut().replace(mapping);
+            self.mapping.borrow_mut().replace(*mapping.into_box());
             return Err(Error::Operation(None));
         }
 
@@ -348,7 +349,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .map(|view| view.array_buffer())
             .map_err(|()| Error::Operation(None));
 
-        self.mapping.borrow_mut().replace(mapping);
+        self.mapping.borrow_mut().replace(*mapping.into_box());
         result
     }
 
@@ -433,7 +434,7 @@ impl GPUBuffer {
                 // Step 5
                 mapping.data.load(&wgpu_mapping.data);
                 // Step 6
-                self.mapping.borrow_mut().replace(mapping);
+                self.mapping.borrow_mut().replace(*mapping.into_box());
                 // Step 7
                 self.pending_map.borrow_mut().take();
                 p.resolve_native(&(), can_gc);
