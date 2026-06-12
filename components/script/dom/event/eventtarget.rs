@@ -73,7 +73,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::{enter_auto_realm, enter_realm};
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, IntroductionType};
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
 /// Generated from WebIDL definitions of EventHandler attributes on interfaces
@@ -682,8 +682,8 @@ impl EventTarget {
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
         let url = cformat!("{}", handler.url);
-        let options =
-            unsafe { CompileOptionsWrapper::new_raw(cx.raw_cx(), url, handler.line as u32) };
+        let mut options = CompileOptionsWrapper::new(cx, url, handler.line as u32);
+        options.set_introduction_type(IntroductionType::EVENT_HANDLER);
 
         // Step 3.9, subsection Scope steps 1-6
         let scopechain =
