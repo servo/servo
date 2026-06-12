@@ -183,7 +183,7 @@ impl ByteTeeUnderlyingSource {
                 byte_reader
                     .get()
                     .expect("Reader should be set.")
-                    .release(CanGc::from_cx(cx))?;
+                    .release(cx)?;
 
                 // Acquire default reader.
                 let default_reader = self

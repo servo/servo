@@ -4,6 +4,7 @@
 
 use std::rc::Rc;
 
+use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue as SafeHandleValue;
 
@@ -63,7 +64,7 @@ pub(crate) trait ReadableStreamGenericReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-cancel>
     fn reader_generic_cancel(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
     ) -> Rc<Promise> {
@@ -79,7 +80,7 @@ pub(crate) trait ReadableStreamGenericReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
-    fn generic_release(&self, can_gc: CanGc) -> Fallible<()> {
+    fn generic_release(&self, cx: &mut JSContext) -> Fallible<()> {
         // Let stream be reader.[[stream]].
 
         // Assert: stream is not undefined.
@@ -95,26 +96,25 @@ pub(crate) trait ReadableStreamGenericReader {
 
             if stream.is_readable() {
                 // If stream.[[state]] is "readable", reject reader.[[closedPromise]] with a TypeError exception.
-                self.get_closed_promise().reject_error(
+                self.get_closed_promise().reject_error_with_cx(
+                    cx,
                     Error::Type(c"stream state is not readable".to_owned()),
-                    can_gc,
                 );
             } else {
                 // Otherwise, set reader.[[closedPromise]] to a promise rejected with a TypeError exception.
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut error = UndefinedValue());
+                rooted!(&in(cx) let mut error = UndefinedValue());
                 Error::Type(c"Cannot release lock due to stream state.".to_owned()).to_jsval(
-                    cx,
+                    cx.into(),
                     &stream.global(),
                     error.handle_mut(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
 
                 self.set_closed_promise(Promise::new_rejected(
                     &stream.global(),
-                    cx,
+                    cx.into(),
                     error.handle(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 ));
             }
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
@@ -141,7 +141,7 @@ pub(crate) trait ReadableStreamGenericReader {
     // <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn generic_cancel(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
     ) -> Rc<Promise> {

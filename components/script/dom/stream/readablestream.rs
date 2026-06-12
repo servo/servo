@@ -1204,7 +1204,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
-            reader.error_read_into_requests(e, CanGc::from_cx(cx));
+            reader.error_read_into_requests(cx, e);
         }
 
         // If reader is undefined, return.
