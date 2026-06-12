@@ -33,6 +33,10 @@ on:
         required: false
         default: false
         type: boolean
+      devtools-tests:
+        required: false
+        default: false
+        type: boolean
       build-libservo:
         required: false
         default: false
@@ -76,6 +80,10 @@ on:
         required: false
         type: number
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      devtools-tests:
         required: false
         default: false
         type: boolean
@@ -206,7 +214,7 @@ jobs:
           flags: unittests,unittests-linux,unittests-linux-${{ inputs.profile }}
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Devtools tests
-        if: ${{ false && inputs.unit-tests }} # FIXME #39273
+        if: ${{ inputs.devtools-tests }}
         run: ./mach test-devtools --profile ${{ inputs.profile }}
       - name: Archive build timing
         uses: actions/upload-artifact@v7

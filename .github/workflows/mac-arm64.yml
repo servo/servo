@@ -179,9 +179,6 @@ jobs:
           disable_search: true
           flags: unittests,unittests-mac-arm64,unittests-mac-arm64-${{ inputs.profile }}
           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Devtools tests
-        if: ${{ false && inputs.unit-tests }} # FIXME #39273
-        run: ./mach test-devtools --profile ${{ inputs.profile }}
       - name: Build mach package
         run: ./mach package --profile ${{ inputs.profile }}
       - name: Run DMG smoketest
