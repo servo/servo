@@ -8,7 +8,7 @@ layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gra
 
 android {
     compileSdk = 34
-    buildToolsVersion = "34.0.0"
+    buildToolsVersion = "36.0.0"
 
     namespace = "org.servo.servoshell"
 
