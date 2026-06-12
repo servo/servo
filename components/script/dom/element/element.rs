@@ -23,6 +23,7 @@ use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_pr
 use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::JSVal;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData, with_layout_state};
 use net_traits::ReferrerPolicy;
@@ -3989,9 +3990,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
-    fn RequestFullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
+    fn RequestFullscreen(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
         let doc = self.owner_document();
-        doc.enter_fullscreen(self, can_gc)
+        doc.enter_fullscreen(cx, self)
     }
 
     /// <https://w3c.github.io/pointerevents/#dom-element-setpointercapture>
@@ -4775,7 +4776,7 @@ impl VirtualMethods for Element {
 
         let fullscreen = doc.fullscreen_element();
         if fullscreen.as_deref() == Some(self) {
-            doc.exit_fullscreen(CanGc::from_cx(cx));
+            doc.exit_fullscreen(cx);
         }
 
         self.unregister_current_id_and_name_attribute(cx);
