@@ -125,7 +125,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth
       - name: Publish to crates.io
-        env:
+        env: &publish_crates_io_env
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
           SERVO_CRATES_IO_SLEEP_AFTER_PUBLISH_SECONDS: "30"
           SERVO_CRATES_IO_VERIFY_PUBLISHED_TIMEOUT_SECONDS: "300"
@@ -135,6 +135,18 @@ jobs:
         # does a `dry-run` publish without any elevated permissions.
         run: |
           python3 etc/ci/publish_crates_io.py --no-verify
+      # For a whole workspace publish the above step will run into the token expiry,
+      # which the script handles by exiting (code 0) before the predicted expiry.
+      # Other failures, will still cause the workflow to fail
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      - name: Publish to crates.io
+        env: *publish_crates_io_env
+        # Since we assume 2 tries (2*25 minutes) should be enough to publish our workspace,
+        # add `--fail-on-timeout` so the workflow fails if the assumption is violated
+        # Otherwise this does exactly the same as the above publish step.
+        run: |
+          python3 etc/ci/publish_crates_io.py --no-verify --fail-on-timeout
 
   build-win:
     # This job is only useful when run on upstream servo.

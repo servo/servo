@@ -28,6 +28,9 @@ SLEEP_AFTER_PUBLISH_SECONDS = int(os.environ.get("SERVO_CRATES_IO_SLEEP_AFTER_PU
 VERIFY_PUBLISHED_TIMEOUT_SECONDS = int(os.environ.get("SERVO_CRATES_IO_VERIFY_PUBLISHED_TIMEOUT_SECONDS", "300"))
 VERIFY_PUBLISHED_INTERVAL_SECONDS = int(os.environ.get("SERVO_CRATES_IO_VERIFY_PUBLISHED_INTERVAL_SECONDS", "10"))
 API_TIMEOUT_SECONDS = int(os.environ.get("SERVO_CRATES_IO_API_TIMEOUT_SECONDS", "30"))
+# The trusted publishing token is valid for 30 minutes. Add some slack, so we can exit early
+# before the token expires.
+MAX_RUNTIME_SECONDS = int(os.environ.get("SERVO_CRATES_IO_MAX_RUNTIME_SECONDS", str(25 * 60)))
 
 
 @dataclass(frozen=True)
@@ -40,6 +43,10 @@ class WorkspacePackage:
 
 def log(message: str) -> None:
     print(message, file=sys.stderr, flush=True)
+
+
+def runtime_limit_reached(start_time: float) -> bool:
+    return time.monotonic() - start_time >= MAX_RUNTIME_SECONDS
 
 
 def parse_args() -> argparse.Namespace:
@@ -58,6 +65,11 @@ def parse_args() -> argparse.Namespace:
         "--dry-run",
         action="store_true",
         help="Print the resolved publish order without querying crates.io or publishing.",
+    )
+    parser.add_argument(
+        "--fail-on-timeout",
+        action="store_true",
+        help="Exit with a non-zero status if the max runtime limit is reached.",
     )
     return parser.parse_args()
 
@@ -187,8 +199,12 @@ def publish_package(
     subprocess.run(command, cwd=WORKSPACE_ROOT, check=True)
 
 
-def publish_packages(args: argparse.Namespace, packages: Iterable[WorkspacePackage]) -> None:
+def publish_packages(args: argparse.Namespace, packages: Iterable[WorkspacePackage], start_time: float) -> bool:
     for package in packages:
+        if runtime_limit_reached(start_time):
+            log(f"reached runtime limit of {MAX_RUNTIME_SECONDS}s; stopping before publishing {package.name}")
+            return True
+
         if crates_io_version_exists(package.name, package.version):
             log(f"skipping {package.name} {package.version}; already on crates.io")
             continue
@@ -202,9 +218,12 @@ def publish_packages(args: argparse.Namespace, packages: Iterable[WorkspacePacka
         # try and wait until the new version appears on crates.io.
         wait_until_published(package)
 
+    return False
+
 
 def main() -> int:
     args = parse_args()
+    start_time = time.monotonic()
 
     metadata = load_metadata()
     packages = collect_packages(metadata)
@@ -222,7 +241,9 @@ def main() -> int:
     if args.dry_run:
         return 0
 
-    publish_packages(args, ordered_packages)
+    timed_out = publish_packages(args, ordered_packages, start_time)
+    if timed_out and args.fail_on_timeout:
+        return 1
     return 0
 
 
