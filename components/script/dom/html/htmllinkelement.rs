@@ -1241,8 +1241,9 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     /// <https://drafts.csswg.org/cssom/#dom-linkstyle-sheet>
-    fn GetSheet(&self, can_gc: CanGc) -> Option<DomRoot<DOMStyleSheet>> {
-        self.get_cssom_stylesheet(can_gc).map(DomRoot::upcast)
+    fn GetSheet(&self, cx: &mut JSContext) -> Option<DomRoot<DOMStyleSheet>> {
+        self.get_cssom_stylesheet(CanGc::from_cx(cx))
+            .map(DomRoot::upcast)
     }
 }
 
