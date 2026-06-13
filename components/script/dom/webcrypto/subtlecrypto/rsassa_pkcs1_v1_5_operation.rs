@@ -5,8 +5,8 @@
 use js::context::JSContext;
 use rsa::pkcs1v15::{Signature, SigningKey, VerifyingKey};
 use rsa::signature::{SignatureEncoding, Signer, Verifier};
-use sha1_0_10::Sha1;
-use sha2_0_10::{Sha256, Sha384, Sha512};
+use sha1::Sha1;
+use sha2::{Sha256, Sha384, Sha512};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,

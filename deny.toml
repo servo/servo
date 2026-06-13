@@ -205,6 +205,8 @@ skip = [
     "sha1",
     "sha2",
     "chacha20",
+    "crypto-bigint",
+    "pem-rfc7468",
 ]
 
 # github.com organizations to allow git sources for
