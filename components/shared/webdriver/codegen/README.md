@@ -6,3 +6,4 @@ TODOs:
 - [ ] fix `DownloadBehavior` type not recognized
 - [ ] impl From for groups, e.g. `From<InputResult> for ResultData`
 - [ ] fix `LogEvent::Added`, method
+- [ ] script.NumberValueValue, the name is cumbersome, and seems that untagged is not used

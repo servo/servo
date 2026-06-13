@@ -50,6 +50,8 @@ impl Session {
         session
     }
 
+    // TODO: static session should not register and unregister
+
     /// Register self to `active_sessions`.
     ///
     /// This should be called when new session is created,
@@ -66,6 +68,7 @@ impl Session {
                 active_sessions.write().await.insert(id, proxy);
             }
         });
+        // TODO: also send new session message to constellation
     }
 
     /// Unregister self from `active_sessions`.
