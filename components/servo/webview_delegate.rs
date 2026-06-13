@@ -8,11 +8,12 @@ use std::rc::Rc;
 use embedder_traits::{
     AlertResponse, AllowOrDeny, AuthenticationResponse, BluetoothDeviceDescription,
     ConfirmResponse, ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation,
-    ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
-    FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
-    NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
-    SelectElementOptionOrOptgroup, SelectElementRequest, SimpleDialogRequest, TraversalId,
-    WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    ContextMenuItem, Cursor, DisplayList, EmbedderControlId, EmbedderControlResponse,
+    FilePickerRequest, FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus,
+    MediaSessionEvent, NewWebViewDetails, Notification, PermissionFeature, PromptResponse,
+    RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SelectElementRequest,
+    SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
+    WebResourceResponseMsg,
 };
 use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::{GenericCallback, GenericSender, SendError};
@@ -1084,6 +1085,14 @@ pub trait WebViewDelegate {
         _tree_update: accesskit::TreeUpdate,
     ) {
     }
+
+    /// Hey! A new layout [`DisplayList`] snapshot is available for this [`WebView`].
+    ///
+    /// Launched after each display-list build when the
+    /// `layout_display_list_capture_enabled` preference is true. The snapshot
+    /// exposes the layout engine's display items (text runs, images and solid
+    /// colors) in paint order, including document-relative CSS-pixel rectangles.
+    fn notify_display_list(&self, _webview: WebView, _display_list: DisplayList) {}
 }
 
 pub(crate) struct DefaultWebViewDelegate;
