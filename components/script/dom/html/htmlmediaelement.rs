@@ -1320,7 +1320,7 @@ impl HTMLMediaElement {
     fn select_next_source_child(&self, cx: &mut JSContext) {
         // Step 9.children.12. Forget the media element's media-resource-specific tracks.
         self.AudioTracks(cx).clear();
-        self.VideoTracks(CanGc::from_cx(cx)).clear();
+        self.VideoTracks(cx).clear();
 
         // Step 9.children.13. Find next candidate: Let candidate be null.
         let mut source_candidate = None;
@@ -1639,7 +1639,7 @@ impl HTMLMediaElement {
 
                     // Step 2. Forget the media element's media-resource-specific tracks.
                     this.AudioTracks(cx).clear();
-                    this.VideoTracks(CanGc::from_cx(cx)).clear();
+                    this.VideoTracks(cx).clear();
 
                     // Step 3. Set the element's networkState attribute to the NETWORK_NO_SOURCE
                     // value.
@@ -1759,7 +1759,7 @@ impl HTMLMediaElement {
 
             // Step 7.4. Forget the media element's media-resource-specific tracks.
             self.AudioTracks(cx).clear();
-            self.VideoTracks(CanGc::from_cx(cx)).clear();
+            self.VideoTracks(cx).clear();
 
             // Step 7.5. If readyState is not set to HAVE_NOTHING, then set it to that state.
             if self.ready_state.get() != ReadyState::HaveNothing {
@@ -2467,7 +2467,7 @@ impl HTMLMediaElement {
 
         // => "If the media resource is found to have a video track"
         for (i, _track) in metadata.video_tracks.iter().enumerate() {
-            let video_track_list = self.VideoTracks(CanGc::from_cx(cx));
+            let video_track_list = self.VideoTracks(cx);
 
             // Step 1. Create a VideoTrack object to represent the video track.
             let kind = match i {
@@ -3268,21 +3268,25 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-played>
-    fn Played(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
+    fn Played(&self, cx: &mut JSContext) -> DomRoot<TimeRanges> {
         TimeRanges::new(
             self.global().as_window(),
             self.played.borrow().clone(),
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seekable>
-    fn Seekable(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
-        TimeRanges::new(self.global().as_window(), self.seekable(), can_gc)
+    fn Seekable(&self, cx: &mut JSContext) -> DomRoot<TimeRanges> {
+        TimeRanges::new(
+            self.global().as_window(),
+            self.seekable(),
+            CanGc::from_cx(cx),
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-buffered>
-    fn Buffered(&self, can_gc: CanGc) -> DomRoot<TimeRanges> {
+    fn Buffered(&self, cx: &mut JSContext) -> DomRoot<TimeRanges> {
         let mut buffered = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
             let ranges = player.lock().unwrap().buffered();
@@ -3290,7 +3294,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
                 let _ = buffered.add(range.start, range.end);
             }
         }
-        TimeRanges::new(self.global().as_window(), buffered, can_gc)
+        TimeRanges::new(self.global().as_window(), buffered, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-audiotracks>
@@ -3301,26 +3305,26 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-videotracks>
-    fn VideoTracks(&self, can_gc: CanGc) -> DomRoot<VideoTrackList> {
+    fn VideoTracks(&self, cx: &mut JSContext) -> DomRoot<VideoTrackList> {
         let window = self.owner_window();
         self.video_tracks_list
-            .or_init(|| VideoTrackList::new(&window, &[], Some(self), can_gc))
+            .or_init(|| VideoTrackList::new(&window, &[], Some(self), CanGc::from_cx(cx)))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-texttracks>
-    fn TextTracks(&self, can_gc: CanGc) -> DomRoot<TextTrackList> {
+    fn TextTracks(&self, cx: &mut JSContext) -> DomRoot<TextTrackList> {
         let window = self.owner_window();
         self.text_tracks_list
-            .or_init(|| TextTrackList::new(&window, &[], can_gc))
+            .or_init(|| TextTrackList::new(&window, &[], CanGc::from_cx(cx)))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack>
     fn AddTextTrack(
         &self,
+        cx: &mut JSContext,
         kind: TextTrackKind,
         label: DOMString,
         language: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<TextTrack> {
         let window = self.owner_window();
         // Step 1 & 2
@@ -3333,10 +3337,10 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             language,
             TextTrackMode::Hidden,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         // Step 3 & 4
-        self.TextTracks(can_gc).add(&track);
+        self.TextTracks(cx).add(&track);
         // Step 5
         DomRoot::from_ref(&track)
     }
