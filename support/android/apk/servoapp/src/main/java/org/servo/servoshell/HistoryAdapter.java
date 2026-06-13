@@ -15,6 +15,7 @@ import java.util.Locale;
 public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private final List<HistoryItem> items;
+    @NonNull
     private final OnHistoryItemClickListener clickListener;
     private final SimpleDateFormat timeFormat;
 
@@ -22,7 +23,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         void onHistoryItemClick(HistoryEntry entry);
     }
 
-    public HistoryAdapter(List<HistoryItem> items, OnHistoryItemClickListener clickListener) {
+    public HistoryAdapter(List<HistoryItem> items, @NonNull OnHistoryItemClickListener clickListener) {
         this.items = items;
         this.clickListener = clickListener;
         this.timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
@@ -74,9 +75,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             
             // Set click listener
             entryHolder.itemView.setOnClickListener(v -> {
-                if (clickListener != null) {
-                    clickListener.onHistoryItemClick(entry);
-                }
+                clickListener.onHistoryItemClick(entry);
             });
         }
     }
