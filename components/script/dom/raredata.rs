@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use euclid::Rect;
 use style::selector_parser::PseudoElement;
@@ -10,6 +12,7 @@ use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 
 use crate::dom::UniqueId;
+use crate::JSTraceable;
 use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementRegistry, CustomElementState,
@@ -58,6 +61,18 @@ pub(crate) struct NodeRareData {
     pub(crate) implemented_pseudo_element: Option<PseudoElement>,
 }
 
+#[derive(MallocSizeOf)]
+pub(crate) struct ToggleEventTracker {
+    pub(crate) old_state: String,
+    #[ignore_malloc_size_of = "Arc"]
+    pub(crate) canceller: Arc<AtomicBool>,
+}
+
+#[allow(unsafe_code)]
+unsafe impl JSTraceable for ToggleEventTracker {
+    unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {}
+}
+
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ElementRareData {
@@ -103,4 +118,6 @@ pub(crate) struct ElementRareData {
     /// Whether this element had duplicate attributes during tokenization.
     /// Used for CSP nonce validation (step 3 of "is element nonceable").
     pub(crate) had_duplicate_attributes: bool,
+
+    pub(crate) toggle_event_tracker: Option<ToggleEventTracker>,
 }
