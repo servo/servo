@@ -226,8 +226,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     global_event_handlers!(NoOnload);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dataset>
-    fn Dataset(&self, can_gc: CanGc) -> DomRoot<DOMStringMap> {
-        self.dataset.or_init(|| DOMStringMap::new(self, can_gc))
+    fn Dataset(&self, cx: &mut JSContext) -> DomRoot<DOMStringMap> {
+        self.dataset
+            .or_init(|| DOMStringMap::new(self, CanGc::from_cx(cx)))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
@@ -697,7 +698,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-attachinternals>
-    fn AttachInternals(&self, can_gc: CanGc) -> Fallible<DomRoot<ElementInternals>> {
+    fn AttachInternals(&self, cx: &mut JSContext) -> Fallible<DomRoot<ElementInternals>> {
         // Step 1: If this's is value is not null, then throw a "NotSupportedError" DOMException
         if self.element.get_is().is_some() {
             return Err(Error::NotSupported(None));
@@ -722,7 +723,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
-        let internals = self.element.ensure_element_internals(can_gc);
+        let internals = self.element.ensure_element_internals(CanGc::from_cx(cx));
         if internals.attached() {
             return Err(Error::NotSupported(None));
         }
