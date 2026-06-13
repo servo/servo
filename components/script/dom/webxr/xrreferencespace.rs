@@ -4,7 +4,8 @@
 
 use dom_struct::dom_struct;
 use euclid::{Point2D, RigidTransform3D};
-use script_bindings::reflector::reflect_dom_object;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use webxr_api::{self, Floor, Frame, Space};
 
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::{
@@ -18,7 +19,6 @@ use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{ApiPose, BaseTransform, XRSession, cast_transform};
 use crate::dom::xrspace::XRSpace;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRReferenceSpace {
@@ -41,26 +41,26 @@ impl XRReferenceSpace {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         session: &XRSession,
         ty: XRReferenceSpaceType,
-        can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpace> {
-        let offset = XRRigidTransform::identity(window, can_gc);
-        Self::new_offset(&window.global(), session, ty, &offset, can_gc)
+        let offset = XRRigidTransform::identity(cx, window);
+        Self::new_offset(cx, &window.global(), session, ty, &offset)
     }
 
     pub(crate) fn new_offset(
+        cx: &mut JSContext,
         global: &GlobalScope,
         session: &XRSession,
         ty: XRReferenceSpaceType,
         offset: &XRRigidTransform,
-        can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpace> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(XRReferenceSpace::new_inherited(session, offset, ty)),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -83,15 +83,15 @@ impl XRReferenceSpace {
 
 impl XRReferenceSpaceMethods<crate::DomTypeHolder> for XRReferenceSpace {
     /// <https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace>
-    fn GetOffsetReferenceSpace(&self, new: &XRRigidTransform, can_gc: CanGc) -> DomRoot<Self> {
+    fn GetOffsetReferenceSpace(&self, cx: &mut JSContext, new: &XRRigidTransform) -> DomRoot<Self> {
         let offset = new.transform().then(&self.offset.transform());
-        let offset = XRRigidTransform::new(self.global().as_window(), offset, can_gc);
+        let offset = XRRigidTransform::new(cx, self.global().as_window(), offset);
         Self::new_offset(
+            cx,
             &self.global(),
             self.upcast::<XRSpace>().session(),
             self.ty,
             &offset,
-            CanGc::deprecated_note(),
         )
     }
 

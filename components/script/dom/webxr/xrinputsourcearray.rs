@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webxr_api::{InputId, InputSource};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceArrayBinding::XRInputSourceArrayMethods;
@@ -17,7 +17,6 @@ use crate::dom::window::Window;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrinputsourceschangeevent::XRInputSourcesChangeEvent;
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRInputSourceArray {
@@ -33,12 +32,8 @@ impl XRInputSourceArray {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<XRInputSourceArray> {
-        reflect_dom_object(
-            Box::new(XRInputSourceArray::new_inherited()),
-            window,
-            can_gc,
-        )
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<XRInputSourceArray> {
+        reflect_dom_object_with_cx(Box::new(XRInputSourceArray::new_inherited()), window, cx)
     }
 
     pub(crate) fn add_input_sources(
@@ -68,6 +63,7 @@ impl XRInputSourceArray {
         }
 
         let event = XRInputSourcesChangeEvent::new(
+            cx,
             window,
             atom!("inputsourceschange"),
             false,
@@ -75,7 +71,6 @@ impl XRInputSourceArray {
             session,
             &added,
             &[],
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, session.upcast());
     }
@@ -91,6 +86,7 @@ impl XRInputSourceArray {
         };
 
         let event = XRInputSourcesChangeEvent::new(
+            cx,
             window,
             atom!("inputsourceschange"),
             false,
@@ -98,7 +94,6 @@ impl XRInputSourceArray {
             session,
             &[],
             &removed,
-            CanGc::from_cx(cx),
         );
         self.input_sources.borrow_mut().retain(|i| i.id() != id);
         event.upcast::<Event>().fire(cx, session.upcast());
@@ -129,6 +124,7 @@ impl XRInputSourceArray {
         let added = [input];
 
         let event = XRInputSourcesChangeEvent::new(
+            cx,
             window,
             atom!("inputsourceschange"),
             false,
@@ -136,7 +132,6 @@ impl XRInputSourceArray {
             session,
             &added,
             removed,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, session.upcast());
     }

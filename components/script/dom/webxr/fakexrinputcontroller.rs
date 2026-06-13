@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{
     Handedness, InputId, MockButton, MockButtonType, MockDeviceMsg, MockInputMsg, SelectEvent,
@@ -23,7 +24,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::fakexrdevice::get_origin;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct FakeXRInputController {
@@ -47,15 +47,15 @@ impl FakeXRInputController {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         sender: GenericSender<MockDeviceMsg>,
         id: InputId,
-        can_gc: CanGc,
     ) -> DomRoot<FakeXRInputController> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(FakeXRInputController::new_inherited(sender, id)),
             global,
-            can_gc,
+            cx,
         )
     }
 

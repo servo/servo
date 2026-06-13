@@ -4,9 +4,10 @@
 
 use dom_struct::dom_struct;
 use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use js::typedarray::{Float32, HeapFloat32Array};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use script_bindings::trace::RootedTraceableBox;
 use webxr_api::{ApiSpace, Ray};
 
@@ -19,7 +20,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRRay {
@@ -40,12 +41,12 @@ impl XRRay {
     }
 
     fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         ray: Ray<ApiSpace>,
-        can_gc: CanGc,
     ) -> DomRoot<XRRay> {
-        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), window, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(Box::new(XRRay::new_inherited(ray)), window, proto, cx)
     }
 
     pub(crate) fn ray(&self) -> Ray<ApiSpace> {
@@ -56,9 +57,9 @@ impl XRRay {
 impl XRRayMethods<crate::DomTypeHolder> for XRRay {
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-xrray>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         origin: &DOMPointInit,
         direction: &XRRayDirectionInit,
     ) -> Fallible<DomRoot<Self>> {
@@ -82,14 +83,14 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
         )
         .normalize();
 
-        Ok(Self::new(window, proto, Ray { origin, direction }, can_gc))
+        Ok(Self::new(cx, window, proto, Ray { origin, direction }))
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform>
     fn Constructor_(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         transform: &XRRigidTransform,
     ) -> Fallible<DomRoot<Self>> {
         let transform = transform.transform();
@@ -98,11 +99,11 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
             .rotation
             .transform_vector3d(Vector3D::new(0., 0., -1.));
 
-        Ok(Self::new(window, proto, Ray { origin, direction }, can_gc))
+        Ok(Self::new(cx, window, proto, Ray { origin, direction }))
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-origin>
-    fn Origin(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
+    fn Origin(&self, cx: &mut JSContext) -> DomRoot<DOMPointReadOnly> {
         DOMPointReadOnly::new(
             cx,
             &self.global(),
@@ -114,7 +115,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-direction>
-    fn Direction(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
+    fn Direction(&self, cx: &mut JSContext) -> DomRoot<DOMPointReadOnly> {
         DOMPointReadOnly::new(
             cx,
             &self.global(),
@@ -126,7 +127,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-matrix>
-    fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> RootedTraceableBox<HeapFloat32Array> {
+    fn Matrix(&self, cx: &mut JSContext) -> RootedTraceableBox<HeapFloat32Array> {
         // https://immersive-web.github.io/hit-test/#xrray-obtain-the-matrix
         if !self.matrix.is_initialized() {
             // Step 1
@@ -153,7 +154,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
                 .to_transform()
                 .to_array();
             self.matrix
-                .set_data(_cx, &arr, can_gc)
+                .set_data(cx.into(), &arr, CanGc::from_cx(cx))
                 .expect("Failed to set matrix data on XRRAy.")
         }
 

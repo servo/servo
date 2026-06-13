@@ -5,9 +5,10 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::typedarray::Float32Array;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webxr_api::{Frame, LayerId, SubImages};
 
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
@@ -26,7 +27,6 @@ use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::{ApiPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use crate::dom::xrviewerpose::XRViewerPose;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRFrame {
@@ -50,16 +50,12 @@ impl XRFrame {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         session: &XRSession,
         data: Frame,
-        can_gc: CanGc,
     ) -> DomRoot<XRFrame> {
-        reflect_dom_object(
-            Box::new(XRFrame::new_inherited(session, data)),
-            window,
-            can_gc,
-        )
+        reflect_dom_object_with_cx(Box::new(XRFrame::new_inherited(session, data)), window, cx)
     }
 
     /// <https://immersive-web.github.io/webxr/#xrframe-active>
@@ -101,8 +97,8 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-getviewerpose>
     fn GetViewerPose(
         &self,
+        cx: &mut JSContext,
         reference: &XRReferenceSpace,
-        can_gc: CanGc,
     ) -> Result<Option<DomRoot<XRViewerPose>>, Error> {
         if self.session != reference.upcast::<XRSpace>().session() {
             return Err(Error::InvalidState(None));
@@ -123,20 +119,20 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             return Ok(None);
         };
         Ok(Some(XRViewerPose::new(
+            cx,
             self.global().as_window(),
             &self.session,
             to_base,
             viewer_pose,
-            can_gc,
         )))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-getpose>
     fn GetPose(
         &self,
+        cx: &mut JSContext,
         space: &XRSpace,
         base_space: &XRSpace,
-        can_gc: CanGc,
     ) -> Result<Option<DomRoot<XRPose>>, Error> {
         if self.session != space.session() || self.session != base_space.session() {
             return Err(Error::InvalidState(None));
@@ -155,15 +151,15 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             return Ok(None);
         };
         let pose = space.then(&base_space.inverse());
-        Ok(Some(XRPose::new(self.global().as_window(), pose, can_gc)))
+        Ok(Some(XRPose::new(cx, self.global().as_window(), pose)))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-getpose>
     fn GetJointPose(
         &self,
+        cx: &mut JSContext,
         space: &XRJointSpace,
         base_space: &XRSpace,
-        can_gc: CanGc,
     ) -> Result<Option<DomRoot<XRJointPose>>, Error> {
         if self.session != space.upcast::<XRSpace>().session() ||
             self.session != base_space.session()
@@ -185,27 +181,24 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         };
         let pose = joint_frame.pose.then(&base_space.inverse());
         Ok(Some(XRJointPose::new(
+            cx,
             self.global().as_window(),
             pose.cast_unit(),
             Some(joint_frame.radius),
-            can_gc,
         )))
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrframe-gethittestresults>
-    fn GetHitTestResults(&self, source: &XRHitTestSource) -> Vec<DomRoot<XRHitTestResult>> {
+    fn GetHitTestResults(
+        &self,
+        cx: &mut JSContext,
+        source: &XRHitTestSource,
+    ) -> Vec<DomRoot<XRHitTestResult>> {
         self.data
             .hit_test_results
             .iter()
             .filter(|r| r.id == source.id())
-            .map(|r| {
-                XRHitTestResult::new(
-                    self.global().as_window(),
-                    *r,
-                    self,
-                    CanGc::deprecated_note(),
-                )
-            })
+            .map(|r| XRHitTestResult::new(cx, self.global().as_window(), *r, self))
             .collect()
     }
 

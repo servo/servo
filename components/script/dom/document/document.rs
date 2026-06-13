@@ -2210,7 +2210,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
-    pub(crate) fn maybe_queue_document_completion(&self) {
+    pub(crate) fn maybe_queue_document_completion(&self, cx: &mut js::context::JSContext) {
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
         let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
@@ -2332,7 +2332,7 @@ impl Document {
         // https://github.com/immersive-web/navigation/issues/10
         #[cfg(feature = "webxr")]
         if pref!(dom_webxr_sessionavailable) && self.window.is_top_level() {
-            self.window.Navigator().Xr().dispatch_sessionavailable();
+            self.window.Navigator().Xr(cx).dispatch_sessionavailable();
         }
     }
 

@@ -8,7 +8,11 @@ use std::cell::Cell;
 use std::cmp;
 
 use dom_struct::dom_struct;
+#[cfg(feature = "webxr")]
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
+#[cfg(feature = "webxr")]
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use script_bindings::reflector::{DomObject as _, reflect_dom_object};
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
@@ -186,15 +190,15 @@ impl WebGLTexture {
 
     #[cfg(feature = "webxr")]
     pub(crate) fn new_webxr(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
         id: WebGLTextureId,
         session: &XRSession,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(WebGLTexture::new_inherited(context, id, Some(session))),
             &*context.global(),
-            can_gc,
+            cx,
         )
     }
 }

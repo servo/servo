@@ -6,8 +6,9 @@ use std::convert::TryInto;
 
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLTextureId};
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
@@ -33,7 +34,6 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
-use crate::script_runtime::CanGc;
 
 impl Convert<LayerInit> for XRWebGLLayerInit {
     fn convert(self) -> LayerInit {
@@ -81,6 +81,7 @@ impl XRWebGLLayer {
 
     #[expect(clippy::too_many_arguments)]
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         session: &XRSession,
@@ -88,9 +89,8 @@ impl XRWebGLLayer {
         init: &XRWebGLLayerInit,
         framebuffer: Option<&WebGLFramebuffer>,
         layer_id: Option<LayerId>,
-        can_gc: CanGc,
     ) -> DomRoot<XRWebGLLayer> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(XRWebGLLayer::new_inherited(
                 session,
                 context,
@@ -100,7 +100,7 @@ impl XRWebGLLayer {
             )),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -136,7 +136,7 @@ impl XRWebGLLayer {
         }
     }
 
-    pub(crate) fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
+    pub(crate) fn begin_frame(&self, cx: &mut JSContext, frame: &XRFrame) -> Option<()> {
         debug!("XRWebGLLayer begin frame");
         let framebuffer = self.framebuffer.as_ref()?;
         let sub_images = frame.get_sub_images(self.layer_id()?)?;
@@ -145,12 +145,7 @@ impl XRWebGLLayer {
 
         // TODO: Cache this texture
         let color_texture_id = WebGLTextureId::new(sub_images.sub_image.as_ref()?.color_texture?);
-        let color_texture = WebGLTexture::new_webxr(
-            &context,
-            color_texture_id,
-            session,
-            CanGc::deprecated_note(),
-        );
+        let color_texture = WebGLTexture::new_webxr(cx, &context, color_texture_id, session);
         let target = self.texture_target();
 
         // Save the current bindings
@@ -184,12 +179,8 @@ impl XRWebGLLayer {
         if let Some(id) = sub_images.sub_image.as_ref()?.depth_stencil_texture {
             // TODO: Cache this texture
             let depth_stencil_texture_id = WebGLTextureId::new(id);
-            let depth_stencil_texture = WebGLTexture::new_webxr(
-                &context,
-                depth_stencil_texture_id,
-                session,
-                CanGc::deprecated_note(),
-            );
+            let depth_stencil_texture =
+                WebGLTexture::new_webxr(cx, &context, depth_stencil_texture_id, session);
             framebuffer
                 .texture2d_even_if_opaque(
                     constants::DEPTH_STENCIL_ATTACHMENT,
@@ -244,9 +235,9 @@ impl XRWebGLLayer {
 impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
     /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-xrwebgllayer>
     fn Constructor(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         session: &XRSession,
         context: XRWebGLRenderingContext,
         init: &XRWebGLLayerInit,
@@ -268,7 +259,7 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
             let size = session
                 .with_session(|session| session.recommended_framebuffer_resolution())
                 .ok_or(Error::Operation(None))?;
-            let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size, can_gc)
+            let framebuffer = WebGLFramebuffer::maybe_new_webxr(cx, session, &context, size)
                 .ok_or(Error::Operation(None))?;
 
             // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
@@ -291,6 +282,7 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
 
         // Step 10. "Return layer."
         Ok(XRWebGLLayer::new(
+            cx,
             &global.global(),
             proto,
             session,
@@ -298,7 +290,6 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
             init,
             framebuffer.as_deref(),
             layer_id,
-            can_gc,
         ))
     }
 
@@ -345,7 +336,7 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport>
-    fn GetViewport(&self, view: &XRView) -> Option<DomRoot<XRViewport>> {
+    fn GetViewport(&self, cx: &mut JSContext, view: &XRView) -> Option<DomRoot<XRViewport>> {
         if self.session() != view.session() {
             return None;
         }
@@ -366,10 +357,6 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
         // don't seem to do this for stereoscopic immersive sessions.
         // Revisit if Servo gets support for handheld AR/VR via ARCore/ARKit
 
-        Some(XRViewport::new(
-            &self.global(),
-            viewport,
-            CanGc::deprecated_note(),
-        ))
+        Some(XRViewport::new(cx, &self.global(), viewport))
     }
 }

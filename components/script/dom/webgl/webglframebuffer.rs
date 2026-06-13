@@ -8,6 +8,8 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 #[cfg(feature = "webxr")]
 use euclid::Size2D;
+#[cfg(feature = "webxr")]
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
@@ -204,12 +206,12 @@ impl WebGLFramebuffer {
     // https://github.com/servo/servo/issues/24498
     #[cfg(feature = "webxr")]
     pub(crate) fn maybe_new_webxr(
+        cx: &mut JSContext,
         session: &XRSession,
         context: &WebGLRenderingContext,
         size: Size2D<i32, Viewport>,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Self>> {
-        let framebuffer = Self::maybe_new(context, can_gc)?;
+        let framebuffer = Self::maybe_new(context, CanGc::from_cx(cx))?;
         framebuffer.size.set(Some((size.width, size.height)));
         framebuffer.status.set(constants::FRAMEBUFFER_COMPLETE);
         framebuffer.xr_session.set(Some(session));

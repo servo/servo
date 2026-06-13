@@ -4,10 +4,11 @@
 
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use js::typedarray::{Float32, HeapFloat32Array};
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
@@ -19,7 +20,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
 use crate::dom::xrsession::ApiRigidTransform;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRRigidTransform {
@@ -46,39 +47,39 @@ impl XRRigidTransform {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         transform: ApiRigidTransform,
-        can_gc: CanGc,
     ) -> DomRoot<XRRigidTransform> {
-        Self::new_with_proto(window, None, transform, can_gc)
+        Self::new_with_proto(cx, window, None, transform)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         transform: ApiRigidTransform,
-        can_gc: CanGc,
     ) -> DomRoot<XRRigidTransform> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(XRRigidTransform::new_inherited(transform)),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
-    pub(crate) fn identity(window: &Window, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
+    pub(crate) fn identity(cx: &mut JSContext, window: &Window) -> DomRoot<XRRigidTransform> {
         let transform = RigidTransform3D::identity();
-        XRRigidTransform::new(window, transform, can_gc)
+        XRRigidTransform::new(cx, window, transform)
     }
 }
 
 impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-xrrigidtransform>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         position: &DOMPointInit,
         orientation: &DOMPointInit,
     ) -> Fallible<DomRoot<Self>> {
@@ -124,19 +125,19 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         }
         let transform = RigidTransform3D::new(rotate, translate);
         Ok(XRRigidTransform::new_with_proto(
-            window, proto, transform, can_gc,
+            cx, window, proto, transform,
         ))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-position>
-    fn Position(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
+    fn Position(&self, cx: &mut JSContext) -> DomRoot<DOMPointReadOnly> {
         self.position.or_init(|| {
             let t = &self.transform.translation;
             DOMPointReadOnly::new(cx, &self.global(), t.x.into(), t.y.into(), t.z.into(), 1.0)
         })
     }
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation>
-    fn Orientation(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
+    fn Orientation(&self, cx: &mut JSContext) -> DomRoot<DOMPointReadOnly> {
         self.orientation.or_init(|| {
             let r = &self.transform.rotation;
             DOMPointReadOnly::new(
@@ -150,19 +151,23 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         })
     }
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse>
-    fn Inverse(&self, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
+    fn Inverse(&self, cx: &mut JSContext) -> DomRoot<XRRigidTransform> {
         self.inverse.or_init(|| {
             let transform =
-                XRRigidTransform::new(self.global().as_window(), self.transform.inverse(), can_gc);
+                XRRigidTransform::new(cx, self.global().as_window(), self.transform.inverse());
             transform.inverse.set(Some(self));
             transform
         })
     }
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix>
-    fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> RootedTraceableBox<HeapFloat32Array> {
+    fn Matrix(&self, cx: &mut JSContext) -> RootedTraceableBox<HeapFloat32Array> {
         if !self.matrix.is_initialized() {
             self.matrix
-                .set_data(_cx, &self.transform.to_transform().to_array(), can_gc)
+                .set_data(
+                    cx.into(),
+                    &self.transform.to_transform().to_array(),
+                    CanGc::from_cx(cx),
+                )
                 .expect("Failed to set on data on transform's internal matrix.")
         }
 

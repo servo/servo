@@ -11,9 +11,10 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::JSVal;
+use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
@@ -28,7 +29,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::fakexrdevice::{FakeXRDevice, get_origin, get_views, get_world};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRTest {
@@ -44,40 +44,43 @@ impl XRTest {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<XRTest> {
-        reflect_dom_object(Box::new(XRTest::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<XRTest> {
+        reflect_dom_object_with_cx(Box::new(XRTest::new_inherited()), global, cx)
     }
 
     fn device_obtained(
         &self,
+        cx: &mut JSContext,
         response: Result<GenericSender<MockDeviceMsg>, XRError>,
         trusted: TrustedPromise,
-        can_gc: CanGc,
     ) {
         let promise = trusted.root();
         if let Ok(sender) = response {
-            let device = FakeXRDevice::new(&self.global(), sender, CanGc::deprecated_note());
+            let device = FakeXRDevice::new(cx, &self.global(), sender);
             self.devices_connected
                 .borrow_mut()
                 .push(Dom::from_ref(&device));
-            promise.resolve_native(&device, can_gc);
+            promise.resolve_native_with_cx(cx, &device);
         } else {
-            promise.reject_native(&(), can_gc);
+            promise.reject_native_with_cx(cx, &());
         }
     }
 }
 
 impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn SimulateDeviceConnection(&self, init: &FakeXRDeviceInit, can_gc: CanGc) -> Rc<Promise> {
-        let global = self.global();
-        let p = Promise::new(&global, can_gc);
+    fn SimulateDeviceConnection(
+        &self,
+        cx: &mut CurrentRealm,
+        init: &FakeXRDeviceInit,
+    ) -> Rc<Promise> {
+        let p = Promise::new_in_realm(cx);
 
         let origin = if let Some(ref o) = init.viewerOrigin {
             match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
-                    p.reject_error(e, can_gc);
+                    p.reject_error_with_cx(cx, e);
                     return p;
                 },
             }
@@ -89,7 +92,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
-                    p.reject_error(e, can_gc);
+                    p.reject_error_with_cx(cx, e);
                     return p;
                 },
             }
@@ -100,7 +103,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let views = match get_views(&init.views) {
             Ok(views) => views,
             Err(e) => {
-                p.reject_error(e, can_gc);
+                p.reject_error_with_cx(cx, e);
                 return p;
             },
         };
@@ -115,7 +118,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             let w = match get_world(w) {
                 Ok(w) => w,
                 Err(e) => {
-                    p.reject_error(e, can_gc);
+                    p.reject_error_with_cx(cx, e);
                     return p;
                 },
             };
@@ -165,8 +168,8 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                 let message =
                     message.expect("SimulateDeviceConnection callback given incorrect payload");
 
-                task_source.queue(task!(request_session: move || {
-                    this.root().device_obtained(message, trusted, CanGc::deprecated_note());
+                task_source.queue(task!(request_session: move |cx| {
+                    this.root().device_obtained(cx, message, trusted);
                 }));
             })
             .expect("Could not create callback");
@@ -185,13 +188,12 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn DisconnectAllDevices(&self, can_gc: CanGc) -> Rc<Promise> {
+    fn DisconnectAllDevices(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
         // XXXManishearth implement device disconnection and session ending
-        let global = self.global();
-        let p = Promise::new(&global, can_gc);
+        let p = Promise::new_in_realm(cx);
         let mut devices = self.devices_connected.borrow_mut();
         if devices.is_empty() {
-            p.resolve_native(&(), can_gc);
+            p.resolve_native_with_cx(cx, &());
         } else {
             let mut len = devices.len();
 
@@ -199,6 +201,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             devices.clear();
 
             let mut trusted = Some(TrustedPromise::new(p.clone()));
+            let global = self.global();
             let task_source = global
                 .task_manager()
                 .dom_manipulation_task_source()
