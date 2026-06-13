@@ -34,7 +34,7 @@ public class HistoryManager {
      * Add a new history entry.
      * Only adds if the URL is different from the most recent entry.
      */
-    public synchronized void addEntry(String url, String title) {
+    public void addEntry(String url, String title) {
         List<HistoryEntry> history = loadHistory();
 
         // "about:blank" sometimes pops up while loading pages, so filter that out
@@ -66,14 +66,14 @@ public class HistoryManager {
     /**
      * Get all history entries
      */
-    public synchronized List<HistoryEntry> getHistory() {
+    public List<HistoryEntry> getHistory() {
         return loadHistory();
     }
 
     /**
      * Clear all history
      */
-    public synchronized void clearHistory() {
+    public void clearHistory() {
         if (historyFile.exists()) {
             historyFile.delete();
         }
