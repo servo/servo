@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
-
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
+use js::rust::MutableHandleObject;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{DomObject, reflect_dom_object};
 use script_bindings::str::DOMString;
@@ -59,8 +58,12 @@ impl DebuggerAddDebuggeeEvent {
 
 impl DebuggerAddDebuggeeEventMethods<crate::DomTypeHolder> for DebuggerAddDebuggeeEvent {
     // check-tidy: no specs after this line
-    fn Global(&self, _cx: script_bindings::script_runtime::JSContext) -> NonNull<JSObject> {
-        NonNull::new(self.global.get()).unwrap()
+    fn Global(
+        &self,
+        _cx: script_bindings::script_runtime::JSContext,
+        mut return_value: MutableHandleObject,
+    ) {
+        return_value.set(self.global.get());
     }
 
     fn PipelineId(

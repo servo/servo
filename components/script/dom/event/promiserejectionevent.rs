@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::JSVal;
-use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -120,8 +119,8 @@ impl PromiseRejectionEventMethods<crate::DomTypeHolder> for PromiseRejectionEven
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-promise>
-    fn Promise(&self, _cx: JSContext) -> NonNull<JSObject> {
-        NonNull::new(self.promise.get()).unwrap()
+    fn Promise(&self, _cx: JSContext, mut return_value: MutableHandleObject) {
+        return_value.set(self.promise.get());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-reason>

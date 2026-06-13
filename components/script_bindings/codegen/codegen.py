@@ -1552,12 +1552,16 @@ def returnTypeNeedsOutparam(type: IDLType | None) -> bool:
     if type.nullable():
         assert isinstance(type, IDLNullableType)
         type = type.inner
+    if type.isObject():
+        return True
     return type.isAny()
 
 
 def outparamTypeFromReturnType(type: IDLType) -> str:
     if type.isAny():
         return "MutableHandleValue"
+    if type.isObject():
+        return "MutableHandleObject"
     raise TypeError(f"Don't know how to handle {type} as an outparam")
 
 
@@ -1658,10 +1662,7 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
     if returnType.isAny():
         return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
-        result = CGGeneric("NonNull<JSObject>")
-        if returnType.nullable():
-            result = CGWrapper(result, pre="Option<", post=">")
-        return result
+        return CGGeneric("*mut JSObject")
     if returnType.isSequence() or returnType.isRecord():
         result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider)
         result = wrapInNativeContainerType(returnType, result)

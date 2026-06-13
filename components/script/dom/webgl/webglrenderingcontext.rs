@@ -3,10 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::cmp;
-use std::ptr::{self, NonNull};
 #[cfg(feature = "webxr")]
 use std::rc::Rc;
+use std::{cmp, ptr};
 
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
@@ -15,7 +14,7 @@ use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
-use js::rust::{CustomAutoRooterGuard, MutableHandleValue};
+use js::rust::{CustomAutoRooterGuard, MutableHandleObject, MutableHandleValue};
 use js::typedarray::{
     ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, TypedArray,
     TypedArrayElementCreator, Uint32Array,
@@ -2566,10 +2565,20 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14>
-    fn GetExtension(&self, _cx: SafeJSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+    fn GetExtension(
+        &self,
+        _cx: SafeJSContext,
+        name: DOMString,
+        mut return_value: MutableHandleObject,
+    ) {
         self.extension_manager
             .init_once(|| self.get_gl_extensions());
-        self.extension_manager.get_or_init_extension(&name, self)
+        return_value.set(
+            self.extension_manager
+                .get_or_init_extension(&name, self)
+                .map(|nonnull| nonnull.as_ptr())
+                .unwrap_or(ptr::null_mut()),
+        );
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>

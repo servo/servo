@@ -7,11 +7,10 @@
 use std::cell::Cell;
 use std::marker::PhantomData;
 use std::ptr;
-use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{Heap, JSObject};
+use js::jsapi::{Heap, JS_NewObject};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 
@@ -117,12 +116,11 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
 
     /// Return the next value from the iterable object.
     #[expect(non_snake_case)]
-    pub fn Next(&self, cx: JSContext) -> Fallible<NonNull<JSObject>> {
+    pub fn Next(&self, cx: JSContext, return_value: MutableHandleObject) -> Fallible<()> {
         let index = self.index.get();
         rooted!(in(*cx) let mut value = UndefinedValue());
-        rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
         let result = if index >= self.iterable.get_iterable_length() {
-            dict_return(cx, rval.handle_mut(), true, value.handle())
+            dict_return(cx, return_value, true, value.handle())
         } else {
             match self.type_ {
                 IteratorType::Keys => {
@@ -131,7 +129,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
                             .get_key_at_index(index)
                             .to_jsval(*cx, value.handle_mut());
                     }
-                    dict_return(cx, rval.handle_mut(), false, value.handle())
+                    dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Values => {
                     unsafe {
@@ -139,7 +137,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
                             .get_value_at_index(index)
                             .to_jsval(*cx, value.handle_mut());
                     }
-                    dict_return(cx, rval.handle_mut(), false, value.handle())
+                    dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Entries => {
                     rooted!(in(*cx) let mut key = UndefinedValue());
@@ -151,12 +149,12 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
                             .get_value_at_index(index)
                             .to_jsval(*cx, value.handle_mut());
                     }
-                    key_and_value_return(cx, rval.handle_mut(), key.handle(), value.handle())
+                    key_and_value_return(cx, return_value, key.handle(), value.handle())
                 },
             }
         };
         self.index.set(index + 1);
-        result.map(|_| NonNull::new(rval.get()).expect("got a null pointer"))
+        result
     }
 }
 
@@ -180,11 +178,11 @@ fn dict_return(
     let mut dict = IterableKeyOrValueResult::empty();
     dict.done = done;
     dict.value.set(value.get());
-    rooted!(in(*cx) let mut dict_value = UndefinedValue());
+
     unsafe {
-        dict.to_jsval(*cx, dict_value.handle_mut());
+        result.set(JS_NewObject(*cx, ptr::null()));
+        dict.to_jsobject(*cx, result);
     }
-    result.set(dict_value.to_object());
     Ok(())
 }
 
@@ -202,10 +200,9 @@ fn key_and_value_return(
             .map(|handle| RootedTraceableBox::from_box(Heap::boxed(handle.get())))
             .collect(),
     );
-    rooted!(in(*cx) let mut dict_value = UndefinedValue());
     unsafe {
-        dict.to_jsval(*cx, dict_value.handle_mut());
+        result.set(JS_NewObject(*cx, ptr::null()));
+        dict.to_jsobject(*cx, result);
     }
-    result.set(dict_value.to_object());
     Ok(())
 }
