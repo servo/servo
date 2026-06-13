@@ -55,7 +55,7 @@ where
     ///
     /// In cases where channel closure is possible (because the receiver does not exist anymore),
     /// this convenience method can be used to ignore the result and log the error as a warning.
-    fn send_warn(&self, message: T, error_context: &str) {
+    fn send_or_warn(&self, message: T, error_context: &str) {
         if let Err(error) = self.send(message) {
             log::warn!("{error_context}: {error}");
         }
@@ -66,7 +66,7 @@ where
     /// In cases where channel closure is expected to happen intermittently, and the sender
     /// doesn't care about the result, this is a short form for `let _ = GenericSend::send();`,
     /// which makes the intent clearer.
-    fn send_ignore(&self, message: T) {
+    fn send_or_ignore(&self, message: T) {
         let _ = self.send(message);
     }
 
@@ -233,7 +233,7 @@ impl<T: Serialize> GenericSender<T> {
     /// In cases where channel closure is possible (because the receiver does not exist anymore),
     /// this convenience method can be used to ignore the result and log the error as a warning.
     #[inline]
-    pub fn send_warn(&self, msg: T, error_context: &str) {
+    pub fn send_or_warn(&self, msg: T, error_context: &str) {
         if let Err(error) = self.send(msg) {
             log::warn!("{error_context}: {error}");
         }
@@ -245,7 +245,7 @@ impl<T: Serialize> GenericSender<T> {
     /// doesn't care about the result, this is a short form for `let _ = GenericSender::send();`,
     /// which makes the intent clearer.
     #[inline]
-    pub fn send_ignore(&self, msg: T) {
+    pub fn send_or_ignore(&self, msg: T) {
         let _ = self.send(msg);
     }
 }
