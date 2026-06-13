@@ -103,6 +103,10 @@ pub(crate) struct TextFragment {
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,
+    /// The source text of this fragment, populated only when
+    /// `LayoutContext::capture_display_list` is true. Used to build the
+    /// embedder-first [`embedder_traits::DisplayList`].
+    pub text_for_display_list: Option<Box<str>>,
 }
 
 #[derive(MallocSizeOf)]

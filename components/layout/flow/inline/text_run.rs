@@ -237,9 +237,18 @@ impl TextRunSegment {
             soft_wrap_policy = SegmentStartSoftWrapPolicy::Force;
         }
 
+        // Walk the segment's source text in
+        // combo with its runs. Now each glyph store can be tagged with the
+        // same byte range of its parent `InlineFormattingContext::text_content`.
+        let capture_display_list = ifc.layout_context.capture_display_list;
+        let segment_text =
+            capture_display_list.then(|| &ifc.ifc.text_content[self.byte_range.clone()]);
+        let mut byte_offset_in_segment = 0usize;
+
         let mut character_range_start = self.character_range.start;
         for (run_index, run) in self.runs.iter().enumerate() {
-            let new_character_range_end = character_range_start + run.character_count();
+            let character_count = run.character_count();
+            let new_character_range_end = character_range_start + character_count;
             let offsets = ifc
                 .ifc
                 .shared_selection
@@ -249,13 +258,31 @@ impl TextRunSegment {
                     character_range: character_range_start..new_character_range_end,
                 });
 
+            // Compute the byte range of this run within the IFC text content.
+            let display_list_byte_range = segment_text.map(|text| {
+                let run_byte_len: usize = text[byte_offset_in_segment..]
+                    .chars()
+                    .take(character_count)
+                    .map(char::len_utf8)
+                    .sum();
+                let start = self.byte_range.start + byte_offset_in_segment;
+                byte_offset_in_segment += run_byte_len;
+                start..start + run_byte_len
+            });
+
             // Break before each unbreakable run in this TextRun, except the first unless the
             // linebreaker was set to break before the first run.
             if run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
                 ifc.process_soft_wrap_opportunity();
             }
 
-            ifc.push_glyph_store_to_unbreakable_segment(run.clone(), text_run, &self.info, offsets);
+            ifc.push_glyph_store_to_unbreakable_segment(
+                run.clone(),
+                text_run,
+                &self.info,
+                offsets,
+                display_list_byte_range,
+            );
             character_range_start = new_character_range_end;
         }
     }
