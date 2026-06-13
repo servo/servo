@@ -81,8 +81,9 @@ impl SharedWorkerKey {
 }
 
 enum SharedWorkerRegistryState {
-    Creating,
+    Creating { waiters: usize },
     Created(SharedWorkerRegistration),
+    Failed { waiters: usize },
 }
 
 struct SharedWorkerRegistryEntry {
@@ -122,9 +123,24 @@ enum SharedWorkerClaimResult {
 
 fn prune_closed_shared_workers(workers: &mut Vec<SharedWorkerRegistryEntry>) {
     workers.retain(|entry| match &entry.state {
-        SharedWorkerRegistryState::Creating => true,
+        SharedWorkerRegistryState::Creating { .. } => true,
         SharedWorkerRegistryState::Created(worker) => !worker.closing.load(Ordering::SeqCst),
+        SharedWorkerRegistryState::Failed { waiters } => *waiters > 0,
     });
+}
+
+fn find_matching_shared_worker(
+    workers: &[SharedWorkerRegistryEntry],
+    key: &SharedWorkerKey,
+) -> Option<usize> {
+    workers.iter().position(|entry| {
+        entry.key.matches(
+            &key.storage_key,
+            &key.constructor_origin,
+            &key.constructor_url,
+            &key.name,
+        )
+    })
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-sharedworker>
@@ -132,36 +148,53 @@ fn prune_closed_shared_workers(workers: &mut Vec<SharedWorkerRegistryEntry>) {
 fn find_or_claim_shared_worker(key: SharedWorkerKey) -> SharedWorkerClaimResult {
     let (workers, ready) = &*SHARED_WORKERS;
     let mut workers = workers.lock().expect("SharedWorker registry poisoned");
-    let mut waited_for_creation = false;
 
     loop {
         prune_closed_shared_workers(&mut workers);
 
-        if let Some(entry) = workers.iter().find(|entry| {
-            entry.key.matches(
-                &key.storage_key,
-                &key.constructor_origin,
-                &key.constructor_url,
-                &key.name,
-            )
-        }) {
-            match &entry.state {
-                SharedWorkerRegistryState::Creating => {
-                    waited_for_creation = true;
-                    workers = ready.wait(workers).expect("SharedWorker registry poisoned");
-                },
+        let Some(index) = find_matching_shared_worker(&workers, &key) else {
+            workers.push(SharedWorkerRegistryEntry {
+                key,
+                state: SharedWorkerRegistryState::Creating { waiters: 0 },
+            });
+            return SharedWorkerClaimResult::Claimed;
+        };
+
+        match &mut workers[index].state {
+            SharedWorkerRegistryState::Creating { waiters } => *waiters += 1,
+            SharedWorkerRegistryState::Created(registration) => {
+                return SharedWorkerClaimResult::Created(registration.clone());
+            },
+            SharedWorkerRegistryState::Failed { .. } => {
+                workers = ready.wait(workers).expect("SharedWorker registry poisoned");
+                continue;
+            },
+        };
+
+        loop {
+            workers = ready.wait(workers).expect("SharedWorker registry poisoned");
+
+            let Some(index) = find_matching_shared_worker(&workers, &key) else {
+                return SharedWorkerClaimResult::Failed;
+            };
+
+            match &mut workers[index].state {
+                SharedWorkerRegistryState::Creating { .. } => {},
                 SharedWorkerRegistryState::Created(registration) => {
                     return SharedWorkerClaimResult::Created(registration.clone());
                 },
+                SharedWorkerRegistryState::Failed { waiters } => {
+                    debug_assert!(*waiters > 0);
+                    if *waiters > 0 {
+                        *waiters -= 1;
+                    }
+                    if *waiters == 0 {
+                        workers.remove(index);
+                        ready.notify_all();
+                    }
+                    return SharedWorkerClaimResult::Failed;
+                },
             }
-        } else if waited_for_creation {
-            return SharedWorkerClaimResult::Failed;
-        } else {
-            workers.push(SharedWorkerRegistryEntry {
-                key,
-                state: SharedWorkerRegistryState::Creating,
-            });
-            return SharedWorkerClaimResult::Claimed;
         }
     }
 }
@@ -172,24 +205,27 @@ fn transition_creating_to_created(
 ) -> bool {
     let (workers, ready) = &*SHARED_WORKERS;
     let mut workers = workers.lock().expect("SharedWorker registry poisoned");
-    let Some(entry) = workers.iter_mut().find(|entry| {
-        entry.key.matches(
-            &key.storage_key,
-            &key.constructor_origin,
-            &key.constructor_url,
-            &key.name,
-        )
-    }) else {
+    let index = find_matching_shared_worker(&workers, key);
+    debug_assert!(index.is_some(), "claimed SharedWorker entry should exist");
+    let Some(index) = index else {
         ready.notify_all();
         return false;
     };
 
-    if !matches!(&entry.state, SharedWorkerRegistryState::Creating) {
+    let entry_is_creating = matches!(
+        &workers[index].state,
+        SharedWorkerRegistryState::Creating { .. }
+    );
+    debug_assert!(
+        entry_is_creating,
+        "claimed SharedWorker entry should still be creating"
+    );
+    if !entry_is_creating {
         ready.notify_all();
         return false;
     }
 
-    entry.state = SharedWorkerRegistryState::Created(registration);
+    workers[index].state = SharedWorkerRegistryState::Created(registration);
     ready.notify_all();
     true
 }
@@ -197,22 +233,29 @@ fn transition_creating_to_created(
 fn remove_creating_shared_worker(key: &SharedWorkerKey) {
     let (workers, ready) = &*SHARED_WORKERS;
     let mut workers = workers.lock().expect("SharedWorker registry poisoned");
-    let Some(index) = workers.iter().position(|entry| {
-        entry.key.matches(
-            &key.storage_key,
-            &key.constructor_origin,
-            &key.constructor_url,
-            &key.name,
-        )
-    }) else {
-        ready.notify_all();
+    let index = find_matching_shared_worker(&workers, key);
+    debug_assert!(index.is_some(), "claimed SharedWorker entry should exist");
+    let Some(index) = index else {
         return;
     };
 
-    if matches!(&workers[index].state, SharedWorkerRegistryState::Creating) {
+    let waiters = match &workers[index].state {
+        SharedWorkerRegistryState::Creating { waiters } => *waiters,
+        state => {
+            debug_assert!(
+                matches!(state, SharedWorkerRegistryState::Creating { .. }),
+                "claimed SharedWorker entry should still be creating"
+            );
+            return;
+        },
+    };
+
+    if waiters == 0 {
         workers.remove(index);
-        ready.notify_all();
-    }
+    } else {
+        workers[index].state = SharedWorkerRegistryState::Failed { waiters };
+    };
+    ready.notify_all();
 }
 
 fn send_connect_to_created_worker(
@@ -230,9 +273,8 @@ impl SharedWorker {
         let (workers, ready) = &*SHARED_WORKERS;
         let mut workers = workers.lock().expect("SharedWorker registry poisoned");
         let old_len = workers.len();
-        workers.retain(|entry| match &entry.state {
-            SharedWorkerRegistryState::Creating => true,
-            SharedWorkerRegistryState::Created(worker) => worker.id != id,
+        workers.retain(|entry| {
+            !matches!(&entry.state, SharedWorkerRegistryState::Created(worker) if worker.id == id)
         });
         if workers.len() != old_len {
             ready.notify_all();
@@ -508,7 +550,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         let (registered_sender, registered_receiver) = unbounded();
 
         // Step 11.6. Otherwise, in parallel, run a worker given worker, urlRecord, outsideSettings, outsidePort, and options.
-        let Ok(_join_handle) = SharedWorkerGlobalScope::run_shared_worker_scope(
+        let _join_handle = match SharedWorkerGlobalScope::run_shared_worker_scope(
             init,
             worker_name,
             worker_type,
@@ -534,10 +576,14 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             global.insecure_requests_policy(),
             global.policy_container(),
             global.font_context().cloned(),
-        ) else {
-            remove_creating_shared_worker(&shared_worker_key);
-            SharedWorker::queue_simple_error(global, worker_addr);
-            return Ok(worker);
+        ) {
+            Ok(join_handle) => join_handle,
+            Err(error) => {
+                error!("Failed to spawn SharedWorker thread: {error}");
+                remove_creating_shared_worker(&shared_worker_key);
+                SharedWorker::queue_simple_error(global, worker_addr);
+                return Ok(worker);
+            },
         };
 
         // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
@@ -558,13 +604,12 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             _control_sender: control_sender,
         };
 
-        if registered_sender.send(()).is_err() {
-            remove_creating_shared_worker(&shared_worker_key);
+        if !transition_creating_to_created(&shared_worker_key, registration.clone()) {
             SharedWorker::queue_simple_error(global, worker_addr);
             return Ok(worker);
         }
 
-        if !transition_creating_to_created(&shared_worker_key, registration.clone()) {
+        if registered_sender.send(()).is_err() {
             SharedWorker::unregister_shared_worker(registration_id);
             SharedWorker::queue_simple_error(global, worker_addr);
             return Ok(worker);

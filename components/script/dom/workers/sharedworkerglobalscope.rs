@@ -368,7 +368,6 @@ impl SharedWorkerGlobalScope {
         let current_global = GlobalScope::current().expect("No current global object");
         let origin = current_global.origin().immutable().clone();
         let referrer = current_global.get_referrer();
-        let parent = current_global.runtime_handle();
         let is_secure_context = current_global.is_secure_context();
         let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
         let is_nested_browsing_context = current_global.is_nested_browsing_context();
@@ -378,8 +377,6 @@ impl SharedWorkerGlobalScope {
         thread::Builder::new()
             .name(format!("SWW:{}", worker_url.debug_compact()))
             .spawn(move || {
-                let _registration_cleanup = SharedWorkerRegistrationCleanup { registration_id };
-
                 // Step 4. Let agent be the result of obtaining a dedicated/shared worker agent
                 // given outside settings and is shared. Run the rest of these steps in that
                 // agent.
@@ -406,9 +403,7 @@ impl SharedWorkerGlobalScope {
 
                 let event_loop_sender = ScriptEventLoopSender::SharedWorker(own_sender.clone());
 
-                let runtime = unsafe {
-                    Runtime::new_with_parent(Some(parent), Some(event_loop_sender.clone()))
-                };
+                let runtime = Runtime::new(Some(event_loop_sender.clone()));
                 // SAFETY: We are in a new thread, so this first cx.
                 // It is OK to have it separated of runtime here,
                 // because it will never outlive it (runtime destruction happens at the end of this function)
@@ -494,6 +489,7 @@ impl SharedWorkerGlobalScope {
                     scope.clear_js_runtime();
                     return;
                 }
+                let _registration_cleanup = SharedWorkerRegistrationCleanup { registration_id };
 
                 let fetch_client = ModuleFetchClient {
                     insecure_requests_policy,
