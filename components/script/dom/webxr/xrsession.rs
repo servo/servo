@@ -9,7 +9,6 @@ use std::rc::Rc;
 use std::{mem, ptr};
 
 use script_bindings::reflector::reflect_dom_object;
-use servo_base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcReceiver;
@@ -20,6 +19,7 @@ use js::typedarray::HeapFloat32Array;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use rustc_hash::FxBuildHasher;
 use script_bindings::trace::RootedTraceableBox;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use stylo_atoms::Atom;
 use webxr_api::{
     self, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,

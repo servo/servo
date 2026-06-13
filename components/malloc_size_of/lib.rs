@@ -741,6 +741,18 @@ impl<T: MallocSizeOf> MallocSizeOf for parking_lot::Mutex<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for tokio::sync::Mutex<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.blocking_lock().size_of(ops)
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for tokio::sync::RwLock<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.blocking_read().size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for parking_lot::RwLock<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         (*self.read()).size_of(ops)

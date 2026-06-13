@@ -4,7 +4,7 @@
 
 use http::header::{CONTENT_LENGTH, CONTENT_RANGE, EXPIRES, HeaderValue, RANGE};
 use http::{HeaderMap, StatusCode};
-use net::http_cache::{CacheKey, HttpCache, refresh};
+use net::http_cache::{CacheKey, HttpCache, HttpCacheAssignment, refresh};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::{Response, ResponseBody};
@@ -35,7 +35,7 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
     response
         .headers
         .insert(EXPIRES, HeaderValue::from_str("-10").unwrap());
-    let cache = HttpCache::default();
+    let cache = HttpCache::new(HttpCacheAssignment::Public);
     for body in response_bodies {
         *response.body.lock() = body.clone();
         // First, store the 'normal' response.
@@ -69,7 +69,7 @@ async fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
     let incomplete_response_body = &[1, 2, 3, 4, 5];
     let url = ServoUrl::parse("https://servo.org").unwrap();
 
-    let cache = HttpCache::default();
+    let cache = HttpCache::new(HttpCacheAssignment::Public);
     let mut headers = HeaderMap::new();
 
     headers.insert(
