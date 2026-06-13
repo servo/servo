@@ -242,10 +242,18 @@ impl HTMLDialogElement {
             let element = self.upcast::<Element>();
 
             if let Some(tracker) = element.take_toggle_event_tracker() {
-                // Step 1.1. Set oldState to element's dialog toggle task tracker's old state.
-                tracker.canceller.store(true, Ordering::SeqCst); // Step 1.2: cancel the pending task
+                // Step 1.2. Remove element's dialog toggle task tracker's task from its task queue.
+                //
+                // Servo's task queues don't support removing a queued task directly. Instead,
+                // we flip a shared cancellation flag; the queued task checks this flag when it
+                // runs and no-ops if set, which is observably equivalent to removal.
+                tracker.canceller.store(true, Ordering::SeqCst);
 
-                // Step 1.3: tracker is gone (we called take())
+                // Step 1.3. Set element's dialog toggle task tracker to null.
+                //
+                // Note: the tracker is already gone, as we called `take()` above.
+
+                // Step 1.1. Set oldState to element's dialog toggle task tracker's old state.
                 tracker.old_state
             } else {
                 old_state.to_string()
@@ -293,8 +301,9 @@ impl HTMLDialogElement {
                 *this.upcast::<Element>().toggle_event_tracker_mut() = None;
 
             }));
-        // Step 3. Set element's dialog toggle task tracker to a struct with task set to the just-queued task and old state set to oldState.
-        // task set to the just-queued task and old state set to oldState.
+
+        // Step 3. Set element's dialog toggle task tracker to a struct with task
+        // set to the just-queued task and old state set to oldState.
         *self.upcast::<Element>().toggle_event_tracker_mut() = Some(ToggleEventTracker {
             old_state,
             canceller,

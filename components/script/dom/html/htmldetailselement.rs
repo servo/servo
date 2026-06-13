@@ -376,6 +376,12 @@ impl HTMLDetailsElement {
         }
     }
 
+    /// Queue a "details toggle event task" for this element, implementing the
+    /// toggle task tracker coalescing behaviour.
+    ///
+    /// This follows the same steps as
+    /// <https://html.spec.whatwg.org/multipage/#queue-a-dialog-toggle-event-task>
+    /// adapted for `<details>`, which has no `source` and is not cancelable.
     fn queue_details_toggle_event_task(&self, old_state: &str, new_state: &str) {
         let old_state = {
             let element = self.upcast::<Element>();

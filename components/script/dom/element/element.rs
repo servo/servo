@@ -1021,7 +1021,9 @@ impl Element {
     }
 
     pub(crate) fn toggle_event_tracker_mut(&self) -> RefMut<'_, Option<ToggleEventTracker>> {
-        RefMut::map(self.ensure_rare_data(), |data| &mut data.toggle_event_tracker)
+        RefMut::map(self.ensure_rare_data(), |data| {
+            &mut data.toggle_event_tracker
+        })
     }
 
     pub(crate) fn take_toggle_event_tracker(&self) -> Option<ToggleEventTracker> {
