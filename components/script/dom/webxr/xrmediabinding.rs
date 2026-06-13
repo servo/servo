@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaBinding_Binding::XRMediaBindingMethods;
 use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaLayerInit;
@@ -16,7 +17,6 @@ use crate::dom::xrcylinderlayer::XRCylinderLayer;
 use crate::dom::xrequirectlayer::XREquirectLayer;
 use crate::dom::xrquadlayer::XRQuadLayer;
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRMediaBinding {
@@ -33,16 +33,16 @@ impl XRMediaBinding {
     }
 
     fn new(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
         session: &XRSession,
-        can_gc: CanGc,
     ) -> DomRoot<XRMediaBinding> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(XRMediaBinding::new_inherited(session)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -50,9 +50,9 @@ impl XRMediaBinding {
 impl XRMediaBindingMethods<crate::DomTypeHolder> for XRMediaBinding {
     /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-xrmediabinding>
     fn Constructor(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         session: &XRSession,
     ) -> Fallible<DomRoot<XRMediaBinding>> {
         // Step 1.
@@ -66,7 +66,7 @@ impl XRMediaBindingMethods<crate::DomTypeHolder> for XRMediaBinding {
         }
 
         // Steps 3-5.
-        Ok(XRMediaBinding::new(global, proto, session, can_gc))
+        Ok(XRMediaBinding::new(cx, global, proto, session))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-createquadlayer>

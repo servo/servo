@@ -4,7 +4,8 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::codegen::Bindings::XRWebGLBindingBinding::XRWebGLBinding_Binding::XRWebGLBindingMethods;
@@ -28,7 +29,6 @@ use crate::dom::xrquadlayer::XRQuadLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrwebglsubimage::XRWebGLSubImage;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRWebGLBinding {
@@ -50,17 +50,17 @@ impl XRWebGLBinding {
     }
 
     fn new(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
         session: &XRSession,
         context: &WebGLRenderingContext,
-        can_gc: CanGc,
     ) -> DomRoot<XRWebGLBinding> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(XRWebGLBinding::new_inherited(session, context)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -68,9 +68,9 @@ impl XRWebGLBinding {
 impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-xrwebglbinding>
     fn Constructor(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         session: &XRSession,
         context: WebGLRenderingContextOrWebGL2RenderingContext,
     ) -> Fallible<DomRoot<XRWebGLBinding>> {
@@ -97,9 +97,7 @@ impl XRWebGLBindingMethods<crate::DomTypeHolder> for XRWebGLBinding {
 
         // Step 5 throw an InvalidStateError If context’s XR compatible boolean is false.
 
-        Ok(XRWebGLBinding::new(
-            global, proto, session, &context, can_gc,
-        ))
+        Ok(XRWebGLBinding::new(cx, global, proto, session, &context))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createprojectionlayer>

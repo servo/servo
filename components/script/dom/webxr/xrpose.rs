@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::XRPoseBinding::XRPoseMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -11,7 +12,6 @@ use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::ApiRigidTransform;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRPose {
@@ -28,12 +28,12 @@ impl XRPose {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         transform: ApiRigidTransform,
-        can_gc: CanGc,
     ) -> DomRoot<XRPose> {
-        let transform = XRRigidTransform::new(window, transform, can_gc);
-        reflect_dom_object(Box::new(XRPose::new_inherited(&transform)), window, can_gc)
+        let transform = XRRigidTransform::new(cx, window, transform);
+        reflect_dom_object_with_cx(Box::new(XRPose::new_inherited(&transform)), window, cx)
     }
 }
 

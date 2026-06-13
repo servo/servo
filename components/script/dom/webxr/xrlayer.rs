@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use servo_canvas_traits::webgl::WebGLContextId;
 use webxr_api::LayerId;
 
@@ -56,10 +57,10 @@ impl XRLayer {
         &self.session
     }
 
-    pub(crate) fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
+    pub(crate) fn begin_frame(&self, cx: &mut JSContext, frame: &XRFrame) -> Option<()> {
         // TODO: Implement this for other layer types
         if let Some(this) = self.downcast::<XRWebGLLayer>() {
-            this.begin_frame(frame)
+            this.begin_frame(cx, frame)
         } else {
             unimplemented!()
         }

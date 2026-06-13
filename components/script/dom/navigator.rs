@@ -473,9 +473,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
     #[cfg(feature = "webxr")]
-    fn Xr(&self) -> DomRoot<XRSystem> {
+    fn Xr(&self, cx: &mut JSContext) -> DomRoot<XRSystem> {
         self.xr
-            .or_init(|| XRSystem::new(self.global().as_window(), CanGc::deprecated_note()))
+            .or_init(|| XRSystem::new(cx, self.global().as_window()))
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices>

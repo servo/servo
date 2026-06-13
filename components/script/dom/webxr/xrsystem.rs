@@ -13,7 +13,7 @@ use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::ipc;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
@@ -35,7 +35,6 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -63,11 +62,11 @@ impl XRSystem {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<XRSystem> {
-        reflect_dom_object(
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<XRSystem> {
+        reflect_dom_object_with_cx(
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -115,9 +114,9 @@ impl Convert<SessionMode> for XRSessionMode {
 
 impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     /// <https://immersive-web.github.io/webxr/#dom-xr-issessionsupported>
-    fn IsSessionSupported(&self, mode: XRSessionMode, can_gc: CanGc) -> Rc<Promise> {
+    fn IsSessionSupported(&self, cx: &mut CurrentRealm, mode: XRSessionMode) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new(&self.global(), can_gc);
+        let promise = Promise::new_in_realm(cx);
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
         let global = self.global();
         let task_source = global
@@ -266,9 +265,8 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn Test(&self) -> DomRoot<XRTest> {
-        self.test
-            .or_init(|| XRTest::new(&self.global(), CanGc::deprecated_note()))
+    fn Test(&self, cx: &mut JSContext) -> DomRoot<XRTest> {
+        self.test.or_init(|| XRTest::new(cx, &self.global()))
     }
 }
 
@@ -292,13 +290,7 @@ impl XRSystem {
                 return;
             },
         };
-        let session = XRSession::new(
-            self.global().as_window(),
-            session,
-            mode,
-            frame_receiver,
-            CanGc::from_cx(cx),
-        );
+        let session = XRSession::new(cx, self.global().as_window(), session, mode, frame_receiver);
         if mode == XRSessionMode::Inline {
             self.active_inline_sessions
                 .borrow_mut()

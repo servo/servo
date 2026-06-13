@@ -4,13 +4,13 @@
 
 use dom_struct::dom_struct;
 use euclid::Rect;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webxr_api::Viewport;
 
 use crate::dom::bindings::codegen::Bindings::XRViewportBinding::XRViewportMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRViewport {
@@ -28,15 +28,11 @@ impl XRViewport {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         viewport: Rect<i32, Viewport>,
-        can_gc: CanGc,
     ) -> DomRoot<XRViewport> {
-        reflect_dom_object(
-            Box::new(XRViewport::new_inherited(viewport)),
-            global,
-            can_gc,
-        )
+        reflect_dom_object_with_cx(Box::new(XRViewport::new_inherited(viewport)), global, cx)
     }
 }
 

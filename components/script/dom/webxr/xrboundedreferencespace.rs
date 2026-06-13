@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::bindings::codegen::Bindings::XRBoundedReferenceSpaceBinding::XRBoundedReferenceSpaceMethods;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
@@ -41,25 +42,25 @@ impl XRBoundedReferenceSpace {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         session: &XRSession,
-        can_gc: CanGc,
     ) -> DomRoot<XRBoundedReferenceSpace> {
-        let offset = XRRigidTransform::identity(window, can_gc);
+        let offset = XRRigidTransform::identity(cx, window);
         let global = window.global();
-        Self::new_offset(&global, session, &offset, can_gc)
+        Self::new_offset(cx, &global, session, &offset)
     }
 
     pub(crate) fn new_offset(
+        cx: &mut JSContext,
         global: &GlobalScope,
         session: &XRSession,
         offset: &XRRigidTransform,
-        can_gc: CanGc,
     ) -> DomRoot<XRBoundedReferenceSpace> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(XRBoundedReferenceSpace::new_inherited(session, offset)),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -70,7 +71,7 @@ impl XRBoundedReferenceSpace {
 
 impl XRBoundedReferenceSpaceMethods<crate::DomTypeHolder> for XRBoundedReferenceSpace {
     /// <https://www.w3.org/TR/webxr/#dom-xrboundedreferencespace-boundsgeometry>
-    fn BoundsGeometry(&self, cx: &mut js::context::JSContext, retval: MutableHandleValue) {
+    fn BoundsGeometry(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         if let Some(bounds) = self.reference_space.get_bounds() {
             let points: Vec<DomRoot<DOMPointReadOnly>> = bounds
                 .into_iter()

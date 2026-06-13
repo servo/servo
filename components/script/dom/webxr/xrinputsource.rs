@@ -143,31 +143,19 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-targetrayspace>
-    fn TargetRaySpace(&self) -> DomRoot<XRSpace> {
+    fn TargetRaySpace(&self, cx: &mut JSContext) -> DomRoot<XRSpace> {
         self.target_ray_space.or_init(|| {
             let global = self.global();
-            XRSpace::new_inputspace(
-                &global,
-                &self.session,
-                self,
-                false,
-                CanGc::deprecated_note(),
-            )
+            XRSpace::new_inputspace(cx, &global, &self.session, self, false)
         })
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-gripspace>
-    fn GetGripSpace(&self) -> Option<DomRoot<XRSpace>> {
+    fn GetGripSpace(&self, cx: &mut JSContext) -> Option<DomRoot<XRSpace>> {
         if self.info.supports_grip {
             Some(self.grip_space.or_init(|| {
                 let global = self.global();
-                XRSpace::new_inputspace(
-                    &global,
-                    &self.session,
-                    self,
-                    true,
-                    CanGc::deprecated_note(),
-                )
+                XRSpace::new_inputspace(cx, &global, &self.session, self, true)
             }))
         } else {
             None
@@ -191,11 +179,10 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     }
 
     /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
-    fn GetHand(&self) -> Option<DomRoot<XRHand>> {
+    fn GetHand(&self, cx: &mut JSContext) -> Option<DomRoot<XRHand>> {
         self.info.hand_support.as_ref().map(|hand| {
-            self.hand.or_init(|| {
-                XRHand::new(&self.global(), self, hand.clone(), CanGc::deprecated_note())
-            })
+            self.hand
+                .or_init(|| XRHand::new(cx, &self.global(), self, hand.clone()))
         })
     }
 }

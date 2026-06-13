@@ -1560,8 +1560,9 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#the-end step 6
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
             for document in docs.iter() {
-                let _realm = enter_auto_realm(cx, &**document);
-                document.maybe_queue_document_completion();
+                let mut realm = enter_auto_realm(cx, &**document);
+                let cx = &mut realm.current_realm();
+                document.maybe_queue_document_completion(cx);
             }
             docs.clear();
         }

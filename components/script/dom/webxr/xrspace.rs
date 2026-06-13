@@ -4,7 +4,8 @@
 
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
-use script_bindings::reflector::reflect_dom_object;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use webxr_api::{BaseSpace, Frame, Space};
 
 use crate::dom::bindings::inheritance::Castable;
@@ -15,7 +16,6 @@ use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrjointspace::XRJointSpace;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::{ApiPose, XRSession, cast_transform};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRSpace {
@@ -50,16 +50,16 @@ impl XRSpace {
     }
 
     pub(crate) fn new_inputspace(
+        cx: &mut JSContext,
         global: &GlobalScope,
         session: &XRSession,
         input: &XRInputSource,
         is_grip_space: bool,
-        can_gc: CanGc,
     ) -> DomRoot<XRSpace> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(XRSpace::new_inputspace_inner(session, input, is_grip_space)),
             global,
-            can_gc,
+            cx,
         )
     }
 
