@@ -2135,7 +2135,15 @@ impl<'a> BuilderForBoxFragment<'a> {
                         .inflate(extra_size_from_blur, extra_size_from_blur)
                 },
             };
-            let border_radius = self.border_radius();
+            let border_radius = match clip_mode {
+                BoxShadowClipMode::Inset => {
+                    // The `border-radius` value applies to the border box, but inset shadows
+                    // use the padding box instead. So we need to shrink the `border-radius`
+                    // by the border widths.
+                    offset_radii(self.border_radius(), -self.fragment.border.to_webrender())
+                },
+                BoxShadowClipMode::Outset => self.border_radius(),
+            };
             let shadow_radius = offset_radii(
                 border_radius,
                 SideOffsets2D::new_all_same(match clip_mode {
