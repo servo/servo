@@ -356,10 +356,11 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
     fn try_from(value: SerializableCryptoKeyHandle) -> Result<Self, Self::Error> {
         match &value {
             SerializableCryptoKeyHandle::RsaPrivateKey(private_key) => Ok(Handle::RsaPrivateKey(
-                pkcs8::DecodePrivateKey::from_pkcs8_der(private_key).map_err(|_| ())?,
+                rsa::pkcs8::DecodePrivateKey::from_pkcs8_der(private_key).map_err(|_| ())?,
             )),
             SerializableCryptoKeyHandle::RsaPublicKey(public_key) => Ok(Handle::RsaPublicKey(
-                pkcs8::spki::DecodePublicKey::from_public_key_der(public_key).map_err(|_| ())?,
+                rsa::pkcs8::spki::DecodePublicKey::from_public_key_der(public_key)
+                    .map_err(|_| ())?,
             )),
             SerializableCryptoKeyHandle::P256PrivateKey(private_key) => Ok(Handle::P256PrivateKey(
                 p256::SecretKey::from_sec1_der(private_key).map_err(|_| ())?,
@@ -492,16 +493,15 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
     fn try_from(value: &Handle) -> Result<Self, Self::Error> {
         match value {
             Handle::RsaPrivateKey(private_key) => Ok(SerializableCryptoKeyHandle::RsaPrivateKey(
-                pkcs8::EncodePrivateKey::to_pkcs8_der(private_key)
+                rsa::pkcs8::EncodePrivateKey::to_pkcs8_der(private_key)
                     .map_err(|_| ())?
-                    .to_bytes()
+                    .as_bytes()
                     .to_vec(),
             )),
             Handle::RsaPublicKey(public_key) => Ok(SerializableCryptoKeyHandle::RsaPublicKey(
-                pkcs8::spki::EncodePublicKey::to_public_key_der(public_key)
+                rsa::pkcs8::spki::EncodePublicKey::to_public_key_der(public_key)
                     .map_err(|_| ())?
-                    .into_vec()
-                    .to_vec(),
+                    .into_vec(),
             )),
             Handle::P256PrivateKey(private_key) => Ok(SerializableCryptoKeyHandle::P256PrivateKey(
                 private_key.to_sec1_der().map_err(|_| ())?.to_vec(),
