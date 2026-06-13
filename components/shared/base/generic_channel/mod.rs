@@ -7,6 +7,7 @@
 use std::fmt;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::panic::Location;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -55,9 +56,11 @@ where
     ///
     /// In cases where channel closure is possible (because the receiver does not exist anymore),
     /// this convenience method can be used to ignore the result and log the error as a warning.
-    fn send_or_warn(&self, message: T, error_context: &str) {
+    #[track_caller]
+    fn send_or_warn(&self, message: T) {
         if let Err(error) = self.send(message) {
-            log::warn!("{error_context}: {error}");
+            let location = Location::caller();
+            log::warn!("Failed to send msg due to `{error}` at {location:?}");
         }
     }
 
@@ -233,9 +236,10 @@ impl<T: Serialize> GenericSender<T> {
     /// In cases where channel closure is possible (because the receiver does not exist anymore),
     /// this convenience method can be used to ignore the result and log the error as a warning.
     #[inline]
-    pub fn send_or_warn(&self, msg: T, error_context: &str) {
+    pub fn send_or_warn(&self, msg: T) {
         if let Err(error) = self.send(msg) {
-            log::warn!("{error_context}: {error}");
+            let location = Location::caller();
+            log::warn!("Failed to send msg due to `{error}` at {location:?}");
         }
     }
 
