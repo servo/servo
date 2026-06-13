@@ -1401,7 +1401,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             return Some(clip);
         }
 
-        let radii = offset_radii(self.border_radius(), -self.fragment.border.to_webrender());
+        let radii = offset_radii(
+            self.border_radius(),
+            -self.fragment.border.to_webrender(),
+            self.border_rect.size(),
+        );
         let maybe_clip =
             builder.maybe_create_clip(state, radii, *self.padding_rect(), force_clip_creation);
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
@@ -1421,6 +1425,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let radii = offset_radii(
             self.border_radius(),
             -(self.fragment.border + self.fragment.padding).to_webrender(),
+            self.border_rect.size(),
         );
         let maybe_clip =
             builder.maybe_create_clip(state, radii, *self.content_rect(), force_clip_creation);
@@ -2094,7 +2099,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             right: side,
             bottom: side,
             left: side,
-            radius: offset_radii(self.border_radius(), SideOffsets2D::new_all_same(offset)),
+            radius: offset_radii(
+                self.border_radius(),
+                SideOffsets2D::new_all_same(offset),
+                self.border_rect.size(),
+            ),
             do_aa: true,
         });
         builder
@@ -2135,13 +2144,26 @@ impl<'a> BuilderForBoxFragment<'a> {
                         .inflate(extra_size_from_blur, extra_size_from_blur)
                 },
             };
-            let border_radius = self.border_radius();
+            let border_radius = match clip_mode {
+                BoxShadowClipMode::Inset => {
+                    // The `border-radius` value applies to the border box, but inset shadows
+                    // use the padding box instead. So we need to shrink the `border-radius`
+                    // by the border widths.
+                    offset_radii(
+                        self.border_radius(),
+                        -self.fragment.border.to_webrender(),
+                        self.border_rect.size(),
+                    )
+                },
+                BoxShadowClipMode::Outset => self.border_radius(),
+            };
             let shadow_radius = offset_radii(
                 border_radius,
                 SideOffsets2D::new_all_same(match clip_mode {
                     BoxShadowClipMode::Inset => -spread,
                     BoxShadowClipMode::Outset => spread,
                 }),
+                rect.size(),
             );
             let common = builder.common_properties(state, clip_rect, &style);
             builder.wr().push_box_shadow(
@@ -2205,41 +2227,82 @@ fn glyphs(
     (glyphs, largest_advance)
 }
 
+/// <https://drafts.csswg.org/css-backgrounds-3/#adjusted-radius-dimension>
+fn adjusted_radius_dimension(coverage: f32, radius: f32, outset: f32) -> f32 {
+    // Fast path for the common case.
+    if outset == 0.0 {
+        return radius;
+    }
+
+    // For a negative outset (i.e. inset), just shrink the radius by that amount.
+    if outset < 0.0 {
+        return (radius + outset).max(0.0);
+    }
+
+    // > 1. If `radius` is greater than `spread`, or if `coverage` is greater than 1,
+    // > then return `radius + outset`.
+    // Because of continuity, we can include equalities here, and avoid the work below.
+    if radius >= outset || coverage >= 1.0 {
+        return radius + outset;
+    }
+
+    // > 2. Let `ratio` be `radius / outset`
+    let ratio = radius / outset;
+
+    // > 3. Return `radius + outset * (1 - (1 - ratio)³ * (1 - coverage³))`.
+    radius + outset * (1.0 - (1.0 - ratio).powi(3) * (1.0 - coverage.powi(3)))
+}
+
+/// <https://drafts.csswg.org/css-backgrounds-3/#outset-adjusted-border-radius>
+fn outset_adjusted_border_radius(
+    edge: &units::LayoutSize,
+    radius: &LayoutSize,
+    outset_x: f32,
+    outset_y: f32,
+) -> Option<LayoutSize> {
+    // > 1. Let `coverage` be `2 * min(radius’s width / edge’s width, radius’s height / edge’s height)`.
+    let half_coverage_x = radius.width / edge.width;
+    let half_coverage_y = radius.height / edge.height;
+    if half_coverage_x.is_nan() || half_coverage_y.is_nan() {
+        return None;
+    }
+    let coverage = 2.0 * half_coverage_x.min(half_coverage_y);
+
+    // > 2. Let `adustedRadiusWidth` be the "adjusted radius dimension" given `coverage`,
+    // > `radius`’s width, and `outset`’s width.
+    let adjusted_radius_width = adjusted_radius_dimension(coverage, radius.width, outset_x);
+
+    // > 3. Let `adustedRadiusHeight` be the "adjusted radius dimension" given `coverage`,
+    // > `radius`’s height, and `outset`’s height.
+    let adjusted_radius_height = adjusted_radius_dimension(coverage, radius.height, outset_y);
+
+    // 4. Return `(adustedRadiusWidth, adustedRadiusHeight)`.
+    Some(LayoutSize::new(
+        adjusted_radius_width,
+        adjusted_radius_height,
+    ))
+}
+
 /// Given a set of corner radii for a rectangle, this function returns the corresponding radii
 /// for the [outer rectangle][`Rect::outer_rect`] resulting from expanding the original
 /// rectangle by the given offsets.
-fn offset_radii(mut radii: BorderRadius, offsets: LayoutSideOffsets) -> BorderRadius {
-    let expand = |radius: &mut f32, offset: f32| {
-        // For negative offsets, just shrink the radius by that amount.
-        if offset < 0.0 {
-            *radius = (*radius + offset).max(0.0);
-            return;
-        }
-
-        // For positive offsets, expand the radius by that amount. But only if the
-        // radius is positive, in order to preserve sharp corners.
-        // TODO: this behavior is not continuous, we should use this algorithm instead:
-        // https://github.com/w3c/csswg-drafts/issues/7103#issuecomment-3357331922
-        if *radius > 0.0 {
-            *radius += offset;
+fn offset_radii(
+    mut radii: BorderRadius,
+    offsets: LayoutSideOffsets,
+    original_rect_size: units::LayoutSize,
+) -> wr::BorderRadius {
+    let expand = |radius: &mut LayoutSize, outset_x, outset_y| {
+        if let Some(adjusted_radius) =
+            outset_adjusted_border_radius(&original_rect_size, radius, outset_x, outset_y)
+        {
+            *radius = adjusted_radius;
         }
     };
-    if offsets.left != 0.0 {
-        expand(&mut radii.top_left.width, offsets.left);
-        expand(&mut radii.bottom_left.width, offsets.left);
-    }
-    if offsets.right != 0.0 {
-        expand(&mut radii.top_right.width, offsets.right);
-        expand(&mut radii.bottom_right.width, offsets.right);
-    }
-    if offsets.top != 0.0 {
-        expand(&mut radii.top_left.height, offsets.top);
-        expand(&mut radii.top_right.height, offsets.top);
-    }
-    if offsets.bottom != 0.0 {
-        expand(&mut radii.bottom_right.height, offsets.bottom);
-        expand(&mut radii.bottom_left.height, offsets.bottom);
-    }
+    expand(&mut radii.top_left, offsets.left, offsets.top);
+    expand(&mut radii.top_right, offsets.right, offsets.top);
+    expand(&mut radii.bottom_right, offsets.right, offsets.bottom);
+    expand(&mut radii.bottom_left, offsets.left, offsets.bottom);
+
     radii
 }
 
