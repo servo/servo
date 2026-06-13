@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use elliptic_curve::rand_core::OsRng;
 use js::context::JSContext;
-use pkcs8::PrivateKeyInfo;
-use pkcs8::der::asn1::{BitStringRef, OctetString, OctetStringRef};
-use pkcs8::der::{AnyRef, Decode, Encode};
-use pkcs8::rand_core::OsRng;
-use pkcs8::spki::{AlgorithmIdentifier, ObjectIdentifier, SubjectPublicKeyInfo};
+use pkcs8::der::asn1::{OctetString, OctetStringRef};
+use pkcs8::der::{Decode, Encode};
+use pkcs8::{AlgorithmIdentifierRef, ObjectIdentifier, PrivateKeyInfoRef, SubjectPublicKeyInfoRef};
 use x25519_dalek::{PublicKey, StaticSecret};
+use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
@@ -204,8 +204,11 @@ pub(crate) fn import_key(
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData.
             // Step 2.3. If an error occurred while parsing, then throw a DataError.
-            let spki = SubjectPublicKeyInfo::<AnyRef, BitStringRef>::from_der(key_data)
-                .map_err(|_| Error::Data(None))?;
+            let spki = SubjectPublicKeyInfoRef::from_der(key_data).map_err(|_| {
+                Error::Data(Some(
+                    "Failed to parse the X25519 public key in SPKI format".into(),
+                ))
+            })?;
 
             // Step 2.4. If the algorithm object identifier field of the algorithm
             // AlgorithmIdentifier field of spki is not equal to the id-X25519 object identifier
@@ -262,8 +265,11 @@ pub(crate) fn import_key(
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
             // Step 2.3. If an error occurs while parsing, then throw a DataError.
-            let private_key_info =
-                PrivateKeyInfo::from_der(key_data).map_err(|_| Error::Data(None))?;
+            let private_key_info = PrivateKeyInfoRef::from_der(key_data).map_err(|_| {
+                Error::Data(Some(
+                    "Failed to parse the X25519 private key in PKCS#8 format".into(),
+                ))
+            })?;
 
             // Step 2.4. If the algorithm object identifier field of the privateKeyAlgorithm
             // PrivateKeyAlgorithm field of privateKeyInfo is not equal to the id-X25519 object
@@ -284,13 +290,23 @@ pub(crate) fn import_key(
             // as the ASN.1 CurvePrivateKey structure specified in Section 7 of [RFC8410], and
             // exactData set to true.
             // Step 2.7. If an error occurred while parsing, then throw a DataError.
-            let curve_private_key = OctetStringRef::from_der(private_key_info.private_key)
-                .map_err(|_| Error::Data(None))?;
-            let key_bytes: [u8; PRIVATE_KEY_LENGTH] = curve_private_key
-                .as_bytes()
-                .try_into()
-                .map_err(|_| Error::Data(None))?;
-            let private_key = StaticSecret::from(key_bytes);
+            let curve_private_key = private_key_info
+                .private_key
+                .decode_into::<OctetString>()
+                .map_err(|_| {
+                    Error::Data(Some(
+                        "Failed to decode the privateKey field of PrivateKeyInfo ASN.1 structure"
+                            .into(),
+                    ))
+                })?;
+            let key_bytes: [u8; PRIVATE_KEY_LENGTH] =
+                curve_private_key.as_bytes().try_into().map_err(|_| {
+                    Error::Data(Some(
+                        "Failed to extract the raw bytes from the CurvePrivateKey ASN.1 structure"
+                            .into(),
+                    ))
+                })?;
+            let curve_private_key = StaticSecret::from(key_bytes);
 
             // Step 2.8. Let key be a new CryptoKey that represents the X25519 private key
             // identified by curvePrivateKey.
@@ -308,7 +324,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                Handle::X25519PrivateKey(private_key),
+                Handle::X25519PrivateKey(curve_private_key),
             )
         },
         // If format is "jwk":
@@ -499,13 +515,18 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let Handle::X25519PublicKey(public_key) = key.handle() else {
                 return Err(Error::Operation(None));
             };
-            let data = SubjectPublicKeyInfo::<BitStringRef, _> {
-                algorithm: AlgorithmIdentifier {
+            let data = SubjectPublicKeyInfoRef {
+                algorithm: AlgorithmIdentifierRef {
                     oid: ObjectIdentifier::new_unwrap(X25519_OID_STRING),
                     parameters: None,
                 },
-                subject_public_key: BitStringRef::from_bytes(public_key.as_bytes())
-                    .map_err(|_| Error::Data(None))?,
+                subject_public_key: public_key.as_bytes().try_into().map_err(|_| {
+                    Error::Data(Some(
+                        "Failed to construct the subjectPublicKey field of SubjectPublicKeyInfo \
+                            ASN.1 structure"
+                            .into(),
+                    ))
+                })?,
             };
 
             // Step 3.3. Let result be the result of DER-encoding data.
@@ -533,14 +554,33 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let Handle::X25519PrivateKey(private_key) = key.handle() else {
                 return Err(Error::Operation(None));
             };
-            let curve_private_key =
-                OctetString::new(private_key.as_bytes()).map_err(|_| Error::Data(None))?;
-            let data = PrivateKeyInfo {
-                algorithm: AlgorithmIdentifier {
+            let curve_private_key = OctetStringRef::new(private_key.as_bytes().as_slice())
+                .map_err(|_| {
+                    Error::Operation(Some(
+                        "Failed to construct CurvePrivateKey ASN.1 structure".into(),
+                    ))
+                })?;
+            let encoded_curve_private_key: Zeroizing<Vec<u8>> = curve_private_key
+                .to_der()
+                .map_err(|_| {
+                    Error::Operation(Some(
+                        "Failed to encode CurvePrivateKey ASN.1 structure in DER format".into(),
+                    ))
+                })?
+                .into();
+            let private_key_field =
+                OctetStringRef::new(&encoded_curve_private_key).map_err(|_| {
+                    Error::Operation(Some(
+                        "Failed to construct privateKey field of PrivateKeyInfo ASN.1 structure"
+                            .into(),
+                    ))
+                })?;
+            let data = PrivateKeyInfoRef {
+                algorithm: AlgorithmIdentifierRef {
                     oid: ObjectIdentifier::new_unwrap(X25519_OID_STRING),
                     parameters: None,
                 },
-                private_key: &curve_private_key.to_der().map_err(|_| Error::Data(None))?,
+                private_key: private_key_field,
                 public_key: None,
             };
 

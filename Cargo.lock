@@ -1938,7 +1938,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7c1832837b905bbfb5101e07cc24c8deddf52f93225eee6ead5f4d63d53ddcb"
 dependencies = [
  "const-oid 0.9.6",
- "der_derive",
  "pem-rfc7468 0.7.0",
  "zeroize",
 ]
@@ -1952,17 +1951,6 @@ dependencies = [
  "const-oid 0.10.2",
  "pem-rfc7468 1.0.0",
  "zeroize",
-]
-
-[[package]]
-name = "der_derive"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8034092389675178f570469e6c3b0465d3d30b4505c294a6550db47f3c17ad18"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -6388,7 +6376,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f950b2377845cebe5cf8b5165cb3cc1a5e0fa5cfa3e1f7f55707d8fd82e0a7b7"
 dependencies = [
  "der 0.7.10",
- "rand_core 0.6.4",
  "spki 0.7.3",
 ]
 
@@ -8738,7 +8725,6 @@ dependencies = [
  "cssparser",
  "ctr",
  "data-url",
- "der 0.7.10",
  "digest 0.11.3",
  "ecdsa",
  "elliptic-curve",
@@ -8776,7 +8762,7 @@ dependencies = [
  "parking_lot",
  "percent-encoding",
  "phf",
- "pkcs8 0.10.2",
+ "pkcs8 0.11.0",
  "postcard",
  "rand 0.10.1",
  "regex",
