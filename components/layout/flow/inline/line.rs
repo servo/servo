@@ -697,6 +697,16 @@ impl LineItemLayout<'_, '_> {
             &self.layout.layout_context.font_context,
         );
 
+        // Resolve the captured byte range to the source text for this run, eliminating
+        // collapsible whitespace on the ledges.
+        let text_for_display_list = text_item
+            .display_list_byte_range
+            .as_ref()
+            .and_then(|range| {
+                let text = self.layout.ifc.text_content.get(range.clone())?.trim();
+                (!text.is_empty()).then(|| text.into())
+            });
+
         self.current_state.inline_advance += inline_advance;
         self.current_state
             .fragments_and_data
@@ -714,6 +724,7 @@ impl LineItemLayout<'_, '_> {
                     justification_adjustment: self.justification_adjustment,
                     offsets: text_item.offsets,
                     is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
+                    text_for_display_list,
                 })),
                 content_rect,
             ));
@@ -985,6 +996,9 @@ pub(super) struct TextRunLineItem {
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,
+    /// The byte range into the parent IFC's `text_content` covered by this item,
+    /// populated only when `LayoutContext::capture_display_list` is true.
+    pub display_list_byte_range: Option<Range<usize>>,
 }
 
 impl TextRunLineItem {
