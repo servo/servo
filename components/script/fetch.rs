@@ -219,9 +219,7 @@ pub(crate) fn Fetch(
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors
     let response = Response::new(cx, global);
-    response
-        .Headers(CanGc::from_cx(cx))
-        .set_guard(Guard::Immutable);
+    response.Headers(cx).set_guard(Guard::Immutable);
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
@@ -569,7 +567,7 @@ impl FetchResponseListener for FetchContext {
                     .reject_error_with_cx(cx, Error::Type(cformat!("Network error: {:?}", error)));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
-                response.set_type(DOMResponseType::Error, CanGc::from_cx(cx));
+                response.set_type(cx, DOMResponseType::Error);
                 response.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
                 return;
             },
@@ -577,40 +575,32 @@ impl FetchResponseListener for FetchContext {
             // given response, "immutable", and relevantRealm.
             Ok(metadata) => match metadata {
                 FetchMetadata::Unfiltered(m) => {
-                    fill_headers_with_metadata(self.response_object.root(), m, CanGc::from_cx(cx));
+                    fill_headers_with_metadata(cx, self.response_object.root(), m);
                     self.response_object
                         .root()
-                        .set_type(DOMResponseType::Default, CanGc::from_cx(cx));
+                        .set_type(cx, DOMResponseType::Default);
                 },
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
                     FilteredMetadata::Basic(m) => {
-                        fill_headers_with_metadata(
-                            self.response_object.root(),
-                            m,
-                            CanGc::from_cx(cx),
-                        );
+                        fill_headers_with_metadata(cx, self.response_object.root(), m);
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Basic, CanGc::from_cx(cx));
+                            .set_type(cx, DOMResponseType::Basic);
                     },
                     FilteredMetadata::Cors(m) => {
-                        fill_headers_with_metadata(
-                            self.response_object.root(),
-                            m,
-                            CanGc::from_cx(cx),
-                        );
+                        fill_headers_with_metadata(cx, self.response_object.root(), m);
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Cors, CanGc::from_cx(cx));
+                            .set_type(cx, DOMResponseType::Cors);
                     },
                     FilteredMetadata::Opaque => {
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Opaque, CanGc::from_cx(cx));
+                            .set_type(cx, DOMResponseType::Opaque);
                     },
                     FilteredMetadata::OpaqueRedirect(url) => {
                         let r = self.response_object.root();
-                        r.set_type(DOMResponseType::Opaqueredirect, CanGc::from_cx(cx));
+                        r.set_type(cx, DOMResponseType::Opaqueredirect);
                         r.set_final_url(url);
                     },
                 },
@@ -724,8 +714,8 @@ impl ResourceTimingListener for FetchLaterListener {
     }
 }
 
-fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata, can_gc: CanGc) {
-    r.set_headers(m.headers, can_gc);
+fn fill_headers_with_metadata(cx: &mut js::context::JSContext, r: DomRoot<Response>, m: Metadata) {
+    r.set_headers(cx, m.headers);
     r.set_status(&m.status);
     r.set_final_url(m.final_url);
     r.set_redirected(m.redirected);

@@ -1365,9 +1365,7 @@ unsafe extern "C" fn consume_stream(
         unsafe { root_from_handleobject::<Response>(RustHandleObject::from_raw(obj), cx.raw_cx()) }
     {
         // Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
-        let mimetype = unwrapped_source
-            .Headers(CanGc::from_cx(cx))
-            .extract_mime_type();
+        let mimetype = unwrapped_source.Headers(cx).extract_mime_type();
 
         // Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
         if !&mimetype[..].eq_ignore_ascii_case(b"application/wasm") {
