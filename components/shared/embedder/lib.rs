@@ -43,11 +43,11 @@ use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
 use uuid::Uuid;
-use webrender_api::ExternalScrollId;
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect,
     DeviceVector2D, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D,
 };
+use webrender_api::{ColorF, ExternalScrollId};
 
 pub use crate::embedder_controls::*;
 pub use crate::input_events::*;
@@ -461,6 +461,65 @@ pub struct BluetoothDeviceDescription {
     pub name: String,
 }
 
+/// A single item from a captive layout [`DisplayList`].
+///
+/// This is a projection of the items that Servo's layout
+/// engine pushes into its display list while painting a frame.
+/// It helps embedders provide their own rendering *interpretation*.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum DisplayListItem {
+    /// A run of shaped text.
+    Text {
+        /// The source text of this run. Leading and trailing collapsible whitespace is un-led and de-trailed.
+        text: String,
+
+        /// Bounding rectangle in CSS pixel-space, relative to the top-left of the
+        /// document (before applying the viewport scroll offset).
+        rect: LayoutRect,
+
+        /// The CSS `color` used to paint this text.
+        color: ColorF,
+    },
+
+    /// A solid color fill, like an element's `background-color`.
+    SolidColor {
+        /// Bounding rectangle in CSS pixels, relative to the top-left of the document.
+        rect: LayoutRect,
+
+        /// The fill color.
+        color: ColorF,
+    },
+
+    /// A raster or vector image.
+    Image {
+        /// Bounding rectangle in CSS pixels, relative to the top-left of the document.
+        rect: LayoutRect,
+    },
+}
+
+/// A snapshot of the display list produced by layout for a [`WebView`].
+///
+/// Delivered via [`WebViewDelegate::notify_display_list`] post-display-list
+/// build, when the `layout_display_list_capture_enabled` preference is set. The
+/// items are in paint order (back to front).
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct DisplayList {
+    /// All captured display items.
+    pub items: Vec<DisplayListItem>,
+
+    /// The layout epoch when this display list was born.
+    pub epoch: Epoch,
+
+    /// The root viewport scroll offset in CSS pixels at capture time.
+    ///
+    /// Subtract this from a [`DisplayListItem`] rect to convert from document
+    /// coordinates to viewport (visible) coordinates :)
+    pub scroll_offset: LayoutVector2D,
+
+    /// The viewport size in CSS pixels at capture time.
+    pub viewport_size: LayoutSize,
+}
+
 /// Messages towards the embedder.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
@@ -543,6 +602,8 @@ pub enum EmbedderMsg {
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
+    /// Deliver a snapshot of the layout display list for this `WebView`
+    DisplayListCaptured(WebViewId, DisplayList),
 }
 
 impl Debug for EmbedderMsg {
