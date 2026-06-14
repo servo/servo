@@ -1109,17 +1109,34 @@ impl Fragment {
         }
 
         let mut rect = rect.to_webrender();
-        let line_thickness = rect.height().ceil();
-
+        let wavy_line_thickness = rect.height().ceil();
         if text_decoration.style == ComputedTextDecorationStyle::Wavy {
-            rect = rect.inflate(0.0, line_thickness * 1.0);
+            rect = rect.inflate(0.0, wavy_line_thickness);
         }
+
+        // In Servo, text decorations can span multiple text fragments. In order to have dots,
+        // dashes, and wavy line segments match up between multiple fragments, this code extends
+        // the painting rect for the decoration types for which this matters to the origin. As
+        // the rectangle starts at the origin, all painted decorations will be in phase. As the
+        // clipping rectangle is left unchanged, the actual painted region remains the size of
+        // the original rectangle.
+        let expand_rect_for_text_decoration = |mut rect: Box2D<f32, LayoutPixel>| {
+            if matches!(
+                text_decoration.style,
+                ComputedTextDecorationStyle::Dotted |
+                    ComputedTextDecorationStyle::Dashed |
+                    ComputedTextDecorationStyle::Wavy,
+            ) {
+                rect.min.x = rect.min.x.min(0.0);
+            }
+            rect
+        };
 
         let common_properties = builder.common_properties(state, rect, parent_style);
         builder.wr().push_line(
             &common_properties,
-            &rect,
-            line_thickness,
+            &expand_rect_for_text_decoration(rect),
+            wavy_line_thickness,
             wr::LineOrientation::Horizontal,
             &rgba(text_decoration.color),
             text_decoration.style.to_webrender(),
@@ -1136,7 +1153,7 @@ impl Fragment {
             builder.wr().push_line(
                 &common_properties,
                 &rect,
-                line_thickness,
+                wavy_line_thickness,
                 wr::LineOrientation::Horizontal,
                 &rgba(text_decoration.color),
                 text_decoration.style.to_webrender(),
