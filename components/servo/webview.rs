@@ -1026,7 +1026,6 @@ pub struct WebViewBuilder {
     delegate: Rc<dyn WebViewDelegate>,
     url: Option<Url>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-    device_size: Size2D<f32, DevicePixel>,
     create_new_webview_responder: Option<IpcResponder<Option<NewWebViewDetails>>>,
     user_content_manager: Option<Rc<UserContentManager>>,
     clipboard_delegate: Option<Rc<dyn ClipboardDelegate>>,
@@ -1042,7 +1041,6 @@ impl WebViewBuilder {
     pub fn new(servo: &Servo, rendering_context: Rc<dyn RenderingContext>) -> Self {
         Self {
             servo: servo.clone(),
-            device_size: rendering_context.size2d().cast(),
             rendering_context,
             url: None,
             hidpi_scale_factor: Scale::new(1.0),
@@ -1084,11 +1082,6 @@ impl WebViewBuilder {
         hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     ) -> Self {
         self.hidpi_scale_factor = hidpi_scale_factor;
-        self
-    }
-
-    pub fn device_size(mut self, device_size: Size2D<f32, DevicePixel>) -> Self {
-        self.device_size = device_size;
         self
     }
 

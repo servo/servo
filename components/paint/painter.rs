@@ -1269,9 +1269,7 @@ impl Painter {
         let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return;
         };
-        if !webview_renderer.set_screen_size(new_size) {
-            return;
-        }
+        webview_renderer.set_screen_size(new_size);
     }
 
     pub(crate) fn resize_rendering_context(&mut self, new_size: PhysicalSize<u32>) {
