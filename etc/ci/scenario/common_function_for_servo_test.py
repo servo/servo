@@ -351,7 +351,7 @@ def stop_servo(target_os: HostOptions, servo_process: subprocess.Popen[bytes] | 
             servo_process.kill()
             servo_process.wait(timeout=10)
     else:
-        subprocess.run(["pkill", "-x", "servoshell"], capture_output=True, text=True, timeout=10)
+        print("No tracked local Servo process to stop; skipping cleanup.")
     print("Stop Test Application successful!")
 
 
