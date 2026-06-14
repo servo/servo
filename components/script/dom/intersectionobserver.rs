@@ -42,7 +42,6 @@ use crate::dom::element::Element;
 use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// > The intersection root for an IntersectionObserver is the value of its root attribute if the attribute is non-null;
 /// > otherwise, it is the top-level browsing context’s document node, referred to as the implicit root.
@@ -720,12 +719,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds>
     fn Thresholds(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        to_frozen_array(
-            &self.thresholds.borrow(),
-            cx.into(),
-            retval,
-            CanGc::from_cx(cx),
-        );
+        to_frozen_array(cx, &self.thresholds.borrow(), retval);
     }
 
     /// > A number indicating the minimum delay in milliseconds between notifications from

@@ -26,7 +26,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
 struct HapticEffectListener {
@@ -118,12 +117,7 @@ impl GamepadHapticActuator {
 impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-effects>
     fn Effects(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        to_frozen_array(
-            self.effects.as_slice(),
-            cx.into(),
-            retval,
-            CanGc::from_cx(cx),
-        )
+        to_frozen_array(cx, self.effects.as_slice(), retval)
     }
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-playeffect>

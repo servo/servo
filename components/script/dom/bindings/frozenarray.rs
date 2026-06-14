@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
@@ -9,7 +10,6 @@ use js::rust::MutableHandleValue;
 use script_bindings::cell::DomRefCell;
 
 use crate::dom::bindings::utils::to_frozen_array;
-use crate::script_runtime::{CanGc, JSContext};
 
 #[derive(JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -26,10 +26,9 @@ impl CachedFrozenArray {
 
     pub(crate) fn get_or_init<F: FnOnce() -> Vec<T>, T: ToJSValConvertible>(
         &self,
+        cx: &mut JSContext,
         f: F,
-        cx: JSContext,
         mut retval: MutableHandleValue,
-        can_gc: CanGc,
     ) {
         if let Some(inner) = &*self.frozen_value.borrow() {
             retval.set(inner.get());
@@ -37,7 +36,7 @@ impl CachedFrozenArray {
         }
 
         let array = f();
-        to_frozen_array(array.as_slice(), cx, retval.reborrow(), can_gc);
+        to_frozen_array(cx, array.as_slice(), retval.reborrow());
 
         // Safety: need to create the Heap value in its final memory location before setting it.
         *self.frozen_value.borrow_mut() = Some(Heap::default());

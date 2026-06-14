@@ -54,15 +54,14 @@ impl DataTransferItemList {
 
     pub(crate) fn frozen_types(&self, cx: &mut js::context::JSContext, retval: MutableHandleValue) {
         self.frozen_types.get_or_init(
+            cx,
             || {
                 self.data_store
                     .borrow()
                     .as_ref()
                     .map_or(Vec::new(), |data_store| data_store.types())
             },
-            cx.into(),
             retval,
-            CanGc::from_cx(cx),
         );
     }
 

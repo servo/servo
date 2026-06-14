@@ -23,7 +23,7 @@ use crate::dom::window::Window;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrsession::XRSession;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 #[dom_struct]
 pub(crate) struct XRInputSourcesChangeEvent {
@@ -86,19 +86,9 @@ impl XRInputSourcesChangeEvent {
         let mut realm = enter_auto_realm(cx, window);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut frozen_val: JSVal);
-        to_frozen_array(
-            added,
-            cx.into(),
-            frozen_val.handle_mut(),
-            CanGc::from_cx(cx),
-        );
+        to_frozen_array(cx, added, frozen_val.handle_mut());
         changeevent.added.set(*frozen_val);
-        to_frozen_array(
-            removed,
-            cx.into(),
-            frozen_val.handle_mut(),
-            CanGc::from_cx(cx),
-        );
+        to_frozen_array(cx, removed, frozen_val.handle_mut());
         changeevent.removed.set(*frozen_val);
         changeevent
     }

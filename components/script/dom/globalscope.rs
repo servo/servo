@@ -3175,20 +3175,18 @@ impl GlobalScope {
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
     pub(crate) fn supported_performance_entry_types(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         retval: MutableHandleValue,
-        can_gc: CanGc,
     ) {
         self.frozen_supported_performance_entry_types.get_or_init(
+            cx,
             || {
                 EntryType::VARIANTS
                     .iter()
                     .map(|t| DOMString::from(t.as_str()))
                     .collect()
             },
-            cx,
             retval,
-            can_gc,
         );
     }
 
