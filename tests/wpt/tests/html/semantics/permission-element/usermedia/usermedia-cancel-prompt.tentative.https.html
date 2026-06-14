@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLUserMediaElement Test: denying prompt triggers oncancel</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/pepc-helper.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const usermedia = document.createElement('usermedia');
+  usermedia.setAttribute('type', 'camera');
+  usermedia.setConstraints({video: {}});
+  document.body.appendChild(usermedia);
+
+  let stream_fired = false;
+  usermedia.onstream = () => { stream_fired = true; };
+
+  let error_fired = false;
+  usermedia.onerror = () => { error_fired = true; };
+
+  const cancel_promise = new Promise((resolve) => {
+    usermedia.oncancel = resolve;
+  });
+
+  // Explicitly deny the permission to simulate user click-deny
+  await test_driver.set_permission({name: 'camera'}, 'denied');
+
+  // Wait until clickable
+  await new Promise(resolve => t.step_timeout(resolve, PEPC_CLICK_DELAY));
+  await test_driver.click(usermedia);
+
+  await cancel_promise;
+  assert_false(stream_fired, "onstream should not fire on cancel");
+  assert_false(error_fired, "onerror should not fire on cancel");
+  assert_equals(usermedia.stream, null, "stream should be null on cancel");
+  assert_equals(usermedia.error, null, "error should be null on cancel");
+}, "Denying PEPC prompt triggers oncancel event and does not set error");
+</script>
+</body>

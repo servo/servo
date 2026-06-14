@@ -93,9 +93,9 @@ async def test_subscribe_unsubscribe(bidi_session, new_tab, wait_for_event, wait
     await wait_for_future_safe(on_entry_added)
 
     assert len(events) == 3
-    assert_base_entry(events[0], text=expected_text_0, context=new_tab["context"])
-    assert_base_entry(events[1], text=expected_text_1, context=new_tab["context"])
-    assert_base_entry(events[2], text=expected_text_2, context=new_tab["context"])
+    assert_base_entry(events[0], text=expected_text_0, context=new_tab["context"], user_context=new_tab["userContext"])
+    assert_base_entry(events[1], text=expected_text_1, context=new_tab["context"], user_context=new_tab["userContext"])
+    assert_base_entry(events[2], text=expected_text_2, context=new_tab["context"], user_context=new_tab["userContext"])
 
     # Check that we also get events from a new context
     new_context = await bidi_session.browsing_context.create(type_hint="tab")
@@ -105,6 +105,6 @@ async def test_subscribe_unsubscribe(bidi_session, new_tab, wait_for_event, wait
     await wait_for_future_safe(on_entry_added)
 
     assert len(events) == 4
-    assert_base_entry(events[3], text=expected_text_3, context=new_context["context"])
+    assert_base_entry(events[3], text=expected_text_3, context=new_context["context"], user_context=new_tab["userContext"])
 
     remove_listener()

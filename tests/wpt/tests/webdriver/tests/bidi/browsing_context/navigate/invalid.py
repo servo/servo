@@ -28,12 +28,29 @@ async def test_params_url_invalid_type(bidi_session, new_tab, value):
         )
 
 
-@pytest.mark.parametrize("protocol", ["http", "https"])
-@pytest.mark.parametrize("value", [":invalid", "#invalid"])
-async def test_params_url_invalid_value(bidi_session, new_tab, protocol, value):
+@pytest.mark.parametrize(
+    "url",
+    [
+        "1foo://",
+        "http://foo bar",
+        "http://localhost:-1",
+        "http://:80",
+        "/foo",
+        "http://#foo",
+    ],
+    ids=[
+        "protocol",
+        "host",
+        "port",
+        "port without host",
+        "path absolute",
+        "hash without host",
+    ],
+)
+async def test_params_url_invalid_value(bidi_session, new_tab, url):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.browsing_context.navigate(
-            context=new_tab["context"], url=f"{protocol}://{value}"
+            context=new_tab["context"], url=url
         )
 
 

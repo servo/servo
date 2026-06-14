@@ -37,7 +37,7 @@
           const script = target.querySelector("script");
           assert_equals(!!script, !safe);
           if (script) script.remove();
-          assert_equals(window.did_run, runScripts && !safe);
+          assert_equals(window.did_run, runScripts && !safe && target_type !== "template.content");
 
           check_position(target, pos, ref);
         }, `Only unsafe variants should run scripts: ${variant} (runScripts=${runScripts})`);
@@ -53,7 +53,7 @@
       }, `Sanitizer should remove forbidden elements: ${variant}`);
     }
 
-    for (const target of ["Element", "ShadowRoot"]) {
+    for (const target of ["Element", "ShadowRoot", "template.content"]) {
       for (const pos of ["append", "prepend"]) {
         for (const safe of [true, false]) {
           create_tests(target, pos, "Element", safe);
@@ -80,21 +80,19 @@
         test(() => {
           const doc = document.implementation.createHTMLDocument();
           const comment = doc.appendChild(doc.createComment("ref"));
-          comment[method_name]("<span>fails</span>");
-          assert_equals(doc.querySelector("span"), null);
-          comment.beforeHTML("<span>fails</span>");
-          assert_equals(doc.querySelector("span"), null);
-          comment.replaceWithHTML("<span>fails</span>");
-          assert_equals(doc.querySelector("span"), null);
-        }, `${method_name} fail silently if parent is a Document`);
+          assert_throws_dom("HierarchyRequestError", () => {
+            comment[method_name]("<span>fails</span>");
+          });
+        }, `${method_name} throws HierarchyRequestError if parent is a Document`);
 
         test(() => {
           const fragment = document.createDocumentFragment();
           const span = document.createElement("span");
           fragment.appendChild(span);
-          span[method_name]("<p>fails</p>");
-          assert_equals(fragment.querySelector("p"), null);
-        }, `${method_name} fail silently if parent is a DocumentFragment`);
+          assert_throws_dom("HierarchyRequestError", () => {
+            span[method_name]("<p>fails</p>");
+          });
+        }, `${method_name} throws HierarchyRequestError if parent is a DocumentFragment`);
       }
     }
   </script>

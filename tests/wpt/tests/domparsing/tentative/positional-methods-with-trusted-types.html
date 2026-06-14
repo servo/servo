@@ -16,10 +16,8 @@
 <body>
   <script>
     let createHTML = (html) => html;
-    let createParserOptions = (options) => options;
     const default_policy = trustedTypes.createPolicy("default", {
       createHTML: (html) => createHTML(html),
-      createParserOptions: (options) => createParserOptions(options),
     });
 
     function create_tests(target_type, pos, safe) {
@@ -28,7 +26,6 @@
       const prepare = (t) => {
         t.add_cleanup(() => {
           createHTML = (html) => html;
-          createParserOptions = (options) => options;
         });
         return prepare_html_partial_update(target_type, "Element", pos, t);
       };
@@ -50,84 +47,159 @@
         },
         `${variant} ${safe ? "does not go" : "goes"} via createHTML`,
       );
-
-      for (const run_scripts_at_caller of [true, false]) {
-        for (const run_scripts_at_policy of [true, false]) {
-          test((t) => {
-            createParserOptions = (options) => ({
-              ...options,
-              runScripts: run_scripts_at_policy,
-            });
-
-            const { target, ref, object } = prepare(t);
-            window.did_run = false;
-            t.add_cleanup(() => {
-              delete window.did_run;
-            });
-            object[method_name](
-              "<span>html;</span><script>window.did_run = true<" + "/script>",
-              { runScripts: run_scripts_at_caller },
-            );
-            const script = target.querySelector("script");
-            assert_equals(!!script, !safe);
-            if (script) script.remove();
-            assert_equals(
-              window.did_run,
-              run_scripts_at_policy && run_scripts_at_caller && !safe,
-            );
-
-            check_position(target, pos, ref);
-          }, `Policies can disable scripts but not enable them: ${variant} (runScripts=${run_scripts_at_caller} => ${run_scripts_at_policy})`);
-        }
-      }
-
-      if (!safe) {
-        test((t) => {
-          createParserOptions = (options) => ({
-            ...options,
-            sanitizer: { removeElements: ["p"] },
-          });
-          const { target, ref, object } = prepare(t);
-          object[method_name]("<span>html;</span><p>forbidden</p>");
-          check_position(target, pos, ref);
-          assert_equals(target.querySelector("p"), null);
-        }, `Policy can inject sanitizer: ${variant}`);
-
-        test((t) => {
-          createParserOptions = (options) => ({
-            sanitizer: {
-              removeElements: ["span"],
-            },
-            runScripts: false,
-          });
-          window.did_run = false;
-          t.add_cleanup(() => {
-            delete window.did_run;
-          });
-          const trusted_policy = trustedTypes.createPolicy("trusted", {
-            createParserOptions: (options) => ({
-              ...options,
-              sanitizer: { removeElements: ["p"] },
-            }),
-          });
-          const { target, ref, object } = prepare(t);
-          const trusted_options = trusted_policy.createParserOptions({
-            runScripts: true,
-          });
-          assert_true(trusted_options.runScripts);
-          object[method_name](
-            "<span>html;</span><p>forbidden</p><script>window.did_run = true;<" +
-              "/script>",
-            trusted_options,
-          );
-          target.querySelector("script")?.remove();
-          check_position(target, pos, ref);
-          assert_equals(target.querySelector("p"), null);
-          assert_equals(window.did_run, !safe);
-        }, `TrustedParserOptions overrides default policy: ${variant}`);
-      }
     }
-    for (const target of ["Element", "ShadowRoot"]) {
+  test((t) => {
+    let tt_error = new Error("TT Error");
+    t.add_cleanup(() => { createHTML = (html) => html; });
+    createHTML = (html) => {
+      if (html === "foo") throw tt_error;
+      return html;
+    };
+
+    let div = document.createElement("div");
+    // div has no parent. beforeHTMLUnsafe should return if it doesn't throw.
+    assert_throws_exactly(tt_error, () => {
+      div.beforeHTMLUnsafe("foo");
+    });
+    assert_throws_exactly(tt_error, () => {
+      div.afterHTMLUnsafe("foo");
+    });
+    assert_throws_exactly(tt_error, () => {
+      div.replaceWithHTMLUnsafe("foo");
+    });
+  }, "ChildNode unsafe methods evaluate Trusted Types before checking if parent is null");
+
+  test((t) => {
+    let tt_error = new Error("TT Error");
+    t.add_cleanup(() => { createHTML = (html) => html; });
+    createHTML = (html) => {
+      if (html === "text") throw tt_error;
+      return html;
+    };
+
+    // document.documentElement's parent is Document.
+    // beforeHTMLUnsafe("text") on it would throw HierarchyRequestError, but TT should throw first.
+    assert_throws_exactly(tt_error, () => {
+      document.documentElement.beforeHTMLUnsafe("text");
+    });
+    assert_throws_exactly(tt_error, () => {
+      document.documentElement.afterHTMLUnsafe("text");
+    });
+    assert_throws_exactly(tt_error, () => {
+      document.documentElement.replaceWithHTMLUnsafe("text");
+    });
+  }, "ChildNode unsafe methods evaluate Trusted Types before pre-insertion validity checks");
+
+  test((t) => {
+    let target = document.createElement("div");
+    let initial_parent = document.createElement("div");
+    let new_parent = document.createElement("div");
+
+    initial_parent.appendChild(target);
+
+    t.add_cleanup(() => { createHTML = (html) => html; });
+    createHTML = (html) => {
+        if (html === "<span>foo</span>") {
+          new_parent.appendChild(target);
+        }
+        return html;
+    };
+
+    target.beforeHTMLUnsafe("<span>foo</span>");
+
+    // The html should be inserted into new_parent, before target.
+    assert_equals(new_parent.firstChild.tagName, "SPAN");
+    assert_equals(new_parent.firstChild.textContent, "foo");
+    assert_equals(new_parent.firstChild.nextSibling, target);
+    assert_equals(initial_parent.childNodes.length, 0);
+  }, "beforeHTMLUnsafe evaluates Trusted Types before determining the parent");
+
+  test((t) => {
+    let target = document.createElement("div");
+    let initial_parent = document.createElement("div");
+    let new_parent = document.createElement("div");
+
+    initial_parent.appendChild(target);
+
+    t.add_cleanup(() => { createHTML = (html) => html; });
+    createHTML = (html) => {
+        if (html === "<span>foo</span>") {
+          new_parent.appendChild(target);
+        }
+        return html;
+    };
+
+    target.afterHTMLUnsafe("<span>foo</span>");
+
+    // The html should be inserted into new_parent, after target.
+    assert_equals(new_parent.firstChild, target);
+    assert_equals(new_parent.firstChild.nextSibling.tagName, "SPAN");
+    assert_equals(new_parent.firstChild.nextSibling.textContent, "foo");
+    assert_equals(initial_parent.childNodes.length, 0);
+  }, "afterHTMLUnsafe evaluates Trusted Types before determining the parent");
+
+  test((t) => {
+    let target = document.createElement("div");
+    let initial_parent = document.createElement("div");
+    let new_parent = document.createElement("div");
+
+    initial_parent.appendChild(target);
+
+    t.add_cleanup(() => { createHTML = (html) => html; });
+    createHTML = (html) => {
+        if (html === "<span>foo</span>") {
+          new_parent.appendChild(target);
+        }
+        return html;
+    };
+
+    target.replaceWithHTMLUnsafe("<span>foo</span>");
+
+    // The html should be inserted into new_parent, replacing target.
+    assert_equals(new_parent.firstChild.tagName, "SPAN");
+    assert_equals(new_parent.firstChild.textContent, "foo");
+    assert_equals(new_parent.childNodes.length, 1);
+    assert_equals(initial_parent.childNodes.length, 0);
+  }, "replaceWithHTMLUnsafe evaluates Trusted Types before determining the parent");
+
+  test((t) => {
+    // pre-insertion validity failure throws HierarchyRequestError
+    // just normal call with safe string
+    assert_throws_dom("HierarchyRequestError", () => {
+      document.documentElement.beforeHTMLUnsafe("text");
+    });
+    assert_throws_dom("HierarchyRequestError", () => {
+      document.documentElement.afterHTMLUnsafe("text");
+    });
+    assert_throws_dom("HierarchyRequestError", () => {
+      document.documentElement.replaceWithHTMLUnsafe("text");
+    });
+  }, "ChildNode unsafe methods throw HierarchyRequestError on pre-insertion validity failure");
+
+  test((t) => {
+    let target = document.createElement("div");
+    let child1 = document.createElement("span");
+    target.appendChild(child1);
+
+    t.add_cleanup(() => { createHTML = (html) => html; });
+    createHTML = (html) => {
+        if (html === "<i>foo</i>") {
+          let child2 = document.createElement("b");
+          target.prepend(child2);
+        }
+        return html;
+    };
+
+    target.prependHTMLUnsafe("<i>foo</i>");
+
+    // The <i>foo</i> should be inserted before the *new* first child (child2).
+    assert_equals(target.childNodes.length, 3);
+    assert_equals(target.childNodes[0].tagName, "I");
+    assert_equals(target.childNodes[1].tagName, "B");
+    assert_equals(target.childNodes[2].tagName, "SPAN");
+  }, "prependHTMLUnsafe evaluates Trusted Types before determining the reference child");
+
+    for (const target of ["Element", "ShadowRoot", "template.content"]) {
       for (const pos of [
         "before",
         "after",

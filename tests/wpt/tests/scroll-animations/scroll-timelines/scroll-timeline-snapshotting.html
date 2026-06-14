@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>ScrollTimeline snapshotting</title>
-<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#event-loop">
+<link rel="help" href="https://www.w3.org/TR/scroll-animations-1/#html-processing-model-event-loop">
 <link rel="help" href="https://github.com/whatwg/html/pull/11613">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -11,39 +11,82 @@
 <script src="/web-animations/testcommon.js"></script>
 <script src="./testcommon.js"></script>
 <script src="/css/css-scroll-snap/support/common.js"></script>
-
 <style>
-  body {
-    height: 800px;
-    width: 800px;
+  .scroller {
+    height: 300px;
+    width: 300px;
+    overflow: auto;
+  }
+  .spacer {
+    height: 200px;
+  }
+  .block {
+    background-color: green;
+    height: 300px;
+    width: 100px;
+  }
+  .shrink {
+    height: 150px;
   }
 </style>
-<div id="log"></div>
-
+<body>
+  <div class="scroller">
+    <div class="spacer"></div>
+    <div class="block"></div>
+    <div id="target" class="spacer"></div>
+  </div>
+  <div id="log"></div>
+</body>
 <script>
 'use strict';
 
 promise_test(async t => {
-  const scroller = document.scrollingElement;
-  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-  const timeline = new ScrollTimeline({source: scroller});
-  scroller.scrollTo(0, 0);
-  assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
+  assert_implements(window.ScrollTimeline,
+                    "ScrollTimeline is not implemented");
 
-  scroller.scrollBy({top: 100, behavior: 'smooth'});
-  // Wait for the scroll to change.
-  await waitForScrollEvent(document);
-  // The next frame the scroll changes, the scroll-timelines should not be
-  // updated before the scroll events are dispatched. Store the scroll position
-  // from the previous frame to compare the timeline to.
-  let scroll_percentage = (scroller.scrollTop / maxScroll) * 100;
+  const scroller = document.querySelector('.scroller');
+  const max_scroll = scroller.scrollHeight - scroller.clientHeight;
+  await runAndWaitForFrameUpdate(() => {
+    scroller.scrollTo(0, max_scroll/2);
+  });
+  // verify the scroll position.
+  assert_approx_equals(scroller.scrollTop, max_scroll / 2, 1,
+                       'Scroll container scrolled to the midpoint');
+  let timeline;
+  await runAndWaitForFrameUpdate(() => {
+    timeline = new ScrollTimeline({source: scroller});
+  });
+  const snapshot_time = timeline.currentTime;
+  assert_percents_equal(snapshot_time, 50,
+                        'Initial snapshot at midpoint of scroll range');
 
-  await waitForScrollEvent(document);
+  // Make a change to the document below the viewport.that affects the scroll
+  // range, without changing scrollTop.
+  target.classList.add('shrink');
 
+  // Querying scroll properties forces a style update.
+  // Ensure scroll range is updated correctly.
+  // Since this is not the first style update cycle for the frame, the timeline
+  // time remains constant.
+  const updated_max_scroll = scroller.scrollHeight - scroller.clientHeight;
+  assert_approx_equals(updated_max_scroll, max_scroll - 50, 1,
+                       'Scroll range is updated');
+  assert_percents_equal(timeline.currentTime, snapshot_time,
+                        'Timeline time fixed until name frame');
+  const expected_updated_timeline_time =
+     scroller.scrollTop / updated_max_scroll * 100;
+  await waitForNextFrame();
+
+  // Now that we have rolled over to a new animation frame, the timeline
+  // time is updated.
   assert_percents_equal(
       timeline.currentTime,
-      scroll_percentage,
+      expected_updated_timeline_time,
       'Scroll timeline current time corresponds to the scroll position.');
+  assert_true(
+      timeline.currentTime.value > snapshot_time.value,
+      'Timeline time increases due to reduced scroll range');
+
 }, 'ScrollTimeline current time is updated after programmatic animated ' +
    'scroll.');
 

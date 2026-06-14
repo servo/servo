@@ -17,16 +17,17 @@ html,body {
 }
 .subgrid {
   display: grid;
-  grid-template-rows: 50px;
-  grid-template-columns: subgrid;
-  column-gap: 10%;
+  grid-template-columns: 50px;
+  grid-template-rows: subgrid;
+  height: min-content;
+  row-gap: 10%;
   grid-column: span 2;
   align-content: end;
   background:lightgrey;
 }
 span { background:cyan; }
 
-.hl { writing-mode: horizontal-tb; direction:ltr; height: min-content; }
+.hl { writing-mode: horizontal-tb; direction:ltr; }
 .vlr { writing-mode: vertical-lr; direction:rtl; }
 </style>
 </head>

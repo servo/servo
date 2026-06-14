@@ -128,6 +128,32 @@ const isNaNTests = [
     }
   },
   {
+    'name': 'isNaN float32 5D tensor',
+    'graph': {
+      'inputs': {
+        'isNaNInput': {
+          'data': [1.0,  NaN,       -2.5,   0.0,    Infinity, -Infinity, 3.14,   NaN,
+                   -0.0, 42.0,      NaN,    -999.99, 1e10,    -1e-10,    NaN,    100.5,
+                   0.5,  NaN,       -1.0,   2.0,    NaN,      7.7,       -8.8,   9.9,
+                   NaN,  100.0,     -200.0, 0.001,  -0.001,   NaN,       1000.0, -1000.0],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'isNaN',
+        'arguments': [{'input': 'isNaNInput'}],
+        'outputs': 'isNaNOutput'
+      }],
+      'expectedOutputs': {
+        'isNaNOutput': {
+          'data': [0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0,
+                   0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
     'name': 'isNaN float32 special values',
     'graph': {
       'inputs': {
@@ -279,6 +305,32 @@ const isNaNTests = [
         'isNaNOutput': {
           'data': [1, 0, 0, 0, 0, 0, 0],
           'descriptor': {shape: [7], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'isNaN float16 5D tensor',
+    'graph': {
+      'inputs': {
+        'isNaNInput': {
+          'data': [1.0,  NaN,   -2.5,   0.0,   Infinity, -Infinity, 3.0,   NaN,
+                   -0.0, 42.0,  NaN,    -999.0, 1000.0,  -0.5,      NaN,   100.5,
+                   0.5,  NaN,   -1.0,   2.0,   NaN,      7.5,       -8.5,  9.0,
+                   NaN,  100.0, -200.0, 0.125, -0.125,   NaN,       500.0, -500.0],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'isNaN',
+        'arguments': [{'input': 'isNaNInput'}],
+        'outputs': 'isNaNOutput'
+      }],
+      'expectedOutputs': {
+        'isNaNOutput': {
+          'data': [0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0,
+                   0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'uint8'}
         }
       }
     }

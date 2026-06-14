@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Attaching shadow should not cause crash with scrollbar pseudo rules</title>
+<link rel="help" href="https://crbug.com/761838">
+<style>
+  #t1::before {
+    display: block;
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+    content: ".";
+  }
+</style>
+<div id="host"></div>
+<div id="t1"></div>
+<script>
+  host.attachShadow({mode: 'closed'});
+</script>

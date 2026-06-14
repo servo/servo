@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Backgrounds Test:  background-clip:border-area with an inset border</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="match" href="clip-border-area-inset-ref.html">
+<meta name="assert" content="border-area: The border area is filled with the background image">
+<style>
+    .test {
+        display: inline-block;
+        margin: 20px;
+        width: 300px;
+        height: 150px;
+        box-sizing: border-box;
+        border: 50px solid transparent;
+        background-clip: border-area;
+        background-image: url(../resources/blue-100.png);
+        border-style: inset;
+    }
+</style>
+</head>
+<body>
+
+<div class="test"></div>
+
+</body>
+</html>

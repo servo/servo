@@ -3,12 +3,24 @@
 <meta charset="utf-8">
 <style>
 html,body { color:black; background-color:white; padding:0; margin:0; }
+
+.grid {
+  display:inline-grid;
+  grid-template-rows:50px 50px;
+  border:1px solid;
+  background:yellow;
+}
+
+.subgrid {
+  display:grid;
+  grid-template-rows:subgrid;
+}
 </style>
 </head>
 <body>
-<div style="display:inline-block; background:yellow; border:1px solid;">
-  <div style="background:cyan; width:30px; height:200px;">
-    <div style="background:magenta; width:30px; height:50px;"></div>
+<div class="grid">
+  <div class="subgrid" style="gap:100px; grid-row:span 2; background:cyan;">
+    <div class="subgrid" style="grid-row:span 1; background:magenta; min-width:30px;"></div>
   </div>
 </div>
 </body>

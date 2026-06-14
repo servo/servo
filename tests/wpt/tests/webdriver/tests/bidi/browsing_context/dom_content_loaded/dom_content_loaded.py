@@ -57,6 +57,7 @@ async def test_subscribe(
             "context": new_tab["context"],
             "url": url,
             "navigation": result["navigation"],
+            **({"userContext": new_tab["userContext"]} if "userContext" in event else {}),
         },
     )
 
@@ -83,7 +84,8 @@ async def test_timestamp(
             "context": new_tab["context"],
             "navigation": result["navigation"],
             "timestamp": int_interval(time_start, time_end),
-        },
+            **({"userContext": new_tab["userContext"]} if "userContext" in event else {}),
+       },
     )
 
 
@@ -127,10 +129,16 @@ async def test_iframe(
             "context": root_info["context"],
             "url": test_page_same_origin_frame,
             "navigation": result["navigation"],
+            **({"userContext": root_info["userContext"]} if "userContext" in root_event else {}),
         },
     )
     assert_navigation_info(
-        child_event, {"context": child_info["context"], "url": test_page}
+        child_event,
+        {
+            "context": child_info["context"],
+            "url": test_page,
+            **({"userContext": child_info["userContext"]} if "userContext" in child_event else {}),
+        }
     )
     assert child_event["navigation"] is not None
     assert child_event["navigation"] != root_event["navigation"]
@@ -179,7 +187,10 @@ async def test_document_write(
 
     assert_navigation_info(
         event,
-        {"context": new_tab["context"]},
+        {
+            "context": new_tab["context"],
+            **({"userContext": new_tab["userContext"]} if "userContext" in event else {}),
+        },
     )
     assert event["navigation"] is not None
 
@@ -212,7 +223,12 @@ async def test_early_same_document_navigation(
 
     assert_navigation_info(
         event,
-        {"context": new_tab["context"], "navigation": result["navigation"], "url": url},
+        {
+            "context": new_tab["context"],
+            "navigation": result["navigation"],
+            "url": url,
+            **({"userContext": new_tab["userContext"]} if "userContext" in event else {}),
+        },
     )
 
 
@@ -230,5 +246,10 @@ async def test_page_with_base_tag(
 
     assert_navigation_info(
         event,
-        {"context": new_tab["context"], "navigation": result["navigation"], "url": url},
+        {
+            "context": new_tab["context"],
+            "navigation": result["navigation"],
+            "url": url,
+            **({"userContext": new_tab["userContext"]} if "userContext" in event else {}),
+        },
     )

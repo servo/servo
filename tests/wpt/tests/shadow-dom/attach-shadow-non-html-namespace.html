@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>attachShadow on non-HTML namespace elements with valid local names</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/resources/common.js"></script>
+<script>
+// Step 1 of "attach a shadow root" [1] requires:
+// "If shadow host's namespace is not the HTML namespace, then throw a
+// NotSupportedError DOMException."
+// [1] https://dom.spec.whatwg.org/#concept-attach-a-shadow-root
+
+const non_html_namespaces = [
+  { uri: "http://www.w3.org/2000/svg", label: "SVG namespace" },
+  { uri: "http://www.w3.org/1998/Math/MathML", label: "MathML namespace" },
+  { uri: "http://www.w3.org/1999/xlink", label: "XLink namespace" },
+  { uri: "http://www.w3.org/XML/1998/namespace", label: "XML namespace" },
+  { uri: "http://example.com/custom", label: "custom namespace" },
+  { uri: "", label: "empty string namespace" },
+  { uri: null, label: "null namespace" },
+];
+
+const modes = ["open", "closed"];
+
+for (const { uri, label } of non_html_namespaces) {
+  for (const mode of modes) {
+    for (const name of HTML5_SHADOW_ALLOWED_ELEMENTS) {
+      test(() => {
+        const el = document.createElementNS(uri, name);
+        assert_throws_dom("NotSupportedError", () => {
+          el.attachShadow({ mode });
+        });
+      }, `attachShadow({mode: "${mode}"}) should throw on ${label} element with local name '${name}'`);
+    }
+
+    test(() => {
+      const el = document.createElementNS(uri, "my-element");
+      assert_throws_dom("NotSupportedError", () => {
+        el.attachShadow({ mode });
+      });
+    }, `attachShadow({mode: "${mode}"}) should throw on ${label} element with custom element name 'my-element'`);
+  }
+}
+
+for (const mode of modes) {
+  for (const name of HTML5_SHADOW_ALLOWED_ELEMENTS) {
+    test(() => {
+      const el = document.createElementNS("http://www.w3.org/1999/xhtml", name);
+      const shadow = el.attachShadow({ mode });
+      assert_true(shadow instanceof ShadowRoot);
+    }, `attachShadow({mode: "${mode}"}) should succeed on HTML-namespace '${name}'`);
+  }
+
+  test(() => {
+    const el = document.createElementNS("http://www.w3.org/1999/xhtml", "my-element");
+    const shadow = el.attachShadow({ mode });
+    assert_true(shadow instanceof ShadowRoot);
+  }, `attachShadow({mode: "${mode}"}) should succeed on HTML-namespace custom element 'my-element'`);
+}
+</script>

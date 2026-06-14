@@ -13,4 +13,20 @@
     assert_equals(style1.media, "", "missing media reflects as empty string IDL attribute on the style element");
     assert_equals(style2.media, "foo", "media reflects correctly IDL attribute on the style element");
   }, "media attribute on SVG <style> elements should reflect correctly");
+
+  test(() => {
+    const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    style.media = "print";
+    assert_equals(style.media, "print",
+                  "IDL setter round-trips through the IDL getter");
+    assert_equals(style.getAttribute("media"), "print",
+                  "IDL setter writes to the content attribute");
+  }, "Setting media via the IDL attribute updates the content attribute");
+
+  test(() => {
+    const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    style.setAttribute("media", "print");
+    assert_equals(style.media, "print",
+                  "IDL getter reflects the content attribute");
+  }, "Setting the content attribute updates the IDL attribute (media)");
 </script>

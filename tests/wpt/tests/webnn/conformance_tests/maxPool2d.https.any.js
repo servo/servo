@@ -545,6 +545,43 @@ const maxPool2dTests = [
   },
   {
     'name':
+        'maxPool2d float32 4D tensor options.outputShapeRounding=ceil with asymmetric window',
+    'graph': {
+      'inputs': {
+        'maxPool2dInput': {
+          'data': [
+            1,  2,  3,  4,  5,
+            6,  7,  8,  9,  10,
+            11, 12, 13, 14, 15,
+            16, 17, 18, 19, 20,
+            21, 22, 23, 24, 25
+          ],
+          'descriptor': {shape: [1, 1, 5, 5], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'maxPool2d',
+        'arguments': [
+          {'input': 'maxPool2dInput'}, {
+            'options': {
+              'windowDimensions': [3, 2],
+              'strides': [2, 2],
+              'outputShapeRounding': 'ceil'
+            }
+          }
+        ],
+        'outputs': 'maxPool2dOutput'
+      }],
+      'expectedOutputs': {
+        'maxPool2dOutput': {
+          'data': [12, 14, 15, 22, 24, 25],
+          'descriptor': {shape: [1, 1, 2, 3], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name':
         'maxPool2d float32 4D tensor options.outputSizes ignores options.outputShapeRounding=floor',
     'graph': {
       'inputs': {

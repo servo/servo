@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/pepc-helper.js"></script>
 <body>
 <script>
 // Case 1: "No constraints set"
@@ -29,7 +30,7 @@ promise_test(async (t) => {
   ]);
 
   // Wait until clickable
-  await new Promise(resolve => t.step_timeout(resolve, 600));
+  await new Promise(resolve => t.step_timeout(resolve, PEPC_CLICK_DELAY));
   await test_driver.click(usermedia);
 
   const event = await error_promise;
@@ -60,7 +61,7 @@ promise_test(async (t) => {
   await test_driver.set_permission({name: 'microphone'}, 'granted');
 
   // Wait until clickable
-  await new Promise(resolve => t.step_timeout(resolve, 600));
+  await new Promise(resolve => t.step_timeout(resolve, PEPC_CLICK_DELAY));
   await test_driver.click(usermedia);
 
   const event = await error_promise;
@@ -91,7 +92,7 @@ promise_test(async (t) => {
   await test_driver.set_permission({name: 'camera'}, 'granted');
 
   // Wait until clickable
-  await new Promise(resolve => t.step_timeout(resolve, 600));
+  await new Promise(resolve => t.step_timeout(resolve, PEPC_CLICK_DELAY));
   await test_driver.click(usermedia);
 
   const event = await error_promise;

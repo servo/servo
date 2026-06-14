@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2042439">
+<!-- Same as sticky-in-transform-in-activating-scroll-container.html but without
+     the transform wrapper around the table, so the stale sticky scroll-tree
+     node is walked directly by the lowest-common-ancestor computation (a
+     different internal crash path). -->
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; font: 13px/1.4 sans-serif; }
+  * { scrollbar-width: none; }
+
+  #outer { height: 500px; overflow-y: auto; }
+  #outer-content { height: 3000px; padding: 10px; }
+
+  #radix {
+    height: 460px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 2px solid #333;
+    width: 400px;
+  }
+
+  #overflow-x-auto { overflow-x: auto; }
+  #spacer { height: 0; }
+
+  table { width: 1000px; table-layout: fixed; border-collapse: collapse; }
+  thead { will-change: transform; }
+  th, td { box-sizing: border-box; height: 40px; border: 1px solid #ccc; padding: 0 4px; }
+  th { position: sticky; top: 0; background: #4a90d9; color: white; }
+</style>
+</head>
+<body>
+<div id="outer">
+  <div id="outer-content">
+    <div id="radix">
+      <div id="overflow-x-auto">
+        <table>
+          <thead>
+            <tr><th>A</th><th>B</th><th>C</th><th>D</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+            <tr><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+            <tr><td>2</td><td>2</td><td>2</td><td>2</td></tr>
+            <tr><td>3</td><td>3</td><td>3</td><td>3</td></tr>
+            <tr><td>4</td><td>4</td><td>4</td><td>4</td></tr>
+            <tr><td>5</td><td>5</td><td>5</td><td>5</td></tr>
+            <tr><td>6</td><td>6</td><td>6</td><td>6</td></tr>
+            <tr><td>7</td><td>7</td><td>7</td><td>7</td></tr>
+            <tr><td>8</td><td>8</td><td>8</td><td>8</td></tr>
+            <tr><td>9</td><td>9</td><td>9</td><td>9</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="spacer"></div>
+    </div>
+  </div>
+</div>
+<script>
+  function raf() { return new Promise(r => requestAnimationFrame(r)); }
+  onload = async () => {
+    await raf();
+    await raf();
+    document.getElementById("spacer").style.height = "400px";
+    await raf();
+    await raf();
+    document.documentElement.classList.remove("test-wait");
+  };
+</script>
+</body>
+</html>

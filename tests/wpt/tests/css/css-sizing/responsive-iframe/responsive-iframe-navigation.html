@@ -2,23 +2,34 @@
 <title>Responsive iframe should keep size during navigation</title>
 <link rel="author" href="mailto:kojii@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-sizing/">
+<meta name="variant" content="?origin=same">
+<meta name="variant" content="?origin=cross">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <style>
 iframe {
   frame-sizing: content-height;
 }
 </style>
-<iframe id="iframe" frameborder="0" src="resources/iframe-contents-navigation.html"></iframe>
 <script>
+const params = new URLSearchParams(window.location.search);
+const origin = params.get('origin');
+
+const iframe = document.createElement('iframe');
+iframe.id = 'iframe';
+iframe.frameBorder = '0';
+iframe.src = 'resources/iframe-contents-navigation.html';
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.appendChild(iframe);
+});
+
 async_test(t => {
-  const iframe = document.getElementById('iframe');
   let numIframeLoadEvents = 0;
   const heights = [];
 
   // Use `ResizeObserver` to catch all resizes.
   const resizeObserver = new ResizeObserver((entries) => {
-    let i = 0;
     for (const entry of entries) {
       assert_equals(entry.target, iframe);
       heights.push(entry.contentRect.height);
@@ -26,34 +37,61 @@ async_test(t => {
         case 0:
           break;
         case 1:
-          assert_array_equals(heights, [150, 200]);
+          if (origin === 'cross') {
+            // At this point, it could be either 2 or 3 heights.
+            if (heights.length === 3) {
+              assert_array_equals(heights, [150, 200, 150]);
+            } else {
+              assert_array_equals(heights, [150, 200]);
+            }
+          } else {
+            assert_array_equals(heights, [150, 200]);
+          }
           break;
         case 2:
-          assert_array_equals(heights, [150, 200, 400]);
+          if (origin === 'cross') {
+            // We expect heights to have transitioned: 150 -> 200 -> 150 -> 400.
+            assert_array_equals(heights, [150, 200, 150, 400]);
+          } else {
+            assert_array_equals(heights, [150, 200, 400]);
+          }
           t.done();
           break;
         default:
           assert_less_than(numIframeLoadEvents, 3, "Unexpected iframe load events");
           break;
       }
-      ++i;
     }
   });
   resizeObserver.observe(iframe);
 
-  window.addEventListener('message', (e) => {
-    if (e.data === 'slow-will-block') {
+  window.addEventListener('message', t.step_func((e) => {
+    const data = e.data;
+    if (data && data.action === 'slow-will-block') {
+      // Check the initial viewport size of the child content.
+      const viewportHeight = data.viewportHeight;
+      if (origin === 'cross') {
+        assert_equals(viewportHeight, 150, "Cross-origin should see reset viewport height");
+      } else {
+        assert_equals(viewportHeight, 200, "Same-origin should see retained viewport height");
+      }
+
       // Check re-layouts don't reset the height while loading new content.
       triggerLayouts();
     }
-  });
+  }));
 
   iframe.addEventListener('load', t.step_func(() => {
     ++numIframeLoadEvents;
     switch (numIframeLoadEvents) {
       case 1:
         assert_equals(iframe.offsetHeight, 200, "Initial height should be 200px");
-        iframe.contentWindow.postMessage('navigate', '*');
+        let src = 'iframe-contents-slow.html';
+        if (origin === 'cross') {
+          const url = new URL(`resources/${src}`, window.location.href);
+          src = get_host_info().HTTP_REMOTE_ORIGIN + url.pathname;
+        }
+        iframe.contentWindow.postMessage({action: 'navigate', url: src}, '*');
         break;
       case 2:
         break;

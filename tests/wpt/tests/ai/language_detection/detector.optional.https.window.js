@@ -33,7 +33,8 @@ promise_test(async t => {
     ru: 'Это пример предложения.',
     sr: 'Ово је пример реченице.',
     tr: 'Bu bir örnek cümledir.',
-    zh: '这是一个例句。',
+    'zh-Hans': '这是一个例句。',
+    'zh-Hant': '這是一個例句。',
     zu: 'Lona umusho oyisibonelo.',
   }
 

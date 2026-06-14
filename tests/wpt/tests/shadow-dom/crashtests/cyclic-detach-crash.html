@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cyclic detach with shadow DOM should not crash</title>
+<link rel="help" href="https://crbug.com/849599">
+<div id="a"><div id="host"><div id="child"></div></div></div>
+<script>
+  const a = document.querySelector('#a');
+  const child = document.querySelector('#child');
+  const host = document.querySelector('#host');
+
+  const sr = host.attachShadow({ mode: 'open' });
+  sr.appendChild(document.createElement('slot'));
+  document.body.offsetLeft;
+  child.remove();
+  host.remove();
+  a.appendChild(child);
+  document.body.offsetLeft;
+  child.appendChild(host);
+  a.remove();
+</script>

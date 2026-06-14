@@ -1,0 +1,166 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - {append|prepend|before|after|replaceWith}HTML{Unsafe}
+  with trusted types parser options
+</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<meta
+  http-equiv="Content-Security-Policy"
+  content="require-trusted-types-for 'script';"
+/>
+
+<body>
+  <script>
+    let createParserOptions = (options) => options;
+    const default_policy = trustedTypes.createPolicy("default", {
+      createHTML: (html) => html,
+      createParserOptions: (options) => createParserOptions(options),
+    });
+
+    let policy_id = 0;
+
+    function create_tests(target_type, pos, safe) {
+      const method_name = `${pos}HTML${safe ? "" : "Unsafe"}`;
+      const variant = `${target_type}.${method_name}`;
+      const prepare = (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+        return prepare_html_partial_update(target_type, "Element", pos, t);
+      };
+
+      for (const run_scripts_at_caller of [true, false]) {
+        for (const run_scripts_at_policy of [true, false]) {
+          test((t) => {
+            createParserOptions = (options) => ({
+              ...options,
+              runScripts: run_scripts_at_policy,
+            });
+
+            const { target, ref, object } = prepare(t);
+            window.did_run = false;
+            t.add_cleanup(() => {
+              delete window.did_run;
+            });
+            object[method_name](
+              "<span>html;</span><script>window.did_run = true<" + "/script>",
+              { runScripts: run_scripts_at_caller },
+            );
+            const script = target.querySelector("script");
+            assert_equals(!!script, !safe);
+            if (script) script.remove();
+            assert_equals(
+              window.did_run,
+              run_scripts_at_policy && run_scripts_at_caller && !safe && target_type !== "template.content",
+            );
+
+            check_position(target, pos, ref);
+          }, `Policies can disable scripts but not enable them: ${variant} (runScripts=${run_scripts_at_caller} => ${run_scripts_at_policy})`);
+        }
+      }
+
+      if (!safe) {
+        test((t) => {
+          createParserOptions = (options) => ({
+            ...options,
+            sanitizer: { removeElements: ["p"] },
+          });
+          const { target, ref, object } = prepare(t);
+          object[method_name]("<span>html;</span><p>forbidden</p>");
+          check_position(target, pos, ref);
+          assert_equals(target.querySelector("p"), null);
+        }, `Policy can inject sanitizer: ${variant}`);
+
+        test((t) => {
+          createParserOptions = (options) => ({
+            sanitizer: {
+              removeElements: ["span"],
+            },
+            runScripts: false,
+          });
+          window.did_run = false;
+          t.add_cleanup(() => {
+            delete window.did_run;
+          });
+          const trusted_policy = trustedTypes.createPolicy("trusted" + (policy_id++), {
+            createParserOptions: (options) => ({
+              ...options,
+              sanitizer: { removeElements: ["p"] },
+            }),
+          });
+          const { target, ref, object } = prepare(t);
+          const trusted_options = trusted_policy.createParserOptions({
+            runScripts: true,
+          });
+          assert_true(trusted_options.runScripts);
+          object[method_name](
+            "<span>html;</span><p>forbidden</p><script>window.did_run = true;<" +
+              "/script>",
+            trusted_options,
+          );
+          target.querySelector("script")?.remove();
+          check_position(target, pos, ref);
+          assert_equals(target.querySelector("p"), null);
+          assert_equals(window.did_run, !safe && target_type !== "template.content");
+        }, `TrustedParserOptions overrides default policy: ${variant}`);
+      }
+    }
+
+    for (const target of ["Element", "ShadowRoot", "template.content"]) {
+      for (const pos of [
+        "before",
+        "after",
+        "replaceWith",
+        "append",
+        "prepend",
+      ]) {
+        for (const safe of [true, false]) {
+          create_tests(target, pos, safe);
+        }
+      }
+    }
+
+    // Test that createParserOptions is checked before validation checks (like null parent / invalid parent).
+    for (const pos of ["before", "after", "replaceWith", "append", "prepend"]) {
+      test((t) => {
+        createParserOptions = (options) => {
+          throw new Error("createParserOptions called");
+        };
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+
+        const element = document.createElement("div");
+        try {
+          element[`${pos}HTMLUnsafe`]("<span>test</span>");
+          assert_unreached("Should have thrown");
+        } catch (e) {
+          assert_equals(e.message, "createParserOptions called");
+        }
+      }, `${pos}HTMLUnsafe checks createParserOptions before hierarchy checks`);
+
+      const method_name = `stream${pos.charAt(0).toUpperCase() + pos.slice(1)}HTMLUnsafe`;
+      test((t) => {
+        createParserOptions = (options) => {
+          throw new Error("createParserOptions called");
+        };
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+
+        const element = document.createElement("div");
+        try {
+          element[method_name]();
+          assert_unreached("Should have thrown");
+        } catch (e) {
+          assert_equals(e.message, "createParserOptions called");
+        }
+      }, `${method_name} checks createParserOptions before hierarchy checks`);
+    }
+  </script>
+</body>
+

@@ -42,7 +42,8 @@ async_test(t => {
         assert_equals(iframe.offsetHeight, 200, "Initial height should be 200px");
 
         // Navigate to non-responsive page.
-        iframe.contentWindow.postMessage('unsized', '*');
+        const url = 'iframe-contents-unsized.html';
+        iframe.contentWindow.postMessage({action: 'navigate', url: url}, '*');
         break;
       case 2:
         // The height should have reverted to default (150) because the new page

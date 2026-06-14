@@ -27,7 +27,7 @@
       navigator.userActivation.isActive,
       "User activation should not be active",
     );
-    const options = makeCreateOptions({ data: BigInt(1) });
+    const options = makeCreateOptions({ data: { val: BigInt(1) } });
     await promise_rejects_dom(
       t,
       "NotAllowedError",

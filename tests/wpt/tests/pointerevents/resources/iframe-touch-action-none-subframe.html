@@ -22,5 +22,7 @@
             eventType,
             handler);
     });
+
+    parent.postMessage({ type: 'subframe-ready' }, '*');
   </script>
 </html>

@@ -40,7 +40,7 @@ promise_test(async t => {
   });
 
   // Parent A can view it.
-  const tools = await document.modelContext.getTools();
+  const tools = await document.modelContext.getTools({ fromOrigins: [origin_b] });
   assert_true(tools.some(t => t.name === 'tool_b_to_a'), 'Parent A should see tool_b_to_a');
 
   // Open new window.

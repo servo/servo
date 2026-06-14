@@ -130,6 +130,15 @@ test_valid_value(
     'url(https://example.com/), light-dark(url(https://example.com/light), url(https://example.com/dark)) 3 4, move'
   ]
 );
+
+test_valid_value(
+  "cursor",
+  'light-dark(image-set("https://example.com/" 1x), url("https://example.com/")) 5 6, grab',
+  [
+    'light-dark(image-set(url("https://example.com/") 1x), url("https://example.com/")) 5 6, grab',
+    'light-dark(image-set(url(https://example.com/) 1x), url(https://example.com/)) 5 6, grab'
+  ]
+);
 </script>
 </body>
 </html>

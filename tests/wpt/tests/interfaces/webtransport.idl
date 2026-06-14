@@ -27,7 +27,7 @@ interface WebTransport {
   constructor(USVString url, optional WebTransportOptions options = {});
 
   Promise<WebTransportConnectionStats> getStats();
-  [NewObject] Promise<Uint8Array> exportKeyingMaterial(BufferSource label, optional BufferSource context);
+  [NewObject] Promise<Uint8Array> exportKeyingMaterial(BufferSource label, BufferSource context, unsigned long outputLength);
   readonly attribute Promise<undefined> ready;
   readonly attribute WebTransportReliabilityMode reliability;
   readonly attribute WebTransportCongestionControl congestionControl;

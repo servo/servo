@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://crbug.com/521861823">
+  <title>Crashtest for stroke animation with color mix</title>
+  <style>
+    .fig { color: oklch(0.66 0.055 150); }
+    .ly { animation: upg 4.2s ease-in-out infinite; }
+
+    @keyframes upg {
+      0%, 40% { stroke: color-mix(in oklab, currentColor 55%, transparent); }
+      52%,100% { stroke: currentColor; }
+    }
+  </style>
+</head>
+<body onload="runTest()">
+  <svg class="fig" viewBox="0 0 144 132" width="144" height="132" fill="none">
+    <rect class="ly" x="34" y="92" width="76" height="16" rx="4"
+          stroke="currentColor" stroke-width="1.75"/>
+  </svg>
+</body>
+<script src="/web-animations/testcommon.js"></script>
+<script>
+  async function runTest() {
+    const anim = document.getAnimations()[0];
+    await anim.ready;
+    await waitForAnimationFrames(3);
+    document.documentElement.classList.remove('test-wait');
+  }
+</script>
+</html>

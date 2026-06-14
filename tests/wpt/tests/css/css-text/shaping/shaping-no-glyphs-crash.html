@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta name="assert" content="Shaped runs that produce no glyphs should not cause a crash.">
+<link rel="help" href="https://github.com/servo/servo/issues/45174">
+<style>
+  span { font-family: 'MyCustomFont'; }
+  @font-face {
+      src: url('/css/css-values/resources/ExTest-NoSpace.woff') format('woff');
+      font-family: 'MyCustomFont';
+  }
+</style>
+<span>&ZeroWidthSpace;</span>

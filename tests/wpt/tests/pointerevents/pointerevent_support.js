@@ -499,6 +499,22 @@ function getEvent(event_type, target, test) {
   });
 }
 
+// Returns a promise that resolves when a child frame posts a subframe-ready
+// message back to the parent and style rules have been applied. When the child
+// frame needs to execute script, such as setting up listeners, it is
+// insufficient to wait for the frame to be loaded, as the load event is
+// received once the child frame's document has been parsed, which is before
+// script execution or style update.
+function loadFrameAndExcecuteScript(frame, src) {
+  return new Promise(async resolve => {
+    const ready =  getMessageData('subframe-ready', frame.contentWindow);
+    frame.src = src;
+    await ready;
+    // Ensure that the child frame has been properly styled.
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
 // Returns a |Promise| that gets resolved with |event.data| when |window|
 // receives from |source| a "message" event whose |event.data.type| matches the
 // string |message_data_type|.

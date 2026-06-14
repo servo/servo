@@ -9,7 +9,7 @@ partial interface Document {
 
 [Exposed=Window, SecureContext]
 interface ModelContext : EventTarget {
-  undefined registerTool(ModelContextTool tool, optional ModelContextRegisterToolOptions options = {});
+  Promise<undefined> registerTool(ModelContextTool tool, optional ModelContextRegisterToolOptions options = {});
 
   attribute EventHandler ontoolchange;
 };

@@ -28,5 +28,5 @@ async def test_show_open_file_picker(bidi_session, subscribe_events, inline,
     )
 
     event = await wait_for_future_safe(on_file_dialog_opened)
-    assert_file_dialog_opened_event(event, top_context["context"],
+    assert_file_dialog_opened_event(event, top_context["context"], top_context["userContext"],
                                     multiple=multiple, element=UNDEFINED)

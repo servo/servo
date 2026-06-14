@@ -52,13 +52,15 @@ async def test_with_csp_meta_tag(
     )
 
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
-    iframe_context = contexts[0]["children"][0]["context"]
+    iframe_context = contexts[0]["children"][0]
 
     # Make sure that cross-origin navigation in iframe failed.
-    with pytest.raises(UnknownErrorException):
-        await bidi_session.browsing_context.navigate(
-            context=iframe_context, url=cross_origin_url, wait="complete"
-        )
+    await navigate_and_assert(
+        bidi_session,
+        context=iframe_context,
+        url=cross_origin_url,
+        expected_error=True,
+    )
 
 
 @pytest.mark.parametrize(
@@ -70,11 +72,8 @@ async def test_with_csp_meta_tag(
 )
 async def test_with_content_blocking_header_in_top_context(
     bidi_session,
-    subscribe_events,
     inline,
     new_tab,
-    wait_for_event,
-    wait_for_future_safe,
     header,
 ):
     same_origin_url = inline("<div>foo</div>")
@@ -88,13 +87,15 @@ async def test_with_content_blocking_header_in_top_context(
     )
 
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
-    iframe_context = contexts[0]["children"][0]["context"]
+    iframe_context = contexts[0]["children"][0]
 
     # Make sure that cross-origin navigation in iframe failed.
-    with pytest.raises(UnknownErrorException):
-        await bidi_session.browsing_context.navigate(
-            context=iframe_context, url=cross_origin_url, wait="complete"
-        )
+    await navigate_and_assert(
+        bidi_session,
+        context=iframe_context,
+        url=cross_origin_url,
+        expected_error=True,
+    )
 
 
 @pytest.mark.parametrize(
@@ -106,11 +107,8 @@ async def test_with_content_blocking_header_in_top_context(
 )
 async def test_with_x_frame_options_header(
     bidi_session,
-    subscribe_events,
     inline,
     new_tab,
-    wait_for_event,
-    wait_for_future_safe,
     header_value,
 ):
     iframe_url_without_header = inline("<div>bar</div>")
@@ -126,13 +124,15 @@ async def test_with_x_frame_options_header(
     )
 
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
-    iframe_context = contexts[0]["children"][0]["context"]
+    iframe_context = contexts[0]["children"][0]
 
     # Make sure that cross-origin navigation in iframe failed.
-    with pytest.raises(UnknownErrorException):
-        await bidi_session.browsing_context.navigate(
-            context=iframe_context, url=iframe_url_with_header, wait="complete"
-        )
+    await navigate_and_assert(
+        bidi_session,
+        context=iframe_context,
+        url=iframe_url_with_header,
+        expected_error=True,
+    )
 
 
 async def test_with_new_navigation(

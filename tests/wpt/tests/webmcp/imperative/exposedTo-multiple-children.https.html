@@ -62,7 +62,8 @@ promise_test(async t => {
   assert_array_equals(tools, [], "Parent sees no tools");
 
   // Frame C should see the tool.
-  iframe_c.contentWindow.postMessage('getTools', '*');
+  iframe_c.contentWindow.postMessage(
+      {action: 'getTools', options: {fromOrigins: [origin_b]}}, '*');
   let response = await waitForIframeMessage('getToolsResponse');
   const [tool] = response.tools;
   assert_true(toolsAreEqual(tool, {
@@ -92,7 +93,8 @@ promise_test(async t => {
   assert_false(unreg_fired, 'Parent should not receive toolchange event on unregistration');
   assert_equals(child_response.result, 'fired', 'Frame C should receive toolchange event on unregistration');
 
-  iframe_c.contentWindow.postMessage('getTools', '*');
+  iframe_c.contentWindow.postMessage(
+      {action: 'getTools', options: {fromOrigins: [origin_b]}}, '*');
   response = await waitForIframeMessage('getToolsResponse');
   assert_array_equals(response.tools, [], "Frame C no longer sees B's tool");
 }, 'Multi-origin setup with mixed exposure lists');

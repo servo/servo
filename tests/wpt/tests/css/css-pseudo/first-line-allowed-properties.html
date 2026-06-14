@@ -50,6 +50,15 @@
     wordSpacing: "12px"
   };
 
+  // The css-pseudo-4 specification says only certain properties _apply_,
+  // which is different from computed values, but browsers implement this
+  // interoperably. Also, the inheritance section saying properties not in
+  // the list that apply to ::first-line are inherited from the non-pseudo
+  // parent instead, is also an indication this is the intent of the spec.
+  //
+  // Similarly, there was a resolution for highlight pseudos along the same
+  // lines:
+  // https://github.com/w3c/csswg-drafts/issues/7591
   const invalidProperties = {
     border: "40px dotted rgb(10, 20, 30)",
     borderImage: "linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255)) 10% / 20 / 30px repeat",
@@ -73,11 +82,35 @@
 
   for (let property in validProperties) {
     testFirstLineProperty(property, validProperties[property], validProperties[property],
-                            property + " should be applied to first-line pseudo elements.");
+                          property + " should be applied to first-line pseudo elements (display:block)");
   }
 
   for (let property in invalidProperties) {
     testFirstLineProperty(property, invalidProperties[property], defaultComputedStyle[property],
-                            property + " should not be applied to first-line pseudo elements.");
+                          property + " should not be applied to first-line pseudo elements (display:block)");
+  }
+
+  target.style.display = "inline";
+
+  for (let property in validProperties) {
+    testFirstLineProperty(property, validProperties[property], validProperties[property],
+                          property + " should be applied to first-line pseudo elements (display:inline)");
+  }
+
+  for (let property in invalidProperties) {
+    testFirstLineProperty(property, invalidProperties[property], defaultComputedStyle[property],
+                          property + " should not be applied to first-line pseudo elements (display:inline)");
+  }
+
+  target.style.display = "flex";
+
+  for (let property in validProperties) {
+    testFirstLineProperty(property, validProperties[property], validProperties[property],
+                          property + " should be applied to first-line pseudo elements (display:flex)");
+  }
+
+  for (let property in invalidProperties) {
+    testFirstLineProperty(property, invalidProperties[property], defaultComputedStyle[property],
+                          property + " should not be applied to first-line pseudo elements (display:flex)");
   }
 </script>

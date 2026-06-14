@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11520">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multi-col {
+    position: relative;
+    height: 75px;
+    width: 500px;
+    columns: 4;
+    column-fill: auto;
+    column-gap: 10px;
+    background: lightgray;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(13, 10px);
+    column-gap: 10px;
+    row-gap: 10px;
+  }
+  .grid-container>div {
+    background-color: skyblue;
+  }
+  .column-rule {
+    position: absolute;
+    background: blue;
+    width: 6px;
+    height: 75px;
+    top: 0;
+  }
+  .row-rule {
+    position: absolute;
+    background: red;
+    height: 5px;
+    width: 117.5px;
+  }
+</style>
+<div class="multi-col">
+  <div class="grid-container">
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+    <div></div><div></div>
+  </div>
+
+  <!-- Column rules: full height in fragmentainers 1-3, shortened in fragmentainer 4 (row 13 only) -->
+  <div class="column-rule" style="left: 55.75px;"></div>
+  <div class="column-rule" style="left: 183.25px;"></div>
+  <div class="column-rule" style="left: 310.75px;"></div>
+  <div class="column-rule" style="left: 438.25px; height: 10px;"></div>
+
+  <!-- Row rules: 3 per fragmentainer in frags 1-3 (between rows). None in frag 4 (single row). -->
+  <!-- Fragmentainer 1 (left=0) -->
+  <div class="row-rule" style="left: 0; top: 12.5px; background: teal;"></div>
+  <div class="row-rule" style="left: 0; top: 32.5px; background: lime;"></div>
+  <div class="row-rule" style="left: 0; top: 52.5px; background: lime;"></div>
+
+  <!-- Fragmentainer 2 (left=127.5) -->
+  <div class="row-rule" style="left: 127.5px; top: 12.5px; background: yellow;"></div>
+  <div class="row-rule" style="left: 127.5px; top: 32.5px; background: red;"></div>
+  <div class="row-rule" style="left: 127.5px; top: 52.5px; background: white;"></div>
+
+  <!-- Fragmentainer 3 (left=255) -->
+  <div class="row-rule" style="left: 255px; top: 12.5px; background: white;"></div>
+  <div class="row-rule" style="left: 255px; top: 32.5px; background: purple;"></div>
+  <div class="row-rule" style="left: 255px; top: 52.5px; background: purple;"></div>
+</div>

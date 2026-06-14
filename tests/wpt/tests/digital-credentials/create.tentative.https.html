@@ -229,9 +229,9 @@
 
   promise_test(async (t) => {
     const throwingValues = [
-      BigInt(123),
+      { val: BigInt(123) },
       (() => { const o = {}; o.self = o; return o; })(),
-      Symbol("foo")
+      { toJSON() { throw new TypeError("toJSON throws"); } }
     ];
 
     for (const badValue of throwingValues) {
@@ -267,7 +267,7 @@
         requests: [
           {
             protocol: "unknown-protocol",
-            data: BigInt(1), // malformed/non-serializable
+            data: { val: BigInt(1) }, // malformed/non-serializable
           },
           {
             protocol: "openid4vci",
