@@ -74,7 +74,7 @@ pub mod line;
 mod line_breaker;
 pub mod text_run;
 
-use std::cell::{OnceCell, RefCell};
+use std::cell::{LazyCell, OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
@@ -1916,7 +1916,8 @@ impl InlineFormattingContext {
             })
         };
 
-        let mut new_linebreaker = LineBreaker::new(text_content.as_str(), options);
+        let mut new_linebreaker =
+            LazyCell::new(|| LineBreaker::new(text_content.as_str(), options));
         for item in &mut builder.inline_items {
             match item {
                 InlineItem::TextRun(text_run) => {
