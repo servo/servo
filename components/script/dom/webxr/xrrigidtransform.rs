@@ -20,7 +20,6 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
 use crate::dom::xrsession::ApiRigidTransform;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRRigidTransform {
@@ -163,11 +162,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
     fn Matrix(&self, cx: &mut JSContext) -> RootedTraceableBox<HeapFloat32Array> {
         if !self.matrix.is_initialized() {
             self.matrix
-                .set_data(
-                    cx.into(),
-                    &self.transform.to_transform().to_array(),
-                    CanGc::from_cx(cx),
-                )
+                .set_data(cx, &self.transform.to_transform().to_array())
                 .expect("Failed to set on data on transform's internal matrix.")
         }
 

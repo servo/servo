@@ -20,7 +20,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRRay {
@@ -154,7 +153,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
                 .to_transform()
                 .to_array();
             self.matrix
-                .set_data(cx.into(), &arr, CanGc::from_cx(cx))
+                .set_data(cx, &arr)
                 .expect("Failed to set matrix data on XRRAy.")
         }
 

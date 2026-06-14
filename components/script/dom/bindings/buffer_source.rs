@@ -521,12 +521,11 @@ where
 
     pub(crate) fn set_data(
         &self,
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         data: &[T::Element],
-        can_gc: CanGc,
     ) -> Result<(), ()> {
-        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _ = create_buffer_source::<T>(cx, data, array.handle_mut(), can_gc)?;
+        rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
+        let _ = create_buffer_source::<T>(cx.into(), data, array.handle_mut(), CanGc::from_cx(cx))?;
 
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
