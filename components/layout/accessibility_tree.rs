@@ -77,6 +77,8 @@ pub struct AccessibilityTree {
     /// A map to allow retrieving the [`AccessibilityNode`] which corresponds to a particular DOM
     /// node, if any.
     opaque_node_to_id: FxHashMap<OpaqueNode, NodeId>,
+    /// A map to allow retrieving a node's parent ID, if any.
+    node_to_parent: FxHashMap<NodeId, NodeId>,
     /// Sent with each [`accesskit::TreeUpdate`]. This allows this tree to be
     /// [grafted](https://docs.rs/accesskit/latest/accesskit/struct.Node.html#method.tree_id) into
     /// an application's tree.
@@ -131,6 +133,7 @@ impl AccessibilityTree {
         Self {
             nodes: FxHashMap::default(),
             opaque_node_to_id: FxHashMap::default(),
+            node_to_parent: FxHashMap::default(),
             tree_id,
             root_node_id: None,
             embedder_epoch,
@@ -146,7 +149,7 @@ impl AccessibilityTree {
         rooted_nodes: Option<FxHashSet<OpaqueNode>>,
     ) -> Option<accesskit::TreeUpdate> {
         let mut update = AccessibilityUpdate::new(rooted_nodes);
-        let (root_node_id, root_node) = self.get_or_create_node(root_dom_node, &mut update);
+        let (root_node_id, root_node) = self.get_or_create_node(root_dom_node, None, &mut update);
         self.root_node_id = Some(root_node_id);
 
         self.update_node_and_descendants_from_dom_node(&root_node, root_dom_node, &mut update);
@@ -182,12 +185,16 @@ impl AccessibilityTree {
     fn get_or_create_node(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
+        parent_id: Option<NodeId>,
         update: &mut AccessibilityUpdate,
     ) -> (NodeId, ArcRefCell<AccessibilityNode>) {
         let id = self.id_for_opaque(dom_node.opaque());
 
         let node = self.nodes.entry(id).or_insert_with(|| {
             update.set_tree_state_change(id, TreeChange::New);
+            if let Some(parent_id) = parent_id {
+                self.node_to_parent.insert(id, parent_id);
+            }
             ArcRefCell::new(AccessibilityNode::new(id))
         });
 
@@ -213,6 +220,18 @@ impl AccessibilityTree {
         node.clone()
     }
 
+    fn parent_for_node(&self, node_id: &NodeId) -> Option<NodeId> {
+        self.node_to_parent.get(node_id).cloned()
+    }
+
+    fn set_parent_for_node(&mut self, node_id: NodeId, parent_id: Option<NodeId>) {
+        if let Some(parent_id) = parent_id {
+            self.node_to_parent.insert(node_id, parent_id);
+        } else {
+            self.node_to_parent.remove(&node_id);
+        }
+    }
+
     /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
     /// the tree.
     fn remove_stale_nodes(&mut self, mut update: AccessibilityUpdate) {
@@ -233,6 +252,7 @@ impl AccessibilityTree {
                 _ => None,
             })
         {
+            self.node_to_parent.remove(&id);
             if let Some(node) = self.nodes.remove(&id) &&
                 let Some(opaque_node) = node.borrow().opaque_node
             {
@@ -301,23 +321,42 @@ impl AccessibilityTree {
         let Some(root_node_id) = self.root_node_id else {
             return;
         };
-        // Traverse the tree from the given root.
-        let mut node_ids = vec![root_node_id];
+
         let mut seen_node_ids = FxHashSet::default();
-        while let Some(node_id) = node_ids.pop() {
-            // If this fails, then the tree is not a tree at all.
-            assert!(
-                seen_node_ids.insert(node_id),
-                "Tree contains {node_id:?} in multiple places"
-            );
-            // If this fails, then the tree has dangling references.
-            let node = self.assert_node_for_id(&node_id);
-            let node = node.borrow();
-            node_ids.extend(node.children().iter().rev());
-        }
+        self.assert_subtree_integrity_recursive(root_node_id, None, &mut seen_node_ids);
+
         // If this fails, then the tree has orphaned nodes (a leak).
         // Dangling references are already caught in the loop above.
-        assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
+        let mut known_nodes = self.nodes.keys().copied().collect();
+        assert_eq!(seen_node_ids, known_nodes);
+
+        // All node IDs other than the root node should be keys in `node_to_parent`, and no others.
+        known_nodes.remove(&root_node_id);
+        let nodes_with_parents: FxHashSet<NodeId> = self.node_to_parent.keys().copied().collect();
+        assert_eq!(nodes_with_parents, known_nodes);
+    }
+
+    /// Recursively check the integrity of the subtree rooted at node for `node_id`, and check that
+    /// the parent of the subtree root is `parent_id`.
+    fn assert_subtree_integrity_recursive(
+        &self,
+        node_id: NodeId,
+        parent_id: Option<NodeId>,
+        seen_node_ids: &mut std::collections::HashSet<NodeId, rustc_hash::FxBuildHasher>,
+    ) {
+        // If this fails, then the tree is not a tree at all.
+        assert!(
+            seen_node_ids.insert(node_id),
+            "Tree contains {node_id:?} in multiple places"
+        );
+        // If this fails, then the tree has dangling references.
+        let node = self.assert_node_for_id(&node_id);
+        let node = node.borrow();
+
+        assert_eq!(self.parent_for_node(&node.id), parent_id);
+        for child_id in node.children().iter() {
+            self.assert_subtree_integrity_recursive(*child_id, Some(node_id), seen_node_ids);
+        }
     }
 
     fn print(&self) {
@@ -379,7 +418,7 @@ impl AccessibilityNode {
 
         let mut damage_from_children = LocalAccessibilityDamage::empty();
         for dom_child in dom_children {
-            let (_, child_node) = tree.get_or_create_node(&dom_child, update);
+            let (_, child_node) = tree.get_or_create_node(&dom_child, Some(self.id), update);
             let child_damage =
                 tree.update_node_and_descendants_from_dom_node(&child_node, &dom_child, update);
             damage_from_children.insert(child_damage);
@@ -525,20 +564,20 @@ impl AccessibilityNode {
         for old_child_id in old_children {
             if !children.contains(old_child_id) {
                 let removed_child = tree.assert_node_for_id(old_child_id);
-                removed_child
-                    .borrow()
-                    .set_subtree_state_change(TreeChange::Removed, tree, update);
+                let removed_child = removed_child.borrow_mut();
+                removed_child.set_subtree_state_change(TreeChange::Removed, tree, update);
+                if tree.parent_for_node(old_child_id) == Some(self.id) {
+                    tree.set_parent_for_node(*old_child_id, None);
+                }
             }
         }
         for new_child_id in children.iter() {
             if !old_children.contains(new_child_id) &&
                 let Some(moved_child) = tree.node_for_id(new_child_id)
             {
-                moved_child.borrow().set_subtree_state_change(
-                    TreeChange::PendingMove,
-                    tree,
-                    update,
-                );
+                let moved_child = moved_child.borrow_mut();
+                moved_child.set_subtree_state_change(TreeChange::PendingMove, tree, update);
+                tree.set_parent_for_node(*new_child_id, Some(self.id));
             }
         }
 
@@ -641,13 +680,12 @@ impl AccessibilityUpdate {
     }
 
     fn set_tree_state_change(&mut self, node_id: NodeId, change: TreeChange) {
-        let old_change = self.tree_changes.get(&node_id);
-
         assert!(
             change != TreeChange::Moved,
             "Incoming change must never be Moved"
         );
 
+        let old_change = self.tree_changes.get(&node_id);
         let new_change = old_change
             .map(|old_change| match (old_change, change) {
                 (TreeChange::PendingMove, TreeChange::Removed) => TreeChange::Moved,
