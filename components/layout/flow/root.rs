@@ -179,7 +179,7 @@ impl BoxTree {
             .style_context
             .stylist
             .device()
-            .default_computed_values();
+            .default_computed_values_arc();
 
         // FIXME: use the document’s mode:
         // https://drafts.csswg.org/css-writing-modes/#principal-flow
