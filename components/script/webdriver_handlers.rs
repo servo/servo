@@ -1265,7 +1265,7 @@ pub(crate) fn handle_will_send_keys(
     // Step 7. If file is false or the session's strict file interactability
     if !is_file_input || strict_file_interactability {
         // Step 7.1. Scroll into view the element
-        scroll_into_view(cx, &element, documents, &pipeline);
+        scroll_into_view(cx, &element);
 
         // TODO: Step 7.2 - 7.5
         // Wait until element become keyboard-interactable
@@ -1622,7 +1622,7 @@ pub(crate) fn handle_scroll_and_get_bounding_client_rect(
     reply
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
-                scroll_into_view(cx, &element, documents, &pipeline);
+                scroll_into_view(cx, &element);
 
                 let rect = element.GetBoundingClientRect(cx);
                 Rect::new(
@@ -1878,7 +1878,7 @@ pub(crate) fn handle_element_clear(
                 }
 
                 // Step 5. Scroll Into View
-                scroll_into_view(cx, &element, documents, &pipeline);
+                scroll_into_view(cx, &element);
 
                 // TODO: Step 6 - 9: Implicit wait. In another PR.
                 // Wait until element become interactable and check.
@@ -1889,13 +1889,7 @@ pub(crate) fn handle_element_clear(
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
-                let paint_tree = get_element_pointer_interactable_paint_tree(
-                    cx,
-                    &element,
-                    &documents
-                        .find_document(pipeline)
-                        .expect("Document existence guaranteed by `get_known_element`"),
-                );
+                let paint_tree = get_element_pointer_interactable_paint_tree(cx, &element);
                 if !is_element_in_view(&element, &paint_tree) {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
@@ -1966,17 +1960,11 @@ pub(crate) fn handle_element_click(
                 };
 
                 // Step 5. Scroll into view the element's container.
-                scroll_into_view(cx, &container, documents, &pipeline);
+                scroll_into_view(cx, &container);
 
                 // Step 6. If element's container is still not in view
                 // return error with error code element not interactable.
-                let paint_tree = get_element_pointer_interactable_paint_tree(
-                    cx,
-                    &container,
-                    &documents
-                        .find_document(pipeline)
-                        .expect("Document existence guaranteed by `get_known_element`"),
-                );
+                let paint_tree = get_element_pointer_interactable_paint_tree(cx, &container);
 
                 if !is_element_in_view(&container, &paint_tree) {
                     return Err(ErrorStatus::ElementNotInteractable);
@@ -2074,7 +2062,6 @@ fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> boo
 fn get_element_pointer_interactable_paint_tree(
     cx: &mut JSContext,
     element: &Element,
-    document: &Document,
 ) -> Vec<DomRoot<Element>> {
     // Step 1. If element is not in the same tree as session's
     // current browsing context's active document, return an empty sequence.
@@ -2088,10 +2075,17 @@ fn get_element_pointer_interactable_paint_tree(
     // which internally computes first DOMRect of getClientRects
 
     get_element_in_view_center_point(cx, element).map_or(Vec::new(), |center_point| {
-        document.ElementsFromPoint(
-            Finite::wrap(center_point.x as f64),
-            Finite::wrap(center_point.y as f64),
-        )
+        if let Some(shadow_root) = element.containing_shadow_root() {
+            shadow_root.ElementsFromPoint(
+                Finite::wrap(center_point.x as f64),
+                Finite::wrap(center_point.y as f64),
+            )
+        } else {
+            element.owner_document().ElementsFromPoint(
+                Finite::wrap(center_point.x as f64),
+                Finite::wrap(center_point.y as f64),
+            )
+        }
     })
 }
 
@@ -2169,20 +2163,9 @@ pub(crate) fn handle_remove_load_status_sender(
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-scrolls-into-view>
-fn scroll_into_view(
-    cx: &mut JSContext,
-    element: &Element,
-    documents: &DocumentCollection,
-    pipeline: &PipelineId,
-) {
+fn scroll_into_view(cx: &mut JSContext, element: &Element) {
     // Check if element is already in view
-    let paint_tree = get_element_pointer_interactable_paint_tree(
-        cx,
-        element,
-        &documents
-            .find_document(*pipeline)
-            .expect("Document existence guaranteed by `get_known_element`"),
-    );
+    let paint_tree = get_element_pointer_interactable_paint_tree(cx, element);
     if is_element_in_view(element, &paint_tree) {
         return;
     }

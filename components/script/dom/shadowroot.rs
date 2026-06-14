@@ -385,6 +385,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         // Return the result of running the retargeting algorithm with context object
         // and the original result as input.
         match self.document_or_shadow_root.element_from_point(
+            self.upcast(),
             x,
             y,
             None,
@@ -405,7 +406,13 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         let mut elements = Vec::new();
         for e in self
             .document_or_shadow_root
-            .elements_from_point(x, y, None, self.document.has_browsing_context())
+            .elements_from_point(
+                self.upcast(),
+                x,
+                y,
+                None,
+                self.document.has_browsing_context(),
+            )
             .iter()
         {
             let retargeted_node = e.upcast::<EventTarget>().retarget(self.upcast());
