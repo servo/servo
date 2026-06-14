@@ -870,6 +870,10 @@ impl GlobalScope {
         false
     }
 
+    pub(crate) fn eventtarget(&self) -> &EventTarget {
+        &self.eventtarget
+    }
+
     fn timers(&self) -> &OneshotTimers {
         self.timers.get_or_init(|| OneshotTimers::new(self))
     }
