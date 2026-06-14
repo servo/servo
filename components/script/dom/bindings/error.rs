@@ -417,7 +417,7 @@ pub(crate) fn take_and_report_pending_exception_for_api(
     let error_info = error_info_from_pending_exception(cx, value.handle_mut())?;
 
     let return_value = javascript_error_info_from_error_info(cx, &error_info, value.handle());
-    GlobalScope::from_safe_context(cx.into(), in_realm).report_an_error(
+    GlobalScope::from_current_realm(realm).report_an_error(
         cx,
         error_info,
         value.handle(),
