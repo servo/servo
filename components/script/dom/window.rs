@@ -2847,13 +2847,13 @@ impl Window {
 
     /// Query whether a node is part of another node's containing block chain.
     /// <https://drafts.csswg.org/css-display/#containing-block-chain>
-    pub(crate) fn containing_block_descendant_query_without_reflow(
+    pub(crate) fn is_containing_block_descendant_query_without_reflow(
         &self,
-        root: &Node,
+        possible_ancestor: &Node,
         possible_descendant: &Node,
     ) -> bool {
-        self.layout.borrow().query_containing_block_descendant(
-            root.to_trusted_node_address(),
+        self.layout.borrow().query_containing_block_is_descendant(
+            possible_ancestor.to_trusted_node_address(),
             possible_descendant.to_trusted_node_address(),
         )
     }

@@ -507,7 +507,7 @@ impl IntersectionObserver {
                 }
                 if !element
                     .owner_window()
-                    .containing_block_descendant_query_without_reflow(
+                    .is_containing_block_descendant_query_without_reflow(
                         element.upcast(),
                         target.upcast(),
                     )

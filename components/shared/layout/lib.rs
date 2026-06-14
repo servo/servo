@@ -356,7 +356,7 @@ pub trait Layout {
     ) -> NodeRenderingType;
 
     fn query_containing_block(&self, node: TrustedNodeAddress) -> Option<UntrustedNodeAddress>;
-    fn query_containing_block_descendant(
+    fn query_containing_block_is_descendant(
         &self,
         root: TrustedNodeAddress,
         possible_descendant: TrustedNodeAddress,

@@ -1463,14 +1463,14 @@ pub fn process_containing_block_query(node: ServoLayoutNode) -> Option<Untrusted
 }
 
 pub fn process_containing_block_descendant_query(
-    root: ServoLayoutNode,
+    possible_ancestor: ServoLayoutNode,
     mut possible_descendant: ServoLayoutNode,
 ) -> bool {
-    while let Some(containing_block) = containing_block_for_node(possible_descendant) {
-        if containing_block == root {
+    while let Some(establishing_node) = containing_block_for_node(possible_descendant) {
+        if establishing_node == possible_ancestor {
             return true;
         }
-        possible_descendant = containing_block;
+        possible_descendant = establishing_node;
     }
     false
 }

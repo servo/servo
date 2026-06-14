@@ -370,7 +370,7 @@ impl Layout for LayoutThread {
 
     /// Return the node corresponding to the containing block of the provided node.
     #[servo_tracing::instrument(skip_all)]
-    fn query_containing_block_descendant(
+    fn query_containing_block_is_descendant(
         &self,
         root: TrustedNodeAddress,
         possible_descendant: TrustedNodeAddress,
