@@ -270,14 +270,17 @@ impl Layout for LayoutThread {
     fn set_viewport_details(&mut self, viewport_details: ViewportDetails) -> bool {
         let device = self.stylist.device_mut();
         let device_pixel_ratio = Scale::new(viewport_details.hidpi_scale_factor.get());
+        let device_size = viewport_details.device_size.cast_unit();
         if device.viewport_size() == viewport_details.size &&
-            device.device_pixel_ratio() == device_pixel_ratio
+            device.device_pixel_ratio() == device_pixel_ratio &&
+            device.device_size() == device_size
         {
             return false;
         }
 
         device.set_viewport_size(viewport_details.size);
         device.set_device_pixel_ratio(device_pixel_ratio);
+        device.set_device_size(device_size);
         self.device_has_changed = true;
         true
     }
@@ -772,6 +775,7 @@ impl LayoutThread {
             MediaType::screen(),
             QuirksMode::NoQuirks,
             config.viewport_details.size,
+            config.viewport_details.device_size.cast_unit(),
             Scale::new(config.viewport_details.hidpi_scale_factor.get()),
             Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
             ComputedValues::initial_values_with_font_override(font),
@@ -1178,6 +1182,7 @@ impl LayoutThread {
             use_rayon: rayon_pool.is_some(),
             image_resolver: image_resolver.clone(),
             painter_id: self.webview_id.into(),
+            device_size: reflow_request.viewport_details.device_size.cast_unit(),
         };
 
         let restyle = reflow_request

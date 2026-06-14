@@ -340,6 +340,9 @@ pub struct ViewportDetails {
     /// The scale factor to use to account for HiDPI scaling. This does not take into account
     /// any page or pinch zoom applied by `Paint` to the contents.
     pub hidpi_scale_factor: Scale<f32, CSSPixel, DevicePixel>,
+
+    /// The device dimensions that this viewport is displayed within.
+    pub device_size: Size2D<f32, DevicePixel>,
 }
 
 impl ViewportDetails {
