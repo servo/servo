@@ -1042,8 +1042,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         p.reject(cx, v, can_gc);
     }
 
-    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString, can_gc: CanGc) {
-        p.reject_error(Error::Type(cformat!("{}", s.0)), can_gc);
+    fn PromiseRejectWithTypeError(&self, cx: &mut JSContext, p: &Promise, s: USVString) {
+        p.reject_error(cx, Error::Type(cformat!("{}", s.0)));
     }
 
     fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
