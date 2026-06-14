@@ -882,6 +882,7 @@ impl WritableStream {
 
         // Let controller be a new WritableStreamDefaultController.
         let controller = WritableStreamDefaultController::new(
+            cx,
             &global,
             UnderlyingSinkType::Transfer {
                 backpressure_promise: backpressure_promise.clone(),
@@ -889,7 +890,6 @@ impl WritableStream {
             },
             1.0,
             size_algorithm,
-            CanGc::from_cx(cx),
         );
 
         // Add a handler for port’s message event with the following steps:
@@ -946,6 +946,7 @@ impl WritableStream {
         // takes an argument reason and returns the result of invoking underlyingSinkDict["abort"]
         // with argument list « reason » and callback this value underlyingSink.
         let controller = WritableStreamDefaultController::new(
+            cx,
             global,
             UnderlyingSinkType::new_js(
                 underlying_sink.abort.clone(),
@@ -955,7 +956,6 @@ impl WritableStream {
             ),
             strategy_hwm,
             strategy_size,
-            CanGc::from_cx(cx),
         );
 
         // Note: this must be done before `setup`,
@@ -985,11 +985,11 @@ pub(crate) fn create_writable_stream(
 
     // Let controller be a new WritableStreamDefaultController.
     let controller = WritableStreamDefaultController::new(
+        cx,
         global,
         underlying_sink_type,
         writable_high_water_mark,
         writable_size_algorithm,
-        CanGc::from_cx(cx),
     );
 
     // Perform ? SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm,

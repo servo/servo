@@ -242,12 +242,7 @@ impl TransformStreamDefaultController {
                     // If result is an abrupt completion, return a promise rejected with result.[[Value]].
                     if let Err(error) = self.enqueue(cx, global, chunk) {
                         rooted!(&in(cx) let mut error_val = UndefinedValue());
-                        error.to_jsval(
-                            cx.into(),
-                            global,
-                            error_val.handle_mut(),
-                            CanGc::from_cx(cx),
-                        );
+                        error.to_jsval(cx, global, error_val.handle_mut());
                         Promise::new_rejected(cx, global, error_val.handle())
                     } else {
                         // Otherwise, return a promise resolved with undefined.
@@ -598,12 +593,9 @@ impl TransformStreamDefaultController {
         if let Err(error) = readable_controller.enqueue(cx, chunk) {
             // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, enqueueResult.[[Value]]).
             rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-            error.clone().to_jsval(
-                cx.into(),
-                global,
-                rooted_error.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            error
+                .clone()
+                .to_jsval(cx, global, rooted_error.handle_mut());
             stream.error_writable_and_unblock_write(cx, global, rooted_error.handle());
 
             // Throw stream.[[readable]].[[storedError]].
@@ -682,12 +674,7 @@ impl TransformStreamDefaultController {
 
         // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, error).
         rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-        error.to_jsval(
-            cx.into(),
-            global,
-            rooted_error.handle_mut(),
-            CanGc::from_cx(cx),
-        );
+        error.to_jsval(cx, global, rooted_error.handle_mut());
         stream.error_writable_and_unblock_write(cx, global, rooted_error.handle());
     }
 }

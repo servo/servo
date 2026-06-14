@@ -353,9 +353,7 @@ impl Request {
         // abort signal from signals, using AbortSignal and this’s relevant realm.
         r.signal
             .set(Some(&AbortSignal::create_dependent_abort_signal(
-                signals,
-                global,
-                CanGc::from_cx(cx),
+                cx, signals, global,
             )));
 
         // Step 31. Set this’s headers to a new Headers object with this’s relevant realm,
@@ -725,11 +723,8 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         let signal = self.signal.get().expect("Should always be initialized");
         // Step 4. Let clonedSignal be the result of creating a dependent
         // abort signal from « this’s signal », using AbortSignal and this’s relevant realm.
-        let cloned_signal = AbortSignal::create_dependent_abort_signal(
-            vec![signal],
-            &self.global(),
-            CanGc::from_cx(cx),
-        );
+        let cloned_signal =
+            AbortSignal::create_dependent_abort_signal(cx, vec![signal], &self.global());
         // Step 5. Let clonedRequestObject be the result of creating a Request object,
         // given clonedRequest, this’s headers’s guard, clonedSignal and this’s relevant realm.
         //

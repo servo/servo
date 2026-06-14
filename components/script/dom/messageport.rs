@@ -198,12 +198,9 @@ impl MessagePort {
         if let Err(error) = result.as_ref() {
             // Perform ! CrossRealmTransformSendError(port, result.[[Value]]).
             rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-            error.clone().to_jsval(
-                cx.into(),
-                &self.global(),
-                rooted_error.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            error
+                .clone()
+                .to_jsval(cx, &self.global(), rooted_error.handle_mut());
             self.cross_realm_transform_send_error(cx, rooted_error.handle());
         }
 

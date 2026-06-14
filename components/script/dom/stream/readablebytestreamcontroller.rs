@@ -418,10 +418,9 @@ impl ReadableByteStreamController {
                         // Let e be a new TypeError exception.
                         rooted!(&in(cx) let mut error = UndefinedValue());
                         Error::Type(c"close requested".to_owned()).to_jsval(
-                            cx.into(),
+                            cx,
                             &self.global(),
                             error.handle_mut(),
-                            CanGc::from_cx(cx),
                         );
 
                         // Perform ! ReadableByteStreamControllerError(controller, e).
@@ -452,12 +451,7 @@ impl ReadableByteStreamController {
 
                 // Perform readIntoRequest’s error steps, given bufferResult.[[Value]].
                 rooted!(&in(cx) let mut rval = UndefinedValue());
-                error.to_jsval(
-                    cx.into(),
-                    &self.global(),
-                    rval.handle_mut(),
-                    CanGc::from_cx(cx),
-                );
+                error.to_jsval(cx, &self.global(), rval.handle_mut());
                 read_into_request.error_steps(cx, rval.handle());
 
                 // Return.
@@ -890,12 +884,7 @@ impl ReadableByteStreamController {
 
                     // Perform ! ReadableByteStreamControllerError(controller, e).
                     rooted!(&in(cx) let mut error = UndefinedValue());
-                    e.clone().to_jsval(
-                        cx.into(),
-                        &self.global(),
-                        error.handle_mut(),
-                        CanGc::from_cx(cx),
-                    );
+                    e.clone().to_jsval(cx, &self.global(), error.handle_mut());
                     self.error(cx, error.handle());
 
                     // Throw e.
@@ -1463,12 +1452,9 @@ impl ReadableByteStreamController {
             // Perform ! ReadableByteStreamControllerError(controller, cloneResult.[[Value]]).
             rooted!(&in(cx) let mut rval = UndefinedValue());
             let error = Error::Type(c"can not clone array buffer".to_owned());
-            error.clone().to_jsval(
-                cx.into(),
-                &self.global(),
-                rval.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            error
+                .clone()
+                .to_jsval(cx, &self.global(), rval.handle_mut());
             self.error(cx, rval.handle());
 
             // Return cloneResult.
@@ -1663,7 +1649,7 @@ impl ReadableByteStreamController {
             let promise = result.unwrap_or_else(|error| {
                 rooted!(&in(cx) let mut rval = UndefinedValue());
                 // TODO: check if `self.global()` is the right globalscope.
-                error.to_jsval(cx.into(), &global, rval.handle_mut(), CanGc::from_cx(cx));
+                error.to_jsval(cx, &global, rval.handle_mut());
                 Promise::new_rejected(cx, &global, rval.handle())
             });
             promise.append_native_handler(cx, &handler);
@@ -1847,7 +1833,7 @@ impl ReadableByteStreamController {
 
         let promise = result.unwrap_or_else(|error| {
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            error.to_jsval(cx.into(), global, rval.handle_mut(), CanGc::from_cx(cx));
+            error.to_jsval(cx, global, rval.handle_mut());
             let promise = Promise::new2(cx, global);
             promise.reject_native_with_cx(cx, &rval.handle());
             promise
@@ -1920,12 +1906,7 @@ impl ReadableByteStreamController {
                     // Perform readRequest’s error steps, given buffer.[[Value]].
 
                     rooted!(&in(cx) let mut rval = UndefinedValue());
-                    error.to_jsval(
-                        cx.into(),
-                        &self.global(),
-                        rval.handle_mut(),
-                        CanGc::from_cx(cx),
-                    );
+                    error.to_jsval(cx, &self.global(), rval.handle_mut());
                     read_request.error_steps(cx, rval.handle());
 
                     // Return.
