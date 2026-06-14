@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use servo_base::id::BrowsingContextId;
 
 use crate::bidi::log::EntryAdded;
 
@@ -23,7 +24,9 @@ pub mod bidi {
     }
 }
 
+// TODO: this is intended for both classic and bidi,
+// however, classic is not refactored yet.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ScriptToWebDriverMessage {
-    ConsoleEntryAdded(EntryAdded),
+    EntryAdded(Vec<BrowsingContextId>, EntryAdded),
 }

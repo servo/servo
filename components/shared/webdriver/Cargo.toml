@@ -16,9 +16,9 @@ path = "lib.rs"
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+servo-base = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
 
 [build-dependencies]
 webdriver_traits_codegen = { workspace = true }
 indexmap = { workspace = true }
-

@@ -19,6 +19,18 @@ impl From<WebSocketStream<TokioAdapter<TcpStream>>> for Connection {
     }
 }
 
+impl Connection {
+    pub async fn send(&mut self, message: String) {
+        match self {
+            Connection::Tcp(stream) => {
+                if let Err(err) = stream.send(message.into()).await {
+                    log::warn!("Send a WebSocket message failed");
+                }
+            },
+        }
+    }
+}
+
 // TODO: do we need connection id now? e.g. for log?
 
 static CONNECTION_ID: AtomicU64 = AtomicU64::new(0);

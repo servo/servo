@@ -259,8 +259,12 @@ impl Console {
             };
             // 1.14. TODO
             // 1.15. TODO
+            let related_navigables = vec![];
             // 1.16: continue in webdriver thread callback
-            if let Err(err) = chan.send(ScriptToWebDriverMessage::ConsoleEntryAdded(body)) {
+            if let Err(err) = chan.send(ScriptToWebDriverMessage::EntryAdded(
+                related_navigables,
+                body,
+            )) {
                 log::warn!("Error sending event to webdriver: {err:?}");
             };
         }

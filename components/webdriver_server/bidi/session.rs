@@ -12,9 +12,12 @@ use tokio::{
     task,
 };
 use uuid::Uuid;
-use webdriver_traits::bidi::{
-    self, ErrorCode, script::PreloadScript as PreloadScriptId,
-    session::Subscription as SubscriptionId,
+use webdriver_traits::{
+    ScriptToWebDriverMessage,
+    bidi::{
+        self, ErrorCode, Event, EventData, LogEvent, script::PreloadScript as PreloadScriptId,
+        session::Subscription as SubscriptionId,
+    },
 };
 
 use crate::bidi::{ActiveSessions, connection::Connection};
@@ -82,7 +85,37 @@ impl Session {
         });
     }
 
-    pub async fn start(&mut self) {}
+    pub async fn start(&mut self) {
+        // TODO: poll connections
+        while let Some(msg) = self.recv.recv().await {
+            match msg {
+                SessionMessage::Connection(connection) => {
+                    if let Some(bidi) = &mut self.bidi {
+                        bidi.connections.push(connection);
+                    } else {
+                        // TODO: what to do if failed?
+                    }
+                },
+                SessionMessage::Script(msg) => match msg {
+                    ScriptToWebDriverMessage::EntryAdded(related_navigables, body) => {
+                        let body = LogEvent::EntryAdded(body);
+                        // 1.16.
+                        if let Some(bidi) = &mut self.bidi {
+                            if bidi.event_is_enabled("log.entryAdded", &related_navigables) {
+                                bidi.emit_an_event(&Event {
+                                    event_data: EventData::LogEvent(body),
+                                    extensible: Default::default(),
+                                })
+                                .await;
+                            } else {
+                                bidi.buffer_a_log_event(&related_navigables, body);
+                            }
+                        }
+                    },
+                },
+            }
+        }
+    }
 
     /// <https://w3c.github.io/webdriver/#dfn-create-a-session>
     pub fn create_a_session(&self, capabilities: (), flags: ()) -> Result<Self, ErrorCode> {
@@ -134,6 +167,7 @@ impl From<SessionId> for Uuid {
 pub enum SessionMessage {
     /// Associate a WebSocket connection to a session.
     Connection(Connection),
+    Script(ScriptToWebDriverMessage),
 }
 
 /// In rust we have single ownership rule.
@@ -156,7 +190,9 @@ pub struct SessionBidi {
     /// <https://www.w3.org/TR/webdriver-bidi/#event-known-subscription-ids>
     known_subscription_ids: IndexSet<SubscriptionId>,
     /// <https://www.w3.org/TR/webdriver-bidi/#session-websocket-connections>
-    session_websocket_connections: IndexSet<Connection>,
+    ///  
+    /// Deviation: we cannot use (ordered) set since `IndexSet` cannot `iter_mut`.
+    connections: Vec<Connection>,
     // TODO: sandbox map
     /// <https://www.w3.org/TR/webdriver-bidi/#user-context-to-accept-insecure-certificates-override-map>
     user_context_to_accept_insecure_certificates_override_map: IndexMap<(), bool>,
@@ -181,7 +217,7 @@ pub struct SessionBidi {
     /// <https://www.w3.org/TR/webdriver-bidi/#preload-script-map>
     preload_script_map: IndexMap<PreloadScriptId, PreloadScript>,
     /// <https://www.w3.org/TR/webdriver-bidi/#log-event-buffer>
-    log_event_buffer: IndexMap<BrowsingContextId, Vec<()>>,
+    log_event_buffer: IndexMap<BrowsingContextId, Vec<LogEvent>>,
     /// Receive connections from
     recv: UnboundedReceiver<Connection>,
 }
@@ -197,8 +233,41 @@ impl SessionBidi {
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#buffer-a-log-event>
-    fn buffer_a_log_event(&self) {
+    fn buffer_a_log_event(&mut self, navigable_ids: &[BrowsingContextId], event: LogEvent) {
+        // 1.
+        let buffer = &mut self.log_event_buffer;
+        // 2-3. SKIP since we can only use naviable id directly
+        // 4.
+        for navigable_id in navigable_ids {
+            // NOTE: the spec self-contradicts here,
+            // we choose to follow the `log_event_buffer` type rather than the steps.
+            buffer.entry(*navigable_id).or_default().push(event.clone());
+        }
         todo!()
+    }
+
+    /// <https://w3c.org/TR/webdriver-bidi/#event-is-enabled>
+    fn event_is_enabled(&self, event_name: &str, navigables: &[BrowsingContextId]) -> bool {
+        // 1. TODO
+        // 2. TODO
+        // 2.1. TODO
+        // 2.2. TODO
+        // 2.3. TODO
+        // 2.4. TODO
+        // 3.
+        false
+    }
+
+    /// <https://w3c.org/TR/webdriver-bidi/#emit-an-event>
+    async fn emit_an_event(&mut self, body: &Event) {
+        // 1. SKIP Assert
+        // 2.
+        let serialized = serde_json::to_string(&body).expect("Event serialization failed");
+        // 3.
+        for connection in self.connections.iter_mut() {
+            // 3.1.
+            connection.send(serialized.clone()).await;
+        }
     }
 }
 
