@@ -61,10 +61,10 @@ cipher = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
+crypto-bigint = { workspace = true }
 cshake = { workspace = true }
 cssparser = { workspace = true }
 ctr = { workspace = true }
-crypto-bigint = { workspace = true }
 data-url = { workspace = true }
 deny_public_fields = { workspace = true }
 der = { workspace = true }
