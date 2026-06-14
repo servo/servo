@@ -189,13 +189,7 @@ impl Console {
         method: ConsoleLogLevel,
         log_entry: ConsoleLogEntry,
     ) {
-        use webdriver_traits::bidi::{
-            get_the_source,
-            log::{Entry, EntryAdded, EntryAddedMethod, Level},
-            script::{RemoteValue, ResultOwnership, SerializationOptions},
-            serialize_as_a_remote_value,
-        };
-
+        use webdriver_traits::bidi::{log::Level, script::SerializationOptions};
         let args = Vec::<()>::new();
 
         // 1.
@@ -240,7 +234,8 @@ impl Console {
                 // serialized_args.push(serialized_arg);
             }
             // 1.10.
-            let source = get_the_source();
+            let source = todo!();
+            // let source = get_the_source();
             // 1.11.
             // TODO: stack
             let stack = None;
@@ -810,13 +805,6 @@ fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMS
 enum IncludeStackTrace {
     Yes,
     No,
-}
-
-/// <https://we.org/TR/webdriver-bidi/#serialize-as-a-remote-value>
-// TODO: if we have a trait on `HandleValue`, we can move this to webdriver_traits.
-fn serialize_as_a_remote_value(cx: &mut JSContext, handle_value: HandleValue) -> RemoteValue {
-    if handle_value.is_symbol() {}
-    todo!()
 }
 
 impl consoleMethods<crate::DomTypeHolder> for Console {

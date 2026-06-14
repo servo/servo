@@ -36,7 +36,6 @@ pub fn parse_into_patterns<'a>(
 fn override_rule<'a>(rule: &Rule<'a>) -> Option<RulePattern<'a>> {
     match &rule.name()[..] {
         "session.Subscription"
-        | "browsingContext.BrowsingContext"
         | "browsingContext.Screencast"
         | "browsingContext.Download"
         | "network.Collector"

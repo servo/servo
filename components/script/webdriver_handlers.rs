@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::{HashMap, HashSet};
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::ptr::NonNull;
 
 use cookie::Cookie;
@@ -16,14 +16,20 @@ use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use js::context::JSContext;
 use js::conversions::{FromJSValConvertible, jsstr_to_string};
-use js::jsapi::{HandleValueArray, JSITER_OWNONLY, JSType, PropertyDescriptor};
+use js::glue::IsProxyHandlerFamily;
+use js::jsapi::{
+    HandleValueArray, IsArrayBufferObject, IsCallable, IsWeakMapObject, IsWindowProxy,
+    JS_IsTypedArrayObject, JSITER_OWNONLY, JSType, PropertyDescriptor,
+};
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
-    GetPropertyKeys, JS_CallFunctionName, JS_GetOwnPropertyDescriptorById, JS_GetProperty,
-    JS_GetPropertyById, JS_HasOwnProperty, JS_IsExceptionPending, JS_TypeOfValue,
+    BigIntToString, GetPropertyKeys, IsArray, IsPromiseObject, JS_CallFunctionName,
+    JS_GetOwnPropertyDescriptorById, JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty,
+    JS_IsExceptionPending, JS_TypeOfValue, ObjectIsDate, ObjectIsRegExp,
 };
 use js::rust::{HandleObject, HandleValue, IdVector, ToString};
+use js::typedarray::JSObjectStorage;
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{DeleteCookie, DeleteCookies, GetCookiesForUrl, SetCookieForUrl};
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
@@ -34,6 +40,15 @@ use script_bindings::settings_stack::run_a_script;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
 use webdriver::error::ErrorStatus;
+use webdriver_traits::bidi::script::{
+    ArrayBufferRemoteValue, ArrayRemoteValue, BigIntValue, BooleanValue, DateLocalValue,
+    DateRemoteValue, FunctionRemoteValue, ListRemoteValue, NullValue, NumberValue,
+    NumberValueValue, ObjectRemoteValue, PrimitiveProtocolValue, PromiseRemoteValue,
+    ProxyRemoteValue, RegExpLocalValue, RegExpRemoteValue, RegExpValue, RemoteValue,
+    RemoteValueOrText, ResultOwnership, SerializationOptions, SpecialNumber, StringValue,
+    SymbolRemoteValue, TypedArrayRemoteValue, UndefinedValue, WeakMapRemoteValue,
+    WeakSetRemoteValue, WindowProxyProperties, WindowProxyRemoteValue,
+};
 
 use crate::DomTypeHolder;
 use crate::document_collection::DocumentCollection;
@@ -152,8 +167,8 @@ pub(crate) fn handle_get_known_window(
                 .map_or(Err(ErrorStatus::NoSuchWindow), |window| {
                     let window_proxy = window.window_proxy();
                     // Step 3-4: Window must be top level browsing context.
-                    if window_proxy.browsing_context_id() != window_proxy.webview_id() ||
-                        window_proxy.webview_id().to_string() != webview_id
+                    if window_proxy.browsing_context_id() != window_proxy.webview_id()
+                        || window_proxy.webview_id().to_string() != webview_id
                     {
                         Err(ErrorStatus::NoSuchWindow)
                     } else {
@@ -200,8 +215,8 @@ fn get_known_shadow_root(
 
     // Step 3. If node is not null and node does not implement ShadowRoot
     // return error with error code no such shadow root.
-    if let Some(ref node) = node &&
-        !node.is::<ShadowRoot>()
+    if let Some(ref node) = node
+        && !node.is::<ShadowRoot>()
     {
         return Err(ErrorStatus::NoSuchShadowRoot);
     }
@@ -254,8 +269,8 @@ fn get_known_element(
 
     // Step 3. If node is not null and node does not implement Element
     // return error with error code no such element.
-    if let Some(ref node) = node &&
-        !node.is::<Element>()
+    if let Some(ref node) = node
+        && !node.is::<Element>()
     {
         return Err(ErrorStatus::NoSuchElement);
     }
@@ -506,8 +521,8 @@ fn clone_an_object(
     // Step 2. Append value to `seen`.
     seen.insert(hashable.clone());
 
-    let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
-        is_arguments_object(cx, val)
+    let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val)
+        || is_arguments_object(cx, val)
     {
         let mut result: Vec<JSValue> = Vec::new();
 
@@ -1777,24 +1792,24 @@ pub(crate) fn handle_get_url(
 /// <https://w3c.github.io/webdriver/#dfn-mutable-form-control-element>
 fn element_is_mutable_form_control(element: &Element) -> bool {
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-        input_element.is_mutable() &&
-            matches!(
+        input_element.is_mutable()
+            && matches!(
                 *input_element.input_type(),
-                InputType::Text(_) |
-                    InputType::Search(_) |
-                    InputType::Url(_) |
-                    InputType::Tel(_) |
-                    InputType::Email(_) |
-                    InputType::Password(_) |
-                    InputType::Date(_) |
-                    InputType::Month(_) |
-                    InputType::Week(_) |
-                    InputType::Time(_) |
-                    InputType::DatetimeLocal(_) |
-                    InputType::Number(_) |
-                    InputType::Range(_) |
-                    InputType::Color(_) |
-                    InputType::File(_)
+                InputType::Text(_)
+                    | InputType::Search(_)
+                    | InputType::Url(_)
+                    | InputType::Tel(_)
+                    | InputType::Email(_)
+                    | InputType::Password(_)
+                    | InputType::Date(_)
+                    | InputType::Month(_)
+                    | InputType::Week(_)
+                    | InputType::Time(_)
+                    | InputType::DatetimeLocal(_)
+                    | InputType::Number(_)
+                    | InputType::Range(_)
+                    | InputType::Color(_)
+                    | InputType::File(_)
             )
     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
         textarea_element.is_mutable()
@@ -1816,8 +1831,8 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
             if input_element.Value().is_empty() {
                 return Ok(());
             }
-        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() &&
-            textarea_element.Value().is_empty()
+        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>()
+            && textarea_element.Value().is_empty()
         {
             return Ok(());
         }
@@ -1946,8 +1961,8 @@ pub(crate) fn handle_element_click(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 // Step 4. If the element is an input element in the file upload state
                 // return error with error code invalid argument.
-                if let Some(input_element) = element.downcast::<HTMLInputElement>() &&
-                    matches!(*input_element.input_type(), InputType::File(_))
+                if let Some(input_element) = element.downcast::<HTMLInputElement>()
+                    && matches!(*input_element.input_type(), InputType::File(_))
                 {
                     return Err(ErrorStatus::InvalidArgument);
                 }
@@ -2202,4 +2217,304 @@ pub(crate) fn set_protocol_handler_automation_mode(
     if let Some(document) = documents.find_document(pipeline) {
         document.set_protocol_handler_automation_mode(mode);
     }
+}
+
+/// <https://www.w3.org/TR/webdriver-bidi/#serialize-as-a-remote-value>
+#[expect(unsafe_code)]
+pub fn serialize_as_a_remote_value(
+    browsing_context_id: BrowsingContextId,
+    cx: &mut JSContext,
+    value: &HandleValue,
+    serialization_options: &SerializationOptions,
+    ownership_type: ResultOwnership,
+    // TODO: the lifetime a a serialization_map is problematic in spec,
+    // we want it value to be &mut RemoteValue instead of owned,
+    // the map itself should also be owned and does not leak lifetime out
+    serialization_internal_map: &mut HashMap<u64, RemoteValue>,
+    // realm: String,
+    // session: String,
+) -> RemoteValue {
+    // 1.
+    let remote_value = serialize_primitive_protocol_value(cx, value);
+    // 2.
+    if let Some(remote_value) = remote_value {
+        return RemoteValue::PrimitiveProtocolValue(remote_value);
+    }
+    // 3. TODO
+    let handle_id: Option<String> = None;
+    // 4.
+    let ownership_type = ResultOwnership::None;
+    // 5.
+    let known_object = serialization_internal_map.contains_key(&value.get().asBits_);
+    // 6.
+    rooted!(&in(cx) let obj = value.to_object());
+    let remote_value = match value {
+        // 6.Symbol.
+        _ if value.is_symbol() => RemoteValue::SymbolRemoteValue(SymbolRemoteValue {
+            handle: handle_id,
+            internal_id: None,
+        }),
+        // 6.Array.
+        _ if let mut is_array = false
+            && unsafe { IsArray(cx, obj.handle(), &mut is_array) }
+            && is_array =>
+        {
+            RemoteValue::ArrayRemoteValue(serialize_an_array_like(
+                handle_id,
+                known_object,
+                value,
+                serialization_options,
+                &ownership_type,
+                serialization_internal_map,
+            ))
+        },
+        // 6.RegExp.
+        _ if let mut is_reg_exp = false
+            && unsafe { ObjectIsRegExp(cx, obj.handle(), &mut is_reg_exp) }
+            && is_reg_exp =>
+        {
+            // 6.RegExp.1.
+            let pattern = get_property_to_string(cx, obj.handle(), c"source")
+                // the spec does not specify how to handle error
+                .unwrap_or_default();
+            // 6.RegExp.2.
+            let flags = get_property_to_string(cx, obj.handle(), c"flags");
+            // 6.RegExp.3.
+            let serialized = RegExpValue { pattern, flags };
+            // 6.RegExp.4.
+            RemoteValue::RegExpRemoteValue(RegExpRemoteValue {
+                reg_exp_local_value: RegExpLocalValue { value: serialized },
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.Date.
+        _ if let mut is_date = false
+            && unsafe { ObjectIsDate(cx, obj.handle(), &mut is_date) }
+            && is_date =>
+        {
+            // 6.Date.1.
+            let serialized = {
+                rooted!(&in(cx) let mut out = UndefinedValue());
+                if unsafe {
+                    JS_CallFunctionName(
+                        cx,
+                        obj.handle(),
+                        c"toISOString".as_ptr(),
+                        &HandleValueArray::empty(),
+                        out.handle_mut(),
+                    )
+                } && out.is_string()
+                {
+                    let jsstr = NonNull::new(out.to_string()).unwrap();
+                    unsafe { jsstr_to_string(cx.raw_cx(), jsstr) }
+                } else {
+                    // error case not specified by spec
+                    String::new()
+                }
+            };
+            // 6.Date.2. Skip Assert
+            // 6.Date.3.
+            RemoteValue::DateRemoteValue(DateRemoteValue {
+                date_local_value: DateLocalValue { value: serialized },
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.Map. TODO
+        // 6.Set. TODO
+        // 6.WeakMap.
+        _ if unsafe { IsWeakMapObject(obj.as_raw()) } => {
+            RemoteValue::WeakMapRemoteValue(WeakMapRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.WeakSet. TODO.
+        // 6.Generator. TODO
+        // 6.Error. TODO
+        // 6.Proxy. TODO: not sure this is the current
+        _ if unsafe { IsProxyHandlerFamily(obj.as_raw()) } => {
+            RemoteValue::ProxyRemoteValue(ProxyRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.Promise.
+        _ if unsafe { IsPromiseObject(obj.handle()) } => {
+            RemoteValue::PromiseRemoteValue(PromiseRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.TypedArray.
+        _ if unsafe { JS_IsTypedArrayObject(obj.as_raw()) } => {
+            RemoteValue::TypedArrayRemoteValue(TypedArrayRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.ArrayBuffer.
+        _ if unsafe { IsArrayBufferObject(obj.as_raw()) } => {
+            RemoteValue::ArrayBufferRemoteValue(ArrayBufferRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.NodeList. TODO
+        // 6.HTMLCollection. TODO
+        // 6.Node. TODO
+        // 6.WindowProxy.
+        _ if unsafe { IsWindowProxy(obj.as_raw()) } => {
+            RemoteValue::WindowProxyRemoteValue(WindowProxyRemoteValue {
+                value: WindowProxyProperties {
+                    context: browsing_context_id.to_string(),
+                },
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.platformobject TODO
+        // 6.Callable.
+        _ if unsafe { IsCallable(obj.as_raw()) } => {
+            RemoteValue::FunctionRemoteValue(FunctionRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.Otherwise.
+        _ => {
+            // 6.Otherwise.1. Skip Assert.
+            // 6.Otherwise.2.
+            let mut remote_value = ObjectRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+                value: None,
+            };
+            // 6.Otherwise.3. TODO
+            // 6.Otherwise.4.
+            let mut serialized = None;
+            // 6.Otherwise.5.
+            if !known_object && serialization_options.max_object_depth != Some(0) {
+                // 6.Otherwise.5.1.
+                serialized = serialize_as_a_mapping(serialization_options, &ownership_type);
+            }
+            // 6.Otherwise.6.
+            if let Some(serialized) = serialized {
+                remote_value.value = Some(serialized);
+            }
+            RemoteValue::ObjectRemoteValue(remote_value)
+        },
+    };
+    // 7.
+    remote_value
+}
+
+/// <https://www.w3.org/TR/webdriver-bidi/#serialize-primitive-protocol-value>
+#[expect(unsafe_code)]
+pub fn serialize_primitive_protocol_value(
+    cx: &mut JSContext,
+    value: &HandleValue,
+) -> Option<PrimitiveProtocolValue> {
+    // 1.
+    let mut remote_value = None;
+    // 2.
+    // 2.undefined.
+    if value.is_undefined() {
+        remote_value = Some(PrimitiveProtocolValue::UndefinedValue(UndefinedValue {}));
+    }
+    // 2.null.
+    if value.is_null() {
+        remote_value = Some(PrimitiveProtocolValue::NullValue(NullValue {}));
+    }
+    // 2.String.
+    if value.is_string() {
+        let jsstr = NonNull::new(value.to_string())?;
+        let value = unsafe { jsstr_to_string(cx.raw_cx(), jsstr) };
+        remote_value = Some(PrimitiveProtocolValue::StringValue(StringValue { value }))
+    }
+    // 2.Number.
+    if value.is_number() {
+        let value = value.to_number();
+        // 2.Number.1.
+        let serialized = match value {
+            v if v.is_nan() => NumberValueValue::SpecialNumber(SpecialNumber::NaN),
+            v if v == 0.0 && v.is_sign_negative() => {
+                NumberValueValue::SpecialNumber(SpecialNumber::NegZero)
+            },
+            f64::INFINITY => NumberValueValue::SpecialNumber(SpecialNumber::Infinity),
+            f64::NEG_INFINITY => NumberValueValue::SpecialNumber(SpecialNumber::NegInfinity),
+            _ => NumberValueValue::Number(value),
+        };
+        // 2.Number.2.
+        remote_value = Some(PrimitiveProtocolValue::NumberValue(NumberValue {
+            value: serialized,
+        }));
+    }
+    // 2.Boolean.
+    if value.is_boolean() {
+        let value = value.to_boolean();
+        remote_value = Some(PrimitiveProtocolValue::BooleanValue(BooleanValue { value }));
+    }
+    // 2.BigInt.
+    if value.is_bigint() {
+        let value = value.to_bigint();
+        rooted!(&in(cx) let value = value);
+        let jsstr = NonNull::new(unsafe { BigIntToString(cx, value.handle(), 10) })?;
+        let value = unsafe { jsstr_to_string(cx.raw_cx(), jsstr) };
+        remote_value = Some(PrimitiveProtocolValue::BigIntValue(BigIntValue { value }))
+    }
+    // 3.
+    remote_value
+}
+
+// TODO: a shim now
+fn serialize_an_array_like(
+    handle_id: Option<String>,
+    known_object: bool,
+    value: &HandleValue,
+    serialization_options: &SerializationOptions,
+    ownership_type: &ResultOwnership,
+    serialization_internal_map: &mut HashMap<u64, RemoteValue>,
+    // realm,
+    // session
+) -> ArrayRemoteValue {
+    todo!()
+}
+
+// TODO: a shim now
+fn serialize_as_a_mapping(
+    serialization_options: &SerializationOptions,
+    ownership_type: &ResultOwnership,
+) -> Option<Vec<(RemoteValueOrText, RemoteValue)>> {
+    Some(vec![])
+}
+
+fn set_internal_id_if_needed(
+    serialization_internal_map: &mut HashMap<u64, RemoteValue>,
+    remote_value: RemoteValue,
+    object: &HandleValue,
+) {
+    // 1.
+    if !serialization_internal_map.contains_key(&object.asBits_) {
+        serialization_internal_map.insert(object.asBits_, remote_value);
+    }
+    // 2.1.
+    let previously_serialized_remote_value =
+        serialization_internal_map.get(&object.asBits_).unwrap();
+    // 2.2.
+    // 2.2.1.
+    // 2.2.2.
+    // 2.3.
+}
+
+// p => ToString(Get(value, p))
+#[expect(unsafe_code)]
+fn get_property_to_string(cx: &mut JSContext, obj: HandleObject, p: &CStr) -> Option<String> {
+    rooted!(&in(cx) let mut out = UndefinedValue());
+    if !unsafe { JS_GetProperty(cx, obj, p.as_ptr(), out.handle_mut()) } {
+        return None;
+    }
+    let jsstr = NonNull::new(unsafe { ToString(cx.raw_cx(), out.handle()) })?;
+    Some(unsafe { jsstr_to_string(cx.raw_cx(), jsstr) })
 }
