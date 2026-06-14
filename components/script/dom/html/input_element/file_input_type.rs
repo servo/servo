@@ -32,7 +32,7 @@ use crate::dom::filelist::FileList;
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::SpecificInputType;
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::{Node, NodeTraits};
 
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
@@ -46,6 +46,9 @@ pub(crate) struct FileInputType {
     filelist: MutNullableDom<FileList>,
     shadow_tree: DomRefCell<Option<FileInputShadowTree>>,
 }
+
+#[derive(Clone, Copy)]
+pub(crate) struct FileInputActivation;
 
 impl FileInputType {
     /// Get the shadow tree for this [`HTMLInputElement`], if it is created and valid, otherwise
@@ -160,17 +163,6 @@ impl SpecificInputType for FileInputType {
         first_item.name().clone()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior>
-    fn activation_behavior(
-        &self,
-        _cx: &mut js::context::JSContext,
-        input: &HTMLInputElement,
-        _event: &Event,
-        _target: &EventTarget,
-    ) {
-        input.show_the_picker_if_applicable();
-    }
-
     fn show_the_picker_if_applicable(&self, input: &HTMLInputElement) {
         self.select_files(input, None)
     }
@@ -220,6 +212,19 @@ impl SpecificInputType for FileInputType {
             self.value_for_shadow_dom(input),
             input.Multiple(),
         )
+    }
+}
+
+impl SpecificInputActivationType for FileInputActivation {
+    /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior>
+    fn activation_behavior(
+        &self,
+        _cx: &mut js::context::JSContext,
+        input: &HTMLInputElement,
+        _event: &Event,
+        _target: &EventTarget,
+    ) {
+        input.show_the_picker_if_applicable();
     }
 }
 

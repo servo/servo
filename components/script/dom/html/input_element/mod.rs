@@ -65,7 +65,7 @@ use crate::dom::html::htmlformelement::{
 use crate::dom::htmlinputelement::radio_input_type::{
     broadcast_radio_checked, perform_radio_group_validation,
 };
-use crate::dom::input_element::input_type::InputType;
+use crate::dom::input_element::input_type::{InputActivationType, InputType};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::{
@@ -2588,9 +2588,16 @@ impl Activatable for HTMLInputElement {
         event: &Event,
         target: &EventTarget,
     ) {
-        self.input_type()
-            .as_specific()
-            .activation_behavior(cx, self, event, target);
+        let input_activation_type = {
+            let input_type = self.input_type();
+            InputActivationType::new_from_input_type(&input_type)
+        };
+
+        if let Some(input_activation_type) = input_activation_type {
+            input_activation_type
+                .as_specific()
+                .activation_behavior(cx, self, event, target);
+        }
     }
 }
 

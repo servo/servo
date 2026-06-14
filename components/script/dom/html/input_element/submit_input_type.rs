@@ -10,7 +10,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
 use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::SpecificInputType;
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::NodeTraits;
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -21,11 +21,22 @@ pub(crate) struct SubmitInputType {
     text_value_widget: DomRefCell<TextValueWidget>,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct SubmitInputActivation;
+
 impl SpecificInputType for SubmitInputType {
     fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> DOMString {
         DEFAULT_SUBMIT_VALUE.into()
     }
 
+    fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
+        self.text_value_widget
+            .borrow()
+            .update_shadow_tree(cx, input)
+    }
+}
+
+impl SpecificInputActivationType for SubmitInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):input-activation-behavior>
     fn activation_behavior(
         &self,
@@ -51,11 +62,5 @@ impl SpecificInputType for SubmitInputType {
                 FormSubmitterElement::Input(input),
             )
         }
-    }
-
-    fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.text_value_widget
-            .borrow()
-            .update_shadow_tree(cx, input)
     }
 }

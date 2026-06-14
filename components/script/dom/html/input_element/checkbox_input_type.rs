@@ -10,7 +10,7 @@ use script_bindings::inheritance::Castable;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
-use crate::dom::input_element::input_type::SpecificInputType;
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::input_element::{HTMLInputElement, InputActivationState};
 use crate::dom::node::Node;
 
@@ -20,40 +20,13 @@ pub(crate) struct CheckboxInputType {
     text_value_widget: DomRefCell<TextValueWidget>,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct CheckboxInputActivation;
+
 impl SpecificInputType for CheckboxInputType {
     /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):suffering-from-being-missing>
     fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
         input.Required() && !input.Checked()
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior>
-    fn activation_behavior(
-        &self,
-        cx: &mut js::context::JSContext,
-        input: &HTMLInputElement,
-        _event: &Event,
-        _target: &EventTarget,
-    ) {
-        // Step 1: If the element is not connected, then return.
-        if !input.upcast::<Node>().is_connected() {
-            return;
-        }
-
-        let target = input.upcast::<EventTarget>();
-
-        // Step 2: Fire an event named input at the element with the bubbles and composed
-        // attributes initialized to true.
-        target.fire_event_with_params(
-            cx,
-            atom!("input"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            EventComposed::Composed,
-        );
-
-        // Step 3: Fire an event named change at the element with the bubbles attribute
-        // initialized to true.
-        target.fire_bubbling_event(cx, atom!("change"));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:legacy-pre-activation-behavior>
@@ -90,5 +63,37 @@ impl SpecificInputType for CheckboxInputType {
         self.text_value_widget
             .borrow()
             .update_shadow_tree(cx, input)
+    }
+}
+
+impl SpecificInputActivationType for CheckboxInputActivation {
+    /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior>
+    fn activation_behavior(
+        &self,
+        cx: &mut js::context::JSContext,
+        input: &HTMLInputElement,
+        _event: &Event,
+        _target: &EventTarget,
+    ) {
+        // Step 1: If the element is not connected, then return.
+        if !input.upcast::<Node>().is_connected() {
+            return;
+        }
+
+        let target = input.upcast::<EventTarget>();
+
+        // Step 2: Fire an event named input at the element with the bubbles and composed
+        // attributes initialized to true.
+        target.fire_event_with_params(
+            cx,
+            atom!("input"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            EventComposed::Composed,
+        );
+
+        // Step 3: Fire an event named change at the element with the bubbles attribute
+        // initialized to true.
+        target.fire_bubbling_event(cx, atom!("change"));
     }
 }

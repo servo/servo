@@ -28,7 +28,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::SpecificInputType;
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::{Node, NodeTraits, UnbindContext};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -36,6 +36,9 @@ use crate::dom::node::{Node, NodeTraits, UnbindContext};
 pub(crate) struct ColorInputType {
     shadow_tree: DomRefCell<Option<ColorInputShadowTree>>,
 }
+
+#[derive(Clone, Copy)]
+pub(crate) struct ColorInputActivation;
 
 impl ColorInputType {
     pub(crate) fn handle_color_picker_response(
@@ -193,17 +196,6 @@ impl SpecificInputType for ColorInputType {
         !value.str().is_valid_simple_color_string()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior>
-    fn activation_behavior(
-        &self,
-        _cx: &mut js::context::JSContext,
-        input: &HTMLInputElement,
-        _event: &Event,
-        _target: &EventTarget,
-    ) {
-        input.show_the_picker_if_applicable();
-    }
-
     fn show_the_picker_if_applicable(&self, input: &HTMLInputElement) {
         let document = input.owner_document();
         let current_value = input.Value();
@@ -260,6 +252,19 @@ impl SpecificInputType for ColorInputType {
             .owner_document()
             .embedder_controls()
             .hide_embedder_control(input.upcast());
+    }
+}
+
+impl SpecificInputActivationType for ColorInputActivation {
+    /// <https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior>
+    fn activation_behavior(
+        &self,
+        _cx: &mut js::context::JSContext,
+        input: &HTMLInputElement,
+        _event: &Event,
+        _target: &EventTarget,
+    ) {
+        input.show_the_picker_if_applicable();
     }
 }
 
