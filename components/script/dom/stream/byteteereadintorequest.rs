@@ -150,12 +150,7 @@ impl ByteTeeReadIntoRequest {
             // If cloneResult is an abrupt completion,
             if let Err(error) = clone_result {
                 rooted!(&in(cx) let mut error_value = UndefinedValue());
-                error.to_jsval(
-                    cx.into(),
-                    &self.global(),
-                    error_value.handle_mut(),
-                    CanGc::from_cx(cx),
-                );
+                error.to_jsval(cx, &self.global(), error_value.handle_mut());
 
                 // Perform ! ReadableByteStreamControllerError(byobBranch.[[controller]], cloneResult.[[Value]]).
                 let byob_branch_controller = self.byob_branch.get_byte_controller();

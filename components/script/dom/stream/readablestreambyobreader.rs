@@ -257,10 +257,9 @@ impl ReadableStreamBYOBReader {
         // Let e be a new TypeError exception.
         rooted!(&in(cx) let mut error = UndefinedValue());
         Error::Type(c"Reader is released".to_owned()).to_jsval(
-            cx.into(),
+            cx,
             &self.global(),
             error.handle_mut(),
-            CanGc::from_cx(cx),
         );
 
         // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
