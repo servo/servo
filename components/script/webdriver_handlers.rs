@@ -17,18 +17,23 @@ use hyper_serde::Serde;
 use js::context::JSContext;
 use js::conversions::{FromJSValConvertible, jsstr_to_string};
 use js::glue::IsProxyHandlerFamily;
+use js::jsapi::JSProtoKey::{
+    JSProto_AsyncGeneratorFunction, JSProto_GeneratorFunction, JSProto_WeakSet,
+};
 use js::jsapi::{
-    ESClass, HandleValueArray, IsArrayBufferObject, IsCallable, IsWeakMapObject, IsWindowProxy,
-    JS_IsTypedArrayObject, JSITER_OWNONLY, JSType, PropertyDescriptor,
+    ESClass, HandleValueArray, IdentifyStandardPrototype, IsArrayBufferObject, IsCallable,
+    IsWeakMapObject, IsWindowProxy, JS_IsTypedArrayObject, JSITER_OWNONLY, JSType,
+    PropertyDescriptor,
 };
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     BigIntToString, GetBuiltinClass, GetPropertyKeys, IsArray, IsPromiseObject,
-    JS_CallFunctionName, JS_GetOwnPropertyDescriptorById, JS_GetProperty, JS_GetPropertyById,
-    JS_HasOwnProperty, JS_IsExceptionPending, JS_TypeOfValue, ObjectIsDate, ObjectIsRegExp,
+    JS_CallFunctionName, JS_GetClassObject, JS_GetOwnPropertyDescriptorById, JS_GetProperty,
+    JS_GetPropertyById, JS_GetPrototype, JS_HasOwnProperty, JS_IsExceptionPending,
+    JS_NewPlainObject, JS_TypeOfValue, ObjectIsDate, ObjectIsRegExp,
 };
-use js::rust::{HandleObject, HandleValue, IdVector, ToString};
+use js::rust::{HandleObject, HandleValue, IdVector, ToString, get_object_class};
 use js::typedarray::JSObjectStorage;
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{DeleteCookie, DeleteCookies, GetCookiesForUrl, SetCookieForUrl};
@@ -42,12 +47,13 @@ use servo_base::id::{BrowsingContextId, PipelineId};
 use webdriver::error::ErrorStatus;
 use webdriver_traits::bidi::script::{
     ArrayBufferRemoteValue, ArrayRemoteValue, BigIntValue, BooleanValue, DateLocalValue,
-    DateRemoteValue, ErrorRemoteValue, FunctionRemoteValue, ListRemoteValue, MapRemoteValue,
-    NullValue, NumberValue, NumberValueValue, ObjectRemoteValue, PrimitiveProtocolValue,
-    PromiseRemoteValue, ProxyRemoteValue, RegExpLocalValue, RegExpRemoteValue, RegExpValue,
-    RemoteValue, RemoteValueOrText, ResultOwnership, SerializationOptions, SetRemoteValue,
-    SpecialNumber, StringValue, SymbolRemoteValue, TypedArrayRemoteValue, UndefinedValue,
-    WeakMapRemoteValue, WeakSetRemoteValue, WindowProxyProperties, WindowProxyRemoteValue,
+    DateRemoteValue, ErrorRemoteValue, FunctionRemoteValue, GeneratorRemoteValue,
+    HtmlCollectionRemoteValue, ListRemoteValue, MapRemoteValue, NodeListRemoteValue, NullValue,
+    NumberValue, NumberValueValue, ObjectRemoteValue, PrimitiveProtocolValue, PromiseRemoteValue,
+    ProxyRemoteValue, RegExpLocalValue, RegExpRemoteValue, RegExpValue, RemoteValue,
+    RemoteValueOrText, ResultOwnership, SerializationOptions, SetRemoteValue, SpecialNumber,
+    StringValue, SymbolRemoteValue, TypedArrayRemoteValue, UndefinedValue, WeakMapRemoteValue,
+    WeakSetRemoteValue, WindowProxyProperties, WindowProxyRemoteValue,
 };
 
 use crate::DomTypeHolder;
@@ -83,6 +89,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::utils::is_platform_object_dynamic;
 use crate::dom::document::Document;
 use crate::dom::domrect::DOMRect;
 use crate::dom::element::Element;
@@ -102,7 +109,7 @@ use crate::dom::input_element::input_type::InputType;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
-use crate::dom::types::ShadowRoot;
+use crate::dom::types::{HTMLCollection, ShadowRoot};
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
@@ -2249,6 +2256,7 @@ pub fn serialize_as_a_remote_value(
     // 6.
     rooted!(&in(cx) let obj = value.to_object());
     let mut cls = ESClass::Object;
+    rooted!(&in(cx) let mut prototype = unsafe { JS_NewPlainObject(cx) });
     let remote_value = match value {
         // 6.Symbol.
         _ if value.is_symbol() => RemoteValue::SymbolRemoteValue(SymbolRemoteValue {
@@ -2373,8 +2381,26 @@ pub fn serialize_as_a_remote_value(
                 internal_id: None,
             })
         },
-        // 6.WeakSet. TODO.
-        // 6.Generator. TODO
+        // 6.WeakSet
+        _ if unsafe { JS_GetPrototype(cx, obj.handle(), prototype.handle_mut()) }
+            && unsafe { IdentifyStandardPrototype(prototype.as_raw()) } == JSProto_WeakSet =>
+        {
+            RemoteValue::WeakSetRemoteValue(WeakSetRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
+        // 6.Generator.
+        _ if unsafe { JS_GetPrototype(cx, obj.handle(), prototype.handle_mut()) }
+            && let proto_key = unsafe { IdentifyStandardPrototype(prototype.as_raw()) }
+            && (proto_key == JSProto_GeneratorFunction
+                || proto_key == JSProto_AsyncGeneratorFunction) =>
+        {
+            RemoteValue::GeneratorRemoteValue(GeneratorRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
         // 6.Error.
         _ if unsafe { GetBuiltinClass(cx, obj.handle(), &mut cls) } && cls == ESClass::Error => {
             RemoteValue::ErrorRemoteValue(ErrorRemoteValue {
@@ -2382,7 +2408,7 @@ pub fn serialize_as_a_remote_value(
                 internal_id: None,
             })
         },
-        // 6.Proxy. TODO: not sure this is the current
+        // 6.Proxy.
         _ if unsafe { IsProxyHandlerFamily(obj.as_raw()) } => {
             RemoteValue::ProxyRemoteValue(ProxyRemoteValue {
                 handle: handle_id,
@@ -2410,11 +2436,28 @@ pub fn serialize_as_a_remote_value(
                 internal_id: None,
             })
         },
-        // 6.NodeList. TODO
-        // 6.HTMLCollection. TODO
+        // 6.NodeList.
+        _ if unsafe { root_from_object::<NodeList>(obj.as_raw(), cx.raw_cx()) }.is_ok() => {
+            // TODO: serialize an array like
+            RemoteValue::NodeListRemoteValue(NodeListRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+                value: None,
+            })
+        },
+        // 6.HTMLCollection.
+        _ if unsafe { root_from_object::<HTMLCollection>(obj.as_raw(), cx.raw_cx()) }.is_ok() => {
+            // TODO: serialize an array like
+            RemoteValue::HtmlCollectionRemoteValue(HtmlCollectionRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+                value: None,
+            })
+        },
         // 6.Node. TODO
         // 6.WindowProxy.
         _ if unsafe { IsWindowProxy(obj.as_raw()) } => {
+            // TODO: shoud get internal slot
             RemoteValue::WindowProxyRemoteValue(WindowProxyRemoteValue {
                 value: WindowProxyProperties {
                     context: browsing_context_id.to_string(),
@@ -2423,7 +2466,14 @@ pub fn serialize_as_a_remote_value(
                 internal_id: None,
             })
         },
-        // 6.platformobject TODO
+        // 6.platformobject
+        _ if unsafe { is_platform_object_dynamic(obj.as_raw(), cx.raw_cx()) } => {
+            RemoteValue::ObjectRemoteValue(ObjectRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+                value: None,
+            })
+        },
         // 6.Callable.
         _ if unsafe { IsCallable(obj.as_raw()) } => {
             RemoteValue::FunctionRemoteValue(FunctionRemoteValue {
