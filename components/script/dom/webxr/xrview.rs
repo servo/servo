@@ -19,7 +19,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{BaseSpace, BaseTransform, XRSession, cast_transform};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRView {
@@ -101,7 +100,7 @@ impl XRViewMethods<crate::DomTypeHolder> for XRView {
             // row_major since euclid uses row vectors
             let proj = self.view.projection.to_array();
             self.proj
-                .set_data(cx.into(), &proj, CanGc::from_cx(cx))
+                .set_data(cx, &proj)
                 .expect("Failed to set projection matrix.")
         }
         self.proj
