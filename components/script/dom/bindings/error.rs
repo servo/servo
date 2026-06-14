@@ -410,14 +410,11 @@ pub(crate) fn javascript_error_info_from_error_info(
 pub(crate) fn take_and_report_pending_exception_for_api(
     cx: &mut CurrentRealm,
 ) -> Option<JavaScriptErrorInfo> {
-    let in_realm_proof = cx.into();
-    let in_realm = InRealm::Already(&in_realm_proof);
-
     rooted!(&in(cx) let mut value = UndefinedValue());
     let error_info = error_info_from_pending_exception(cx, value.handle_mut())?;
 
     let return_value = javascript_error_info_from_error_info(cx, &error_info, value.handle());
-    GlobalScope::from_current_realm(realm).report_an_error(
+    GlobalScope::from_current_realm(cx).report_an_error(
         cx,
         error_info,
         value.handle(),
