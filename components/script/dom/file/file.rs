@@ -226,7 +226,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
         self.name.clone()
     }
 
-    /// <https://wicg.github.io/entries-api/#dom-filesystementry-webkitrelativepath>
+    /// <https://wicg.github.io/entries-api/#dom-file-webkitrelativepath>
     fn WebkitRelativePath(&self) -> USVString {
         USVString(self.webkitrelativepath.to_string())
     }
