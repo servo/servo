@@ -9,15 +9,17 @@ use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
-use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
+use js::jsapi::{ExceptionStackBehavior, Heap, InstantiateOptions, JSScript, SetScriptPrivate};
 use js::jsval::{PrivateValue, UndefinedValue};
+use js::offthread::InstantiationStorage;
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
-    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
-    JS_IsExceptionPending, JS_SetPendingException,
+    Compile1, InstantiateGlobalStencil, JS_ClearPendingException, JS_ExecuteScript,
+    JS_GetScriptPrivate, JS_IsExceptionPending, JS_SetPendingException,
 };
 use js::rust::{
-    CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
+    CompileOptionsWrapper, HandleValue, MutableHandleValue, OwningCompileOptionsWrapper, Stencil,
+    transform_str_to_source_text,
 };
 use script_bindings::cformat;
 use script_bindings::settings_stack::run_a_script;
@@ -33,7 +35,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
 use crate::script_module::{
-    ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions,
+    ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions, gen_type_error,
 };
 use crate::unminify::unminify_js;
 
@@ -51,6 +53,54 @@ pub(crate) struct ClassicScript {
     url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#muted-errors>
     muted_errors: ErrorReporting,
+}
+
+impl ClassicScript {
+    #[expect(clippy::too_many_arguments)]
+    #[expect(unsafe_code)]
+    pub(crate) fn from_stencil(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        stencil: Stencil,
+        mut storage: InstantiationStorage,
+        owning_options: OwningCompileOptionsWrapper,
+        url: ServoUrl,
+        fetch_options: ScriptFetchOptions,
+        muted_errors: ErrorReporting,
+    ) -> ClassicScript {
+        // TODO needs FrontendContext
+        // check JS_HadFrontendErrors and call JS_ConvertFrontendErrorsToRuntimeErrors
+        let record = if stencil.is_null() {
+            Err(gen_type_error(
+                cx,
+                global,
+                Error::Type(c"Off-thread compilation failed".to_owned()),
+            ))
+        } else {
+            let options = owning_options.read_only();
+            let instantiate_options = InstantiateOptions {
+                skipFilenameValidation: options._base.skipFilenameValidation_,
+                hideScriptFromDebugger: options._base.hideScriptFromDebugger_,
+                deferDebugMetadata: options._base.deferDebugMetadata_,
+                eagerDelazificationStrategy_: options._base.eagerDelazificationStrategy_,
+            };
+
+            rooted!(&in(cx) let script = unsafe { InstantiateGlobalStencil(
+                cx,
+                &instantiate_options,
+                *stencil,
+                storage.as_mut_ptr(),
+            )});
+            Ok(RootedTraceableBox::from_box(Heap::boxed(script.get())))
+        };
+
+        ClassicScript {
+            record,
+            url,
+            fetch_options,
+            muted_errors,
+        }
+    }
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
