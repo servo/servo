@@ -1267,12 +1267,7 @@ impl Drop for WindowProxyHandler {
 fn throw_security_error(realm: &mut CurrentRealm) -> bool {
     if !unsafe { JS_IsExceptionPending(realm) } {
         let global = GlobalScope::from_current_realm(realm);
-        throw_dom_exception(
-            realm.into(),
-            &global,
-            Error::Security(None),
-            CanGc::from_cx(realm),
-        );
+        throw_dom_exception(realm, &global, Error::Security(None));
     }
     false
 }

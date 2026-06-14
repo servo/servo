@@ -335,13 +335,13 @@ fn object_has_to_json_property(
         rooted!(&in(cx) let mut value = UndefinedValue());
         let result = unsafe { JS_GetProperty(cx, object, name.as_ptr(), value.handle_mut()) };
         if !result {
-            throw_dom_exception(cx.into(), global_scope, Error::JSFailed, CanGc::from_cx(cx));
+            throw_dom_exception(cx, global_scope, Error::JSFailed);
             false
         } else {
             result && unsafe { JS_TypeOfValue(cx, value.handle()) } == JSType::JSTYPE_FUNCTION
         }
     } else if unsafe { JS_IsExceptionPending(cx) } {
-        throw_dom_exception(cx.into(), global_scope, Error::JSFailed, CanGc::from_cx(cx));
+        throw_dom_exception(cx, global_scope, Error::JSFailed);
         false
     } else {
         false
@@ -473,7 +473,7 @@ fn jsval_to_webdriver_inner(
                     seen,
                 )?)
             } else {
-                throw_dom_exception(cx.into(), global_scope, Error::JSFailed, CanGc::from_cx(cx));
+                throw_dom_exception(cx, global_scope, Error::JSFailed);
                 Err(JavaScriptEvaluationError::SerializationError(
                     JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                 ))
@@ -524,7 +524,7 @@ fn clone_an_object(
                 },
             },
             Err(error) => {
-                throw_dom_exception(cx.into(), global_scope, error, CanGc::from_cx(cx));
+                throw_dom_exception(cx, global_scope, error);
                 return Err(JavaScriptEvaluationError::SerializationError(
                     JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                 ));
@@ -544,7 +544,7 @@ fn clone_an_object(
                     result.push(converted_item);
                 },
                 Err(error) => {
-                    throw_dom_exception(cx.into(), global_scope, error, CanGc::from_cx(cx));
+                    throw_dom_exception(cx, global_scope, error);
                     return Err(JavaScriptEvaluationError::SerializationError(
                         JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                     ));
@@ -1731,12 +1731,7 @@ pub(crate) fn handle_get_property(
                         Err(_) => JSValue::Undefined,
                     },
                     Err(error) => {
-                        throw_dom_exception(
-                            cx.into(),
-                            &element.global(),
-                            error,
-                            CanGc::from_cx(cx),
-                        );
+                        throw_dom_exception(cx, &element.global(), error);
                         JSValue::Undefined
                     },
                 }

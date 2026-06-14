@@ -1370,10 +1370,9 @@ unsafe extern "C" fn consume_stream(
         // Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
         if !&mimetype[..].eq_ignore_ascii_case(b"application/wasm") {
             throw_dom_exception(
-                cx.into(),
+                cx,
                 &global,
                 Error::Type(c"Response has unsupported MIME type".to_owned()),
-                CanGc::from_cx(cx),
             );
             return false;
         }
@@ -1383,10 +1382,9 @@ unsafe extern "C" fn consume_stream(
             DOMResponseType::Basic | DOMResponseType::Cors | DOMResponseType::Default => {},
             _ => {
                 throw_dom_exception(
-                    cx.into(),
+                    cx,
                     &global,
                     Error::Type(c"Response.type must be 'basic', 'cors' or 'default'".to_owned()),
-                    CanGc::from_cx(cx),
                 );
                 return false;
             },
@@ -1395,10 +1393,9 @@ unsafe extern "C" fn consume_stream(
         // Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
         if !unwrapped_source.Ok() {
             throw_dom_exception(
-                cx.into(),
+                cx,
                 &global,
                 Error::Type(c"Response does not have ok status".to_owned()),
-                CanGc::from_cx(cx),
             );
             return false;
         }
@@ -1406,10 +1403,9 @@ unsafe extern "C" fn consume_stream(
         // Step 2.6.1 If response body is locked, return with a TypeError and abort these substeps.
         if unwrapped_source.is_locked() {
             throw_dom_exception(
-                cx.into(),
+                cx,
                 &global,
                 Error::Type(c"There was an error consuming the Response".to_owned()),
-                CanGc::from_cx(cx),
             );
             return false;
         }
@@ -1417,10 +1413,9 @@ unsafe extern "C" fn consume_stream(
         // Step 2.6.2 If response body is alreaady consumed, return with a TypeError and abort these substeps.
         if unwrapped_source.is_disturbed() {
             throw_dom_exception(
-                cx.into(),
+                cx,
                 &global,
                 Error::Type(c"Response already consumed".to_owned()),
-                CanGc::from_cx(cx),
             );
             return false;
         }
@@ -1428,10 +1423,9 @@ unsafe extern "C" fn consume_stream(
     } else {
         // Step 3 Upon rejection of source, return with reason.
         throw_dom_exception(
-            cx.into(),
+            cx,
             &global,
             Error::Type(c"expected Response or Promise resolving to Response".to_owned()),
-            CanGc::from_cx(cx),
         );
         return false;
     }

@@ -1701,7 +1701,7 @@ pub(crate) fn register_import_map(
 
             // Step 1. If result's error to rethrow is not null, then report
             // an exception given by result's error to rethrow for global and return.
-            throw_dom_exception(cx.into(), global, exception, CanGc::from_cx(cx));
+            throw_dom_exception(cx, global, exception);
             report_pending_exception(cx);
         },
     }
