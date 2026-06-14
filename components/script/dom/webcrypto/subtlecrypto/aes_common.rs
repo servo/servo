@@ -4,8 +4,8 @@
 
 use aes::cipher::crypto_common::Key;
 use aes::{Aes128, Aes192, Aes256};
+use cipher::rand_core::{OsRng, RngCore};
 use js::context::JSContext;
-use pkcs8::rand_core::{OsRng, RngCore};
 use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{

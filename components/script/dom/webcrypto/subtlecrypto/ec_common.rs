@@ -3,16 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use elliptic_curve::SecretKey;
+use elliptic_curve::pkcs8::der::Decode;
+use elliptic_curve::pkcs8::{
+    AssociatedOid, EncodePrivateKey, EncodePublicKey, PrivateKeyInfo, SubjectPublicKeyInfo,
+};
 use elliptic_curve::rand_core::OsRng;
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint, ValidatePublicKey};
 use js::context::JSContext;
 use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
-use pkcs8::der::Decode;
-use pkcs8::{
-    AssociatedOid, EncodePrivateKey, EncodePublicKey, PrivateKeyInfo, SubjectPublicKeyInfo,
-};
 use sec1::der::asn1::BitString;
 use sec1::{EcParameters, EcPrivateKey, EncodedPoint};
 

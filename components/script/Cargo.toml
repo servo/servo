@@ -67,7 +67,6 @@ cssparser = { workspace = true }
 ctr = { workspace = true }
 data-url = { workspace = true }
 deny_public_fields = { workspace = true }
-der = { workspace = true }
 devtools_traits = { workspace = true }
 digest = { workspace = true }
 dom_struct = { workspace = true }
