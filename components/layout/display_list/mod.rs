@@ -972,6 +972,7 @@ impl Fragment {
             baseline_origin,
             fragment.justification_adjustment,
             include_whitespace,
+            builder.device_pixel_ratio,
         );
 
         if glyphs.is_empty() && !fragment.is_empty_for_text_cursor {
@@ -2179,34 +2180,45 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
 
 fn glyphs(
     shaped_text_slices: &[Arc<ShapedTextSlice>],
-    mut baseline_origin: PhysicalPoint<Au>,
+    baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
     include_whitespace: bool,
+    device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
 ) -> (Vec<GlyphInstance>, Au) {
     let mut glyphs = vec![];
     let mut largest_advance = Au::zero();
 
+    // In order to produce stable display list text layout as the canvas resizes, snap
+    // the text to the nearest device pixel. If WebRender is also snapping text, this
+    // means that when the origin changes by less than a pixel (such as when resizing
+    // the WebView), each glyph of the text is laid out consistently and only the origin
+    // is changing. Otherwise, different glyphs might snap to different pixels as the
+    // origin moves by subpixel amounts.
+    let mut current_position = PhysicalPoint::new(
+        Au::from_f32_px(baseline_origin.x.to_nearest_pixel(device_pixel_ratio.get())),
+        Au::from_f32_px(baseline_origin.y.to_nearest_pixel(device_pixel_ratio.get())),
+    )
+    .to_untyped();
+
     for shaped_text_slice in shaped_text_slices {
         for glyph in shaped_text_slice.glyphs() {
             if !shaped_text_slice.is_whitespace() || include_whitespace {
-                let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
-                let point = LayoutPoint::new(
-                    baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
-                    baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
-                );
+                let glyph_offset = glyph.offset().unwrap_or(Point2D::zero()).to_vector();
                 let glyph_instance = GlyphInstance {
                     index: glyph.id(),
-                    point,
+                    point: (current_position + glyph_offset)
+                        .map(Au::to_f32_px)
+                        .cast_unit(),
                 };
                 glyphs.push(glyph_instance);
             }
 
             if glyph.char_is_word_separator() {
-                baseline_origin.x += justification_adjustment;
+                current_position.x += justification_adjustment;
             }
 
             let advance = glyph.advance();
-            baseline_origin.x += advance;
+            current_position.x += advance;
             largest_advance.max_assign(advance);
         }
     }
