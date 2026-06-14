@@ -344,6 +344,13 @@ dictionary TurboShakeParams : Algorithm {
   [EnforceRange] octet domainSeparation;
 };
 
+// https://wicg.github.io/webcrypto-modern-algos/#kangarootwelve-params
+
+dictionary KangarooTwelveParams : Algorithm {
+  required [EnforceRange] unsigned long outputLength;
+  BufferSource customization;
+};
+
 // https://wicg.github.io/webcrypto-modern-algos/#argon2-params
 
 dictionary Argon2Params : Algorithm {

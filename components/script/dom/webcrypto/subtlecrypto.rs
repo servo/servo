@@ -17,6 +17,7 @@ mod ecdsa_operation;
 mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
+mod kangarootwelve_operation;
 mod ml_dsa_operation;
 mod ml_kem_operation;
 mod pbkdf2_operation;
@@ -47,8 +48,9 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_constellation_traits::{
     SerializableAesKeyAlgorithm, SerializableAlgorithm, SerializableCShakeParams,
     SerializableDigestAlgorithm, SerializableEcKeyAlgorithm, SerializableHmacKeyAlgorithm,
-    SerializableKeyAlgorithm, SerializableKeyAlgorithmAndDerivatives,
-    SerializableRsaHashedKeyAlgorithm, SerializableTurboShakeParams,
+    SerializableKangarooTwelveParams, SerializableKeyAlgorithm,
+    SerializableKeyAlgorithmAndDerivatives, SerializableRsaHashedKeyAlgorithm,
+    SerializableTurboShakeParams,
 };
 use strum::{EnumString, IntoStaticStr, VariantArray};
 use zeroize::Zeroizing;
@@ -154,6 +156,10 @@ enum CryptoAlgorithm {
     TurboShake128,
     #[strum(serialize = "TurboSHAKE256")]
     TurboShake256,
+    #[strum(serialize = "KT128")]
+    Kt128,
+    #[strum(serialize = "KT256")]
+    Kt256,
     #[strum(serialize = "Argon2d")]
     Argon2D,
     #[strum(serialize = "Argon2i")]
@@ -2607,6 +2613,10 @@ pub(crate) fn check_support_for_algorithm(
                 DigestAlgorithm::Sha3(_) |
                 DigestAlgorithm::CShake(_) |
                 DigestAlgorithm::TurboShake(_) => true,
+                DigestAlgorithm::KangarooTwelve(normalized_algorithm) => {
+                    normalized_algorithm.output_length != 0 &&
+                        normalized_algorithm.output_length.is_multiple_of(8)
+                },
             }
         },
         "deriveBits" => {
@@ -3831,6 +3841,62 @@ impl From<&SubtleTurboShakeParams> for SerializableTurboShakeParams {
     }
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KangarooTwelveParams>
+#[derive(Clone, MallocSizeOf)]
+struct SubtleKangarooTwelveParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: CryptoAlgorithm,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KangarooTwelveParams-outputLength>
+    output_length: u32,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KangarooTwelveParams-customization>
+    customization: Option<Vec<u8>>,
+}
+
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKangarooTwelveParams {
+    type Error = Error;
+
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+    ) -> Result<Self, Self::Error> {
+        Ok(SubtleKangarooTwelveParams {
+            name: algorithm_name,
+            output_length: get_required_parameter(
+                cx,
+                object,
+                c"outputLength",
+                ConversionBehavior::EnforceRange,
+            )?,
+            customization: get_optional_buffer_source(cx, object, c"customization")?,
+        })
+    }
+}
+
+impl TryFrom<SerializableKangarooTwelveParams> for SubtleKangarooTwelveParams {
+    type Error = ();
+
+    fn try_from(value: SerializableKangarooTwelveParams) -> Result<Self, Self::Error> {
+        Ok(SubtleKangarooTwelveParams {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            output_length: value.output_length,
+            customization: value.customization,
+        })
+    }
+}
+
+impl From<&SubtleKangarooTwelveParams> for SerializableKangarooTwelveParams {
+    fn from(value: &SubtleKangarooTwelveParams) -> Self {
+        SerializableKangarooTwelveParams {
+            name: value.name.as_str().into(),
+            output_length: value.output_length,
+            customization: value.customization.clone(),
+        }
+    }
+}
+
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params>
 #[derive(Clone, MallocSizeOf)]
 struct SubtleArgon2Params {
@@ -4925,6 +4991,7 @@ enum DigestAlgorithm {
     Sha3(SubtleAlgorithm),
     CShake(SubtleCShakeParams),
     TurboShake(SubtleTurboShakeParams),
+    KangarooTwelve(SubtleKangarooTwelveParams),
 }
 
 impl NormalizedAlgorithm for DigestAlgorithm {
@@ -4951,6 +5018,9 @@ impl NormalizedAlgorithm for DigestAlgorithm {
             CryptoAlgorithm::TurboShake128 | CryptoAlgorithm::TurboShake256 => Ok(
                 DigestAlgorithm::TurboShake(object.try_into_with_cx_and_name(cx, algorithm_name)?),
             ),
+            CryptoAlgorithm::Kt128 | CryptoAlgorithm::Kt256 => Ok(DigestAlgorithm::KangarooTwelve(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"digest\" operation",
                 algorithm_name.as_str()
@@ -4964,6 +5034,7 @@ impl NormalizedAlgorithm for DigestAlgorithm {
             DigestAlgorithm::Sha3(algorithm) => algorithm.name,
             DigestAlgorithm::CShake(algorithm) => algorithm.name,
             DigestAlgorithm::TurboShake(algorithm) => algorithm.name,
+            DigestAlgorithm::KangarooTwelve(algorithm) => algorithm.name,
         }
     }
 }
@@ -4976,6 +5047,9 @@ impl DigestAlgorithm {
             DigestAlgorithm::CShake(algorithm) => cshake_operation::digest(algorithm, message),
             DigestAlgorithm::TurboShake(algorithm) => {
                 turboshake_operation::digest(algorithm, message)
+            },
+            DigestAlgorithm::KangarooTwelve(algorithm) => {
+                kangarootwelve_operation::digest(algorithm, message)
             },
         }
     }
@@ -4998,6 +5072,9 @@ impl TryFrom<SerializableDigestAlgorithm> for DigestAlgorithm {
             SerializableDigestAlgorithm::TurboShake(algorithm) => {
                 Ok(DigestAlgorithm::TurboShake(algorithm.try_into()?))
             },
+            SerializableDigestAlgorithm::KangarooTwelve(algorithm) => {
+                Ok(DigestAlgorithm::KangarooTwelve(algorithm.try_into()?))
+            },
         }
     }
 }
@@ -5012,6 +5089,9 @@ impl From<&DigestAlgorithm> for SerializableDigestAlgorithm {
             },
             DigestAlgorithm::TurboShake(algorithm) => {
                 SerializableDigestAlgorithm::TurboShake(algorithm.into())
+            },
+            DigestAlgorithm::KangarooTwelve(algorithm) => {
+                SerializableDigestAlgorithm::KangarooTwelve(algorithm.into())
             },
         }
     }
