@@ -4,6 +4,7 @@
 
 use std::cell::RefCell;
 use std::mem;
+use std::panic::Location;
 
 use serde::Serialize;
 
@@ -73,6 +74,19 @@ impl<T: Serialize, U> GenericBufferedSender<T, U> {
         }
     }
 
+    #[inline]
+    #[track_caller]
+    /// Buffer a message for later batched delivery.
+    ///
+    /// If the buffer reaches `max_buffer` items an automatic flush is triggered.
+    /// Errors on automatic flush are logged.
+    pub fn send_or_warn(&self, msg: U) {
+        if let Err(error) = self.send(msg) {
+            let location = Location::caller();
+            log::warn!("Failed to send buffered messages due to `{error}` at {location:?}");
+        }
+    }
+
     /// Deliver a message immediately, combining it with any
     /// buffered messages into a single packed `T`.
     pub fn send_immediate(&self, msg: U) -> SendResult {
@@ -82,6 +96,21 @@ impl<T: Serialize, U> GenericBufferedSender<T, U> {
         drop(buffer);
         let packed = (self.buffering)(msgs);
         self.sender.send(packed)
+    }
+
+    #[inline]
+    #[track_caller]
+    /// Deliver a message immediately, combining it with any
+    /// buffered messages into a single packed `T`.
+    ///
+    /// Errors are logged.
+    pub fn send_immediate_or_warn(&self, msg: U) {
+        if let Err(error) = self.send_immediate(msg) {
+            let location = Location::caller();
+            log::warn!(
+                "Failed to send (immediate) buffered messages due to `{error}` at {location:?}"
+            );
+        }
     }
 
     /// Flush all buffered messages by packing them into a single `T` and
@@ -95,6 +124,17 @@ impl<T: Serialize, U> GenericBufferedSender<T, U> {
         drop(buffer);
         let packed = (self.buffering)(msgs);
         self.sender.send(packed)
+    }
+
+    #[inline]
+    #[track_caller]
+    /// Flush all buffered messages by packing them into a single `T` and sending it.
+    /// Errors are logged
+    pub fn flush_or_warn(&self) {
+        if let Err(error) = self.flush() {
+            let location = Location::caller();
+            log::warn!("Failed to flush buffered messages due to `{error}` at {location:?}");
+        }
     }
 }
 
