@@ -164,7 +164,7 @@ impl GlobalScope {
 
         // Step 4. Prepare to run script given settings.
         // Once dropped this will run "Step 9. Clean up after running script" steps
-        run_a_script::<DomTypeHolder, _>(self, || {
+        run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             // Step 5. Let evaluationStatus be null.
             let mut result = false;
 
@@ -271,7 +271,7 @@ impl GlobalScope {
         // TODO
 
         // Step 4. Prepare to run script given settings.
-        run_a_script::<DomTypeHolder, _>(self, || {
+        run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
             // promise rejected with script's error to rethrow.
             {

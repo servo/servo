@@ -1531,7 +1531,7 @@ impl GlobalScope {
             // Note: this is necessary, on top of entering the realm above,
             // for the call to `GlobalScope::incumbent`,
             // in `MessagePort::post_message_impl` to succeed.
-            run_a_script::<DomTypeHolder, _>(self, || {
+            run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
                 // Let deserializeRecord be StructuredDeserializeWithTransfer(serializeWithTransferResult, targetRealm).
                 // Let newPorts be a new frozen array
                 // consisting of all MessagePort objects in deserializeRecord.[[TransferredValues]],
@@ -2946,7 +2946,7 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
-        run_a_script::<DomTypeHolder, _>(self, || {
+        run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script();
 
