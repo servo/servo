@@ -55,13 +55,20 @@ pub struct IDBDatabase {
 }
 
 impl IDBDatabase {
-    pub fn new_inherited(name: DOMString, id: Uuid, version: u64) -> IDBDatabase {
+    pub fn new_inherited(
+        name: DOMString,
+        id: Uuid,
+        version: u64,
+        object_store_names: Vec<String>,
+    ) -> IDBDatabase {
         IDBDatabase {
             eventtarget: EventTarget::new_inherited(),
             name,
             id,
             version: Cell::new(version),
-            object_store_names: Default::default(),
+            object_store_names: DomRefCell::new(
+                object_store_names.into_iter().map(Into::into).collect(),
+            ),
             upgrade_transaction: Default::default(),
             close_pending: Cell::new(false),
         }
@@ -72,10 +79,16 @@ impl IDBDatabase {
         name: DOMString,
         id: Uuid,
         version: u64,
+        object_store_names: Vec<String>,
         can_gc: CanGc,
     ) -> DomRoot<IDBDatabase> {
         reflect_dom_object(
-            Box::new(IDBDatabase::new_inherited(name, id, version)),
+            Box::new(IDBDatabase::new_inherited(
+                name,
+                id,
+                version,
+                object_store_names,
+            )),
             global,
             can_gc,
         )
@@ -102,12 +115,6 @@ impl IDBDatabase {
         // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
         // or the empty set if database was newly created.
         self.object_store_names.borrow().clone()
-    }
-
-    pub(crate) fn set_object_store_names_from_backend(&self, names: Vec<String>) {
-        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-        // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
-        *self.object_store_names.borrow_mut() = names.into_iter().map(Into::into).collect();
     }
 
     pub(crate) fn restore_object_store_names(&self, names: Vec<DOMString>) {

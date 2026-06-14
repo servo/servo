@@ -128,12 +128,19 @@ impl IDBOpenDBRequest {
         self.id
     }
 
+    pub(crate) fn get_connection(&self) -> DomRoot<IDBDatabase> {
+        self.pending_connection
+            .take()
+            .expect("A connection should exist for the db.")
+    }
+
     pub(crate) fn get_or_init_connection(
         &self,
         cx: &mut JSContext,
         global: &GlobalScope,
         name: String,
         version: u64,
+        object_store_names: Vec<String>,
         upgraded: bool,
     ) -> DomRoot<IDBDatabase> {
         self.pending_connection.or_init(|| {
@@ -143,6 +150,7 @@ impl IDBOpenDBRequest {
                 name.into(),
                 self.get_id(),
                 version,
+                object_store_names,
                 CanGc::from_cx(cx),
             )
         })
@@ -281,9 +289,8 @@ impl IDBOpenDBRequest {
         matches
     }
 
-    pub fn dispatch_success(&self, cx: &mut JSContext, name: String, version: u64, upgraded: bool) {
+    pub fn dispatch_success(&self, cx: &mut JSContext, result: DomRoot<IDBDatabase>) {
         let global = self.global();
-        let result = self.get_or_init_connection(cx, &global, name, version, upgraded);
         self.idbrequest.set_ready_state_done();
 
         let mut realm = enter_auto_realm(cx, &*result);
