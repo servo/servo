@@ -18,15 +18,15 @@ use js::context::JSContext;
 use js::conversions::{FromJSValConvertible, jsstr_to_string};
 use js::glue::IsProxyHandlerFamily;
 use js::jsapi::{
-    HandleValueArray, IsArrayBufferObject, IsCallable, IsWeakMapObject, IsWindowProxy,
+    ESClass, HandleValueArray, IsArrayBufferObject, IsCallable, IsWeakMapObject, IsWindowProxy,
     JS_IsTypedArrayObject, JSITER_OWNONLY, JSType, PropertyDescriptor,
 };
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
-    BigIntToString, GetPropertyKeys, IsArray, IsPromiseObject, JS_CallFunctionName,
-    JS_GetOwnPropertyDescriptorById, JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty,
-    JS_IsExceptionPending, JS_TypeOfValue, ObjectIsDate, ObjectIsRegExp,
+    BigIntToString, GetBuiltinClass, GetPropertyKeys, IsArray, IsPromiseObject,
+    JS_CallFunctionName, JS_GetOwnPropertyDescriptorById, JS_GetProperty, JS_GetPropertyById,
+    JS_HasOwnProperty, JS_IsExceptionPending, JS_TypeOfValue, ObjectIsDate, ObjectIsRegExp,
 };
 use js::rust::{HandleObject, HandleValue, IdVector, ToString};
 use js::typedarray::JSObjectStorage;
@@ -42,12 +42,12 @@ use servo_base::id::{BrowsingContextId, PipelineId};
 use webdriver::error::ErrorStatus;
 use webdriver_traits::bidi::script::{
     ArrayBufferRemoteValue, ArrayRemoteValue, BigIntValue, BooleanValue, DateLocalValue,
-    DateRemoteValue, FunctionRemoteValue, ListRemoteValue, NullValue, NumberValue,
-    NumberValueValue, ObjectRemoteValue, PrimitiveProtocolValue, PromiseRemoteValue,
-    ProxyRemoteValue, RegExpLocalValue, RegExpRemoteValue, RegExpValue, RemoteValue,
-    RemoteValueOrText, ResultOwnership, SerializationOptions, SpecialNumber, StringValue,
-    SymbolRemoteValue, TypedArrayRemoteValue, UndefinedValue, WeakMapRemoteValue,
-    WeakSetRemoteValue, WindowProxyProperties, WindowProxyRemoteValue,
+    DateRemoteValue, ErrorRemoteValue, FunctionRemoteValue, ListRemoteValue, MapRemoteValue,
+    NullValue, NumberValue, NumberValueValue, ObjectRemoteValue, PrimitiveProtocolValue,
+    PromiseRemoteValue, ProxyRemoteValue, RegExpLocalValue, RegExpRemoteValue, RegExpValue,
+    RemoteValue, RemoteValueOrText, ResultOwnership, SerializationOptions, SetRemoteValue,
+    SpecialNumber, StringValue, SymbolRemoteValue, TypedArrayRemoteValue, UndefinedValue,
+    WeakMapRemoteValue, WeakSetRemoteValue, WindowProxyProperties, WindowProxyRemoteValue,
 };
 
 use crate::DomTypeHolder;
@@ -2248,6 +2248,7 @@ pub fn serialize_as_a_remote_value(
     let known_object = serialization_internal_map.contains_key(&value.get().asBits_);
     // 6.
     rooted!(&in(cx) let obj = value.to_object());
+    let mut cls = ESClass::Object;
     let remote_value = match value {
         // 6.Symbol.
         _ if value.is_symbol() => RemoteValue::SymbolRemoteValue(SymbolRemoteValue {
@@ -2321,8 +2322,50 @@ pub fn serialize_as_a_remote_value(
                 internal_id: None,
             })
         },
-        // 6.Map. TODO
-        // 6.Set. TODO
+        // 6.Map.
+        _ if unsafe { GetBuiltinClass(cx, obj.handle(), &mut cls) } && cls == ESClass::Map => {
+            // 6.Map.1.
+            let mut remote_value = MapRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+                value: None,
+            };
+            // 6.Map.2.
+            // 6.Map.3.
+            let mut serialized = None;
+            // 6.Map.4.
+            if !known_object && serialization_options.max_object_depth != Some(0) {
+                // 6.Set.4.1. TODO: serialize_as_a_mapping
+                // serialized =
+            }
+            // 6.Map.5.
+            if let Some(serialized) = serialized {
+                remote_value.value = serialized;
+            }
+            RemoteValue::MapRemoteValue(remote_value)
+        },
+        // 6.Set.
+        _ if unsafe { GetBuiltinClass(cx, obj.handle(), &mut cls) } && cls == ESClass::Set => {
+            // 6.Set.1.
+            let mut remote_value = SetRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+                value: None,
+            };
+            // 6.Set.2. TODO: set interal ids if needed
+            // 6.Set.3.
+            let mut serialized = None;
+            // 6.Set.4.
+            if !known_object && serialization_options.max_object_depth != Some(0) {
+                // 6.Set.4.1. TODO: serialize_as_a_list
+                // serialized =
+            }
+            // 6.Set.5.
+            if let Some(serialized) = serialized {
+                remote_value.value = serialized;
+            }
+            RemoteValue::SetRemoteValue(remote_value)
+        },
         // 6.WeakMap.
         _ if unsafe { IsWeakMapObject(obj.as_raw()) } => {
             RemoteValue::WeakMapRemoteValue(WeakMapRemoteValue {
@@ -2332,7 +2375,13 @@ pub fn serialize_as_a_remote_value(
         },
         // 6.WeakSet. TODO.
         // 6.Generator. TODO
-        // 6.Error. TODO
+        // 6.Error.
+        _ if unsafe { GetBuiltinClass(cx, obj.handle(), &mut cls) } && cls == ESClass::Error => {
+            RemoteValue::ErrorRemoteValue(ErrorRemoteValue {
+                handle: handle_id,
+                internal_id: None,
+            })
+        },
         // 6.Proxy. TODO: not sure this is the current
         _ if unsafe { IsProxyHandlerFamily(obj.as_raw()) } => {
             RemoteValue::ProxyRemoteValue(ProxyRemoteValue {
