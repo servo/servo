@@ -47,7 +47,6 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_webgpu_enabled",
     "layout_columns_enabled",
     "layout_container_queries_enabled",
-    "layout_grid_enabled",
     "layout_variable_fonts_enabled",
 ];
 

@@ -1084,13 +1084,7 @@ fn test_preferences_change() {
     let servo_test = ServoTest::new();
     let delegate = Rc::new(WebViewDelegateImpl::default());
 
-    let test_page = Url::parse(
-        "data:text/html,\
-        <div style=\"display: grid;\">\
-            <div id=target style=\"grid-column: 1;\">three</div>\
-        </div>",
-    )
-    .expect("Data URL failed to build");
+    let test_page = Url::parse("data:text/html,<div></div>").expect("Data URL failed to build");
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
@@ -1099,38 +1093,26 @@ fn test_preferences_change() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
     assert_eq!(
-        Ok(JSValue::Array(vec![
-            JSValue::String("".to_string()),
-            JSValue::String("".to_string())
-        ])),
+        Ok(JSValue::Boolean(true)),
         evaluate_javascript(
             &servo_test,
             webview.clone(),
-            "let old_value = target.style.getPropertyValue('grid-column');
-            target.style.gridColumn = '3';
-            let new_value = target.style.getPropertyValue('grid-column');
-            [old_value, new_value]"
+            "typeof Permissions === 'undefined'"
         )
     );
 
     servo_test
         .servo()
-        .set_preference("layout_grid_enabled", PrefValue::Bool(true));
+        .set_preference("dom_permissions_enabled", PrefValue::Bool(true));
 
     webview.reload();
 
     assert_eq!(
-        Ok(JSValue::Array(vec![
-            JSValue::String("1".to_string()),
-            JSValue::String("3".to_string())
-        ])),
+        Ok(JSValue::Boolean(true)),
         evaluate_javascript(
             &servo_test,
             webview,
-            "let old_value = target.style.getPropertyValue('grid-column');
-            target.style.gridColumn = '3';
-            let new_value = target.style.getPropertyValue('grid-column');
-            [old_value, new_value]"
+            "typeof Permissions !== 'undefined' && navigator.permissions instanceof Permissions"
         )
     );
 }
