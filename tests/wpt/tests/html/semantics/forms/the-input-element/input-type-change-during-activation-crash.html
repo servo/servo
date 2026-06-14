@@ -1,18 +1,17 @@
 <!DOCTYPE html>
-<title>Input type changes during activation events should not crashs"</title>
+<meta charset="utf-8">
+<title>Input type changes during activation events should not crash</title>
 <body>
 <script>
-test(() => {
-  const input = document.createElement("input");
-  input.type = "checkbox";
-  document.body.append(input);
+"use strict";
 
-  input.addEventListener("input", () => {
-    input.type = "text";
-  });
+const input = document.createElement("input");
+input.type = "checkbox";
+document.body.append(input);
 
-  input.click();
+input.addEventListener("input", () => {
+  input.type = "text";
+});
 
-  assert_equals(input.type, "text");
-}, "Changging checkbox input type from an input event listener should not crashs");
+input.click();
 </script>
