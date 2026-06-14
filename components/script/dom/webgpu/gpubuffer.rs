@@ -34,6 +34,7 @@ use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ActiveBufferMapping {
     // TODO(sagudev): Use GenericSharedMemory when https://github.com/servo/ipc-channel/pull/356 lands
     /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-data>
@@ -47,7 +48,10 @@ pub(crate) struct ActiveBufferMapping {
 
 impl ActiveBufferMapping {
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-initialize-an-active-buffer-mapping>
-    pub(crate) fn new(mode: GPUMapModeFlags, range: Range<u64>) -> Fallible<Self> {
+    pub(crate) fn new(
+        mode: GPUMapModeFlags,
+        range: Range<u64>,
+    ) -> Fallible<RootedTraceableBox<Self>> {
         // Step 1
         let size = range.end - range.start;
         // Step 2
@@ -57,11 +61,11 @@ impl ActiveBufferMapping {
         let size: usize = size
             .try_into()
             .map_err(|_| Error::Range(c"Over usize".to_owned()))?;
-        Ok(Self {
+        Ok(RootedTraceableBox::new(Self {
             data: DataBlock::new_zeroed(size),
             mode,
             range,
-        })
+        }))
     }
 }
 
@@ -92,7 +96,7 @@ impl GPUBuffer {
         device: &GPUDevice,
         size: GPUSize64,
         usage: GPUFlagsConstant,
-        mapping: Option<ActiveBufferMapping>,
+        mapping: Option<RootedTraceableBox<ActiveBufferMapping>>,
         label: USVString,
     ) -> Self {
         Self {
@@ -104,7 +108,7 @@ impl GPUBuffer {
             pending_map: DomRefCell::new(None),
             size,
             usage,
-            mapping: DomRefCell::new(mapping),
+            mapping: DomRefCell::new(mapping.map(|mapping| *mapping.into_box())),
         }
     }
 
@@ -117,7 +121,7 @@ impl GPUBuffer {
         device: &GPUDevice,
         size: GPUSize64,
         usage: GPUFlagsConstant,
-        mapping: Option<ActiveBufferMapping>,
+        mapping: Option<RootedTraceableBox<ActiveBufferMapping>>,
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_cx(
@@ -207,7 +211,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             promise.reject_error_with_cx(cx, Error::Abort(None));
         }
         // Step 2
-        let mut mapping = self.mapping.borrow_mut().take();
+        let mut mapping = RootedTraceableBox::new(self.mapping.borrow_mut().take());
         let mapping = if let Some(mapping) = mapping.as_mut() {
             mapping
         } else {
@@ -321,6 +325,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .mapping
             .borrow_mut()
             .take()
+            .map(RootedTraceableBox::new)
             .ok_or(Error::Operation(None))?;
 
         let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
@@ -328,7 +333,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             offset >= mapping.range.start &&
             offset + range_size <= mapping.range.end;
         if !valid {
-            self.mapping.borrow_mut().replace(mapping);
+            self.mapping.borrow_mut().replace(*mapping.into_box());
             return Err(Error::Operation(None));
         }
 
@@ -342,7 +347,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .map(|view| view.array_buffer())
             .map_err(|()| Error::Operation(None));
 
-        self.mapping.borrow_mut().replace(mapping);
+        self.mapping.borrow_mut().replace(*mapping.into_box());
         result
     }
 
@@ -427,7 +432,7 @@ impl GPUBuffer {
                 // Step 5
                 mapping.data.load(&wgpu_mapping.data);
                 // Step 6
-                self.mapping.borrow_mut().replace(mapping);
+                self.mapping.borrow_mut().replace(*mapping.into_box());
                 // Step 7
                 self.pending_map.borrow_mut().take();
                 p.resolve_native_with_cx(cx, &());
