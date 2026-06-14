@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell, RefMut};
-use std::ptr::NonNull;
 use std::{f64, ptr};
 
 use dom_struct::dom_struct;
@@ -1268,16 +1267,17 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
     #[expect(unsafe_code)]
-    fn GetValueAsDate(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {
-        self.input_type()
+    fn GetValueAsDate(&self, cx: SafeJSContext, mut return_value: MutableHandleObject) {
+        if let Some(date_time) = self
+            .input_type()
             .as_specific()
             .convert_string_to_naive_datetime(self.Value())
-            .map(|date_time| unsafe {
-                let time = ClippedTime {
-                    t: (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64,
-                };
-                NonNull::new_unchecked(NewDateObject(*cx, time))
-            })
+        {
+            let time = ClippedTime {
+                t: (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64,
+            };
+            return_value.set(unsafe { NewDateObject(*cx, time) });
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate

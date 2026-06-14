@@ -5,7 +5,7 @@
 // check-tidy: no specs after this line
 
 use std::borrow::ToOwned;
-use std::ptr::{self, NonNull};
+use std::ptr;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -14,7 +14,9 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::realm::CurrentRealm;
-use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{
+    CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
+};
 use js::typedarray::{self, HeapUint8ClampedArray};
 use script_bindings::cformat;
 use script_bindings::interfaces::TestBindingHelpers;
@@ -237,11 +239,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn AnyAttribute(&self, _: SafeJSContext, _: MutableHandleValue) {}
     fn SetAnyAttribute(&self, _: SafeJSContext, _: HandleValue) {}
     #[expect(unsafe_code)]
-    fn ObjectAttribute(&self, cx: SafeJSContext) -> NonNull<JSObject> {
-        unsafe {
-            rooted!(in(*cx) let obj = JS_NewPlainObject(*cx));
-            NonNull::new(obj.get()).expect("got a null pointer")
-        }
+    fn ObjectAttribute(&self, cx: SafeJSContext, mut return_value: MutableHandleObject) {
+        return_value.set(unsafe { JS_NewPlainObject(*cx) });
     }
     fn SetObjectAttribute(&self, _: SafeJSContext, _: *mut JSObject) {}
 
@@ -341,8 +340,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn SetInterfaceAttributeWeak(&self, url: Option<&URL>) {
         self.url.set(url);
     }
-    fn GetObjectAttributeNullable(&self, _: SafeJSContext) -> Option<NonNull<JSObject>> {
-        None
+    fn GetObjectAttributeNullable(&self, _: SafeJSContext, mut return_value: MutableHandleObject) {
+        return_value.set(ptr::null_mut());
     }
     fn SetObjectAttributeNullable(&self, _: SafeJSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
@@ -430,8 +429,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         )
     }
     fn ReceiveAny(&self, _: SafeJSContext, _: MutableHandleValue) {}
-    fn ReceiveObject(&self, cx: SafeJSContext) -> NonNull<JSObject> {
-        self.ObjectAttribute(cx)
+    fn ReceiveObject(&self, cx: SafeJSContext, return_value: MutableHandleObject) {
+        self.ObjectAttribute(cx, return_value);
     }
     fn ReceiveUnion(&self) -> HTMLElementOrLong {
         HTMLElementOrLong::Long(0)
@@ -542,8 +541,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
         ))
     }
-    fn ReceiveNullableObject(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {
-        self.GetObjectAttributeNullable(cx)
+    fn ReceiveNullableObject(&self, cx: SafeJSContext, return_value: MutableHandleObject) {
+        self.GetObjectAttributeNullable(cx, return_value)
     }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {
         Some(HTMLElementOrLong::Long(0))

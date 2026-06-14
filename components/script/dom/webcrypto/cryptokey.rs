@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::ptr::NonNull;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
+use js::rust::MutableHandleObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
@@ -219,16 +219,16 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
     }
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm>
-    fn Algorithm(&self, _cx: JSContext) -> NonNull<JSObject> {
+    fn Algorithm(&self, _cx: JSContext, mut return_value: MutableHandleObject) {
         // Returns the cached ECMAScript object associated with the [[algorithm]] internal slot.
-        NonNull::new(self.algorithm_cached.get()).unwrap()
+        return_value.set(self.algorithm_cached.get())
     }
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
-    fn Usages(&self, _cx: JSContext) -> NonNull<JSObject> {
+    fn Usages(&self, _cx: JSContext, mut return_value: MutableHandleObject) {
         // Returns the cached ECMAScript object associated with the [[usages]] internal slot, which
         // indicates which cryptographic operations are permissible to be used with this key.
-        NonNull::new(self.usages_cached.get()).unwrap()
+        return_value.set(self.usages_cached.get())
     }
 }
 
