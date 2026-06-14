@@ -1109,17 +1109,48 @@ impl Fragment {
         }
 
         let mut rect = rect.to_webrender();
-        let line_thickness = rect.height().ceil();
-
+        let wavy_line_thickness = rect.height().ceil();
         if text_decoration.style == ComputedTextDecorationStyle::Wavy {
-            rect = rect.inflate(0.0, line_thickness * 1.0);
+            rect = rect.inflate(0.0, wavy_line_thickness * 1.0);
         }
+
+        // In Servo, text decorations can span multiple text fragments. In order to have dots,
+        // dashes, and wavy line segments match up between mulitiple fragments, this code takes
+        // the cycle length of each line deocration (based on their definition in WebRender)
+        // and ensures that the painted area of the decoration has a matching phase origin
+        // independent of what fragment it's being painted for.
+        let expand_rect_for_text_decoration = |mut rect: Box2D<f32, LayoutPixel>| {
+            let line_thickness = rect.height();
+            let cycle_length = match text_decoration.style {
+                ComputedTextDecorationStyle::Solid |
+                ComputedTextDecorationStyle::Double |
+                ComputedTextDecorationStyle::MozNone => return rect,
+                ComputedTextDecorationStyle::Dotted => {
+                    // The length between each dot is the same width as the dot itself and the
+                    // same width as the decoration thickness. This clamps like WebRender does.
+                    2.0 * line_thickness.clamp(1.0, 64.0)
+                },
+                ComputedTextDecorationStyle::Dashed => {
+                    // The length between each dash is equal to the dash lenght. The dash length
+                    // is equal to three times the line thickness. This clamps like WebRender does.
+                    2.0 * (line_thickness * 3.0).clamp(1.0, 64.0)
+                },
+                ComputedTextDecorationStyle::Wavy => {
+                    let slope_length = rect.height() - line_thickness;
+                    let flat_length = ((line_thickness - 1.0) * 2.0).max(1.0);
+                    2.0 * (slope_length + flat_length)
+                },
+            };
+
+            rect.min.x -= rect.min.x.rem_euclid(cycle_length);
+            rect
+        };
 
         let common_properties = builder.common_properties(state, rect, parent_style);
         builder.wr().push_line(
             &common_properties,
-            &rect,
-            line_thickness,
+            &expand_rect_for_text_decoration(rect),
+            wavy_line_thickness,
             wr::LineOrientation::Horizontal,
             &rgba(text_decoration.color),
             text_decoration.style.to_webrender(),
@@ -1135,8 +1166,8 @@ impl Fragment {
             let common_properties = builder.common_properties(state, rect, parent_style);
             builder.wr().push_line(
                 &common_properties,
-                &rect,
-                line_thickness,
+                &expand_rect_for_text_decoration(rect),
+                wavy_line_thickness,
                 wr::LineOrientation::Horizontal,
                 &rgba(text_decoration.color),
                 text_decoration.style.to_webrender(),
