@@ -16,6 +16,9 @@ test = true
 doctest = false
 
 [features]
+default = ["harfrust", "harfbuzz"]
+harfbuzz = ["dep:harfbuzz-sys"]
+harfrust = ["dep:harfrust"]
 tracing = ["dep:tracing"]
 
 [dependencies]
@@ -24,11 +27,13 @@ bitflags = { workspace = true }
 content-security-policy = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
-fontsan = { workspace = true }
-# FIXME (#34517): macOS only needs this when building servo without `--features media-gstreamer`
-harfbuzz-sys = { workspace = true, features = ["bundled"] }
+fontsan = { git = "https://github.com/servo/fontsan" }
+# FIXME (#34517): macOS only needs this when building libservo without `--features media-gstreamer`
+harfbuzz-sys = { workspace = true, optional = true, features = ["bundled"] }
+harfrust = { workspace = true, optional = true }
 icu_locid = { workspace = true }
 icu_properties = { workspace = true, features = ["compiled_data"] }
+# ipc-channel = { workspace = true }
 itertools = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }

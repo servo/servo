@@ -2687,8 +2687,7 @@ dependencies = [
 [[package]]
 name = "fontsan"
 version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52fd401b496627c46f35318272508fcdcb77927868507ed2ad796408aa903923"
+source = "git+https://github.com/servo/fontsan#b6baa1c28af3778e7ebb097199a7acffcd0b874e"
 dependencies = [
  "cc",
  "fontsan-woff2",
@@ -2700,8 +2699,7 @@ dependencies = [
 [[package]]
 name = "fontsan-woff2"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "106ebe29445505f3860765d2597ddad20a3e90174d6e8539a10d58253b3e5c0f"
+source = "git+https://github.com/servo/fontsan#b6baa1c28af3778e7ebb097199a7acffcd0b874e"
 dependencies = [
  "brotli-decompressor",
  "cc",
@@ -3593,6 +3591,18 @@ dependencies = [
  "freetype-sys",
  "pkg-config",
  "winapi",
+]
+
+[[package]]
+name = "harfrust"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "200bdf7031b8a3dcf513498b3786e8f108eb80f43b65229ddd85f1d1e42b24d6"
+dependencies = [
+ "bitflags 2.11.1",
+ "bytemuck",
+ "read-fonts 0.39.2",
+ "smallvec",
 ]
 
 [[package]]
@@ -7988,6 +7998,7 @@ dependencies = [
  "fontsan",
  "freetype-sys",
  "harfbuzz-sys",
+ "harfrust",
  "icu_locid",
  "icu_properties",
  "itertools 0.14.0",
