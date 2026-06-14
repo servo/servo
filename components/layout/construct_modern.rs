@@ -286,7 +286,7 @@ impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
         self.wrap_any_text_in_anonymous_block_container();
 
         let jobs = std::mem::take(&mut self.jobs);
-        let mut children: Vec<_> = if self.context.use_rayon {
+        let mut children: Vec<_> = if self.context.should_parallelize(jobs.iter().len()) {
             jobs.into_par_iter()
                 .filter_map(|job| job.finish(&self))
                 .collect()

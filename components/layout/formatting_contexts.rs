@@ -58,6 +58,26 @@ pub(crate) enum IndependentFormattingContextContents {
     // Other layout modes go here
 }
 
+impl IndependentFormattingContextContents {
+    fn subtree_size(&self) -> usize {
+        match self {
+            IndependentFormattingContextContents::Replaced(_, widget) => widget
+                .as_ref()
+                .map_or(0, |widget| widget.borrow().subtree_size()),
+            IndependentFormattingContextContents::Flow(block_formatting_context) => {
+                block_formatting_context.contents.subtree_size()
+            },
+            IndependentFormattingContextContents::Flex(flex_container) => {
+                flex_container.subtree_size()
+            },
+            IndependentFormattingContextContents::Grid(taffy_container) => {
+                taffy_container.subtree_size()
+            },
+            IndependentFormattingContextContents::Table(table) => table.subtree_size(),
+        }
+    }
+}
+
 /// The baselines of a layout or a [`crate::fragment_tree::BoxFragment`]. Some layout
 /// uses the first and some layout uses the last.
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf)]
@@ -81,6 +101,7 @@ impl IndependentFormattingContext {
         contents: IndependentFormattingContextContents,
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {
+        base.set_subtree_size(contents.subtree_size() + 1);
         Self {
             base,
             contents,
@@ -130,8 +151,12 @@ impl IndependentFormattingContext {
             contents,
             propagated_data,
         );
+
+        let base = LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone());
+        base.set_subtree_size(contents.subtree_size() + 1);
+
         Self {
-            base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
+            base,
             contents,
             propagated_data,
         }
@@ -561,6 +586,10 @@ impl IndependentFormattingContext {
                 contents.attached_to_tree(layout_box)
             },
         }
+    }
+
+    pub(crate) fn subtree_size(&self) -> usize {
+        self.base.subtree_size()
     }
 }
 

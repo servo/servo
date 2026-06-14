@@ -301,6 +301,29 @@ pub struct Preferences {
     pub layout_css_attr_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
     pub layout_threads: i64,
+    /// The minimum number of parallelizable jobs required before turning on parallelism
+    /// for a set of jobs.
+    ///
+    /// When deciding whether or not to parallelize layout, this is the minimum number of
+    /// jobs that must be larger than [`Self::layout_parallelism_job_size_minimum`] to
+    /// turn on parallelism. An exception is when doing box tree layout, where Servo does
+    /// not know the depth of the tree. In that case any task that has more jobs than this
+    /// value will be parallelized.
+    ///
+    /// The goal of these two values is to allow tuning Servo's parallelism for both wide
+    /// and deep trees.
+    pub layout_parallelism_job_count_minimum: u64,
+    /// The minimum size of a layout job to be considered for parallelization.
+    ///
+    /// When deciding whether or not to parallelize layout, jobs greater than this size
+    /// are counted when considering the [`Self::layout_parallelism_job_count_minimum`]
+    /// threshold for turning on parallelism. Generally the size of the job is based on
+    /// the number of tasks to process in the subtree. For instance, this might be the
+    /// number of boxes to process in a box tree subtree.
+    ///
+    /// The goal of these two values is to allow tuning Servo's parallelism for both wide
+    /// and deep trees.
+    pub layout_parallelism_job_size_minimum: u64,
     pub layout_unimplemented: bool,
     // feature: Variable fonts | #38800 | Web/CSS/Guides/Fonts/Variable_fonts
     pub layout_variable_fonts_enabled: bool,
@@ -513,6 +536,8 @@ impl Preferences {
             layout_style_sharing_cache_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
+            layout_parallelism_job_count_minimum: 4,
+            layout_parallelism_job_size_minimum: 16,
             layout_unimplemented: false,
             layout_variable_fonts_enabled: false,
             layout_writing_mode_enabled: false,

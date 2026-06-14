@@ -1142,7 +1142,12 @@ impl<'a> TableLayout<'a> {
             })
         };
 
-        self.cells_laid_out = if layout_context.use_rayon {
+        let job_sizes = self
+            .table
+            .slots
+            .iter()
+            .map(|row| row.iter().map(|item| item.subtree_size()).sum::<usize>());
+        self.cells_laid_out = if layout_context.should_parallelize_layout(job_sizes) {
             self.table
                 .slots
                 .par_iter()

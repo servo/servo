@@ -2099,6 +2099,27 @@ impl InlineFormattingContext {
         }
     }
 
+    pub(crate) fn subtree_size(&self) -> usize {
+        self.inline_items
+            .iter()
+            .map(|item| match item {
+                InlineItem::StartInlineBox(..) => 1,
+                InlineItem::EndInlineBox => 0,
+                InlineItem::TextRun(..) => 1,
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(absolutely_positioned_box, _) => {
+                    absolutely_positioned_box
+                        .borrow()
+                        .context
+                        .base
+                        .subtree_size()
+                },
+                InlineItem::OutOfFlowFloatBox(..) => 1,
+                InlineItem::Atomic(..) => 1,
+                InlineItem::BlockLevel(block_level_box) => block_level_box.borrow().subtree_size(),
+            })
+            .sum()
+    }
+
     fn next_character_prevents_soft_wrap_opportunity(&self, index: usize) -> bool {
         let Some(character) = self.text_content[index..].chars().nth(1) else {
             return false;
