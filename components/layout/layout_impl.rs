@@ -1802,7 +1802,8 @@ impl ReflowPhases {
     /// so [`ReflowPhases::empty()`] implies that.
     fn necessary(reflow_goal: &ReflowGoal) -> Self {
         match reflow_goal {
-            ReflowGoal::LayoutQuery(query) => match query {
+            ReflowGoal::LayoutQuery(None) => Self::empty(),
+            ReflowGoal::LayoutQuery(Some(query)) => match query {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },

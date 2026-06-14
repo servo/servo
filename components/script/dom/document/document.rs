@@ -3211,6 +3211,12 @@ impl Document {
         cx: &mut js::context::JSContext,
         time: CrossProcessInstant,
     ) {
+        if self.intersection_observers.borrow().is_empty() {
+            return;
+        }
+        // Ensure that any layout changes are flushed for subsequent queries.
+        self.window().layout_reflow_pre_query(cx);
+
         // Step 1-2
         for intersection_observer in &*self.intersection_observers.borrow() {
             self.update_single_intersection_observer_steps(cx, intersection_observer, time);

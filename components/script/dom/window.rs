@@ -2860,7 +2860,12 @@ impl Window {
         // TODO https://github.com/servo/servo/issues/44499
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
 
-        self.reflow(&mut cx, ReflowGoal::LayoutQuery(query_msg));
+        self.reflow(&mut cx, ReflowGoal::LayoutQuery(Some(query_msg)));
+    }
+
+    /// Trigger a reflow in preparation for subsequent queries.
+    pub(crate) fn layout_reflow_pre_query(&self, cx: &mut JSContext) {
+        self.reflow(cx, ReflowGoal::LayoutQuery(None));
     }
 
     pub(crate) fn resolved_font_style_query(
