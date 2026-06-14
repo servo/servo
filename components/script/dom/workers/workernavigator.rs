@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::MutableHandleValue;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_config::pref;
@@ -19,7 +20,7 @@ use crate::dom::storagemanager::StorageManager;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
@@ -104,8 +105,8 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
-    fn Languages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        to_frozen_array(&[self.Language()], cx, retval, can_gc)
+    fn Languages(&self, cx: &mut JSContext, retval: MutableHandleValue) {
+        to_frozen_array(cx, &[self.Language()], retval)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
@@ -120,14 +121,14 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     }
 
     /// <https://storage.spec.whatwg.org/#api>
-    fn Storage(&self, cx: &mut js::context::JSContext) -> DomRoot<StorageManager> {
+    fn Storage(&self, cx: &mut JSContext) -> DomRoot<StorageManager> {
         self.storage
             .or_init(|| StorageManager::new(&self.global(), CanGc::from_cx(cx)))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
-    fn Gpu(&self, cx: &mut js::context::JSContext) -> DomRoot<GPU> {
+    fn Gpu(&self, cx: &mut JSContext) -> DomRoot<GPU> {
         self.gpu.or_init(|| GPU::new(cx, &self.global()))
     }
 

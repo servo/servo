@@ -174,26 +174,21 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-axes>
     fn Axes(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        self.frozen_axes.get_or_init(
-            || self.axes.borrow().clone(),
-            cx.into(),
-            retval,
-            CanGc::from_cx(cx),
-        );
+        self.frozen_axes
+            .get_or_init(cx, || self.axes.borrow().clone(), retval);
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-buttons>
     fn Buttons(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         self.frozen_buttons.get_or_init(
+            cx,
             || {
                 self.buttons
                     .iter()
                     .map(|b| DomRoot::from_ref(&**b))
                     .collect()
             },
-            cx.into(),
             retval,
-            CanGc::from_cx(cx),
         );
     }
 

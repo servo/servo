@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::MutableHandleValue;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
-use script_bindings::script_runtime::CanGc;
 use webgpu_traits::ShaderCompilationInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUCompilationInfoMethods;
@@ -13,7 +13,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::GPUCompilationMessage;
-use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub(crate) struct GPUCompilationInfo {
@@ -31,7 +30,7 @@ impl GPUCompilationInfo {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         msg: Vec<DomRoot<GPUCompilationMessage>>,
     ) -> DomRoot<Self> {
@@ -39,7 +38,7 @@ impl GPUCompilationInfo {
     }
 
     pub(crate) fn from(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         error: Option<ShaderCompilationInfo>,
     ) -> DomRoot<Self> {
@@ -52,7 +51,7 @@ impl GPUCompilationInfo {
 
 impl GPUCompilationInfoMethods<crate::DomTypeHolder> for GPUCompilationInfo {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationinfo-messages>
-    fn Messages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        to_frozen_array(self.msg.as_slice(), cx, retval, can_gc)
+    fn Messages(&self, cx: &mut JSContext, retval: MutableHandleValue) {
+        to_frozen_array(cx, self.msg.as_slice(), retval)
     }
 }

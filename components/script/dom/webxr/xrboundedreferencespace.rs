@@ -18,7 +18,6 @@ use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRBoundedReferenceSpace {
@@ -87,9 +86,9 @@ impl XRBoundedReferenceSpaceMethods<crate::DomTypeHolder> for XRBoundedReference
                 })
                 .collect();
 
-            to_frozen_array(&points, cx.into(), retval, CanGc::from_cx(cx))
+            to_frozen_array(cx, &points, retval)
         } else {
-            to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx.into(), retval, CanGc::from_cx(cx))
+            to_frozen_array::<DomRoot<DOMPointReadOnly>>(cx, &[], retval)
         }
     }
 }

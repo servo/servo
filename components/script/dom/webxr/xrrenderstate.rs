@@ -19,7 +19,6 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::window::Window;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRRenderState {
@@ -155,6 +154,6 @@ impl XRRenderStateMethods<crate::DomTypeHolder> for XRRenderState {
         // TODO: cache this array?
         let layers = self.layers.borrow();
         let layers: Vec<&XRLayer> = layers.iter().map(|x| &**x).collect();
-        to_frozen_array(&layers[..], cx.into(), retval, CanGc::from_cx(cx))
+        to_frozen_array(cx, &layers[..], retval)
     }
 }

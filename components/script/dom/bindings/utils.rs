@@ -10,10 +10,9 @@ use std::thread::LocalKey;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectStatic};
-use js::jsapi::{
-    CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JS_FreezeObject, JSObject,
-};
+use js::jsapi::{CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JSObject};
 use js::realm::CurrentRealm;
+use js::rust::wrappers2::JS_FreezeObject;
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
 use script_bindings::interfaces::{DomHelpers, Interface};
 use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
@@ -30,7 +29,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxyHandler;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -54,20 +53,19 @@ pub(crate) use script_bindings::utils::*;
 
 /// Returns a JSVal representing the frozen JavaScript array
 pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
+    cx: &mut JSContext,
     convertibles: &[T],
-    cx: SafeJSContext,
     mut rval: MutableHandleValue,
-    can_gc: CanGc,
 ) {
     script_bindings::conversions::SafeToJSValConvertible::safe_to_jsval(
         convertibles,
-        cx,
+        cx.into(),
         rval.reborrow(),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
-    rooted!(in(*cx) let obj = rval.to_object());
-    unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
+    rooted!(&in(cx) let obj = rval.to_object());
+    unsafe { JS_FreezeObject(cx, obj.handle()) };
 }
 
 /// Returns wether `obj` is a platform object using static unwrap

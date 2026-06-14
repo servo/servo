@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::MutableHandleValue;
 use script_bindings::domstring::DOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::ServoTestUtilsBinding::LayoutResultMethods;
-use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
@@ -60,8 +60,8 @@ impl LayoutResult {
 }
 
 impl LayoutResultMethods<crate::DomTypeHolder> for LayoutResult {
-    fn Phases(&self, cx: SafeJSContext, can_gc: CanGc, return_value: MutableHandleValue) {
-        to_frozen_array(&self.phases, cx, return_value, can_gc);
+    fn Phases(&self, cx: &mut JSContext, return_value: MutableHandleValue) {
+        to_frozen_array(cx, &self.phases, return_value);
     }
 
     fn RebuiltFragmentCount(&self) -> u32 {

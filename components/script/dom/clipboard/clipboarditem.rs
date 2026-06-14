@@ -31,7 +31,6 @@ use crate::dom::blob::Blob;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-gettype>.
@@ -221,6 +220,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-types>
     fn Types(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         self.frozen_types.get_or_init(
+            cx,
             || {
                 // Step 5 Let types be a list of DOMString.
                 let mut types = Vec::new();
@@ -244,9 +244,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                     });
                 types
             },
-            cx.into(),
             retval,
-            CanGc::from_cx(cx),
         );
     }
 

@@ -20,7 +20,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
 pub(crate) struct CSSLayerStatementRule {
@@ -78,7 +77,7 @@ impl SpecificCSSRule for CSSLayerStatementRule {
 
 impl CSSLayerStatementRuleMethods<crate::DomTypeHolder> for CSSLayerStatementRule {
     /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerstatementrule-namelist>
-    fn NameList(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn NameList(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         let names: Vec<DOMString> = self
             .layer_statement_rule
             .borrow()
@@ -86,6 +85,6 @@ impl CSSLayerStatementRuleMethods<crate::DomTypeHolder> for CSSLayerStatementRul
             .iter()
             .map(|name| name.to_css_string().into())
             .collect();
-        to_frozen_array(names.as_slice(), cx, retval, can_gc)
+        to_frozen_array(cx, names.as_slice(), retval)
     }
 }

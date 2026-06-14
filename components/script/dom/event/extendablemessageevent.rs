@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -27,7 +28,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -185,7 +186,7 @@ impl ExtendableMessageEvent {
 #[expect(non_snake_case)]
 impl ExtendableMessageEvent {
     pub(crate) fn dispatch_jsval(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         target: &EventTarget,
         scope: &GlobalScope,
         message: HandleValue,
@@ -207,11 +208,7 @@ impl ExtendableMessageEvent {
         Extendablemessageevent.upcast::<Event>().fire(cx, target);
     }
 
-    pub(crate) fn dispatch_error(
-        cx: &mut js::context::JSContext,
-        target: &EventTarget,
-        scope: &GlobalScope,
-    ) {
+    pub(crate) fn dispatch_error(cx: &mut JSContext, target: &EventTarget, scope: &GlobalScope) {
         let init = ExtendableMessageEventBinding::ExtendableMessageEventInit::empty();
         let ExtendableMsgEvent = ExtendableMessageEvent::new(
             scope,
@@ -260,7 +257,7 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-data>
-    fn Data(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+    fn Data(&self, _cx: &mut JSContext, mut retval: MutableHandleValue) {
         retval.set(self.data.get())
     }
 
@@ -285,17 +282,16 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
     }
 
     /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports>
-    fn Ports(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn Ports(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         self.frozen_ports.get_or_init(
+            cx,
             || {
                 self.ports
                     .iter()
                     .map(|port| DomRoot::from_ref(&**port))
                     .collect()
             },
-            cx,
             retval,
-            can_gc,
         );
     }
 }

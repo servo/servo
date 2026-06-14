@@ -51,7 +51,6 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
-use script_bindings::script_runtime::JSContext;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -6478,8 +6477,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    fn AdoptedStyleSheets(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn AdoptedStyleSheets(&self, cx: &mut js::context::JSContext, retval: MutableHandleValue) {
         self.adopted_stylesheets_frozen_types.get_or_init(
+            cx,
             || {
                 self.adopted_stylesheets
                     .borrow()
@@ -6488,9 +6488,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                     .map(|sheet| sheet.as_rooted())
                     .collect()
             },
-            context,
             retval,
-            can_gc,
         );
     }
 
