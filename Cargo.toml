@@ -68,10 +68,10 @@ content-security-policy = { version = "0.8.0", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 criterion = "0.8"
 crossbeam-channel = "0.5"
+crypto-bigint = "0.7"
 cshake = "0.2"
 cssparser = { version = "0.37", features = ["serde"] }
 ctr = "0.9.2"
-crypto-bigint = "0.7"
 data-url = "0.3"
 der = { version = "0.7", features = ["alloc", "derive"] }
 digest = "0.11"
@@ -215,7 +215,7 @@ rustls = { version = "0.23", default-features = false, features = ["logging", "s
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
 sea-query = { version = "=1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
-sea-query-rusqlite = { version = "=0.8.0-rc.15" }
+sea-query-rusqlite = "=0.8.0-rc.15"
 sec1 = "0.7"
 selectors = { git = "https://github.com/servo/stylo", rev = "813923186eff5bcb957fe6da8538038acd918e98" }
 seq-macro = "0.3.6"
