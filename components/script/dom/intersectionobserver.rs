@@ -557,8 +557,6 @@ impl IntersectionObserver {
         // > even if the intersection has zero area (because rootBounds or targetRect have zero area).
         // Because we are considering edge-adjacent, instead of checking whether the rectangle is empty,
         // we are checking whether the rectangle is negative or not.
-        // TODO(stevennovaryo): there is a dicussion regarding isIntersecting definition, we should update
-        //                      it accordingly. https://github.com/w3c/IntersectionObserver/issues/432
         let is_intersecting = maybe_intersection_rect.is_some();
 
         // Step 12
@@ -583,16 +581,12 @@ impl IntersectionObserver {
             .position(|threshold| **threshold > intersection_ratio)
             .unwrap_or(self.thresholds.borrow().len());
 
-        let threshold_index = if is_intersecting {
-            // If the index is 0, the first threshold value is greater
-            // than the observed ratio, so we're not actually matching yet.
-            // The spec differentiates between this case and the case where
-            // there is no intersection, but other browser engines do not.
-            if threshold_index == 0 {
-                ThresholdIndex::NotMatching
-            } else {
-                ThresholdIndex::Matching(threshold_index)
-            }
+        // If the index is 0, the first threshold value is greater
+        // than the observed ratio, so we're not actually matching yet.
+        // The spec differentiates between this case and the case where
+        // there is no intersection, but other browser engines do not.
+        let threshold_index = if is_intersecting && threshold_index > 0 {
+            ThresholdIndex::Matching(threshold_index)
         } else {
             ThresholdIndex::NotMatching
         };
