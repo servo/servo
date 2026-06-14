@@ -206,6 +206,18 @@ impl ImageData {
     }
 
     #[expect(unsafe_code)]
+    pub(crate) fn get_snapshot(&self) -> Snapshot {
+        Snapshot::from_vec(
+            self.get_size(),
+            SnapshotPixelFormat::RGBA,
+            SnapshotAlphaMode::Transparent {
+                premultiplied: false,
+            },
+            unsafe { self.as_slice().to_vec() },
+        )
+    }
+
+    #[expect(unsafe_code)]
     pub(crate) fn to_shared_memory(&self) -> GenericSharedMemory {
         // This is safe because we copy the slice content
         GenericSharedMemory::from_bytes(unsafe { self.as_slice() })
