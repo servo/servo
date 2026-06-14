@@ -10,7 +10,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlformelement::{FormControl, ResetFrom};
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
 use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::{SpecifiInputActivationType, SpecificInputType};
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::NodeTraits;
 
 const DEFAULT_RESET_VALUE: &str = "Reset";
@@ -36,7 +36,7 @@ impl SpecificInputType for ResetInputType {
     }
 }
 
-impl SpecifiInputActivationType for ResetInputActivation {
+impl SpecificInputActivationType for ResetInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):input-activation-behavior>
     fn activation_behavior(
         &self,

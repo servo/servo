@@ -32,7 +32,7 @@ use crate::dom::filelist::FileList;
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::{SpecifiInputActivationType, SpecificInputType};
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::{Node, NodeTraits};
 
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
@@ -215,7 +215,7 @@ impl SpecificInputType for FileInputType {
     }
 }
 
-impl SpecifiInputActivationType for FileInputActivation {
+impl SpecificInputActivationType for FileInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior>
     fn activation_behavior(
         &self,

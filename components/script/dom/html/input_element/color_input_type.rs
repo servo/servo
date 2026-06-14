@@ -28,7 +28,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::{SpecifiInputActivationType, SpecificInputType};
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::{Node, NodeTraits, UnbindContext};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -255,7 +255,7 @@ impl SpecificInputType for ColorInputType {
     }
 }
 
-impl SpecifiInputActivationType for ColorInputActivation {
+impl SpecificInputActivationType for ColorInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior>
     fn activation_behavior(
         &self,

@@ -138,16 +138,16 @@ impl InputActivationType {
         }
     }
 
-    pub(crate) fn as_specific(&self) -> &dyn SpecifiInputActivationType {
+    pub(crate) fn as_specific(&self) -> &dyn SpecificInputActivationType {
         match self {
-            Self::Button(input_type) => input_type as &dyn SpecifiInputActivationType,
-            Self::Checkbox(input_type) => input_type as &dyn SpecifiInputActivationType,
-            Self::Color(input_type) => input_type as &dyn SpecifiInputActivationType,
-            Self::File(input_type) => input_type as &dyn SpecifiInputActivationType,
-            Self::Image(input_type) => input_type as &dyn SpecifiInputActivationType,
-            Self::Radio(input_type) => input_type as &dyn SpecifiInputActivationType,
-            Self::Reset(input_type) => input_type as &dyn SpecifiInputActivationType,
-            Self::Submit(input_type) => input_type as &dyn SpecifiInputActivationType,
+            Self::Button(input_type) => input_type as &dyn SpecificInputActivationType,
+            Self::Checkbox(input_type) => input_type as &dyn SpecificInputActivationType,
+            Self::Color(input_type) => input_type as &dyn SpecificInputActivationType,
+            Self::File(input_type) => input_type as &dyn SpecificInputActivationType,
+            Self::Image(input_type) => input_type as &dyn SpecificInputActivationType,
+            Self::Radio(input_type) => input_type as &dyn SpecificInputActivationType,
+            Self::Reset(input_type) => input_type as &dyn SpecificInputActivationType,
+            Self::Submit(input_type) => input_type as &dyn SpecificInputActivationType,
         }
     }
 }
@@ -394,7 +394,7 @@ pub(crate) trait SpecificInputType {
     }
 }
 
-pub(crate) trait SpecifiInputActivationType {
+pub(crate) trait SpecificInputActivationType {
     fn activation_behavior(
         &self,
         _cx: &mut js::context::JSContext,

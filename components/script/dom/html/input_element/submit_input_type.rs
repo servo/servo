@@ -10,7 +10,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
 use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::{SpecifiInputActivationType, SpecificInputType};
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::NodeTraits;
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -36,7 +36,7 @@ impl SpecificInputType for SubmitInputType {
     }
 }
 
-impl SpecifiInputActivationType for SubmitInputActivation {
+impl SpecificInputActivationType for SubmitInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):input-activation-behavior>
     fn activation_behavior(
         &self,

@@ -19,7 +19,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::htmlinputelement::input_type::InputType;
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
-use crate::dom::input_element::input_type::{SpecifiInputActivationType, SpecificInputType};
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::input_element::{HTMLInputElement, InputActivationState};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{BindContext, Node, UnbindContext};
@@ -167,7 +167,7 @@ impl SpecificInputType for RadioInputType {
     }
 }
 
-impl SpecifiInputActivationType for RadioInputActivation {
+impl SpecificInputActivationType for RadioInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior>
     fn activation_behavior(
         &self,

@@ -10,7 +10,7 @@ use script_bindings::inheritance::Castable;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
-use crate::dom::input_element::input_type::{SpecifiInputActivationType, SpecificInputType};
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::input_element::{HTMLInputElement, InputActivationState};
 use crate::dom::node::Node;
 
@@ -66,7 +66,7 @@ impl SpecificInputType for CheckboxInputType {
     }
 }
 
-impl SpecifiInputActivationType for CheckboxInputActivation {
+impl SpecificInputActivationType for CheckboxInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior>
     fn activation_behavior(
         &self,
