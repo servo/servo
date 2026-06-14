@@ -4773,7 +4773,6 @@ impl VirtualMethods for Element {
         }
 
         let doc = self.owner_document();
-
         let fullscreen = doc.fullscreen_element();
         if fullscreen.as_deref() == Some(self) {
             doc.exit_fullscreen(cx);
@@ -5072,6 +5071,10 @@ impl Element {
 
     pub(crate) fn set_focus_state(&self, value: bool) {
         self.set_state(ElementState::FOCUS, value);
+    }
+
+    pub(crate) fn set_focus_within_state(&self, value: bool) {
+        self.set_state(ElementState::FOCUS_WITHIN, value);
     }
 
     pub(crate) fn set_hover_state(&self, value: bool) {

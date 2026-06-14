@@ -1315,6 +1315,9 @@ impl VirtualMethods for HTMLElement {
         {
             document
                 .focus_handler()
+                .handle_focused_element_unbound(context);
+            document
+                .focus_handler()
                 .set_focused_area(FocusableArea::Viewport);
         }
 
