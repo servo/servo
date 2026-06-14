@@ -663,7 +663,7 @@ pub(crate) fn import_key(
 
             // Step 2.8.
             // If the priv field of jwk is present:
-            if jwk.priv_.is_some() {
+            let (key_type, key_handle) = if jwk.priv_.is_some() {
                 // Step 2.8.1. If the priv attribute of jwk does not contain a valid base64url
                 // encoded seed representing an ML-DSA private key, then throw a DataError.
                 let priv_bytes = jwk.decode_required_string_field(JwkStringField::Priv)?;
@@ -675,8 +675,9 @@ pub(crate) fn import_key(
                 // Step 2.8.4. If the pub attribute of jwk does not contain the base64url encoded
                 // public key representing the ML-DSA public key corresponding to key, then throw a
                 // DataError.
+                // NOTE: The CryptoKey object is created in Step 2.9 - 2.11.
                 let pub_bytes = jwk.decode_required_string_field(JwkStringField::Pub)?;
-                let private_key = match normalized_algorithm.name {
+                let private_key_handle = match normalized_algorithm.name {
                     CryptoAlgorithm::MlDsa44 => {
                         let signing_key =
                             SigningKey::new_from_slice(&priv_bytes).map_err(|_| {
@@ -756,18 +757,7 @@ pub(crate) fn import_key(
                         ))));
                     },
                 };
-                let algorithm = SubtleKeyAlgorithm {
-                    name: normalized_algorithm.name,
-                };
-                CryptoKey::new(
-                    cx,
-                    global,
-                    KeyType::Private,
-                    extractable,
-                    KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                    usages,
-                    private_key,
-                )
+                (KeyType::Private, private_key_handle)
             }
             // Otherwise:
             else {
@@ -779,7 +769,8 @@ pub(crate) fn import_key(
                 // key identified by interpreting the pub attribute of jwk as a base64url encoded
                 // public key.
                 // Step 2.8.3. Set the [[type]] internal slot of key to "public".
-                let public_key = match normalized_algorithm.name {
+                // NOTE: The CryptoKey object is created in Step 2.9 - 2.11.
+                let public_key_handle = match normalized_algorithm.name {
                     CryptoAlgorithm::MlDsa44 => {
                         let verifying_key =
                             VerifyingKey::new_from_slice(&pub_bytes).map_err(|_| {
@@ -817,19 +808,25 @@ pub(crate) fn import_key(
                         ))));
                     },
                 };
-                let algorithm = SubtleKeyAlgorithm {
-                    name: normalized_algorithm.name,
-                };
-                CryptoKey::new(
-                    cx,
-                    global,
-                    KeyType::Public,
-                    extractable,
-                    KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                    usages,
-                    public_key,
-                )
-            }
+                (KeyType::Public, public_key_handle)
+            };
+
+            // Step 2.9. Let algorithm be a new instance of a KeyAlgorithm object.
+            // Step 2.10. Set the name attribute of algorithm to the name member of
+            // normalizedAlgorithm.
+            // Step 2.11. Set the [[algorithm]] internal slot of key to algorithm.
+            let algorithm = SubtleKeyAlgorithm {
+                name: normalized_algorithm.name,
+            };
+            CryptoKey::new(
+                cx,
+                global,
+                key_type,
+                extractable,
+                KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+                usages,
+                key_handle,
+            )
         },
         // Otherwise:
         _ => {
