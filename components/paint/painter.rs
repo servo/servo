@@ -643,8 +643,15 @@ impl Painter {
                 },
             );
 
-            let scaled_webview_rect = webview_renderer.rect /
-                webview_renderer.device_pixels_per_page_pixel_not_including_pinch_zoom();
+            // When zoomed out, expand the iframe to match the larger CSS viewport,
+            // preventing blank areas around the scaled-down content.
+            let adjustment_for_less_than_1_pinch_zoom =
+                webview_renderer.pinch_zoom().zoom_factor().get().min(1.0);
+            let device_pixels_per_page_pixel = webview_renderer
+                .device_pixels_per_page_pixel_not_including_pinch_zoom()
+                .get() *
+                adjustment_for_less_than_1_pinch_zoom;
+            let scaled_webview_rect = webview_renderer.rect / (device_pixels_per_page_pixel);
             builder.push_iframe(
                 LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
                 LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),

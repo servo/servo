@@ -1047,8 +1047,15 @@ impl WebViewRenderer {
         let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_pinch_zoom();
         // From <https://www.w3.org/TR/css-viewport-1/#actual-viewport>:
         // This is the viewport you get after processing the viewport <meta> tag.
-        let layout_viewport = self.rect.size().to_f32() /
-            (device_pixel_ratio * Scale::new(self.viewport_description.initial_scale.get()));
+        // When `initial_scale` is less than 1, we scale up the layout viewport by
+        // `1.0 / initial_scale` to prevent showing blank area around it.
+        let effective_initial_scale = self
+            .viewport_description
+            .initial_scale
+            .get()
+            .min(DEFAULT_PAGE_ZOOM.get());
+        let layout_viewport =
+            self.rect.size().to_f32() / (device_pixel_ratio * Scale::new(effective_initial_scale));
         let _ = self.embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::ChangeViewportDetails(
                 self.id,
