@@ -25,32 +25,14 @@
   <script>
     'use strict';
 
-    function loadFrame() {
-      return new Promise(resolve => {
-        const frame = document.getElementById('target');
-        frame.onload = resolve;
-        frame.src = 'resources/iframe-touch-action-none-subframe.html';
-      });
-    }
-
-    function messageReceived() {
-      return new Promise(resolve => {
-        window.addEventListener('message', (event) => {
-          if (event.source != target.contentWindow) {
-            return;
-          }
-          if (event.data && event.data.type == "subframe-event") {
-            resolve(event.data.eventType);
-          }
-        });
-      });
-    }
-
     promise_test(async t => {
       const target = document.getElementById("target");
-      await loadFrame();
+      await loadFrameAndExcecuteScript(
+          document.getElementById('target'),
+          'resources/iframe-touch-action-none-subframe.html');
 
-      const messagePromise = messageReceived();
+      const messagePromise =
+          getMessageData('subframe-event', frames[0]);
 
       await new test_driver.Actions()
             .addPointer("pointer1", "touch")
@@ -60,8 +42,8 @@
             .pointerUp()
             .send();
 
-      const eventType = await messagePromise;
-      assert_equals(eventType, 'pointercancel');
+      const result = await messagePromise;
+      assert_equals(result.eventType, 'pointercancel');
     }, 'touch iframe received pointercancel');
   </script>
 </html>

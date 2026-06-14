@@ -13,4 +13,20 @@
         assert_equals(style1.type, "", "missing type reflects as empty string IDL attribute on the style element");
         assert_equals(style2.type, "random/type", "type reflects correctly IDL attribute on the style element");
     }, "type attribute on SVG <style> elements should reflect correctly");
+
+    test(() => {
+        const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+        style.type = "text/x-something-else";
+        assert_equals(style.type, "text/x-something-else",
+                      "IDL setter round-trips through the IDL getter");
+        assert_equals(style.getAttribute("type"), "text/x-something-else",
+                      "IDL setter writes to the content attribute");
+    }, "Setting type via the IDL attribute updates the content attribute");
+
+    test(() => {
+        const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+        style.setAttribute("type", "text/x-something-else");
+        assert_equals(style.type, "text/x-something-else",
+                      "IDL getter reflects the content attribute");
+    }, "Setting the content attribute updates the IDL attribute (type)");
 </script>

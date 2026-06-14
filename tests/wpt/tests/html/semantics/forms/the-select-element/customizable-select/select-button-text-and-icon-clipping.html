@@ -19,7 +19,12 @@
     content: "X";
     color: red;
   }
+  .hide-icon::picker-icon {
+    display: none;
+  }
 </style>
 
 <p><select><option>XXX</option></select>
 <p><select><button><selectedcontent></selectedcontent></button><option>XXX</option></select>
+<p><select class=hide-icon><option>XXX</option></select>
+<p><select class=hide-icon><button><selectedcontent></selectedcontent></button><option>XXX</option></select>

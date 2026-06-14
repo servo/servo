@@ -1,34 +1,21 @@
 <!DOCTYPE HTML>
-<html class="reftest-wait">
 <head>
   <title>captureElementImage repaints video frames in worker</title>
-  <meta name="fuzzy" content="maxDifference=0-19;totalPixels=0-4096">
-  <link rel="match" href="video-worker-ref.html">
-  <script src="/common/reftest-wait.js"></script>
-  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
-  <style>
-  #child {
-    width: 64px;
-    height: 64px;
-  }
-  #video {
-    width: 64px;
-    height: 64px;
-  }
-  </style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
-  <canvas id=canvas width="100" height="100" layoutsubtree>
+
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
     <div id=child>
-      <video id=video src="/media/fast-red-green.webm" autoplay muted></video>
+      <video id="video" width="100" height="100" src="/media/rgb100.webm" autoplay loop muted></video>
     </div>
   </canvas>
-  <script type="module">
-let video = document.getElementById('video');
-let canvas = document.getElementById('canvas');
-let child = document.getElementById('child');
 
-const workerCode = `
+  <script>
+    const canvas = document.getElementById("canvas");
+    const child = document.getElementById("child");
+    const workerCode = `
   let ctx;
   self.onmessage = (e) => {
     if (e.data.canvas) {
@@ -37,36 +24,57 @@ const workerCode = `
     if (e.data.elementImage) {
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.drawElementImage(e.data.elementImage, 0, 0);
+      const imageData = ctx.getImageData(25, 25, 1, 1);
+      self.postMessage({pixel: Array.from(imageData.data)});
     }
-    if (e.data.ping) {
-      self.postMessage({pong:true});
-    }
-  };
-`;
+  };`;
 
-const worker = new Worker(URL.createObjectURL(new Blob([workerCode], {type: 'application/javascript'})));
-const offscreen = canvas.transferControlToOffscreen();
-worker.postMessage({ canvas: offscreen }, [offscreen]);
+    promise_test(() => new Promise((resolve, reject) => {
+      // Video color reproduction is not 100% consistent.
+      const channelTolerance = 3;
+      const approxEquals = (a, b) => Math.abs(a-b) < channelTolerance;
+      const colorEquals = (a, b) => {
+        return approxEquals(a[0], b[0]) &&
+               approxEquals(a[1], b[1]) &&
+               approxEquals(a[2], b[2]) &&
+               approxEquals(a[3], b[3]);
+      };
 
-await waitForCanvasPaint(canvas);
+      let seenColors = [];
+      let sawRed = false, sawGreen = false, sawBlue = false;
 
-video.src = "/media/fast-red-green.webm";
-video.onended = () => {
-  canvas.onpaint = null;
-  // Wait for a response to a 'ping' message to make sure the worker
-  // has flushed its message queue before we take the screenshot.
-  worker.addEventListener("message", e => {
-    if (e.data.pong) {
-      takeScreenshot();
-    }
-  });
-  worker.postMessage({ping:true});
-};
+      const worker = new Worker(URL.createObjectURL(new Blob([workerCode], {type: 'application/javascript'})));
+      const offscreen = canvas.transferControlToOffscreen();
+      worker.postMessage({ canvas: offscreen }, [offscreen]);
 
-canvas.onpaint = () => {
-  const elementImage = canvas.captureElementImage(child);
-  worker.postMessage({ elementImage: elementImage }, [elementImage]);
-};
-  </script>
-</body>
+      worker.addEventListener("message", e => {
+        if (e.data.pixel) {
+          seenColors.push(`(${e.data.pixel.join(", ")})`);
+          if (colorEquals(e.data.pixel, [255, 1, 0, 255])) {
+            sawRed = true;
+          } else if (colorEquals(e.data.pixel, [0, 153, 0, 255])) {
+            sawGreen = true;
+          } else if (colorEquals(e.data.pixel, [0, 0, 255, 255])) {
+            sawBlue = true;
+          }
+        }
+        if (sawRed && sawGreen && sawBlue) {
+          resolve("Saw red, green, and blue video frames.");
+        }
+      });
+
+      let paintCount = 0;
+      canvas.onpaint = (evt) => {
+        if (evt.changedElements.length != 1 || evt.changedElements[0] != child) {
+          reject("Canvas paint event 'changedElements' should contain just " +
+                 "the child element.");
+        }
+        if (++paintCount > 10) {
+          reject(`After ${paintCount} paints the colors seen are ${seenColors.join(", ")}.`);
+        }
+        const elementImage = canvas.captureElementImage(child);
+        worker.postMessage({ elementImage: elementImage }, [elementImage]);
+      };
+    }));
+</script>
 </html>

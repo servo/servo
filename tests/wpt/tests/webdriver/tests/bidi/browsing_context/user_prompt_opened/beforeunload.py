@@ -41,6 +41,7 @@ async def test_beforeunload(
             "context": new_tab["context"],
             "type": "beforeunload",
             "message": any_string,
+            **({"userContext": new_tab["userContext"]} if "userContext" in event else {})
         },
         event,
     )

@@ -45,8 +45,6 @@ dictionary TextUpdateEventInit : EventInit {
     DOMString text;
     unsigned long selectionStart;
     unsigned long selectionEnd;
-    unsigned long compositionStart;
-    unsigned long compositionEnd;
 };
 
 [Exposed=Window]

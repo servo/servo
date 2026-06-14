@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sanitizer AAA bypass test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="test"></div>
+<script>
+test(t => {
+  const container = document.createElement('div');
+  container.setHTML('<b><i onclick="alert(1)"><div></b>x');
+  assert_equals(container.querySelectorAll('[onclick]').length, 0,
+                "No element should have onclick attribute");
+}, "Sanitizer should remove onclick attribute during Adoption Agency Algorithm element reconstruction.");
+</script>
+</body>
+</html>

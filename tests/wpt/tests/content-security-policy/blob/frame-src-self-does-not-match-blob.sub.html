@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; frame-src 'self';">
+    <title>frame-src-self-does-not-match-blob</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=frame-src"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+
+<body>
+    <p>
+        blob: URLs should not match the &apos;self&apos; source in a frame-src directive because blob: is a non-HTTP(S) scheme that must be explicitly listed.
+    </p>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+
+        var b = new Blob(['<html><body>FAIL</body></html>'], {
+            type: 'text/html'
+        });
+        var iframe = document.createElement('iframe');
+        iframe.src = URL.createObjectURL(b);
+        document.body.appendChild(iframe);
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

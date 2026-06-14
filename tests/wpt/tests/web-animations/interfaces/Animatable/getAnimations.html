@@ -469,5 +469,60 @@ promise_test(async t => {
   await watcher.wait_for('transitionrun');
 }, 'Triggers a style change event');
 
+promise_test(async t => {
+  const div = createDiv(t);
+
+  // Create animation in a block scope and return its finished promise.
+  await (() => {
+    const animation = div.animate({ opacity: [0, 1] }, { duration: 1, fill: 'both' });
+    return animation.finished;
+  })();
+
+  // Yield to event loop to allow GC.
+  await waitForNextFrame();
+
+  assert_equals(div.getAnimations().length, 1,
+      'Animation with fill: both should still be returned after finishing');
+}, 'Finished animation with fill: both is not lost after yielding to event loop');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  // Create animation in a block scope and return its finished promise.
+  await (() => {
+    const animation = div.animate({ opacity: [0, 1] }, { duration: 1, fill: 'none' });
+    return animation.finished;
+  })();
+
+  // Yield to event loop to allow GC.
+  await waitForNextFrame();
+
+  assert_equals(div.getAnimations().length, 0,
+      'Finished animation with fill: none should not be returned');
+}, 'Finished animation with fill: none is not returned');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  // Create animation in a block scope and return its finished promise.
+  await (() => {
+    const animation = div.animate(
+        { opacity: [0, 1] }, { duration: 1, fill: 'both' });
+    return animation.finished;
+  })();
+
+  // Disconnect the element.
+  div.remove();
+
+  // Yield to event loop to allow GC.
+  await waitForNextFrame();
+
+  // Re-attach the element.
+  document.body.appendChild(div);
+
+  assert_equals(div.getAnimations().length, 1,
+      'Animation with fill: both should still be returned after re-attaching');
+}, 'Finished animation with fill: both on disconnected element is not lost after yielding to event loop');
+
 </script>
 </body>

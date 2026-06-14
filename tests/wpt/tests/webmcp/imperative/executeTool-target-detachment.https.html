@@ -39,7 +39,8 @@ promise_test(async t => {
 
   await toolchange_promise;
 
-  const tools = await document.modelContext.getTools();
+  const tools = await document.modelContext.getTools(
+      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
   const tool = tools.find(t => t.name === 'iframe_tool');
   assert_true(!!tool, 'Tool should be retrieved successfully');
 
@@ -88,7 +89,8 @@ promise_test(async t => {
 
   await toolchange_promise;
 
-  const tools = await document.modelContext.getTools();
+  const tools = await document.modelContext.getTools(
+      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
   const tool = tools.find(t => t.name === 'iframe_tool_hanging');
   assert_true(!!tool, 'Tool should be retrieved successfully');
 

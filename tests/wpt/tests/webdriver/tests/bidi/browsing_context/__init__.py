@@ -80,6 +80,7 @@ def assert_navigation_info(event, expected_navigation_info):
             "navigation": any_string_or_null,
             "timestamp": any_int,
             "url": any_string,
+            **({"userContext": any_string} if "userContext" in event else {}),
         },
         event,
     )
@@ -95,6 +96,11 @@ def assert_navigation_info(event, expected_navigation_info):
 
     if "url" in expected_navigation_info:
         assert event["url"] == expected_navigation_info["url"]
+
+    # This parameter should become mandatory when
+    # https://github.com/w3c/webdriver-bidi/issues/1071 is resolved.
+    if "userContext" in expected_navigation_info and "userContext" in event:
+        assert event["userContext"] == expected_navigation_info["userContext"]
 
 
 async def get_document_focus(bidi_session, context: Mapping[str, Any]) -> str:

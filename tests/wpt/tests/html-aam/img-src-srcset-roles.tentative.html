@@ -20,6 +20,8 @@
 <p>Merge the outcome of this test into roles.html in the appropriate alphabetical order, when it is no longer considered tentative:</p>
 
 <div hidden id=labelledby>x</div>
+<div hidden id="empty"></div>
+<div hidden id="space"> </div>
 
 <h2>Image role:</h2>
 <img data-testname="el-img-no-src-or-srcset-but-name-from-alt" data-expectedrole="image" class="ex"
@@ -112,6 +114,20 @@
   alt title=" ">
 <img data-testname="el-img-empty-alt-srcset-invalid-value" class="ex-generic"
   srcset="..." alt>
+
+<!-- replicating all former generic test cases that used empty alt text, now also using whitespace-only alt text, per https://github.com/w3c/aria/pull/2706 -->
+<img data-testname="el-img-whitespace-alt-aria-label-empty" class="ex-generic" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt=" " aria-label="">
+<img data-testname="el-img-whitespace-alt-aria-label-whitespace" class="ex-generic" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt=" " aria-label=" ">
+<img data-testname="el-img-whitespace-alt-aria-labelledby-non-existing" class="ex-generic" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt=" " aria-labelledby="non-existing">
+<img data-testname="el-img-whitespace-alt-aria-labelledby-empty" class="ex-generic" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt=" " aria-labelledby="empty">
+<img data-testname="el-img-whitespace-alt-aria-labelledby-whitespace" class="ex-generic" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt=" " aria-labelledby="space">
+<img data-testname="el-img-whitespace-alt-title" class="ex-generic" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt=" " title="x">
+<img data-testname="el-img-whitespace-alt-title-empty" class="ex-generic" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt=" " title="">
+<img data-testname="el-img-whitespace-alt-title-whitespace" class="ex-generic" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt=" " title=" ">
+<img data-testname="el-img-whitespace-alt-no-src-or-srcset" class="ex-generic" alt=" ">
+<img data-testname="el-img-whitespace-alt-no-src-srcset-title-empty" class="ex-generic" alt=" " title="">
+<img data-testname="el-img-whitespace-alt-no-src-srcset-title-whitespace" class="ex-generic" alt=" " title=" ">
+<img data-testname="el-img-whitespace-alt-srcset-invalid-value" class="ex-generic" srcset="..." alt=" ">
 
 <script>
 AriaUtils.verifyRolesBySelector(".ex");

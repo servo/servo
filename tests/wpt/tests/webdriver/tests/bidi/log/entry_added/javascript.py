@@ -26,4 +26,5 @@ async def test_types_and_values(
         text=expected_text,
         timestamp=int_interval(time_start, time_end),
         context=top_context["context"],
+        userContext=top_context["userContext"],
     )

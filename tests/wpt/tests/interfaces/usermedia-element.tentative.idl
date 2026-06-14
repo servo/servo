@@ -9,6 +9,7 @@ interface HTMLUserMediaElement : HTMLElement {
 
   [CEReactions] attribute DOMString type;
   attribute EventHandler onstream;
+  attribute EventHandler oncancel;
   attribute EventHandler onerror;
 
   static boolean isTypeSupported(DOMString type);
@@ -17,6 +18,13 @@ interface HTMLUserMediaElement : HTMLElement {
   readonly attribute DOMException? error;
 
   undefined setConstraints(optional HTMLMediaStreamConstraints constraints = {});
-};
 
-HTMLUserMediaElement includes InPagePermissionMixin;
+  readonly attribute boolean isValid;
+  readonly attribute InPagePermissionMixinBlockerReason invalidReason;
+  readonly attribute PermissionState initialPermissionStatus;
+  readonly attribute PermissionState permissionStatus;
+
+  attribute EventHandler onpromptaction;
+  attribute EventHandler onpromptdismiss;
+  attribute EventHandler onvalidationstatuschange;
+};

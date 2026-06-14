@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<title>Canvas.drawElementImage: animated gif in worker</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#child {
+  width: 300px;
+  height: 100px;
+}
+#canvas {
+  background: grey;
+}
+img {
+    width: 100px;
+    height: 100px;
+}
+</style>
+<canvas id=canvas width="300" height="100" layoutsubtree>
+  <div id=child>
+     <img id=image src="resources/rgb100.gif"/>
+  </div>
+</canvas>
+<script>
+let canvas = document.getElementById("canvas");
+let child = document.getElementById("child");
+
+const workerCode = `
+  let ctx;
+  let snapshots = [];
+  let colorEquals = (a, b) => {
+    return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
+  };
+  self.onmessage = (e) => {
+    if (e.data.canvas) {
+      ctx = e.data.canvas.getContext('2d');
+    }
+    if (e.data.elementImage) {
+      snapshots.push(e.data.elementImage);
+      if (snapshots.length == 3) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.drawElementImage(snapshots[0], 0, 0);
+        ctx.drawElementImage(snapshots[1], 100, 0);
+        ctx.drawElementImage(snapshots[2], 200, 0);
+        const imageData = ctx.getImageData(0, 25, 300, 1);
+        let sawRed = false, sawGreen = false, sawBlue = false;
+        const checkPixel = (x) => {
+          const pixel = imageData.data.slice(x*4, (x+1)*4);
+          if (colorEquals(pixel, [255, 0, 0, 255])) {
+            sawRed = true;
+          } else if (colorEquals(pixel, [0, 153, 0, 255])) {
+            sawGreen = true;
+          } else if (colorEquals(pixel, [0, 0, 255, 255])) {
+            sawBlue = true;
+          }
+        }
+        checkPixel(25);
+        checkPixel(125);
+        checkPixel(225);
+        self.postMessage({red:sawRed, green:sawGreen, blue:sawBlue});
+      }
+    }
+  };
+`;
+
+promise_test(() => new Promise((resolve, reject) => {
+  window.onload = () => {
+    const worker = new Worker(URL.createObjectURL(new Blob([workerCode], {type: 'application/javascript'})));
+    const offscreen = canvas.transferControlToOffscreen();
+    worker.addEventListener("message", e => {
+      if (e.data.red && e.data.green && e.data.blue) {
+        resolve("Saw red, green, and blue animated image frames.");
+      } else {
+        reject("Did not see red, green, and blue in three successive " +
+               "ElementImage snapshots.");
+      }
+    });
+    worker.postMessage({ canvas: offscreen }, [offscreen]);
+
+    canvas.onpaint = (evt) => {
+      if (evt.changedElements.length != 1 || evt.changedElements[0] != child) {
+        reject("Canvas paint event 'changedElements' should contain just " +
+               "the child element.");
+      }
+      const elementImage = canvas.captureElementImage(child);
+      worker.postMessage({ elementImage: elementImage }, [elementImage]);
+    };
+  }
+}));
+</script>
+</html>

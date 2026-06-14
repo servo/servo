@@ -9,7 +9,7 @@ html,body {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, auto);
+  grid-template-rows: repeat(4, auto);
   place-content: start;
   border: 1px solid;
 }
@@ -20,18 +20,18 @@ html,body {
   gap: 10px 20px;
   background: lightgrey;
   grid-row: 2 / span 5;
-  min-width:10px;
-  min-height:0;
+  min-height:10px;
+  min-width:0;
   border: 0 solid lightblue;
-  border-bottom-width: 40px;
+  border-right-width: 40px;
   background: yellow;
 }
 
 .subgrid > * { background: lightgrey; }
 
 x {
-  min-width:10px;
-  min-height:0px;
+  min-height:10px;
+  min-width:0px;
 }
 x:nth-child(2n+1) { background: silver; }
 x:nth-child(2n+2) { background: magenta; }

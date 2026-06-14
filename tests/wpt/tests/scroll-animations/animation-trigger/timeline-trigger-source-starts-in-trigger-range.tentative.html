@@ -13,13 +13,13 @@
   <style>
     @keyframes anim {
       0% {
-        width: 100px;
+        width: 200px;
       }
       50% {
         width: 200px;
       }
       100% {
-        width: 200px;
+        width: 100px;
       }
     }
     #scroller {
@@ -40,7 +40,7 @@
     #target {
       width: 10px;
       animation: anim 1s linear;
-      animation-trigger: --trigger play-backwards;
+      animation-trigger: --trigger play-forwards;
       background-color: tomato;
     }
   </style>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>image-animation reset when display: none</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-display-none-reset.tentative-ref.html" />
+<style>
+  img {
+    image-animation: paused;
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script>
+  let count = 0;
+  function loaded() {
+    count++;
+    if (count < 2)
+      return;
+
+    const img1 = document.getElementById('img1');
+    const img2 = document.getElementById('img2');
+    img1.style.imageAnimation = "running";
+    img2.style.imageAnimation = "running";
+
+    // The GIF (anim-rgb.gif) has 3 frames:
+    //   Frame 1: red,   20ms
+    //   Frame 2: green, 200ms
+    //   Frame 3: blue
+    //
+    // Wait for frame 2 (green) to be reached.
+    setTimeout(() => {
+      img2.style.imageAnimation = 'paused';
+      img1.style.display = 'none';
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            img1.style.display = 'inline';
+            img1.style.imageAnimation = 'paused';
+            requestAnimationFrame(()=>{
+              takeScreenshot();
+            })
+          });
+      });
+    }, 100);
+  }
+</script>
+
+<img id="img1" src="../../images/anim-rgb.gif" onload="loaded()" />
+<img id="img2" src="../../images/anim-rgb.gif" onload="loaded()" />
+
+</html>

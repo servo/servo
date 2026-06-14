@@ -16,33 +16,39 @@
     return document.activeElement === element;
   }
 
+  function reply(source, action, data) {
+    source.postMessage({
+      action: action,
+      activation: navigator.userActivation.isActive,
+      ...data
+    }, "*");
+  }
+
   window.addEventListener("message", (e) => {
     const action = e.data.action;
     if (action === "focus-input1") {
       input1.focus();
-      e.source.postMessage({
-        action: action,
+      reply(e.source, action, {
         focused: isFocused(input1)
-      }, "*");
+      });
     } else if (action === "focus-input2") {
       input2.focus();
-      e.source.postMessage({
-        action: action,
+      reply(e.source, action, {
         focused: isFocused(input2)
-      }, "*");
+      });
     } else if (action === "focus-parent-element") {
       const el = parent.document.getElementById(e.data.elementId);
       el.focus();
-      e.source.postMessage({
-        action: action,
+      reply(e.source, action, {
         focused: (parent.document.activeElement === el)
-      }, "*");
+      });
     } else if (action === "focus-window") {
       window.focus();
-      e.source.postMessage({
-        action: action,
+      reply(e.source, action, {
         focused: document.hasFocus()
-      }, "*");
+      });
+    } else if (action === "get-user-activation") {
+      reply(e.source, action, {});
     }
   });
 </script>

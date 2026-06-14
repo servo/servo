@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" src="https://drafts.csswg.org/animation-triggers-1">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/web-animations/testcommon.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="support/support.js"></script>
+  </head>
+  <body>
+    <style>
+      @keyframes expand {
+        from { transform: scaleX(1); }
+        to { transform: scaleX(5); }
+      }
+      .subject, .target {
+        height: 50px;
+        width: 50px;
+        background-color: red;
+      }
+      .target {
+        animation: expand linear 10s both;
+      }
+      #target_forwards {
+        animation-trigger: --trigger play-forwards;
+      }
+      #target_backwards {
+        animation-trigger: --trigger play-backwards;
+      }
+      #subject {
+        timeline-trigger: --trigger view() 150px 200px;
+      }
+
+      .scroller {
+        overflow-y: scroll;
+        height: 500px;
+        width: 500px;
+        border: solid 1px;
+        position: relative;
+      }
+      #space {
+        width: 50px;
+        height: 600px;
+      }
+    </style>
+    <div id="wrapper">
+      <div id="scroller" class="scroller">
+        <div id="space"></div>
+        <div id="subject" class="subject"></div>
+        <div id="space"></div>
+      </div>
+      <div id="target_forwards" class="target"></div>
+      <div id="target_backwards" class="target"></div>
+    </div>
+    <script>
+      const CSS_ANIMATION_DURATION = 10000;
+
+      const COVER_START_OFFSET = 100;
+      const CSS_TRIGGER_START_PX = 150;
+      const CSS_TRIGGER_END_PX = 200;
+      const ACTIVATION_RANGE_START_PX = COVER_START_OFFSET + CSS_TRIGGER_START_PX;
+      const ACTIVATION_RANGE_END_PX = COVER_START_OFFSET + CSS_TRIGGER_END_PX;
+
+      const enter = () => {
+        return runAndWaitForFrameUpdate(async () => {
+          scroller.scrollTop =
+              (ACTIVATION_RANGE_START_PX + ACTIVATION_RANGE_END_PX) / 2;
+        }).then(waitForCompositorCommit);
+      }
+
+      const exit = () => {
+        return runAndWaitForFrameUpdate(async () => {
+          scroller.scrollTop = ACTIVATION_RANGE_END_PX + 100;
+        }).then(waitForCompositorCommit);
+      }
+
+      const reset = (target) => {
+        const animation = target.getAnimations()[0];
+        animation.pause();
+        animation.playbackRate = 1;
+        animation.currentTime = 0;
+        scroller.scrollTop = 0;
+      }
+
+      promise_test(async (test) => {
+        const target = document.getElementById("target_forwards");
+        reset(target);
+        const animation = target.getAnimations()[0];
+        // Setup finished at start (playbackRate = -1, finished -> currentTime = 0).
+        animation.playbackRate = -1;
+        animation.finish();
+        assert_equals(animation.playState, "finished",
+          "initially finished at start");
+        assert_times_equal(animation.currentTime, 0);
+
+        // Enter to trigger play-forwards. Should change playbackRate to 1 and play.
+        await enter();
+        assert_equals(animation.playState, "running",
+          "should start running forwards");
+        assert_equals(animation.playbackRate, 1,
+          "playbackRate should be reversed to positive");
+        assert_greater_than_equal(animation.currentTime, 0,
+          "currentTime should progress");
+
+        // Manually finish it in the forwards direction (finished at end,
+        // playbackRate = 1).
+        animation.finish();
+        assert_equals(animation.playState, "finished", "finished at end");
+        assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION);
+
+        // Exit and re-enter. Should NOT restart.
+        await exit();
+        await enter();
+        await waitForAnimationFrames(2);
+        assert_equals(animation.playState, "finished",
+          "should not restart after re-enter");
+        assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION);
+        assert_equals(animation.playbackRate, 1);
+      }, "play-forwards plays a finished animation if reversing direction, "
+         + "and does not restart it once finished");
+
+      promise_test(async (test) => {
+        const target = document.getElementById("target_backwards");
+        reset(target);
+        const animation = target.getAnimations()[0];
+        // Manually finish it (finished at end, playbackRate = 1).
+        animation.finish();
+        assert_equals(animation.playState, "finished",
+          "initially finished at end");
+        assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION);
+
+        // Enter to trigger play-backwards. Should change playbackRate to -1 and play.
+        await enter();
+        assert_equals(animation.playState, "running",
+          "should start running backwards");
+        assert_equals(animation.playbackRate, -1,
+          "playbackRate should be reversed to negative");
+        assert_less_than_equal(animation.currentTime, CSS_ANIMATION_DURATION,
+          "currentTime should progress backwards");
+
+        // Manually finish it in the backwards direction (finished at start,
+        // playbackRate = -1).
+        animation.finish();
+        assert_equals(animation.playState, "finished", "finished at start");
+        assert_times_equal(animation.currentTime, 0);
+
+        // Exit and re-enter. Should NOT restart.
+        await exit();
+        await enter();
+        await waitForAnimationFrames(2);
+        assert_equals(animation.playState, "finished",
+          "should not restart after re-enter");
+        assert_times_equal(animation.currentTime, 0);
+        assert_equals(animation.playbackRate, -1);
+      }, "play-backwards plays a finished animation if reversing direction, "
+         + "and does not restart it once finished");
+    </script>
+  </body>
+</html>

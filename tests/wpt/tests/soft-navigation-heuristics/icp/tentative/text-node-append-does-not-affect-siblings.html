@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<button id="testButton">Click here!</button>
+
+<div id="outer">
+  Plain text
+  <div id="misc">More text in this child div</div>
+  <div id="inner"></div>
+  <h1 id="heading">This is a large heading and should be the LCP element, but not the ICP element</h1>
+</div>
+
+<script>
+  promise_test(async t => {
+    // This appends a text node directly to a <div> with larger (block) children.
+    // This also causes a layout shift, which might cause the <h1> to be
+    // repainted depending on the UA's rendering implementation. Modifying the
+    // text should cause the repaint of the <div> (aggregating node) to be
+    // tracked, but the modification should not propagate to the the text node's
+    // siblings, e.g. the <h1>.
+    testButton.addEventListener('click', async () => {
+      let text = document.createTextNode(
+          'This is new text that will aggregate up to "outer"');
+      outer.appendChild(text);
+      inner.innerText = 'layout shift';
+    }, {once: true});
+
+    const helper = new SoftNavigationTestHelper(t);
+    const icpPromise = helper.waitForIcp();
+
+    if (test_driver) {
+      test_driver.click(testButton);
+    }
+
+    const icps = await icpPromise;
+    assert_equals(icps.length, 1, 'Expected exactly one ICP entry');
+
+    assert_equals(
+        icps[0].largestContentfulPaint.id, 'outer',
+        'Expected the LCP element to be "outer"');
+  }, 'InteractionContentfulPaint does not over-attribute to siblings of appended text nodes');
+</script>

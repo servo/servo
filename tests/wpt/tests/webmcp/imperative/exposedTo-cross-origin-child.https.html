@@ -37,7 +37,8 @@ promise_test(async t => {
   const iframe = await setupIframe(t);
 
   // Ask iframe what it sees.
-  iframe.contentWindow.postMessage('getTools', '*');
+  iframe.contentWindow.postMessage(
+      {action: 'getTools', options: {fromOrigins: [self.origin]}}, '*');
   let response = await waitForIframeMessage('getToolsResponse');
   const [tool] = response.tools;
   assert_true(toolsAreEqual(tool, {
@@ -48,7 +49,13 @@ promise_test(async t => {
   }), 'Tool details should match');
 
   // Child executes parent's tool.
-  iframe.contentWindow.postMessage({action: 'execute', name: 'parent_tool_exposed'}, '*');
+  iframe.contentWindow.postMessage(
+      {
+        action: 'execute',
+        name: 'parent_tool_exposed',
+        options: {fromOrigins: [self.origin]}
+      },
+      '*');
   const exec_response = await waitForIframeMessage('executeResponse');
   assert_true(exec_response.success, 'Child should successfully execute parent tool');
   assert_equals(exec_response.result, 'hello', 'Child should get correct result from parent tool');
@@ -67,7 +74,8 @@ promise_test(async t => {
   const [child_response] = await Promise.all([child_unreg_promise, parent_unreg_promise]);
   assert_equals(child_response.result, 'fired', 'Cross-origin iframe should receive toolchange event on unregistration');
 
-  iframe.contentWindow.postMessage('getTools', '*');
+  iframe.contentWindow.postMessage(
+      {action: 'getTools', options: {fromOrigins: [self.origin]}}, '*');
   response = await waitForIframeMessage('getToolsResponse');
   assert_array_equals(response.tools, [], 'Cross-origin iframe should no longer see any tools after unregistration');
 }, 'Parent exposes tool to cross-origin child');
@@ -90,7 +98,8 @@ promise_test(async t => {
     document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
 
-  let tools = await document.modelContext.getTools();
+  let tools = await document.modelContext.getTools(
+      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
   const tool = tools.find(t => t.name === 'iframe_tool_exposed');
   assert_true(toolsAreEqual(tool, {
     name: 'iframe_tool_exposed',
@@ -110,7 +119,8 @@ promise_test(async t => {
   iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_exposed' }, '*');
   await toolchange_promise;
 
-  tools = await document.modelContext.getTools();
+  tools = await document.modelContext.getTools(
+      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
   assert_array_equals(tools, [], 'Parent should no longer see cross-origin iframe tool after unregistration');
 }, 'Cross-origin child exposes tool to parent');
 
@@ -126,7 +136,8 @@ promise_test(async t => {
   const iframe = await setupIframe(t);
 
   // Iframe does not see tool.
-  iframe.contentWindow.postMessage('getTools', '*');
+  iframe.contentWindow.postMessage(
+      {action: 'getTools', options: {fromOrigins: [self.origin]}}, '*');
   const response = await waitForIframeMessage('getToolsResponse');
   assert_array_equals(response.tools, [], 'iframe should see no tools');
 
@@ -167,14 +178,16 @@ promise_test(async t => {
 
   await Promise.race([toolchange_promise, timeout_promise()]);
 
-  let tools = await document.modelContext.getTools();
+  let tools = await document.modelContext.getTools(
+      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
   assert_array_equals(tools, [], 'Parent should not see iframe tool');
 
   iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_to_c' }, '*');
 
   await Promise.race([toolchange_promise, timeout_promise()]);
 
-  tools = await document.modelContext.getTools();
+  tools = await document.modelContext.getTools(
+      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
   assert_array_equals(tools, [], 'Parent should not see iframe tool after unregistration');
 }, "Iframe exposes tool to origin that is neither its own nor its parent's");
 

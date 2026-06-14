@@ -16,7 +16,6 @@ test(t => {
     {success: false, origin: 'https://\ud800.com'},
     {success: false, origin: 'http://example.com'},
     {success: false, origin: 'ftp://example.com'},
-    {success: false, origin: 'chrome-extension://foobar'},
     {success: false, origin: 'about:blank'},
     {success: false, origin: 'about:srcdoc'},
 
@@ -34,7 +33,7 @@ test(t => {
     };
 
     if (!test.success) {
-      assert_throws_dom('SecurityError', register, `Should throw SecurityError for origin: ${origin}`);
+      assert_throws_dom('SecurityError', register, `Should throw SecurityError for origin: ${test.origin}`);
     } else {
       try {
         register();

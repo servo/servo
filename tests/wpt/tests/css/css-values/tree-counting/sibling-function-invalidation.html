@@ -48,3 +48,107 @@
     assert_equals(t2.offsetHeight, 50);
   }, "5 siblings after removal");
 </script>
+
+<style>
+  #t3::before {
+    content: "";
+    font-size: calc(10px * sibling-index());
+    font-weight: calc(10 * sibling-count());
+  }
+</style>
+<div>
+  <div id="rm3"></div>
+  <div id="t3"></div>
+  <div></div>
+</div>
+<script>
+  test(() => {
+    const styles = getComputedStyle(t3, "::before");
+    assert_equals(styles.fontSize, "20px", "sibling-index() is 2 initially");
+    assert_equals(styles.fontWeight, "30", "sibling-count() is 3 initially");
+  }, "::before sibling-count() and sibling-index() initially");
+  test(() => {
+    rm3.remove();
+    const styles = getComputedStyle(t3, "::before");
+    assert_equals(styles.fontSize, "10px", "sibling-index() is 1 after removal");
+    assert_equals(styles.fontWeight, "20", "sibling-count() is 2 after removal");
+  }, "::before sibling-count() and sibling-index() after removal");
+</script>
+
+<style>
+  #t4::after {
+    content: "";
+    font-size: calc(10px * sibling-index());
+    font-weight: calc(10 * sibling-count());
+  }
+</style>
+<div>
+  <div id="rm4"></div>
+  <div></div>
+  <div id="t4"></div>
+  <div></div>
+</div>
+<script>
+  test(() => {
+    const styles = getComputedStyle(t4, "::after");
+    assert_equals(styles.fontSize, "30px", "sibling-index() is 3 initially");
+    assert_equals(styles.fontWeight, "40", "sibling-count() is 4 initially");
+  }, "::after sibling-count() and sibling-index() initially");
+  test(() => {
+    rm4.remove();
+    const styles = getComputedStyle(t4, "::after");
+    assert_equals(styles.fontSize, "20px", "sibling-index() is 2 after removal");
+    assert_equals(styles.fontWeight, "30", "sibling-count() is 3 after removal");
+  }, "::after sibling-count() and sibling-index() after removal");
+</script>
+
+<style>
+  #t5::first-letter {
+    font-size: calc(10px * sibling-index());
+    font-weight: calc(10 * sibling-count());
+  }
+</style>
+<div>
+  <div id="rm5"></div>
+  <div id="t5">X</div>
+  <div>X</div>
+</div>
+<script>
+  test(() => {
+    const styles = getComputedStyle(t5, "::first-letter");
+    assert_equals(styles.fontSize, "20px", "sibling-index() is 2 initially");
+    assert_equals(styles.fontWeight, "30", "sibling-count() is 3 initially");
+  }, "::first-letter sibling-count() and sibling-index() initially");
+  test(() => {
+    rm5.remove();
+    const styles = getComputedStyle(t5, "::first-letter");
+    assert_equals(styles.fontSize, "10px", "sibling-index() is 1 after removal");
+    assert_equals(styles.fontWeight, "20", "sibling-count() is 2 after removal");
+  }, "::first-letter sibling-count() and sibling-index() after removal");
+</script>
+
+<style>
+  #t6::first-line {
+    font-size: calc(10px * sibling-index());
+    font-weight: calc(10 * sibling-count());
+  }
+</style>
+<div>
+  <div id="rm6"></div>
+  <div>X</div>
+  <div id="t6">X</div>
+  <div>X</div>
+</div>
+<script>
+  test(() => {
+    const styles = getComputedStyle(t6, "::first-line");
+    assert_equals(styles.fontSize, "30px", "sibling-index() is 3 initially");
+    assert_equals(styles.fontWeight, "40", "sibling-count() is 4 initially");
+  }, "::first-line sibling-count() and sibling-index() initially");
+  test(() => {
+    rm6.remove();
+    const styles = getComputedStyle(t6, "::first-line");
+    assert_equals(styles.fontSize, "20px", "sibling-index() is 2 after removal");
+    assert_equals(styles.fontWeight, "30", "sibling-count() is 3 after removal");
+  }, "::first-line sibling-count() and sibling-index() after removal");
+</script>

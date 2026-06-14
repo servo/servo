@@ -9,33 +9,52 @@
 <body>
   <style>
     #host > * {
-      orphans: sibling-index();
-      widows: sibling-count();
+      grid-column-start: sibling-index();
+      grid-row-start: sibling-count();
     }
   </style>
   <div id="host">
-    <div>Some element.</div>
-    <div>Some other element.</div>
-    <div slot="unknown">This should be ignored.</div>
-    <div id="target">Some third element.</div>
+    <div>In host tree (1)</div>
+    <div>In host tree (2)</div>
+    <div slot="unknown">In host tree (3)</div>
+    <div id="target">In host tree (4)</div>
+    <div>In host tree (5)</div>
   </div>
   <script>
+    const shadowRoot = host.attachShadow({mode: 'open'});
+    shadowRoot.innerHTML = `
+      <style>
+        slot::slotted(*), * {
+          z-index: sibling-index();
+          order: sibling-count();
+        }
+      </style>
+      <section id="shadow-root-child">
+        <div>In shadow tree (1).</div>
+        <div>In shadow tree (2).</div>
+        <div>In shadow tree (3).</div>
+        <slot>In shadow tree (4).</slot>
+        <div id="target">In shadow tree (5)</div>
+        <div>In shadow tree (6)</div>
+      </section>
+    `;
+
     test(() => {
-      host.attachShadow({mode: 'open'}).innerHTML = `
-       <style>
-         slot::slotted(*) {
-           z-index: sibling-index();
-           order: sibling-count();
-         }
-       </style>
-       <div>
-         <div>Some text before the slot.</div>
-         <slot></slot>
-       </div>
-      `;
-      assert_equals(getComputedStyle(target).zIndex, '4');
-      assert_equals(getComputedStyle(target).order, '4');
-      assert_equals(getComputedStyle(target).orphans, '4');
-      assert_equals(getComputedStyle(target).widows, '4');
+      assert_equals(getComputedStyle(target).zIndex, '4', 'sibling-index(), rule from shadow tree');
+      assert_equals(getComputedStyle(target).order, '5', 'sibling-count(), rule from shadow tree');
+      assert_equals(getComputedStyle(target).gridColumnStart, '4', 'sibling-index(), rule from light tree');
+      assert_equals(getComputedStyle(target).gridRowStart, '5', 'sibling-count(), rule from light tree');
     }, 'Host children have sibling-index() and sibling-count() based on the DOM tree order');
+
+    test(() => {
+      const shadowTarget = shadowRoot.getElementById('target');
+      assert_equals(getComputedStyle(shadowTarget).zIndex, '5', 'sibling-index()');
+      assert_equals(getComputedStyle(shadowTarget).order, '6', 'sibling-count()');
+    }, 'Shadow children have sibling-index() and sibling-count() based on the DOM tree order')
+
+    test(() => {
+      const shadowRootChild = shadowRoot.getElementById('shadow-root-child');
+      assert_equals(getComputedStyle(shadowRootChild).zIndex, '2', 'sibling-index() for direct shadow root child');
+      assert_equals(getComputedStyle(shadowRootChild).order, '2', 'sibling-count() for direct shadow root child');
+    }, 'Direct shadow root children have correct sibling-index() and sibling-count()')
 </script>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Layout for li elements after attachShadow should not crash</title>
+<link rel="help" href="https://crbug.com/767403">
+<div id="host">
+  <li></li>
+</div>
+<script>
+  host.offsetWidth;
+  requestAnimationFrame(() => {
+    host.attachShadow({mode: 'open'});
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>

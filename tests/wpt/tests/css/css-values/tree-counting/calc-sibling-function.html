@@ -8,7 +8,7 @@
   <style>
     html {
       z-index: calc(sibling-index() * 2);
-      widows: calc(sibling-count() * 2);
+      order: calc(sibling-count() * 2);
     }
     #test {
       z-index: calc(sibling-index());
@@ -17,8 +17,13 @@
     }
     #test::before {
       content: "";
+      display: list-item;
       z-index: calc(sibling-index() * 2);
-      widows: calc(sibling-count() * 2);
+      order: calc(sibling-count() * 2);
+    }
+    #test::before::marker {
+      font-weight: calc(sibling-index() * 2);
+      font-size: calc(sibling-count() * 2px);
     }
   </style>
 </head>
@@ -49,8 +54,15 @@ test(() => {
 test(() => {
   let style = getComputedStyle(document.getElementById('test'), '::before');
   assert_equals(style.zIndex, '4');
-  assert_equals(style.widows, '10');
-}, 'sibling-count() on pseudo-element');
+  assert_equals(style.order, '10');
+}, 'sibling-index() and sibling-count() on pseudo-element');
+
+test(() => {
+  // Requires nested pseudo-element selectors: https://github.com/w3c/csswg-drafts/issues/4456
+  let style = getComputedStyle(document.getElementById('test'), '::before::marker');
+  assert_equals(style.fontWeight, '4');
+  assert_equals(style.fontSize, '10px');
+}, 'sibling-index() and sibling-count() on nested pseudo-element');
 
 test(() => {
   let style = getComputedStyle(document.documentElement);
@@ -59,7 +71,7 @@ test(() => {
 
 test(() => {
   let style = getComputedStyle(document.documentElement);
-  assert_equals(style.widows, '2');
+  assert_equals(style.order, '2');
 }, 'sibling-count() on root');
   </script>
 </body>

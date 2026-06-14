@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+</head>
+<body>
+<script>
+
+compression_dictionary_promise_test(async (t) => {
+  const match_dest = encodeURIComponent('("asdf")');
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  await fetch(
+      `${kRegisterDictionaryPath}?id=id1&match-dest=${match_dest}&match=${pattern}`);
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with unknown match-dest is not used for fetch() API');
+
+compression_dictionary_promise_test(async (t) => {
+  const match_dest = encodeURIComponent('()');
+  const dict = await (await fetch(`${kRegisterDictionaryPath}?id=test&match-dest=${match_dest}`)).text();
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  assert_equals(await checkHeader('dictionary-id', {}), '"test"');
+}, 'Dictionary registration with empty match-dest list acts as wildcard');
+
+compression_dictionary_promise_test(async (t) => {
+  const match_dest = encodeURIComponent('("")');
+  const dict = await (await fetch(`${kRegisterDictionaryPath}?id=test&match-dest=${match_dest}`)).text();
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  assert_equals(await checkHeader('dictionary-id', {}), '"test"');
+}, 'Dictionary registration with matching fetch destination');
+
+compression_dictionary_promise_test(async (t) => {
+  const match_dest = encodeURIComponent('("script")');
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  await fetch(
+      `${kRegisterDictionaryPath}?id=id1&match-dest=${match_dest}&match=${pattern}`);
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with non-matching match-dest is not used');
+
+compression_dictionary_promise_test(async (t) => {
+  const match_dest = encodeURIComponent('("asdf" "")');
+  const dict = await (await fetch(`${kRegisterDictionaryPath}?id=test&match-dest=${match_dest}`)).text();
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  assert_equals(await checkHeader('dictionary-id', {}), '"test"');
+}, 'Dictionary registration with unknown match-dest and empty string matches fetch destination');
+
+compression_dictionary_promise_test(async (t) => {
+  const match_specific = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  const match_medium = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/*');
+  const match_general = encodeURIComponent(
+      '/fetch/compression-dictionary/*');
+  const dictionary_path_specific =
+      `${kRegisterDictionaryPath}?id=specific&content=specific&` +
+      `match=${match_specific}`;
+  const dictionary_path_medium =
+      `${kRegisterDictionaryPath}?id=medium&content=medium&` +
+      `match=${match_medium}`;
+  const dictionary_path_general =
+      `${kRegisterDictionaryPath}?id=general&content=general&` +
+      `match=${match_general}`;
+  const expected_specific_hash = await calculateDictionaryHash('specific');
+  const expected_medium_hash = await calculateDictionaryHash('medium');
+  await fetch(dictionary_path_specific);
+  await fetch(dictionary_path_medium);
+  await fetch(dictionary_path_general);
+
+  // echo-headers.py matches all 3, specific (length 55) is the most specific.
+  const hash_specific = await waitUntilAvailableDictionaryHeader(t, {
+    expected_header: expected_specific_hash
+  });
+  assert_equals(hash_specific, expected_specific_hash);
+
+  // echo-headers2.py matches medium (length 41) and general (length 31),
+  // medium is more specific.
+  const hash_medium = await waitUntilAvailableDictionaryHeader(t, {
+    expected_header: expected_medium_hash,
+    use_alt_path: true
+  });
+  assert_equals(hash_medium, expected_medium_hash);
+}, 'Best match algorithm prioritizes dictionaries with longer match patterns');
+
+compression_dictionary_promise_test(async (t) => {
+  const match_longer_nodest = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers*.py');
+  const match_medium_dest = encodeURIComponent(
+      '/fetch/compression-dictionary/*/echo-headers2.py');
+  const match_shorter_dest = encodeURIComponent(
+      '/fetch/compression-dictionary/*');
+  const match_dest = encodeURIComponent('("")');
+
+  const dictionary_path_longer_nodest =
+      `${kRegisterDictionaryPath}?id=longer-nodest&content=longer-nodest&` +
+      `match=${match_longer_nodest}`;
+  const dictionary_path_medium_dest =
+      `${kRegisterDictionaryPath}?id=medium-dest&content=medium-dest&` +
+      `match-dest=${match_dest}&match=${match_medium_dest}`;
+  const dictionary_path_shorter_dest =
+      `${kRegisterDictionaryPath}?id=shorter-dest&content=shorter-dest&` +
+      `match-dest=${match_dest}&match=${match_shorter_dest}`;
+
+  const expected_longer_hash = await calculateDictionaryHash('longer-nodest');
+  const expected_medium_hash = await calculateDictionaryHash('medium-dest');
+  const expected_shorter_hash = await calculateDictionaryHash('shorter-dest');
+
+  await fetch(dictionary_path_longer_nodest);
+  await fetch(dictionary_path_medium_dest);
+  await fetch(dictionary_path_shorter_dest);
+
+  // echo-headers.py matches longer-nodest (no dest) and shorter-dest (with dest).
+  // shorter-dest wins because it has match-dest.
+  const hash_selected = await waitUntilAvailableDictionaryHeader(t, {
+    expected_header: expected_shorter_hash
+  });
+  assert_equals(hash_selected, expected_shorter_hash);
+
+  // echo-headers2.py matches all three. medium-dest and shorter-dest have dest.
+  // medium-dest wins because it has a longer match pattern.
+  const hash_medium = await waitUntilAvailableDictionaryHeader(t, {
+    expected_header: expected_medium_hash,
+    use_alt_path: true
+  });
+  assert_equals(hash_medium, expected_medium_hash);
+}, 'match-dest presence takes priority over longer match patterns');
+
+compression_dictionary_promise_test(async (t) => {
+  const match_specific_1 = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers*.py');
+  const match_specific_2 = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py*');
+  const dictionary_path_first =
+      `${kRegisterDictionaryPath}?id=first-fetched&content=first-fetched-content&` +
+      `match=${match_specific_1}`;
+  const dictionary_path_second =
+      `${kRegisterDictionaryPath}?id=second-fetched&content=second-fetched-content&` +
+      `match=${match_specific_2}`;
+  const expected_first_hash = await calculateDictionaryHash('first-fetched-content');
+  const expected_second_hash = await calculateDictionaryHash('second-fetched-content');
+
+  await (await fetch(dictionary_path_first)).text();
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}), expected_first_hash);
+
+  // Wait a short delay to ensure different fetch times.
+  await new Promise(resolve => t.step_timeout(resolve, 50));
+  await (await fetch(dictionary_path_second)).text();
+
+  // We must wait until second-fetched is registered.
+  const hash_selected = await waitUntilAvailableDictionaryHeader(t, {
+    expected_header: expected_second_hash
+  });
+  assert_equals(hash_selected, expected_second_hash);
+
+  // The first dictionary should still be available for paths that only match it.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {
+        expected_header: expected_first_hash,
+        use_alt_path: true
+      }),
+      expected_first_hash);
+}, 'Most recently fetched dictionary takes priority when match lengths are equal');
+
+</script>
+</body>

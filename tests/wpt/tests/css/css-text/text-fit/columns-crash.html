@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-5/#text-fit-property">
 <link rel="help" href="https://crbug.com/500174478">
+<link rel="help" href="https://crbug.com/517455256">
 <style>
 body {
   columns: 0;
@@ -12,3 +13,10 @@ body {
 }
 </style>
 <div class="target">A0AA00AAA</div>
+
+<div style="columns:2; text-fit:grow;">
+  <span>
+    <div>Two</div>
+    <div>Three</div>
+  </span>
+</div>

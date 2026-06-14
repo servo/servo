@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-clip-margin">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  padding-bottom: 50px;
+  box-sizing: border-box;
+  overflow: clip;
+  overflow-clip-margin: content-box;
+}
+
+#target > div {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="target">
+  <div></div>
+</div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  document.getElementById('target').style.paddingBottom = '0px';
+  takeScreenshot();
+});
+</script>

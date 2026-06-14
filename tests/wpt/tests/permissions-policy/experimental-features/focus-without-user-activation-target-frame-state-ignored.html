@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<title>focus-without-user-activation: target frame state does not authorize a restricted initiator</title>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="./resources/common.js"></script>
+  <input id="parking-input">
+
+  <script>
+    "use strict";
+
+    const helper_url = "/permissions-policy/experimental-features/resources/" +
+      "focus-without-user-activation-focused-frame-helper.html";
+
+    function sendAndReceiveFrom(iframe, message) {
+      return new Promise(resolve => {
+        function handler(e) {
+          if (e.source === iframe.contentWindow &&
+              e.data && e.data.action === message.action) {
+            window.removeEventListener("message", handler);
+            resolve(e.data);
+          }
+        }
+        window.addEventListener("message", handler);
+        iframe.contentWindow.postMessage(message, "*");
+      });
+    }
+
+    async function createFocusTestFrames(t) {
+      const iframeRestricted = createIframe(document.body, {
+        id: "restricted-frame",
+        src: helper_url,
+        allow: "focus-without-user-activation 'none'"
+      });
+      const iframeTarget = createIframe(document.body, {
+        id: "target-frame",
+        sandbox: "allow-scripts",
+        src: helper_url
+      });
+      await Promise.all([
+        wait_for_load(iframeRestricted),
+        wait_for_load(iframeTarget)
+      ]);
+      t.add_cleanup(() => {
+        iframeRestricted.remove();
+        iframeTarget.remove();
+      });
+      return {iframeRestricted, iframeTarget};
+    }
+
+    function focusParkingInput() {
+      const parking = document.getElementById("parking-input");
+      parking.focus();
+      assert_equals(document.activeElement, parking,
+        "Sanity: focus should be parked in the main frame before the " +
+        "restricted initiator tries to move it");
+      return parking;
+    }
+
+    async function focusTargetIframeFromRestrictedFrame(iframeRestricted) {
+      return sendAndReceiveFrom(iframeRestricted, {
+        action: "focus-parent-element",
+        elementId: "target-frame"
+      });
+    }
+
+    // Negative case: activation on the target iframe alone must not let a
+    // restricted sibling initiator move focus.
+    promise_test(async (t) => {
+      const {iframeRestricted, iframeTarget} = await createFocusTestFrames(t);
+
+      // Activate the target frame by clicking inside it.
+      await test_driver.click(iframeTarget);
+      const targetActivation = await sendAndReceiveFrom(iframeTarget, {
+        action: "get-user-activation"
+      });
+      assert_true(targetActivation.activation,
+        "Sanity: clicking should have activated the target frame");
+
+      const parking = focusParkingInput();
+
+      const restrictedActivation = await sendAndReceiveFrom(iframeRestricted, {
+        action: "get-user-activation"
+      });
+      assert_false(restrictedActivation.activation,
+        "Sanity: target activation should not have activated the restricted " +
+        "initiator frame");
+
+      const result =
+        await focusTargetIframeFromRestrictedFrame(iframeRestricted);
+      assert_false(result.activation,
+        "Sanity: restricted initiator should still not have user activation");
+      assert_false(result.focused,
+        "Restricted initiator should not be able to focus a target iframe " +
+        "just because the target iframe has transient user activation");
+      assert_equals(document.activeElement, parking,
+        "Focus should remain parked in the main frame");
+    }, "Target iframe activation does not authorize a focus call from a " +
+       "restricted initiator");
+
+
+    // Positive case: activation on the restricted initiator itself is enough to
+    // allow moving focus to the target iframe.
+    promise_test(async (t) => {
+      const {iframeRestricted, iframeTarget} = await createFocusTestFrames(t);
+
+      // Activate the restricted iframe by clicking inside it.
+      await test_driver.click(iframeRestricted);
+      const restrictedActivation = await sendAndReceiveFrom(iframeRestricted, {
+        action: "get-user-activation"
+      });
+      assert_true(restrictedActivation.activation,
+        "Sanity: clicking should have activated the restricted iframe");
+
+      focusParkingInput();
+
+      const result =
+        await focusTargetIframeFromRestrictedFrame(iframeRestricted);
+      assert_true(result.activation,
+        "Sanity: restricted initiator should still have user activation");
+      assert_true(result.focused,
+        "Restricted initiator with transient user activation should be " +
+        "able to focus another iframe");
+      assert_equals(document.activeElement, iframeTarget,
+        "Target iframe should have received focus");
+    }, "Restricted initiator with transient user activation can focus another " +
+       "iframe");
+  </script>
+</body>

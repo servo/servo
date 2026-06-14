@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Dynamically changing SVGStyleElement.type should change the rendering accordingly</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://svgwg.org/svg2-draft/styling.html#StyleElement">
+
+<svg width="10" height="10">
+  <style type="no/mime">
+    #rect1 { fill: green; }
+  </style>
+  <rect id="rect1" width="10" height="10"/>
+</svg>
+
+<script>
+  const style = document.querySelector("style");
+  const rect = document.getElementById("rect1");
+  const green = "rgb(0, 128, 0)";
+
+  test(() => {
+    assert_equals(document.styleSheets.length, 0,
+                  "sheet should not be created for an unknown type");
+    assert_not_equals(getComputedStyle(rect).fill, green,
+                      "rule should not apply while the type is invalid");
+  }, "Initial state: invalid type leaves the sheet unprocessed");
+
+  test(() => {
+    style.type = "text/css";
+    assert_equals(document.styleSheets.length, 1,
+                  "sheet should be created once the type becomes CSS");
+    assert_equals(getComputedStyle(rect).fill, green,
+                  "rule should apply once the sheet is active");
+  }, "Changing the type from invalid to valid creates the stylesheet");
+
+  test(() => {
+    style.type = "no/mime";
+    assert_equals(document.styleSheets.length, 0,
+                  "sheet should be removed once the type becomes non-CSS");
+    assert_not_equals(getComputedStyle(rect).fill, green,
+                      "rule should no longer apply once the sheet is inactive");
+  }, "Changing the type from valid to invalid removes the stylesheet");
+
+  test(() => {
+    style.type = "no/mime";
+    assert_equals(document.styleSheets.length, 0,
+                  "precondition: sheet is inactive while the type is invalid");
+    style.removeAttribute("type");
+    assert_equals(document.styleSheets.length, 1,
+                  "sheet should be created once the type attribute is removed");
+    assert_equals(getComputedStyle(rect).fill, green,
+                  "rule should apply once the sheet is active");
+  }, "Removing the type attribute restores the default CSS handling");
+</script>

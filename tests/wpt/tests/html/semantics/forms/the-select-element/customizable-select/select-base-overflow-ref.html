@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel=stylesheet href="resources/customizable-select-styles.css">
+
+<style>
+.customizable-select-button {
+  width: 50px;
+  height: 20px;
+  min-block-size: unset;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  gap: 1.5em;
+}
+</style>
+
+<div class=grid>
+  <div>default</div>
+  <div>
+    <button class=customizable-select-button>
+      <span class=customizable-select-selectedcontent>hello world</span>
+    </button>
+  </div>
+  <div>overflow:visible</div>
+  <div>
+    <button class=customizable-select-button style="overflow:visible">
+      <span class=customizable-select-selectedcontent style="">hello world</span>
+    </button>
+  </div>
+  <div>overflow:hidden</div>
+  <div>
+    <button class=customizable-select-button style="overflow:hidden">
+      <span class=customizable-select-selectedcontent style="">hello world</span>
+    </button>
+  </div>
+  <div>overflow:clip</div>
+  <div>
+    <button class=customizable-select-button style="overflow:clip">
+      <span class=customizable-select-selectedcontent style="">hello world</span>
+    </button>
+  </div>
+</div>

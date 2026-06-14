@@ -28,10 +28,14 @@
     }
 
     promise_test(async (t) => {
-      await awaitEvent(iframe1, "load", t.get_signal());
-      await awaitEvent(iframe2, "load", t.get_signal());
+      // The order the iframes load is inconsistent across engines,
+      // and not the subject of this test, so just await independent of ordering.
+      await Promise.all([
+          awaitEvent(iframe1, "load", t.get_signal()),
+          awaitEvent(iframe2, "load", t.get_signal()),
+      ]);
 
-      test_driver.bless();
+      await test_driver.bless();
 
       assert_true(await iframeDialogIsOpen(iframe1, t.get_signal()), "Dialog 1 is open");
       assert_true(await iframeDialogIsOpen(iframe2, t.get_signal()), "Dialog 2 is open");
@@ -46,7 +50,7 @@
       assert_false(await iframeDialogIsOpen(iframe1, t.get_signal()), "Dialog 1 is now closed");
       assert_true(await iframeDialogIsOpen(iframe2, t.get_signal()), "Dialog 2 is still open");
 
-      test_driver.bless();
+      await test_driver.bless();
 
       await test_driver.send_keys(iframe2, "\uE00C");
 

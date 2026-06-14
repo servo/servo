@@ -229,6 +229,32 @@
           assert_not_equals(node.querySelector("#allowed"), null);
         }, `${target}: createParserOptions cannot change runScripts from false to true`);
 
+        if (target === "Element") {
+          test((t) => {
+            const node = createTarget(target, t);
+            window.did_run = false;
+            t.add_cleanup(() => {
+              window.did_run = false;
+            });
+            createParserOptions = (options) => ({
+              runScripts: false,
+            });
+            run_method(node, "createContextualFragment", "<script>window.did_run = true;<" + "/script>");
+            assert_false(window.did_run);
+          }, `${target}: createContextualFragment with createParserOptions(runScripts=false) does not run scripts`);
+
+          test((t) => {
+            const node = createTarget(target, t);
+            window.did_run = false;
+            t.add_cleanup(() => {
+              window.did_run = false;
+            });
+            createParserOptions = (options) => options;
+            run_method(node, "createContextualFragment", "<script>window.did_run = true;<" + "/script>");
+            assert_true(window.did_run);
+          }, `${target}: createContextualFragment runs scripts by default`);
+        }
+
         test((t) => {
           const node = createTarget(target, t);
           createParserOptions = (options) => ({
@@ -257,6 +283,52 @@
           assert_false(window.did_run);
           assert_equals(node.querySelector("#forbidden"), null);
         }, `${target}: createParserOptions cannot add unsafe elements to safe HTML setting`);
+
+        for (const method of [
+          "setHTMLUnsafe",
+          "innerHTML",
+          "outerHTML",
+          "createContextualFragment",
+          "afterbegin",
+          "beforeend",
+          "beforebegin",
+          "afterend",
+        ]) {
+          if (
+            target === "ShadowRoot" &&
+            (method === "outerHTML" ||
+              method === "afterbegin" ||
+              method === "beforeend" ||
+              method === "createContextualFragment")
+          ) {
+            continue;
+          }
+          test((t) => {
+            const node = createTarget(target, t);
+            createParserOptions = (options) => {
+              throw new Error("createParserOptions oops");
+            };
+            assert_throws_js(Error, () => {
+              run_method(node, method, "test string");
+            });
+          }, `${target}.${method}: exception in createParserOptions is rethrown`);
+
+          test((t) => {
+            const node = createTarget(target, t);
+            let createParserOptionsCalled = false;
+            createParserOptions = (options) => {
+              createParserOptionsCalled = true;
+              return options;
+            };
+            createHTML = (html) => {
+              throw new Error("createHTML oops");
+            };
+            assert_throws_js(Error, () => {
+              run_method(node, method, "test string");
+            });
+            assert_false(createParserOptionsCalled, "createParserOptions should not have been called");
+          }, `${target}.${method}: exception in createHTML prevents createParserOptions from running`);
+        }
       }
     </script>
   </body>

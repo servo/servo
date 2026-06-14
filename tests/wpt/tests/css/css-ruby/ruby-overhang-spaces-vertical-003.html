@@ -5,13 +5,19 @@
 <link rel="match" href="ruby-overhang-spaces-vertical-003-ref.html">
 <meta name=assert content="With 'ruby-overhang: spaces', excess ruby overhangs on top of preserved spaces and &nbsp; in vertical writing modes.">
 <style>
+@font-face {
+    font-family: mplus;
+    src: url("/fonts/mplus-1p-regular.woff");
+}
 ruby {
     ruby-overhang: spaces;
     ruby-align: center;
 }
 span {
-    writing-mode: vertical-lr;
+    /* Use mplus font to resolve the 1px difference in wpt.fyi environment. */
+    font-family: mplus;
     font-size: 20px;
+    writing-mode: vertical-lr;
     border-top: 5px solid;
     border-bottom: 5px solid;
     width: max-content;
