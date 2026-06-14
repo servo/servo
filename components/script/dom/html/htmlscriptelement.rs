@@ -13,7 +13,7 @@ use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
-use js::rust::{HandleObject, Stencil};
+use js::rust::HandleObject;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
@@ -25,7 +25,6 @@ use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
-use uuid::Uuid;
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
@@ -35,7 +34,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     TrustedScriptOrString, TrustedScriptURLOrUSVString,
 };
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -68,10 +67,6 @@ use crate::script_module::{
 };
 use crate::script_runtime::IntroductionType;
 
-/// An unique id for script element.
-#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq, MallocSizeOf)]
-pub(crate) struct ScriptId(#[no_trace] Uuid);
-
 #[dom_struct]
 pub(crate) struct HTMLScriptElement {
     htmlelement: HTMLElement,
@@ -101,10 +96,6 @@ pub(crate) struct HTMLScriptElement {
     /// Track line line_number
     line_number: u64,
 
-    /// Unique id for each script element
-    #[ignore_malloc_size_of = "Defined in uuid"]
-    id: ScriptId,
-
     /// <https://w3c.github.io/trusted-types/dist/spec/#htmlscriptelement-script-text>
     script_text: DomRefCell<DOMString>,
 
@@ -130,7 +121,6 @@ impl HTMLScriptElement {
         creator: ElementCreator,
     ) -> HTMLScriptElement {
         HTMLScriptElement {
-            id: ScriptId(Uuid::new_v4()),
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             already_started: Cell::new(false),
             delaying_the_load_event: Default::default(),
@@ -163,10 +153,6 @@ impl HTMLScriptElement {
             document,
             proto,
         )
-    }
-
-    pub(crate) fn get_script_id(&self) -> ScriptId {
-        self.id
     }
 
     /// Marks that element as delaying the load event or not.
@@ -238,78 +224,6 @@ pub(crate) enum ScriptType {
     Classic,
     Module,
     ImportMap,
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct CompiledSourceCode {
-    #[ignore_malloc_size_of = "SM handles JS values"]
-    pub(crate) source_code: Stencil,
-    #[conditional_malloc_size_of = "Rc is hard"]
-    pub(crate) original_text: Rc<DOMString>,
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) enum SourceCode {
-    Text(#[conditional_malloc_size_of] Rc<DOMString>),
-    Compiled(CompiledSourceCode),
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct ScriptOrigin {
-    pub code: SourceCode,
-    #[no_trace]
-    pub url: ServoUrl,
-    external: bool,
-    pub fetch_options: ScriptFetchOptions,
-    type_: ScriptType,
-    unminified_dir: Option<String>,
-    import_map: Fallible<ImportMap>,
-}
-
-impl ScriptOrigin {
-    pub(crate) fn internal(
-        text: Rc<DOMString>,
-        url: ServoUrl,
-        fetch_options: ScriptFetchOptions,
-        type_: ScriptType,
-        unminified_dir: Option<String>,
-        import_map: Fallible<ImportMap>,
-    ) -> ScriptOrigin {
-        ScriptOrigin {
-            code: SourceCode::Text(text),
-            url,
-            external: false,
-            fetch_options,
-            type_,
-            unminified_dir,
-            import_map,
-        }
-    }
-
-    pub(crate) fn external(
-        text: Rc<DOMString>,
-        url: ServoUrl,
-        fetch_options: ScriptFetchOptions,
-        type_: ScriptType,
-        unminified_dir: Option<String>,
-    ) -> ScriptOrigin {
-        ScriptOrigin {
-            code: SourceCode::Text(text),
-            url,
-            external: true,
-            fetch_options,
-            type_,
-            unminified_dir,
-            import_map: Err(Error::NotFound(None)),
-        }
-    }
-
-    pub(crate) fn text(&self) -> Rc<DOMString> {
-        match &self.code {
-            SourceCode::Text(text) => Rc::clone(text),
-            SourceCode::Compiled(compiled_script) => Rc::clone(&compiled_script.original_text),
-        }
-    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#steps-to-run-when-the-result-is-ready>
@@ -1181,16 +1095,8 @@ impl HTMLScriptElement {
         self.parser_inserted.set(parser_inserted);
     }
 
-    pub(crate) fn get_parser_inserted(&self) -> bool {
-        self.parser_inserted.get()
-    }
-
     pub(crate) fn set_already_started(&self, already_started: bool) {
         self.already_started.set(already_started);
-    }
-
-    pub(crate) fn get_non_blocking(&self) -> bool {
-        self.non_blocking.get()
     }
 
     fn text(&self) -> DOMString {
