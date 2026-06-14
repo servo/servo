@@ -327,7 +327,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .mapping
             .borrow_mut()
             .take()
-            .map(|mapping| RootedTraceableBox::new(mapping))
+            .map(RootedTraceableBox::new)
             .ok_or(Error::Operation(None))?;
 
         let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
