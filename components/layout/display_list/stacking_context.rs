@@ -696,14 +696,13 @@ impl BoxFragment {
             return;
         };
 
-        let mut new_sticky_data = containing_block_info
-            .for_non_absolute_descendants
-            .sticky_data;
         let spatial_id = self.build_sticky_frame_if_necessary(
             stacking_context_tree,
             containing_block.scroll_node_id,
             &containing_block.rect,
-            &new_sticky_data,
+            &containing_block_info
+                .for_non_absolute_descendants
+                .sticky_data,
         );
 
         let clip_id = self.build_clip_frame_if_necessary(
@@ -725,10 +724,7 @@ impl BoxFragment {
             )
             .or(clip_id);
 
-        let containing_block = if clip_id.is_some() ||
-            spatial_id.is_some() ||
-            (new_sticky_data.is_some_and(|s| s.is_in_scroll_frame))
-        {
+        let containing_block = if clip_id.is_some() || spatial_id.is_some() {
             if let Some(clip_id) = clip_id {
                 self.set_generated_clip_id(clip_id);
             }
