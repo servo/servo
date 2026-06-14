@@ -36,21 +36,21 @@ public class MainActivity extends Activity implements Servo.Client {
     // than one
     private static final int HISTORY_REQUEST_CODE = 1;
 
-    ServoView mServoView;
-    BottomNavigationView mBottomNav;
+    private ServoView mServoView;
+    private BottomNavigationView mBottomNav;
 
-    EditText mUrlField;
-    boolean mUrlFieldIsFocused;
+    private EditText mUrlField;
+    private boolean mUrlFieldIsFocused;
 
-    CircularProgressIndicator mProgressBar;
-    TextView mIdleText;
-    boolean mCanGoBack;
-    MediaSession mMediaSession;
-    HistoryManager mHistoryManager;
-    String mCurrentUrl;
-    String mCurrentTitle;
+    private CircularProgressIndicator mProgressBar;
+    private TextView mIdleText;
+    private boolean mCanGoBack;
+    private MediaSession mMediaSession;
+    private HistoryManager mHistoryManager;
+    private String mCurrentUrl;
+    private String mCurrentTitle;
     
-    class Settings {
+    private static class Settings {
         Settings(SharedPreferences preferences) {
             showAnimatingIndicator = preferences.getBoolean("animating_indicator", false);
             experimental = preferences.getBoolean("experimental", false);
@@ -59,7 +59,7 @@ public class MainActivity extends Activity implements Servo.Client {
         boolean showAnimatingIndicator;
         boolean experimental;
     }
-    Settings mSettings;
+    private Settings mSettings;
 
     private final View.OnClickListener actionClickListener = v -> dispatchAction(v.getId());
 
@@ -201,7 +201,7 @@ public class MainActivity extends Activity implements Servo.Client {
         });
     }
 
-    public void loadUrlFromField() {
+    private void loadUrlFromField() {
         String text = mUrlField.getText().toString();
         text = text.trim();
 
@@ -384,7 +384,7 @@ public class MainActivity extends Activity implements Servo.Client {
         Log.d("onMediaSessionSetPositionState", duration + " " + position + " " + playbackRate);
     }
 
-    public void onAnimatingIndicatorPrefChanged(boolean value) {
+    private void onAnimatingIndicatorPrefChanged(boolean value) {
         if (value) {
             mIdleText.setVisibility(View.VISIBLE);
         } else {
@@ -392,11 +392,11 @@ public class MainActivity extends Activity implements Servo.Client {
         }
     }
 
-    public void onExperimentalPrefChanged(boolean value) {
+    private void onExperimentalPrefChanged(boolean value) {
         mServoView.setExperimentalMode(value);
     }
 
-    public void updateSettingsIfNecessary(boolean force) {
+    private void updateSettingsIfNecessary(boolean force) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         Settings updated = new Settings(preferences);
 
