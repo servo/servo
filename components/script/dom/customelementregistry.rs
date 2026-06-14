@@ -706,11 +706,11 @@ impl CustomElementDefinition {
         {
             // Go into the constructor's realm
             let mut realm = AutoRealm::new(cx, NonNull::new(self.constructor.callback()).unwrap());
-            let cx = &mut realm;
+            let cx = &mut realm.current_realm();
 
             // Step 5.3.1. Set result to the result of constructing C, with no arguments.
             // https://webidl.spec.whatwg.org/#construct-a-callback-function
-            run_a_script::<DomTypeHolder, _>(window.upcast(), || {
+            run_a_script::<DomTypeHolder, _>(cx, window.upcast(), |cx| {
                 run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
                     let args = HandleValueArray::empty();
                     if unsafe { !Construct1(cx, constructor.handle(), &args, element.handle_mut()) }
@@ -913,7 +913,7 @@ fn run_upgrade_constructor(
 
         // Go into the constructor's realm
         let mut realm = AutoRealm::new(cx, NonNull::new(constructor.callback()).unwrap());
-        let cx = &mut *realm;
+        let cx = &mut realm.current_realm();
 
         let args = HandleValueArray::empty();
         // Step 8.2. Set element's custom element state to "precustomized".
@@ -921,7 +921,7 @@ fn run_upgrade_constructor(
 
         // Step 9.3. Let constructResult be the result of constructing C, with no arguments.
         // https://webidl.spec.whatwg.org/#construct-a-callback-function
-        run_a_script::<DomTypeHolder, _>(window.upcast(), || {
+        run_a_script::<DomTypeHolder, _>(cx, window.upcast(), |cx| {
             run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
                 if unsafe {
                     !Construct1(
