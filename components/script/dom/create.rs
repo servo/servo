@@ -90,7 +90,6 @@ use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::svg::svgimageelement::SVGImageElement;
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 fn create_svg_element(
@@ -194,7 +193,7 @@ fn create_html_element(
 
                             // Substep 1. Report exception for definition’s constructor’s corresponding
                             // JavaScript object’s associated realm’s global object.
-                            throw_dom_exception(cx.into(), &global, error, CanGc::from_cx(cx));
+                            throw_dom_exception(cx, &global, error);
                             report_pending_exception(cx);
 
                             // Substep 2. Set result to the result of creating an element internal given document,

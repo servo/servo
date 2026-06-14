@@ -15,13 +15,16 @@ use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::error::{throw_range_error, throw_type_error};
 use js::gc::{HandleObject, HandleValue, MutableHandleValue};
+use js::jsapi::ExceptionStackBehavior;
 #[cfg(feature = "js_backtrace")]
 use js::jsapi::StackFormat as JSStackFormat;
-use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
-use js::rust::wrappers::{JS_ErrorFromException, JS_SetPendingException};
-use js::rust::wrappers2::{JS_ClearPendingException, JS_GetPendingException, JS_GetProperty};
+use js::rust::wrappers::JS_ErrorFromException;
+use js::rust::wrappers2::{
+    JS_ClearPendingException, JS_GetPendingException, JS_GetProperty, JS_IsExceptionPending,
+    JS_SetPendingException,
+};
 use js::rust::{describe_scripted_caller, error_info_from_exception_stack};
 use libc::c_uint;
 #[cfg(feature = "js_backtrace")]
@@ -57,15 +60,10 @@ pub(crate) enum JsEngineError {
 }
 
 /// Set a pending exception for the given `result` on `cx`.
-pub(crate) fn throw_dom_exception(
-    cx: SafeJSContext,
-    global: &GlobalScope,
-    result: Error,
-    can_gc: CanGc,
-) {
+pub(crate) fn throw_dom_exception(cx: &mut JSContext, global: &GlobalScope, result: Error) {
     #[cfg(feature = "js_backtrace")]
     unsafe {
-        capture_stack!(in(*cx) let stack);
+        capture_stack!(&in(cx) let stack);
         let js_stack = stack.and_then(|stack| stack.as_string(None, JSStackFormat::Default));
         let rust_stack = Backtrace::new();
         LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
@@ -73,26 +71,26 @@ pub(crate) fn throw_dom_exception(
         });
     }
 
-    match create_dom_exception(global, result, can_gc) {
+    match create_dom_exception(global, result, CanGc::from_cx(cx)) {
         Ok(exception) => unsafe {
-            assert!(!JS_IsExceptionPending(*cx));
-            rooted!(in(*cx) let mut thrown = UndefinedValue());
-            exception.safe_to_jsval(cx, thrown.handle_mut(), can_gc);
-            JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
+            assert!(!JS_IsExceptionPending(cx));
+            rooted!(&in(cx) let mut thrown = UndefinedValue());
+            exception.safe_to_jsval(cx.into(), thrown.handle_mut(), CanGc::from_cx(cx));
+            JS_SetPendingException(cx, thrown.handle(), ExceptionStackBehavior::Capture);
         },
 
         Err(JsEngineError::Type(message)) => unsafe {
-            assert!(!JS_IsExceptionPending(*cx));
-            throw_type_error(*cx, &message);
+            assert!(!JS_IsExceptionPending(cx));
+            throw_type_error(cx.raw_cx(), &message);
         },
 
         Err(JsEngineError::Range(message)) => unsafe {
-            assert!(!JS_IsExceptionPending(*cx));
-            throw_range_error(*cx, &message);
+            assert!(!JS_IsExceptionPending(cx));
+            throw_range_error(cx.raw_cx(), &message);
         },
 
         Err(JsEngineError::JSFailed) => unsafe {
-            assert!(JS_IsExceptionPending(*cx));
+            assert!(JS_IsExceptionPending(cx));
         },
     }
 }
@@ -348,32 +346,27 @@ impl ErrorInfo {
 /// Report a pending exception, thereby clearing it.
 pub(crate) fn report_pending_exception(cx: &mut CurrentRealm) {
     rooted!(&in(cx) let mut value = UndefinedValue());
-    if let Some(error_info) =
-        error_info_from_pending_exception(cx.into(), value.handle_mut(), CanGc::from_cx(cx))
-    {
+    if let Some(error_info) = error_info_from_pending_exception(cx, value.handle_mut()) {
         GlobalScope::from_current_realm(cx).report_an_error(cx, error_info, value.handle());
     }
 }
 
 fn error_info_from_pending_exception(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     value: MutableHandleValue,
-    _can_gc: CanGc,
 ) -> Option<ErrorInfo> {
-    unsafe {
-        if !JS_IsExceptionPending(*cx) {
-            return None;
-        }
-
-        let error_info = error_info_from_exception_stack(*cx, value.into())?;
-
-        Some(ErrorInfo {
-            message: error_info.message,
-            filename: error_info.filename,
-            lineno: error_info.line,
-            column: error_info.col,
-        })
+    if unsafe { !JS_IsExceptionPending(cx) } {
+        return None;
     }
+
+    let error_info = unsafe { error_info_from_exception_stack(cx.raw_cx(), value.into())? };
+
+    Some(ErrorInfo {
+        message: error_info.message,
+        filename: error_info.filename,
+        lineno: error_info.line,
+        column: error_info.col,
+    })
 }
 
 pub(crate) fn javascript_error_info_from_error_info(
@@ -421,8 +414,7 @@ pub(crate) fn take_and_report_pending_exception_for_api(
     let in_realm = InRealm::Already(&in_realm_proof);
 
     rooted!(&in(cx) let mut value = UndefinedValue());
-    let error_info =
-        error_info_from_pending_exception(cx.into(), value.handle_mut(), CanGc::from_cx(cx))?;
+    let error_info = error_info_from_pending_exception(cx, value.handle_mut())?;
 
     let return_value = javascript_error_info_from_error_info(cx, &error_info, value.handle());
     GlobalScope::from_safe_context(cx.into(), in_realm).report_an_error(
@@ -443,11 +435,11 @@ impl ErrorToJsval for Error {
     fn to_jsval(self, cx: &mut JSContext, global: &GlobalScope, rval: MutableHandleValue) {
         match self {
             Error::JSFailed => (),
-            _ => unsafe { assert!(!JS_IsExceptionPending(cx.raw_cx())) },
+            _ => unsafe { assert!(!JS_IsExceptionPending(cx)) },
         }
-        throw_dom_exception(cx.into(), global, self, CanGc::from_cx(cx));
+        throw_dom_exception(cx, global, self);
         unsafe {
-            assert!(JS_IsExceptionPending(cx.raw_cx()));
+            assert!(JS_IsExceptionPending(cx));
             assert!(JS_GetPendingException(cx, rval));
             JS_ClearPendingException(cx);
         }

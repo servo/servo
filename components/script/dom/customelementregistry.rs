@@ -842,7 +842,7 @@ pub(crate) fn upgrade_element(
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();
 
-        throw_dom_exception(cx.into(), &global, error, CanGc::from_cx(cx));
+        throw_dom_exception(cx, &global, error);
         report_pending_exception(cx);
 
         return;

@@ -138,7 +138,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
         result: Error,
     ) {
-        throw_dom_exception(cx.into(), global, result, CanGc::from_cx(cx))
+        throw_dom_exception(cx, global, result)
     }
 
     fn call_html_constructor<

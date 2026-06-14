@@ -79,10 +79,9 @@ fn jsval_to_primitive(
         unsafe {
             if !JS_IsExceptionPending(cx) {
                 throw_dom_exception(
-                    cx.into(),
+                    cx,
                     global,
                     Error::Type(c"Cannot convert JSObject to primitive".to_owned()),
-                    CanGc::from_cx(cx),
                 );
             }
         }
@@ -227,10 +226,9 @@ pub(crate) fn encode_and_enqueue_a_chunk(
         unsafe {
             if !JS_IsExceptionPending(cx) {
                 throw_dom_exception(
-                    cx.into(),
+                    cx,
                     global,
                     Error::Type(c"Cannot convert JS primitive to string".to_owned()),
-                    CanGc::from_cx(cx),
                 );
             }
         }
