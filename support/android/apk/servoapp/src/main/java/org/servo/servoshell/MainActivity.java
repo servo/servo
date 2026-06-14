@@ -10,8 +10,6 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
@@ -22,16 +20,6 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import androidx.preference.PreferenceManager;
-
-// Imports for the unused screenshot functionality
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.drawable.Drawable;
-import android.graphics.Rect;
-import android.view.PixelCopy;
-import android.view.SurfaceView;
-import android.widget.ImageView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
@@ -190,56 +178,6 @@ public class MainActivity extends Activity implements Servo.Client {
             Intent myIntent = new Intent(this, HistoryActivity.class);
             startActivityForResult(myIntent, HISTORY_REQUEST_CODE);
         }
-        return false;
-    }
-
-    /**
-     * UNUSED - Take screenshot of the servoView
-     * Maybe useful later for a bookmarks page etc.
-     * WIP: doesn’t actually do anything with the screenshot yet.
-     * Uncomment the block in the middle to display the screenshot
-     * for debugging. 
-     */
-    private Boolean takeScreenShotOfWebPage() {
-        SurfaceView view = findViewById(R.id.servoview);
-        view.post(() -> {
-            Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
-
-            int[] location = new int[2];
-            view.getLocationInWindow(location);
-
-            Rect rect = new Rect(
-                location[0],
-                location[1],
-                location[0] + view.getWidth(),
-                location[1] + view.getHeight()
-            );
-
-            PixelCopy.request(
-                view,
-                rect,
-                bitmap,
-                copyResult -> {
-                    if (copyResult == PixelCopy.SUCCESS) {
-                        // `bitmap` now contains the screenshot.
-                        // Still needs to be scaled proportionally.
-
-                        // Uncomment block below to 
-                        // display in an alert for debugging
-
-                        /*
-                        Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 400, 400, true);
-                        ImageView img = new ImageView(this);
-                        img.setImageBitmap(scaled);
-                        new AlertDialog.Builder(this)
-                            .setView(img)
-                            .show();
-                        */
-                    }
-                },
-                new Handler(Looper.getMainLooper())
-            );
-        });
         return false;
     }
 
@@ -444,11 +382,6 @@ public class MainActivity extends Activity implements Servo.Client {
     @Override
     public void onMediaSessionSetPositionState(float duration, float position, float playbackRate) {
         Log.d("onMediaSessionSetPositionState", duration + " " + position + " " + playbackRate);
-        if (mMediaSession == null) {
-            mMediaSession = new MediaSession(mServoView, getApplicationContext());
-        }
-
-        mMediaSession.setPositionState(duration, position, playbackRate);
     }
 
     public void onAnimatingIndicatorPrefChanged(boolean value) {

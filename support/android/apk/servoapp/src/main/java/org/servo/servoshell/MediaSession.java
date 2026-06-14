@@ -195,8 +195,4 @@ public class MediaSession {
         showMediaSessionControls();
       }
     }
-
-    // Not implemented
-    // see https://github.com/servo/servo/pull/24885#discussion_r352496117
-    public void setPositionState(float duration, float position, float playbackRate) {}
 }
