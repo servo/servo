@@ -140,6 +140,8 @@ pub enum Resource {
     DebuggerJS,
     /// A HTML page to display a pretty printed view of a json document.
     JsonViewerHTML,
+    /// A HTML page that loads the pdf.js viewer for displaying PDF documents.
+    PdfViewerHTML,
 }
 
 impl Resource {
@@ -156,6 +158,7 @@ impl Resource {
             Resource::AboutMemoryHTML => "about-memory.html",
             Resource::DebuggerJS => "debugger.js",
             Resource::JsonViewerHTML => "json-viewer.html",
+            Resource::PdfViewerHTML => "pdf-viewer.html",
         }
     }
 }

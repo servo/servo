@@ -89,6 +89,14 @@ impl ResourceProtocolHandler {
 }
 
 impl ProtocolHandler for ResourceProtocolHandler {
+    fn is_fetchable(&self) -> bool {
+        true
+    }
+
+    fn is_secure(&self) -> bool {
+        true
+    }
+
     fn load(
         &self,
         request: &mut Request,
@@ -100,6 +108,12 @@ impl ProtocolHandler for ResourceProtocolHandler {
         // TODO: Check referrer.
         //       We unexpectedly get `NoReferrer` for all requests from the newtab page.
 
-        Self::response_for_path(request, done_chan, context, url.path())
+        // Here we include the host in the path for URLs like resource://pdfjs/web/viewer.html
+        // so we end up with a file lookup that resolves to resources/resource_protocol/pdfjs/web/viewer.html.
+        let path = match url.host_str() {
+            Some(host) if !host.is_empty() => format!("/{}{}", host, url.path()),
+            _ => url.path().to_string(),
+        };
+        Self::response_for_path(request, done_chan, context, &path)
     }
 }
