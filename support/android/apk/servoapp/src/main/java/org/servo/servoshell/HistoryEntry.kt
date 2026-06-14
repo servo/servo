@@ -12,7 +12,6 @@ class HistoryEntry(val timestamp: Long, val url: String, val title: String?) {
     }
 
     companion object {
-        @JvmStatic
         @Throws(JSONException::class)
         fun fromJSON(json: JSONObject) = HistoryEntry(
             timestamp = json.getLong("timestamp"),
