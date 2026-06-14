@@ -1462,6 +1462,19 @@ pub fn process_containing_block_query(node: ServoLayoutNode) -> Option<Untrusted
     containing_block.map(|node| node.opaque().into())
 }
 
+pub fn process_containing_block_descendant_query(
+    root: ServoLayoutNode,
+    mut possible_descendant: ServoLayoutNode,
+) -> bool {
+    while let Some(containing_block) = containing_block_for_node(possible_descendant) {
+        if containing_block == root {
+            return true;
+        }
+        possible_descendant = containing_block;
+    }
+    false
+}
+
 pub fn process_resolved_font_style_query<'dom, E>(
     context: &SharedStyleContext,
     node: E,

@@ -2845,6 +2845,19 @@ impl Window {
             .map(|address| unsafe { from_untrusted_node_address(address) })
     }
 
+    /// Query whether a node is part of another node's containing block chain.
+    /// <https://drafts.csswg.org/css-display/#containing-block-chain>
+    pub(crate) fn containing_block_descendant_query_without_reflow(
+        &self,
+        root: &Node,
+        possible_descendant: &Node,
+    ) -> bool {
+        self.layout.borrow().query_containing_block_descendant(
+            root.to_trusted_node_address(),
+            possible_descendant.to_trusted_node_address(),
+        )
+    }
+
     /// Query the used padding values for the given node, but do not force a reflow.
     /// This is used for things like `ResizeObserver` which should observe the value
     /// from the most recent reflow, but do not need it to reflect the current state of

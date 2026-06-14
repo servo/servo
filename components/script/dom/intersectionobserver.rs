@@ -505,8 +505,15 @@ impl IntersectionObserver {
                 if element.owner_document() != target.owner_document() {
                     return IntersectionObservationOutput::default_skipped();
                 }
-                // TODO(stevennovaryo): implement LayoutThread query for descendant of containing block chain.
-                debug!("descendant of containing block chain is not implemented");
+                if !element
+                    .owner_window()
+                    .containing_block_descendant_query_without_reflow(
+                        element.upcast(),
+                        target.upcast(),
+                    )
+                {
+                    return IntersectionObservationOutput::default_skipped();
+                }
             },
             _ => {},
         }

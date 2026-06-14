@@ -88,7 +88,8 @@ use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, Stack
 use crate::dom::NodeExt;
 use crate::query::{
     find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
-    process_box_areas_request, process_client_rect_request, process_containing_block_query,
+    process_box_areas_request, process_client_rect_request,
+    process_containing_block_descendant_query, process_containing_block_query,
     process_current_css_zoom_query, process_effective_overflow_query,
     process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
     process_resolved_font_style_query, process_resolved_style_request,
@@ -364,6 +365,24 @@ impl Layout for LayoutThread {
         with_layout_state(|| {
             let node = unsafe { ServoLayoutNode::new(&node) };
             process_containing_block_query(node)
+        })
+    }
+
+    /// Return the node corresponding to the containing block of the provided node.
+    #[servo_tracing::instrument(skip_all)]
+    fn query_containing_block_descendant(
+        &self,
+        root: TrustedNodeAddress,
+        possible_descendant: TrustedNodeAddress,
+    ) -> bool {
+        with_layout_state(|| {
+            let (root, possible_descendant) = unsafe {
+                (
+                    ServoLayoutNode::new(&root),
+                    ServoLayoutNode::new(&possible_descendant),
+                )
+            };
+            process_containing_block_descendant_query(root, possible_descendant)
         })
     }
 
