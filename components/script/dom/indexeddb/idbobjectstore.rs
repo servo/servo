@@ -596,6 +596,35 @@ impl IDBObjectStore {
             .insert(name, Dom::from_ref(&index));
         index
     }
+
+    pub(crate) fn has_index(&self, name: &DOMString) -> bool {
+        self.index_set.borrow().contains_key(name)
+    }
+
+    /// The caller must ensure that the original index exists.
+    pub(crate) fn rename_index(&self, name: &DOMString, new_name: &DOMString) {
+        let rename_index_operation = SyncOperation::RenameIndex(
+            self.global().origin().immutable().clone(),
+            self.db_name.to_string(),
+            self.name.borrow().to_string(),
+            String::from(name.clone()),
+            String::from(new_name.clone()),
+        );
+        self.get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(rename_index_operation))
+            .unwrap();
+
+        // We also need to update the key in the index set
+        let index = self
+            .index_set
+            .borrow_mut()
+            .remove(name)
+            .expect("Earlier steps of the algorithm checked that the index exists")
+            .as_rooted();
+        self.index_set
+            .borrow_mut()
+            .insert(new_name.clone(), Dom::from_ref(&index));
+    }
 }
 
 impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
@@ -962,7 +991,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.check_transaction_active()?;
 
         // Step 6. If an index named name already exists in store, throw a "ConstraintError" DOMException.
-        if self.index_set.borrow().contains_key(&name) {
+        if self.has_index(&name) {
             return Err(Error::Constraint(None));
         }
 

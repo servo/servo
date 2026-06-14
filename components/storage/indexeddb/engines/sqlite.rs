@@ -698,6 +698,26 @@ impl KvsEngine for SqliteEngine {
         Ok(CreateObjectResult::Created)
     }
 
+    fn rename_index(
+        &self,
+        store_name: &str,
+        index_name: &str,
+        new_name: &str,
+    ) -> Result<(), Self::Error> {
+        let object_store = self.connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )?;
+
+        // Rename the index if it exists
+        let _ = self.connection.execute(
+            "UPDATE object_store_index SET name = ? WHERE name = ? AND object_store_id = ?",
+            params![new_name, index_name, object_store.id],
+        )?;
+        Ok(())
+    }
+
     fn delete_index(&self, store_name: &str, index_name: String) -> Result<(), Self::Error> {
         let object_store = self.connection.query_row(
             "SELECT * FROM object_store WHERE name = ?",
