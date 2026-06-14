@@ -416,7 +416,7 @@ public class MainActivity extends Activity implements Servo.Client {
     @Override
     public void onMediaSessionMetadata(String title, String artist, String album) {
         if (mMediaSession == null) {
-            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+            mMediaSession = new MediaSession(mServoView, getApplicationContext());
         }
         Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
         mMediaSession.updateMetadata(title, artist, album);
@@ -426,7 +426,7 @@ public class MainActivity extends Activity implements Servo.Client {
     public void onMediaSessionPlaybackStateChange(int state) {
         Log.d("onMediaSessionPlaybackStateChange", String.valueOf(state));
         if (mMediaSession == null) {
-            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+            mMediaSession = new MediaSession(mServoView, getApplicationContext());
         }
 
         mMediaSession.setPlaybackState(state);
@@ -445,7 +445,7 @@ public class MainActivity extends Activity implements Servo.Client {
     public void onMediaSessionSetPositionState(float duration, float position, float playbackRate) {
         Log.d("onMediaSessionSetPositionState", duration + " " + position + " " + playbackRate);
         if (mMediaSession == null) {
-            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+            mMediaSession = new MediaSession(mServoView, getApplicationContext());
         }
 
         mMediaSession.setPositionState(duration, position, playbackRate);

@@ -57,7 +57,6 @@ public class MediaSession {
     private static final String KEY_MEDIA_STOP = "org.servo.servoview.MainActivity.stop";
 
     ServoView mView;
-    MainActivity mActivity;
     Context mContext;
 
     NotificationID mNotificationID;
@@ -69,9 +68,8 @@ public class MediaSession {
     String mArtist;
     String mAlbum;
 
-    public MediaSession(ServoView view, MainActivity activity, Context context) {
+    public MediaSession(ServoView view, Context context) {
       mView = view;
-      mActivity = activity;
       mContext = context;
       mNotificationID = new NotificationID();
       createMediaNotificationChannel();
