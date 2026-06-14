@@ -23,13 +23,14 @@ use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
 use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize,
+    SizeConstraint,
 };
 use crate::style_ext::{AspectRatio, Display, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
 use crate::{
-    ArcRefCell, ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2,
-    PropagatedBoxTreeData,
+    ArcRefCell, ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
+    LogicalVec2, PropagatedBoxTreeData,
 };
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
@@ -411,12 +412,22 @@ impl IndependentFormattingContext {
                     &self.base,
                     lazy_block_size,
                 );
+                // Widget should know the size of the replaced contents.
+                let resolved_block_size =
+                    lazy_block_size.resolve(|| replaced_layout.content_block_size);
+                let widget_cb = ContainingBlock {
+                    size: ContainingBlockSize {
+                        inline: containing_block_for_children.size.inline,
+                        block: SizeConstraint::Definite(resolved_block_size),
+                    },
+                    style: &self.base.style,
+                };
                 if let Some(widget) = widget {
                     let mut widget_layout = widget.borrow().layout(
                         layout_context,
                         positioning_context,
-                        containing_block_for_children,
-                        containing_block_for_children,
+                        &widget_cb,
+                        &widget_cb,
                         None,
                         &LazySize::intrinsic(),
                     );
