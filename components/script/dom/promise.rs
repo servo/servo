@@ -283,7 +283,7 @@ impl Promise {
         self.reject_with_cx(cx, v.handle());
     }
 
-    /// Deprecate: use [`Self::reject_error`] instead
+    /// Deprecated: use [`Self::reject_error`] instead
     pub(crate) fn reject_error_with_cx(&self, cx: &mut JSContext, error: Error) {
         self.reject_error(cx, error);
     }
