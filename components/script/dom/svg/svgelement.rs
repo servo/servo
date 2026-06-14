@@ -30,8 +30,8 @@ use crate::dom::document::focus::FocusableArea;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::svg::svgsvgelement::SVGSVGElement;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
+use crate::dom::svg::svgsvgelement::SVGSVGElement;
 use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
@@ -110,21 +110,23 @@ impl VirtualMethods for SVGElement {
     }
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
-        matches!(attr.local_name(),
+        matches!(
+            attr.local_name(),
             &local_name!("fill") |
-            &local_name!("fill-opacity") |
-            &local_name!("fill-rule") |
-
-            &local_name!("stroke") |
-            &local_name!("stroke-width") |
-            &local_name!("stroke-linecap") |
-            &local_name!("stroke-linejoin") |
-            &local_name!("stroke-dasharray") |
-            &local_name!("stroke-dashoffset") |
-            &local_name!("stroke-miterlimit") |
-            &local_name!("stroke-opacity")
-
-        ) || self.super_type().unwrap().attribute_affects_presentational_hints(attr)
+                &local_name!("fill-opacity") |
+                &local_name!("fill-rule") |
+                &local_name!("stroke") |
+                &local_name!("stroke-width") |
+                &local_name!("stroke-linecap") |
+                &local_name!("stroke-linejoin") |
+                &local_name!("stroke-dasharray") |
+                &local_name!("stroke-dashoffset") |
+                &local_name!("stroke-miterlimit") |
+                &local_name!("stroke-opacity")
+        ) || self
+            .super_type()
+            .unwrap()
+            .attribute_affects_presentational_hints(attr)
     }
 }
 
@@ -238,21 +240,26 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
         let element = self.upcast::<Element>();
 
         if element.downcast::<SVGSVGElement>().is_some() {
-            if let Some(width) = element.get_attr_for_layout(&ns!(), &local_name!("width"))
-                .and_then(AttrValue::as_length_percentage) {
+            if let Some(width) = element
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
+                .and_then(AttrValue::as_length_percentage)
+            {
                 push(PropertyDeclaration::Width(
                     specified::Size::LengthPercentage(NonNegative(width.clone())),
                 ));
             }
-            if let Some(height) = element.get_attr_for_layout(&ns!(), &local_name!("height"))
-                .and_then(AttrValue::as_length_percentage) {
+            if let Some(height) = element
+                .get_attr_for_layout(&ns!(), &local_name!("height"))
+                .and_then(AttrValue::as_length_percentage)
+            {
                 push(PropertyDeclaration::Height(
                     specified::Size::LengthPercentage(NonNegative(height.clone())),
                 ));
             }
         }
         let url_data = UrlExtraData(document.url_for_layout().get_arc());
-        let parsing_mode =  ParsingMode::ALLOW_UNITLESS_LENGTH | ParsingMode::ALLOW_ALL_NUMERIC_VALUES;
+        let parsing_mode =
+            ParsingMode::ALLOW_UNITLESS_LENGTH | ParsingMode::ALLOW_ALL_NUMERIC_VALUES;
         let parser_context = ParserContext::new(
             Origin::Author,
             &url_data,
@@ -262,21 +269,76 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
             Default::default(),
             None,
             None,
-            Default::default()
+            Default::default(),
         );
 
-        self.parse_svg_attribute(&parser_context, "fill", longhands::fill::parse_declared, push);
-        self.parse_svg_attribute(&parser_context, "fill-opacity", longhands::fill_opacity::parse_declared, push);
-        self.parse_svg_attribute(&parser_context, "fill-rule", longhands::fill_rule::parse_declared, push);
+        self.parse_svg_attribute(
+            &parser_context,
+            "fill",
+            longhands::fill::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "fill-opacity",
+            longhands::fill_opacity::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "fill-rule",
+            longhands::fill_rule::parse_declared,
+            push,
+        );
 
-        self.parse_svg_attribute(&parser_context, "stroke", longhands::stroke::parse_declared, push);
-        self.parse_svg_attribute(&parser_context, "stroke-width", longhands::stroke_width::parse_declared, push);
-        self.parse_svg_attribute(&parser_context, "stroke-linecap", longhands::stroke_linecap::parse_declared, push);
-        self.parse_svg_attribute(&parser_context, "stroke-linejoin", longhands::stroke_linejoin::parse_declared, push);
-        self.parse_svg_attribute(&parser_context, "stroke-dasharray", longhands::stroke_dasharray::parse_declared, push);
-        self.parse_svg_attribute(&parser_context, "stroke-dashoffset", longhands::stroke_dashoffset::parse_declared, push);
-        self.parse_svg_attribute(&parser_context, "stroke-miterlimit", longhands::stroke_miterlimit::parse_declared, push);
-        self.parse_svg_attribute(&parser_context, "stroke-opacity", longhands::stroke_opacity::parse_declared, push);
+        self.parse_svg_attribute(
+            &parser_context,
+            "stroke",
+            longhands::stroke::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "stroke-width",
+            longhands::stroke_width::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "stroke-linecap",
+            longhands::stroke_linecap::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "stroke-linejoin",
+            longhands::stroke_linejoin::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "stroke-dasharray",
+            longhands::stroke_dasharray::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "stroke-dashoffset",
+            longhands::stroke_dashoffset::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "stroke-miterlimit",
+            longhands::stroke_miterlimit::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "stroke-opacity",
+            longhands::stroke_opacity::parse_declared,
+            push,
+        );
     }
 
     fn parse_svg_attribute<F>(
@@ -286,14 +348,18 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
         parse: F,
         push: &mut impl FnMut(PropertyDeclaration),
     ) where
-        F: for<'i, 't> FnOnce(&ParserContext, &mut cssparser::Parser<'i, 't>) -> Result<PropertyDeclaration, style_traits::ParseError<'i>>,
+        F: for<'i, 't> FnOnce(
+            &ParserContext,
+            &mut cssparser::Parser<'i, 't>,
+        ) -> Result<PropertyDeclaration, style_traits::ParseError<'i>>,
     {
         let element = self.upcast::<Element>();
         if let Some(value) = element.get_attr_val_for_layout(&ns!(), &LocalName::from(attr_name)) {
             let mut input = cssparser::ParserInput::new(value);
             let mut parser = cssparser::Parser::new(&mut input);
-            parser.parse_entirely(|parse_input| parse(parser_context, parse_input))
-                .map(|declaration| push(declaration))
+            parser
+                .parse_entirely(|parse_input| parse(parser_context, parse_input))
+                .map(push)
                 .ok();
         }
     }

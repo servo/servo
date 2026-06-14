@@ -1155,7 +1155,7 @@ impl<'dom> LayoutDom<'dom, Element> {
     where
         V: Push<ApplicableDeclarationBlock>,
     {
-        // TODO: Move HTML presentational hints handling into 
+        // TODO: Move HTML presentational hints handling into
         // HTMLElement::synthesize_presentational_hints_for_legacy_attributes
         let document = self.upcast::<Node>().owner_doc_for_layout();
         let mut property_declaration_block = None;
@@ -1355,10 +1355,7 @@ impl<'dom> LayoutDom<'dom, Element> {
         }
 
         if let Some(svg_element) = self.downcast::<SVGElement>() {
-            svg_element.synthesize_presentational_hints(
-                document,
-                &mut push,
-            );
+            svg_element.synthesize_presentational_hints(document, &mut push);
         }
 
         // Aspect ratio when providing both width and height.
