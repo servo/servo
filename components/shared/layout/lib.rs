@@ -550,6 +550,7 @@ pub enum QueryMsg {
     StyleQuery,
     TextIndexQuery,
     PaddingQuery,
+    FlushForUpdateTheRenderingQuery,
 }
 
 /// The goal of a reflow request.

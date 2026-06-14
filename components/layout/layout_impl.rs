@@ -1824,6 +1824,7 @@ impl ReflowPhases {
                 QueryMsg::BoxArea |
                 QueryMsg::BoxAreas |
                 QueryMsg::ElementsFromPoint |
+                QueryMsg::FlushForUpdateTheRenderingQuery |
                 QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedStyleQuery |
                 QueryMsg::ScrollingAreaOrOffsetQuery |

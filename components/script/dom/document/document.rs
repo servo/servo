@@ -3154,6 +3154,13 @@ impl Document {
         cx: &mut JSContext,
         time: CrossProcessInstant,
     ) {
+        if self.intersection_observers.borrow().is_empty() {
+            return;
+        }
+        // Ensure that any layout changes are flushed for subsequent queries.
+        self.window()
+            .reflow_for_non_flushing_update_the_rendering_queries(cx);
+
         // Step 1-2
         for intersection_observer in &*self.intersection_observers.borrow() {
             self.update_single_intersection_observer_steps(cx, intersection_observer, time);

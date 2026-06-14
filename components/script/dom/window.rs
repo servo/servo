@@ -2807,6 +2807,14 @@ impl Window {
         self.reflow(&mut cx, ReflowGoal::LayoutQuery(query_msg));
     }
 
+    /// Trigger a reflow in preparation for subsequent queries that don't perform a reflow.
+    pub(crate) fn reflow_for_non_flushing_update_the_rendering_queries(&self, cx: &mut JSContext) {
+        self.reflow(
+            cx,
+            ReflowGoal::LayoutQuery(QueryMsg::FlushForUpdateTheRenderingQuery),
+        );
+    }
+
     pub(crate) fn resolved_font_style_query(
         &self,
         node: &Node,
