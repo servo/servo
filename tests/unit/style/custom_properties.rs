@@ -21,6 +21,7 @@ use style::properties::{ComputedValues, CustomDeclaration, CustomDeclarationValu
 use style::queries::values::PrefersColorScheme;
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::{CascadeLevel, RuleCascadeFlags};
+use style::servo::media_features::PointerCapabilities;
 use style::stylesheets::UrlExtraData;
 use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::layer_rule::LayerOrder;
@@ -76,6 +77,8 @@ fn cascade(
         Box::new(DummyMetricsProvider),
         initial_style,
         PrefersColorScheme::Light,
+        PointerCapabilities::default(),
+        PointerCapabilities::default(),
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
     let mut builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
