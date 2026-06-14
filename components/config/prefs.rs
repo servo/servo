@@ -152,6 +152,8 @@ pub struct Preferences {
     pub dom_crypto_subtle_enabled: bool,
     pub dom_document_dblclick_timeout: i64,
     pub dom_document_dblclick_dist: i64,
+    // feature: File and Directory Entries API | #45653 | Web/API/File_and_Directory_Entries_API
+    pub dom_entries_api_enabled: bool,
     // feature: Document.execCommand | #25005 | Web/API/Document/execCommand
     pub dom_exec_command_enabled: bool,
     // feature: CSS Font Loading API | #29376 | Web/API/CSS_Font_Loading_API
@@ -393,6 +395,7 @@ impl Preferences {
             dom_crypto_subtle_enabled: true,
             dom_document_dblclick_dist: 1,
             dom_document_dblclick_timeout: 300,
+            dom_entries_api_enabled: false,
             dom_exec_command_enabled: false,
             dom_fontface_enabled: false,
             dom_fullscreen_test: false,
