@@ -2229,7 +2229,6 @@ pub(crate) fn set_protocol_handler_automation_mode(
 /// <https://www.w3.org/TR/webdriver-bidi/#serialize-as-a-remote-value>
 #[expect(unsafe_code)]
 pub fn serialize_as_a_remote_value(
-    browsing_context_id: BrowsingContextId,
     cx: &mut JSContext,
     value: &HandleValue,
     serialization_options: &SerializationOptions,
@@ -2460,7 +2459,7 @@ pub fn serialize_as_a_remote_value(
             // TODO: shoud get internal slot
             RemoteValue::WindowProxyRemoteValue(WindowProxyRemoteValue {
                 value: WindowProxyProperties {
-                    context: browsing_context_id.to_string(),
+                    context: "".to_string(),
                 },
                 handle: handle_id,
                 internal_id: None,

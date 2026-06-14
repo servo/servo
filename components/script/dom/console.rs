@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ptr::{self, NonNull};
 use std::slice;
@@ -39,6 +40,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::webdriver_handlers::serialize_as_a_remote_value;
 
 /// The maximum object depth logged by console methods.
 const MAX_LOG_DEPTH: usize = 10;
@@ -162,9 +164,7 @@ impl Console {
 
         Console::send_to_devtools(global, console_message);
 
-        // let log_entry = Self::build_log_entry();
-
-        // Self::send_to_webdriver(global, log_entry);
+        Self::send_to_webdriver(cx, global, level.clone(), &messages);
 
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{embedder_msg}");
@@ -185,15 +185,17 @@ impl Console {
 
     /// <https://www.w3.org/TR/webdriver-bidi/#event-log-entryAdded>
     fn send_to_webdriver(
+        cx: &mut JSContext,
         global: &GlobalScope,
         method: ConsoleLogLevel,
-        log_entry: ConsoleLogEntry,
+        args: &Vec<HandleValue>,
     ) {
-        use webdriver_traits::bidi::{log::Level, script::SerializationOptions};
-        let args = Vec::<()>::new();
+        use webdriver_traits::bidi::{
+            log::{Entry, EntryAdded, EntryAddedMethod, Level},
+            script::SerializationOptions,
+        };
 
         // 1.
-        // TODO: session id
         for chan in global.webdriver_chans() {
             // 1.1.
             let level = match method {
@@ -207,9 +209,8 @@ impl Console {
             let timestamp = get_time_stamp();
             // 1.3.
             let mut text = String::new();
-            // 1.4.
-
-            // 1.5.
+            // 1.4. TODO
+            // 1.5. TODO
             // 1.6.
             let realm = {
                 let pipeline_id = global.pipeline_id();
@@ -219,46 +220,49 @@ impl Console {
                 format!("{}-{:?}", pipeline_id, worker_id);
             };
             // 1.7.
-            let mut serialized_args = Vec::<RemoteValue>::new();
+            let mut serialized_args = vec![];
             // 1.8.
             let serialization_options = SerializationOptions::default();
             // 1.9.
             for arg in args.iter() {
-                // // 1.9.1.
-                // let serialized_arg = serialize_as_a_remote_value(
-                //     // *arg,
-                //     &serialization_options,
-                //     ResultOwnership::None,
-                // );
-                // // 1.9.2
-                // serialized_args.push(serialized_arg);
+                // 1.9.1.
+                let serialized_arg = serialize_as_a_remote_value(
+                    cx,
+                    &arg,
+                    &serialization_options,
+                    webdriver_traits::bidi::script::ResultOwnership::None,
+                    &mut HashMap::new(),
+                );
+                // 1.9.2.
+                serialized_args.push(serialized_arg);
             }
-            // 1.10.
+            // 1.10. TODO
             let source = todo!();
-            // let source = get_the_source();
-            // 1.11.
-            // TODO: stack
+            // 1.11. TODO
             let stack = None;
-            // 1.12
+            // 1.12.
             let entry = ConsoleLogEntry {
                 base_log_entry: BaseLogEntry {
                     level,
-                    source,
+                    source: todo!(),
                     text: Some(text),
                     timestamp,
                     stack_trace: stack,
                 },
                 method: "".to_string(),
-                args: vec![],
+                args: serialized_args,
             };
             // 1.13
-            // TODO: fix entry added method
-            // let body = EntryAdded {
-            //     method: EntryAddedMethod::EntryAdded,
-            //     params: entry,
-            // };
-            // let message = ScriptToWebDriverMessage::ConsoleEntryAdded(log_entry.clone());
-            // chan.send(message).unwrap();
+            let body = EntryAdded {
+                method: EntryAddedMethod::EntryAdded,
+                params: Entry::ConsoleLogEntry(entry),
+            };
+            // 1.14. TODO
+            // 1.15. TODO
+            // 1.16: continue in webdriver thread callback
+            if let Err(err) = chan.send(ScriptToWebDriverMessage::ConsoleEntryAdded(body)) {
+                log::warn!("Error sending event to webdriver: {err:?}");
+            };
         }
     }
 

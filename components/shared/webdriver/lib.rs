@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::bidi::log::EntryAdded;
+
 pub mod bidi {
     use crate::bidi::script::{
         BigIntValue, BooleanValue, NullValue, NumberValue, NumberValueValue, ObjectRemoteValue,
@@ -23,5 +25,5 @@ pub mod bidi {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ScriptToWebDriverMessage {
-    ConsoleEntryAdded(bidi::log::ConsoleLogEntry),
+    ConsoleEntryAdded(EntryAdded),
 }
