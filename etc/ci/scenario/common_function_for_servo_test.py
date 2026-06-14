@@ -333,8 +333,7 @@ def start_servo(
         )
     if options.session_history_max_length is not None:
         command.append(f"--pref=session_history_max_length={options.session_history_max_length}")
-    if options.url != ABOUT_BLANK:
-        command.append(options.url)
+    command.append(options.url)
     return subprocess.Popen(command)
 
 
