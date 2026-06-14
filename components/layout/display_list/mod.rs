@@ -408,7 +408,7 @@ impl DisplayListBuilder<'_> {
         // actually need to create a stacking context, just avoid creating one.
         let style = fragment.style();
         let effects = style.get_effects();
-        let transform_style = style.get_used_transform_style();
+        let transform_style = style.used_transform_style(fragment.base.flags);
         if effects.filter.0.is_empty() &&
             effects.opacity == 1.0 &&
             effects.mix_blend_mode == ComputedMixBlendMode::Normal &&

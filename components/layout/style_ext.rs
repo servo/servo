@@ -8,10 +8,10 @@ use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
-use style::computed_values::isolation::T as ComputedIsolation;
-use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
+use style::computed_values::isolation::{T as ComputedIsolation, T as Isolation};
+use style::computed_values::mix_blend_mode::{T as ComputedMixBlendMode, T as MixBlendMode};
 use style::computed_values::position::T as ComputedPosition;
-use style::computed_values::transform_style::T as ComputedTransformStyle;
+use style::computed_values::transform_style::{T as ComputedTransformStyle, T as TransformStyle};
 use style::computed_values::unicode_bidi::T as UnicodeBidi;
 use style::logical_geometry::{Direction as AxisDirection, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
@@ -333,6 +333,7 @@ pub(crate) trait ComputedValuesExt {
     fn z_index_applies(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
     fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow;
+    fn used_transform_style(&self, fragment_flags: FragmentFlags) -> TransformStyle;
     fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_scroll_container(&self, fragment_flags: FragmentFlags) -> bool;
@@ -657,6 +658,50 @@ impl ComputedValuesExt for ComputedValues {
         overflow
     }
 
+    /// Get the used `transform-style` value according to the the rules in
+    /// <https://drafts.csswg.org/css-transforms/#grouping-property-values>.
+    fn used_transform_style(&self, fragment_flags: FragmentFlags) -> TransformStyle {
+        // The check for flat here is to avoid calling `overrides_transform_style()`
+        // when possible.
+        let box_style = self.get_box();
+        if box_style.transform_style == TransformStyle::Flat {
+            return TransformStyle::Flat;
+        }
+
+        // https://drafts.csswg.org/css-transforms-2/#grouping-property-values
+        //  * overflow: any value other than visible or clip.
+        //  * opacity: any value less than 1.
+        //  * filter: any value other than none.
+        //  * clip: any value other than auto.
+        //  * clip-path: any value other than none.
+        //  * isolation: used value of isolate.
+        //  * mask-image: any value other than none.
+        //  * mask-border-source: any value other than none.
+        //  * mix-blend-mode: any value other than normal.
+        //  * contain: paint and any other property/value combination that causes
+        //    paint containment. Note: this includes any property that affect the
+        //    used value of the contain property, such as content-visibility:
+        //    hidden.
+        //
+        // TODO: Support `mask-image`, `mask-border-source`, and `contain`.
+        let effects = self.get_effects();
+        let overflow = self.effective_overflow(fragment_flags);
+        if !matches!(overflow.x, Overflow::Visible | Overflow::Clip) ||
+            !matches!(overflow.y, Overflow::Visible | Overflow::Clip) ||
+            effects.opacity < 1.0 ||
+            !effects.filter.0.is_empty() ||
+            !effects.clip.is_auto() ||
+            self.get_svg().clip_path != ClipPath::None ||
+            self.get_box().isolation == Isolation::Isolate ||
+            effects.mix_blend_mode != MixBlendMode::Normal
+        {
+            return TransformStyle::Flat;
+        }
+
+        // Return the computed value if not overridden by the above exceptions
+        box_style.transform_style
+    }
+
     /// Return true if this style is a normal block and establishes
     /// a new block formatting context.
     ///
@@ -741,7 +786,8 @@ impl ComputedValuesExt for ComputedValues {
         // > establishes both a stacking context and a containing block for all descendants.
         if self.is_transformable(fragment_flags) &&
             (self.has_transform_or_perspective_style() ||
-                self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
+                self.used_transform_style(fragment_flags) ==
+                    ComputedTransformStyle::Preserve3d ||
                 will_change_bits
                     .intersects(WillChangeBits::TRANSFORM | WillChangeBits::PERSPECTIVE))
         {
@@ -854,7 +900,8 @@ impl ComputedValuesExt for ComputedValues {
         // > establishes both a stacking context and a containing block for all descendants.
         if self.is_transformable(fragment_flags) &&
             (self.has_transform_or_perspective_style() ||
-                self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
+                self.used_transform_style(fragment_flags) ==
+                    ComputedTransformStyle::Preserve3d ||
                 will_change_bits
                     .intersects(WillChangeBits::TRANSFORM | WillChangeBits::PERSPECTIVE))
         {
