@@ -3215,7 +3215,8 @@ impl Document {
             return;
         }
         // Ensure that any layout changes are flushed for subsequent queries.
-        self.window().layout_reflow_pre_query(cx);
+        self.window()
+            .reflow_for_non_flushing_update_the_rendering_queries(cx);
 
         // Step 1-2
         for intersection_observer in &*self.intersection_observers.borrow() {

@@ -1802,14 +1802,14 @@ impl ReflowPhases {
     /// so [`ReflowPhases::empty()`] implies that.
     fn necessary(reflow_goal: &ReflowGoal) -> Self {
         match reflow_goal {
-            ReflowGoal::LayoutQuery(None) => Self::empty(),
-            ReflowGoal::LayoutQuery(Some(query)) => match query {
+            ReflowGoal::LayoutQuery(query) => match query {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
                 QueryMsg::BoxArea |
                 QueryMsg::BoxAreas |
                 QueryMsg::ElementsFromPoint |
+                QueryMsg::FlushForUpdateTheRenderingQuery |
                 QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedStyleQuery |
                 QueryMsg::ScrollingAreaOrOffsetQuery |

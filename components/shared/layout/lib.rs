@@ -551,6 +551,7 @@ pub enum QueryMsg {
     StyleQuery,
     TextIndexQuery,
     PaddingQuery,
+    FlushForUpdateTheRenderingQuery,
 }
 
 /// The goal of a reflow request.
@@ -566,7 +567,7 @@ pub enum ReflowGoal {
 
     /// Script has done a layout query and this reflow ensurs that layout is up-to-date
     /// with the latest changes to the DOM.
-    LayoutQuery(Option<QueryMsg>),
+    LayoutQuery(QueryMsg),
 
     /// Tells layout about a single new scrolling offset from the script. The rest will
     /// remain untouched. Layout will forward whether the element is scrolled through
