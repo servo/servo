@@ -5,12 +5,12 @@
 use std::thread;
 
 use js::jsapi::{HideScriptedCaller, UnhideScriptedCaller};
+use js::realm::CurrentRealm;
 use js::rust::Runtime;
 
 use crate::DomTypes;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::root::Dom;
-use crate::script_runtime::temp_cx;
 
 #[derive(Debug, Eq, JSTraceable, PartialEq)]
 pub enum StackEntryKind {
@@ -29,7 +29,11 @@ pub struct StackEntry<D: DomTypes> {
 ///
 /// <https://html.spec.whatwg.org/multipage/#prepare-to-run-script>
 /// <https://html.spec.whatwg.org/multipage/#clean-up-after-running-script>
-pub fn run_a_script<D: DomTypes, R>(global: &D::GlobalScope, f: impl FnOnce() -> R) -> R {
+pub fn run_a_script<D: DomTypes, R>(
+    cx: &mut CurrentRealm,
+    global: &D::GlobalScope,
+    f: impl FnOnce(&mut CurrentRealm) -> R,
+) -> R {
     let settings_stack = <D as DomHelpers<D>>::settings_stack();
     let _span = settings_stack.with(|stack| {
         trace!("Prepare to run script with {:p}", global);
@@ -40,7 +44,7 @@ pub fn run_a_script<D: DomTypes, R>(global: &D::GlobalScope, f: impl FnOnce() ->
         });
         profile_traits::info_span!("ScriptEvaluate", url = global.get_url().to_string()).entered()
     });
-    let result = f();
+    let result = f(cx);
     let stack_is_empty = settings_stack.with(|stack| {
         let mut stack = stack.borrow_mut();
         let entry = stack.pop().unwrap();
@@ -55,8 +59,7 @@ pub fn run_a_script<D: DomTypes, R>(global: &D::GlobalScope, f: impl FnOnce() ->
 
     // Step 5
     if !thread::panicking() && stack_is_empty {
-        let mut cx = unsafe { temp_cx() };
-        global.perform_a_microtask_checkpoint(&mut cx);
+        global.perform_a_microtask_checkpoint(cx);
     }
     result
 }

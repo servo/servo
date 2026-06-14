@@ -12,6 +12,7 @@ use js::context::JSContext;
 use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
     JS_IsExceptionPending, JS_SetPendingException,
@@ -164,7 +165,7 @@ impl GlobalScope {
 
         // Step 4. Prepare to run script given settings.
         // Once dropped this will run "Step 9. Clean up after running script" steps
-        run_a_script::<DomTypeHolder, _>(self, || {
+        run_a_script::<DomTypeHolder, _>(cx, self, |cx| {
             // Step 5. Let evaluationStatus be null.
             let mut result = false;
 
@@ -271,7 +272,8 @@ impl GlobalScope {
         // TODO
 
         // Step 4. Prepare to run script given settings.
-        run_a_script::<DomTypeHolder, _>(self, || {
+        let mut realm = CurrentRealm::assert(cx);
+        run_a_script::<DomTypeHolder, _>(&mut realm, self, |cx| {
             // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
             // promise rejected with script's error to rethrow.
             {

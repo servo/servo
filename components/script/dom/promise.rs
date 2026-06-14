@@ -337,7 +337,7 @@ impl Promise {
         let in_realm_proof = cx.into();
         let realm = InRealm::Already(&in_realm_proof);
 
-        run_a_script::<DomTypeHolder, _>(&handler.global_(realm), || {
+        run_a_script::<DomTypeHolder, _>(cx, &handler.global_(realm), |cx| {
             rooted!(&in(cx) let resolve_func =
                 create_native_handler_function(cx,
                                                handler.reflector().get_jsobject(),

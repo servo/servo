@@ -10,6 +10,7 @@ use std::rc::Rc;
 
 use js::jsapi::{AddRawValueRoot, Heap, IsCallable, JSObject, RemoveRawValueRoot};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{EnterRealm, JS_GetProperty, JS_WrapObject, LeaveRealm};
 use js::rust::{HandleObject, MutableHandleValue, Runtime};
 
@@ -271,9 +272,10 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
     }
 
     let global = &global;
+    let mut realm = CurrentRealm::assert(cx);
 
     // Step 8: Prepare to run script with relevant settings.
-    run_a_script::<D, R>(global, move || {
+    run_a_script::<D, R>(&mut realm, global, move |cx| {
         let actual_callback = || {
             let old_realm = unsafe { EnterRealm(cx, callback.callback()) };
             let result = f(cx);
