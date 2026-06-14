@@ -26,10 +26,6 @@ pub struct NewBrowsingContextInfo {
 
     /// Whether this browsing context inherits a secure context.
     pub inherited_secure_context: Option<bool>,
-
-    /// Whether this browsing context should be throttled, using less resources
-    /// by stopping animations and running timers at a heavily limited rate.
-    pub throttled: bool,
 }
 
 /// The constellation's view of a browsing context.
@@ -57,10 +53,6 @@ pub struct BrowsingContext {
     /// Whether this browsing context inherits a secure context.
     pub inherited_secure_context: Option<bool>,
 
-    /// Whether this browsing context should be throttled, using less resources
-    /// by stopping animations and running timers at a heavily limited rate.
-    pub throttled: bool,
-
     /// The pipeline for the current session history entry.
     pub pipeline_id: PipelineId,
 
@@ -86,7 +78,6 @@ impl BrowsingContext {
         viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
-        throttled: bool,
     ) -> BrowsingContext {
         let mut pipelines = FxHashSet::default();
         pipelines.insert(pipeline_id);
@@ -97,7 +88,6 @@ impl BrowsingContext {
             viewport_details,
             is_private,
             inherited_secure_context,
-            throttled,
             pipeline_id,
             parent_pipeline_id,
             pipelines,

@@ -700,21 +700,6 @@ impl WebView {
             .send(EmbedderToConstellationMessage::ExitFullScreen(self.id()));
     }
 
-    /// Set whether resource usage of this [`WebView`] should be throttled or not.
-    ///
-    /// A throttled [`WebView`] attempts to use less system resources by stopping
-    /// animations and running timers at a heavily limited rate.
-    pub fn set_throttled(&self, throttled: bool) {
-        self.inner().servo.constellation_proxy().send(
-            EmbedderToConstellationMessage::SetWebViewThrottled(self.id(), throttled),
-        );
-    }
-
-    /// Toggle the given [`WebRenderDebugOption`] from its current state.
-    ///
-    /// Note that this method toggles the debugging options globally i.e., it affects
-    /// all [`WebView`]s managed by Servo and not just the [`WebView`] on which
-    /// this method is invoked.
     pub fn toggle_webrender_debugging(&self, debugging: WebRenderDebugOption) {
         self.inner().servo.paint().toggle_webrender_debug(debugging);
     }

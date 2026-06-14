@@ -37,7 +37,7 @@ use winit::window::Window;
 use crate::desktop::event_loop::AppEvent;
 use crate::desktop::headed_window;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
-use crate::window::ServoShellWindow;
+use crate::window::{ServoShellWindow, TopLevelWebViewCreationType};
 
 /// The user interface of a headed servoshell. Currently this is implemented via
 /// egui.
@@ -564,8 +564,9 @@ impl Gui {
                                         info
                                     });
                                     if new_window_button.clicked() {
+                                        let url = Url::parse("servo:newtab").expect("Should be able to unconditionally parse 'servo:newtab' as URL");
                                         window.queue_user_interface_command(
-                                            UserInterfaceCommand::NewWindow,
+                                            UserInterfaceCommand::NewWindow(TopLevelWebViewCreationType::WithUrl(url)),
                                         );
                                     }
                                 },
