@@ -1,16 +1,4 @@
-use serde::{Deserialize, Serialize};
-use servo_base::id::BrowsingContextId;
-
-use crate::bidi::log::EntryAdded;
-
 pub mod bidi {
-    use crate::bidi::script::{
-        BigIntValue, BooleanValue, NullValue, NumberValue, NumberValueValue, ObjectRemoteValue,
-        PrimitiveProtocolValue,
-        SpecialNumber::{Infinity, NaN, NegInfinity, NegZero},
-        StringValue, UndefinedValue,
-    };
-
     include!(concat!(env!("OUT_DIR"), "/webdriver_bidi.rs"));
 
     impl Default for script::SerializationOptions {
@@ -24,9 +12,27 @@ pub mod bidi {
     }
 }
 
-// TODO: this is intended for both classic and bidi,
-// however, classic is not refactored yet.
+use serde::{Deserialize, Serialize};
+use servo_base::id::BrowsingContextId;
+
+use crate::bidi::{browsing_context::Info, log::EntryAdded};
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum WebDriverMessage {
+    Constellation(ConstellationToWebDriverMessage),
+    Script(ScriptToWebDriverMessage),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ConstellationToWebDriverMessage {
+    BrowsingContextCreated(Info),
+}
+
+// TODO: command responses need session id
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ScriptToWebDriverMessage {
     EntryAdded(Vec<BrowsingContextId>, EntryAdded),
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum WebDriverToConstellationMessage {}

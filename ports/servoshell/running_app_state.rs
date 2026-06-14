@@ -18,7 +18,6 @@ use image::{DynamicImage, ImageFormat, RgbaImage};
 ))]
 use libc::c_char;
 use log::{error, info, warn};
-use servo::webdriver_bidi::WebDriverBidiToEmbedderMessage;
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CSSPixel,
     ConsoleLogLevel, CreateNewWebViewRequest, DeviceIntPoint, DeviceIntSize, EmbedderControl,
@@ -29,7 +28,6 @@ use servo::{
     WebDriverSenders, WebView, WebViewDelegate, WebViewId,
 };
 use url::Url;
-use webdriver_server::bidi::WebDriverBidiThread;
 
 #[cfg(all(
     feature = "gamepad",
@@ -190,8 +188,6 @@ pub(crate) struct RunningAppState {
     /// was enabled.
     pub(crate) webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
 
-    pub(crate) webdriver_bidi_receiver: Option<Receiver<WebDriverBidiToEmbedderMessage>>,
-
     /// servoshell specific preferences created during startup of the application.
     pub(crate) servoshell_preferences: ServoShellPreferences,
 
@@ -255,16 +251,6 @@ impl RunningAppState {
             embedder_receiver
         });
 
-        let webdriver_bidi_receiver =
-            servoshell_preferences
-                .webdriver_bidi_port
-                .get()
-                .map(|port| {
-                    let (embedder_sender, embedder_receiver) = unbounded();
-                    WebDriverBidiThread::spawn(port, embedder_sender, event_loop_waker);
-                    embedder_receiver
-                });
-
         let experimental_preferences_enabled =
             Cell::new(servoshell_preferences.experimental_preferences_enabled);
 
@@ -280,7 +266,6 @@ impl RunningAppState {
             webdriver_embedder_controls: Default::default(),
             pending_webdriver_events: Default::default(),
             webdriver_receiver,
-            webdriver_bidi_receiver,
             servoshell_preferences,
             servo,
             achieved_stable_image: Default::default(),
@@ -337,12 +322,6 @@ impl RunningAppState {
 
     pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
         self.webdriver_receiver.as_ref()
-    }
-
-    pub(crate) fn webdriver_bidi_receiver(
-        &self,
-    ) -> Option<&Receiver<WebDriverBidiToEmbedderMessage>> {
-        self.webdriver_bidi_receiver.as_ref()
     }
 
     pub(crate) fn servo(&self) -> &Servo {
@@ -439,7 +418,6 @@ impl RunningAppState {
         }
 
         self.handle_webdriver_messages(create_platform_window);
-        self.handle_webdriver_bidi_message();
 
         #[cfg(all(
             feature = "gamepad",

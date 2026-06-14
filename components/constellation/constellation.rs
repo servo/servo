@@ -106,7 +106,6 @@ use devtools_traits::{
 };
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
-use embedder_traits::webdriver_bidi::WebDriverBidiToEmbedderMessage;
 use embedder_traits::{
     AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderProxy, FocusSequenceNumber,
     GenericEmbedderProxy, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
@@ -175,6 +174,11 @@ use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use style::global_style_data::StyleThreadPool;
+use tokio::sync::mpsc::UnboundedSender;
+use webdriver_traits::{
+    ConstellationToWebDriverMessage, ScriptToWebDriverMessage, WebDriverMessage,
+    WebDriverToConstellationMessage,
+};
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
 #[cfg(feature = "webgpu")]
@@ -376,6 +380,18 @@ pub struct Constellation<STF, SWF> {
     /// `EventLoop`s to send messages to then. Shared with all `EventLoop`s.
     pub script_to_devtools_callback: OnceCell<Option<GenericCallback<ScriptToDevtoolsControlMsg>>>,
 
+    /// A channel for the constellation to send messages to the
+    /// webdriver thread.
+    pub(crate) webdriver_sender: Option<UnboundedSender<ConstellationToWebDriverMessage>>,
+
+    /// A channel for the constellation to receive messages from script threads.
+    /// This is the constellation's view of `script_sender`.
+    pub webdriver_receiver: Option<Receiver<WebDriverToConstellationMessage>>,
+
+    /// A (potentially) IPC-based channel to the webdriver, if enabled. This allows
+    /// `EventLoop`s to send messages to then. Shared with all `EventLoop`s.
+    pub script_to_webdriver_callback: OnceCell<Option<GenericCallback<ScriptToWebDriverMessage>>>,
+
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
     #[cfg(feature = "bluetooth")]
@@ -541,6 +557,12 @@ pub struct InitialConstellationState {
     /// A channel to the developer tools, if applicable.
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
+    /// A channel to the webdriver server, if applicable.
+    pub webdriver_sender: Option<UnboundedSender<ConstellationToWebDriverMessage>>,
+
+    // TODO: comment
+    pub webdriver_receiver: Option<Receiver<WebDriverToConstellationMessage>>,
+
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
     pub bluetooth_thread: GenericSender<BluetoothRequest>,
@@ -687,6 +709,9 @@ where
                     webviews: Default::default(),
                     devtools_sender: state.devtools_sender,
                     script_to_devtools_callback: Default::default(),
+                    webdriver_sender: state.webdriver_sender,
+                    webdriver_receiver: state.webdriver_receiver,
+                    script_to_webdriver_callback: Default::default(),
                     #[cfg(feature = "bluetooth")]
                     bluetooth_ipc_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
@@ -1206,6 +1231,8 @@ where
         {
             parent.add_child(browsing_context_id);
         }
+
+        self.trigger_webdriver_bidi_navigable_created(browsing_context_id);
     }
 
     fn add_pending_change(&mut self, change: SessionHistoryChange) {
@@ -1467,9 +1494,6 @@ where
             ) => self.handle_no_longer_waiting_on_asynchronous_image_updates(pipeline_ids),
             EmbedderToConstellationMessage::WebDriverCommand(command) => {
                 self.handle_webdriver_msg(command);
-            },
-            EmbedderToConstellationMessage::WebDriverBidiCommand(command) => {
-                self.handle_webdriver_bidi_msg(command);
             },
             EmbedderToConstellationMessage::Reload(webview_id) => {
                 self.handle_reload_msg(webview_id);
@@ -4830,11 +4854,6 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_webdriver_bidi_msg(&mut self, msg: WebDriverBidiToEmbedderMessage) {
-        todo!()
-    }
-
-    #[servo_tracing::instrument(skip_all)]
     fn set_webview_throttled(&mut self, webview_id: WebViewId, throttled: bool) {
         let browsing_context_id = BrowsingContextId::from(webview_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -6009,6 +6028,34 @@ where
                 })
             })
             .clone()
+    }
+
+    /// The event trigger for WebDriver BiDi `browsingContext.contextCreated`.
+    ///
+    /// <https://w3.org/TR/webdriver-bidi/#webdriver-bidi-navigable-created>
+    fn trigger_webdriver_bidi_navigable_created(&self, navigable: BrowsingContextId) {
+        use webdriver_traits::bidi::browsing_context::Info;
+        // 1.
+        let original_opener = ();
+        // 2.
+        // 3.
+        // 4. continue in WebDriver thread
+        if let Some(ref chan) = self.webdriver_sender {
+            // TODO: fields
+            let msg = ConstellationToWebDriverMessage::BrowsingContextCreated(Info {
+                children: None,
+                client_window: "".to_string(),
+                context: navigable.to_string(),
+                original_opener: None,
+                url: "".to_string(),
+                // TODO: fill user_context after it is implemented.
+                user_context: "".to_string(),
+                parent: None,
+            });
+            if let Err(e) = chan.send(msg) {
+                warn!("Send message to webdriver failed: {e:?}");
+            };
+        }
     }
 }
 

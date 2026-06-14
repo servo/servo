@@ -73,6 +73,7 @@ use servo_wakelock::DefaultWakeLockDelegate;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::clipboard_delegate::StringRequest;
 #[cfg(feature = "gamepad")]
@@ -928,6 +929,14 @@ impl Servo {
             None
         };
 
+        let (webdriver_sender, webdriver_receiver) = if pref!(devtools_server_enabled) {
+            let (sender, receiver) =
+                webdriver_server::bidi::WebDriverBidi::start(embedder_proxy.clone());
+            (Some(sender), Some(receiver))
+        } else {
+            (None, None)
+        };
+
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
         let js_engine_setup = if !opts.multiprocess {
@@ -984,6 +993,8 @@ impl Servo {
             time_profiler_chan,
             mem_profiler_chan,
             devtools_sender,
+            webdriver_sender,
+            webdriver_receiver,
             protocols,
             public_resource_threads.clone(),
             private_resource_threads.clone(),
@@ -1185,6 +1196,8 @@ fn create_constellation(
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
+    webdriver_sender: Option<UnboundedSender<webdriver_traits::ConstellationToWebDriverMessage>>,
+    webdriver_receiver: Option<Receiver<webdriver_traits::WebDriverToConstellationMessage>>,
     protocols: Arc<ProtocolRegistry>,
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
@@ -1214,6 +1227,8 @@ fn create_constellation(
         embedder_proxy,
         constellation_to_embedder_proxy,
         devtools_sender,
+        webdriver_sender,
+        webdriver_receiver,
         #[cfg(feature = "bluetooth")]
         bluetooth_thread,
         system_font_service,

@@ -85,7 +85,7 @@ impl Session {
         });
     }
 
-    pub async fn start(&mut self) {
+    pub async fn run(mut self) {
         // TODO: poll connections
         while let Some(msg) = self.recv.recv().await {
             match msg {

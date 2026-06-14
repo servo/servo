@@ -23,7 +23,6 @@ mod prefs;
 mod resources;
 mod running_app_state;
 mod webdriver;
-mod webdriver_bidi;
 mod window;
 
 pub mod platform {

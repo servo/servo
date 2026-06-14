@@ -7866,6 +7866,8 @@ dependencies = [
  "servo-tracing",
  "servo-url",
  "servo-wakelock",
+ "servo-webdriver-server",
+ "servo-webdriver-traits",
  "servo-webgl",
  "servo-webgpu",
  "servo-webxr",
@@ -8079,11 +8081,13 @@ dependencies = [
  "servo-storage-traits",
  "servo-tracing",
  "servo-url",
+ "servo-webdriver-traits",
  "servo-webgpu",
  "servo-webgpu-traits",
  "servo-webxr-api",
  "stylo",
  "stylo_traits",
+ "tokio",
  "tracing",
 ]
 

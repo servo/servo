@@ -25,7 +25,7 @@ impl Listener {
         }
     }
 
-    pub async fn start(&mut self) {
+    pub async fn run(mut self) {
         let listener = TcpListener::bind(self.address).await.unwrap();
         let addr = listener.local_addr().unwrap();
         if self.address.port() == 0 {
