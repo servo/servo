@@ -1,4 +1,8 @@
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    hash::Hash,
+    sync::{Arc, LazyLock},
+};
 
 use indexmap::{IndexMap, IndexSet};
 use servo_base::id::BrowsingContextId;
@@ -25,11 +29,9 @@ pub struct BidiPart {
     pub(crate) connections: Vec<Connection>,
 
     /// A list of subscriptions for the session.
+    /// Deviation: use map so that item removal is more efficient.
     /// <https://www.w3.org/TR/webdriver-bidi/#event-subscriptions>
-    pub(crate) subscriptions: Vec<Subscription>,
-
-    /// <https://www.w3.org/TR/webdriver-bidi/#event-known-subscription-ids>
-    pub(crate) known_subscription_ids: IndexSet<SubscriptionId>,
+    pub(crate) subscriptions: HashMap<SubscriptionId, Subscription>,
 
     /// A map from UUID to preload script.
     /// <https://www.w3.org/TR/webdriver-bidi/#preload-script-map>
@@ -66,8 +68,10 @@ impl<'a> BidiSession<'a> {
                 SessionCommand::End(cmd) => self.handle_session_end(&cmd.params).await,
                 SessionCommand::New(cmd) => self.handle_session_new(&cmd.params).await,
                 SessionCommand::Status(cmd) => self.handle_session_status(&cmd.params).await,
-                SessionCommand::Subscribe(subscribe) => todo!(),
-                SessionCommand::Unsubscribe(unsubscribe) => todo!(),
+                SessionCommand::Subscribe(cmd) => todo!(),
+                SessionCommand::Unsubscribe(cmd) => {
+                    self.handle_session_unsubscribe(&cmd.params).await
+                },
             },
             CommandData::StorageCommand(cmd) => todo!(),
             CommandData::WebExtensionCommand(cmd) => todo!(),
@@ -141,6 +145,112 @@ impl<'a> BidiSession<'a> {
         // 11.
         // 12.
         todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-session-unsubscribe>
+    async fn handle_session_unsubscribe(
+        &mut self,
+        command_parameters: &session::UnsubscribeParameters,
+    ) -> Result<ResultData, ErrorCode> {
+        match command_parameters {
+            // 1.
+            session::UnsubscribeParameters::UnsubscribeByAttributesRequest(command_parameters) => {
+                // 1.1.
+                let mut event_names = HashSet::<String>::new();
+                // 1.2.
+                for name in command_parameters.events.iter() {
+                    // union is slow, insert instead
+                    for event_name in obtain_a_set_of_event_names(&name)? {
+                        event_names.insert(event_name);
+                    }
+                }
+                // 1.3.
+                let mut new_subscriptions = HashMap::new();
+                // 1.4.
+                let mut matched_events = HashSet::<String>::new();
+                // 1.5.
+                for (id, subscription) in self.bidi.subscriptions.drain() {
+                    // 1.5.1.
+                    if subscription.event_names.intersection(&event_names).count() == 0 {
+                        // 1.5.1.1
+                        new_subscriptions.insert(id, subscription);
+                        // 1.5.1.2
+                        continue;
+                    }
+                    // 1.5.2.
+                    if !subscription.is_global() {
+                        // 1.5.2.1.
+                        new_subscriptions.insert(id, subscription);
+                        // 1.5.2.2.
+                        continue;
+                    }
+                    // 1.5.3.
+                    let mut subscription_event_names = subscription.event_names.clone();
+                    // 1.5.4.
+                    for event_name in event_names.iter() {
+                        // 1.5.4.1.
+                        if subscription_event_names.contains(event_name) {
+                            // 1.5.4.1.1.
+                            matched_events.insert(event_name.clone());
+                            // 1.5.4.1.2.
+                            subscription_event_names.remove(event_name);
+                        }
+                    }
+                    // 1.5.5.
+                    if !subscription_event_names.is_empty() {
+                        // 1.5.5.1
+                        let cloned_subscription = Subscription {
+                            id: subscription.id,
+                            event_names: subscription_event_names.clone(),
+                            top_level_traversable_ids: Default::default(),
+                            user_context_ids: Default::default(),
+                        };
+                        // 1.5.5.2.
+                        new_subscriptions.insert(cloned_subscription.id, cloned_subscription);
+                    }
+                }
+                // 1.6.
+                if matched_events != event_names {
+                    return Err(ErrorCode::InvalidArgument);
+                }
+                // 1.7.
+                self.bidi.subscriptions = new_subscriptions;
+            },
+            // 2.
+            session::UnsubscribeParameters::UnsubscribeByIdRequest(command_parameters) => {
+                // 2.1.
+                let subscriptions: HashSet<_> = command_parameters.subscriptions.iter().collect();
+                // 2.2.
+                let known_subscription_ids = self.known_subscription_ids();
+                let unknown_subscription_ids = subscriptions.difference(&known_subscription_ids);
+                // 2.3.
+                if unknown_subscription_ids.count() == 0 {
+                    // 2.3.1.
+                    return Err(ErrorCode::InvalidArgument);
+                }
+                // 2.4.
+                let mut subscriptions_to_remove = HashSet::new();
+                // 2.5. we use idx instead
+                for subsription in self.bidi.subscriptions.keys() {
+                    // 2.5.1.
+                    if subscriptions.contains(&subsription) {
+                        // 2.5.1.1.
+                        subscriptions_to_remove.insert(*subsription);
+                    }
+                }
+                // 2.6. SKIP: known_subscription_ids is dynamically computed
+                // 2.7.
+                for subscription in subscriptions_to_remove {
+                    self.bidi.subscriptions.remove(&subscription);
+                }
+            },
+        }
+        // 3.
+        Ok(ResultData::SessionResult(SessionResult::UnsubscribeResult(
+            EmptyResult {
+                extensible: Default::default(),
+            },
+        )))
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#end-the-session>
@@ -226,22 +336,40 @@ impl<'a> BidiSession<'a> {
     pub(crate) fn active_sessions(&self) -> &Arc<RwLock<ActiveSessions>> {
         &self.common.remote_end_state.active_sessions
     }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#event-known-subscription-ids>
+    fn known_subscription_ids(&self) -> HashSet<&SubscriptionId> {
+        self.bidi.subscriptions.keys().collect()
+    }
 }
 
 /// <https://www.w3.org/TR/webdriver-bidi/#event-subscription>
 pub struct Subscription {
-    subscription_id: SubscriptionId,
-    event_names: IndexSet<String>,
+    id: SubscriptionId,
+    event_names: HashSet<String>,
     top_level_traversable_ids: IndexSet<BrowsingContextId>,
     user_context_ids: IndexSet<()>,
 }
-
 impl Subscription {
     /// <https://www.w3.org/TR/webdriver-bidi/#subscription-global>
     pub fn is_global(&self) -> bool {
         self.top_level_traversable_ids.is_empty() && self.user_context_ids.is_empty()
     }
 }
+
+impl Hash for Subscription {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl PartialEq for Subscription {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for Subscription {}
 
 /// <https://www.w3.org/TR/webdriver-bidi/#preload-script-map>
 pub struct PreloadScript {
@@ -251,3 +379,79 @@ pub struct PreloadScript {
     sandbox: Option<String>,
     user_contexts: IndexSet<()>,
 }
+
+/// <https://www.w3.org/TR/webdriver-bidi/#obtain-a-set-of-event-names>
+fn obtain_a_set_of_event_names(name: &str) -> Result<HashSet<String>, ErrorCode> {
+    // 1.
+    let mut events = HashSet::new();
+    // 2.
+    if name.contains('\u{002E}') {
+        // 2.1.
+        if EVENT_NAMES.contains(name) {
+            events.insert(name.to_string());
+            return Ok(events);
+        } else {
+            // 2.2.
+            return Err(ErrorCode::InvalidArgument);
+        }
+    }
+    // 3.
+    let Some(module_events) = MODULE_EVENT_MAP.get(&name) else {
+        return Err(ErrorCode::InvalidArgument);
+    };
+    // 4.
+    for event in module_events.iter() {
+        events.insert(format!("{name}.{event}"));
+    }
+    // 5.
+    Ok(events)
+}
+
+// TODO: how to support custom module?
+static MODULE_EVENT_SLICE: &'static [(&'static str, &'static [&'static str])] = &[
+    ("session", &[] as &[&str]),
+    ("browser", &[]),
+    (
+        "browsingContext",
+        &[
+            "contextCreated",
+            "contextDestroyed",
+            "navigationStarted",
+            "fragmentNavigated",
+            "historyUpdated",
+            "domContentLoaded",
+            "load",
+            "downloadWillBegin",
+            "downloadEnd",
+            "navigationAborted",
+            "navigationCommitted",
+            "navigationFailed",
+            "userPromptClosed",
+            "userPromptOpened",
+        ],
+    ),
+    ("emulation", &[]),
+    (
+        "network",
+        &[
+            "authRequired",
+            "beforeRequestSent",
+            "fetchError",
+            "responseCompleted",
+            "responseStarted",
+        ],
+    ),
+    ("script", &["message", "realmCreated", "realmDestroyed"]),
+    ("storage", &[]),
+    ("log", &["entryAdded"]),
+    ("input", &["fileDialogOpened"]),
+    ("webExtension", &[]),
+];
+static EVENT_NAMES: LazyLock<HashSet<String>> = LazyLock::new(|| {
+    MODULE_EVENT_SLICE
+        .iter()
+        .flat_map(|(module, events)| events.iter().map(move |e| format!("{module}.{e}")))
+        .collect()
+});
+static MODULE_EVENT_MAP: LazyLock<HashMap<&'static str, &'static [&'static str]>> =
+    LazyLock::new(|| MODULE_EVENT_SLICE.iter().copied().collect());

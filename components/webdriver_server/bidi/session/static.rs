@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, mpsc};
 use uuid::Uuid;
 use webdriver_traits::bidi::{
     self, CommandData, EmptyParams, ErrorCode, ResultData, SessionCommand, SessionResult,
@@ -132,7 +132,14 @@ impl<'a> StaticSession<'a> {
     }
 
     fn new_bidi_session(&self, session_id: SessionId) -> Session {
-        let common = self.common.clone();
+        let (session_sender, session_receiver) = mpsc::unbounded_channel();
+        let common = CommonPart {
+            remote_end_state: self.common.remote_end_state.clone(),
+            embedder_proxy: self.common.embedder_proxy.clone(),
+            constellation_sender: self.common.constellation_sender.clone(),
+            session_sender,
+            session_receiver,
+        };
         let bidi = BidiPart::default();
         Session::BidiOnly {
             id: session_id,
