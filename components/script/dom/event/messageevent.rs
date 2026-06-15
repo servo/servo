@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -26,7 +27,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::windowproxy::WindowProxy;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -194,13 +195,13 @@ impl MessageEvent {
     }
 
     pub(crate) fn dispatch_jsval(
+        cx: &mut JSContext,
         target: &EventTarget,
         scope: &GlobalScope,
         message: HandleValue,
         origin: Option<&str>,
         source: Option<&WindowProxy>,
         ports: Vec<DomRoot<MessagePort>>,
-        can_gc: CanGc,
     ) {
         let messageevent = MessageEvent::new(
             scope,
@@ -216,16 +217,12 @@ impl MessageEvent {
                 .as_ref(),
             DOMString::new(),
             ports,
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        messageevent.upcast::<Event>().fire(target, can_gc);
+        messageevent.upcast::<Event>().fire(cx, target);
     }
 
-    pub(crate) fn dispatch_error(
-        cx: &mut js::context::JSContext,
-        target: &EventTarget,
-        scope: &GlobalScope,
-    ) {
+    pub(crate) fn dispatch_error(cx: &mut JSContext, target: &EventTarget, scope: &GlobalScope) {
         let init = MessageEventBinding::MessageEventInit::empty();
         let messageevent = MessageEvent::new(
             scope,
@@ -239,9 +236,7 @@ impl MessageEvent {
             init.ports.clone(),
             CanGc::from_cx(cx),
         );
-        messageevent
-            .upcast::<Event>()
-            .fire(target, CanGc::from_cx(cx));
+        messageevent.upcast::<Event>().fire(cx, target);
     }
 }
 
@@ -271,7 +266,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-data>
-    fn Data(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+    fn Data(&self, _cx: &mut JSContext, mut retval: MutableHandleValue) {
         retval.set(self.data.get())
     }
 
@@ -307,8 +302,9 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-ports>
-    fn Ports(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn Ports(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         self.frozen_ports.get_or_init(
+            cx,
             || {
                 self.ports
                     .borrow()
@@ -316,9 +312,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
                     .map(|port| DomRoot::from_ref(&**port))
                     .collect()
             },
-            cx,
             retval,
-            can_gc,
         );
     }
 
@@ -326,7 +320,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     #[expect(non_snake_case)]
     fn InitMessageEvent(
         &self,
-        _cx: JSContext,
+        _cx: &mut JSContext,
         type_: DOMString,
         bubbles: bool,
         cancelable: bool,

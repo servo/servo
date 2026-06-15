@@ -213,6 +213,7 @@
 
     test_valid_attr('width', 'attr(data-foo xx, 3px)', '10', '3px');
     test_valid_attr('width', 'attr(data-foo xx, 3px)', '10px', '3px');
+    test_invalid_attr('width', 'attr(data-foo &, 3px)', '10');
 
     test_invalid_attr('content', 'attr(data-foo string)', 'abc');
     test_invalid_attr('animation-name', 'attr(data-foo type(string))', 'abc');
@@ -269,6 +270,8 @@
     test_invalid_attr('transition-duration', 'attr(data-foo ms)', '10px foo');
 
     test_invalid_attr('width', 'attr(())', '10px');
+    test_invalid_attr('width', 'attr(data-foo type(< length  >))', '10px');
+    test_invalid_attr('width', 'attr(data-foo type(<length> +))', '10px');
 
     test_invalid_attr('--x', 'attr(data-foo type(<url>))', 'url("https://does-not-exist.test/404.png")');
 </script>

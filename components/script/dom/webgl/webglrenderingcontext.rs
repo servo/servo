@@ -3,10 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::cmp;
-use std::ptr::{self, NonNull};
 #[cfg(feature = "webxr")]
 use std::rc::Rc;
+use std::{cmp, ptr};
 
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
@@ -15,7 +14,7 @@ use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
-use js::rust::{CustomAutoRooterGuard, MutableHandleValue};
+use js::rust::{CustomAutoRooterGuard, MutableHandleObject, MutableHandleValue};
 use js::typedarray::{
     ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, TypedArray,
     TypedArrayElementCreator, Uint32Array,
@@ -23,7 +22,7 @@ use js::typedarray::{
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
+use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object_with_cx};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};
@@ -89,27 +88,6 @@ use crate::dom::webgl::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::webgl::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-
-// From the GLES 2.0.25 spec, page 85:
-//
-//     "If a texture that is currently bound to one of the targets
-//      TEXTURE_2D, or TEXTURE_CUBE_MAP is deleted, it is as though
-//      BindTexture had been executed with the same target and texture
-//      zero."
-//
-// and similar text occurs for other object types.
-macro_rules! handle_object_deletion {
-    ($self_:expr, $binding:expr, $object:ident, $unbind_command:expr) => {
-        if let Some(bound_object) = $binding.get() {
-            if bound_object.id() == $object.id() {
-                $binding.set(None);
-                if let Some(command) = $unbind_command {
-                    $self_.send_command(command);
-                }
-            }
-        }
-    };
-}
 
 fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     match (arg1, arg2) {
@@ -305,12 +283,12 @@ impl WebGLRenderingContext {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
-        can_gc: CanGc,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(
             window,
@@ -319,7 +297,7 @@ impl WebGLRenderingContext {
             size,
             attrs,
         ) {
-            Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window, can_gc)),
+            Ok(ctx) => Some(reflect_dom_object_with_cx(Box::new(ctx), window, cx)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(
@@ -328,14 +306,14 @@ impl WebGLRenderingContext {
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
                     DOMString::from(msg),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 match canvas {
                     RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
+                        event.upcast::<Event>().fire(cx, canvas.upcast());
                     },
                     RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
+                        event.upcast::<Event>().fire(cx, canvas.upcast());
                     },
                 }
                 None
@@ -643,7 +621,7 @@ impl WebGLRenderingContext {
             1,
             size,
             TexSource::Pixels(TexPixels::new(
-                GenericSharedMemory::from_bytes(&pixels),
+                GenericSharedMemory::from_vec(pixels),
                 size,
                 PixelFormat::RGBA8,
                 None,
@@ -2587,10 +2565,20 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14>
-    fn GetExtension(&self, _cx: SafeJSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+    fn GetExtension(
+        &self,
+        _cx: SafeJSContext,
+        name: DOMString,
+        mut return_value: MutableHandleObject,
+    ) {
         self.extension_manager
             .init_once(|| self.get_gl_extensions());
-        self.extension_manager.get_or_init_extension(&name, self)
+        return_value.set(
+            self.extension_manager
+                .get_or_init_extension(&name, self)
+                .map(|nonnull| nonnull.as_ptr())
+                .unwrap_or(ptr::null_mut()),
+        );
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
@@ -3170,15 +3158,15 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/immersive-web/webxr/issues/855
             handle_potential_webgl_error!(self, framebuffer.validate_transparent(), return);
             handle_potential_webgl_error!(self, self.validate_ownership(framebuffer), return);
-            handle_object_deletion!(
-                self,
-                self.bound_draw_framebuffer,
-                framebuffer,
-                Some(WebGLCommand::BindFramebuffer(
+            if let Some(bound_object) = self.bound_draw_framebuffer.get() &&
+                bound_object.id() == framebuffer.id()
+            {
+                self.bound_draw_framebuffer.set(None);
+                self.send_command(WebGLCommand::BindFramebuffer(
                     framebuffer.target().unwrap(),
-                    WebGLFramebufferBindingRequest::Default
-                ))
-            );
+                    WebGLFramebufferBindingRequest::Default,
+                ));
+            }
             framebuffer.delete(Operation::Infallible)
         }
     }
@@ -3187,15 +3175,15 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
             handle_potential_webgl_error!(self, self.validate_ownership(renderbuffer), return);
-            handle_object_deletion!(
-                self,
-                self.bound_renderbuffer,
-                renderbuffer,
-                Some(WebGLCommand::BindRenderbuffer(
+            if let Some(bound_object) = self.bound_renderbuffer.get() &&
+                bound_object.id() == renderbuffer.id()
+            {
+                self.bound_renderbuffer.set(None);
+                self.send_command(WebGLCommand::BindRenderbuffer(
                     constants::RENDERBUFFER,
-                    None
-                ))
-            );
+                    None,
+                ));
+            }
             renderbuffer.delete(Operation::Infallible)
         }
     }
@@ -4626,7 +4614,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         // If data is null, a buffer of sufficient size
         // initialized to 0 is passed.
         let buff = match *pixels {
-            None => GenericSharedMemory::from_bytes(&vec![0u8; expected_byte_length as usize]),
+            None => GenericSharedMemory::from_byte(0, expected_byte_length as usize),
             Some(ref data) => GenericSharedMemory::from_bytes(unsafe { data.as_slice() }),
         };
 

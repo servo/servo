@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::ffi::CString;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{WebGPU, WebGPURenderBundle, WebGPURequest};
 use wgpu_core::command::{
     RenderBundleEncoder, RenderBundleEncoderDescriptor, bundle_ffi as wgpu_bundle,
@@ -27,7 +29,6 @@ use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpurenderbundle::GPURenderBundle;
 use crate::dom::webgpu::gpurenderpipeline::GPURenderPipeline;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GPURenderBundleEncoder {
@@ -58,14 +59,14 @@ impl GPURenderBundleEncoder {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         render_bundle_encoder: RenderBundleEncoder,
         device: &GPUDevice,
         channel: WebGPU,
         label: USVString,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(GPURenderBundleEncoder::new_inherited(
                 render_bundle_encoder,
                 device,
@@ -73,7 +74,7 @@ impl GPURenderBundleEncoder {
                 label,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 }
@@ -81,9 +82,9 @@ impl GPURenderBundleEncoder {
 impl GPURenderBundleEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
     pub(crate) fn create(
+        cx: &mut JSContext,
         device: &GPUDevice,
         descriptor: &GPURenderBundleEncoderDescriptor,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
         let desc = RenderBundleEncoderDescriptor {
             label: (&descriptor.parent.parent).convert(),
@@ -120,12 +121,12 @@ impl GPURenderBundleEncoder {
         let render_bundle_encoder = RenderBundleEncoder::new(&desc, device.id().0).unwrap();
 
         Ok(GPURenderBundleEncoder::new(
+            cx,
             &device.global(),
             render_bundle_encoder,
             device,
             device.channel(),
             descriptor.parent.parent.label.clone(),
-            can_gc,
         ))
     }
 }
@@ -255,8 +256,41 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
         }
     }
 
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup>
+    #[expect(unsafe_code)]
+    fn PushDebugGroup(&self, group_label: USVString) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
+            let label = CString::new(group_label.0).unwrap_or_default();
+            unsafe {
+                wgpu_bundle::wgpu_render_bundle_push_debug_group(encoder, label.as_ptr());
+            }
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup>
+    fn PopDebugGroup(&self) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
+            wgpu_bundle::wgpu_render_bundle_pop_debug_group(encoder);
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
+    #[expect(unsafe_code)]
+    fn InsertDebugMarker(&self, marker_label: USVString) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
+            let label = CString::new(marker_label.0).unwrap_or_default();
+            unsafe {
+                wgpu_bundle::wgpu_render_bundle_insert_debug_marker(encoder, label.as_ptr());
+            }
+        }
+    }
+
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish>
-    fn Finish(&self, descriptor: &GPURenderBundleDescriptor) -> DomRoot<GPURenderBundle> {
+    fn Finish(
+        &self,
+        cx: &mut JSContext,
+        descriptor: &GPURenderBundleDescriptor,
+    ) -> DomRoot<GPURenderBundle> {
         let desc = wgpu_types::RenderBundleDescriptor {
             label: (&descriptor.parent).convert(),
         };
@@ -275,12 +309,12 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
         let render_bundle = WebGPURenderBundle(render_bundle_id);
         GPURenderBundle::new(
+            cx,
             &self.global(),
             render_bundle,
             self.device.id(),
             self.channel.clone(),
             descriptor.parent.label.clone(),
-            CanGc::deprecated_note(),
         )
     }
 }

@@ -89,9 +89,15 @@ impl<'dom> DangerousStyleElement<'dom> for ServoDangerousStyleElement<'dom> {
 
 impl<'dom> style::dom::AttributeProvider for ServoDangerousStyleElement<'dom> {
     fn get_attr(&self, attr: &style::LocalName, namespace: &style::Namespace) -> Option<String> {
-        self.element
-            .get_attr_val_for_layout(namespace, attr)
-            .map(Into::into)
+        // All attribute names on HTML elements in HTML docs match ASCII-case-insensitively.
+        // See note in https://html.spec.whatwg.org/multipage/#custom-data-attribute
+        if self.is_html_element_in_html_document() {
+            let attr = &style::LocalName::new(attr.to_ascii_lowercase());
+            self.element.get_attr_val_for_layout(namespace, attr)
+        } else {
+            self.element.get_attr_val_for_layout(namespace, attr)
+        }
+        .map(Into::into)
     }
 }
 
@@ -418,7 +424,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         let element_lang = match override_lang {
             Some(Some(lang)) => lang,
             Some(None) => AtomString::default(),
-            None => AtomString::from(&*self.element.get_lang_for_layout()),
+            None => self.element.get_lang_for_layout(),
         };
         extended_filtering(&element_lang, value)
     }
@@ -642,9 +648,9 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         };
 
         if box_tree_needs_rebuild() {
-            RestyleDamage::from_bits_retain(LayoutDamage::BOX_DAMAGE.bits())
+            RestyleDamage::from_bits_retain(LayoutDamage::BoxDamage.bits())
         } else if text_shaping_needs_recollect() {
-            RestyleDamage::from_bits_retain(LayoutDamage::DESCENDANT_HAS_BOX_DAMAGE.bits())
+            RestyleDamage::from_bits_retain(LayoutDamage::DescendantHasBoxDamage.bits())
         } else {
             // This element needs to be laid out again, but does not have any damage to
             // its box. In the future, we will distinguish between types of damage to the

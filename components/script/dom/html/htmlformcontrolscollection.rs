@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use stylo_atoms::Atom;
 
@@ -111,8 +111,8 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-htmlformcontrolscollection-interface:supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.collection.SupportedPropertyNames()
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+        self.collection.SupportedPropertyNames(no_gc)
     }
 
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of

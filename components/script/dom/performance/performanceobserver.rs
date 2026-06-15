@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
@@ -23,7 +24,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::console::Console;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum ObserverType {
@@ -82,7 +83,7 @@ impl PerformanceObserver {
 
     /// Trigger performance observer callback with the list of performance entries
     /// buffered since the last callback call.
-    pub(crate) fn notify(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn notify(&self, cx: &mut JSContext) {
         if self.entries.borrow().is_empty() {
             return;
         }
@@ -130,19 +131,14 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
     }
 
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
-    fn SupportedEntryTypes(
-        cx: JSContext,
-        global: &GlobalScope,
-        can_gc: CanGc,
-        retval: MutableHandleValue,
-    ) {
+    fn SupportedEntryTypes(cx: &mut JSContext, global: &GlobalScope, retval: MutableHandleValue) {
         // While this is exposed through a method of PerformanceObserver,
         // it is specified as associated with the global scope.
-        global.supported_performance_entry_types(cx, retval, can_gc)
+        global.supported_performance_entry_types(cx, retval)
     }
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()>
-    fn Observe(&self, options: &PerformanceObserverInit) -> Fallible<()> {
+    fn Observe(&self, cx: &mut JSContext, options: &PerformanceObserverInit) -> Fallible<()> {
         // Step 1 is self
 
         // Step 2 is self.global()
@@ -192,7 +188,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
 
             // Step 6.3
             if entry_types.is_empty() {
-                Console::internal_warn(&self.global(), NO_VALID_ENTRY_TYPE.to_string());
+                Console::internal_warn(cx, &self.global(), NO_VALID_ENTRY_TYPE.to_string());
                 return Ok(());
             }
 
@@ -206,7 +202,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         } else if let Some(entry_type) = &options.type_ {
             // Step 7.2
             let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
-                Console::internal_warn(&self.global(), NO_VALID_ENTRY_TYPE.to_string());
+                Console::internal_warn(cx, &self.global(), NO_VALID_ENTRY_TYPE.to_string());
                 return Ok(());
             };
 

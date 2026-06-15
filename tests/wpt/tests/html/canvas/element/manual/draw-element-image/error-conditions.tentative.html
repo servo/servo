@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>Tests that error conditions cause exceptions</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:chrishtr@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+#canvas {
+  background: grey;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=child>
+    <div id=grandchild></div>
+  </div>
+</canvas>
+<canvas id=canvaswithoutlayout layoutsubtree>
+  <div id=child2></div>
+</div>
+
+</canvas>
+
+<script>
+promise_test(async () => {
+  await waitForCanvasPaint(canvas);
+
+  assert_throws_dom("InvalidStateError",
+    () => canvas.getContext("2d").drawElementImage(grandchild, 20, 30),
+    "Can't draw non-direct children.");
+
+  canvas.toggleAttribute("layoutsubtree"); // Remove attribute.
+  assert_throws_dom("InvalidStateError",
+    () => canvas.getContext("2d").drawElementImage(child, 20, 30),
+    "Can't draw canvas children if layoutsubtree is not specified.");
+  assert_throws_dom("InvalidStateError",
+    () => canvas.captureElementImage(child),
+    "Can't capture element image if layoutsubtree is not specified.");
+  assert_throws_dom("InvalidStateError",
+    () => canvas.getElementTransform(child, new DOMMatrix()),
+    "Can't get element transform if layoutsubtree is not specified.");
+
+  canvas.toggleAttribute("layoutsubtree"); // Add attribute.
+  await waitForCanvasPaint(canvas);
+  // Should not throw an exception.
+  canvas.getContext("2d").drawElementImage(child, 20, 30);
+  let img = canvas.captureElementImage(child);
+  canvas.getElementTransform(child, new DOMMatrix());
+
+  canvaswithoutlayout.removeAttribute("layoutsubtree");
+  assert_throws_dom("InvalidStateError",
+    () => canvaswithoutlayout.getContext("2d").drawElementImage(
+      child2, 20, 30),
+    "Can't draw canvas children if layoutsubtree is not specified.");
+  assert_throws_dom("InvalidStateError",
+    () => canvaswithoutlayout.captureElementImage(child2),
+    "Can't capture element image if layoutsubtree is not specified.");
+  assert_throws_dom("InvalidStateError",
+    () => canvaswithoutlayout.getElementTransform(child2, new DOMMatrix()),
+    "Can't get element transform if layoutsubtree is not specified.");
+
+  // Also test wrong children exceptions
+  assert_throws_dom("InvalidStateError",
+    () => canvas.captureElementImage(grandchild),
+    "Can't capture non-direct children.");
+  assert_throws_dom("InvalidStateError",
+    () => canvas.getElementTransform(grandchild, new DOMMatrix()),
+    "Can't get transform for non-direct children.");
+});
+</script>
+</html>

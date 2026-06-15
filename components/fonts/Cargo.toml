@@ -73,7 +73,7 @@ freetype-sys = { workspace = true }
 servo-allocator = { workspace = true }
 
 [target.'cfg(all(any(target_os = "linux", target_os = "freebsd"), not(target_env = "ohos")))'.dependencies]
-fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
+fontconfig_sys = { workspace = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 xml = { workspace = true }

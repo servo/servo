@@ -7,7 +7,7 @@ from webdriver.bidi.modules.script import ContextTarget
 from tests.support.asserts import assert_move_to_coordinates
 from tests.support.helpers import filter_dict
 
-from .. import get_events
+from .. import add_mouse_listeners, get_events
 from . import (
     assert_pointer_events,
     get_inview_center_bidi,
@@ -472,3 +472,38 @@ async def test_move_to_origin_position_within_frame(
 
     assert len(events) == 1
     assert events[0] == target_point
+
+
+async def test_move_to_inline_block_child(
+    bidi_session, top_context, inline, get_element
+):
+    # margin-top: 0.5px is on purpose: it places the element at a fractional
+    # y-coordinate, which could trigger a rounding issue preventing the action from
+    # working.
+    url = inline("""
+        <div style="margin-top: 0.5px">
+          <a id="link" href="#"><div style="width: 32px; height: 32px;"></div></a>
+        </div>
+    """)
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url,
+        wait="complete",
+    )
+    await add_mouse_listeners(bidi_session, top_context)
+
+    elem = await get_element("#link")
+    center = await get_inview_center_bidi(bidi_session, context=top_context, element=elem)
+
+    actions = Actions()
+    actions.add_pointer().pointer_move(x=0, y=0, origin=get_element_origin(elem))
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    events = await get_events(bidi_session, top_context["context"])
+    assert len(events) == 1
+    assert events[0]["type"] == "mousemove"
+    assert events[0]["clientX"] == pytest.approx(center["x"], abs=1.0)
+    assert events[0]["clientY"] == pytest.approx(center["y"], abs=1.0)

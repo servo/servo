@@ -624,6 +624,13 @@ async fn obtain_response(
     let headers = headers.clone();
     let is_secure_scheme = url.is_secure_scheme();
 
+    // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
+    //   attributes to this as well (domain_lookup_start, domain_lookup_end, connect_start, connect_end,
+    //   secure_connection_start)
+    context
+        .timing
+        .set_attribute(ResourceAttribute::RequestStart);
+
     let client_future = client
         .request(request)
         .and_then(move |res| {
@@ -877,13 +884,6 @@ pub(crate) async fn http_fetch(
         if request.redirect_mode == RedirectMode::Follow {
             request.service_workers_mode = ServiceWorkersMode::None;
         }
-
-        // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
-        //   attributes to this as well (domain_lookup_start, domain_lookup_end, connect_start, connect_end,
-        //   secure_connection_start)
-        context
-            .timing
-            .set_attribute(ResourceAttribute::RequestStart);
 
         // Step 4.3. Set response and internalResponse to the result of
         // running HTTP-network-or-cache fetch given fetchParams.

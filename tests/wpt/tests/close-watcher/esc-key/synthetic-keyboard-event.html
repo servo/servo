@@ -13,15 +13,15 @@ test(t => {
   let watcher = createRecordingCloseWatcher(t, events);
 
   let keydown = new KeyboardEvent("keydown", {key: "Escape", keyCode: 27});
-  window.dispatchEvent(keydown);
+  document.body.dispatchEvent(keydown);
   let keyup = new KeyboardEvent("keyup", {key: "Escape", keyCode: 27});
-  window.dispatchEvent(keyup);
+  document.body.dispatchEvent(keyup);
 
   assert_array_equals(events, []);
 
   let keyup2 = document.createEvent("Event");
   keyup2.initEvent("keyup", true);
-  window.dispatchEvent(keyup2);
+  document.body.dispatchEvent(keyup2);
 
   assert_array_equals(events, []);
 }, "close via synthesized Esc key must not work");

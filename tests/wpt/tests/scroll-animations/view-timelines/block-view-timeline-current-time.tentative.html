@@ -79,7 +79,7 @@
                           "Timeline's currentTime at end offset");
     assert_percents_equal(anim.currentTime, 100,
                           "Animation's currentTime at end offset");
-    assert_equals(getComputedStyle(target).opacity, '0.7',
+    assert_equals(getComputedStyle(target).opacity, '1',
                   'Effect is in the after phase at effect end time');
 
     // Advance to the scroll limit.
@@ -140,7 +140,7 @@
                           "Timeline's current time at end offset");
     assert_percents_equal(anim.currentTime, 100,
                           "Animation's current time at end offset");
-    assert_equals(getComputedStyle(target).opacity, '0.7',
+    assert_equals(getComputedStyle(target).opacity, '1',
                   'Effect inactive at the end offset');
 
     // Advance to scroll limit.
@@ -214,6 +214,5 @@
     assert_equals(getComputedStyle(target).opacity, "0.5",
                   'Effect at end of active phase');
   }, 'View timeline  does not clamp end scroll offset at max scroll');
-
 </script>
 </html>

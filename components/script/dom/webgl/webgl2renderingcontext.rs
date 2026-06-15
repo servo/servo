@@ -3,22 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::cmp;
-use std::ptr::{self, NonNull};
 #[cfg(feature = "webxr")]
 use std::rc::Rc;
+use std::{cmp, ptr};
 
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
-use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
+use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
 use pixels::{Alpha, Snapshot};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
@@ -132,14 +131,14 @@ struct ReadPixelsSizes {
 
 impl WebGL2RenderingContext {
     fn new_inherited(
+        cx: &mut js::context::JSContext,
         window: &Window,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
-        can_gc: CanGc,
     ) -> Option<WebGL2RenderingContext> {
         let base =
-            WebGLRenderingContext::new(window, canvas, WebGLVersion::WebGL2, size, attrs, can_gc)?;
+            WebGLRenderingContext::new(cx, window, canvas, WebGLVersion::WebGL2, size, attrs)?;
 
         let samplers = (0..base.limits().max_combined_texture_image_units)
             .map(|_| Default::default())
@@ -180,14 +179,14 @@ impl WebGL2RenderingContext {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
-        can_gc: CanGc,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        WebGL2RenderingContext::new_inherited(window, canvas, size, attrs, can_gc)
-            .map(|ctx| reflect_dom_object(Box::new(ctx), window, can_gc))
+        WebGL2RenderingContext::new_inherited(cx, window, canvas, size, attrs)
+            .map(|ctx| reflect_dom_object_with_cx(Box::new(ctx), window, cx))
     }
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
@@ -195,7 +194,10 @@ impl WebGL2RenderingContext {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn is_webgl2_enabled(_cx: JSContext, global: HandleObject) -> bool {
+    pub(crate) fn is_webgl2_enabled(
+        _cx: &mut js::context::JSContext,
+        global: HandleObject,
+    ) -> bool {
         if pref!(dom_webgl2_enabled) {
             return true;
         }
@@ -1273,8 +1275,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14>
-    fn GetExtension(&self, cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
-        self.base.GetExtension(cx, name)
+    fn GetExtension(&self, cx: JSContext, name: DOMString, return_value: MutableHandleObject) {
+        self.base.GetExtension(cx, name, return_value)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.4>
@@ -3181,7 +3183,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         // If srcData is null, a buffer of sufficient size initialized to 0 is passed.
         let buff = match *src_data {
             Some(ref data) => GenericSharedMemory::from_bytes(unsafe { data.as_slice() }),
-            None => GenericSharedMemory::from_bytes(&vec![0u8; expected_byte_len as usize]),
+            None => GenericSharedMemory::from_byte(0, expected_byte_len as usize),
         };
         if buff.len() < expected_byte_len as usize {
             return {
@@ -3826,26 +3828,23 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
     fn DeleteQuery(&self, query: Option<&WebGLQuery>) {
         if let Some(query) = query {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
 
             if let Some(query_target) = query.target() {
                 let slot = match query_target {
-                    constants::ANY_SAMPLES_PASSED |
-                    constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+                    constants::ANY_SAMPLES_PASSED | constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
                         &self.occlusion_query
                     },
-                    constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
-                        &self.primitives_query
-                    },
+                    constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => &self.primitives_query,
                     _ => unreachable!(),
                 };
-                if let Some(stored_query) = slot.get()
-                    && stored_query.target() == query.target() {
-                        slot.set(None);
-                    }
+                if let Some(stored_query) = slot.get() &&
+                    stored_query.target() == query.target()
+                {
+                    slot.set(None);
+                }
             }
 
             query.delete(Operation::Infallible);
@@ -3887,18 +3886,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
     fn BeginQuery(&self, target: u32, query: &WebGLQuery) {
         handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
 
         let active_query = match target {
-            constants::ANY_SAMPLES_PASSED |
-            constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+            constants::ANY_SAMPLES_PASSED | constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
                 &self.occlusion_query
             },
-            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
-                &self.primitives_query
-            },
+            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => &self.primitives_query,
             _ => {
                 self.base.webgl_error(InvalidEnum);
                 return;
@@ -3916,16 +3911,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
     fn EndQuery(&self, target: u32) {
         let active_query = match target {
-            constants::ANY_SAMPLES_PASSED |
-            constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+            constants::ANY_SAMPLES_PASSED | constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
                 self.occlusion_query.take()
             },
-            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
-                self.primitives_query.take()
-            },
+            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => self.primitives_query.take(),
             _ => {
                 self.base.webgl_error(InvalidEnum);
                 return;
@@ -3943,35 +3934,37 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
     fn GetQuery(&self, target: u32, pname: u32) -> Option<DomRoot<WebGLQuery>> {
         if pname != constants::CURRENT_QUERY {
             self.base.webgl_error(InvalidEnum);
             return None;
         }
         let active_query = match target {
-            constants::ANY_SAMPLES_PASSED |
-            constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
+            constants::ANY_SAMPLES_PASSED | constants::ANY_SAMPLES_PASSED_CONSERVATIVE => {
                 self.occlusion_query.get()
             },
-            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => {
-                self.primitives_query.get()
-            },
+            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => self.primitives_query.get(),
             _ => {
                 self.base.webgl_error(InvalidEnum);
                 None
             },
         };
-        if let Some(query) = active_query.as_ref()
-            && query.target() != Some(target) {
-                return None;
-            }
+        if let Some(query) = active_query.as_ref() &&
+            query.target() != Some(target)
+        {
+            return None;
+        }
         active_query
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
-    #[rustfmt::skip]
-    fn GetQueryParameter(&self, _cx: JSContext, query: &WebGLQuery, pname: u32, mut retval: MutableHandleValue) {
+    fn GetQueryParameter(
+        &self,
+        _cx: JSContext,
+        query: &WebGLQuery,
+        pname: u32,
+        mut retval: MutableHandleValue,
+    ) {
         handle_potential_webgl_error!(
             self.base,
             self.base.validate_ownership(query),
@@ -4980,7 +4973,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 }
 
 impl WebGL2RenderingContextHelpers for WebGL2RenderingContext {
-    fn is_webgl2_enabled(cx: JSContext, global: HandleObject) -> bool {
+    fn is_webgl2_enabled(cx: &mut js::context::JSContext, global: HandleObject) -> bool {
         Self::is_webgl2_enabled(cx, global)
     }
 }

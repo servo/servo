@@ -10,8 +10,9 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::actor::{Actor, ActorEncode, ActorRegistry};
-use crate::actors::object::{ObjectActorMsg, ObjectPropertyDescriptor};
+use crate::actor::{Actor, ActorEncode, ActorRegistry, new_actor_name};
+use crate::actors::object::ObjectPropertyDescriptor;
+use crate::debugger_value_to_json;
 
 #[derive(Serialize)]
 struct EnvironmentBindings {
@@ -41,7 +42,7 @@ pub(crate) struct EnvironmentActorMsg {
     function: Option<EnvironmentFunction>,
     /// Should be set if `type_` is `EnvironmentType::Object`
     #[serde(skip_serializing_if = "Option::is_none")]
-    object: Option<ObjectActorMsg>,
+    object: Option<Value>,
 }
 
 /// Resposible for listing the bindings in an environment and assigning new values to them.
@@ -55,8 +56,8 @@ pub(crate) struct EnvironmentActor {
 }
 
 impl Actor for EnvironmentActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 
@@ -73,7 +74,7 @@ impl EnvironmentActor {
             return actor_name;
         }
 
-        let environment_name = registry.new_name::<Self>();
+        let environment_name = new_actor_name::<Self>();
         let environment_actor = Self {
             name: environment_name.clone(),
             parent_name,
@@ -92,18 +93,9 @@ impl ActorEncode<EnvironmentActorMsg> for EnvironmentActor {
             .map(|p| registry.find::<EnvironmentActor>(p))
             .map(|p| Box::new(p.encode(registry)));
         let environment = self.environment.borrow();
-        // TODO: Change hardcoded values.
-        EnvironmentActorMsg {
-            actor: self.name(),
-            type_: environment.type_.clone(),
-            scope_kind: environment.scope_kind.clone(),
-            parent,
-            function: environment
-                .function_display_name
-                .clone()
-                .map(|display_name| EnvironmentFunction { display_name }),
-            object: None,
-            bindings: Some(EnvironmentBindings {
+        let bindings = match environment.type_.as_deref() {
+            Some("object") | Some("with") => None,
+            _ => Some(EnvironmentBindings {
                 arguments: [].to_vec(),
                 variables: environment
                     .binding_variables
@@ -120,6 +112,22 @@ impl ActorEncode<EnvironmentActorMsg> for EnvironmentActor {
                     })
                     .collect(),
             }),
+        };
+
+        EnvironmentActorMsg {
+            actor: self.name().to_string(),
+            type_: environment.type_.clone(),
+            scope_kind: environment.scope_kind.clone(),
+            parent,
+            function: environment
+                .function_display_name
+                .clone()
+                .map(|display_name| EnvironmentFunction { display_name }),
+            object: environment
+                .object
+                .clone()
+                .map(|object| debugger_value_to_json(registry, object)),
+            bindings,
         }
     }
 }

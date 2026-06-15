@@ -5,8 +5,8 @@
 use aws_lc_rs::constant_time::verify_slices_are_equal;
 use aws_lc_rs::hmac;
 use js::context::JSContext;
-use rand::TryRngCore;
-use rand::rngs::OsRng;
+use rand::TryRng;
+use rand::rngs::SysRng;
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
 use script_bindings::domstring::DOMString;
 use zeroize::Zeroizing;
@@ -20,7 +20,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     NormalizedAlgorithm, SubtleHmacImportParams, SubtleHmacKeyAlgorithm, SubtleHmacKeyGenParams,
-    SubtleKeyAlgorithm,
 };
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
@@ -30,7 +29,7 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
     // and message as the input data text.
     let hash_function = match key.algorithm() {
-        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name {
+        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
             CryptoAlgorithm::Sha1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
             CryptoAlgorithm::Sha256 => hmac::HMAC_SHA256,
             CryptoAlgorithm::Sha384 => hmac::HMAC_SHA384,
@@ -61,7 +60,7 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
     // and message as the input data text.
     let hash_function = match key.algorithm() {
-        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name {
+        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
             CryptoAlgorithm::Sha1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
             CryptoAlgorithm::Sha256 => hmac::HMAC_SHA256,
             CryptoAlgorithm::Sha384 => hmac::HMAC_SHA384,
@@ -129,7 +128,7 @@ pub(crate) fn generate_key(
     // Step 3. Generate a key of length length bits.
     // Step 4. If the key generation step fails, then throw an OperationError.
     let mut key_data = vec![0; length as usize];
-    if OsRng.try_fill_bytes(&mut key_data).is_err() {
+    if SysRng.try_fill_bytes(&mut key_data).is_err() {
         return Err(Error::JSFailed);
     }
 
@@ -140,12 +139,9 @@ pub(crate) fn generate_key(
     // Step 10. Set the name attribute of hash to equal the name member of the hash member of
     // normalizedAlgorithm.
     // Step 11. Set the hash attribute of algorithm to hash.
-    let hash = SubtleKeyAlgorithm {
-        name: normalized_algorithm.hash.name(),
-    };
     let algorithm = SubtleHmacKeyAlgorithm {
         name: CryptoAlgorithm::Hmac,
-        hash,
+        hash: normalized_algorithm.hash.clone(),
         length,
     };
 
@@ -345,7 +341,7 @@ pub(crate) fn import_key(
     // Step 13. Set the hash attribute of algorithm to hash.
     let algorithm = SubtleHmacKeyAlgorithm {
         name: CryptoAlgorithm::Hmac,
-        hash: SubtleKeyAlgorithm { name: hash.name() },
+        hash: hash.clone(),
         length,
     };
 
@@ -407,7 +403,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //     Set the alg attribute of jwk to alg.
             let hash_algorithm = match key.algorithm() {
                 KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => {
-                    match algorithm.hash.name {
+                    match algorithm.hash.name() {
                         CryptoAlgorithm::Sha1 => "HS1",
                         CryptoAlgorithm::Sha256 => "HS256",
                         CryptoAlgorithm::Sha384 => "HS384",

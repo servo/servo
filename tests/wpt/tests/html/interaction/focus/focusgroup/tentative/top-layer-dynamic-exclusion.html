@@ -42,7 +42,6 @@
 <script>
 
 promise_test(async t => {
-  const pop = document.getElementById("pop");
   t.add_cleanup(() => pop.hidePopover());
 
   // Hidden popover: items not rendered, naturally skipped. Guard against
@@ -72,7 +71,6 @@ promise_test(async t => {
 }, "Top-layer exclusion is dynamic: show and hide cycles");
 
 promise_test(async t => {
-  const pop = document.getElementById("pop");
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 
@@ -81,7 +79,6 @@ promise_test(async t => {
 }, "Wrapping navigation skips shown popover subtree");
 
 promise_test(async t => {
-  const pop = document.getElementById("pop");
   pop.showPopover();
   t.add_cleanup(() => pop.hidePopover());
 
@@ -99,7 +96,7 @@ promise_test(async t => {
 }, "Home and End keys skip shown popover subtree");
 
 promise_test(async t => {
-  const pop_b = document.getElementById("pop_block");
+  const pop_b = pop_block;
   pop_b.showPopover();
   t.add_cleanup(() => pop_b.hidePopover());
 
@@ -113,8 +110,8 @@ promise_test(async t => {
 }, "Block-axis navigation skips shown popover subtree");
 
 promise_test(async t => {
-  const p1 = document.getElementById("pop_m1");
-  const p2 = document.getElementById("pop_m2");
+  const p1 = pop_m1;
+  const p2 = pop_m2;
   p1.showPopover();
   p2.showPopover();
   t.add_cleanup(() => {

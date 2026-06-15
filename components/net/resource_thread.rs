@@ -533,9 +533,7 @@ impl ResourceChannelManager {
             CoreResourceMsg::GetCookieStringForUrl(url, consumer, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.remove_expired_cookies_for_url(&url);
-                consumer
-                    .send(cookie_jar.cookies_for_url(&url, source))
-                    .unwrap();
+                consumer.send_or_ignore(cookie_jar.cookies_for_url(&url, source));
             },
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
@@ -544,7 +542,7 @@ impl ResourceChannelManager {
                     .cookies_data_for_url(&url, source)
                     .map(Serde)
                     .collect();
-                consumer.send(cookies).unwrap();
+                consumer.send_or_ignore(cookies);
             },
             CoreResourceMsg::GetCookieDataForUrlAsync(cookie_store_id, url, name) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
@@ -622,13 +620,11 @@ impl ResourceChannelManager {
             CoreResourceMsg::ListCookies(sender) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.remove_all_expired_cookies();
-                let _ = sender.send(cookie_jar.cookie_site_descriptors());
+                sender.send_or_ignore(cookie_jar.cookie_site_descriptors());
             },
             CoreResourceMsg::GetHistoryState(history_state_id, consumer) => {
                 let history_states = http_state.history_states.read();
-                consumer
-                    .send(history_states.get(&history_state_id).cloned())
-                    .unwrap();
+                consumer.send_or_ignore(history_states.get(&history_state_id).cloned());
             },
             CoreResourceMsg::SetHistoryState(history_state_id, structured_data) => {
                 let mut history_states = http_state.history_states.write();
@@ -641,12 +637,12 @@ impl ResourceChannelManager {
                 }
             },
             CoreResourceMsg::GetCacheEntries(sender) => {
-                let _ = sender.send(http_state.http_cache.cache_entry_descriptors());
+                sender.send_or_ignore(http_state.http_cache.cache_entry_descriptors());
             },
             CoreResourceMsg::ClearCache(sender) => {
                 http_state.http_cache.clear();
                 if let Some(sender) = sender {
-                    let _ = sender.send(());
+                    sender.send_or_ignore(());
                 }
             },
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
@@ -666,7 +662,7 @@ impl ResourceChannelManager {
                             .sum()
                     })
                     .unwrap_or_default();
-                let _ = sender.send(total);
+                sender.send_or_ignore(total);
             },
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {

@@ -24,11 +24,6 @@
 
 <script>
   promise_test(async t => {
-    var r1c1 = document.getElementById("r1c1");
-    var r1c2 = document.getElementById("r1c2");
-    var r2c1 = document.getElementById("r2c1");
-    var r2c2 = document.getElementById("r2c2");
-
     await focusAndSendDirectionalInput(r1c1, kRight);
     assert_equals(document.activeElement, r1c2);
 

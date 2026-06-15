@@ -19,6 +19,13 @@ test_invalid_value("cursor", 'url("https://example.com/"), url("https://example.
 
 test_invalid_value("cursor", 'url("https://example.com/") 1px 2px, copy');
 test_invalid_value("cursor", 'url("https://example.com/"), url("https://example.com/") 3% 4%, move');
+
+// The cursor property does not accept generated images, including inside
+// light-dark().
+test_invalid_value("cursor", "linear-gradient(red), pointer");
+test_invalid_value("cursor", "light-dark(linear-gradient(red), none), pointer");
+test_invalid_value("cursor", 'light-dark(url("https://example.com/"), linear-gradient(red)), pointer');
+test_invalid_value("cursor", 'light-dark(radial-gradient(red), url("https://example.com/")), pointer');
 </script>
 </body>
 </html>

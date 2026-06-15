@@ -32,7 +32,6 @@
 // still operates normally").
 
 promise_test(async t => {
-  const dlg = document.getElementById("dlg");
   dlg.showModal();
   t.add_cleanup(() => dlg.close());
 

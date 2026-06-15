@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: nested row-direction empty subgrid with gutter delta propagation</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="row-subgrid-grid-gap-013-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+html,body {
+  color:black; background-color:white; font:24px/1 Ahem; padding:0; margin:0;
+}
+.grid-lanes {
+  display:inline-grid-lanes;
+  grid-template-rows:auto auto auto;
+  gap:20px;
+  border:3px solid;
+  background:yellow;
+}
+.subgrid {
+  display:grid;
+  grid-template-rows:subgrid;
+  gap:100px;
+  grid-row:span 3;
+}
+</style>
+</head>
+<body>
+<div class="grid-lanes">
+  <div class="subgrid" style="background:cyan;">
+    <div class="subgrid" style="background:magenta; min-width:30px"></div>
+  </div>
+</div>
+</body>
+</html>

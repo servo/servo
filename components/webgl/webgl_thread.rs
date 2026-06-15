@@ -408,22 +408,30 @@ impl WebGLThread {
         false
     }
 
-    fn get_or_create_device_for_painter(&mut self, painter_id: PainterId) -> Rc<Device> {
-        self.device_map
-            .entry(painter_id)
-            .or_insert_with(|| {
-                let surfman_details = self
-                    .painter_surfman_details_map
-                    .get(painter_id)
-                    .expect("no surfman details found for painter");
-                let device = surfman_details
-                    .connection
-                    .create_device(&surfman_details.adapter)
-                    .expect("Couldn't open WebGL device!");
+    fn get_or_create_device_for_painter(
+        &mut self,
+        painter_id: PainterId,
+    ) -> Result<Rc<Device>, String> {
+        let entry = self.device_map.entry(painter_id);
+        if let Entry::Occupied(entry) = entry {
+            return Ok(entry.get().clone());
+        }
 
-                Rc::new(device)
-            })
-            .clone()
+        // This can happen if the Webview was dropped while one of its ScriptThreads
+        // is still issuing asynchronous commands to the WebGL thread.
+        let Some(surfman_details) = self.painter_surfman_details_map.get(painter_id) else {
+            return Err(format!("No PainterSurfmanDetails found for {painter_id:?}"));
+        };
+
+        // Gracefully handle failure to create a device.
+        let Ok(device) = surfman_details
+            .connection
+            .create_device(&surfman_details.adapter)
+        else {
+            return Err("Could not open WebGL device".into());
+        };
+
+        Ok(entry.or_insert(Rc::new(device)).clone())
     }
 
     #[cfg(feature = "webxr")]
@@ -519,10 +527,15 @@ impl WebGLThread {
         // Creating a new GLContext may make the current bound context_id dirty.
         // Clear it to ensure that  make_current() is called in subsequent commands.
         self.bound_context_id = None;
-        let painter_surfman_details = self
-            .painter_surfman_details_map
-            .get(painter_id)
-            .expect("PainterSurfmanDetails not found for PainterId");
+
+        // This can happen if the Webview was dropped while one of its ScriptThreads
+        // is still issuing asynchronous commands to the WebGL thread.
+        let Some(painter_surfman_details) = self.painter_surfman_details_map.get(painter_id) else {
+            return Err(format!(
+                "PainterSurfmanDetails not found for {painter_id:?}"
+            ));
+        };
+
         let api_type = match painter_surfman_details.connection.gl_api() {
             surfman::GLApi::GL => GlType::Gl,
             surfman::GLApi::GLES => GlType::Gles,
@@ -544,7 +557,7 @@ impl WebGLThread {
             flags,
         };
 
-        let device = self.get_or_create_device_for_painter(painter_id);
+        let device = self.get_or_create_device_for_painter(painter_id)?;
         let context_descriptor = device
             .create_context_descriptor(context_attributes)
             .map_err(|err| format!("Failed to create context descriptor: {:?}", err))?;
@@ -1260,7 +1273,7 @@ impl WebGLImpl {
                     (false, _) => SnapshotAlphaMode::Opaque,
                 };
                 sender
-                    .send((GenericSharedMemory::from_bytes(&pixels), alpha_mode))
+                    .send((GenericSharedMemory::from_vec(pixels), alpha_mode))
                     .unwrap();
             },
             WebGLCommand::ReadPixelsPP(rect, format, pixel_type, offset) => unsafe {

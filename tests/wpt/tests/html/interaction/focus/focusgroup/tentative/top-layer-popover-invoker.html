@@ -34,7 +34,6 @@
 <script>
 
 async function openViaInvoker(t) {
-  const pop = document.getElementById("pop");
   invoker.focus();
   assert_equals(document.activeElement, invoker, "invoker focused");
   invoker.click();
@@ -95,7 +94,7 @@ promise_test(async t => {
 <script>
 
 promise_test(async t => {
-  const pop = document.getElementById("neg_pop");
+  const pop = neg_pop;
   neg_invoker.click();
   assert_true(pop.matches(":popover-open"), "popover should be open");
   t.add_cleanup(() => pop.hidePopover());
@@ -138,7 +137,7 @@ promise_test(async t => {
 
 <script>
 promise_test(async t => {
-  const pop = document.getElementById("pt_pop");
+  const pop = pt_pop;
   pt_invoker.focus();
   pt_invoker.click();
   assert_true(pop.matches(":popover-open"));
@@ -161,7 +160,7 @@ promise_test(async t => {
 
 <script>
 promise_test(async t => {
-  const pop = document.getElementById("cf_pop");
+  const pop = cf_pop;
   cf_invoker.focus();
   cf_invoker.click();
   assert_true(pop.matches(":popover-open"));
@@ -189,7 +188,7 @@ promise_test(async t => {
 
 <script>
 promise_test(async t => {
-  const pop = document.getElementById("src_pop");
+  const pop = src_pop;
   src_invoker.focus();
   pop.showPopover({source: src_invoker});
   assert_true(pop.matches(":popover-open"));

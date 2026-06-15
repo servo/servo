@@ -10,8 +10,8 @@
 
 promise_test(async (test) => {
     const pc = new RTCPeerConnection();
-    const senderTransform = new SFrameTransform();
-    const receiverTransform = new SFrameTransform();
+    const senderTransform = new RTCRtpSFrameEncrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    const receiverTransform = new RTCRtpSFrameDecrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
     const sender1 = pc.addTransceiver('audio').sender;
     const sender2 = pc.addTransceiver('video').sender;
     const receiver1 = pc.getReceivers()[0];
@@ -30,51 +30,20 @@ promise_test(async (test) => {
 }, "Cannot reuse attached transforms");
 
 test(() => {
-    const senderTransform = new SFrameTransform();
+    const stream = new SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
 
-    assert_true(senderTransform.readable instanceof ReadableStream);
-    assert_true(senderTransform.writable instanceof WritableStream);
-}, "SFrameTransform exposes readable and writable");
-
-promise_test(async (test) => {
-    const pc = new RTCPeerConnection();
-    const senderTransform = new SFrameTransform();
-    const receiverTransform = new SFrameTransform();
-    const sender1 = pc.addTransceiver('audio').sender;
-    const sender2 = pc.addTransceiver('video').sender;
-    const receiver1 = pc.getReceivers()[0];
-    const receiver2 = pc.getReceivers()[1];
-
-    assert_false(senderTransform.readable.locked, "sender readable before");
-    assert_false(senderTransform.writable.locked, "sender writable before");
-    assert_false(receiverTransform.readable.locked, "receiver readable before");
-    assert_false(receiverTransform.writable.locked, "receiver writable before");
-
-    sender1.transform = senderTransform;
-    receiver1.transform = receiverTransform;
-
-    assert_true(senderTransform.readable.locked, "sender readable during");
-    assert_true(senderTransform.writable.locked, "sender writable during");
-    assert_true(receiverTransform.readable.locked, "receiver readable during");
-    assert_true(receiverTransform.writable.locked, "receiver writable during");
-
-    sender1.transform = null;
-    receiver1.transform = null;
-
-    assert_true(senderTransform.readable.locked, "sender readable after");
-    assert_true(senderTransform.writable.locked, "sender writable after");
-    assert_true(receiverTransform.readable.locked, "receiver readable after");
-    assert_true(receiverTransform.writable.locked, "receiver writable after");
-}, "readable/writable are locked when attached and after being attached");
+    assert_true(stream.readable instanceof ReadableStream);
+    assert_true(stream.writable instanceof WritableStream);
+}, "SFrameEncrypterStream exposes readable and writable");
 
 promise_test(async (test) => {
     const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
 
-    const senderTransform = new SFrameTransform({ role : 'encrypt', authenticationSize: 10 });
+    const senderTransform = new SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
     senderTransform.setEncryptionKey(key);
 
-    const receiverTransform = new SFrameTransform({ role : 'decrypt', authenticationSize: 10 });
-    receiverTransform.setEncryptionKey(key);
+    const receiverTransform = new SFrameDecrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    receiverTransform.addDecryptionKey(key);
 
     const writer = senderTransform.writable.getWriter();
     const reader = receiverTransform.readable.getReader();
@@ -93,21 +62,21 @@ promise_test(async (test) => {
     const view2 = new Int8Array(received.value);
     for (let cptr = 0; cptr < sent.byteLength; ++cptr)
         assert_equals(view2[cptr], view[cptr]);
-}, "SFrame with array buffer - authentication size 10");
+}, "SFrame with array buffer - AES_128_CTR_HMAC_SHA256_80");
 
 promise_test(async (test) => {
     const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
 
-    const senderTransform = new SFrameTransform({ role : 'encrypt', authenticationSize: 10 });
+    const senderTransform = new SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
     const senderWriter = senderTransform.writable.getWriter();
     const senderReader = senderTransform.readable.getReader();
 
-    const receiverTransform = new SFrameTransform({ role : 'decrypt', authenticationSize: 10 });
+    const receiverTransform = new SFrameDecrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
     const receiverWriter = receiverTransform.writable.getWriter();
     const receiverReader = receiverTransform.readable.getReader();
 
     senderTransform.setEncryptionKey(key);
-    receiverTransform.setEncryptionKey(key);
+    receiverTransform.addDecryptionKey(key);
 
     const chunk = new ArrayBuffer(8);
 
@@ -127,9 +96,9 @@ promise_test(async (test) => {
 promise_test(async (test) => {
     const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
 
-    const receiverTransform = new SFrameTransform({ role : 'decrypt', authenticationSize: 10 });
+    const receiverTransform = new SFrameDecrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
     const receiverWriter = receiverTransform.writable.getWriter();
-    receiverTransform.setEncryptionKey(key);
+    receiverTransform.addDecryptionKey(key);
 
     // decryption should fail, leading to erroring the transform.
     await promise_rejects_js(test, TypeError, receiverWriter.write({ }));

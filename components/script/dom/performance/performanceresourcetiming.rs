@@ -72,57 +72,18 @@ pub(crate) struct PerformanceResourceTiming {
 
 // TODO(#21269): next_hop
 // TODO(#21264): worker_start
-// TODO(#21258): fetch_start
-// TODO(#21259): domain_lookup_start
 // TODO(#21260): domain_lookup_end
-// TODO(#21261): connect_start
-// TODO(#21262): connect_end
 impl PerformanceResourceTiming {
     pub(crate) fn new_inherited(
         url: ServoUrl,
         initiator_type: InitiatorType,
-        next_hop: Option<DOMString>,
-        fetch_start: Option<CrossProcessInstant>,
-    ) -> PerformanceResourceTiming {
-        let entry_type = if initiator_type == InitiatorType::Navigation {
-            EntryType::Navigation
-        } else {
-            EntryType::Resource
-        };
-        PerformanceResourceTiming {
-            entry: PerformanceEntry::new_inherited(
-                DOMString::from(url.into_string()),
-                entry_type,
-                None,
-                Duration::ZERO,
-            ),
-            initiator_type,
-            next_hop,
-            worker_start: None,
-            redirect_start: None,
-            redirect_end: None,
-            fetch_start,
-            domain_lookup_end: None,
-            domain_lookup_start: None,
-            connect_start: None,
-            connect_end: None,
-            secure_connection_start: None,
-            request_start: None,
-            response_start: None,
-            response_end: None,
-            transfer_size: 0,
-            encoded_body_size: 0,
-            decoded_body_size: 0,
-        }
-    }
-
-    // TODO fetch start should be in RFT
-    fn from_resource_timing(
-        url: ServoUrl,
-        initiator_type: InitiatorType,
-        next_hop: Option<DOMString>,
         resource_timing: &ResourceFetchTiming,
     ) -> PerformanceResourceTiming {
+        let (entry_type, start_time) = if initiator_type == InitiatorType::Navigation {
+            (EntryType::Navigation, None)
+        } else {
+            (EntryType::Resource, resource_timing.start_time)
+        };
         let duration = match (resource_timing.start_time, resource_timing.response_end) {
             (Some(start_time), Some(end_time)) => end_time - start_time,
             _ => Duration::ZERO,
@@ -130,18 +91,17 @@ impl PerformanceResourceTiming {
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),
-                EntryType::Resource,
-                resource_timing.start_time,
+                entry_type,
+                start_time,
                 duration,
             ),
             initiator_type,
-            next_hop,
+            next_hop: None,
             worker_start: None,
             redirect_start: resource_timing.redirect_start,
             redirect_end: resource_timing.redirect_end,
             fetch_start: resource_timing.fetch_start,
             domain_lookup_start: resource_timing.domain_lookup_start,
-            // TODO (#21260)
             domain_lookup_end: None,
             connect_start: resource_timing.connect_start,
             connect_end: resource_timing.connect_end,
@@ -160,14 +120,12 @@ impl PerformanceResourceTiming {
         global: &GlobalScope,
         url: ServoUrl,
         initiator_type: InitiatorType,
-        next_hop: Option<DOMString>,
         resource_timing: &ResourceFetchTiming,
     ) -> DomRoot<PerformanceResourceTiming> {
         reflect_dom_object_with_cx(
-            Box::new(PerformanceResourceTiming::from_resource_timing(
+            Box::new(PerformanceResourceTiming::new_inherited(
                 url,
                 initiator_type,
-                next_hop,
                 resource_timing,
             )),
             global,

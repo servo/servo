@@ -51,6 +51,7 @@ async def test_subscribe(bidi_session, subscribe_events, top_context, wait_for_e
         "source": {
             "realm": result["realm"],
             "context": top_context["context"],
+            **({"userContext": top_context["userContext"]} if "userContext" in event["source"] else {})
         },
     }
 

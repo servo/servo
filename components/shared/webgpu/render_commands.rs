@@ -68,6 +68,9 @@ pub enum RenderCommand {
         offset: u64,
     },
     ExecuteBundles(Vec<RenderBundleId>),
+    PushDebugGroup(String),
+    PopDebugGroup,
+    InsertDebugMarker(String),
 }
 
 pub fn apply_render_command(
@@ -150,6 +153,13 @@ pub fn apply_render_command(
         },
         RenderCommand::ExecuteBundles(bundles) => {
             global.render_pass_execute_bundles(pass, &bundles)
+        },
+        RenderCommand::PushDebugGroup(label) => {
+            global.render_pass_push_debug_group(pass, &label, 0)
+        },
+        RenderCommand::PopDebugGroup => global.render_pass_pop_debug_group(pass),
+        RenderCommand::InsertDebugMarker(label) => {
+            global.render_pass_insert_debug_marker(pass, &label, 0)
         },
     }
 }

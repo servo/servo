@@ -1,0 +1,31 @@
+<!doctype html>
+<title>document.open() with a deferred script during the initial about:blank load event</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2041104">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "about:blank";
+
+  // Ensure a single load event and no assertion failures
+  let loadCount = 0;
+  iframe.addEventListener("load", t.step_func(() => {
+    loadCount++;
+    assert_less_than_equal(loadCount, 1, "iframe load must not refire");
+
+    const d = iframe.contentDocument;
+    d.open();
+    d.write('<script defer src="data:text/javascript,window.parent.postMessage(\'defer-ran\', \'*\')"><\/script>');
+    d.close();
+  }));
+
+  // Wait for written script to run
+  window.addEventListener("message", t.step_func_done(
+    e => assert_equals(e.data, "defer-ran")
+  ));
+
+  document.body.append(iframe);
+}, "document.open() with a deferred script during the initial about:blank load event must not crash or refire load");
+</script>

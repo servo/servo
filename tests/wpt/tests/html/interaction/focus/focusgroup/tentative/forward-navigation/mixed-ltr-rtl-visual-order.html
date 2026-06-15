@@ -42,9 +42,6 @@
   // item1 and item2 inherit RTL, so Left is their forward key.
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-
     // item1 is RTL: Left = forward inline.
     await focusAndSendDirectionalInput(item1, kLeft);
     assert_equals(document.activeElement, item2,
@@ -52,9 +49,6 @@
   }, "LTR container: Left (forward in RTL) from item1 moves to item2.");
 
   promise_test(async t => {
-    var item2 = document.getElementById("item2");
-    var item3 = document.getElementById("item3");
-
     // item2 is RTL: Left = forward inline, crosses into LTR sibling.
     await focusAndSendDirectionalInput(item2, kLeft);
     assert_equals(document.activeElement, item3,
@@ -62,9 +56,6 @@
   }, "LTR container: Left (forward in RTL) from item2 crosses to LTR item3.");
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-
     // item2 is RTL: Right = backward inline.
     await focusAndSendDirectionalInput(item2, kRight);
     assert_equals(document.activeElement, item1,
@@ -74,36 +65,24 @@
   // item3-5 are LTR: Right = forward, Left = backward.
 
   promise_test(async t => {
-    var item3 = document.getElementById("item3");
-    var item4 = document.getElementById("item4");
-
     await focusAndSendDirectionalInput(item3, kRight);
     assert_equals(document.activeElement, item4,
       "Right should move forward from LTR item3");
   }, "LTR container: Right from LTR item3 moves to item4.");
 
   promise_test(async t => {
-    var item4 = document.getElementById("item4");
-    var item5 = document.getElementById("item5");
-
     await focusAndSendDirectionalInput(item4, kRight);
     assert_equals(document.activeElement, item5,
       "Right should move forward from LTR item4");
   }, "LTR container: Right from LTR item4 moves to item5.");
 
   promise_test(async t => {
-    var item4 = document.getElementById("item4");
-    var item5 = document.getElementById("item5");
-
     await focusAndSendDirectionalInput(item5, kLeft);
     assert_equals(document.activeElement, item4,
       "Left should move backward from LTR item5");
   }, "LTR container: Left from LTR item5 moves to item4.");
 
   promise_test(async t => {
-    var item2 = document.getElementById("item2");
-    var item3 = document.getElementById("item3");
-
     // item3 is LTR: Left = backward, crosses back into RTL wrapper.
     await focusAndSendDirectionalInput(item3, kLeft);
     assert_equals(document.activeElement, item2,
@@ -114,9 +93,6 @@
   // r1 inherits RTL: Left = forward. r2/r3 inherit LTR: Right = forward.
 
   promise_test(async t => {
-    var r1 = document.getElementById("r1");
-    var r2 = document.getElementById("r2");
-
     // r1 is RTL: Left = forward inline.
     await focusAndSendDirectionalInput(r1, kLeft);
     assert_equals(document.activeElement, r2,
@@ -124,9 +100,6 @@
   }, "RTL container: Left (forward in RTL) from r1 moves to LTR r2.");
 
   promise_test(async t => {
-    var r2 = document.getElementById("r2");
-    var r3 = document.getElementById("r3");
-
     // r2 is LTR: Right = forward inline.
     await focusAndSendDirectionalInput(r2, kRight);
     assert_equals(document.activeElement, r3,
@@ -134,9 +107,6 @@
   }, "RTL container: Right (forward in LTR) from r2 moves to r3.");
 
   promise_test(async t => {
-    var r1 = document.getElementById("r1");
-    var r2 = document.getElementById("r2");
-
     // r2 is LTR: Left = backward inline.
     await focusAndSendDirectionalInput(r2, kLeft);
     assert_equals(document.activeElement, r1,
@@ -144,9 +114,6 @@
   }, "RTL container: Left (backward in LTR) from r2 moves to r1.");
 
   promise_test(async t => {
-    var r2 = document.getElementById("r2");
-    var r3 = document.getElementById("r3");
-
     // r3 is LTR: Left = backward inline.
     await focusAndSendDirectionalInput(r3, kLeft);
     assert_equals(document.activeElement, r2,

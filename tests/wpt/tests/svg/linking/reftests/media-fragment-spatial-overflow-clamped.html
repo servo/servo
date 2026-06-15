@@ -1,0 +1,17 @@
+<!doctype html>
+<title>SVG media fragment: spatial clip extending beyond image bounds is clamped</title>
+<link rel="help" href="https://www.w3.org/TR/media-frags/#naming-space">
+<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#LinksIntoSVG">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background-repeat: no-repeat;
+    /* Per the spec, when x+w > image width or y+h > image height, the UA
+       should clamp to the actual image dimensions. Here 0+200 > 100 for both
+       axes, so the clip should be clamped to 0,0,100,100. */
+    background-image: url("support/green-100x100.svg#xywh=0,0,200,200");
+  }
+</style>
+<div></div>

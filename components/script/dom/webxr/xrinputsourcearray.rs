@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webxr_api::{InputId, InputSource};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceArrayBinding::XRInputSourceArrayMethods;
@@ -16,7 +17,6 @@ use crate::dom::window::Window;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrinputsourceschangeevent::XRInputSourcesChangeEvent;
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRInputSourceArray {
@@ -32,19 +32,15 @@ impl XRInputSourceArray {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<XRInputSourceArray> {
-        reflect_dom_object(
-            Box::new(XRInputSourceArray::new_inherited()),
-            window,
-            can_gc,
-        )
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<XRInputSourceArray> {
+        reflect_dom_object_with_cx(Box::new(XRInputSourceArray::new_inherited()), window, cx)
     }
 
     pub(crate) fn add_input_sources(
         &self,
+        cx: &mut JSContext,
         session: &XRSession,
         inputs: &[InputSource],
-        can_gc: CanGc,
     ) {
         let global = self.global();
         let window = global.as_window();
@@ -61,12 +57,13 @@ impl XRInputSourceArray {
                     .any(|i| i.id() == info.id),
                 "Should never add a duplicate input id!"
             );
-            let input = XRInputSource::new(window, session, info.clone(), can_gc);
+            let input = XRInputSource::new(cx, window, session, info.clone());
             self.input_sources.borrow_mut().push(Dom::from_ref(&input));
             added.push(input);
         }
 
         let event = XRInputSourcesChangeEvent::new(
+            cx,
             window,
             atom!("inputsourceschange"),
             false,
@@ -74,22 +71,22 @@ impl XRInputSourceArray {
             session,
             &added,
             &[],
-            can_gc,
         );
-        event.upcast::<Event>().fire(session.upcast(), can_gc);
+        event.upcast::<Event>().fire(cx, session.upcast());
     }
 
-    pub(crate) fn remove_input_source(&self, session: &XRSession, id: InputId, can_gc: CanGc) {
+    pub(crate) fn remove_input_source(&self, cx: &mut JSContext, session: &XRSession, id: InputId) {
         let global = self.global();
         let window = global.as_window();
         let removed = if let Some(i) = self.input_sources.borrow().iter().find(|i| i.id() == id) {
-            i.gamepad().update_connected(false, false, can_gc);
+            i.gamepad().update_connected(false);
             [DomRoot::from_ref(&**i)]
         } else {
             return;
         };
 
         let event = XRInputSourcesChangeEvent::new(
+            cx,
             window,
             atom!("inputsourceschange"),
             false,
@@ -97,24 +94,23 @@ impl XRInputSourceArray {
             session,
             &[],
             &removed,
-            can_gc,
         );
         self.input_sources.borrow_mut().retain(|i| i.id() != id);
-        event.upcast::<Event>().fire(session.upcast(), can_gc);
+        event.upcast::<Event>().fire(cx, session.upcast());
     }
 
     pub(crate) fn add_remove_input_source(
         &self,
+        cx: &mut JSContext,
         session: &XRSession,
         id: InputId,
         info: InputSource,
-        can_gc: CanGc,
     ) {
         let global = self.global();
         let window = global.as_window();
         let root;
         let removed = if let Some(i) = self.input_sources.borrow().iter().find(|i| i.id() == id) {
-            i.gamepad().update_connected(false, false, can_gc);
+            i.gamepad().update_connected(false);
             root = [DomRoot::from_ref(&**i)];
             &root as &[_]
         } else {
@@ -122,12 +118,13 @@ impl XRInputSourceArray {
             &[]
         };
         self.input_sources.borrow_mut().retain(|i| i.id() != id);
-        let input = XRInputSource::new(window, session, info, can_gc);
+        let input = XRInputSource::new(cx, window, session, info);
         self.input_sources.borrow_mut().push(Dom::from_ref(&input));
 
         let added = [input];
 
         let event = XRInputSourcesChangeEvent::new(
+            cx,
             window,
             atom!("inputsourceschange"),
             false,
@@ -135,9 +132,8 @@ impl XRInputSourceArray {
             session,
             &added,
             removed,
-            can_gc,
         );
-        event.upcast::<Event>().fire(session.upcast(), can_gc);
+        event.upcast::<Event>().fire(cx, session.upcast());
     }
 
     pub(crate) fn find(&self, id: InputId) -> Option<DomRoot<XRInputSource>> {

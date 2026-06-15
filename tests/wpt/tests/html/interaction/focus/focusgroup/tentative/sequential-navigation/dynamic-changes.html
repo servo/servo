@@ -33,30 +33,30 @@
 
 <script>
   promise_test(async t => {
-    await focusAndWait(document.getElementById("before1"));
+    await focusAndWait(before1);
     await sendTabForward();
-    assert_equals(document.activeElement, document.getElementById("item1"),
+    assert_equals(document.activeElement, item1,
                   "First item selected as entry element initially (tree order)");
 
-    document.getElementById("item2").setAttribute("focusgroupstart", "");
+    item2.setAttribute("focusgroupstart", "");
 
-    await focusAndWait(document.getElementById("before1"));
+    await focusAndWait(before1);
     await sendTabForward();
-    assert_equals(document.activeElement, document.getElementById("item2"),
+    assert_equals(document.activeElement, item2,
                   "After adding focusgroupstart, new priority is respected");
   }, "Dynamic focusgroupstart changes affect entry element selection");
 
   promise_test(async t => {
-    await focusAndWait(document.getElementById("before2"));
+    await focusAndWait(before2);
     await sendTabForward();
-    assert_equals(document.activeElement, document.getElementById("btn1"),
+    assert_equals(document.activeElement, btn1,
                   "Tab skips disabled button");
 
-    document.getElementById("btn2").removeAttribute("disabled");
+    btn2.removeAttribute("disabled");
 
-    await focusAndWait(document.getElementById("before2"));
+    await focusAndWait(before2);
     await sendTabForward();
-    assert_equals(document.activeElement, document.getElementById("btn1"),
+    assert_equals(document.activeElement, btn1,
                   "First enabled button selected in tree order");
   }, "Enabling disabled elements makes them available for tab stop");
 </script>

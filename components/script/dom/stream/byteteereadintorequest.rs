@@ -150,12 +150,7 @@ impl ByteTeeReadIntoRequest {
             // If cloneResult is an abrupt completion,
             if let Err(error) = clone_result {
                 rooted!(&in(cx) let mut error_value = UndefinedValue());
-                error.to_jsval(
-                    cx.into(),
-                    &self.global(),
-                    error_value.handle_mut(),
-                    CanGc::from_cx(cx),
-                );
+                error.to_jsval(cx, &self.global(), error_value.handle_mut());
 
                 // Perform ! ReadableByteStreamControllerError(byobBranch.[[controller]], cloneResult.[[Value]]).
                 let byob_branch_controller = self.byob_branch.get_byte_controller();
@@ -170,7 +165,7 @@ impl ByteTeeReadIntoRequest {
                     self.stream
                         .cancel(cx, &self.stream.global(), error_value.handle());
                 self.cancel_promise
-                    .resolve_native(&cancel_result, CanGc::from_cx(cx));
+                    .resolve_native_with_cx(cx, &cancel_result);
 
                 // Return.
                 return Ok(());
@@ -276,7 +271,7 @@ impl ByteTeeReadIntoRequest {
 
         // If byobCanceled is false or otherCanceled is false, resolve cancelPromise with undefined.
         if !byob_canceled || !other_canceled {
-            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
+            self.cancel_promise.resolve_native_with_cx(cx, &());
         }
 
         Ok(())

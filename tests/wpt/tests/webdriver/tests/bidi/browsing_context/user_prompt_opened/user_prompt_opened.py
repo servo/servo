@@ -59,6 +59,7 @@ async def test_prompt_type(
         "type": prompt_type,
         "message": text,
         "handler": "dismiss",
+        **({"userContext": new_tab["userContext"]} if "userContext" in event else {}),
         **({"defaultValue": ""} if prompt_type == "prompt" else {}),
     }
 
@@ -99,6 +100,7 @@ async def test_prompt_default_value(
         "type": "prompt",
         "message": text,
         "handler": "dismiss",
+        **({"userContext": new_tab["userContext"]} if "userContext" in event else {}),
         "defaultValue": default if default is not None else ""
     }
 
@@ -156,6 +158,7 @@ async def test_subscribe_to_one_context(
         "type": "alert",
         "handler": "dismiss",
         "message": "first tab",
+        **({"userContext": new_context["userContext"]} if "userContext" in event else {})
     }
 
     remove_listener()
@@ -199,6 +202,7 @@ async def test_iframe(
         "type": "alert",
         "handler": "dismiss",
         "message": "in iframe",
+        **({"userContext": frame["userContext"]} if "userContext" in event else {})
     }
 
 
@@ -256,11 +260,13 @@ async def test_two_prompts(
         "type": "alert",
         "handler": "dismiss",
         "message": "first tab",
+        **({"userContext": new_context["userContext"]} if "userContext" in events[0] else {})
     }, {
         "context": another_new_context["context"],
         "type": "confirm",
         "handler": "dismiss",
         "message": "second tab",
+        **({"userContext": another_new_context["userContext"]} if "userContext" in events[1] else {})
     }]
 
     remove_listener()

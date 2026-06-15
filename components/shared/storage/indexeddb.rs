@@ -272,7 +272,7 @@ pub struct IndexedDBObjectStore {
     pub name: String,
     pub key_path: Option<KeyPath>,
     pub has_key_generator: bool,
-    pub key_generator_current_number: Option<i32>,
+    pub key_generator_current_number: Option<i64>,
     pub indexes: Vec<IndexedDBIndex>,
 }
 
@@ -337,7 +337,7 @@ pub enum AsyncReadWriteOperation {
         value: Vec<u8>,
         should_overwrite: bool,
         /// New object store key generator current number to persist if the put succeeds.
-        key_generator_current_number: Option<i32>,
+        key_generator_current_number: Option<i64>,
     },
 
     /// Removes the key/value pair for the given key in the associated idb data

@@ -418,17 +418,16 @@ impl ReadableByteStreamController {
                         // Let e be a new TypeError exception.
                         rooted!(&in(cx) let mut error = UndefinedValue());
                         Error::Type(c"close requested".to_owned()).to_jsval(
-                            cx.into(),
+                            cx,
                             &self.global(),
                             error.handle_mut(),
-                            CanGc::from_cx(cx),
                         );
 
                         // Perform ! ReadableByteStreamControllerError(controller, e).
                         self.error(cx, error.handle());
 
                         // Perform readIntoRequest’s error steps, given e.
-                        read_into_request.error_steps(error.handle(), CanGc::from_cx(cx));
+                        read_into_request.error_steps(cx, error.handle());
 
                         // Return.
                         return;
@@ -452,13 +451,8 @@ impl ReadableByteStreamController {
 
                 // Perform readIntoRequest’s error steps, given bufferResult.[[Value]].
                 rooted!(&in(cx) let mut rval = UndefinedValue());
-                error.to_jsval(
-                    cx.into(),
-                    &self.global(),
-                    rval.handle_mut(),
-                    CanGc::from_cx(cx),
-                );
-                read_into_request.error_steps(rval.handle(), CanGc::from_cx(cx));
+                error.to_jsval(cx, &self.global(), rval.handle_mut());
+                read_into_request.error_steps(cx, rval.handle());
 
                 // Return.
             },
@@ -864,41 +858,38 @@ impl ReadableByteStreamController {
             return Ok(());
         }
 
-        // If controller.[[pendingPullIntos]] is not empty,
-        let pending_pull_intos = self.pending_pull_intos.borrow();
-        if !pending_pull_intos.is_empty() {
-            // Let firstPendingPullInto be controller.[[pendingPullIntos]][0].
-            let first_pending_pull_into = pending_pull_intos.first().unwrap();
+        {
+            // If controller.[[pendingPullIntos]] is not empty,
+            let pending_pull_intos = self.pending_pull_intos.borrow();
+            if !pending_pull_intos.is_empty() {
+                // Let firstPendingPullInto be controller.[[pendingPullIntos]][0].
+                let first_pending_pull_into = pending_pull_intos.first().unwrap();
 
-            // If the remainder after dividing firstPendingPullInto’s bytes filled by
-            // firstPendingPullInto’s element size is not 0,
-            if !first_pending_pull_into
-                .bytes_filled
-                .get()
-                .is_multiple_of(first_pending_pull_into.element_size)
-            {
-                // needed to drop the borrow and avoid BorrowMutError
-                drop(pending_pull_intos);
+                // If the remainder after dividing firstPendingPullInto’s bytes filled by
+                // firstPendingPullInto’s element size is not 0,
+                if !first_pending_pull_into
+                    .bytes_filled
+                    .get()
+                    .is_multiple_of(first_pending_pull_into.element_size)
+                {
+                    // needed to drop the borrow and avoid BorrowMutError
+                    drop(pending_pull_intos);
 
-                // Let e be a new TypeError exception.
-                let e = Error::Type(
-                    c"remainder after dividing firstPendingPullInto's bytes
+                    // Let e be a new TypeError exception.
+                    let e = Error::Type(
+                        c"remainder after dividing firstPendingPullInto's bytes
                     filled by firstPendingPullInto's element size is not 0"
-                        .to_owned(),
-                );
+                            .to_owned(),
+                    );
 
-                // Perform ! ReadableByteStreamControllerError(controller, e).
-                rooted!(&in(cx) let mut error = UndefinedValue());
-                e.clone().to_jsval(
-                    cx.into(),
-                    &self.global(),
-                    error.handle_mut(),
-                    CanGc::from_cx(cx),
-                );
-                self.error(cx, error.handle());
+                    // Perform ! ReadableByteStreamControllerError(controller, e).
+                    rooted!(&in(cx) let mut error = UndefinedValue());
+                    e.clone().to_jsval(cx, &self.global(), error.handle_mut());
+                    self.error(cx, error.handle());
 
-                // Throw e.
-                return Err(e);
+                    // Throw e.
+                    return Err(e);
+                }
             }
         }
 
@@ -1461,12 +1452,9 @@ impl ReadableByteStreamController {
             // Perform ! ReadableByteStreamControllerError(controller, cloneResult.[[Value]]).
             rooted!(&in(cx) let mut rval = UndefinedValue());
             let error = Error::Type(c"can not clone array buffer".to_owned());
-            error.clone().to_jsval(
-                cx.into(),
-                &self.global(),
-                rval.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            error
+                .clone()
+                .to_jsval(cx, &self.global(), rval.handle_mut());
             self.error(cx, rval.handle());
 
             // Return cloneResult.
@@ -1490,6 +1478,39 @@ impl ReadableByteStreamController {
         // Set controller.[[queueTotalSize]] to controller.[[queueTotalSize]] + byteLength.
         self.queue_total_size
             .set(self.queue_total_size.get() + byte_length as f64);
+    }
+
+    pub(crate) fn in_memory(&self) -> bool {
+        let Some(underlying_source) = self.underlying_source.get() else {
+            return false;
+        };
+        underlying_source.in_memory()
+    }
+
+    pub(crate) fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
+        let underlying_source = self.underlying_source.get()?;
+        if !underlying_source.in_memory() {
+            return None;
+        }
+
+        let cx = GlobalScope::get_cx();
+        self.queue.borrow().iter().try_fold(
+            Vec::with_capacity(self.queue_total_size.get() as usize),
+            |mut bytes, entry| {
+                let mut chunk = vec![0; entry.byte_length];
+                entry
+                    .buffer
+                    .copy_data_to(
+                        cx,
+                        &mut chunk,
+                        entry.byte_offset,
+                        entry.byte_offset + entry.byte_length,
+                    )
+                    .ok()?;
+                bytes.extend(chunk);
+                Some(bytes)
+            },
+        )
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-shift-pending-pull-into>
@@ -1606,6 +1627,7 @@ impl ReadableByteStreamController {
 
         if let Some(underlying_source) = self.underlying_source.get() {
             let handler = PromiseNativeHandler::new(
+                cx,
                 &global,
                 Some(Box::new(PullAlgorithmFulfillmentHandler {
                     controller: Dom::from_ref(&rooted_controller),
@@ -1613,7 +1635,6 @@ impl ReadableByteStreamController {
                 Some(Box::new(PullAlgorithmRejectionHandler {
                     controller: Dom::from_ref(&rooted_controller),
                 })),
-                CanGc::from_cx(cx),
             );
 
             let mut realm = enter_auto_realm(cx, &*global);
@@ -1628,8 +1649,8 @@ impl ReadableByteStreamController {
             let promise = result.unwrap_or_else(|error| {
                 rooted!(&in(cx) let mut rval = UndefinedValue());
                 // TODO: check if `self.global()` is the right globalscope.
-                error.to_jsval(cx.into(), &global, rval.handle_mut(), CanGc::from_cx(cx));
-                Promise::new_rejected(&global, cx.into(), rval.handle(), CanGc::from_cx(cx))
+                error.to_jsval(cx, &global, rval.handle_mut());
+                Promise::new_rejected(cx, &global, rval.handle())
             });
             promise.append_native_handler(cx, &handler);
         }
@@ -1748,6 +1769,7 @@ impl ReadableByteStreamController {
 
             // Upon fulfillment of startPromise, Upon rejection of startPromise with reason r,
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(StartAlgorithmFulfillmentHandler {
                     controller: Dom::from_ref(&rooted_byte_controller),
@@ -1755,7 +1777,6 @@ impl ReadableByteStreamController {
                 Some(Box::new(StartAlgorithmRejectionHandler {
                     controller: Dom::from_ref(&rooted_byte_controller),
                 })),
-                CanGc::from_cx(cx),
             );
             let mut realm = enter_auto_realm(cx, global);
             let cx = &mut realm.current_realm();
@@ -1806,15 +1827,15 @@ impl ReadableByteStreamController {
             .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
                 let promise = Promise::new2(cx, global);
-                promise.resolve_native(&(), CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &());
                 Ok(promise)
             });
 
         let promise = result.unwrap_or_else(|error| {
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            error.to_jsval(cx.into(), global, rval.handle_mut(), CanGc::from_cx(cx));
+            error.to_jsval(cx, global, rval.handle_mut());
             let promise = Promise::new2(cx, global);
-            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &rval.handle());
             promise
         });
 
@@ -1885,12 +1906,7 @@ impl ReadableByteStreamController {
                     // Perform readRequest’s error steps, given buffer.[[Value]].
 
                     rooted!(&in(cx) let mut rval = UndefinedValue());
-                    error.to_jsval(
-                        cx.into(),
-                        &self.global(),
-                        rval.handle_mut(),
-                        CanGc::from_cx(cx),
-                    );
+                    error.to_jsval(cx, &self.global(), rval.handle_mut());
                     read_request.error_steps(cx, rval.handle());
 
                     // Return.

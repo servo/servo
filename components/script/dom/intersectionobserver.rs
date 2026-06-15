@@ -42,7 +42,6 @@ use crate::dom::element::Element;
 use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// > The intersection root for an IntersectionObserver is the value of its root attribute if the attribute is non-null;
 /// > otherwise, it is the top-level browsing context’s document node, referred to as the implicit root.
@@ -337,31 +336,29 @@ impl IntersectionObserver {
         let bounding_client_rect = rect_to_domrectreadonly(bounding_client_rect);
         let intersection_rect = rect_to_domrectreadonly(intersection_rect);
 
-        // Step 1-2
-        // > 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
+        // Step 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
         // >    boundingClientRect, intersectionRect, isIntersecting, and target.
-        // > 2. Append it to observer’s internal [[QueuedEntries]] slot.
-        self.queued_entries.borrow_mut().push(
-            IntersectionObserverEntry::new(
-                cx,
-                self.owner_doc.window(),
-                None,
-                document
-                    .owner_global()
-                    .performance()
-                    .to_dom_high_res_time_stamp(time),
-                Some(&root_bounds),
-                &bounding_client_rect,
-                &intersection_rect,
-                is_intersecting,
-                is_visible,
-                Finite::wrap(intersection_ratio),
-                target,
-            )
-            .as_traced(),
+        let entry = IntersectionObserverEntry::new(
+            cx,
+            self.owner_doc.window(),
+            None,
+            document
+                .owner_global()
+                .performance()
+                .to_dom_high_res_time_stamp(time),
+            Some(&root_bounds),
+            &bounding_client_rect,
+            &intersection_rect,
+            is_intersecting,
+            is_visible,
+            Finite::wrap(intersection_ratio),
+            target,
         );
-        // > Step 3
-        // Queue an intersection observer task for document.
+
+        // Step 2. Append it to observer's internal [[QueuedEntries]] slot.
+        self.queued_entries.borrow_mut().push(entry.as_traced());
+
+        // Step 3. Queue an intersection observer task for document.
         document.queue_an_intersection_observer_task();
     }
 
@@ -508,8 +505,15 @@ impl IntersectionObserver {
                 if element.owner_document() != target.owner_document() {
                     return IntersectionObservationOutput::default_skipped();
                 }
-                // TODO(stevennovaryo): implement LayoutThread query for descendant of containing block chain.
-                debug!("descendant of containing block chain is not implemented");
+                if !element
+                    .owner_window()
+                    .is_containing_block_descendant_query_without_reflow(
+                        element.upcast(),
+                        target.upcast(),
+                    )
+                {
+                    return IntersectionObservationOutput::default_skipped();
+                }
             },
             _ => {},
         }
@@ -553,8 +557,6 @@ impl IntersectionObserver {
         // > even if the intersection has zero area (because rootBounds or targetRect have zero area).
         // Because we are considering edge-adjacent, instead of checking whether the rectangle is empty,
         // we are checking whether the rectangle is negative or not.
-        // TODO(stevennovaryo): there is a dicussion regarding isIntersecting definition, we should update
-        //                      it accordingly. https://github.com/w3c/IntersectionObserver/issues/432
         let is_intersecting = maybe_intersection_rect.is_some();
 
         // Step 12
@@ -577,12 +579,27 @@ impl IntersectionObserver {
             .borrow()
             .iter()
             .position(|threshold| **threshold > intersection_ratio)
-            .unwrap_or(self.thresholds.borrow().len()) as i32;
+            .unwrap_or(self.thresholds.borrow().len());
+
+        // If the index is 0, the first threshold value is greater
+        // than the observed ratio, so we're not actually matching yet.
+        // The spec differentiates between this case and the case where
+        // there is no intersection, but other browser engines do not.
+        let threshold_index = if is_intersecting && threshold_index > 0 {
+            ThresholdIndex::Matching(threshold_index)
+        } else {
+            ThresholdIndex::NotMatching
+        };
 
         // Step 14
         // > Let isVisible be the result of running the visibility algorithm on target.
         // TODO: Implement visibility algorithm
         let is_visible = false;
+
+        // We never report isIntersecting as true unless we have exceeded a threshold,
+        // which matches other browser eengines.
+        // See https://github.com/w3c/IntersectionObserver/issues/432 for background.
+        let is_intersecting = matches!(threshold_index, ThresholdIndex::Matching(..));
 
         IntersectionObservationOutput::new_computed(
             threshold_index,
@@ -638,7 +655,7 @@ impl IntersectionObserver {
             // > if isVisible does not equal previousIsVisible,
             // > queue an IntersectionObserverEntry, passing in observer, time, rootBounds,
             // > targetRect, intersectionRect, isIntersecting, isVisible, and target.
-            if intersection_output.threshold_index != previous_threshold_index ||
+            if Some(intersection_output.threshold_index) != previous_threshold_index ||
                 intersection_output.is_intersecting != previous_is_intersecting ||
                 intersection_output.is_visible != previous_is_visible
             {
@@ -664,7 +681,7 @@ impl IntersectionObserver {
             // > 21. Assign isVisible to registration’s previousIsVisible property.
             registration
                 .previous_threshold_index
-                .set(intersection_output.threshold_index);
+                .set(Some(intersection_output.threshold_index));
             registration
                 .previous_is_intersecting
                 .set(intersection_output.is_intersecting);
@@ -722,12 +739,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds>
     fn Thresholds(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        to_frozen_array(
-            &self.thresholds.borrow(),
-            cx.into(),
-            retval,
-            CanGc::from_cx(cx),
-        );
+        to_frozen_array(cx, &self.thresholds.borrow(), retval);
     }
 
     /// > A number indicating the minimum delay in milliseconds between notifications from
@@ -796,16 +808,22 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     }
 }
 
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
+enum ThresholdIndex {
+    NotMatching,
+    Matching(usize),
+}
+
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserverregistration>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct IntersectionObserverRegistration {
     pub(crate) observer: Dom<IntersectionObserver>,
-    pub(crate) previous_threshold_index: Cell<i32>,
-    pub(crate) previous_is_intersecting: Cell<bool>,
+    previous_threshold_index: Cell<Option<ThresholdIndex>>,
+    previous_is_intersecting: Cell<bool>,
     #[no_trace]
-    pub(crate) last_update_time: Cell<CrossProcessInstant>,
-    pub(crate) previous_is_visible: Cell<bool>,
+    last_update_time: Cell<CrossProcessInstant>,
+    previous_is_visible: Cell<bool>,
 }
 
 impl IntersectionObserverRegistration {
@@ -817,7 +835,7 @@ impl IntersectionObserverRegistration {
     pub(crate) fn new_initial(observer: &IntersectionObserver) -> Self {
         IntersectionObserverRegistration {
             observer: Dom::from_ref(observer),
-            previous_threshold_index: Cell::new(-1),
+            previous_threshold_index: Cell::new(None),
             previous_is_intersecting: Cell::new(false),
             last_update_time: Cell::new(CrossProcessInstant::epoch()),
             previous_is_visible: Cell::new(false),
@@ -999,7 +1017,7 @@ fn compute_the_intersection(
 /// <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>.
 /// See [`IntersectionObserver::maybe_compute_intersection_output`].
 struct IntersectionObservationOutput {
-    pub(crate) threshold_index: i32,
+    pub(crate) threshold_index: ThresholdIndex,
     pub(crate) is_intersecting: bool,
     pub(crate) target_rect: Rect<Au, CSSPixel>,
     pub(crate) intersection_rect: Rect<Au, CSSPixel>,
@@ -1025,7 +1043,7 @@ impl IntersectionObservationOutput {
     /// to current browser implementation or WPT test is used instead.
     fn default_skipped() -> Self {
         Self {
-            threshold_index: 0,
+            threshold_index: ThresholdIndex::NotMatching,
             is_intersecting: false,
             target_rect: Rect::zero(),
             intersection_rect: Rect::zero(),
@@ -1036,7 +1054,7 @@ impl IntersectionObservationOutput {
     }
 
     fn new_computed(
-        threshold_index: i32,
+        threshold_index: ThresholdIndex,
         is_intersecting: bool,
         target_rect: Rect<Au, CSSPixel>,
         intersection_rect: Rect<Au, CSSPixel>,

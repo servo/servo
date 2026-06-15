@@ -15,6 +15,7 @@ import os.path as path
 import shutil
 import subprocess
 import sys
+import tempfile
 import textwrap
 from argparse import ArgumentParser
 from contextlib import chdir
@@ -215,6 +216,7 @@ class MachCommands(CommandBase):
             "servo-storage-traits",
             "servo-xpath",
             "servo-deny-public-fields",
+            "servo-dom-struct",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
@@ -311,6 +313,7 @@ class MachCommands(CommandBase):
     )
     def test_tidy(self, all_files: bool, no_progress: bool, github_annotations: bool) -> int:
         tidy_failed = tidy.scan(not all_files, not no_progress, github_annotations)
+        coauthors_failed = tidy.run_coauthors_check()
 
         print("\r ➤  Checking formatting of Rust files...")
         rustfmt_failed = format_with_rustfmt(check_only=True)
@@ -322,7 +325,7 @@ class MachCommands(CommandBase):
         taplo_failed = format_toml_files_with_taplo()
 
         format_failed = rustfmt_failed or ruff_format_failed or taplo_failed
-        tidy_failed = format_failed or tidy_failed
+        tidy_failed = format_failed or tidy_failed or coauthors_failed
         print()
         if tidy_failed:
             print("\r ❌ test-tidy reported errors.")
@@ -384,26 +387,60 @@ class MachCommands(CommandBase):
         else:
             print("SKIP: Install tshark manually")
 
+        print("Verifying integrity of WebIDL parser...")
+        try:
+            result = subprocess.run(
+                ["components/script_bindings/third_party/WebIDL/manage.py", "verify"], check=True, capture_output=True
+            )
+            print("OK")
+        except subprocess.CalledProcessError as e:
+            print(f"Process failed with exit status {e.returncode}: {e.cmd}", file=sys.stderr)
+            print(f"stdout: {repr(e.stdout)}", file=sys.stderr)
+            print(f"stderr: {repr(e.stderr)}", file=sys.stderr)
+            raise e
+
         if all or tests:
             print("Running WebIDL tests...")
 
-            test_file_dir = path.abspath(path.join(PROJECT_TOPLEVEL_PATH, "third_party", "WebIDL"))
+            test_file_dir = path.abspath(
+                path.join(PROJECT_TOPLEVEL_PATH, "components", "script_bindings", "third_party", "WebIDL", "parser")
+            )
             # For the `import WebIDL` in runtests.py
             sys.path.insert(0, test_file_dir)
             run_file = path.abspath(path.join(test_file_dir, "runtests.py"))
             run_globals: dict[str, Any] = {"__file__": run_file}
             exec(compile(open(run_file).read(), run_file, "exec"), run_globals)
-            passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
+            passed = not run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
         return 0 if passed else 1
 
     @Command("test-devtools", description="Run tests for devtools.", category="testing")
     @CommandArgument("test_names", nargs=argparse.REMAINDER, help="Only run tests that match these patterns")
+    @CommandArgument(
+        "-N",
+        "--num-threads",
+        default="auto",
+        help="Number of parallel workers: auto, logical, or a number; 0 to disable",
+    )
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_devtools(self, servo_binary: str, test_names: list[str], **kwargs: Any) -> int:
+    def test_devtools(self, servo_binary: str, test_names: list[str], num_threads: str, **kwargs: Any) -> int:
+        import pytest
+
+        args = [
+            os.path.join(SCRIPT_PATH, "devtools_tests"),
+            "--servo-binary",
+            servo_binary,
+            "--script-path",
+            SCRIPT_PATH,
+            "-n",
+            num_threads,
+            "-v",
+        ]
+        if test_names:
+            args.extend(["-k", " or ".join(test_names)])
+
         print("Running devtools tests...")
-        passed = servo.devtools_tests.run_tests(SCRIPT_PATH, servo_binary, test_names)
-        return 0 if passed else 1
+        return pytest.main(args)
 
     @Command(
         "test-wpt-failure",
@@ -421,9 +458,33 @@ class MachCommands(CommandBase):
         "test-wpt", description="Run the regular web platform test suite", category="testing", parser=wpt.create_parser
     )
     @CommandArgument("--multiprocess", "-M", default=False, action="store_true", help="Run in multiprocess mode")
+    @CommandArgument(
+        "--update-expectations",
+        "-u",
+        default=False,
+        action="store_true",
+        help="Update test expectations after test run",
+    )
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
-        return self._test_wpt(servo_binary, multiprocess, **kwargs)
+    def test_wpt(self, servo_binary: str, multiprocess: bool, update_expectations: bool, **kwargs: Any) -> int:
+        if update_expectations:
+            if kwargs["log_raw"]:
+                print("Do not specify --log-raw when updating tests directly")
+                return 1
+            with tempfile.TemporaryDirectory() as temp_dir:
+                kwargs["log_raw"] = [os.path.join(temp_dir, "wpt.log")]
+
+        test_return_value = self._test_wpt(servo_binary, multiprocess, **kwargs)
+
+        # We should only update when the tests actually failed. In any other case
+        # such as incorrect command parameters, we shouldn't run the update command.
+        # Confusingly, the test command has an exit command of 0 when its command
+        # parameters are invalid (for example a non-existent test file).
+        if update_expectations and test_return_value == 1:
+            update_arguments = wpt.update.parse_args_update(kwargs["log_raw"])
+            return self.update_wpt(**vars(update_arguments))
+
+        return test_return_value
 
     @CommandBase.allow_target_configuration
     def _test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
@@ -816,10 +877,59 @@ class MachCommands(CommandBase):
             args.append("-M")
         return PostBuildCommands(self.context)._run(servo_binary, params + args)
 
-    @Command("try", description="Runs try jobs by force pushing to try branch", category="testing")
+    @Command(
+        "try",
+        description="""
+        Runs try jobs by force pushing to try branch.
+
+        Try strings:
+
+          Platforms (combine with modifiers, e.g. linux-wpt):
+            linux
+            mac/macos
+            mac-arm/macos-arm64
+            win/windows
+            android
+            ohos/openharmony
+            lint/tidy
+
+          Modifiers (runs on linux by default if no platform given):
+            unit-tests          Run unit tests
+            build-libservo      Build libservo library
+            wpt                 Run web-platform-tests
+            bencher             Run benchmarking
+            coverage            Run code coverage
+            capi                Run C API build
+            production          Use production build profile
+            release             Use release build profile
+            debug               Use dev build profile
+          e.g. linux-unit-tests
+
+          Special presets:
+            webgpu              WebGPU CTS (linux, production)
+            webdriver/wd        WebDriver classic tests (linux)
+            vello               Vello canvas WPT subsuite (linux)
+
+          Meta keywords:
+            full                Run all jobs (default)
+            fail-fast           Cancel remaining jobs on first failure
+            bencher             All platform bencher jobs
+            production-bencher  All platform production-profile bencher jobs
+
+          Examples:
+            ./mach try full
+            ./mach try coverage
+            ./mach try linux-bencher-capi-production
+            ./mach try webgpu
+        """,
+        category="testing",
+    )
     @CommandArgument("--remote", "-r", default="origin", help="A git remote to run the try job on")
     @CommandArgument(
-        "try_strings", default=["full"], nargs="...", help="A list of try strings specifying what kind of job to run."
+        "try_strings",
+        default=["full"],
+        nargs="...",
+        help="Try strings specifying which CI jobs to run. See above for full list of options.",
     )
     def try_command(self, remote: str, try_strings: list[str]) -> int:
         if subprocess.check_output(["git", "diff", "--cached", "--name-only"]).strip():

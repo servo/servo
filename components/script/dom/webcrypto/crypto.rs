@@ -6,8 +6,8 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Type};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8, HeapArrayBufferView, TypedArray};
-use rand::TryRngCore;
-use rand::rngs::OsRng;
+use rand::TryRng;
+use rand::rngs::SysRng;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::trace::RootedTraceableBox;
 use uuid::Uuid;
@@ -68,7 +68,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
                 });
             }
 
-            if OsRng.try_fill_bytes(data).is_err() {
+            if SysRng.try_fill_bytes(data).is_err() {
                 return Err(Error::Operation(Some(
                     "Failed to generate random values".into(),
                 )));

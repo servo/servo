@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class=test-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/502109002">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<select id=s1>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<input type=color>
+
+<select id=s2>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+const enterKey = '\uE007';
+const arrowDown = '\uE015';
+
+function pressKey(key) {
+  return (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key))
+    .send();
+}
+
+const s1 = document.getElementById('s1');
+const colorInput = document.querySelector('input');
+const s2 = document.getElementById('s2');
+
+(async () => {
+  s1.focus();
+  await pressKey(enterKey);
+  await pressKey(arrowDown);
+
+  s1.addEventListener('change', () => {
+    s2.showPicker();
+  });
+  colorInput.click();
+
+  await new Promise(requestAnimationFrame);
+  await new Promise(setTimeout);
+  document.documentElement.classList.remove('test-wait');
+})();
+</script>

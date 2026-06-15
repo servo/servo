@@ -262,7 +262,7 @@ fn test_file() {
     // have the file's MIME type and contents.
     let actual_response = fetch_response.actual_response();
     assert!(!actual_response.is_network_error());
-    assert_eq!(actual_response.headers.len(), 1);
+    assert_eq!(actual_response.headers.len(), 2);
     let content_type: Mime = actual_response
         .headers
         .typed_get::<ContentType>()
@@ -270,8 +270,16 @@ fn test_file() {
         .into();
     assert_eq!(content_type, mime::TEXT_CSS);
 
-    let resp_body = actual_response.body.lock();
     let file = fs::read(path).unwrap();
+
+    let content_size: u64 = actual_response
+        .headers
+        .typed_get::<ContentLength>()
+        .unwrap()
+        .0;
+    assert_eq!(content_size, file.len() as u64);
+
+    let resp_body = actual_response.body.lock();
 
     match *resp_body {
         ResponseBody::Done(ref val) => {

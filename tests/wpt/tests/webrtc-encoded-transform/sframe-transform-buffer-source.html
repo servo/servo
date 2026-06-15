@@ -17,9 +17,9 @@ async function getEncryptedData(transform)
 
 promise_test(async (test) => {
     const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);
-    const transform1 = new SFrameTransform;
-    const transform2 = new SFrameTransform;
-    const transform3 = new SFrameTransform;
+    const transform1 = new SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    const transform2 = new SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
+    const transform3 = new SFrameEncrypterStream({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
 
     await transform1.setEncryptionKey(key);
     await transform2.setEncryptionKey(key);
@@ -44,7 +44,7 @@ promise_test(async (test) => {
 
     assert_array_equals(result1, result2, "result2");
     assert_array_equals(result1, result3, "result3");
-}, "Uint8Array as input to SFrameTransform");
+}, "Uint8Array as input to SFrameEncrypterStream");
         </script>
     </body>
 </html>

@@ -10,7 +10,7 @@ Some functions are extensions to the Project class, as to allow access to its pu
 
 fun Project.getTargetDir(debug: Boolean, arch: String): String {
     val basePath = project.rootDir.parentFile.parentFile.parentFile.absolutePath
-    return basePath + "/target/android/" + getSubTargetDir(debug, arch)
+    return basePath + "/target/" + getSubTargetDir(debug, arch)
 }
 
 fun Project.getNativeTargetDir(debug: Boolean, arch: String): String {

@@ -17,6 +17,7 @@ mod ecdsa_operation;
 mod ed25519_operation;
 mod hkdf_operation;
 mod hmac_operation;
+mod kangarootwelve_operation;
 mod ml_dsa_operation;
 mod ml_kem_operation;
 mod pbkdf2_operation;
@@ -36,7 +37,7 @@ use std::str::FromStr;
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use dom_struct::dom_struct;
-use js::conversions::{ConversionBehavior, ConversionResult};
+use js::conversions::{ConversionBehavior, ConversionResult, FromJSValConvertible};
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
@@ -44,6 +45,13 @@ use js::rust::wrappers2::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use servo_constellation_traits::{
+    SerializableAesKeyAlgorithm, SerializableAlgorithm, SerializableCShakeParams,
+    SerializableDigestAlgorithm, SerializableEcKeyAlgorithm, SerializableHmacKeyAlgorithm,
+    SerializableKangarooTwelveParams, SerializableKeyAlgorithm,
+    SerializableKeyAlgorithmAndDerivatives, SerializableRsaHashedKeyAlgorithm,
+    SerializableTurboShakeParams,
+};
 use strum::{EnumString, IntoStaticStr, VariantArray};
 use zeroize::Zeroizing;
 
@@ -60,7 +68,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
 };
 use crate::dom::bindings::conversions::{
-    SafeFromJSValConvertible, SafeToJSValConvertible, StringificationBehavior,
+    SafeToJSValConvertible, StringificationBehavior, get_property,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -68,7 +76,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -149,6 +156,10 @@ enum CryptoAlgorithm {
     TurboShake128,
     #[strum(serialize = "TurboSHAKE256")]
     TurboShake256,
+    #[strum(serialize = "KT128")]
+    Kt128,
+    #[strum(serialize = "KT256")]
+    Kt256,
     #[strum(serialize = "Argon2d")]
     Argon2D,
     #[strum(serialize = "Argon2i")]
@@ -211,8 +222,8 @@ impl SubtleCrypto {
                     array_buffer_ptr.handle_mut(),
                     CanGc::from_cx(cx),
                 ) {
-                    Ok(_) => promise.resolve_native(&*array_buffer_ptr, CanGc::from_cx(cx)),
-                    Err(_) => promise.reject_error(Error::JSFailed, CanGc::from_cx(cx)),
+                    Ok(_) => promise.resolve_native_with_cx(cx, &*array_buffer_ptr),
+                    Err(_) => promise.reject_error_with_cx(cx, Error::JSFailed),
                 }
             }));
     }
@@ -250,7 +261,7 @@ impl SubtleCrypto {
                         rooted!(&in(cx) let mut rval = UndefinedValue());
                         jwk.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
                         rooted!(&in(cx) let mut object = rval.to_object());
-                        promise.resolve_native(&*object, CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &*object);
                     },
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
@@ -271,7 +282,7 @@ impl SubtleCrypto {
             .queue(task!(resolve_key: move |cx| {
                 let key = trusted_key.root();
                 let promise = trusted_promise.root();
-                promise.resolve_native(&key, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &key);
             }));
     }
 
@@ -290,7 +301,7 @@ impl SubtleCrypto {
                     publicKey: trusted_public_key.map(|trusted_key| trusted_key.root()),
                 };
                 let promise = trusted_promise.root();
-                promise.resolve_native(&key_pair, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &key_pair);
             }));
     }
 
@@ -303,7 +314,7 @@ impl SubtleCrypto {
             .crypto_task_source()
             .queue(task!(resolve_bool: move |cx| {
                 let promise = trusted_promise.root();
-                promise.resolve_native(&result, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &result);
             }));
     }
 
@@ -316,7 +327,7 @@ impl SubtleCrypto {
             .crypto_task_source()
             .queue(task!(reject_error: move |cx| {
                 let promise = trusted_promise.root();
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
             }));
     }
 
@@ -332,7 +343,7 @@ impl SubtleCrypto {
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_key: move |cx| {
                 let promise = trusted_promise.root();
-                promise.resolve_native(&encapsulated_key, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &encapsulated_key);
             }),
         );
     }
@@ -349,7 +360,7 @@ impl SubtleCrypto {
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_bits: move |cx| {
                 let promise = trusted_promise.root();
-                promise.resolve_native(&encapsulated_bits, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &encapsulated_bits);
             }),
         );
     }
@@ -375,7 +386,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -462,7 +473,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -549,7 +560,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -636,7 +647,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -726,7 +737,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -795,7 +806,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -902,7 +913,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -915,7 +926,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<ImportKeyOperation>(cx, &derived_key_type) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             };
@@ -928,7 +939,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<GetKeyLengthOperation>(cx, &derived_key_type) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             };
@@ -1049,7 +1060,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -1129,7 +1140,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -1144,9 +1155,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         // Step 4.1. If the keyData parameter passed to the importKey() method is
                         // not a JsonWebKey dictionary, throw a TypeError.
                         let promise = Promise::new_in_realm(cx);
-                        promise.reject_error(
+                        promise.reject_error_with_cx(
+                            cx,
                             Error::Type(c"The keyData type does not match the format".to_owned()),
-                            CanGc::from_cx(cx),
                         );
                         return promise;
                     },
@@ -1163,7 +1174,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                             Ok(stringified) => Zeroizing::new(stringified.as_bytes().to_vec()),
                             Err(error) => {
                                 let promise = Promise::new_in_realm(cx);
-                                promise.reject_error(error, CanGc::from_cx(cx));
+                                promise.reject_error_with_cx(cx, error);
                                 return promise;
                             },
                         }
@@ -1177,9 +1188,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     // JsonWebKey dictionary, throw a TypeError.
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(_) => {
                         let promise = Promise::new_in_realm(cx);
-                        promise.reject_error(
+                        promise.reject_error_with_cx(
+                            cx,
                             Error::Type(c"The keyData type does not match the format".to_owned()),
-                            CanGc::from_cx(cx),
                         );
                         return promise;
                     },
@@ -1371,7 +1382,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => WrapKeyAlgorithmOrEncryptAlgorithm::EncryptAlgorithm(algorithm),
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             }
@@ -1549,7 +1560,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => UnwrapKeyAlgorithmOrDecryptAlgorithm::DecryptAlgorithm(algorithm),
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             }
@@ -1563,7 +1574,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             };
@@ -1725,7 +1736,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             };
@@ -1738,7 +1749,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<ImportKeyOperation>(cx, &shared_key_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             };
@@ -1866,7 +1877,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             };
@@ -1960,7 +1971,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             };
@@ -1974,7 +1985,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             };
@@ -2097,7 +2108,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                     return promise;
                 },
             };
@@ -2201,7 +2212,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error(error, CanGc::from_cx(cx));
+                promise.reject_error_with_cx(cx, error);
                 return promise;
             },
         };
@@ -2602,6 +2613,10 @@ pub(crate) fn check_support_for_algorithm(
                 DigestAlgorithm::Sha3(_) |
                 DigestAlgorithm::CShake(_) |
                 DigestAlgorithm::TurboShake(_) => true,
+                DigestAlgorithm::KangarooTwelve(normalized_algorithm) => {
+                    normalized_algorithm.output_length != 0 &&
+                        normalized_algorithm.output_length.is_multiple_of(8)
+                },
             }
         },
         "deriveBits" => {
@@ -2860,6 +2875,24 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAlgorithm {
     }
 }
 
+impl TryFrom<SerializableAlgorithm> for SubtleAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+        })
+    }
+}
+
+impl From<&SubtleAlgorithm> for SerializableAlgorithm {
+    fn from(value: &SubtleAlgorithm) -> Self {
+        SerializableAlgorithm {
+            name: value.name.as_str().into(),
+        }
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-KeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleKeyAlgorithm {
@@ -2873,6 +2906,24 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
             name: self.name.as_str().into(),
         };
         dictionary.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+impl TryFrom<SerializableKeyAlgorithm> for SubtleKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+        })
+    }
+}
+
+impl From<&SubtleKeyAlgorithm> for SerializableKeyAlgorithm {
+    fn from(value: &SubtleKeyAlgorithm) -> Self {
+        SerializableKeyAlgorithm {
+            name: value.name.as_str().into(),
+        }
     }
 }
 
@@ -2959,6 +3010,30 @@ impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
             },
         });
         rsa_hashed_key_algorithm.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+impl TryFrom<SerializableRsaHashedKeyAlgorithm> for SubtleRsaHashedKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableRsaHashedKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleRsaHashedKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            modulus_length: value.modulus_length,
+            public_exponent: value.public_exponent,
+            hash: value.hash.try_into()?,
+        })
+    }
+}
+
+impl From<&SubtleRsaHashedKeyAlgorithm> for SerializableRsaHashedKeyAlgorithm {
+    fn from(value: &SubtleRsaHashedKeyAlgorithm) -> Self {
+        SerializableRsaHashedKeyAlgorithm {
+            name: value.name.as_str().into(),
+            modulus_length: value.modulus_length,
+            public_exponent: value.public_exponent.clone(),
+            hash: (&value.hash).into(),
+        }
     }
 }
 
@@ -3091,13 +3166,12 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyGenParams {
     ) -> Result<Self, Self::Error> {
         Ok(SubtleEcKeyGenParams {
             name: algorithm_name,
-            named_curve: get_required_parameter::<DOMString>(
+            named_curve: String::from(get_required_parameter::<DOMString>(
                 cx,
                 object,
                 c"namedCurve",
                 StringificationBehavior::Default,
-            )?
-            .to_string(),
+            )?),
         })
     }
 }
@@ -3125,6 +3199,26 @@ impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
     }
 }
 
+impl TryFrom<SerializableEcKeyAlgorithm> for SubtleEcKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableEcKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleEcKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            named_curve: value.named_curve,
+        })
+    }
+}
+
+impl From<&SubtleEcKeyAlgorithm> for SerializableEcKeyAlgorithm {
+    fn from(value: &SubtleEcKeyAlgorithm) -> Self {
+        SerializableEcKeyAlgorithm {
+            name: value.name.as_str().into(),
+            named_curve: value.named_curve.clone(),
+        }
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyImportParams>
 #[derive(Clone, MallocSizeOf)]
 struct SubtleEcKeyImportParams {
@@ -3145,13 +3239,12 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyImportParams {
     ) -> Result<Self, Self::Error> {
         Ok(SubtleEcKeyImportParams {
             name: algorithm_name,
-            named_curve: get_required_parameter::<DOMString>(
+            named_curve: String::from(get_required_parameter::<DOMString>(
                 cx,
                 object,
                 c"namedCurve",
                 StringificationBehavior::Default,
-            )?
-            .to_string(),
+            )?),
         })
     }
 }
@@ -3237,6 +3330,26 @@ impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
             length: self.length,
         };
         dictionary.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+impl TryFrom<SerializableAesKeyAlgorithm> for SubtleAesKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableAesKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleAesKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            length: value.length,
+        })
+    }
+}
+
+impl From<&SubtleAesKeyAlgorithm> for SerializableAesKeyAlgorithm {
+    fn from(value: &SubtleAesKeyAlgorithm) -> Self {
+        SerializableAesKeyAlgorithm {
+            name: value.name.as_str().into(),
+            length: value.length,
+        }
     }
 }
 
@@ -3353,12 +3466,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesGcmParams {
             name: algorithm_name,
             iv: get_required_buffer_source(cx, object, c"iv")?,
             additional_data: get_optional_buffer_source(cx, object, c"additionalData")?,
-            tag_length: get_optional_parameter(
-                cx,
-                object,
-                c"tagLength",
-                ConversionBehavior::EnforceRange,
-            )?,
+            tag_length: get_property(cx, object, c"tagLength", ConversionBehavior::EnforceRange)?,
         })
     }
 }
@@ -3389,12 +3497,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacImportParams {
         Ok(SubtleHmacImportParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
-            length: get_optional_parameter(
-                cx,
-                object,
-                c"length",
-                ConversionBehavior::EnforceRange,
-            )?,
+            length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
         })
     }
 }
@@ -3406,7 +3509,7 @@ pub(crate) struct SubtleHmacKeyAlgorithm {
     name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm-hash>
-    hash: SubtleKeyAlgorithm,
+    hash: DigestAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
     length: u32,
@@ -3418,7 +3521,7 @@ impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
             name: self.name.as_str().into(),
         };
         let hash = KeyAlgorithm {
-            name: self.hash.name.as_str().into(),
+            name: self.hash.name().as_str().into(),
         };
         let dictionary = HmacKeyAlgorithm {
             parent,
@@ -3426,6 +3529,28 @@ impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
             length: self.length,
         };
         dictionary.safe_to_jsval(cx, rval, can_gc);
+    }
+}
+
+impl TryFrom<SerializableHmacKeyAlgorithm> for SubtleHmacKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableHmacKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleHmacKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            hash: value.hash.try_into()?,
+            length: value.length,
+        })
+    }
+}
+
+impl From<&SubtleHmacKeyAlgorithm> for SerializableHmacKeyAlgorithm {
+    fn from(value: &SubtleHmacKeyAlgorithm) -> Self {
+        SerializableHmacKeyAlgorithm {
+            name: value.name.as_str().into(),
+            hash: (&value.hash).into(),
+            length: value.length,
+        }
     }
 }
 
@@ -3455,12 +3580,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacKeyGenParams {
         Ok(SubtleHmacKeyGenParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
-            length: get_optional_parameter(
-                cx,
-                object,
-                c"length",
-                ConversionBehavior::EnforceRange,
-            )?,
+            length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
         })
     }
 }
@@ -3593,12 +3713,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAeadParams {
             name: algorithm_name,
             iv: get_required_buffer_source(cx, object, c"iv")?,
             additional_data: get_optional_buffer_source(cx, object, c"additionalData")?,
-            tag_length: get_optional_parameter(
-                cx,
-                object,
-                c"tagLength",
-                ConversionBehavior::EnforceRange,
-            )?,
+            tag_length: get_property(cx, object, c"tagLength", ConversionBehavior::EnforceRange)?,
         })
     }
 }
@@ -3641,6 +3756,30 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
     }
 }
 
+impl TryFrom<SerializableCShakeParams> for SubtleCShakeParams {
+    type Error = ();
+
+    fn try_from(value: SerializableCShakeParams) -> Result<Self, Self::Error> {
+        Ok(SubtleCShakeParams {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            output_length: value.output_length,
+            function_name: value.function_name,
+            customization: value.customization,
+        })
+    }
+}
+
+impl From<&SubtleCShakeParams> for SerializableCShakeParams {
+    fn from(value: &SubtleCShakeParams) -> Self {
+        SerializableCShakeParams {
+            name: value.name.as_str().into(),
+            output_length: value.output_length,
+            function_name: value.function_name.clone(),
+            customization: value.customization.clone(),
+        }
+    }
+}
+
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-TurboShakeParams>
 #[derive(Clone, MallocSizeOf)]
 struct SubtleTurboShakeParams {
@@ -3670,13 +3809,91 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
                 c"outputLength",
                 ConversionBehavior::EnforceRange,
             )?,
-            domain_separation: get_optional_parameter(
+            domain_separation: get_property(
                 cx,
                 object,
                 c"domainSeparation",
                 ConversionBehavior::EnforceRange,
             )?,
         })
+    }
+}
+
+impl TryFrom<SerializableTurboShakeParams> for SubtleTurboShakeParams {
+    type Error = ();
+
+    fn try_from(value: SerializableTurboShakeParams) -> Result<Self, Self::Error> {
+        Ok(SubtleTurboShakeParams {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            output_length: value.output_length,
+            domain_separation: value.domain_separation,
+        })
+    }
+}
+
+impl From<&SubtleTurboShakeParams> for SerializableTurboShakeParams {
+    fn from(value: &SubtleTurboShakeParams) -> Self {
+        SerializableTurboShakeParams {
+            name: value.name.as_str().into(),
+            output_length: value.output_length,
+            domain_separation: value.domain_separation,
+        }
+    }
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KangarooTwelveParams>
+#[derive(Clone, MallocSizeOf)]
+struct SubtleKangarooTwelveParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: CryptoAlgorithm,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KangarooTwelveParams-outputLength>
+    output_length: u32,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KangarooTwelveParams-customization>
+    customization: Option<Vec<u8>>,
+}
+
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKangarooTwelveParams {
+    type Error = Error;
+
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+    ) -> Result<Self, Self::Error> {
+        Ok(SubtleKangarooTwelveParams {
+            name: algorithm_name,
+            output_length: get_required_parameter(
+                cx,
+                object,
+                c"outputLength",
+                ConversionBehavior::EnforceRange,
+            )?,
+            customization: get_optional_buffer_source(cx, object, c"customization")?,
+        })
+    }
+}
+
+impl TryFrom<SerializableKangarooTwelveParams> for SubtleKangarooTwelveParams {
+    type Error = ();
+
+    fn try_from(value: SerializableKangarooTwelveParams) -> Result<Self, Self::Error> {
+        Ok(SubtleKangarooTwelveParams {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            output_length: value.output_length,
+            customization: value.customization,
+        })
+    }
+}
+
+impl From<&SubtleKangarooTwelveParams> for SerializableKangarooTwelveParams {
+    fn from(value: &SubtleKangarooTwelveParams) -> Self {
+        SerializableKangarooTwelveParams {
+            name: value.name.as_str().into(),
+            output_length: value.output_length,
+            customization: value.customization.clone(),
+        }
     }
 }
 
@@ -3737,12 +3954,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleArgon2Params {
                 c"passes",
                 ConversionBehavior::EnforceRange,
             )?,
-            version: get_optional_parameter(
-                cx,
-                object,
-                c"version",
-                ConversionBehavior::EnforceRange,
-            )?,
+            version: get_property(cx, object, c"version", ConversionBehavior::EnforceRange)?,
             secret_value: get_optional_buffer_source(cx, object, c"secretValue")?,
             associated_data: get_optional_buffer_source(cx, object, c"associatedData")?,
         })
@@ -3803,93 +4015,26 @@ impl SafeToJSValConvertible for SubtleEncapsulatedBits {
     }
 }
 
-/// Helper to retrieve an optional paramter from WebIDL dictionary.
-#[expect(unsafe_code)]
-fn get_optional_parameter<T: SafeFromJSValConvertible>(
-    cx: &mut js::context::JSContext,
-    object: HandleObject,
-    parameter: &std::ffi::CStr,
-    option: T::Config,
-) -> Fallible<Option<T>> {
-    rooted!(&in(cx) let mut rval = UndefinedValue());
-    if unsafe {
-        get_dictionary_property(
-            cx.raw_cx(),
-            object,
-            parameter,
-            rval.handle_mut(),
-            CanGc::from_cx(cx),
-        )
-        .map_err(|_| Error::JSFailed)?
-    } && !rval.is_undefined()
-    {
-        let conversion_result =
-            T::safe_from_jsval(cx.into(), rval.handle(), option, CanGc::from_cx(cx))
-                .map_err(|_| Error::JSFailed)?;
-        match conversion_result {
-            ConversionResult::Success(value) => Ok(Some(value)),
-            ConversionResult::Failure(error) => Err(Error::Type(error.into())),
-        }
-    } else {
-        Ok(None)
-    }
-}
-
 /// Helper to retrieve a required paramter from WebIDL dictionary.
-fn get_required_parameter<T: SafeFromJSValConvertible>(
+fn get_required_parameter<T: FromJSValConvertible>(
     cx: &mut js::context::JSContext,
     object: HandleObject,
     parameter: &std::ffi::CStr,
     option: T::Config,
 ) -> Fallible<T> {
-    get_optional_parameter(cx, object, parameter, option)?
+    get_property::<T>(cx, object, parameter, option)?
         .ok_or(Error::Type(c"Missing required parameter".into()))
 }
 
-/// Helper to retrieve an optional paramter, in RootedTraceableBox, from WebIDL dictionary.
-#[expect(unsafe_code)]
-fn get_optional_parameter_in_box<T: SafeFromJSValConvertible + Trace>(
-    cx: &mut js::context::JSContext,
-    object: HandleObject,
-    parameter: &std::ffi::CStr,
-    option: T::Config,
-) -> Fallible<Option<RootedTraceableBox<T>>> {
-    rooted!(&in(cx) let mut rval = UndefinedValue());
-    if unsafe {
-        get_dictionary_property(
-            cx.raw_cx(),
-            object,
-            parameter,
-            rval.handle_mut(),
-            CanGc::from_cx(cx),
-        )
-        .map_err(|_| Error::JSFailed)?
-    } && !rval.is_undefined()
-    {
-        let conversion_result: ConversionResult<T> = SafeFromJSValConvertible::safe_from_jsval(
-            cx.into(),
-            rval.handle(),
-            option,
-            CanGc::from_cx(cx),
-        )
-        .map_err(|_| Error::JSFailed)?;
-        match conversion_result {
-            ConversionResult::Success(value) => Ok(Some(RootedTraceableBox::new(value))),
-            ConversionResult::Failure(error) => Err(Error::Type(error.into())),
-        }
-    } else {
-        Ok(None)
-    }
-}
-
 /// Helper to retrieve a required paramter, in RootedTraceableBox, from WebIDL dictionary.
-fn get_required_parameter_in_box<T: SafeFromJSValConvertible + Trace>(
+fn get_required_parameter_in_box<T: FromJSValConvertible + Trace>(
     cx: &mut js::context::JSContext,
     object: HandleObject,
     parameter: &std::ffi::CStr,
     option: T::Config,
 ) -> Fallible<RootedTraceableBox<T>> {
-    get_optional_parameter_in_box(cx, object, parameter, option)?
+    get_property::<T>(cx, object, parameter, option)?
+        .map(RootedTraceableBox::new)
         .ok_or(Error::Type(c"Missing required parameter".into()))
 }
 
@@ -3901,8 +4046,7 @@ fn get_optional_buffer_source(
     object: HandleObject,
     parameter: &std::ffi::CStr,
 ) -> Fallible<Option<Vec<u8>>> {
-    let buffer_source =
-        get_optional_parameter::<ArrayBufferViewOrArrayBuffer>(cx, object, parameter, ())?;
+    let buffer_source = get_property::<ArrayBufferViewOrArrayBuffer>(cx, object, parameter, ())?;
     match buffer_source {
         Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(view)) => Ok(Some(view.to_vec())),
         Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer)) => Ok(Some(buffer.to_vec())),
@@ -3980,6 +4124,52 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
             },
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => {
                 algo.safe_to_jsval(cx, rval, can_gc)
+            },
+        }
+    }
+}
+
+impl TryFrom<SerializableKeyAlgorithmAndDerivatives> for KeyAlgorithmAndDerivatives {
+    type Error = ();
+
+    fn try_from(value: SerializableKeyAlgorithmAndDerivatives) -> Result<Self, Self::Error> {
+        match value {
+            SerializableKeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.try_into()?),
+            ),
+            SerializableKeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm.try_into()?),
+            ),
+            SerializableKeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm.try_into()?),
+            ),
+            SerializableKeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm.try_into()?),
+            ),
+            SerializableKeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm.try_into()?),
+            ),
+        }
+    }
+}
+
+impl From<&KeyAlgorithmAndDerivatives> for SerializableKeyAlgorithmAndDerivatives {
+    fn from(value: &KeyAlgorithmAndDerivatives) -> Self {
+        match value {
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.into())
+            },
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm.into())
+            },
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm.into())
+            },
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm.into())
+            },
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm.into())
             },
         }
     }
@@ -4068,7 +4258,7 @@ impl JsonWebKeyExt for JsonWebKey {
         }
 
         // Step 5. Let key be the result of converting result to the IDL dictionary type of JsonWebKey.
-        let key = match JsonWebKey::new(cx.into(), result.handle(), CanGc::from_cx(cx)) {
+        let key = match JsonWebKey::new(cx, result.handle()) {
             Ok(ConversionResult::Success(key)) => key,
             Ok(ConversionResult::Failure(error)) => {
                 return Err(Error::Type(error.into_owned()));
@@ -4801,6 +4991,7 @@ enum DigestAlgorithm {
     Sha3(SubtleAlgorithm),
     CShake(SubtleCShakeParams),
     TurboShake(SubtleTurboShakeParams),
+    KangarooTwelve(SubtleKangarooTwelveParams),
 }
 
 impl NormalizedAlgorithm for DigestAlgorithm {
@@ -4827,6 +5018,9 @@ impl NormalizedAlgorithm for DigestAlgorithm {
             CryptoAlgorithm::TurboShake128 | CryptoAlgorithm::TurboShake256 => Ok(
                 DigestAlgorithm::TurboShake(object.try_into_with_cx_and_name(cx, algorithm_name)?),
             ),
+            CryptoAlgorithm::Kt128 | CryptoAlgorithm::Kt256 => Ok(DigestAlgorithm::KangarooTwelve(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"digest\" operation",
                 algorithm_name.as_str()
@@ -4840,6 +5034,7 @@ impl NormalizedAlgorithm for DigestAlgorithm {
             DigestAlgorithm::Sha3(algorithm) => algorithm.name,
             DigestAlgorithm::CShake(algorithm) => algorithm.name,
             DigestAlgorithm::TurboShake(algorithm) => algorithm.name,
+            DigestAlgorithm::KangarooTwelve(algorithm) => algorithm.name,
         }
     }
 }
@@ -4852,6 +5047,51 @@ impl DigestAlgorithm {
             DigestAlgorithm::CShake(algorithm) => cshake_operation::digest(algorithm, message),
             DigestAlgorithm::TurboShake(algorithm) => {
                 turboshake_operation::digest(algorithm, message)
+            },
+            DigestAlgorithm::KangarooTwelve(algorithm) => {
+                kangarootwelve_operation::digest(algorithm, message)
+            },
+        }
+    }
+}
+
+impl TryFrom<SerializableDigestAlgorithm> for DigestAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableDigestAlgorithm) -> Result<Self, Self::Error> {
+        match value {
+            SerializableDigestAlgorithm::Sha(algorithm) => {
+                Ok(DigestAlgorithm::Sha(algorithm.try_into()?))
+            },
+            SerializableDigestAlgorithm::Sha3(algorithm) => {
+                Ok(DigestAlgorithm::Sha3(algorithm.try_into()?))
+            },
+            SerializableDigestAlgorithm::CShake(algorithm) => {
+                Ok(DigestAlgorithm::CShake(algorithm.try_into()?))
+            },
+            SerializableDigestAlgorithm::TurboShake(algorithm) => {
+                Ok(DigestAlgorithm::TurboShake(algorithm.try_into()?))
+            },
+            SerializableDigestAlgorithm::KangarooTwelve(algorithm) => {
+                Ok(DigestAlgorithm::KangarooTwelve(algorithm.try_into()?))
+            },
+        }
+    }
+}
+
+impl From<&DigestAlgorithm> for SerializableDigestAlgorithm {
+    fn from(value: &DigestAlgorithm) -> Self {
+        match value {
+            DigestAlgorithm::Sha(algorithm) => SerializableDigestAlgorithm::Sha(algorithm.into()),
+            DigestAlgorithm::Sha3(algorithm) => SerializableDigestAlgorithm::Sha3(algorithm.into()),
+            DigestAlgorithm::CShake(algorithm) => {
+                SerializableDigestAlgorithm::CShake(algorithm.into())
+            },
+            DigestAlgorithm::TurboShake(algorithm) => {
+                SerializableDigestAlgorithm::TurboShake(algorithm.into())
+            },
+            DigestAlgorithm::KangarooTwelve(algorithm) => {
+                SerializableDigestAlgorithm::KangarooTwelve(algorithm.into())
             },
         }
     }
@@ -5852,6 +6092,8 @@ enum GetPublicKeyAlgorithm {
     Ecdh(SubtleAlgorithm),
     Ed25519(SubtleAlgorithm),
     X25519(SubtleAlgorithm),
+    MlKem(SubtleAlgorithm),
+    MlDsa(SubtleAlgorithm),
 }
 
 impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
@@ -5882,6 +6124,14 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
             CryptoAlgorithm::X25519 => Ok(GetPublicKeyAlgorithm::X25519(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
+            CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
+                Ok(GetPublicKeyAlgorithm::MlKem(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
+            },
+            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => Ok(
+                GetPublicKeyAlgorithm::MlDsa(object.try_into_with_cx_and_name(cx, algorithm_name)?),
+            ),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"getPublicKey\" operation",
                 algorithm_name.as_str()
@@ -5898,6 +6148,8 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
             GetPublicKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::Ed25519(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::X25519(algorithm) => algorithm.name,
+            GetPublicKeyAlgorithm::MlKem(algorithm) => algorithm.name,
+            GetPublicKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
         }
     }
 }
@@ -5932,6 +6184,12 @@ impl GetPublicKeyAlgorithm {
             },
             GetPublicKeyAlgorithm::X25519(_algorithm) => {
                 x25519_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
+            GetPublicKeyAlgorithm::MlKem(_algorithm) => {
+                ml_kem_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
+            GetPublicKeyAlgorithm::MlDsa(_algorithm) => {
+                ml_dsa_operation::get_public_key(cx, global, key, algorithm, usages)
             },
         }
     }

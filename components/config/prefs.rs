@@ -40,6 +40,12 @@ pub fn add_observer(observer: Box<dyn PreferencesObserver>) {
 /// Update the values of the global preferences for the current process. This also notifies the
 /// observers previously added using [`add_observer`].
 pub fn set(preferences: Preferences) {
+    // Get list of changes, returning early if the preferences haven't changed.
+    let changed = preferences.diff(&PREFERENCES.read().unwrap());
+    if changed.is_empty() {
+        return;
+    }
+
     // Map between Stylo preference names and Servo preference names as the This should be
     // kept in sync with components/script/dom/bindings/codegen/run.py which generates the
     // DOM CSS style accessors.
@@ -63,8 +69,6 @@ pub fn set(preferences: Preferences) {
         "layout.variable_fonts.enabled",
         preferences.layout_variable_fonts_enabled
     );
-
-    let changed = preferences.diff(&PREFERENCES.read().unwrap());
 
     *PREFERENCES.write().unwrap() = preferences;
 
@@ -128,10 +132,16 @@ pub struct Preferences {
     /// Selects canvas backend
     ///
     /// Available values:
-    /// - ` `/`auto`
     /// - vello
-    /// - vello_cpu
+    /// - Everything else selects vello_cpu
     pub dom_canvas_backend: String,
+    /// Maximum number of buffered canvas commands before an automatic flush is triggered.
+    ///
+    /// A lower value keeps the paint thread fed with work (better parallelism),
+    /// while a higher value improves batching efficiency (fewer channel operations, lower power).
+    ///
+    /// See <https://github.com/servo/servo/pull/45301> for measurements.
+    pub dom_canvas_msg_buffer_size: u64,
     pub dom_clipboardevent_enabled: bool,
     pub dom_composition_event_enabled: bool,
     // feature: CookieStore | #37674 | Web/API/CookieStore
@@ -199,8 +209,12 @@ pub struct Preferences {
     pub dom_testperf_enabled: bool,
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
+    /// <https://w3c.github.io/touch-events/#conditionally-exposing-legacy-touch-event-apis>
+    pub dom_touch_events_legacy_apis_enabled: bool,
     /// <https://html.spec.whatwg.org/multipage/#transient-activation-duration>
     pub dom_transient_activation_duration_ms: i64,
+    // feature: Web Animations | #36950 | Web/API/Web_Animations_API
+    pub dom_web_animations_enabled: bool,
     /// Enable WebGL2 APIs.
     // feature: WebGL2 | #41394 | Web/API/WebGL2RenderingContext
     pub dom_webgl2_enabled: bool,
@@ -349,6 +363,9 @@ pub struct Preferences {
     /// Whether to run accessibility tree integrity checks, and any other expensive checks.
     /// This should only be true in tests.
     pub expensive_accessibility_test_assertions_enabled: bool,
+    /// Exposes internal JS API functions that are usually restricted to `about:...` pages
+    /// Useful if you want to get memory report or force GC in a test page
+    pub expose_servointernals_globally: bool,
 }
 
 impl Preferences {
@@ -368,6 +385,7 @@ impl Preferences {
             dom_canvas_capture_enabled: false,
             dom_canvas_text_enabled: true,
             dom_canvas_backend: String::new(),
+            dom_canvas_msg_buffer_size: 16,
             dom_clipboardevent_enabled: true,
             dom_composition_event_enabled: false,
             dom_cookiestore_enabled: false,
@@ -414,7 +432,12 @@ impl Preferences {
             dom_testing_html_input_element_select_files_enabled: false,
             dom_testperf_enabled: false,
             dom_testutils_enabled: false,
+            // Following Firefox and Chrome, we are enabling the touch events legacy APIs for android.
+            // Additionally, enabling it in ohos for compatibility as well.
+            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android") |
+                cfg!(target_env = "ohos"),
             dom_transient_activation_duration_ms: 5000,
+            dom_web_animations_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
             dom_webgpu_wgpu_backend: String::new(),
@@ -516,6 +539,7 @@ impl Preferences {
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),
             viewport_meta_enabled: false,
+            expose_servointernals_globally: false,
         }
     }
 

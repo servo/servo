@@ -13,11 +13,11 @@
 <script>
 'use strict';
 
-runPropertyTests('vertical-align', [
-  { syntax: 'baseline'},
-  // and other keywords
-  { syntax: '<length>' },
-  { syntax: '<percentage>' }
+runUnsupportedPropertyTests('vertical-align', [
+  'baseline', 'sub', 'super', 'text-top', 'text-bottom', 'middle', 'top',
+  'bottom',
+  '0px', '-3.14em', '3.14cm', 'calc(0px + 0em)',
+  '0%', '-3.14%', '3.14%', 'calc(0% + 0%)',
 ]);
 
 </script>

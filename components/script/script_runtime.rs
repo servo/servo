@@ -61,7 +61,7 @@ use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
 use script_bindings::reflector::DomObject;
-use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
+use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive, temp_cx};
 use script_bindings::settings_stack::run_a_script;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_config::pref;
@@ -95,7 +95,7 @@ use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
@@ -496,7 +496,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                         CanGc::from_cx(cx),
                     );
 
-                    event.upcast::<Event>().fire(&target, CanGc::from_cx(cx));
+                    event.upcast::<Event>().fire(cx, &target);
                 })
             );
             },
@@ -505,10 +505,10 @@ unsafe extern "C" fn promise_rejection_tracker(
 }
 
 #[expect(unsafe_code)]
-fn safely_convert_null_to_string(cx: &mut js::context::JSContext, str_: HandleString) -> DOMString {
+fn safely_convert_null_to_string(cx: &js::context::JSContext, str_: HandleString) -> DOMString {
     DOMString::from(match std::ptr::NonNull::new(*str_) {
         None => "".to_owned(),
-        Some(str_) => unsafe { jsstr_to_string(cx.raw_cx(), str_) },
+        Some(str_) => unsafe { jsstr_to_string(cx, str_) },
     })
 }
 
@@ -670,7 +670,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
 
                 log::error!(
                     "Unhandled promise rejection: {}",
-                    stringify_handle_value(reason.handle())
+                    stringify_handle_value( cx, reason.handle())
                 );
 
                 let event = PromiseRejectionEvent::new(
@@ -682,7 +682,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
                     reason.handle(),
                     CanGc::from_cx(cx)
                 );
-                event.upcast::<Event>().fire(&target, CanGc::from_cx(cx));
+                event.upcast::<Event>().fire(cx, &target);
 
                 // TODO: Step 4.1.3 If notCanceled is true, then the user agent may report
                 // p.[[PromiseResult]] to a developer console.
@@ -1365,17 +1365,14 @@ unsafe extern "C" fn consume_stream(
         unsafe { root_from_handleobject::<Response>(RustHandleObject::from_raw(obj), cx.raw_cx()) }
     {
         // Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
-        let mimetype = unwrapped_source
-            .Headers(CanGc::from_cx(cx))
-            .extract_mime_type();
+        let mimetype = unwrapped_source.Headers(cx).extract_mime_type();
 
         // Step 2.3 If mimeType is not `application/wasm`, return with a TypeError and abort these substeps.
         if !&mimetype[..].eq_ignore_ascii_case(b"application/wasm") {
             throw_dom_exception(
-                cx.into(),
+                cx,
                 &global,
                 Error::Type(c"Response has unsupported MIME type".to_owned()),
-                CanGc::from_cx(cx),
             );
             return false;
         }
@@ -1385,10 +1382,9 @@ unsafe extern "C" fn consume_stream(
             DOMResponseType::Basic | DOMResponseType::Cors | DOMResponseType::Default => {},
             _ => {
                 throw_dom_exception(
-                    cx.into(),
+                    cx,
                     &global,
                     Error::Type(c"Response.type must be 'basic', 'cors' or 'default'".to_owned()),
-                    CanGc::from_cx(cx),
                 );
                 return false;
             },
@@ -1397,10 +1393,9 @@ unsafe extern "C" fn consume_stream(
         // Step 2.5 If response’s status is not an ok status, return with a TypeError and abort these substeps.
         if !unwrapped_source.Ok() {
             throw_dom_exception(
-                cx.into(),
+                cx,
                 &global,
                 Error::Type(c"Response does not have ok status".to_owned()),
-                CanGc::from_cx(cx),
             );
             return false;
         }
@@ -1408,10 +1403,9 @@ unsafe extern "C" fn consume_stream(
         // Step 2.6.1 If response body is locked, return with a TypeError and abort these substeps.
         if unwrapped_source.is_locked() {
             throw_dom_exception(
-                cx.into(),
+                cx,
                 &global,
                 Error::Type(c"There was an error consuming the Response".to_owned()),
-                CanGc::from_cx(cx),
             );
             return false;
         }
@@ -1419,10 +1413,9 @@ unsafe extern "C" fn consume_stream(
         // Step 2.6.2 If response body is alreaady consumed, return with a TypeError and abort these substeps.
         if unwrapped_source.is_disturbed() {
             throw_dom_exception(
-                cx.into(),
+                cx,
                 &global,
                 Error::Type(c"Response already consumed".to_owned()),
-                CanGc::from_cx(cx),
             );
             return false;
         }
@@ -1430,10 +1423,9 @@ unsafe extern "C" fn consume_stream(
     } else {
         // Step 3 Upon rejection of source, return with reason.
         throw_dom_exception(
-            cx.into(),
+            cx,
             &global,
             Error::Type(c"expected Response or Promise resolving to Response".to_owned()),
-            CanGc::from_cx(cx),
         );
         return false;
     }
@@ -1452,13 +1444,14 @@ unsafe extern "C" fn invoke_script_environment_preparer(
     global: HandleObject,
     closure: *mut ScriptEnvironmentPreparer_Closure,
 ) {
-    let cx = GlobalScope::get_cx();
+    // SAFETY: always safe from a JS engine hook.
+    let mut cx = unsafe { temp_cx() };
     let global = unsafe { GlobalScope::from_object(global.get()) };
-    let ar = enter_realm(&*global);
+    let mut realm = enter_auto_realm(&mut cx, &*global);
 
     run_a_script::<DomTypeHolder, _>(&global, || {
-        if unsafe { !RunScriptEnvironmentPreparerClosure(*cx, closure) } {
-            report_pending_exception(cx, InRealm::Entered(&ar), CanGc::deprecated_note());
+        if unsafe { !RunScriptEnvironmentPreparerClosure(realm.raw_cx(), closure) } {
+            report_pending_exception(&mut realm.current_realm());
         };
     });
 }

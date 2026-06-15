@@ -9,16 +9,22 @@
 <script src='../../resources/shadow-dom.js'></script>
 <script src="../../resources/focus-utils.js"></script>
 
+<button id=before>before</button>
+
 <menubar>
   <menuitem id="A" command="toggle-menu" commandfor="more">More commands</menuitem>
   <menuitem id="B">Command B</menuitem>
   <menuitem id="C">Command C</menuitem>
 </menubar>
 
+<button id=middle>middle</button>
+
 <menulist id="more">
  <menuitem id="A1">Command A1</menuitem>
  <menuitem id="A2">Command A2</menuitem>
 </menulist>
+
+<button id=after>after</button>
 
 <style>
   menuitem {
@@ -30,11 +36,12 @@
 <script>
 promise_test(async () => {
   let elements = [
+    'before',
     'A',
-    'B',
-    'C',
+    'middle',
+    'after',
   ];
 
   await assert_focus_navigation_bidirectional(elements);
-}, 'Should focus on menuitems in menubar only.');
+}, 'Focus navigation should skip over other menuitems in menubars.');
 </script>

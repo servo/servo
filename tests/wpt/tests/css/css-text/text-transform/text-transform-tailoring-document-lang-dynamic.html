@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="reftest-wait" lang="en">
+<meta charset="utf-8">
+<title>CSS Text, text-transform: capitalize reacts to dynamic lang change on the document element</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform">
+<link rel="match" href="reference/text-transform-tailoring-document-lang-dynamic-ref.html">
+<meta name="assert" content="Changing the lang attribute on the document element updates the locale used by text-transform: capitalize for descendants that inherit the language.">
+<style>
+.test { text-transform: capitalize; font-size: 36px; font-family: 'Gentium Plus', 'Noto Serif', 'Noto Sans', webfont, sans-serif; }
+</style>
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.documentElement.setAttribute("lang", "nl");
+    document.documentElement.classList.remove("reftest-wait");
+  });
+});
+</script>
+<div class="test">ijsland</div>
+</html>

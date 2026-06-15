@@ -4,6 +4,7 @@
 
 use std::fmt;
 use std::marker::PhantomData;
+use std::panic::Location;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -27,6 +28,22 @@ impl<T: Serialize> GenericOneshotSender<T> {
                 sender.send(Ok(msg)).map_err(|_| SendError::Disconnected)
             },
         }
+    }
+
+    #[inline]
+    #[track_caller]
+    /// Send a message across the channel or log a warning if it fails
+    pub fn send_or_warn(self, msg: T) {
+        if let Err(error) = self.send(msg) {
+            let location = Location::caller();
+            log::warn!("Failed to send msg due to `{error}` at {location:?}");
+        }
+    }
+
+    #[inline]
+    /// Send a message across the channel, ignoring the result.
+    pub fn send_or_ignore(self, msg: T) {
+        let _ = self.send(msg);
     }
 }
 

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/12263">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select id=s1>
+  <button id=b1>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option id=o1>one</option>
+</select>
+
+<select id=s2>
+  <button id=b2></button>
+  <option id=o2>two</option>
+  <option id=o3>three</option>
+</select>
+
+<script>
+promise_test(async () => {
+  const s1 = document.getElementById('s1');
+  const s2 = document.getElementById('s2');
+  const b1 = document.getElementById('b1');
+  const b2 = document.getElementById('b2');
+  const o1 = document.getElementById('o1');
+  const o2 = document.getElementById('o2');
+  const o3 = document.getElementById('o3');
+  const selectedcontent = document.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent.innerHTML should match selected option at the start of the test.');
+  assert_true(o1.selected,
+    'o1 should be selected at the start of the test.');
+  assert_true(o2.selected,
+    'o2 should be selected at the start of the test.');
+
+  s1.moveBefore(o2, null);
+  assert_false(o1.selected,
+    'o1 should be deselected after moving another selected option in.');
+  assert_true(o2.selected,
+    'o2 should stay selected after moving.');
+  assert_equals(s1.value, 'two',
+    'select.value should update when moving selected option in.');
+  assert_equals(s2.value, 'three',
+    'select.value should update when moving selected option out.');
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should not update when moving selected option in before microtask.');
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, 'two',
+    'selectedcontent should update when moving selected option in after microtask.');
+
+  b2.moveBefore(selectedcontent, null);
+  assert_equals(selectedcontent.innerHTML, 'two',
+    'selectedcontent should not update when moving into different select before microtask.');
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, 'three',
+    'selectedcontent should update when moving into different select after microtask.');
+}, 'Selectedcontent behavior with moving steps.');
+</script>

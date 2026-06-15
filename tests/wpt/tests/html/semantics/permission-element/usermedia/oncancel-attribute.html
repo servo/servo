@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTMLUserMediaElement: oncancel attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  promise_test(async () => {
+    const element = document.createElement("usermedia");
+    element.setConstraints({ video: {} });
+    assert_true("oncancel" in element, "oncancel should be in element");
+
+    const cancelPromise = new Promise(resolve => {
+      element.oncancel = resolve;
+    });
+    element.dispatchEvent(new Event("cancel"));
+    await cancelPromise;
+  }, "oncancel IDL attribute");
+
+  promise_test(async () => {
+    const container = document.createElement("div");
+    const cancelPromise = new Promise(resolve => {
+      window.oncancel_called_helper = resolve;
+    });
+    container.innerHTML = '<usermedia oncancel="window.oncancel_called_helper()"></usermedia>';
+    const element = container.firstChild;
+
+    element.dispatchEvent(new Event("cancel"));
+    await cancelPromise;
+    delete window.oncancel_called_helper;
+  }, "oncancel HTML attribute");
+
+  promise_test(async () => {
+    const element = document.createElement("usermedia");
+    const cancelPromise = new Promise(resolve => {
+      element.addEventListener("cancel", resolve);
+    });
+    element.dispatchEvent(new Event("cancel"));
+    await cancelPromise;
+  }, "addEventListener cancel");
+</script>
+</body>

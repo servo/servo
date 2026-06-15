@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use digest::{ExtendableOutput, Update};
-use sha3::{CShake128, CShake128Core, CShake256, CShake256Core};
+use cshake::digest::{ExtendableOutput, Update};
+use cshake::{CShake128, CShake256};
 
 use crate::dom::bindings::error::Error;
 use crate::dom::subtlecrypto::{CryptoAlgorithm, SubtleCShakeParams};
@@ -36,18 +36,17 @@ pub(crate) fn digest(
     //     parameter, functionName as the N input parameter, and customization as the S input
     //     parameter.
     // Step 5. If performing the operation results in an error, then throw an OperationError.
-    let result = match normalized_algorithm.name {
+    let mut result = vec![0u8; output_length.div_ceil(8) as usize];
+    match normalized_algorithm.name {
         CryptoAlgorithm::CShake128 => {
-            let core = CShake128Core::new_with_function_name(function_name, customization);
-            let mut hasher = CShake128::from_core(core);
+            let mut hasher = CShake128::new_with_function_name(function_name, customization);
             hasher.update(message);
-            hasher.finalize_boxed(output_length as usize / 8).to_vec()
+            hasher.finalize_xof_into(&mut result);
         },
         CryptoAlgorithm::CShake256 => {
-            let core = CShake256Core::new_with_function_name(function_name, customization);
-            let mut hasher = CShake256::from_core(core);
+            let mut hasher = CShake256::new_with_function_name(function_name, customization);
             hasher.update(message);
-            hasher.finalize_boxed(output_length as usize / 8).to_vec()
+            hasher.finalize_xof_into(&mut result);
         },
         algorithm_name => {
             return Err(Error::NotSupported(Some(format!(
@@ -55,8 +54,15 @@ pub(crate) fn digest(
                 algorithm_name.as_str()
             ))));
         },
-    };
+    }
 
     // Step 6. Return a byte sequence containing result.
+    if !output_length.is_multiple_of(8) {
+        // Clean excess bits in the last byte of result.
+        let mask = u8::MAX << (8 - output_length % 8);
+        if let Some(last_byte) = result.last_mut() {
+            *last_byte &= mask;
+        }
+    }
     Ok(result)
 }

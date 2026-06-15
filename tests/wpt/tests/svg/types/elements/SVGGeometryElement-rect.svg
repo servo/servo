@@ -10,7 +10,9 @@
       stroke-width: 10;
     }
   </style>
-  <rect id="box" x="50" y="50" width="200" height="100" pathLength="6"/>
+  <g id="container">
+    <rect id="box" x="50" y="50" width="200" height="100" pathLength="6"/>
+  </g>
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
   <script><![CDATA[
@@ -28,5 +30,19 @@
   test(function() {
     assert_true(box.getPointAtLength(210) instanceof SVGPoint);
   }, 'getPointAtLength() returns instance of SVGPoint');
+
+  test(function() {
+    const container = document.getElementById("container");
+    try {
+      container.style.zoom = 3;
+      assert_equals(box.getTotalLength(), 600);
+
+      assert_equals(box.getPointAtLength(210).x, 250);
+      assert_equals(box.getPointAtLength(210).y, 60);
+    } finally {
+      container.style.zoom = 1;
+    }
+  }, 'getTotalLength and getPointAtLength are not affected by zoom');
+
   ]]></script>
 </svg>

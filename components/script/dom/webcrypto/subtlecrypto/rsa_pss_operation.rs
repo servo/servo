@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
-use pkcs8::rand_core::OsRng;
 use rsa::pss::{Signature, SigningKey, VerifyingKey};
 use rsa::signature::{RandomizedSigner, SignatureEncoding, Verifier};
 use sha1::Sha1;
@@ -55,7 +54,7 @@ pub(crate) fn sign(
             "[[algorithm]] internal slot of key is not an RsaHashedKeyAlgorithm".to_string(),
         )));
     };
-    let mut rng = OsRng;
+    let mut rng = rand::rng();
     let signature = match algorithm.hash.name() {
         CryptoAlgorithm::Sha1 => {
             let signing_key = SigningKey::<Sha1>::new_with_salt_len(

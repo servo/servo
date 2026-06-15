@@ -194,6 +194,10 @@ impl Player for DummyPlayer {
         Ok(())
     }
 
+    fn set_seekable(&self, _: bool) -> Result<(), PlayerError> {
+        Ok(())
+    }
+
     fn set_playback_rate(&self, _: f64) -> Result<(), PlayerError> {
         Ok(())
     }

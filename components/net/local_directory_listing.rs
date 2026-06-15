@@ -128,9 +128,22 @@ fn write_directory_entry(
         .map(|time| time.format("%F %r").to_string())
         .unwrap_or_default();
 
+    // The file name is the only value here that reaches the page unencoded; the
+    // url crate percent-encodes `<`/`>` in `file_url_string`, and the remaining
+    // fields are produced by us. `{:?}` is not enough on its own because it
+    // leaves `</script>` intact inside the script element below.
+    let name = script_string_literal(&name);
     output.push_str(&format!(
-        "[{class:?}, {name:?}, {file_url_string:?}, {file_size:?}, {last_modified:?}],"
+        "[{class:?}, {name}, {file_url_string:?}, {file_size:?}, {last_modified:?}],"
     ));
+}
+
+/// Serialise `value` as a JavaScript string literal that is safe to embed in the
+/// inline `<script>` element of the directory listing. `{:?}` produces a valid
+/// literal but leaves any `<` (and therefore `</script>`) untouched, which lets a
+/// crafted file name close the script element and inject markup into the page.
+fn script_string_literal(value: &str) -> String {
+    format!("{value:?}").replace('<', "\\u003C")
 }
 
 pub fn metadata_to_file_size_string(metadata: &Metadata) -> String {
@@ -153,4 +166,24 @@ pub fn metadata_to_file_size_string(metadata: &Metadata) -> String {
     };
 
     format!("{:.2} {prefix}", float_size)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::script_string_literal;
+
+    #[test]
+    fn script_string_literal_neutralises_script_close() {
+        let literal = script_string_literal("a</script><img src=x onerror=alert(1)>b");
+        assert!(!literal.contains('<'));
+        assert!(!literal.to_lowercase().contains("</script"));
+    }
+
+    #[test]
+    fn script_string_literal_keeps_debug_escaping() {
+        // Quotes and backslashes from the input stay escaped so the result is
+        // still a valid JavaScript string literal.
+        assert_eq!(script_string_literal("a\"b\\c"), r#""a\"b\\c""#);
+        assert_eq!(script_string_literal("plain"), r#""plain""#);
+    }
 }

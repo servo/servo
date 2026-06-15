@@ -3,15 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::abortsignal::AbortSignal;
 use crate::dom::bindings::codegen::Bindings::AbortControllerBinding::AbortControllerMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 /// <https://dom.spec.whatwg.org/#abortcontroller>
 #[dom_struct]
@@ -36,18 +36,18 @@ impl AbortController {
 
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abortcontroller>
     pub(crate) fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<AbortController> {
         // Step 1. Let signal be a new AbortSignal object.
-        let signal = AbortSignal::new_with_proto(global, None, can_gc);
+        let signal = AbortSignal::new_with_proto(cx, global, None);
         // Step 2. Set this’s signal to signal.
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(AbortController::new_inherited(&signal)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -68,11 +68,11 @@ impl AbortController {
 impl AbortControllerMethods<crate::DomTypeHolder> for AbortController {
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abortcontroller>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<AbortController> {
-        AbortController::new_with_proto(global, proto, can_gc)
+        AbortController::new_with_proto(cx, global, proto)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abort>

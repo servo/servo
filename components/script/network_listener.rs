@@ -86,7 +86,7 @@ pub(crate) fn submit_timing_data(
     resource_timing: &ResourceFetchTiming,
 ) {
     let performance_entry =
-        PerformanceResourceTiming::new(cx, global, url, initiator_type, None, resource_timing);
+        PerformanceResourceTiming::new(cx, global, url, initiator_type, resource_timing);
     global
         .performance()
         .queue_entry(performance_entry.upcast::<PerformanceEntry>());

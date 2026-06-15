@@ -79,29 +79,137 @@ compression_dictionary_promise_test(async (t) => {
 
   const entries = performance.getEntriesByName(dictionaryUrl);
   assert_equals(entries.length, 2);
-  assert_not_equals(entries[0].transferSize, 0);
-  assert_equals(entries[1].transferSize, 0);
+  // transferSize is computed using a 300-byte header size approximation
+  // (per standard browser security practices to avoid exposing exact
+  // header sizes):
+  // - A network request (cache miss) returns 300 + encodedBodySize.
+  // - A cached request (cache hit) returns 0 if served from local cache,
+  //   or 300 if it required validation (e.g. 304 response).
+  assert_equals(
+      entries[0].transferSize, 300 + entries[0].encodedBodySize,
+      "Initial compression dictionary triggered a network load.");
+  assert_in_array(
+      entries[1].transferSize, [0, 300],
+      "Second compression dictionary hit cache.");
 }, 'Dictionary registration does not invalidate cache entry');
 
 compression_dictionary_promise_test(async (t) => {
   // Register a dictionary that has already expired (age > max-age).
   // Make sure it is on a path separate from another dictionary so they can
   // be checked independently.
-  const pattern = "%2Ffetch%2Fcompression-dictionary%2Fresources%2Fecho-headers.py";
-  await fetch(`${kRegisterDictionaryPath}?id=id1&age=7200&max-age=3600&match=${pattern}`);
-  // register another dictionary that we can use to tell when the first
-  // dictionary should also be registered (since the first dictionary
-  // should not send any headers that can be detected directly).
-  const pattern2 = "%2Ffetch%2Fcompression-dictionary%2Fresources%2Fecho-headers2.py";
-  await fetch(`${kRegisterDictionaryPath}?id=id2&match=${pattern2}`);
-  assert_equals(
-      await waitUntilAvailableDictionaryHeader(t, {use_alt_path: true}),
-      kDefaultDictionaryHashBase64);
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  await fetch(
+      `${kRegisterDictionaryPath}?id=id1&age=7200&max-age=3600&match=${pattern}`);
+  await registerAltDictionaryAndWait(t);
   assert_equals((await checkHeaders({use_alt_path: true}))['dictionary-id'], '"id2"');
   // Make sure the expired dictionary isn't announced as being available.
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Expired dictionary is not used');
+
+compression_dictionary_promise_test(async (t) => {
+  const pattern = "%7B";
+  await fetch(`${kRegisterDictionaryPath}?id=id1&match=${pattern}`);
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with invalid match string is not registered');
+
+compression_dictionary_promise_test(async (t) => {
+  const pattern = encodeURIComponent(`${CROSS_ORIGIN_RESOURCES_URL}/echo-headers.py`);
+  await fetch(`${kRegisterDictionaryPath}?id=id1&match=${pattern}`);
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with match string for a different origin is not registered');
+
+compression_dictionary_promise_test(async (t) => {
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  await fetch(
+      `${kRegisterDictionaryPath}?id=id1&type=bogus&match=${pattern}`);
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with unsupported type is not registered');
+
+compression_dictionary_promise_test(async (t) => {
+  const dictionary_id = 'a'.repeat(1024);
+  const dict = await (await fetch(`${kRegisterDictionaryPath}?id=${dictionary_id}`)).text();
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  assert_equals(await checkHeader('dictionary-id', {}), `"${dictionary_id}"`);
+}, 'Dictionary registration with 1024 character dictionary ID');
+
+compression_dictionary_promise_test(async (t) => {
+  const dictionary_id = 'a'.repeat(1025);
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  await fetch(
+      `${kRegisterDictionaryPath}?id=${dictionary_id}&match=${pattern}`);
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with 1025 character dictionary ID is not registered');
+
+compression_dictionary_promise_test(async (t) => {
+  const extra_option = encodeURIComponent('unknown-option="some-value"');
+  const dict = await (await fetch(`${kRegisterDictionaryPath}?id=test&extra-header-option=${extra_option}`)).text();
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  assert_equals(await checkHeader('dictionary-id', {}), '"test"');
+}, 'Dictionary registration with unknown extra options succeeds');
+
+compression_dictionary_promise_test(async (t) => {
+  await fetch(`${kRegisterDictionaryPath}?id=id1&use-as-dictionary=%3F0`);
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with malformed structured header is not registered');
+
+compression_dictionary_promise_test(async (t) => {
+  await fetch(`${kRegisterDictionaryPath}?id=id1&max-age=0`);
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with max-age=0 is not registered');
+
+compression_dictionary_promise_test(async (t) => {
+  // https://www.rfc-editor.org/info/rfc9651/#name-parsing-a-string
+  // double quotes and backslash are escaped in headers per RFC9651.
+  let dictionaryIDsuffix =
+      " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+      "[]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+  let dictionaryID = `\\"\\\\${dictionaryIDsuffix}`;
+  const dict = await (await fetch(`${kRegisterDictionaryPath}?id=${encodeURIComponent(dictionaryID)}`)).text();
+  // Wait until `available-dictionary` header is available.
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  assert_equals(await checkHeader('dictionary-id', {}), `"${dictionaryID}"`);
+}, 'Dictionary registration with dictionary ID (valid characters and backslash escaping)');
+
+compression_dictionary_promise_test(async (t) => {
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  await fetch(`${kRegisterDictionaryPath}?id=${encodeURIComponent("€")}&match=${pattern}`);
+  await registerAltDictionaryAndWait(t);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with invalid character in dictionary ID is not registered');
+
+compression_dictionary_promise_test(async (t) => {
+  await fetch(kRegisterDictionaryPath);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+  const redirect_url = `/common/redirect.py?location=${encodeURIComponent(`${SAME_ORIGIN_RESOURCES_URL}/echo-headers.py`)}`;
+  const headers = await (await fetch(redirect_url)).json();
+  assert_equals(headers['available-dictionary'], kDefaultDictionaryHashBase64);
+}, 'Available-Dictionary header is added when target of redirect matches dictionary');
 
 </script>
 </body>

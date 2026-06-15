@@ -10,15 +10,17 @@ use std::marker::Sized;
 use std::ops::{Deref, DerefMut};
 
 use indexmap::IndexMap;
+use js::context::{JSContext, RawJSContext};
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
-use js::jsapi::glue::JS_GetOwnPropertyDescriptorById;
 use js::jsapi::{
-    HandleId as RawHandleId, JS_NewPlainObject, JSContext, JSITER_HIDDEN, JSITER_OWNONLY,
-    JSITER_SYMBOLS, JSPROP_ENUMERATE, PropertyDescriptor,
+    JS_NewPlainObject, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSPROP_ENUMERATE,
+    PropertyDescriptor,
 };
 use js::jsval::{ObjectValue, UndefinedValue};
-use js::rooted;
-use js::rust::wrappers::{GetPropertyKeys, JS_DefineUCProperty2, JS_GetPropertyById, JS_IdToValue};
+use js::rust::wrappers::JS_DefineUCProperty2;
+use js::rust::wrappers2::{
+    GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IdToValue,
+};
 use js::rust::{HandleId, HandleValue, IdVector, MutableHandleValue};
 
 use crate::conversions::jsid_to_string;
@@ -28,10 +30,8 @@ pub trait RecordKey: Eq + Hash + Sized {
     fn to_utf16_vec(&self) -> Vec<u16>;
 
     /// Attempt to extract a key from a JS id.
-    /// # Safety
-    /// - cx must point to a non-null, valid JSContext.
     #[allow(clippy::result_unit_err)]
-    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()>;
+    fn from_id(cx: &mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()>;
 }
 
 impl RecordKey for DOMString {
@@ -39,7 +39,7 @@ impl RecordKey for DOMString {
         self.str().encode_utf16().collect::<Vec<_>>()
     }
 
-    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
+    fn from_id(cx: &mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
         match jsid_to_string(cx, id) {
             Some(s) => Ok(ConversionResult::Success(s)),
             None => Ok(ConversionResult::Failure(c"Failed to get DOMString".into())),
@@ -52,12 +52,11 @@ impl RecordKey for USVString {
         self.0.encode_utf16().collect::<Vec<_>>()
     }
 
-    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
-        rooted!(in(cx) let mut jsid_value = UndefinedValue());
-        let raw_id: RawHandleId = id.into();
-        JS_IdToValue(cx, *raw_id.ptr, jsid_value.handle_mut());
+    fn from_id(cx: &mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
+        rooted!(&in(cx) let mut jsid_value = UndefinedValue());
+        unsafe { JS_IdToValue(cx, *id.as_ref(cx), jsid_value.handle_mut()) };
 
-        USVString::from_jsval(cx, jsid_value.handle(), ())
+        USVString::safe_from_jsval(cx, jsid_value.handle(), ())
     }
 }
 
@@ -66,12 +65,11 @@ impl RecordKey for ByteString {
         self.iter().map(|&x| x as u16).collect::<Vec<u16>>()
     }
 
-    unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
-        rooted!(in(cx) let mut jsid_value = UndefinedValue());
-        let raw_id: RawHandleId = id.into();
-        JS_IdToValue(cx, *raw_id.ptr, jsid_value.handle_mut());
+    fn from_id(cx: &mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
+        rooted!(&in(cx) let mut jsid_value = UndefinedValue());
+        unsafe { JS_IdToValue(cx, *id.as_ref(cx), jsid_value.handle_mut()) };
 
-        ByteString::from_jsval(cx, jsid_value.handle(), ())
+        ByteString::safe_from_jsval(cx, jsid_value.handle(), ())
     }
 }
 
@@ -113,7 +111,17 @@ where
 {
     type Config = C;
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut RawJSContext,
+        value: HandleValue,
+        config: C,
+    ) -> Result<ConversionResult<Self>, ()> {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, config)
+    }
+
+    fn safe_from_jsval(
+        cx: &mut JSContext,
         value: HandleValue,
         config: C,
     ) -> Result<ConversionResult<Self>, ()> {
@@ -123,30 +131,34 @@ where
             ));
         }
 
-        rooted!(in(cx) let object = value.to_object());
-        let mut ids = IdVector::new(cx);
-        if !GetPropertyKeys(
-            cx,
-            object.handle(),
-            JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
-            ids.handle_mut(),
-        ) {
+        rooted!(&in(cx) let object = value.to_object());
+        let mut ids = unsafe { IdVector::new(cx.raw_cx()) };
+        if unsafe {
+            !GetPropertyKeys(
+                cx,
+                object.handle(),
+                JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
+                ids.handle_mut(),
+            )
+        } {
             return Err(());
         }
 
         let mut map = IndexMap::new();
         for id in &*ids {
-            rooted!(in(cx) let id = *id);
-            rooted!(in(cx) let mut desc = PropertyDescriptor::default());
+            rooted!(&in(cx) let id = *id);
+            rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
 
             let mut is_none = false;
-            if !JS_GetOwnPropertyDescriptorById(
-                cx,
-                object.handle().into(),
-                id.handle().into(),
-                desc.handle_mut().into(),
-                &mut is_none,
-            ) {
+            if unsafe {
+                !JS_GetOwnPropertyDescriptorById(
+                    cx,
+                    object.handle(),
+                    id.handle(),
+                    desc.handle_mut(),
+                    &mut is_none,
+                )
+            } {
                 return Err(());
             }
 
@@ -161,12 +173,14 @@ where
                 },
             };
 
-            rooted!(in(cx) let mut property = UndefinedValue());
-            if !JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut()) {
+            rooted!(&in(cx) let mut property = UndefinedValue());
+            if unsafe {
+                !JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut())
+            } {
                 return Err(());
             }
 
-            let property = match V::from_jsval(cx, property.handle(), config.clone())? {
+            let property = match V::safe_from_jsval(cx, property.handle(), config.clone())? {
                 ConversionResult::Success(property) => property,
                 ConversionResult::Failure(message) => {
                     return Ok(ConversionResult::Failure(message));
@@ -185,7 +199,7 @@ where
     V: ToJSValConvertible,
 {
     #[inline]
-    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut RawJSContext, mut rval: MutableHandleValue) {
         rooted!(in(cx) let js_object = JS_NewPlainObject(cx));
         assert!(!js_object.handle().is_null());
 

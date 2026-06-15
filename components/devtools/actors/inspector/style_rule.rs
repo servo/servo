@@ -7,6 +7,7 @@
 //! A group is either the html style attribute or one selector from one stylesheet.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
@@ -18,7 +19,7 @@ use serde_json::{Map, Value};
 use servo_base::generic_channel;
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::ClientRequest;
@@ -88,8 +89,8 @@ pub(crate) struct StyleRuleActor {
 }
 
 impl Actor for StyleRuleActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     /// The style rule configuration actor can handle the following messages:
@@ -123,7 +124,7 @@ impl Actor for StyleRuleActor {
 
                 // Query the rule modification
                 let node_actor = registry.find::<NodeActor>(&self.node_name);
-                let walker = registry.find::<WalkerActor>(&node_actor.walker);
+                let walker = registry.find::<WalkerActor>(&node_actor.walker_name);
                 let browsing_context_actor = walker.browsing_context_actor(registry);
                 browsing_context_actor
                     .script_chan()
@@ -147,20 +148,19 @@ impl StyleRuleActor {
         registry: &ActorRegistry,
         node: String,
         selector: Option<MatchedRule>,
-    ) -> String {
-        let name = registry.new_name::<Self>();
+    ) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
         let actor = Self {
-            name: name.clone(),
+            name,
             node_name: node,
             selector,
         };
-        registry.register::<Self>(actor);
-        name
+        registry.register::<Self>(actor)
     }
 
     pub fn applied(&self, registry: &ActorRegistry) -> Option<AppliedRule> {
         let node_actor = registry.find::<NodeActor>(&self.node_name);
-        let walker = registry.find::<WalkerActor>(&node_actor.walker);
+        let walker = registry.find::<WalkerActor>(&node_actor.walker_name);
         let browsing_context_actor = walker.browsing_context_actor(registry);
 
         let (document_sender, document_receiver) = generic_channel::channel()?;
@@ -193,7 +193,7 @@ impl StyleRuleActor {
         let style = style_receiver.recv().ok()??;
 
         Some(AppliedRule {
-            actor: self.name(),
+            actor: self.name().into(),
             ancestor_data: self
                 .selector
                 .as_ref()
@@ -232,7 +232,7 @@ impl StyleRuleActor {
         registry: &ActorRegistry,
     ) -> Option<HashMap<String, ComputedDeclaration>> {
         let node_actor = registry.find::<NodeActor>(&self.node_name);
-        let walker = registry.find::<WalkerActor>(&node_actor.walker);
+        let walker = registry.find::<WalkerActor>(&node_actor.walker_name);
         let browsing_context_actor = walker.browsing_context_actor(registry);
 
         let (style_sender, style_receiver) = generic_channel::channel()?;
@@ -266,7 +266,7 @@ impl StyleRuleActor {
 impl ActorEncode<StyleRuleActorMsg> for StyleRuleActor {
     fn encode(&self, registry: &ActorRegistry) -> StyleRuleActorMsg {
         StyleRuleActorMsg {
-            from: self.name(),
+            from: self.name().into(),
             rule: self.applied(registry),
         }
     }

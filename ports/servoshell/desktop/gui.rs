@@ -529,41 +529,48 @@ impl Gui {
 
                 // A simple Tab header strip
                 let outer = Panel::top("tabs").show_inside(ctx, |ui| {
-                    ui.allocate_ui_with_layout(
-                        ui.available_size(),
-                        egui::Layout::left_to_right(egui::Align::Center),
-                        |ui| {
-                            for (id, webview) in window.webviews().into_iter() {
-                                let favicon = favicon_textures
-                                    .get(&id)
-                                    .map(|(_, favicon)| favicon)
-                                    .copied();
-                                Self::browser_tab(ui, window, webview, favicon);
-                            }
+                    // Add scroll for overflowing tabs
+                    egui::ScrollArea::horizontal()
+                        .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                        .show(ui, |ui| {
+                            ui.allocate_ui_with_layout(
+                                ui.available_size(),
+                                egui::Layout::left_to_right(egui::Align::Center),
+                                |ui| {
+                                    for (id, webview) in window.webviews().into_iter() {
+                                        let favicon = favicon_textures
+                                            .get(&id)
+                                            .map(|(_, favicon)| favicon)
+                                            .copied();
+                                        Self::browser_tab(ui, window, webview, favicon);
+                                    }
 
-                            let new_tab_button = ui.add(Gui::toolbar_button("+"));
-                            new_tab_button.widget_info(|| {
-                                let mut info = WidgetInfo::new(WidgetType::Button);
-                                info.label = Some("New tab".into());
-                                info
-                            });
-                            if new_tab_button.clicked() {
-                                window
-                                    .queue_user_interface_command(UserInterfaceCommand::NewWebView);
-                            }
+                                    let new_tab_button = ui.add(Gui::toolbar_button("+"));
+                                    new_tab_button.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("New tab".into());
+                                        info
+                                    });
+                                    if new_tab_button.clicked() {
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::NewWebView,
+                                        );
+                                    }
 
-                            let new_window_button = ui.add(Gui::toolbar_button("⊞"));
-                            new_window_button.widget_info(|| {
-                                let mut info = WidgetInfo::new(WidgetType::Button);
-                                info.label = Some("New window".into());
-                                info
-                            });
-                            if new_window_button.clicked() {
-                                window
-                                    .queue_user_interface_command(UserInterfaceCommand::NewWindow);
-                            }
-                        },
-                    );
+                                    let new_window_button = ui.add(Gui::toolbar_button("⊞"));
+                                    new_window_button.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("New window".into());
+                                        info
+                                    });
+                                    if new_window_button.clicked() {
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::NewWindow,
+                                        );
+                                    }
+                                },
+                            );
+                        })
                 });
 
                 *toolbar_height = Length::new(outer.response.rect.max.y);
@@ -607,7 +614,6 @@ impl Gui {
                     pos2(0.0, available_rect.max.y),
                 )
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
-                window.set_needs_repaint();
             }
 
             window.repaint_webviews();
@@ -626,6 +632,12 @@ impl Gui {
                 });
             }
         });
+
+        // If any egui widget requested a repaint, also request a repaint for our
+        // containing window. This allows egui widget to animate on their own.
+        if self.context.egui_ctx.has_requested_repaint() {
+            window.set_needs_repaint();
+        }
 
         let adapter = self
             .context

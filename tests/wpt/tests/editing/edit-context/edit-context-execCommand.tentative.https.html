@@ -66,7 +66,7 @@
       selection.setBaseAndExtent(test.firstChild.firstChild, 0, test.firstChild.firstChild, 1);
 
       assert_false(document.queryCommandState("bold"), "queryCommandState should always return false in EditContext");
-      assert_equals(document.queryCommandValue("bold"), "false", "queryCommandValue should always return 'false' in EditContext for commands that return booleans");
+      assert_in_array(document.queryCommandValue("bold"), ["false", ""], "queryCommandValue should always return 'false' or '' in EditContext for commands that return booleans");
       assert_equals(document.queryCommandValue("forecolor"), "", "queryCommandValue should always return empty string in EditContext for commands that return strings");
 
       selection.setBaseAndExtent(test.firstChild.firstChild, 1, test.lastChild, 1);

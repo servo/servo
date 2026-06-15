@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="table-max-content-with-scrollable-descendant-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-sizing">
+<style>
+.container {
+  width: max-content;
+  background-color: green;
+}
+table {
+  border-spacing: 0;
+}
+td {
+  padding: 0;
+}
+.parent {
+  height: 79px;
+  overflow: auto;
+}
+.content {
+  width: 10px;
+  height: 80px;
+}
+</style>
+</head>
+<body>
+<div class=container>
+  <table><tr><td>
+    <div class=parent>
+      <div class=content></div>
+    </div>
+  </td></tr></table>
+</div>
+</body>
+</html>

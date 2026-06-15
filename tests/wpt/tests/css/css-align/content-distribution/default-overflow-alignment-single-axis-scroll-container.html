@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<title>CSS Align: default overflow alignment respects single-axis scroll containers</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#auto-safety-scroll">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-properties">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<style>
+.container {
+  justify-content: center;
+  align-content: center;
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 200px;
+  grid-template-rows: 200px;
+}
+.item {
+  flex: none;
+  width: 200px;
+  height: 200px;
+}
+.x-scroller {
+  overflow-x: hidden;
+  overflow-y: clip;
+}
+.y-scroller {
+  overflow-x: clip;
+  overflow-y: hidden;
+}
+</style>
+
+<p>
+  For a flex or grid container, if an axis has a scrollable overflow value,
+  content distribution in that axis uses unsafe default overflow alignment.
+  This does not affect behavior, as the initial value for these cases is unsafe.
+</p>
+
+<div class="container flex x-scroller">
+  <div class="item"
+       data-offset-x="-50"
+       data-offset-y="-50"
+       data-expected-width="200"
+       data-expected-height="200"></div>
+</div>
+
+<div class="container flex y-scroller">
+  <div class="item"
+       data-offset-x="-50"
+       data-offset-y="-50"
+       data-expected-width="200"
+       data-expected-height="200"></div>
+</div>
+
+<div class="container grid x-scroller">
+  <div class="item"
+       data-offset-x="-50"
+       data-offset-y="-50"
+       data-expected-width="200"
+       data-expected-height="200"></div>
+</div>
+
+<div class="container grid y-scroller">
+  <div class="item"
+       data-offset-x="-50"
+       data-offset-y="-50"
+       data-expected-width="200"
+       data-expected-height="200"></div>
+</div>
+
+<script>
+checkLayout('.item');
+</script>

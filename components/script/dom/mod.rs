@@ -364,6 +364,7 @@ pub(crate) mod textcontrol;
 pub(crate) mod timeranges;
 pub(crate) mod touch;
 pub(crate) mod touchlist;
+pub(crate) mod tree_ordered_index_map;
 pub(crate) mod treewalker;
 pub(crate) mod trustedtypes;
 pub(crate) use self::trustedtypes::*;
@@ -399,8 +400,8 @@ pub(crate) mod webrtc;
 pub(crate) use self::webrtc::*;
 pub(crate) mod webvtt;
 pub(crate) use self::webvtt::*;
-#[expect(dead_code)]
 pub(crate) mod window;
+pub(crate) mod windowclient;
 pub(crate) mod windowproxy;
 pub(crate) mod workers;
 pub(crate) use self::workers::*;

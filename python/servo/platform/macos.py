@@ -43,7 +43,7 @@ class MacOS(Base):
     def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         installed_something = False
         try:
-            brewfile = os.path.join(util.SERVO_ROOT, "support", "macos", "Brewfile")
+            brewfile = os.path.join(os.path.dirname(__file__), "Brewfile")
             output = subprocess.check_output(["brew", "bundle", "install", "--file", brewfile]).decode("utf-8")
             print(output)
             installed_something = "Installing" in output

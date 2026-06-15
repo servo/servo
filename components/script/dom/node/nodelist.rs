@@ -8,13 +8,14 @@ use dom_struct::dom_struct;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use stylo_atoms::Atom;
 
+use crate::dom::ChildrenMutation;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::HTMLFormElement;
-use crate::dom::node::{ChildrenMutation, Node};
+use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

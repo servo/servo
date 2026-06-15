@@ -221,15 +221,15 @@
   "equal": {
     "a": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "b": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["uint8"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "erf": {
@@ -336,29 +336,29 @@
   "greater": {
     "a": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "b": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["uint8"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "greaterOrEqual": {
     "a": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "b": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["uint8"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "gru": {
@@ -476,21 +476,21 @@
   "isNaN": {
     "input": {
       "dataTypes": ["float32", "float16"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["uint8"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "isInfinite": {
     "input": {
       "dataTypes": ["float32", "float16"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["uint8"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "l2Pool2d": {
@@ -531,29 +531,29 @@
   "lesser": {
     "a": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "b": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["uint8"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "lesserOrEqual": {
     "a": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "b": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["uint8"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "linear": {
@@ -774,15 +774,15 @@
   "notEqual": {
     "a": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "b": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["uint8"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "pad": {
@@ -798,15 +798,15 @@
   "pow": {
     "a": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "b": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     },
     "output": {
       "dataTypes": ["float32", "float16", "int32"],
-      "rankRange": {"min": 0, "max": 4}
+      "rankRange": {"min": 0, "max": 5}
     }
   },
   "prelu": {

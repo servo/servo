@@ -57,17 +57,19 @@
       const ACTIVATION_RANGE_START_PX = COVER_START_OFFSET + CSS_TRIGGER_START_PX;
       const ACTIVATION_RANGE_END_PX = COVER_START_OFFSET + CSS_TRIGGER_END_PX;
 
+      // TODO(crbug.com/451238244): Replace these with common methods in
+      // support.js.
       const enter = () => {
-        return runAndWaitForFrameUpdate(async () => {
+        return runAndWaitForFrameUpdate(() => {
           scroller.scrollTop =
               (ACTIVATION_RANGE_START_PX + ACTIVATION_RANGE_END_PX) / 2;
-        });
+        }).then(waitForCompositorCommit);
       }
 
       const exit = () => {
-        return runAndWaitForFrameUpdate(async () => {
+        return runAndWaitForFrameUpdate(() => {
           scroller.scrollTop = ACTIVATION_RANGE_END_PX + 100;
-        });
+        }).then(waitForCompositorCommit);
       }
 
       const reset = () => {
@@ -84,7 +86,6 @@
         // Entering the activation range should result in playing.
         await enter();
         assert_equals(animation.playState, "running");
-
         animation.pause();
         animation.currentTime = CSS_ANIMATION_DURATION / 2;
         assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION / 2);

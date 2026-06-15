@@ -339,3 +339,28 @@ async def test_client_window(bidi_session, wait_for_event, wait_for_future_safe,
         user_context="default",
         client_window=contexts[0]["clientWindow"]
     )
+
+
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_context_is_ready_after_event(
+    bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, type_hint
+):
+    await subscribe_events(events=[CONTEXT_CREATED_EVENT])
+
+    on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
+
+    try:
+        await bidi_session.browsing_context.create(type_hint=type_hint)
+        context_info = await wait_for_future_safe(on_entry)
+
+        result = await bidi_session.script.evaluate(
+            expression="document.readyState",
+            target=ContextTarget(context_info["context"]),
+            await_promise=False
+        )
+
+        # Make sure that the script successfully runs in the newly created context
+        # when "browsingContext.contextCreated" event is sent.
+        assert result["value"] == "complete"
+    finally:
+        await bidi_session.browsing_context.close(context=context_info["context"])

@@ -8,7 +8,7 @@ use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
 use servo_base::{Epoch, generic_channel};
-use servo_canvas_traits::canvas::{Canvas2dMsg, CanvasId};
+use servo_canvas_traits::canvas::{CanvasCommand, CanvasId};
 use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 
@@ -47,6 +47,24 @@ pub(crate) struct CanvasRenderingContext2D {
 }
 
 impl CanvasRenderingContext2D {
+    const RGBA8_BYTES_PER_PIXEL: usize = 4;
+    /// We have two bitmap buffers one in Canvas Paint Thread and one for WebRender
+    const ASSOCIATED_MEMORY_BUFFER_COUNT: usize = 2;
+
+    fn associated_memory_size(size: Size2D<u64>) -> usize {
+        (size.width as usize)
+            .saturating_mul(size.height as usize)
+            .saturating_mul(Self::RGBA8_BYTES_PER_PIXEL)
+            .saturating_mul(Self::ASSOCIATED_MEMORY_BUFFER_COUNT)
+    }
+
+    pub(crate) fn update_associated_memory_size(&self) {
+        self.reflector_.update_memory_size(
+            self,
+            Self::associated_memory_size(self.canvas_state.bitmap_dimensions()),
+        );
+    }
+
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         global: &GlobalScope,
@@ -73,7 +91,11 @@ impl CanvasRenderingContext2D {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(canvas)),
             size,
         )
-        .map(|context| reflect_dom_object(Box::new(context), global, can_gc))
+        .map(|context| {
+            let context = reflect_dom_object(Box::new(context), global, can_gc);
+            context.update_associated_memory_size();
+            context
+        })
     }
 
     pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
@@ -84,8 +106,12 @@ impl CanvasRenderingContext2D {
         self.canvas_state.get_canvas_id()
     }
 
-    pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
-        self.canvas_state.send_canvas_2d_msg(msg)
+    pub(crate) fn send_canvas_command(&self, msg: CanvasCommand) {
+        self.canvas_state.send_canvas_command(msg)
+    }
+
+    pub(crate) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
+        self.canvas_state.send_canvas_command_immediate(msg)
     }
 
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
@@ -112,9 +138,8 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn resize(&self) {
-        self.reflector_
-            .update_memory_size(self, self.size().cast::<usize>().area());
         self.canvas_state.set_bitmap_dimensions(self.size().cast());
+        self.update_associated_memory_size();
     }
 
     fn reset_bitmap(&self) {
@@ -128,7 +153,7 @@ impl CanvasContext for CanvasRenderingContext2D {
 
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.canvas_state
-            .send_canvas_2d_msg(Canvas2dMsg::GetImageData(None, sender));
+            .send_canvas_command_immediate(CanvasCommand::GetImageData(None, sender));
         Some(receiver.recv().unwrap().to_owned())
     }
 

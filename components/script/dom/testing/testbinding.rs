@@ -5,15 +5,18 @@
 // check-tidy: no specs after this line
 
 use std::borrow::ToOwned;
-use std::ptr::{self, NonNull};
+use std::ptr;
 use std::rc::Rc;
 use std::time::Duration;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::realm::CurrentRealm;
-use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{
+    CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
+};
 use js::typedarray::{self, HeapUint8ClampedArray};
 use script_bindings::cformat;
 use script_bindings::interfaces::TestBindingHelpers;
@@ -71,8 +74,8 @@ impl TestBinding {
         }
     }
 
-    fn new(
-        cx: &mut js::context::JSContext,
+    pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<TestBinding> {
@@ -87,7 +90,7 @@ impl TestBinding {
 
 impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> Fallible<DomRoot<TestBinding>> {
@@ -96,7 +99,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     #[expect(unused_variables)]
     fn Constructor_(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         nums: Vec<f64>,
@@ -106,7 +109,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     #[expect(unused_variables)]
     fn Constructor__(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         num: f64,
@@ -182,11 +185,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         TestEnum::_empty
     }
     fn SetEnumAttribute(&self, _: TestEnum) {}
-    fn InterfaceAttribute(&self, can_gc: CanGc) -> DomRoot<Blob> {
+    fn InterfaceAttribute(&self, cx: &mut JSContext) -> DomRoot<Blob> {
         Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -236,11 +239,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn AnyAttribute(&self, _: SafeJSContext, _: MutableHandleValue) {}
     fn SetAnyAttribute(&self, _: SafeJSContext, _: HandleValue) {}
     #[expect(unsafe_code)]
-    fn ObjectAttribute(&self, cx: SafeJSContext) -> NonNull<JSObject> {
-        unsafe {
-            rooted!(in(*cx) let obj = JS_NewPlainObject(*cx));
-            NonNull::new(obj.get()).expect("got a null pointer")
-        }
+    fn ObjectAttribute(&self, cx: SafeJSContext, mut return_value: MutableHandleObject) {
+        return_value.set(unsafe { JS_NewPlainObject(*cx) });
     }
     fn SetObjectAttribute(&self, _: SafeJSContext, _: *mut JSObject) {}
 
@@ -326,11 +326,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> {
         Some(TestEnum::_empty)
     }
-    fn GetInterfaceAttributeNullable(&self, can_gc: CanGc) -> Option<DomRoot<Blob>> {
+    fn GetInterfaceAttributeNullable(&self, cx: &mut JSContext) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
@@ -340,8 +340,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn SetInterfaceAttributeWeak(&self, url: Option<&URL>) {
         self.url.set(url);
     }
-    fn GetObjectAttributeNullable(&self, _: SafeJSContext) -> Option<NonNull<JSObject>> {
-        None
+    fn GetObjectAttributeNullable(&self, _: SafeJSContext, mut return_value: MutableHandleObject) {
+        return_value.set(ptr::null_mut());
     }
     fn SetObjectAttributeNullable(&self, _: SafeJSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
@@ -421,16 +421,16 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveEnum(&self) -> TestEnum {
         TestEnum::_empty
     }
-    fn ReceiveInterface(&self, can_gc: CanGc) -> DomRoot<Blob> {
+    fn ReceiveInterface(&self, cx: &mut JSContext) -> DomRoot<Blob> {
         Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         )
     }
     fn ReceiveAny(&self, _: SafeJSContext, _: MutableHandleValue) {}
-    fn ReceiveObject(&self, cx: SafeJSContext) -> NonNull<JSObject> {
-        self.ObjectAttribute(cx)
+    fn ReceiveObject(&self, cx: SafeJSContext, return_value: MutableHandleObject) {
+        self.ObjectAttribute(cx, return_value);
     }
     fn ReceiveUnion(&self) -> HTMLElementOrLong {
         HTMLElementOrLong::Long(0)
@@ -468,11 +468,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveSequence(&self) -> Vec<i32> {
         vec![1]
     }
-    fn ReceiveInterfaceSequence(&self, can_gc: CanGc) -> Vec<DomRoot<Blob>> {
+    fn ReceiveInterfaceSequence(&self, cx: &mut JSContext) -> Vec<DomRoot<Blob>> {
         vec![Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         )]
     }
     fn ReceiveUnionIdentity(
@@ -534,15 +534,15 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> {
         Some(TestEnum::_empty)
     }
-    fn ReceiveNullableInterface(&self, can_gc: CanGc) -> Option<DomRoot<Blob>> {
+    fn ReceiveNullableInterface(&self, cx: &mut JSContext) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
+            cx,
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            can_gc,
         ))
     }
-    fn ReceiveNullableObject(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {
-        self.GetObjectAttributeNullable(cx)
+    fn ReceiveNullableObject(&self, cx: SafeJSContext, return_value: MutableHandleObject) {
+        self.GetObjectAttributeNullable(cx, return_value)
     }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {
         Some(HTMLElementOrLong::Long(0))
@@ -567,9 +567,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
     fn GetDictionaryWithTypedArray(
         &self,
+        cx: &mut JSContext,
         _dictionary: RootedTraceableBox<TestDictionaryWithTypedArray>,
     ) {
-        self.global().as_window().gc();
+        self.global().as_window().gc(cx);
     }
     fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
         RootedTraceableBox::new(TestDictionary {
@@ -1029,8 +1030,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Promise::new_resolved(&self.global(), cx, v, CanGc::deprecated_note())
     }
 
-    fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_rejected(&self.global(), cx, v, CanGc::deprecated_note())
+    fn ReturnRejectedPromise(&self, cx: &mut JSContext, v: HandleValue) -> Rc<Promise> {
+        Promise::new_rejected(cx, &self.global(), v)
     }
 
     fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
@@ -1041,8 +1042,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         p.reject(cx, v, can_gc);
     }
 
-    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString, can_gc: CanGc) {
-        p.reject_error(Error::Type(cformat!("{}", s.0)), can_gc);
+    fn PromiseRejectWithTypeError(&self, cx: &mut JSContext, p: &Promise, s: USVString) {
+        p.reject_error(cx, Error::Type(cformat!("{}", s.0)));
     }
 
     fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
@@ -1065,10 +1066,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
+            realm,
             &global,
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
-            CanGc::from_cx(realm),
         );
 
         let p = Promise::new_in_realm(realm);
@@ -1186,10 +1187,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 }
 
 impl TestBinding {
-    pub(crate) fn condition_satisfied(_: SafeJSContext, _: HandleObject) -> bool {
+    pub(crate) fn condition_satisfied(_: &mut JSContext, _: HandleObject) -> bool {
         true
     }
-    pub(crate) fn condition_unsatisfied(_: SafeJSContext, _: HandleObject) -> bool {
+    pub(crate) fn condition_unsatisfied(_: &mut JSContext, _: HandleObject) -> bool {
         false
     }
 }
@@ -1210,10 +1211,10 @@ impl TestBindingCallback {
 }
 
 impl TestBindingHelpers for TestBinding {
-    fn condition_satisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+    fn condition_satisfied(cx: &mut JSContext, global: HandleObject) -> bool {
         Self::condition_satisfied(cx, global)
     }
-    fn condition_unsatisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+    fn condition_unsatisfied(cx: &mut JSContext, global: HandleObject) -> bool {
         Self::condition_unsatisfied(cx, global)
     }
 }

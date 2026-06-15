@@ -24,8 +24,8 @@ use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
     JSValue, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, RenderingContext, Scroll, SimpleDialog, Theme, WebView, WebViewBuilder,
-    WebViewDelegate, WebViewPoint, WebViewVector,
+    MouseMoveEvent, PrefValue, RenderingContext, Scroll, SimpleDialog, Theme, WebView,
+    WebViewBuilder, WebViewDelegate, WebViewPoint, WebViewVector,
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
@@ -196,6 +196,46 @@ fn test_theme_change() {
     webview.notify_theme_change(Theme::Dark);
     let result = evaluate_javascript(&servo_test, webview.clone(), is_dark_theme_script);
     assert_eq!(result, Ok(JSValue::Boolean(true)));
+}
+
+#[test]
+fn test_theme_change_media_query_event() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                r#"data:text/html,<!DOCTYPE html><html><script>
+            let mediaQueryChanges = 0;
+            const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQueryList.addEventListener('change', () => {
+                mediaQueryChanges += 1;
+                console.log(mediaQueryChanges);
+            });
+            </script></html>"#,
+            )
+            .unwrap(),
+        )
+        .build();
+
+    // Check that we increment mediaQueryChanges each time the theme changes.
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "mediaQueryChanges");
+    assert_eq!(result, Ok(JSValue::Number(0.0)));
+
+    webview.notify_theme_change(Theme::Dark);
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "mediaQueryChanges");
+    assert_eq!(result, Ok(JSValue::Number(1.0)));
+
+    webview.notify_theme_change(Theme::Light);
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let result = evaluate_javascript(&servo_test, webview.clone(), "mediaQueryChanges");
+    assert_eq!(result, Ok(JSValue::Number(2.0)));
 }
 
 #[test]
@@ -1036,5 +1076,61 @@ fn test_console_log_and_error_ordering() {
         messages[1].1.contains("DocumentFragment") || messages[1].1.contains("querySelector"),
         "Expected second message to contain error info, got: {:?}",
         messages[1].1
+    );
+}
+
+#[test]
+fn test_preferences_change() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let test_page = Url::parse(
+        "data:text/html,\
+        <div style=\"display: grid;\">\
+            <div id=target style=\"grid-column: 1;\">three</div>\
+        </div>",
+    )
+    .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    assert_eq!(
+        Ok(JSValue::Array(vec![
+            JSValue::String("".to_string()),
+            JSValue::String("".to_string())
+        ])),
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "let old_value = target.style.getPropertyValue('grid-column');
+            target.style.gridColumn = '3';
+            let new_value = target.style.getPropertyValue('grid-column');
+            [old_value, new_value]"
+        )
+    );
+
+    servo_test
+        .servo()
+        .set_preference("layout_grid_enabled", PrefValue::Bool(true));
+
+    webview.reload();
+
+    assert_eq!(
+        Ok(JSValue::Array(vec![
+            JSValue::String("1".to_string()),
+            JSValue::String("3".to_string())
+        ])),
+        evaluate_javascript(
+            &servo_test,
+            webview,
+            "let old_value = target.style.getPropertyValue('grid-column');
+            target.style.gridColumn = '3';
+            let new_value = target.style.getPropertyValue('grid-column');
+            [old_value, new_value]"
+        )
     );
 }

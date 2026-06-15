@@ -7,7 +7,7 @@ use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::reflector::reflect_dom_object;
-use servo_canvas_traits::canvas::Canvas2dMsg;
+use servo_canvas_traits::canvas::CanvasCommand;
 
 use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
@@ -63,11 +63,15 @@ impl OffscreenCanvasRenderingContext2D {
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(Dom::from_ref(canvas)),
             size,
         )
-        .map(|context| reflect_dom_object(Box::new(context), global, can_gc))
+        .map(|context| {
+            let context = reflect_dom_object(Box::new(context), global, can_gc);
+            context.context.update_associated_memory_size();
+            context
+        })
     }
 
-    pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
-        self.context.send_canvas_2d_msg(msg)
+    pub(crate) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
+        self.context.send_canvas_command_immediate(msg)
     }
 }
 

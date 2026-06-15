@@ -36,7 +36,6 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
-use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
 use servo_constellation_traits::{LoadOrigin, TargetSnapshotParams};
@@ -75,7 +74,8 @@ use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormEleme
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::Node;
 use crate::dom::performance::performanceentry::PerformanceEntry;
 use crate::dom::performance::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -1259,10 +1259,8 @@ impl ParserContext {
 
         let document = &parser.document;
 
-        // TODO: Pass a proper fetch start time here.
         let performance_entry = PerformanceNavigationTiming::new(
             &document.global(),
-            CrossProcessInstant::now(),
             document,
             CanGc::deprecated_note(),
         );
@@ -1560,15 +1558,10 @@ impl FetchResponseListener for ParserContext {
         }
 
         // TODO: Only update if this is the current document resource.
-        // TODO(mrobinson): Pass a proper fetch_start parameter here instead of `CrossProcessInstant::now()`.
         if let Some(pushed_index) = self.pushed_entry_index {
             let document = &parser.document;
-            let performance_entry = PerformanceNavigationTiming::new(
-                &document.global(),
-                CrossProcessInstant::now(),
-                document,
-                CanGc::from_cx(cx),
-            );
+            let performance_entry =
+                PerformanceNavigationTiming::new(&document.global(), document, CanGc::from_cx(cx));
             document
                 .global()
                 .performance()
@@ -1619,7 +1612,7 @@ fn insert(
                 .and_then(DomRoot::downcast::<Text>);
 
             if let Some(text) = text {
-                text.upcast::<CharacterData>().append_data(&t);
+                text.upcast::<CharacterData>().append_data(cx, &t);
             } else {
                 let text = Text::new(cx, String::from(t).into(), &parent.owner_doc());
                 parent
@@ -1760,12 +1753,16 @@ impl TreeSink for Sink {
         Dom::from_ref(pi.upcast())
     }
 
+    #[expect(unsafe_code)]
     fn associate_with_form(
         &self,
         target: &Dom<Node>,
         form: &Dom<Node>,
         nodes: (&Dom<Node>, Option<&Dom<Node>>),
     ) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let (element, prev_element) = nodes;
         let tree_node = prev_element.map_or(element, |prev| {
             if self.has_parent_node(element) {
@@ -1786,7 +1783,7 @@ impl TreeSink for Sink {
         let control = elem.and_then(|e| e.as_maybe_form_control());
 
         if let Some(control) = control {
-            control.set_form_owner_from_parser(&form, CanGc::deprecated_note());
+            control.set_form_owner_from_parser(cx, &form);
         }
     }
 
@@ -1931,10 +1928,10 @@ impl TreeSink for Sink {
     /// Specifically, the `<annotation-xml>` cases.
     fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node>) -> bool {
         let elem = handle.downcast::<Element>().unwrap();
-        elem.get_attribute(&local_name!("encoding"))
-            .is_some_and(|attr| {
-                attr.value().eq_ignore_ascii_case("text/html") ||
-                    attr.value().eq_ignore_ascii_case("application/xhtml+xml")
+        elem.get_attribute_string_value(&local_name!("encoding"))
+            .is_some_and(|value| {
+                value.eq_ignore_ascii_case("text/html") ||
+                    value.eq_ignore_ascii_case("application/xhtml+xml")
             })
     }
 

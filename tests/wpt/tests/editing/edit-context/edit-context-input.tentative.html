@@ -123,6 +123,7 @@
     });
 
     div.editContext = null;
+    div.tabIndex = 0; // required for send_keys to work on Firefox
     await test_driver.send_keys(div, "a");
 
     assert_false(got_textupdate_event, "Shouldn't have received textupdate event after editContext was detached");

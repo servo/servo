@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<title>OffscreenCanvas drawElementImage and getElementTransform should return a matrix transforming the element's layout location to the drawn location</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<canvas id="canvas" style="width: 100px; height: 100px;" width="100" height="100" layoutsubtree>
+  <div id="element" style="width: 10px; height: 10px;">hello</div>
+</canvas>
+<script>
+'use strict';
+
+const workerCode = `
+  let ctx;
+  self.onmessage = function(e) {
+    if (e.data.canvas) {
+      ctx = e.data.canvas.getContext('2d');
+    }
+    if (e.data.width) {
+      ctx.canvas.width = e.data.width;
+      ctx.canvas.height = e.data.height;
+    }
+    if (e.data.testId) {
+      ctx.reset();
+      let draw_transform;
+      let element_transform;
+      let input_transform;
+      switch (e.data.testId) {
+        case 1:
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 0, 0);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, new DOMMatrix());
+          break;
+        case 2:
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 17, -9);
+          input_transform = new DOMMatrix().translateSelf(17, -9);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, input_transform);
+          break;
+        case 3:
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 0, 0, 20, 5);
+          input_transform = new DOMMatrix().scaleSelf(2, 0.5);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, input_transform);
+          break;
+        case 4:
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 0, 0);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, new DOMMatrix());
+          break;
+        case 5:
+          ctx.translate(42, 17);
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 0, 0);
+          input_transform = new DOMMatrix().translateSelf(42, 17);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, input_transform);
+          break;
+        case 6:
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 10, 10);
+          input_transform = new DOMMatrix().translateSelf(10, 10);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, input_transform);
+          break;
+        case 7:
+          ctx.rotate(Math.PI / 4);
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 0, 0);
+          input_transform = new DOMMatrix().rotateSelf(45);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, input_transform);
+          break;
+        case 8:
+          ctx.rotate(Math.PI / 4);
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 0, 0);
+          input_transform = new DOMMatrix().rotateSelf(45);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, input_transform);
+          break;
+        case 9:
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 0, 0);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, new DOMMatrix());
+          break;
+        case 10:
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 0, 0);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, new DOMMatrix());
+          break;
+        case 11:
+          ctx.translate(42, 17);
+          ctx.rotate(Math.PI / 4);
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 13, -9);
+          input_transform = new DOMMatrix().translateSelf(42, 17).rotateSelf(45).translateSelf(13, -9);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, input_transform);
+          break;
+        case 12:
+          draw_transform = ctx.drawElementImage(e.data.elementImage, 2, 3, 5, 5, 17, -9, 10, 10);
+          input_transform = new DOMMatrix().translateSelf(17, -9).scaleSelf(2, 2).translateSelf(-2, -3);
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, input_transform);
+          break;
+        case 13:
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, new DOMMatrix());
+          self.postMessage({is2D: element_transform.is2D});
+          return;
+        case 14:
+          element_transform = ctx.canvas.getElementTransform(e.data.elementImage, new DOMMatrix().scale3d(2));
+          self.postMessage({is2D: element_transform.is2D});
+          return;
+      }
+      self.postMessage({draw_transform, element_transform});
+    }
+  };
+`;
+
+let worker;
+let nextWorkerPromiseResolver;
+
+function getWorkerResult() {
+  return new Promise(resolve => {
+    nextWorkerPromiseResolver = resolve;
+  });
+}
+
+function runTest() {
+  const blob = new Blob([workerCode], { type: 'application/javascript' });
+  worker = new Worker(URL.createObjectURL(blob));
+  worker.onmessage = (e) => {
+    if (nextWorkerPromiseResolver) {
+      nextWorkerPromiseResolver(e.data);
+      nextWorkerPromiseResolver = null;
+    }
+  };
+
+  const offscreen = canvas.transferControlToOffscreen();
+  worker.postMessage({ canvas: offscreen }, [offscreen]);
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 1, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix();
+    assert_array_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array());
+    assert_array_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw/Element transform at the origin should be an identity matrix');
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 2, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix().translateSelf(17, -9);
+    assert_array_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array());
+    assert_array_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw/Element transform should account for x and y');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      element.style.transformOrigin = '';
+    });
+    element.style.transformOrigin = '0 0';
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 3, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix().scaleSelf(2, 0.5);
+    assert_array_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array());
+    assert_array_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw/Element transform should account for width and height scale');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      element.style.transform = '';
+    });
+    element.style.transform = 'rotate(45deg)';
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 4, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix();
+    assert_array_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array());
+    assert_array_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw/Element transform should not include transform on the element');
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 5, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix().translateSelf(42, 17);
+    assert_array_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array());
+    assert_array_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw/Element transform should account for the current transform matrix with translation');
+
+  promise_test(async t => {
+    t.add_cleanup(async () => {
+      canvas.style.zoom = '';
+    });
+    canvas.style.zoom = '1.5';
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 6, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix().translateSelf(10, 10);
+    assert_array_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array());
+    assert_array_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw/Element transform should not be affected by zoom on the canvas');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      element.style.transformOrigin = '';
+    });
+    element.style.transformOrigin = '0 0';
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 7, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix().rotateSelf(45);
+    assert_array_approx_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+    assert_array_approx_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+  }, 'Draw/Element transform should account for the current transform matrix with rotation');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      element.style.transformOrigin = '';
+    });
+    element.style.transformOrigin = '5px 5px';
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 8, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix()
+      .translateSelf(-5, -5)
+      .rotateSelf(45)
+      .translateSelf(5, 5);
+    assert_array_approx_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+    assert_array_approx_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+  }, 'Draw/Element transform should account for transform-origin');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      worker.postMessage({ width: 100, height: 100 });
+    });
+    worker.postMessage({ width: 200, height: 50 });
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 9, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix();
+    assert_array_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array());
+    assert_array_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw/Element transform should account for canvas grid pixel scale');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      canvas.style.width = '100px';
+      canvas.style.height = '100px';
+    });
+    canvas.style.width = '50px';
+    canvas.style.height = '200px';
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 10, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix();
+    assert_array_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array());
+    assert_array_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array());
+  }, 'Draw/Element transform should account for canvas css pixel scale');
+
+  promise_test(async t => {
+    t.add_cleanup(async () => {
+      worker.postMessage({ width: 100, height: 100 });
+      canvas.style.zoom = '';
+      element.style.transformOrigin = '0 0';
+    });
+    worker.postMessage({ width: 200, height: 50 });
+    canvas.style.zoom = 1.5;
+    element.style.transformOrigin = '5px 5px';
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 11, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix()
+      .translateSelf(-5, -5)
+      .scaleSelf(0.5, 2)
+      .translateSelf(42, 17)
+      .rotateSelf(45)
+      .translateSelf(13, -9)
+      .scaleSelf(2, 0.5)
+      .translateSelf(5, 5);
+    assert_array_approx_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+    assert_array_approx_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+  }, 'Draw/Element transform should account for canvas pixel scale, zoom, transform-origin, CTM, and x and y');
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 12, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    let expected = new DOMMatrix()
+      .translateSelf(17, -9)
+      .scaleSelf(2, 2)
+      .translateSelf(-2, -3);
+    assert_array_approx_equals(result.draw_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+    assert_array_approx_equals(result.element_transform.toFloat64Array(), expected.toFloat64Array(), 0.001);
+  }, 'Draw/Element transform should account for sx and sy offset');
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 13, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    assert_true(result.is2D);
+  }, 'Draw/Element transform should preserve is2D for 2D matrices');
+
+  promise_test(async t => {
+    await waitForCanvasPaint(canvas);
+    let elementImage = canvas.captureElementImage(element);
+    worker.postMessage({ testId: 14, elementImage }, [elementImage]);
+    let result = await getWorkerResult();
+    assert_false(result.is2D);
+  }, 'Draw/Element transform should preserve is2D for 3D matrices');
+}
+
+window.onload = runTest;
+</script>

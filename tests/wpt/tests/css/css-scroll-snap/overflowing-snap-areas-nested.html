@@ -41,10 +41,6 @@ div {
   background-color: black;
 }
 </style>
-<div class="scroller-x" id="one-target">
-  <div class="space"></div>
-  <div class="large-x target" id="single" style="left: 200px;"></div>
-</div>
 
 <div class="scroller-x" id="x">
   <div class="space"></div>
@@ -67,30 +63,9 @@ div {
   </div>
 </div>
 
-<div class="scroller-x" id="two-axes" style="scroll-snap-type: both mandatory">
-  <div class="space"></div>
-  <div class="target large-x" style="top: 200px"></div>
-</div>
-
-<div class="scroller-x" id="overlapping-overflow" style="scroll-snap-type: both mandatory">
-  <div class="space"></div>
-  <div style="left: 200px; top: 200px;">
-    <div class="target small"></div>
-    <div class="target small"></div>
-    <div class="target small"></div>
-    <div class="target large-y large-x"></div>
-    <div class="target small"></div>
-    <div class="target small"></div>
-    <div class="target small"></div>
-  </div>
-</div>
-
 <script>
-var one_target_scroller = document.getElementById("one-target");
 var scroller_x = document.getElementById("x");
 var scroller_y = document.getElementById("y");
-var two_axes_scroller = document.getElementById("two-axes");
-var overlapping_scroller = document.getElementById("overlapping-overflow");
 
 test(() => {
   scroller_x.scrollTo(950, 0);

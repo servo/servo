@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title> abs-pos-transferred-max-width-from-percentage-max-height-in-auto-height-containing-block </title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="match" href="/css/support/60x60-green.png">
+<link rel="help" href="https://w3c.github.io/csswg-drafts/css2/#propdef-max-height">
+<link rel="help" href="https://w3c.github.io/csswg-drafts/css-position/#absolute-positioning-containing-block">
+<meta name="assert" content="image width should be capped by the transferred max width from the max-height property" />
+<style></style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div style="width: 60px; position: relative;">
+    <img style="position: absolute; max-height: 100%" src="/css/css-sizing/aspect-ratio/support/100x100-green.png">
+    <div style="width: 100px; height: 60px;"></div>
+</div>
+</body>
+</html>

@@ -31,9 +31,6 @@
 <script>
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-
     // Down is forward inline in vertical-rl.
     await focusAndSendDirectionalInput(item1, kDown);
     assert_equals(document.activeElement, item2,
@@ -41,9 +38,6 @@
   }, "Down moves forward inline in vertical-rl inline-only focusgroup.");
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
-
     // Up is backward inline in vertical-rl.
     await focusAndSendDirectionalInput(item2, kUp);
     assert_equals(document.activeElement, item1,
@@ -51,8 +45,6 @@
   }, "Up moves backward inline in vertical-rl inline-only focusgroup.");
 
   promise_test(async t => {
-    var item1 = document.getElementById("item1");
-
     // Left and Right are block-axis in vertical-rl; should not
     // move focus in an inline-only focusgroup.
     await focusAndSendDirectionalInput(item1, kLeft);
@@ -65,9 +57,6 @@
   }, "Left/Right do not move focus in vertical-rl inline-only focusgroup.");
 
   promise_test(async t => {
-    var b1 = document.getElementById("b1");
-    var b2 = document.getElementById("b2");
-
     // In both-axes vertical-rl, Down is forward inline.
     await focusAndSendDirectionalInput(b1, kDown);
     assert_equals(document.activeElement, b2,
@@ -75,9 +64,6 @@
   }, "Down moves forward in both-axes vertical-rl focusgroup.");
 
   promise_test(async t => {
-    var b1 = document.getElementById("b1");
-    var b2 = document.getElementById("b2");
-
     // In both-axes vertical-rl, Left is forward block.
     await focusAndSendDirectionalInput(b1, kLeft);
     assert_equals(document.activeElement, b2,

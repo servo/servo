@@ -518,6 +518,35 @@ tentative_tests = [
       u'false',
       u'true'
     ),
+    (
+      # base with nonexistent host causes no load
+      u'base-nonexistent',
+      u'utf-8',
+      u'<base href=//{{{{domains[nonexistent]}}}}:{{{{ports[http][0]}}}}><script src="{}"></script>',
+      None,
+      u'false',
+      u'true'
+    ),
+    (
+      # base in declarative shadow dom does not affect content outside template
+      # Compare to test base-nonexistent, above.
+      u'base-in-dsd',
+      u'utf-8',
+      u'<template shadowrootmode="open"><base href=//{{{{domains[nonexistent]}}}}:{{{{ports[http][0]}}}}></template><script src="{}"></script>',
+      None,
+      u'true',
+      u'true'
+    ),
+    (
+      # A Content-Security-Policy inside declarative shadow DOM doesn't affect content outside of it.
+      # Compare to test meta-csp-img-src-none, above.
+      u'meta-csp-img-src-in-dsd',
+      u'utf-8',
+      u'<template shadowrootmode="open"><meta http-equiv="Content-Security-Policy" content="script-src \'self\' \'unsafe-inline\'; img-src \'none\'"></template><img src="{}">',
+      None,
+      u'true',
+      u'true'
+    ),
 ]
 
 tests = [

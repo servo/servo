@@ -9,11 +9,11 @@
 <script>
 "use strict";
 promise_test(async () => {
-  let hasPopover, toggleEvent;
+  let hasPopover;
+  let toggleEvents = [];
   popover.addEventListener("toggle", (e) => {
-    assert_equals(toggleEvent, undefined, "only one toggle event should be dispatched");
     hasPopover = popover.hasAttribute("popover");
-    toggleEvent = e;
+    toggleEvents.push(e);
   });
   input.addEventListener("focus", () => {
     popover.removeAttribute("popover");
@@ -21,12 +21,12 @@ promise_test(async () => {
   popover.showPopover();
   // wait for events to fire
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  assert_not_equals(toggleEvent, undefined, "toggle event should be dispatched");
-  // Despite the fact that the popover is now closed, only a toggle event with newState = open is fired.
-  // This is because nestedHide is true in "hide a popover", so fireEvents is set to false.
-  assert_equals(toggleEvent.oldState, "closed", "toggle event should have oldState = closed");
-  assert_equals(toggleEvent.newState, "open", "toggle event should have newState = open");
-  assert_false(hasPopover, "toggle event should be dispatched after removeAttribute is called");
+  assert_equals(toggleEvents.length, 2, "two toggle events should be dispatched");
+  assert_equals(toggleEvents[0].oldState, "open");
+  assert_equals(toggleEvents[0].newState, "closed");
+  assert_equals(toggleEvents[1].oldState, "closed");
+  assert_equals(toggleEvents[1].newState, "open");
+  assert_false(hasPopover, "toggle events should be dispatched after removeAttribute is called");
 });
 </script>
 </body>

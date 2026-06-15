@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<style>
+.grid {
+  display: inline-grid;
+  grid-template-columns: repeat(5, 50px);
+  background: red;
+}
+.subgrid {
+  display: grid;
+  grid-column: span 5;
+  grid-template: auto / subgrid;
+  background: green;
+  padding: 11px 7px 20px 13px;
+  border-width: 14px 18px 5px 12px;
+  border-style: solid;
+  border-color: green;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="subgrid">
+    <div class="subgrid"></div>
+  </div>
+</div>
+</body>
+</html>

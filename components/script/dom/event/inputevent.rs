@@ -5,8 +5,9 @@
 use dom_struct::dom_struct;
 use embedder_traits::Cursor;
 use euclid::Point2D;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use style::Atom;
 use style_traits::CSSPixel;
 
@@ -20,7 +21,6 @@ use crate::dom::node::Node;
 use crate::dom::staticrange::StaticRange;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct InputEvent {
@@ -33,6 +33,7 @@ pub(crate) struct InputEvent {
 impl InputEvent {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
@@ -43,9 +44,8 @@ impl InputEvent {
         data: Option<DOMString>,
         is_composing: bool,
         input_type: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<InputEvent> {
-        let event = reflect_dom_object_with_proto(
+        let event = reflect_dom_object_with_proto_and_cx(
             Box::new(InputEvent {
                 uievent: UIEvent::new_inherited(),
                 data,
@@ -54,7 +54,7 @@ impl InputEvent {
             }),
             window,
             proto,
-            can_gc,
+            cx,
         );
         event
             .uievent
@@ -66,13 +66,14 @@ impl InputEvent {
 impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
     /// <https://w3c.github.io/uievents/#dom-inputevent-inputevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         event_type: DOMString,
         init: &InputEventBinding::InputEventInit,
     ) -> Fallible<DomRoot<InputEvent>> {
         let event = InputEvent::new(
+            cx,
             window,
             proto,
             event_type.into(),
@@ -83,7 +84,6 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
             init.data.clone(),
             init.isComposing,
             init.inputType.clone(),
-            can_gc,
         );
         Ok(event)
     }

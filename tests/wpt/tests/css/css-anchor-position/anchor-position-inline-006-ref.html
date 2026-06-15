@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Reference: Resolve anchor() in inline containing block() when the anchor element is split across multiple lines</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+.rel {
+  position: relative;
+  background: lightgray;
+  line-height: 2;
+}
+
+.anchor {
+  position: relative;
+}
+
+.target {
+  position: absolute;
+  inset: 0;
+  background: green;
+}
+</style>
+
+<div style="font: 20px/1 Ahem; width: 11em">
+  <div>
+    Lorem
+    <span class="rel">
+      ipsum <span class="anchor">dolor<br> sit amet<span class="target"></span></span>
+    </span>
+    .
+  </div>
+</div>

@@ -15,9 +15,12 @@
 test_computed_value("background-origin", "border-box");
 test_computed_value("background-origin", "padding-box");
 test_computed_value("background-origin", "content-box");
+test_computed_value("background-origin", "border-box, padding-box, content-box");
 
-// See background-computed.html for a test with multiple background images.
-test_computed_value("background-origin", "border-box, padding-box, content-box", "border-box");
+document.getElementById("target").style['background-image'] = "none, none";
+test_computed_value("background-origin", "border-box", "border-box", "multiple base values");
+test_computed_value("background-origin", "border-box, padding-box", "border-box, padding-box", "multiple base values");
+test_computed_value("background-origin", "border-box, padding-box, content-box", "border-box, padding-box, content-box", "multiple base values");
 </script>
 </body>
 </html>

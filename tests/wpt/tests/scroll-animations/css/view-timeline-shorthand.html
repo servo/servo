@@ -143,12 +143,25 @@ test_shorthand_contraction('view-timeline', {
 }, 'none, none');
 
 // Longhands with different lengths:
+// https://drafts.csswg.org/css-values-4/#linked-properties
+// When the longhand sizes are different, the amount of created elements
+// should be equal to the "base" longhand attribute, which in this case
+// is the timeline name. If a coordinating list property has too few
+// values specified, its value list is repeated to add more used values.
+// If it has too many values, the list will be truncated to match the
+// base property's length.
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--a, --b, --c',
   'view-timeline-axis': 'inline, inline',
   'view-timeline-inset': 'auto, auto',
 }, '--a inline, --b inline, --c inline');
+
+test_shorthand_contraction('view-timeline', {
+  'view-timeline-name': '--a, --b, --c, --d, --e, --f',
+  'view-timeline-axis': 'inline, x',
+  'view-timeline-inset': 'auto, 1px',
+}, '--a inline, --b x 1px, --c inline, --d x 1px, --e inline, --f x 1px');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--a, --b',

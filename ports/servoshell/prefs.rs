@@ -570,12 +570,16 @@ struct CmdArgs {
     #[bpaf(argument::<String>("1024x740"), parse(parse_resolution_string), fallback(None))]
     window_size: Option<Size2D<u32, DeviceIndependentPixel>>,
 
+    /// Set js_mem_gc_zeal_level=2 and js_mem_gc_zeal_frequency=1
+    #[bpaf(long)]
+    zealous_gc: bool,
+
     /// The url we should load.
     #[bpaf(positional("URL"), fallback(String::from("https://www.servo.org")))]
     url: String,
 }
 
-fn update_preferences_from_command_line_arguemnts(
+fn update_preferences_from_command_line_arguments(
     preferences: &mut Preferences,
     cmd_args: &CmdArgs,
 ) {
@@ -612,6 +616,16 @@ fn update_preferences_from_command_line_arguemnts(
 
     if cmd_args.webdriver_port.is_some() {
         preferences.dom_testing_html_input_element_select_files_enabled = true;
+    }
+
+    if cmd_args.zealous_gc {
+        #[cfg(not(feature = "debugmozjs"))]
+        warn!(
+            "The zealous-gc option requires Servo to be compiled with debug-mozjs to take effect."
+        );
+
+        preferences.js_mem_gc_zeal_level = 2;
+        preferences.js_mem_gc_zeal_frequency = 1;
     }
 }
 
@@ -673,7 +687,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
 
     let mut preferences = get_preferences(&cmd_args.prefs_file, &config_dir);
 
-    update_preferences_from_command_line_arguemnts(&mut preferences, &cmd_args);
+    update_preferences_from_command_line_arguments(&mut preferences, &cmd_args);
 
     // FIXME: enable JIT compilation on 32-bit Android after the startup crash issue (#31134) is fixed.
     if cfg!(target_os = "android") && cfg!(target_pointer_width = "32") {
@@ -904,4 +918,9 @@ fn test_servoshell_cmd() {
             .unwrap(),
         String::from("/tmp/test")
     );
+
+    assert!({
+        let p = test_parse("--zealous-gc").1;
+        p.js_mem_gc_zeal_level == 2 && p.js_mem_gc_zeal_frequency == 1
+    });
 }

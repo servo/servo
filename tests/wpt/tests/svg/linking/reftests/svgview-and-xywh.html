@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SVG fragment identifier — svgView() &amp; xywh combination must be ignored</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#SVGFragmentIdentifiersDefinitions">
+<link rel="help" href="https://www.w3.org/TR/media-frags/#valid-uri">
+<link rel="match" href="svgview-and-xywh-ref.html">
+<meta name="assert" content="Per SVG2 §16.3.2 grammar, SVGViewSpec may only be followed by a timesegment. A fragment combining svgView() with a spacesegment (xywh=) is not in any production, so the entire fragment must be ignored — the SVG renders as if no fragment were present.">
+
+<style>
+  body { margin: 0; }
+  .test {
+    width: 200px;
+    height: 200px;
+    background-image: url("sprite4.svg#svgView(viewBox(0,0,100,100))&xywh=100,0,100,100");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+  }
+</style>
+
+<!--
+    The fragment "svgView(viewBox(0,0,100,100))&xywh=100,0,100,100" is not
+    in any production of SVGFragmentIdentifier — SVGViewSpec may only
+    be followed by ( "&" timesegment ).
+    The whole fragment is therefore malformed and must be ignored.
+    Rendering = squares.svg with its authored viewBox 0 0 200 200,
+    showing all four quadrants stretched into the 200x200 box.
+-->
+<div class="test"></div>

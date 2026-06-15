@@ -15,7 +15,6 @@ use servo_arc::Arc as ServoArc;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::selector_parser::RestyleDamage;
 use style::values::specified::align::AlignFlags;
 use style_traits::CSSPixel;
 
@@ -30,6 +29,7 @@ use crate::fragment_tree::{
 use crate::geom::LogicalSides1D;
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult, SizeConstraint};
+use crate::traversal::ElementDamageSet;
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 /// A box tree node that handles containing information about style and the original DOM
@@ -152,16 +152,12 @@ impl LayoutBoxBase {
         self.parent_box.as_ref().and_then(WeakLayoutBox::upgrade)
     }
 
-    pub(crate) fn add_damage(
-        &self,
-        element_damage: LayoutDamage,
-        damage_from_children: LayoutDamage,
-        damage_from_parent: RestyleDamage,
-    ) -> LayoutDamage {
-        let only_descendants_changed = !RestyleDamage::from(element_damage)
-            .contains(RestyleDamage::RELAYOUT) &&
-            !damage_from_parent.contains(RestyleDamage::RELAYOUT) &&
-            !damage_from_children.contains(LayoutDamage::LAYOUT_AFFECTED_BY_INFLOW_DESCENDANT) &&
+    pub(crate) fn add_damage(&self, damage_set: &ElementDamageSet) -> LayoutDamage {
+        let only_descendants_changed = !damage_set.on_element.contains(LayoutDamage::Relayout) &&
+            !damage_set.from_parent.contains(LayoutDamage::Relayout) &&
+            !damage_set
+                .from_children
+                .contains(LayoutDamage::LayoutAffectedByInflowDescendant) &&
             self.fragments.borrow().iter().all(|fragment| {
                 fragment
                     .base()
@@ -171,13 +167,15 @@ impl LayoutBoxBase {
             .store(only_descendants_changed, Ordering::Relaxed);
         self.clear_fragments_and_dirty_fragment_cache();
 
-        if !element_damage.is_empty() ||
-            damage_from_children.contains(LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES)
+        if !damage_set.on_element.is_empty() ||
+            damage_set
+                .from_children
+                .contains(LayoutDamage::RecomputeInlineContentSizes)
         {
             *self.cached_inline_content_size.borrow_mut() = None;
         }
 
-        let mut damage_for_parent = element_damage | damage_from_children;
+        let mut damage_for_parent = damage_set.on_element | damage_set.from_children;
 
         // When a block container has a mix of inline-level and block-level contents, the
         // inline-level ones are wrapped inside an anonymous block associated with the
@@ -190,8 +188,8 @@ impl LayoutBoxBase {
         // purely extrinsic, then the intrinsic sizes of the ancestors won't be affected,
         // and we can keep the cache.
         damage_for_parent.set(
-            LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES,
-            !element_damage.is_empty() ||
+            LayoutDamage::RecomputeInlineContentSizes,
+            !damage_set.on_element.is_empty() ||
                 (!self.base_fragment_info.is_anonymous() &&
                     self.outer_inline_content_sizes_depend_on_content
                         .load(Ordering::Relaxed)),

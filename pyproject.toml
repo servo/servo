@@ -49,17 +49,19 @@ ignore = [
 "**/test.py" = ["ANN"]
 "**/*_tests.py" = ["ANN"]
 "**/tests/**/*.py" = ["ANN"]
+"python/servo/devtools_tests/**" = ["ANN"]
 
 [tool.pyrefly]
 search-path = [
     "python",
     "tests/wpt/tests",
     "tests/wpt/tests/tools",
+    "tests/wpt/tests/tools/third_party/pytest/src",
     "tests/wpt/tests/tools/wptrunner",
     "tests/wpt/tests/tools/wptserve",
     "python/mach",
     "python/wpt",
-    "components/script_bindings/third_party/WebIDL",
+    "components/script_bindings/third_party/WebIDL/parser",
     "components/script_bindings/codegen",
 ]
 project-includes = [
@@ -74,6 +76,7 @@ project-excludes = [
     "**/test.py",
     "**/*_tests.py",
     "**/tests/**",
+    "python/servo/devtools_tests/**",
     "python/mach/**/*.py",
     "components/script_bindings/third_party/**",
 ]

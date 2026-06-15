@@ -8,6 +8,7 @@ use std::sync::Arc;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::{HTMLMediaData, MediaMetadata};
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -80,7 +81,7 @@ impl HTMLVideoElement {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -149,7 +150,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn update_poster_frame(&self, poster_url: Option<&str>, cx: &mut js::context::JSContext) {
+    fn update_poster_frame(&self, poster_url: Option<&str>, cx: &mut JSContext) {
         // Step 1. If there is an existing instance of this algorithm running
         // for this video element, abort that instance of this algorithm without
         // changing the poster frame.
@@ -230,7 +231,7 @@ impl HTMLVideoElement {
         &self,
         poster_url: UrlWithBlobClaim,
         id: PendingImageId,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) {
         // Step 5. Let request be a new request whose URL is url, client is the element's node
         // document's relevant settings object, destination is "image", initiator type is "video",
@@ -255,8 +256,9 @@ impl HTMLVideoElement {
         // will block the document's load event forever.
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, cx);
+        let document = self.owner_document();
         *blocker.borrow_mut() = Some(LoadBlocker::new(
-            &self.owner_document(),
+            &document,
             LoadType::Image(poster_url.url()),
         ));
 
@@ -275,7 +277,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn process_image_response(&self, response: ImageResponse, cx: &mut js::context::JSContext) {
+    fn process_image_response(&self, response: ImageResponse, cx: &mut JSContext) {
         // Step 7. If an image is thus obtained, the poster frame is that image.
         // Otherwise, there is no poster frame.
         match response {
@@ -361,7 +363,7 @@ impl VirtualMethods for HTMLVideoElement {
 
     fn attribute_mutated(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
@@ -423,7 +425,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn process_response(
         &mut self,
-        _: &mut js::context::JSContext,
+        _: &mut JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -449,7 +451,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn process_response_chunk(
         &mut self,
-        _: &mut js::context::JSContext,
+        _: &mut JSContext,
         request_id: RequestId,
         payload: Vec<u8>,
     ) {
@@ -466,7 +468,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn process_response_eof(
         self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,

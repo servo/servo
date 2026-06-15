@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Behavior token recognized at any position</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#the-focusgroup-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<div id=modifier-first focusgroup="wrap toolbar">
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=0>item2</span>
+</div>
+
+<script>
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(item1, kRight);
+    assert_equals(document.activeElement, item2,
+      "'wrap toolbar' should parse toolbar as the behavior; arrow key should navigate");
+  }, "Behavior token after a modifier enables focusgroup navigation");
+</script>
+
+<div id=invalid-first focusgroup="invalid toolbar">
+  <span id=item3 tabindex=0>item3</span>
+  <span id=item4 tabindex=0>item4</span>
+</div>
+
+<script>
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(item3, kRight);
+    assert_equals(document.activeElement, item4,
+      "'invalid toolbar' should find toolbar as the first recognized behavior");
+  }, "Unrecognized token before behavior token does not prevent focusgroup");
+</script>
+
+<div id=wrap-before focusgroup="wrap toolbar">
+  <span id=item5 tabindex=0>item5</span>
+  <span id=item6 tabindex=0>item6</span>
+</div>
+
+<script>
+  promise_test(async t => {
+    // Toolbar defaults to inline axis. Wrap should enable wrapping.
+    // Navigate forward past the last item to test wrap behavior.
+    await focusAndSendDirectionalInput(item6, kRight);
+    assert_equals(document.activeElement, item5,
+      "'wrap toolbar' should wrap from last item to first");
+  }, "Modifier before behavior token applies correctly (wrap works)");
+</script>
+
+<div id=no-behavior focusgroup="wrap block">
+  <span id=item7 tabindex=0>item7</span>
+  <span id=item8 tabindex=0>item8</span>
+</div>
+
+<script>
+  promise_test(async t => {
+    await focusAndSendDirectionalInput(item7, kDown);
+    assert_equals(document.activeElement, item7,
+      "'wrap block' with no behavior token should not enable navigation");
+  }, "Modifier-only focusgroup attribute without behavior token has no effect");
+</script>

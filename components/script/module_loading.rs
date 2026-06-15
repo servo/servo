@@ -38,7 +38,7 @@ use crate::script_module::{
     ModuleFetchClient, ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::IntroductionType;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OnRejectedHandler {
@@ -49,7 +49,7 @@ struct OnRejectedHandler {
 impl Callback for OnRejectedHandler {
     fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
         // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « reason »).
-        self.promise.reject(cx.into(), v, CanGc::from_cx(cx));
+        self.promise.reject_with_cx(cx, v);
     }
 }
 
@@ -165,7 +165,7 @@ fn inner_module_loading(
                 continue_module_loading(cx, state, Err(error));
             } else {
                 let specifier =
-                    unsafe { jsstr_to_string(cx.raw_cx(), std::ptr::NonNull::new(jsstr).unwrap()) };
+                    unsafe { jsstr_to_string(cx, std::ptr::NonNull::new(jsstr).unwrap()) };
                 let module_type = unsafe { GetRequestedModuleType(cx, module_handle, index) };
 
                 let realm = CurrentRealm::assert(cx);
@@ -222,7 +222,7 @@ fn inner_module_loading(
         // Note: mozjs defaults to the unlinked status.
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
-        state.promise.resolve_native(&(), CanGc::from_cx(cx));
+        state.promise.resolve_native_with_cx(cx, &());
     }
 
     // Step 6. Return unused.
@@ -250,9 +250,7 @@ fn continue_module_loading(
             state.is_loading.set(false);
 
             // b. Perform ! Call(state.[[PromiseCapability]].[[Reject]], undefined, « moduleCompletion.[[Value]] »).
-            state
-                .promise
-                .reject(cx.into(), exception.handle(), CanGc::from_cx(cx));
+            state.promise.reject_with_cx(cx, exception.handle());
         },
     }
 
@@ -299,7 +297,7 @@ fn continue_dynamic_import(
     // Step 1. If moduleCompletion is an abrupt completion, then
     if let Err(exception) = module_completion {
         // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « moduleCompletion.[[Value]] »).
-        promise.reject(cx.into(), exception.handle(), CanGc::from_cx(cx));
+        promise.reject_with_cx(cx, exception.handle());
 
         // b. Return unused.
         return;
@@ -341,7 +339,7 @@ fn continue_dynamic_import(
             if !link {
                 // i. Perform ! Call(promiseCapability.[[Reject]], undefined, « link.[[Value]] »).
                 let exception = RethrowError::from_pending_exception(cx);
-                inner_promise.reject(cx.into(), exception.handle(), CanGc::from_cx(cx));
+                inner_promise.reject_with_cx(cx, exception.handle());
 
                 // ii. Return NormalCompletion(undefined).
                 return;
@@ -354,7 +352,7 @@ fn continue_dynamic_import(
 
             if !rval.is_object() {
                 let error = RethrowError::from_pending_exception(cx);
-                return inner_promise.reject(cx.into(), error.handle(), CanGc::from_cx(cx));
+                return inner_promise.reject_with_cx(cx, error.handle());
             }
 
             rooted!(&in(cx) let evaluate_promise = rval.to_object());
@@ -371,18 +369,15 @@ fn continue_dynamic_import(
                     rooted!(&in(cx) let namespace = ObjectValue(rval.get()));
 
                     // ii. Perform ! Call(promiseCapability.[[Resolve]], undefined, « namespace »).
-                    fulfilled_promise.resolve(cx.into(), namespace.handle(), CanGc::from_cx(cx));
+                    fulfilled_promise.resolve_with_cx(cx, namespace.handle());
 
                     // iii. Return NormalCompletion(undefined).
             })));
 
             // f. Perform PerformPromiseThen(evaluatePromise, onFulfilled, onRejected).
-            let handler = PromiseNativeHandler::new(
-                &global_scope,
+            let handler = PromiseNativeHandler::new(cx, &global_scope,
                 Some(on_fulfilled),
-                Some(Box::new(OnRejectedHandler { promise: inner_promise })),
-                CanGc::from_cx(cx),
-            );
+                Some(Box::new(OnRejectedHandler { promise: inner_promise })));
             evaluate_promise.append_native_handler(cx, &handler);
 
             // g. Return unused.
@@ -394,10 +389,10 @@ fn continue_dynamic_import(
     run_a_callback::<DomTypeHolder, _>(&*global, || {
         // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             Some(link_and_evaluate),
             Some(Box::new(OnRejectedHandler { promise })),
-            CanGc::from_cx(cx),
         );
         load_promise.append_native_handler(cx, &handler);
     });

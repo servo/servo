@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Slots in a document tree should not crash</title>
+<link rel="help" href="https://crbug.com/642303">
+<div id="p1"><slot><div id="c1"></div></slot></div>
+<script>
+  document.body.offsetLeft;
+  const doc = document.implementation.createDocument("http://www.w3.org/1999/xhtml", "html");
+  doc.adoptNode(c1);
+  p1.style.display = "none";
+</script>

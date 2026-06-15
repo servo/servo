@@ -51,6 +51,8 @@ for (const {as, crossorigin} of testCases) {
     assert_equals(preload.as, as, `as should be '${as}'`);
     assert_equals(preload.crossorigin, expectedCrossOriginMode(crossorigin),
       `crossorigin should be '${expectedCrossOriginMode(crossorigin)}'`);
+    assert_false(preload.earlyHints,
+      "earlyHints should be false for a <link rel=preload> preload");
     assert_not_equals(preload.used, null,
       "used preload should have a timestamp, not null");
     assert_equals(typeof preload.used, "number",

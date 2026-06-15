@@ -95,7 +95,7 @@ impl OpenRequestListener {
                     EventCancelable::Cancelable,
                     CanGc::from_cx(cx),
                 );
-                event.fire(open_request.upcast(), CanGc::from_cx(cx));
+                event.fire(cx, open_request.upcast());
             },
         }
     }
@@ -299,7 +299,7 @@ impl IDBOpenDBRequest {
             EventCancelable::NotCancelable,
             CanGc::from_cx(cx),
         );
-        event.fire_with_cx(cx, self.upcast());
+        event.fire(cx, self.upcast());
     }
 
     /// <https://w3c.github.io/IndexedDB/#eventdef-idbopendbrequest-blocked>

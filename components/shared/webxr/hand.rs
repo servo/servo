@@ -49,17 +49,25 @@ impl Default for JointFrame {
 }
 
 impl<J> Hand<J> {
-    pub fn map<R>(&self, map: impl (Fn(&Option<J>, Joint) -> Option<R>) + Copy) -> Hand<R> {
+    pub fn map<C, R>(
+        &self,
+        cx: &mut C,
+        map: impl (Fn(&mut C, &Option<J>, Joint) -> Option<R>) + Copy,
+    ) -> Hand<R> {
         Hand {
-            wrist: map(&self.wrist, Joint::Wrist),
-            thumb_metacarpal: map(&self.thumb_metacarpal, Joint::ThumbMetacarpal),
-            thumb_phalanx_proximal: map(&self.thumb_phalanx_proximal, Joint::ThumbPhalanxProximal),
-            thumb_phalanx_distal: map(&self.thumb_phalanx_distal, Joint::ThumbPhalanxDistal),
-            thumb_phalanx_tip: map(&self.thumb_phalanx_tip, Joint::ThumbPhalanxTip),
-            index: self.index.map(|f, j| map(f, Joint::Index(j))),
-            middle: self.middle.map(|f, j| map(f, Joint::Middle(j))),
-            ring: self.ring.map(|f, j| map(f, Joint::Ring(j))),
-            little: self.little.map(|f, j| map(f, Joint::Little(j))),
+            wrist: map(cx, &self.wrist, Joint::Wrist),
+            thumb_metacarpal: map(cx, &self.thumb_metacarpal, Joint::ThumbMetacarpal),
+            thumb_phalanx_proximal: map(
+                cx,
+                &self.thumb_phalanx_proximal,
+                Joint::ThumbPhalanxProximal,
+            ),
+            thumb_phalanx_distal: map(cx, &self.thumb_phalanx_distal, Joint::ThumbPhalanxDistal),
+            thumb_phalanx_tip: map(cx, &self.thumb_phalanx_tip, Joint::ThumbPhalanxTip),
+            index: self.index.map(cx, |cx, f, j| map(cx, f, Joint::Index(j))),
+            middle: self.middle.map(cx, |cx, f, j| map(cx, f, Joint::Middle(j))),
+            ring: self.ring.map(cx, |cx, f, j| map(cx, f, Joint::Ring(j))),
+            little: self.little.map(cx, |cx, f, j| map(cx, f, Joint::Little(j))),
         }
     }
 
@@ -79,13 +87,21 @@ impl<J> Hand<J> {
 }
 
 impl<J> Finger<J> {
-    pub fn map<R>(&self, map: impl (Fn(&Option<J>, FingerJoint) -> Option<R>) + Copy) -> Finger<R> {
+    pub fn map<C, R>(
+        &self,
+        cx: &mut C,
+        map: impl (Fn(&mut C, &Option<J>, FingerJoint) -> Option<R>) + Copy,
+    ) -> Finger<R> {
         Finger {
-            metacarpal: map(&self.metacarpal, FingerJoint::Metacarpal),
-            phalanx_proximal: map(&self.phalanx_proximal, FingerJoint::PhalanxProximal),
-            phalanx_intermediate: map(&self.phalanx_intermediate, FingerJoint::PhalanxIntermediate),
-            phalanx_distal: map(&self.phalanx_distal, FingerJoint::PhalanxDistal),
-            phalanx_tip: map(&self.phalanx_tip, FingerJoint::PhalanxTip),
+            metacarpal: map(cx, &self.metacarpal, FingerJoint::Metacarpal),
+            phalanx_proximal: map(cx, &self.phalanx_proximal, FingerJoint::PhalanxProximal),
+            phalanx_intermediate: map(
+                cx,
+                &self.phalanx_intermediate,
+                FingerJoint::PhalanxIntermediate,
+            ),
+            phalanx_distal: map(cx, &self.phalanx_distal, FingerJoint::PhalanxDistal),
+            phalanx_tip: map(cx, &self.phalanx_tip, FingerJoint::PhalanxTip),
         }
     }
 

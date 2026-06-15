@@ -51,7 +51,6 @@
     var memoryItem1 = document.getElementById("memory-item1");
     var memoryItem2 = document.getElementById("memory-item2");
     var memoryItem3 = document.getElementById("memory-item3");
-    var between = document.getElementById("between");
 
     await focusAndWait(beforeMemory);
     await sendTabForward();
@@ -68,7 +67,7 @@
   }, "Focusgroup with memory remembers last focused item on re-entry");
 
   promise_test(async t => {
-    var between = document.getElementById("between");
+
     var noMemoryItem1 = document.getElementById("no-memory-item1");
     var noMemoryItem2 = document.getElementById("no-memory-item2");
     var noMemoryItem3 = document.getElementById("no-memory-item3");
@@ -139,7 +138,7 @@
     await focusAndSendDirectionalInput(memoryItem2, kLeft);
     assert_equals(document.activeElement, memoryItem1, "Left should move to Item 1");
 
-    await focusAndWait(document.getElementById("between"));
+    await focusAndWait(between);
 
     await navigateFocusBackward();
     assert_equals(document.activeElement, memoryItem1, "Should remember Item 1 as last focused");

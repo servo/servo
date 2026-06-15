@@ -36,11 +36,11 @@ promise_test(async t => {
   }, '*');
 
   await new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
 
   // Parent A can view it.
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools({ fromOrigins: [origin_b] });
   assert_true(tools.some(t => t.name === 'tool_b_to_a'), 'Parent A should see tool_b_to_a');
 
   // Open new window.
@@ -48,7 +48,7 @@ promise_test(async t => {
   t.add_cleanup(() => opened_window.close());
 
   // Newly opened window does not see the tool.
-  const opened_tools = await opened_window.navigator.modelContext.getTools();
+  const opened_tools = await opened_window.document.modelContext.getTools();
   assert_array_equals(opened_tools, [], "window.open()'d sees no tools");
 }, 'Tools are scoped to a frame tree, and are not exposed across opener boundaries.');
 </script>

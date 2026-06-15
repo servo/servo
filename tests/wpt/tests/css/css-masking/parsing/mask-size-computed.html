@@ -28,12 +28,14 @@ test_computed_value("mask-size", "contain");
 test_computed_value("mask-size", "cover");
 test_computed_value("mask-size", "calc(10px + 0.5em) calc(10px - 0.5em)", "30px 0px");
 test_computed_value("mask-size", "calc(10px - 0.5em) calc(10px + 0.5em)", "0px 30px");
-test_computed_value("mask-size", "auto 1px, 2% 3%, contain", "auto 1px");
+test_computed_value("mask-size", "auto 1px, 2% 3%, contain");
 
 document.getElementById("target").style['mask-image'] = "none, none";
-test_computed_value("mask-size", "auto", "auto, auto", "multiple values");
-test_computed_value("mask-size", "auto, 100%", "auto, 100% auto", "multiple values");
-test_computed_value("mask-size", "100%", "100% auto, 100% auto", "multiple values");
+test_computed_value("mask-size", "auto", "auto", "multiple base values");
+test_computed_value("mask-size", "auto, auto", "auto, auto", "multiple base values");
+test_computed_value("mask-size", "auto, auto, auto", "auto, auto, auto", "multiple base values");
+test_computed_value("mask-size", "auto, 100%", "auto, 100% auto", "multiple base values");
+test_computed_value("mask-size", "100%", "100% auto", "multiple base values");
 </script>
 </body>
 </html>

@@ -434,6 +434,7 @@ impl ReadableStreamDefaultController {
 
             // Upon fulfillment of startPromise, Upon rejection of startPromise with reason r,
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(StartAlgorithmFulfillmentHandler {
                     controller: Dom::from_ref(&rooted_default_controller),
@@ -441,7 +442,6 @@ impl ReadableStreamDefaultController {
                 Some(Box::new(StartAlgorithmRejectionHandler {
                     controller: Dom::from_ref(&rooted_default_controller),
                 })),
-                CanGc::from_cx(cx),
             );
             let mut realm = enter_auto_realm(cx, global);
             let cx = &mut realm.current_realm();
@@ -530,6 +530,7 @@ impl ReadableStreamDefaultController {
             return;
         };
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             Some(Box::new(PullAlgorithmFulfillmentHandler {
                 controller: Dom::from_ref(&rooted_default_controller),
@@ -537,7 +538,6 @@ impl ReadableStreamDefaultController {
             Some(Box::new(PullAlgorithmRejectionHandler {
                 controller: Dom::from_ref(&rooted_default_controller),
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, &*global);
@@ -552,8 +552,8 @@ impl ReadableStreamDefaultController {
         let promise = result.unwrap_or_else(|error| {
             rooted!(&in(cx) let mut rval = UndefinedValue());
             // TODO: check if `self.global()` is the right globalscope.
-            error.to_jsval(cx.into(), &global, rval.handle_mut(), CanGc::from_cx(cx));
-            Promise::new_rejected(&global, cx.into(), rval.handle(), CanGc::from_cx(cx))
+            error.to_jsval(cx, &global, rval.handle_mut());
+            Promise::new_rejected(cx, &global, rval.handle())
         });
         promise.append_native_handler(cx, &handler);
     }
@@ -577,15 +577,15 @@ impl ReadableStreamDefaultController {
             .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
                 let promise = Promise::new2(cx, global);
-                promise.resolve_native(&(), CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &());
                 Ok(promise)
             });
         let promise = result.unwrap_or_else(|error| {
             rooted!(&in(cx) let mut rval = UndefinedValue());
 
-            error.to_jsval(cx.into(), global, rval.handle_mut(), CanGc::from_cx(cx));
+            error.to_jsval(cx, global, rval.handle_mut());
             let promise = Promise::new2(cx, global);
-            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
+            promise.reject_native_with_cx(cx, &rval.handle());
             promise
         });
 
@@ -704,7 +704,7 @@ impl ReadableStreamDefaultController {
                     // First, throw the exception.
                     // Note: this must be done manually here,
                     // because `enqueue_value_with_size` does not call into JS.
-                    throw_dom_exception(cx.into(), &self.global(), error, CanGc::from_cx(cx));
+                    throw_dom_exception(cx, &self.global(), error);
 
                     // Then, get a handle to the JS val for the exception,
                     // and use that to error the stream.

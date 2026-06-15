@@ -404,7 +404,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         permission_callback: Option<Rc<NotificationPermissionCallback>>,
     ) -> Rc<Promise> {
         // Step 2: Let promise be a new promise in this’s relevant Realm.
-        let promise = Promise::new(global, CanGc::from_cx(cx));
+        let promise = Promise::new2(cx, global);
 
         // TODO: Step 3: Run these steps in parallel:
         // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
@@ -431,7 +431,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
                 }
 
                 // Step 3.2.2: Resolve promise with permissionState.
-                promise.resolve_native(&notification_permission, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &notification_permission);
             }),
         );
 
@@ -540,22 +540,12 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         }
 
         // step 3: Return the result of create a frozen array from frozenActions.
-        to_frozen_array(
-            frozen_actions.as_slice(),
-            cx.into(),
-            retval,
-            CanGc::from_cx(cx),
-        );
+        to_frozen_array(cx, frozen_actions.as_slice(), retval);
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
     fn Vibrate(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        to_frozen_array(
-            self.vibration_pattern.as_slice(),
-            cx.into(),
-            retval,
-            CanGc::from_cx(cx),
-        );
+        to_frozen_array(cx, self.vibration_pattern.as_slice(), retval);
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-timestamp>
@@ -714,7 +704,7 @@ fn request_notification_permission(
     cx: &mut JSContext,
     global: &GlobalScope,
 ) -> NotificationPermission {
-    let promise = &Promise::new(global, CanGc::from_cx(cx));
+    let promise = &Promise::new2(cx, global);
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
     };

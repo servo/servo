@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: image(&lt;color&gt;) with background-size</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#image-notation">
+<link rel="match" href="image-color-background-size-ref.html">
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    display: inline-block;
+    vertical-align: top;
+    background-color: red;
+  }
+
+  /* auto: color image has no intrinsic size, so auto resolves to the positioning area */
+  .auto {
+    background-image: image(green);
+  }
+
+  /* cover and contain likewise fill the entire area */
+  .cover {
+    background-image: image(green);
+    background-size: cover;
+  }
+
+  .contain {
+    background-image: image(green);
+    background-size: contain;
+  }
+
+  /* explicit percentage */
+  .half-width {
+    background-image: image(green);
+    background-size: 50% 100%;
+    background-repeat: no-repeat;
+  }
+
+  .half-height {
+    background-image: image(green);
+    background-size: 100% 50%;
+    background-repeat: no-repeat;
+  }
+
+  /* explicit pixel size */
+  .quarter {
+    background-image: image(green);
+    background-size: 50px 50px;
+    background-repeat: no-repeat;
+  }
+</style>
+<p>Six squares: first three fully green, then left-half green, top-half green, top-left quarter green.</p>
+<div class="container auto"></div>
+<div class="container cover"></div>
+<div class="container contain"></div>
+<div class="container half-width"></div>
+<div class="container half-height"></div>
+<div class="container quarter"></div>

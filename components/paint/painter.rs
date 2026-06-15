@@ -291,11 +291,6 @@ impl Painter {
     }
 
     pub(crate) fn perform_updates(&mut self) {
-        // The WebXR thread may make a different context current
-        if let Err(err) = self.rendering_context.make_current() {
-            warn!("Failed to make the rendering context current: {:?}", err);
-        }
-
         let mut need_zoom = false;
         let scroll_offset_updates: Vec<_> = self
             .webview_renderers
@@ -646,7 +641,6 @@ impl Painter {
                     should_snap: true,
                     paired_with_perspective: false,
                 },
-                webview_renderer.id.into(),
             );
 
             let scaled_webview_rect = webview_renderer.rect /
@@ -955,13 +949,11 @@ impl Painter {
         };
 
         let items_data = display_list_data.items_data;
-        let cache_data = display_list_data.cache_data;
         let spatial_tree = display_list_data.spatial_tree;
 
         let built_display_list = BuiltDisplayList::from_data(
             DisplayListPayload {
                 items_data,
-                cache_data,
                 spatial_tree,
             },
             display_list_descriptor,

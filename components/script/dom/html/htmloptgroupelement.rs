@@ -23,7 +23,6 @@ use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#htmloptgroupelement>
 #[dom_struct]
@@ -64,11 +63,11 @@ impl HTMLOptGroupElement {
         )
     }
 
-    fn update_select_validity(&self, can_gc: CanGc) {
+    fn update_select_validity(&self, cx: &mut JSContext) {
         if let Some(select) = self.owner_select_element() {
             select
-                .validity_state(can_gc)
-                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                .validity_state(cx)
+                .perform_validation_and_update(cx, ValidationFlags::all());
         }
     }
 
@@ -144,7 +143,7 @@ impl VirtualMethods for HTMLOptGroupElement {
             super_type.bind_to_tree(cx, context);
         }
 
-        self.update_select_validity(CanGc::from_cx(cx));
+        self.update_select_validity(cx);
     }
 
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
@@ -152,8 +151,8 @@ impl VirtualMethods for HTMLOptGroupElement {
 
         if let Some(select) = context.parent.downcast::<HTMLSelectElement>() {
             select
-                .validity_state(CanGc::from_cx(cx))
-                .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+                .validity_state(cx)
+                .perform_validation_and_update(cx, ValidationFlags::all());
         }
     }
 }

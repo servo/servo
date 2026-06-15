@@ -87,7 +87,7 @@ use raw_window_handle::{
 };
 use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
-    MediaSessionPlaybackState, PrefValue, Zero,
+    MediaSessionPlaybackState, PrefValue, SelectElement, WebViewId, Zero,
 };
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -1234,6 +1234,8 @@ impl HostTrait for HostCallbacks {
     ) {
         warn!("on_media_session_set_position_state not implemented");
     }
+
+    fn on_show_select_element(&self, _webview_id: WebViewId, _prompt: SelectElement) {}
 
     fn on_panic(&self, reason: String, backtrace: Option<String>) {
         error!("Panic: {reason},");

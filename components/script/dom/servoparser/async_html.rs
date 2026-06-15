@@ -43,7 +43,6 @@ use crate::dom::servoparser::{
     ElementAttribute, ParsingAlgorithm, attach_declarative_shadow_inner, create_element_for_token,
 };
 use crate::dom::virtualmethods::vtable_for;
-use crate::script_runtime::CanGc;
 
 type ParseNodeId = usize;
 
@@ -600,7 +599,7 @@ impl Tokenizer {
                 let control = elem.and_then(|e| e.as_maybe_form_control());
 
                 if let Some(control) = control {
-                    control.set_form_owner_from_parser(&form, CanGc::from_cx(cx));
+                    control.set_form_owner_from_parser(cx, &form);
                 }
             },
             ParseOperation::Pop { node } => {

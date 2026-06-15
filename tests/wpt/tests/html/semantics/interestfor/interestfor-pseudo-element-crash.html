@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<html class="test-wait">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div class="example">
+  <button interestfor="target1">Button</button>
+</div>
+<div class="example">
+  <a href="#" interestfor="target2">Button</a>
+</div>
+
+<div id="target1" popover></div>
+<div id="target2" popover></div>
+
+<style>
+  [interestfor]::interest-button {
+    content: "";
+    display: block;
+    width: 50px;
+    height: 50px;
+    background-color: green;
+    position: absolute;
+    left: 150px;
+    top: 0;
+  }
+
+  .example {
+    position: relative;
+    width: 400px;
+    height: 50px;
+    margin: 50px;
+  }
+</style>
+<script>
+  const stripWhitespace = node => [...node.childNodes].forEach(c =>
+    c.nodeType === 3 && !c.nodeValue.trim() ? c.remove() : stripWhitespace(c)
+  );
+  document.querySelectorAll('.example').forEach(stripWhitespace);
+
+  onload = async () => {
+    const examples = document.querySelectorAll('.example > [interestfor]');
+    for (const invoker of examples) {
+      const rect = invoker.getBoundingClientRect();
+      const buttonlocX = Math.round(rect.x + 175);
+      const buttonlocY = Math.round(rect.y + 25);
+      await new test_driver.Actions()
+          .pointerMove(buttonlocX, buttonlocY)
+          .send();
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await new test_driver.Actions()
+          .pointerMove(buttonlocX, buttonlocY)
+          .pointerDown()
+          .pointerUp()
+          .pointerDown()
+          .pointerUp()
+          .send();
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+    document.documentElement.className = "";
+  };
+</script>
+</html>

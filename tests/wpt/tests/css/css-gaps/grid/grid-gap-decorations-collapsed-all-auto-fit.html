@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: All `repeat(auto-fit, ...)` row tracks collapse
+  without any items, no row rules paint, no crash.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="match" href="../../reference/blank.html">
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 100px;
+    grid-template-rows: repeat(auto-fit, 100px);
+    gap: 10px;
+    width: 100px;
+    height: 320px;
+    align-content: start;
+
+    row-rule: 6px solid red;
+    column-rule: 6px solid red;
+    rule-inset: 0px;
+  }
+</style>
+<div class="grid"></div>

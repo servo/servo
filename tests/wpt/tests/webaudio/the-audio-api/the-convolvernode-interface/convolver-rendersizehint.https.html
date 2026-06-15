@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test ConvolverNode with renderSizeHint</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webaudio/resources/rendersizehint-robustness-helper.js"></script>
+<script>
+// Robustness sweep across all standard robustness configurations
+for (const config of ROBUSTNESS_TEST_CONFIGS) {
+  const {sampleRate, renderSizeHint} = config;
+  runQuantumRobustnessTest(
+      config,
+      context => {
+        return new ConvolverNode(context, {
+          buffer: createImpulseResponse(context, 64)
+        });
+      },
+      `ConvolverNode stability at ${sampleRate}Hz ` +
+      `with renderSizeHint ${renderSizeHint}`
+  );
+}
+</script>

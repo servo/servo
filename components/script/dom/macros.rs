@@ -730,8 +730,13 @@ macro_rules! global_event_handlers(
         event_handler!(suspend, GetOnsuspend, SetOnsuspend);
         event_handler!(timeupdate, GetOntimeupdate, SetOntimeupdate);
         event_handler!(toggle, GetOntoggle, SetOntoggle);
+        event_handler!(touchcancel, GetOntouchcancel, SetOntouchcancel);
+        event_handler!(touchend, GetOntouchend, SetOntouchend);
+        event_handler!(touchmove, GetOntouchmove, SetOntouchmove);
+        event_handler!(touchstart, GetOntouchstart, SetOntouchstart);
         event_handler!(transitioncancel, GetOntransitioncancel, SetOntransitioncancel);
         event_handler!(transitionend, GetOntransitionend, SetOntransitionend);
+        event_handler!(transitionstart, GetOntransitionstart, SetOntransitionstart);
         event_handler!(transitionrun, GetOntransitionrun, SetOntransitionrun);
         event_handler!(volumechange, GetOnvolumechange, SetOnvolumechange);
         event_handler!(waiting, GetOnwaiting, SetOnwaiting);

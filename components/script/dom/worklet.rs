@@ -59,7 +59,7 @@ use crate::dom::workletglobalscope::{
 };
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
-use crate::script_runtime::{CanGc, Runtime, ScriptThreadEventCategory};
+use crate::script_runtime::{Runtime, ScriptThreadEventCategory};
 use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
@@ -149,7 +149,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
             Err(err) => {
                 // Step 4.
                 debug!("URL {:?} parse error {:?}.", module_url.0, err);
-                promise.reject_error(Error::Syntax(None), CanGc::from_cx(realm));
+                promise.reject_error_with_cx(realm, Error::Syntax(None));
                 return promise;
             },
         };

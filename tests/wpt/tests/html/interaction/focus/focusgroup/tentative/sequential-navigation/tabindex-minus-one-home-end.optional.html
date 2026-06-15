@@ -21,8 +21,6 @@
 
 <script>
   promise_test(async t => {
-    const neg = document.getElementById("neg");
-    const first = document.getElementById("first");
 
     await focusAndSendHomeInput(neg);
     assert_equals(document.activeElement, first,
@@ -30,8 +28,6 @@
   }, "Home from tabindex=-1 navigates to first item in focusgroup");
 
   promise_test(async t => {
-    const neg = document.getElementById("neg");
-    const last = document.getElementById("last");
 
     await focusAndSendEndInput(neg);
     assert_equals(document.activeElement, last,

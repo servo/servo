@@ -218,11 +218,6 @@ pub struct SerializableDisplayListPayload {
     #[serde(with = "serde_bytes")]
     pub items_data: Vec<u8>,
 
-    /// Serde encoded `DisplayItemCache` structs
-    #[serde(with = "serde_bytes")]
-    pub cache_data: Vec<u8>,
-
-    /// Serde encoded `SpatialTreeItem` structs.
     #[serde(with = "serde_bytes")]
     pub spatial_tree: Vec<u8>,
 }
@@ -363,7 +358,6 @@ impl CrossProcessPaintApi {
         }
         let display_list_data = SerializableDisplayListPayload {
             items_data: display_list_data.items_data,
-            cache_data: display_list_data.cache_data,
             spatial_tree: display_list_data.spatial_tree,
         };
 
@@ -792,7 +786,9 @@ pub enum SerializableImageData {
 impl From<SerializableImageData> for ImageData {
     fn from(value: SerializableImageData) -> Self {
         match value {
-            SerializableImageData::Raw(shared_memory) => ImageData::new(shared_memory.to_vec()),
+            SerializableImageData::Raw(shared_memory) => {
+                ImageData::Raw(shared_memory.into_arc_vec())
+            },
             SerializableImageData::External(image) => ImageData::External(image),
         }
     }

@@ -33,6 +33,10 @@ on:
         required: false
         default: false
         type: boolean
+      devtools-tests:
+        required: false
+        default: false
+        type: boolean
       build-libservo:
         required: false
         default: false
@@ -46,6 +50,10 @@ on:
         default: false
         type: boolean
       coverage:
+        required: false
+        default: false
+        type: boolean
+      capi:
         required: false
         default: false
         type: boolean
@@ -75,6 +83,10 @@ on:
         required: false
         default: false
         type: boolean
+      devtools-tests:
+        required: false
+        default: false
+        type: boolean
       build-libservo:
         required: false
         default: false
@@ -84,6 +96,10 @@ on:
         type: boolean
         default: false
       bencher:
+        required: false
+        default: false
+        type: boolean
+      capi:
         required: false
         default: false
         type: boolean
@@ -190,7 +206,7 @@ jobs:
         # if unit-tests were supposed to run, and not if they were skipped (e.g., due
         # to an earlier failure).
         if: ${{ !cancelled() && steps.run_unit_tests.conclusion != 'skipped' }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           report_type: test_results
           files: target/nextest/ci/junit.xml
@@ -198,7 +214,7 @@ jobs:
           flags: unittests,unittests-linux,unittests-linux-${{ inputs.profile }}
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Devtools tests
-        if: ${{ false && inputs.unit-tests }} # FIXME #39273
+        if: ${{ inputs.devtools-tests }}
         run: ./mach test-devtools --profile ${{ inputs.profile }}
       - name: Archive build timing
         uses: actions/upload-artifact@v7
@@ -255,13 +271,13 @@ jobs:
     name: Build libservo and MSRV check
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -296,6 +312,45 @@ jobs:
           LLVM_OBJDUMP: llvm-objdump-14
         run: |
           cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked
+
+  capi:
+    if: ${{ inputs.capi }}
+    name: Build and test Servo's C API
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 1
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v5
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
+      - name: Install EGL library and headers
+        run: |
+          sudo apt update
+          sudo apt install -y libegl1-mesa-dev libegl-dev
+      - name: Install cargo-c # required by servo-capi-tests's build.rs
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-c
+      - name: Build and test servo-capi-tests
+        run: cargo test -p servo-capi-tests --locked
 
   # Runs the underlying job (“workload”) on a self-hosted runner if available.
   runner-select-coverage:
@@ -370,7 +425,7 @@ jobs:
               --llvm-cov-option=--codecov \
               --llvm-cov-option=--output-path=codecov.json
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: codecov.json,support/crown/codecov.json
@@ -382,13 +437,13 @@ jobs:
     if: ${{ inputs.unit-tests }}
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}

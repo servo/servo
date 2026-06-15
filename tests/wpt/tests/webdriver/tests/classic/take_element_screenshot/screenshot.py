@@ -109,7 +109,10 @@ def test_clip_huge_element_to_viewport(session, inline):
     viewport = session.execute_script("""
         return {
             width: window.innerWidth,
-            height: window.innerHeight,
+            // The element is scrolled into view first, which causes the page to scroll to the bottom.
+            // This means the rectangle intersection logic will only capture the viewport height
+            // without the scrollbar height. Therefore, we use visualViewport.height.
+            height: window.visualViewport.height,
             devicePixelRatio: window.devicePixelRatio
         };
     """)

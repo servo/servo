@@ -471,6 +471,7 @@ impl DedicatedWorkerGlobalScope {
                 }
 
                 let worker_id = init.worker_id;
+                let devtools_enabled = init.to_devtools_sender.is_some();
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     webview_id,
@@ -493,12 +494,14 @@ impl DedicatedWorkerGlobalScope {
                     &debugger_global,
                     cx,
                 );
-                debugger_global.fire_add_debuggee(
-                    cx,
-                    global.upcast(),
-                    pipeline_id,
-                    Some(worker_id),
-                );
+                if devtools_enabled {
+                    debugger_global.fire_add_debuggee(
+                        cx,
+                        global.upcast(),
+                        pipeline_id,
+                        Some(worker_id),
+                    );
+                }
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 
@@ -637,13 +640,13 @@ impl DedicatedWorkerGlobalScope {
             structuredclone::read(cx, scope.upcast(), *msg.data, message.handle_mut())
         {
             MessageEvent::dispatch_jsval(
+                cx,
                 target,
                 scope.upcast(),
                 message.handle(),
                 Some(&msg.origin.ascii_serialization()),
                 None,
                 ports,
-                CanGc::from_cx(cx),
             );
         } else {
             MessageEvent::dispatch_error(cx, target, scope.upcast());
@@ -692,7 +695,7 @@ impl DedicatedWorkerGlobalScope {
         // Step 7.2.1. Let workerObject be the Worker object associated with global.
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-        let task = Box::new(task!(forward_error_to_worker_object: move || {
+        let task = Box::new(task!(forward_error_to_worker_object: move |cx| {
             let worker = worker.root();
             let global = worker.global();
 
@@ -708,12 +711,12 @@ impl DedicatedWorkerGlobalScope {
                 error_info.lineno,
                 error_info.column,
                 HandleValue::null(),
-                CanGc::deprecated_note(),
+                CanGc::from_cx(cx),
             );
 
             // Step 7.2.3. If notHandled is true, then report exception for workerObject's relevant global object with omitError set to true.
-            if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::deprecated_note()) {
-                global.report_an_error(error_info, HandleValue::null(), CanGc::deprecated_note());
+            if event.upcast::<Event>().fire(cx, worker.upcast::<EventTarget>()) {
+                global.report_an_error(cx, error_info, HandleValue::null());
             }
         }));
         self.parent_event_loop_sender

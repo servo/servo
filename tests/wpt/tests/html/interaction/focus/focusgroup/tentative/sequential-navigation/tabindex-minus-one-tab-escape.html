@@ -22,26 +22,20 @@
 
 <script>
   promise_test(async t => {
-    const neg = document.getElementById("neg1");
-    const after = document.getElementById("after1");
-
-    await focusAndWait(neg);
-    assert_equals(document.activeElement, neg, "Precondition: neg1 is focused");
+    await focusAndWait(neg1);
+    assert_equals(document.activeElement, neg1, "Precondition: neg1 is focused");
 
     await sendTabForward();
-    assert_equals(document.activeElement, after,
+    assert_equals(document.activeElement, after1,
       "Tab from tabindex=-1 should exit the focusgroup, not land on focusgroupstart entry");
   }, "Tab from tabindex=-1 exits focusgroup when focusgroupstart is present");
 
   promise_test(async t => {
-    const neg = document.getElementById("neg1");
-    const before = document.getElementById("before1");
-
-    await focusAndWait(neg);
-    assert_equals(document.activeElement, neg, "Precondition: neg1 is focused");
+    await focusAndWait(neg1);
+    assert_equals(document.activeElement, neg1, "Precondition: neg1 is focused");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, before,
+    assert_equals(document.activeElement, before1,
       "Shift+Tab from tabindex=-1 should exit the focusgroup backward");
   }, "Shift+Tab from tabindex=-1 exits focusgroup when focusgroupstart is present");
 </script>
@@ -57,26 +51,20 @@
 
 <script>
   promise_test(async t => {
-    const neg = document.getElementById("neg2");
-    const after = document.getElementById("after2");
-
-    await focusAndWait(neg);
-    assert_equals(document.activeElement, neg, "Precondition: neg2 is focused");
+    await focusAndWait(neg2);
+    assert_equals(document.activeElement, neg2, "Precondition: neg2 is focused");
 
     await sendTabForward();
-    assert_equals(document.activeElement, after,
+    assert_equals(document.activeElement, after2,
       "Tab from tabindex=-1 should exit the focusgroup (no focusgroupstart)");
   }, "Tab from tabindex=-1 exits focusgroup without focusgroupstart");
 
   promise_test(async t => {
-    const neg = document.getElementById("neg2");
-    const before = document.getElementById("before2");
-
-    await focusAndWait(neg);
-    assert_equals(document.activeElement, neg, "Precondition: neg2 is focused");
+    await focusAndWait(neg2);
+    assert_equals(document.activeElement, neg2, "Precondition: neg2 is focused");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, before,
+    assert_equals(document.activeElement, before2,
       "Shift+Tab from tabindex=-1 should exit the focusgroup backward (no focusgroupstart)");
   }, "Shift+Tab from tabindex=-1 exits focusgroup without focusgroupstart");
 </script>
@@ -96,11 +84,8 @@
 
 <script>
   promise_test(async t => {
-    const neg = document.getElementById("neg3");
-    const outer_b = document.getElementById("outer_b");
-
-    await focusAndWait(neg);
-    assert_equals(document.activeElement, neg, "Precondition: neg3 is focused");
+    await focusAndWait(neg3);
+    assert_equals(document.activeElement, neg3, "Precondition: neg3 is focused");
 
     await sendTabForward();
     assert_equals(document.activeElement, outer_b,
@@ -122,23 +107,17 @@
 
 <script>
   promise_test(async t => {
-    const neg = document.getElementById("neg5");
-    const opted_out = document.getElementById("opted_out5");
-
-    await focusAndWait(neg);
-    assert_equals(document.activeElement, neg, "Precondition: neg5 is focused");
+    await focusAndWait(neg5);
+    assert_equals(document.activeElement, neg5, "Precondition: neg5 is focused");
 
     await sendTabForward();
-    assert_equals(document.activeElement, opted_out,
+    assert_equals(document.activeElement, opted_out5,
       "Tab from tabindex=-1 in first segment should skip to opted-out element (segment barrier)");
   }, "Tab from tabindex=-1 skips remaining segment items and enters opted-out barrier");
 
   promise_test(async t => {
-    const opted_out = document.getElementById("opted_out5");
-    const seg2_a = document.getElementById("seg2_a");
-
-    await focusAndWait(opted_out);
-    assert_equals(document.activeElement, opted_out, "Precondition: opted_out5 is focused");
+    await focusAndWait(opted_out5);
+    assert_equals(document.activeElement, opted_out5, "Precondition: opted_out5 is focused");
 
     await sendTabForward();
     assert_equals(document.activeElement, seg2_a,
@@ -157,11 +136,8 @@
 
 <script>
   promise_test(async t => {
-    const neg = document.getElementById("neg6");
-    const fg6b_item = document.getElementById("fg6b_item");
-
-    await focusAndWait(neg);
-    assert_equals(document.activeElement, neg, "Precondition: neg6 is focused");
+    await focusAndWait(neg6);
+    assert_equals(document.activeElement, neg6, "Precondition: neg6 is focused");
 
     await sendTabForward();
     assert_equals(document.activeElement, fg6b_item,

@@ -31,7 +31,7 @@ use log::{trace, warn};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::path;
-use rand::{RngCore, rng};
+use rand::{Rng, rng};
 use resource::{ResourceArrayType, ResourceAvailable};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -40,7 +40,7 @@ use servo_base::generic_channel::{self, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_config::pref;
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::console::{ConsoleActor, ConsoleResource, DevtoolsConsoleMessage, Root};
 use crate::actors::environment::EnvironmentActor;
@@ -442,26 +442,54 @@ impl DevtoolsInstance {
         framerate_actor.add_tick(tick);
     }
 
-    fn handle_navigate(&self, browsing_context_id: BrowsingContextId, state: NavigationState) {
-        let browsing_context_name = self.browsing_contexts.get(&browsing_context_id).unwrap();
+    fn handle_navigate(&mut self, browsing_context_id: BrowsingContextId, state: NavigationState) {
+        let Some(browsing_context_name) = self.browsing_contexts.get(&browsing_context_id) else {
+            return;
+        };
+        let browsing_context_name = browsing_context_name.clone();
         let browsing_context_actor = self
             .registry
-            .find::<BrowsingContextActor>(browsing_context_name);
+            .find::<BrowsingContextActor>(&browsing_context_name);
+        let watcher_actor = self
+            .registry
+            .find::<WatcherActor>(&browsing_context_actor.watcher_name);
         let mut id_map = self.id_map.lock().unwrap();
         let mut connections = self.connections.lock().unwrap();
-        if let NavigationState::Start(url) = &state {
-            let watcher_actor = self
-                .registry
-                .find::<WatcherActor>(&browsing_context_actor.watcher_name);
-            watcher_actor.emit_will_navigate(
-                browsing_context_id,
-                url.clone(),
-                &mut connections.values_mut(),
-                &mut id_map,
-            );
-        }
 
-        browsing_context_actor.handle_navigate(state, &mut id_map, connections.values_mut());
+        match &state {
+            NavigationState::Start(url) => {
+                watcher_actor.emit_will_navigate(
+                    browsing_context_id,
+                    url.clone(),
+                    &mut connections.values_mut(),
+                    &mut id_map,
+                );
+            },
+            NavigationState::Stop(pipeline_id, page_info) => {
+                watcher_actor.emit_target_available_or_destroyed(
+                    &browsing_context_actor,
+                    &self.registry,
+                    connections.values_mut(),
+                    false,
+                );
+
+                let outer_window_id = id_map.outer_window_id(*pipeline_id);
+                browsing_context_actor.update_pipeline(
+                    *pipeline_id,
+                    outer_window_id,
+                    page_info.clone(),
+                );
+
+                watcher_actor.emit_target_available_or_destroyed(
+                    &browsing_context_actor,
+                    &self.registry,
+                    connections.values_mut(),
+                    true,
+                );
+
+                // TODO: Correctly destroy targets, we probably need to create new browsing context actors too.
+            },
+        }
     }
 
     // We need separate actor representations for each script global that exists;
@@ -479,20 +507,20 @@ impl DevtoolsInstance {
         let devtools_browsing_context_id = id_map.browsing_context_id(browsing_context_id);
         let devtools_outer_window_id = id_map.outer_window_id(pipeline_id);
 
-        let console_name = self.registry.new_name::<ConsoleActor>();
+        let console_name = new_actor_name::<ConsoleActor>();
 
         let parent_actor = if let Some(id) = worker_id {
-            let thread_name = ThreadActor::register(&self.registry, script_sender.clone(), None);
+            let thread_actor = ThreadActor::register(&self.registry, script_sender.clone(), None);
 
             let worker_type = if page_info.is_service_worker {
                 WorkerType::Service
             } else {
                 WorkerType::Dedicated
             };
-            let worker_name = WorkerTargetActor::register(
+            let worker_actor = WorkerTargetActor::register(
                 &self.registry,
                 console_name.clone(),
-                thread_name,
+                thread_actor.name().into(),
                 id,
                 page_info.url,
                 worker_type,
@@ -503,14 +531,17 @@ impl DevtoolsInstance {
                 root_actor
                     .service_workers
                     .borrow_mut()
-                    .push(worker_name.clone());
+                    .push(worker_actor.name().into());
             } else {
-                root_actor.workers.borrow_mut().push(worker_name.clone());
+                root_actor
+                    .workers
+                    .borrow_mut()
+                    .push(worker_actor.name().into());
             }
 
-            self.actor_workers.insert(id, worker_name.clone());
+            self.actor_workers.insert(id, worker_actor.name().into());
 
-            Root::DedicatedWorker(worker_name)
+            Root::DedicatedWorker(worker_actor.name().into())
         } else {
             self.pipelines.insert(pipeline_id, browsing_context_id);
             let browsing_context_name = self
@@ -527,6 +558,8 @@ impl DevtoolsInstance {
                         devtools_outer_window_id,
                         script_sender.clone(),
                     )
+                    .name()
+                    .into()
                 });
             let browsing_context_actor = self
                 .registry
@@ -659,15 +692,10 @@ impl DevtoolsInstance {
         let Some(browsing_context_name) = self.browsing_contexts.get(&browsing_context_id) else {
             return;
         };
-        let watcher_name = self
-            .registry
-            .find::<BrowsingContextActor>(browsing_context_name)
-            .watcher_name
-            .clone();
 
         let network_event_name = match self.actor_requests.get(&request_id) {
             Some(name) => name.clone(),
-            None => self.create_network_event_actor(request_id, watcher_name),
+            None => self.create_network_event_actor(request_id, browsing_context_name.clone()),
         };
 
         handle_network_event(
@@ -678,18 +706,22 @@ impl DevtoolsInstance {
         )
     }
 
-    /// Create a new NetworkEventActor for a given request ID and watcher name.
-    fn create_network_event_actor(&mut self, request_id: String, watcher_name: String) -> String {
+    /// Create a new NetworkEventActor for a given request ID and browsing context name.
+    fn create_network_event_actor(
+        &mut self,
+        request_id: String,
+        browsing_context_name: String,
+    ) -> String {
         let resource_id = self.next_resource_id;
         self.next_resource_id += 1;
 
-        let network_event_name =
-            NetworkEventActor::register(&self.registry, resource_id, watcher_name);
+        let network_event_actor =
+            NetworkEventActor::register(&self.registry, resource_id, browsing_context_name);
 
         self.actor_requests
-            .insert(request_id, network_event_name.clone());
+            .insert(request_id, network_event_actor.name().into());
 
-        network_event_name
+        network_event_actor.name().into()
     }
 
     fn handle_create_source_actor(
@@ -713,7 +745,7 @@ impl DevtoolsInstance {
         );
         let source_form = self
             .registry
-            .find::<SourceActor>(&source_actor)
+            .find::<SourceActor>(source_actor.name())
             .source_form();
 
         if let Some(worker_id) = source_info.worker_id {
@@ -728,7 +760,7 @@ impl DevtoolsInstance {
                 .clone();
             let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
 
-            thread_actor.source_manager.add_source(&source_actor);
+            thread_actor.source_manager.add_source(source_actor.name());
 
             let worker_actor = self.registry.find::<WorkerTargetActor>(worker_name);
 
@@ -749,20 +781,14 @@ impl DevtoolsInstance {
                 return;
             };
 
-            let thread_actor_name = {
-                let browsing_context_actor = self
-                    .registry
-                    .find::<BrowsingContextActor>(browsing_context_name);
-                browsing_context_actor.thread_name.clone()
-            };
-
-            let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
-            thread_actor.source_manager.add_source(&source_actor);
-
             // Notify browsing context about the new source
             let browsing_context_actor = self
                 .registry
                 .find::<BrowsingContextActor>(browsing_context_name);
+
+            let thread_actor_name = browsing_context_actor.thread_name.clone();
+            let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
+            thread_actor.source_manager.add_source(source_actor.name());
 
             for stream in self.connections.lock().unwrap().values_mut() {
                 browsing_context_actor.resource_array(
@@ -811,13 +837,13 @@ impl DevtoolsInstance {
             .registry
             .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
-        let pause_name = PauseActor::register(&self.registry);
+        let pause_name = PauseActor::register(&self.registry).name().into();
 
         let frame_actor = self.registry.find::<FrameActor>(&frame_offset.actor);
         frame_actor.set_offset(frame_offset.column, frame_offset.line);
 
         let msg = ThreadInterruptedReply {
-            from: thread_actor.name(),
+            from: thread_actor.name().into(),
             type_: "paused".to_owned(),
             actor: pause_name,
             frame: frame_actor.encode(&self.registry),
@@ -835,14 +861,12 @@ impl DevtoolsInstance {
         pipeline_id: PipelineId,
         frame: FrameInfo,
     ) {
-        let Some(browsing_context_name) = self
-            .pipelines
-            .get(&pipeline_id)
-            .and_then(|id| self.browsing_contexts.get(id))
-        else {
+        let Some(browsing_context_id) = self.pipelines.get(&pipeline_id) else {
             return;
         };
-
+        let Some(browsing_context_name) = self.browsing_contexts.get(browsing_context_id) else {
+            return;
+        };
         let browsing_context_actor = self
             .registry
             .find::<BrowsingContextActor>(browsing_context_name);
@@ -854,16 +878,16 @@ impl DevtoolsInstance {
             .source_manager
             .find_source(&self.registry, &frame.url)
         {
-            Some(source_actor) => source_actor.name(),
+            Some(source_actor) => source_actor.name().into(),
             None => {
                 warn!("No source actor found for URL: {}", frame.url);
                 return;
             },
         };
 
-        let frame_name = FrameActor::register(&self.registry, source_name, frame);
+        let frame_actor = FrameActor::register(&self.registry, source_name, frame);
 
-        let _ = result_sender.send(frame_name);
+        let _ = result_sender.send(frame_actor.name().into());
     }
 
     fn handle_create_environment_actor(
@@ -990,12 +1014,16 @@ pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerVa
         DebuggerValue::ObjectValue {
             uuid,
             class,
+            own_property_length,
             preview,
-            ..
         } => {
-            // TODO: We should have a field called `ownPropertyLength` here
-            // That will show "{...}" when an object has more properties
-            let object_name = ObjectActor::register(registry, Some(uuid), class, preview);
+            let object_name = ObjectActor::register(
+                registry,
+                Some(uuid),
+                class,
+                own_property_length,
+                preview.map(|preview| *preview),
+            );
             let object_msg = registry.encode::<ObjectActor, _>(&object_name);
             let value = serde_json::to_value(object_msg).unwrap_or_default();
             Value::Object(value.as_object().cloned().unwrap_or_default())

@@ -8,9 +8,10 @@
 <script>
   window.onmessage = e => {
     if (e.data.action === 'invoke') {
-      navigator.modelContext.getTools().then(tools => {
+      const options = e.data.options || {};
+      document.modelContext.getTools(options).then(tools => {
         const tool = tools.find(t => t.name === e.data.name);
-        navigator.modelContext.executeTool(tool, '{}').then(result => {
+        document.modelContext.executeTool(tool, '{}').then(result => {
           parent.postMessage({action: 'executeResponse', result: result, success: true}, '*');
         }).catch(err => {
           parent.postMessage({action: 'executeResponse', result: String(err), success: false}, '*');

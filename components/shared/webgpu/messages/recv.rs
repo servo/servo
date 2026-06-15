@@ -113,6 +113,28 @@ pub enum WebGPURequest {
         destination: TexelCopyTextureInfo,
         copy_size: Extent3d,
     },
+    CopyExternalImageToTexture {
+        device_id: DeviceId,
+        queue_id: QueueId,
+        usable_source: Option<SharedSnapshot>,
+        destination: TexelCopyTextureInfo,
+        dest_tex_descriptor: TextureDescriptor<'static>,
+        copy_size: Extent3d,
+    },
+    CommandEncoderPushDebugGroup {
+        device_id: DeviceId,
+        command_encoder_id: CommandEncoderId,
+        label: String,
+    },
+    CommandEncoderPopDebugGroup {
+        device_id: DeviceId,
+        command_encoder_id: CommandEncoderId,
+    },
+    CommandEncoderInsertDebugMarker {
+        device_id: DeviceId,
+        command_encoder_id: CommandEncoderId,
+        label: String,
+    },
     CreateBindGroup {
         device_id: DeviceId,
         bind_group_id: BindGroupId,
@@ -274,6 +296,20 @@ pub enum WebGPURequest {
         compute_pass_id: ComputePassId,
         buffer_id: BufferId,
         offset: u64,
+        device_id: DeviceId,
+    },
+    ComputePassPushDebugGroup {
+        compute_pass_id: ComputePassId,
+        label: String,
+        device_id: DeviceId,
+    },
+    ComputePassPopDebugGroup {
+        compute_pass_id: ComputePassId,
+        device_id: DeviceId,
+    },
+    ComputePassInsertDebugMarker {
+        compute_pass_id: ComputePassId,
+        label: String,
         device_id: DeviceId,
     },
     EndComputePass {

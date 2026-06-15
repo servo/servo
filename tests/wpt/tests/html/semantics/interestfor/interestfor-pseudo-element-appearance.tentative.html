@@ -11,10 +11,7 @@
   <a href=# interestfor=target><span>Link</span></a>
 </div>
 <div class=example>
-  <img src="/images/blue.png" usemap="#map1" width=40 height=40>
-  <map id="map1">
-    <area href="/" shape="default" interestfor=target>
-  </map>
+  <img src="/images/blue.png" usemap="#map1" width=40 height=40><map id="map1"><area href="/" shape="default" interestfor=target></map>
 </div>
 
 <div class="example defaultcontent">
@@ -27,6 +24,10 @@
 <div id=target></div>
 
 <style>
+  [interestfor]::interest-button {
+    /* Always show the pseudo, regardless of media. */
+    display: inline-block;
+  }
   .example:not(.defaultcontent) {
     & [interestfor]::before {
       content: "::before";
@@ -49,10 +50,4 @@
     height: 50px;
   }
 </style>
-<script>
-  const stripWhitespace = node => [...node.childNodes].forEach(c =>
-    c.nodeType === 3 && !c.nodeValue.trim() ? c.remove() : stripWhitespace(c)
-  );
-  document.querySelectorAll('.example').forEach(stripWhitespace);
-</script>
 

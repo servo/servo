@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use embedder_traits::{self, AllowOrDeny, EmbedderMsg, PermissionFeature};
+use embedder_traits::{self, AllowOrDeny, EmbedderMsg, PermissionFeature, WakeLockType};
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -108,7 +108,7 @@ impl Permissions {
         let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
             Ok(descriptor) => descriptor,
             Err(error) => {
-                p.reject_error(error, CanGc::from_cx(cx));
+                p.reject_error_with_cx(cx, error);
                 return p;
             },
         };
@@ -123,7 +123,7 @@ impl Permissions {
                 let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
                     Ok(descriptor) => descriptor,
                     Err(error) => {
-                        p.reject_error(error, CanGc::from_cx(cx));
+                        p.reject_error_with_cx(cx, error);
                         return p;
                     },
                 };
@@ -164,14 +164,14 @@ impl Permissions {
                         // (Request) Step 7. The default algorithm always resolve
 
                         // (Request) Step 8.
-                        p.resolve_native(&status, CanGc::from_cx(cx));
+                        p.resolve_native_with_cx(cx, &status);
                     },
                     Operation::Query => {
                         // (Query) Step 6.
                         Permissions::permission_query(cx, &p, &root_desc, &status);
 
                         // (Query) Step 7.
-                        p.resolve_native(&status, CanGc::from_cx(cx));
+                        p.resolve_native_with_cx(cx, &status);
                     },
 
                     Operation::Revoke => {
@@ -236,7 +236,7 @@ impl PermissionAlgorithm for Permissions {
         property
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
-        match PermissionDescriptor::new(cx.into(), property.handle(), CanGc::from_cx(cx)) {
+        match PermissionDescriptor::new(cx, property.handle()) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             Err(_) => Err(Error::JSFailed),
@@ -407,7 +407,10 @@ impl Convert<PermissionFeature> for PermissionName {
             PermissionName::Background_sync => PermissionFeature::BackgroundSync,
             PermissionName::Bluetooth => PermissionFeature::Bluetooth,
             PermissionName::Persistent_storage => PermissionFeature::PersistentStorage,
-            PermissionName::Screen_wake_lock => PermissionFeature::ScreenWakeLock,
+            PermissionName::Screen_wake_lock => {
+                PermissionFeature::ScreenWakeLock(WakeLockType::Screen)
+            },
+            PermissionName::Gamepad => PermissionFeature::Gamepad,
         }
     }
 }

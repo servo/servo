@@ -80,7 +80,7 @@
       async function scrollToTrigger() {
         return runAndWaitForFrameUpdate(() => {
           source.scrollIntoView({block: "center"});
-        });
+        }).then(waitForCompositorCommit);
       }
 
       async function resetScrollPositionAndElements(test) {
@@ -96,7 +96,7 @@
           assert_element_animation_state(inner_target, "paused");
           assert_element_animation_state(outer_target, "paused");
           assert_equals(current_scroller.scrollTop, 0, "scroll position reset");
-        });
+        }).then(waitForCompositorCommit);
       }
 
       async function scrollAndAssert(inner_play_state, outer_play_state) {

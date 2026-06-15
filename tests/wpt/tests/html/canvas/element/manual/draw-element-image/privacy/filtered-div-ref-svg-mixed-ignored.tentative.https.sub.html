@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not use cross-origin SVG filter content via CSS</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <meta name="assert" value="When the image filter is not the last effect, check it is still removed.">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    div {
+      width: 100px;
+      height: 100px;
+      background: green;
+    }
+    #child-same {
+      filter: url('#filter-same');
+    }
+    #child-cross {
+      filter: url('#filter-cross');
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0">
+    <filter id="filter-same">
+      <feimage href="https://{{location[host]}}/images/green-100x100.png" result="sameImageOut"/>
+      <feGaussianBlur in="sameImageOut" stdDeviation="2" />
+    </filter>
+    <filter id="filter-cross">
+      <feImage href="https://{{hosts[alt][www]}}:{{ports[https][0]}}images/red-100x100.png" result="crossImageOut"/>
+      <feGaussianBlur in="crossImageOut" stdDeviation="2" />
+    </filter>
+  </svg>
+
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <div id="child-same"></div>
+    <div id="child-cross"></div>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(document.getElementById("child-same"), 0, 0);
+        context.drawElementImage(document.getElementById("child-cross"), 0, 100);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 50);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Same origin should draw");
+
+        // Ignored filter is not applied at all
+        pixel = _getPixelFromImageData(imgData, 50, 150);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin should not draw");
+      });
+    }
+  </script>
+</body>
+</html>

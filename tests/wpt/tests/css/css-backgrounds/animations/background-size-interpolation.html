@@ -36,16 +36,16 @@
 // neutral
 test_interpolation({
   property: 'background-size',
-  from: neutralKeyframe,
+  from: neutralKeyframe, // intepreted as [ 10px 10px, 10px 10px] via repetition
   to: '20px 20px, 0px 0px',
 }, [
-  {at: -0.25, expect: ' 7.5px  7.5px, 12.5px 12.5px,  7.5px  7.5px, 12.5px 12.5px'},
-  {at: 0, expect:     '10.0px 10.0px, 10.0px 10.0px, 10.0px 10.0px, 10.0px 10.0px'},
-  {at: 0.25, expect:  '12.5px 12.5px,  7.5px  7.5px, 12.5px 12.5px,  7.5px  7.5px'},
-  {at: 0.5, expect:   '15.0px 15.0px,  5.0px  5.0px, 15.0px 15.0px,  5.0px  5.0px'},
-  {at: 0.75, expect:  '17.5px 17.5px,  2.5px  2.5px, 17.5px 17.5px,  2.5px  2.5px'},
-  {at: 1, expect:     '20.0px 20.0px,  0.0px  0.0px, 20.0px 20.0px,  0.0px  0.0px'},
-  {at: 1.25, expect:  '22.5px 22.5px,  0.0px  0.0px, 22.5px 22.5px,  0.0px  0.0px'},
+  {at: -0.25, expect: ' 7.5px 7.5px , 12.5px 12.5px'},
+  {at: 0, expect:     '10.0px 10.0px, 10.0px 10.0px'},
+  {at: 0.25, expect:  '12.5px 12.5px,  7.5px  7.5px'},
+  {at: 0.5, expect:   '15.0px 15.0px,  5.0px  5.0px'},
+  {at: 0.75, expect:  '17.5px 17.5px,  2.5px  2.5px'},
+  {at: 1, expect:     '20.0px 20.0px,  0.0px  0.0px'},
+  {at: 1.25, expect:  '22.5px 22.5px,  0.0px  0.0px'},
 ]);
 
 // initial
@@ -58,16 +58,16 @@ test_no_interpolation({
 // inherit
 test_interpolation({
   property: 'background-size',
-  from: 'inherit',
+  from: 'inherit',  // intepreted as [ 100px 100px, 100px 100px ] via repetition
   to: '20px 20px, 0px 0px',
 }, [
-  {at: -0.25, expect: '120px 120px, 125px 125px, 120px 120px, 125px 125px'},
-  {at: 0, expect:     '100px 100px, 100px 100px, 100px 100px, 100px 100px'},
-  {at: 0.25, expect:  ' 80px  80px,  75px  75px,  80px  80px,  75px  75px'},
-  {at: 0.5, expect:   ' 60px  60px,  50px  50px,  60px  60px,  50px  50px'},
-  {at: 0.75, expect:  ' 40px  40px,  25px  25px,  40px  40px,  25px  25px'},
-  {at: 1, expect:     ' 20px  20px,   0px   0px,  20px  20px,   0px   0px'},
-  {at: 1.25, expect:  '  0px   0px,   0px   0px,   0px   0px,   0px   0px'},
+  {at: -0.25, expect: '120px 120px, 125px 125px'},
+  {at: 0, expect:     '100px 100px, 100px 100px'},
+  {at: 0.25, expect:  ' 80px  80px,  75px  75px'},
+  {at: 0.5, expect:   ' 60px  60px,  50px  50px'},
+  {at: 0.75, expect:  ' 40px  40px,  25px  25px'},
+  {at: 1, expect:     ' 20px  20px,   0px   0px'},
+  {at: 1.25, expect:  '  0px   0px,   0px   0px'},
 ]);
 
 // unset
@@ -126,13 +126,13 @@ test_interpolation({
   from: '0px 0px',
   to: '80px 80px',
 }, [
-  {at: -0.25, expect: '  0px   0px,   0px   0px,   0px   0px,   0px   0px'},
-  {at: 0, expect:     '  0px   0px,   0px   0px,   0px   0px,   0px   0px'},
-  {at: 0.25, expect:  ' 20px  20px,  20px  20px,  20px  20px,  20px  20px'},
-  {at: 0.5, expect:   ' 40px  40px,  40px  40px,  40px  40px,  40px  40px'},
-  {at: 0.75, expect:  ' 60px  60px,  60px  60px,  60px  60px,  60px  60px'},
-  {at: 1, expect:     ' 80px  80px,  80px  80px,  80px  80px,  80px  80px'},
-  {at: 1.25, expect:  '100px 100px, 100px 100px, 100px 100px, 100px 100px'},
+  {at: -0.25, expect: '  0px   0px'},
+  {at: 0, expect:     '  0px   0px'},
+  {at: 0.25, expect:  ' 20px  20px'},
+  {at: 0.5, expect:   ' 40px  40px'},
+  {at: 0.75, expect:  ' 60px  60px'},
+  {at: 1, expect:     ' 80px  80px'},
+  {at: 1.25, expect:  '100px 100px'},
 ]);
 
 test_interpolation({
@@ -140,27 +140,27 @@ test_interpolation({
   from: '0px',
   to: '80px',
 }, [
-  {at: -0.25, expect: '  0px,   0px,   0px,   0px'},
-  {at: 0, expect:     '  0px,   0px,   0px,   0px'},
-  {at: 0.25, expect:  ' 20px,  20px,  20px,  20px'},
-  {at: 0.5, expect:   ' 40px,  40px,  40px,  40px'},
-  {at: 0.75, expect:  ' 60px,  60px,  60px,  60px'},
-  {at: 1, expect:     ' 80px,  80px,  80px,  80px'},
-  {at: 1.25, expect:  '100px, 100px, 100px, 100px'},
+  {at: -0.25, expect: '  0px'},
+  {at: 0, expect:     '  0px'},
+  {at: 0.25, expect:  ' 20px'},
+  {at: 0.5, expect:   ' 40px'},
+  {at: 0.75, expect:  ' 60px'},
+  {at: 1, expect:     ' 80px'},
+  {at: 1.25, expect:  '100px'},
 ]);
 
 // Mismatched numbers of size values.
 test_interpolation({
   property: 'background-size',
-  from: '0px 0px, 80px 0px',
-  to: '40px 40px, 80px 80px, 0px 80px',
+  from: '0px 0px, 80px 0px',            // intepreted as [ 0px  0px, 80px  0px, 0px  0px, 80px  0px,  0px  0px, 80px  0px] via repetition
+  to: '40px 40px, 80px 80px, 0px 80px', // intepreted as [40px 40px, 80px 80px, 0px 80px, 40px 40px, 80px 80px,  0px 80px] via repetition
 }, [
-  {at: -0.25, expect: ' 0px  0px, 80px   0px, 0px   0px, 90px  0px'},
-  {at: 0, expect:     ' 0px  0px, 80px   0px, 0px   0px, 80px  0px'},
-  {at: 0.25, expect:  '10px 10px, 80px  20px, 0px  20px, 70px 10px'},
-  {at: 0.5, expect:   '20px 20px, 80px  40px, 0px  40px, 60px 20px'},
-  {at: 0.75, expect:  '30px 30px, 80px  60px, 0px  60px, 50px 30px'},
-  {at: 1, expect:     '40px 40px, 80px  80px, 0px  80px, 40px 40px'},
-  {at: 1.25, expect:  '50px 50px, 80px 100px, 0px 100px, 30px 50px'},
+  {at: -0.25, expect: ' 0px  0px, 80px   0px, 0px   0px, 90px  0px,   0px   0px, 100px   0px'},
+  {at: 0, expect:     ' 0px  0px, 80px   0px, 0px   0px, 80px  0px,   0px   0px,  80px   0px'},
+  {at: 0.25, expect:  '10px 10px, 80px  20px, 0px  20px, 70px 10px,  20px  20px,  60px  20px'},
+  {at: 0.5, expect:   '20px 20px, 80px  40px, 0px  40px, 60px 20px,  40px  40px,  40px  40px'},
+  {at: 0.75, expect:  '30px 30px, 80px  60px, 0px  60px, 50px 30px,  60px  60px,  20px  60px'},
+  {at: 1, expect:     '40px 40px, 80px  80px, 0px  80px, 40px 40px,  80px  80px,   0px  80px'},
+  {at: 1.25, expect:  '50px 50px, 80px 100px, 0px 100px, 30px 50px, 100px 100px,   0px 100px'},
 ]);
 </script>

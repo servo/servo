@@ -134,7 +134,7 @@ use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;
 use rand::seq::IndexedRandom;
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng, make_rng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, NewPipelineInfo,
@@ -161,11 +161,12 @@ use servo_config::{opts, pref};
 use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
     DocumentState, EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData,
-    IFrameSizeMsg, Job, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
-    PaintMetricEvent, PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerMsg,
-    SWManagerSenders, ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
-    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TargetSnapshotParams,
-    TraversalDirection, UserContentManagerAction, WindowSizeType,
+    IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
+    PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerSenders,
+    ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
+    ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, UserContentManagerAction,
+    WindowSizeType,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -381,16 +382,6 @@ pub struct Constellation<STF, SWF> {
 
     /// A map of origin to sender to a Service worker manager.
     sw_managers: HashMap<ImmutableOrigin, GenericSender<ServiceWorkerMsg>>,
-
-    /// An IPC channel for Service Worker Manager threads to send
-    /// messages to the constellation.  This is the SW Manager thread's
-    /// view of `swmanager_receiver`.
-    swmanager_ipc_sender: GenericSender<SWManagerMsg>,
-
-    /// A channel for the constellation to receive messages from the
-    /// Service Worker Manager thread. This is the constellation's view of
-    /// `swmanager_sender`.
-    swmanager_receiver: RoutedReceiver<SWManagerMsg>,
 
     /// A channel for the constellation to send messages to the
     /// time profiler thread.
@@ -624,10 +615,6 @@ where
         random_pipeline_closure_seed: Option<usize>,
         hard_fail: bool,
     ) {
-        // service worker manager to communicate with constellation
-        let (swmanager_ipc_sender, swmanager_ipc_receiver) =
-            generic_channel::channel().expect("ipc channel failure");
-
         thread::Builder::new()
             .name("Constellation".to_owned())
             .spawn(move || {
@@ -670,8 +657,6 @@ where
                     )
                 };
 
-                let swmanager_receiver = swmanager_ipc_receiver.route_preserving_errors();
-
                 PipelineNamespace::install(CONSTELLATION_PIPELINE_NAMESPACE_ID);
 
                 #[cfg(feature = "webgpu")]
@@ -709,8 +694,6 @@ where
                     private_storage_threads: state.private_storage_threads,
                     system_font_service: state.system_font_service,
                     sw_managers: Default::default(),
-                    swmanager_receiver,
-                    swmanager_ipc_sender,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
                     message_ports: Default::default(),
@@ -733,7 +716,7 @@ where
                     random_pipeline_closure: random_pipeline_closure_probability.map(|probability| {
                         let rng = random_pipeline_closure_seed
                             .map(|seed| SmallRng::seed_from_u64(seed as u64))
-                            .unwrap_or_else(SmallRng::from_os_rng);
+                            .unwrap_or_else(make_rng);
                         warn!("Randomly closing pipelines using seed {random_pipeline_closure_seed:?}.");
                         (rng, probability)
                     }),
@@ -1246,7 +1229,6 @@ where
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangMonitorAlert),
             Embedder(EmbedderToConstellationMessage),
-            FromSWManager(SWManagerMsg),
             RemoveProcess(usize),
         }
         // Get one incoming request.
@@ -1265,7 +1247,6 @@ where
         sel.recv(&self.script_receiver);
         sel.recv(&self.background_hang_monitor_receiver);
         sel.recv(&self.embedder_to_constellation_receiver);
-        sel.recv(&self.swmanager_receiver);
 
         self.process_manager.register(&mut sel);
 
@@ -1293,13 +1274,9 @@ where
                     oper.recv(&self.embedder_to_constellation_receiver)
                         .expect("Unexpected embedder channel panic in constellation"),
                 )),
-                4 => oper
-                    .recv(&self.swmanager_receiver)
-                    .expect("Unexpected SW channel panic in constellation")
-                    .map(Request::FromSWManager),
                 _ => {
                     // This can only be a error reading on a closed lifeline receiver.
-                    let process_index = index - 5;
+                    let process_index = index - 4;
                     let _ = oper.recv(self.process_manager.receiver_at(process_index));
                     Ok(Request::RemoveProcess(process_index))
                 },
@@ -1322,9 +1299,6 @@ where
             Request::BackgroundHangMonitor(message) => {
                 self.handle_request_from_background_hang_monitor(message);
             },
-            Request::FromSWManager(message) => {
-                self.handle_request_from_swmanager(message);
-            },
             Request::RemoveProcess(index) => self.process_manager.remove(index),
         }
     }
@@ -1345,16 +1319,6 @@ where
                 // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
                 // via the embedder?
                 warn!("Component hang alert: {:?}", hang);
-            },
-        }
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn handle_request_from_swmanager(&mut self, message: SWManagerMsg) {
-        match message {
-            SWManagerMsg::PostMessageToClient => {
-                // TODO: implement posting a message to a SW client.
-                // https://github.com/servo/servo/issues/24660
             },
         }
     }
@@ -1453,14 +1417,6 @@ where
             // Close a top level browsing context.
             EmbedderToConstellationMessage::CloseWebView(webview_id) => {
                 self.handle_close_top_level_browsing_context(webview_id);
-            },
-            // Panic a top level browsing context.
-            EmbedderToConstellationMessage::SendError(webview_id, error) => {
-                warn!("Constellation got a SendError message from WebView {webview_id:?}: {error}");
-                let Some(webview_id) = webview_id else {
-                    return;
-                };
-                self.handle_panic_in_webview(webview_id, &error, &None);
             },
             EmbedderToConstellationMessage::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);
@@ -2011,8 +1967,8 @@ where
                     "Document origin retrieval after closure",
                 );
             },
-            ScriptToConstellationMessage::ScheduleJob(job) => {
-                self.handle_schedule_serviceworker_job(source_pipeline_id, job);
+            ScriptToConstellationMessage::ServiceWorkerAlgorithm(algorithm) => {
+                self.handle_serviceworker_algorithm(source_pipeline_id, algorithm);
             },
             ScriptToConstellationMessage::ForwardDOMMessage(msg_vec, scope_url) => {
                 if let Some(mgr) = self.sw_managers.get(&scope_url.origin()) {
@@ -2588,15 +2544,22 @@ where
         }
     }
 
-    /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
-    /// and
-    /// <https://w3c.github.io/ServiceWorker/#dfn-job-queue>
-    ///
-    /// The Job Queue is essentially the channel to a SW manager,
-    /// which are scoped per origin.
+    /// <https://www.w3.org/TR/service-workers/#algorithms>
+    /// Algorithms invoked from in-parallel steps run on the service worker mananager,
+    /// per origin and routed by the constellation.
     #[servo_tracing::instrument(skip_all)]
-    fn handle_schedule_serviceworker_job(&mut self, pipeline_id: PipelineId, job: Job) {
-        let origin = job.scope_url.origin();
+    fn handle_serviceworker_algorithm(
+        &mut self,
+        pipeline_id: PipelineId,
+        algorithm: ServiceWorkerAlgorithm,
+    ) {
+        let origin = match &algorithm {
+            ServiceWorkerAlgorithm::StartRegister(job) => job.storage_key.clone(),
+            ServiceWorkerAlgorithm::Unregister(job) => job.storage_key.clone(),
+            ServiceWorkerAlgorithm::MatchServiceWorkerRegistration { storage_key, .. } => {
+                storage_key.clone()
+            },
+        };
 
         if self
             .check_origin_against_pipeline(&pipeline_id, &origin)
@@ -2615,7 +2578,6 @@ where
                     generic_channel::channel().expect("Failed to create IPC channel!");
 
                 let sw_senders = SWManagerSenders {
-                    swmanager_sender: self.swmanager_ipc_sender.clone(),
                     resource_threads: self.public_resource_threads.clone(),
                     own_sender: own_sender.clone(),
                     receiver,
@@ -2642,7 +2604,9 @@ where
                 entry.insert(own_sender)
             },
         };
-        let _ = sw_manager.send(ServiceWorkerMsg::ScheduleJob(job));
+        if let Err(err) = sw_manager.send(ServiceWorkerMsg::HandleAlgorithm(algorithm)) {
+            warn!("Failed to send algorithm to SW manager: {:?}", err);
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]

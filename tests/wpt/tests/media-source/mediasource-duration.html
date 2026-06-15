@@ -368,7 +368,6 @@
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
               assert_greater_than(segmentInfo.duration, 2, 'Sufficient test media duration');
-              mediaElement.play();
               sourceBuffer.appendBuffer(mediaData);
               test.expectEvent(sourceBuffer, 'updateend', 'Media data appended to the SourceBuffer');
               test.waitForExpectedEvents(function()

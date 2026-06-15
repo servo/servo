@@ -120,7 +120,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
-    ConversionResult, SafeFromJSValConvertible, StringificationBehavior,
+    ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -1238,16 +1238,22 @@ impl ScriptThread {
             // > 9. For each doc of docs, run the scroll steps for doc.
             document.run_the_scroll_steps(cx);
 
-            // Media queries is only relevant when there are resizing.
-            if resized {
-                // 10. For each doc of docs, evaluate media queries and report changes for doc.
+            // > 10. For each doc of docs, evaluate media queries and report changes for doc.
+            //
+            // Resize is the most common cause, but media queries can also change because
+            // of the platform theme (`prefers-color-scheme`) or other media features.
+            // The window tracks those via `pending_media_query_evaluation`, so we only
+            // pay the cost when something has actually changed.
+            let media_features_changed = document.window().take_pending_media_query_evaluation();
+            if resized || media_features_changed {
                 document
                     .window()
                     .evaluate_media_queries_and_report_changes(cx);
-
+            }
+            if resized {
                 // https://html.spec.whatwg.org/multipage/#img-environment-changes
                 // As per the spec, this can be run at any time.
-                document.react_to_environment_changes()
+                document.react_to_environment_changes();
             }
 
             let mut realm = enter_auto_realm(cx, &*document);
@@ -1277,7 +1283,7 @@ impl ScriptThread {
             }
 
             if document.has_skipped_resize_observations() {
-                document.deliver_resize_loop_error_notification(CanGc::from_cx(cx));
+                document.deliver_resize_loop_error_notification(cx);
                 // Ensure that another turn of the event loop occurs to process
                 // the skipped observations.
                 document.add_rendering_update_reason(
@@ -1554,8 +1560,9 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#the-end step 6
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
             for document in docs.iter() {
-                let _realm = enter_auto_realm(cx, &**document);
-                document.maybe_queue_document_completion();
+                let mut realm = enter_auto_realm(cx, &**document);
+                let cx = &mut realm.current_realm();
+                document.maybe_queue_document_completion(cx);
             }
             docs.clear();
         }
@@ -2196,7 +2203,7 @@ impl ScriptThread {
                 )
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
-                devtools::handle_get_computed_style(&self.devtools_state, id, &node_id, reply)
+                devtools::handle_get_computed_style(cx, &self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(cx, &self.devtools_state, id, &node_id, reply)
@@ -2305,6 +2312,14 @@ impl ScriptThread {
                     .fire_resume(cx, resume_limit_type, frame_actor_id);
                 self.debugger_paused.set(false);
             },
+            DevtoolScriptControlMsg::Blackbox(spidermonkey_id, coverage) => {
+                self.debugger_global
+                    .fire_blackbox(cx, spidermonkey_id, coverage);
+            },
+            DevtoolScriptControlMsg::Unblackbox(spidermonkey_id, coverage) => {
+                self.debugger_global
+                    .fire_unblackbox(cx, spidermonkey_id, coverage);
+            },
         }
     }
 
@@ -2379,6 +2394,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
                 webdriver_handlers::handle_find_elements_css_selector(
+                    cx,
                     &documents,
                     pipeline_id,
                     selector,
@@ -2387,6 +2403,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementsLinkText(selector, partial, reply) => {
                 webdriver_handlers::handle_find_elements_link_text(
+                    cx,
                     &documents,
                     pipeline_id,
                     selector,
@@ -2414,6 +2431,7 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_css_selector(
+                    cx,
                     &documents,
                     pipeline_id,
                     element_id,
@@ -2427,6 +2445,7 @@ impl ScriptThread {
                 partial,
                 reply,
             ) => webdriver_handlers::handle_find_element_elements_link_text(
+                cx,
                 &documents,
                 pipeline_id,
                 element_id,
@@ -2461,6 +2480,7 @@ impl ScriptThread {
                 shadow_root_id,
                 reply,
             ) => webdriver_handlers::handle_find_shadow_elements_css_selector(
+                cx,
                 &documents,
                 pipeline_id,
                 shadow_root_id,
@@ -2473,6 +2493,7 @@ impl ScriptThread {
                 partial,
                 reply,
             ) => webdriver_handlers::handle_find_shadow_elements_link_text(
+                cx,
                 &documents,
                 pipeline_id,
                 shadow_root_id,
@@ -2482,6 +2503,7 @@ impl ScriptThread {
             ),
             WebDriverScriptCommand::FindShadowElementsTagName(selector, shadow_root_id, reply) => {
                 webdriver_handlers::handle_find_shadow_elements_tag_name(
+                    cx,
                     &documents,
                     pipeline_id,
                     shadow_root_id,
@@ -2586,7 +2608,14 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
-                webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
+                webdriver_handlers::handle_get_css(
+                    cx,
+                    &documents,
+                    pipeline_id,
+                    node_id,
+                    name,
+                    reply,
+                )
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
                 webdriver_handlers::handle_get_rect(cx, &documents, pipeline_id, node_id, reply)
@@ -2730,7 +2759,7 @@ impl ScriptThread {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             let mut realm = enter_auto_realm(cx, &*document);
-            document.exit_fullscreen(CanGc::from_cx(&mut realm));
+            document.exit_fullscreen(&mut realm);
         }
     }
 
@@ -3206,6 +3235,10 @@ impl ScriptThread {
                 window.discard_browsing_context();
             }
 
+            // Clear the image cache now, instead of waiting for the Window to be
+            // garbage collected. See servo/servo#45239.
+            window.image_cache().clear();
+
             debug!("{pipeline_id}: Clearing JavaScript runtime");
             window.clear_js_runtime();
         }
@@ -3474,8 +3507,14 @@ impl ScriptThread {
             incomplete.theme,
             self.this.clone(),
         );
-        self.debugger_global
-            .fire_add_debuggee(cx, window.upcast(), incomplete.pipeline_id, None);
+        if self.senders.devtools_server_sender.is_some() {
+            self.debugger_global.fire_add_debuggee(
+                cx,
+                window.upcast(),
+                incomplete.pipeline_id,
+                None,
+            );
+        }
 
         let mut realm = enter_auto_realm(cx, &*window);
         let cx = &mut realm;
@@ -3582,7 +3621,10 @@ impl ScriptThread {
         let refresh_header = metadata.headers.as_deref().and_then(|h| h.get(REFRESH));
         if let Some(refresh_val) = refresh_header {
             // There are tests that this header handles Unicode code points
-            document.shared_declarative_refresh_steps(refresh_val.as_bytes());
+            document.shared_declarative_refresh_steps(
+                refresh_val.as_bytes(),
+                /* from_meta_element */ false,
+            );
         }
 
         document.set_ready_state(cx, DocumentReadyState::Loading);
@@ -3809,12 +3851,7 @@ impl ScriptThread {
             return None;
         }
 
-        let strval = DOMString::safe_from_jsval(
-            cx.into(),
-            jsval.handle(),
-            StringificationBehavior::Empty,
-            CanGc::from_cx(cx),
-        );
+        let strval = DOMString::safe_from_jsval(cx, jsval.handle(), StringificationBehavior::Empty);
         match strval {
             Ok(ConversionResult::Success(s)) => {
                 // Step 11. Let response be a new response with

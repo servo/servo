@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin images</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+  #child {
+    width: 100px;
+    height: 200px;
+    background: green;
+  }
+  #sameOrigin {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 80;
+    height: 60;
+  }
+  #crossOrigin {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+    width: 80;
+    height: 60;
+  }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <div id=child>
+      <video id=sameOrigin poster="https://{{location[host]}}/images/green-100x100.png" >
+        <source src="https://{{location[host]}}/media/white.webm" type="video/webm" />
+      </video>
+      <video id=crossOrigin poster="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png" >
+        <source src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/media/white.webm" type="video/webm"/>
+      </video>
+    </div>
+  </canvas>
+
+  <script>
+    onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 50);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Same origin should draw");
+
+        pixel = _getPixelFromImageData(imgData, 50, 150);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin should not draw");
+      });
+    }
+  </script>
+</body>
+</html>

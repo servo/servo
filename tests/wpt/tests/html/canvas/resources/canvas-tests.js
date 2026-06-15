@@ -32,6 +32,11 @@ function _getPixel(canvas, x,y)
     return [ imgdata.data[0], imgdata.data[1], imgdata.data[2], imgdata.data[3] ];
 }
 
+function _getPixelFromImageData(imageData, x, y) {
+  const index = (y * imageData.width + x) * 4;
+  return imageData.data.slice(index, index + 4);
+}
+
 function _assertPixel(canvas, x, y, r, g, b, a)
 {
     var c = _getPixel(canvas, x,y);

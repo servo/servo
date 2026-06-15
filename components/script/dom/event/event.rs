@@ -751,18 +751,7 @@ impl Event {
     }
 
     /// <https://dom.spec.whatwg.org/#firing-events>
-    #[expect(unsafe_code)]
-    pub(crate) fn fire(&self, target: &EventTarget, _can_gc: CanGc) -> bool {
-        self.set_trusted(true);
-
-        // TODO https://github.com/servo/servo/issues/44499
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
-        self.dispatch(cx, target, false)
-    }
-
-    pub(crate) fn fire_with_cx(&self, cx: &mut JSContext, target: &EventTarget) -> bool {
+    pub(crate) fn fire(&self, cx: &mut JSContext, target: &EventTarget) -> bool {
         self.set_trusted(true);
         self.dispatch(cx, target, false)
     }

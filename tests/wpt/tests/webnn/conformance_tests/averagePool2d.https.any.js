@@ -23,7 +23,7 @@
 //   sequence<[EnforceRange] unsigned long> strides;
 //   sequence<[EnforceRange] unsigned long> dilations;
 //   MLInputOperandLayout layout = "nchw";
-//   MLRoundingType roundingType = "floor";
+//   MLRoundingType outputShapeRounding = "floor";
 //   sequence<[EnforceRange] unsigned long> outputSizes;
 // };
 //
@@ -512,7 +512,7 @@ const averagePool2dTests = [
     }
   },
   {
-    'name': 'averagePool2d float32 4D tensor options.roundingType=floor',
+    'name': 'averagePool2d float32 4D tensor options.outputShapeRounding=floor',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -546,7 +546,7 @@ const averagePool2dTests = [
               'windowDimensions': [3, 3],
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
-              'roundingType': 'floor'
+              'outputShapeRounding': 'floor'
             }
           }
         ],
@@ -565,7 +565,7 @@ const averagePool2dTests = [
     }
   },
   {
-    'name': 'averagePool2d float32 4D tensor options.roundingType=ceil',
+    'name': 'averagePool2d float32 4D tensor options.outputShapeRounding=ceil',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -599,7 +599,7 @@ const averagePool2dTests = [
               'windowDimensions': [3, 3],
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
-              'roundingType': 'ceil'
+              'outputShapeRounding': 'ceil'
             }
           }
         ],
@@ -622,7 +622,7 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float32 4D tensor options.roundingType=ceil and no padding',
+        'averagePool2d float32 4D tensor options.outputShapeRounding=ceil and no padding',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -649,7 +649,7 @@ const averagePool2dTests = [
             'options': {
               'windowDimensions': [3, 3],
               'strides': [2, 2],
-              'roundingType': 'ceil'
+              'outputShapeRounding': 'ceil'
             }
           }
         ],
@@ -669,7 +669,7 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float32 4D tensor options.layout=nhwc and options.roundingType=floor',
+        'averagePool2d float32 4D tensor options.layout=nhwc and options.outputShapeRounding=floor',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -704,7 +704,7 @@ const averagePool2dTests = [
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
               'layout': 'nhwc',
-              'roundingType': 'floor'
+              'outputShapeRounding': 'floor'
             }
           }
         ],
@@ -724,7 +724,7 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float32 4D tensor options.layout=nhwc and options.roundingType=ceil',
+        'averagePool2d float32 4D tensor options.layout=nhwc and options.outputShapeRounding=ceil',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -759,7 +759,7 @@ const averagePool2dTests = [
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
               'layout': 'nhwc',
-              'roundingType': 'ceil'
+              'outputShapeRounding': 'ceil'
             }
           }
         ],
@@ -782,7 +782,44 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float32 4D tensor options.outputSizes ignores options.roundingType=floor',
+        'averagePool2d float32 4D tensor options.outputShapeRounding=ceil with asymmetric window',
+    'graph': {
+      'inputs': {
+        'averagePool2dInput': {
+          'data': [
+            1,  2,  3,  4,  5,
+            6,  7,  8,  9,  10,
+            11, 12, 13, 14, 15,
+            16, 17, 18, 19, 20,
+            21, 22, 23, 24, 25
+          ],
+          'descriptor': {shape: [1, 1, 5, 5], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'averagePool2d',
+        'arguments': [
+          {'input': 'averagePool2dInput'}, {
+            'options': {
+              'windowDimensions': [3, 2],
+              'strides': [2, 2],
+              'outputShapeRounding': 'ceil'
+            }
+          }
+        ],
+        'outputs': 'averagePool2dOutput'
+      }],
+      'expectedOutputs': {
+        'averagePool2dOutput': {
+          'data': [6.5, 8.5, 10, 16.5, 18.5, 20],
+          'descriptor': {shape: [1, 1, 2, 3], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'averagePool2d float32 4D tensor options.outputSizes ignores options.outputShapeRounding=floor',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -816,7 +853,7 @@ const averagePool2dTests = [
               'windowDimensions': [3, 3],
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
-              'roundingType': 'floor',
+              'outputShapeRounding': 'floor',
               'outputSizes': [3, 3]
             }
           }
@@ -840,7 +877,7 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float32 4D tensor options.outputSizes ignores options.roundingType=ceil',
+        'averagePool2d float32 4D tensor options.outputSizes ignores options.outputShapeRounding=ceil',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -874,7 +911,7 @@ const averagePool2dTests = [
               'windowDimensions': [3, 3],
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
-              'roundingType': 'ceil',
+              'outputShapeRounding': 'ceil',
               'outputSizes': [2, 2]
             }
           }
@@ -1364,7 +1401,7 @@ const averagePool2dTests = [
     }
   },
   {
-    'name': 'averagePool2d float16 4D tensor options.roundingType=floor',
+    'name': 'averagePool2d float16 4D tensor options.outputShapeRounding=floor',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -1391,7 +1428,7 @@ const averagePool2dTests = [
               'windowDimensions': [3, 3],
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
-              'roundingType': 'floor'
+              'outputShapeRounding': 'floor'
             }
           }
         ],
@@ -1409,7 +1446,7 @@ const averagePool2dTests = [
     }
   },
   {
-    'name': 'averagePool2d float16 4D tensor options.roundingType=ceil',
+    'name': 'averagePool2d float16 4D tensor options.outputShapeRounding=ceil',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -1436,7 +1473,7 @@ const averagePool2dTests = [
               'windowDimensions': [3, 3],
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
-              'roundingType': 'ceil'
+              'outputShapeRounding': 'ceil'
             }
           }
         ],
@@ -1456,7 +1493,7 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float16 4D tensor options.roundingType=ceil and no padding',
+        'averagePool2d float16 4D tensor options.outputShapeRounding=ceil and no padding',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -1478,7 +1515,7 @@ const averagePool2dTests = [
             'options': {
               'windowDimensions': [3, 3],
               'strides': [2, 2],
-              'roundingType': 'ceil'
+              'outputShapeRounding': 'ceil'
             }
           }
         ],
@@ -1497,7 +1534,7 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float16 4D tensor options.layout=nhwc and options.roundingType=floor',
+        'averagePool2d float16 4D tensor options.layout=nhwc and options.outputShapeRounding=floor',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -1525,7 +1562,7 @@ const averagePool2dTests = [
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
               'layout': 'nhwc',
-              'roundingType': 'floor'
+              'outputShapeRounding': 'floor'
             }
           }
         ],
@@ -1544,7 +1581,7 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float16 4D tensor options.layout=nhwc and options.roundingType=ceil',
+        'averagePool2d float16 4D tensor options.layout=nhwc and options.outputShapeRounding=ceil',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -1572,7 +1609,7 @@ const averagePool2dTests = [
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
               'layout': 'nhwc',
-              'roundingType': 'ceil'
+              'outputShapeRounding': 'ceil'
             }
           }
         ],
@@ -1592,7 +1629,7 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float16 4D tensor options.outputSizes ignores options.roundingType=floor',
+        'averagePool2d float16 4D tensor options.outputSizes ignores options.outputShapeRounding=floor',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -1619,7 +1656,7 @@ const averagePool2dTests = [
               'windowDimensions': [3, 3],
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
-              'roundingType': 'floor',
+              'outputShapeRounding': 'floor',
               'outputSizes': [3, 3]
             }
           }
@@ -1640,7 +1677,7 @@ const averagePool2dTests = [
   },
   {
     'name':
-        'averagePool2d float16 4D tensor options.outputSizes ignores options.roundingType=ceil',
+        'averagePool2d float16 4D tensor options.outputSizes ignores options.outputShapeRounding=ceil',
     'graph': {
       'inputs': {
         'averagePool2dInput': {
@@ -1667,7 +1704,7 @@ const averagePool2dTests = [
               'windowDimensions': [3, 3],
               'padding': [1, 0, 0, 1],
               'strides': [2, 2],
-              'roundingType': 'ceil',
+              'outputShapeRounding': 'ceil',
               'outputSizes': [2, 2]
             }
           }

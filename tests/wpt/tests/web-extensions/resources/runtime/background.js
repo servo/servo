@@ -1,10 +1,13 @@
 browser.test.runTests([
     function browserRuntimeGetURLErrorCases() {
         browser.test.assertThrows(() => browser.runtime.getURL())
+        browser.test.assertThrows(() => browser.runtime.getURL(true))
         browser.test.assertThrows(() => browser.runtime.getURL(null))
         browser.test.assertThrows(() => browser.runtime.getURL(undefined))
         browser.test.assertThrows(() => browser.runtime.getURL(42))
         browser.test.assertThrows(() => browser.runtime.getURL(/test/))
+        browser.test.assertThrows(() => browser.runtime.getURL({}))
+        browser.test.assertThrows(() => browser.runtime.getURL(["test.js"]))
     },
     function browserRuntimeGetURLNormalCases() {
         browser.test.assertEq(typeof browser.runtime.getURL(""), "string")

@@ -1394,13 +1394,13 @@ impl GlobalScope {
                         if let Ok(ports) = structuredclone::read(cx, &global, data, message.handle_mut()) {
                             // Step 10.4, Fire an event named message at destination.
                             MessageEvent::dispatch_jsval(
+                                cx,
                                 destination.upcast(),
                                 &global,
                                 message.handle(),
                                 Some(&origin.ascii_serialization()),
                                 None,
                                 ports,
-                                CanGc::from_cx(cx)
                             );
                         } else {
                             // Step 10.3, fire an event named messageerror at destination.
@@ -1564,13 +1564,13 @@ impl GlobalScope {
                         // with the data attribute initialized to messageClone
                         // and the ports attribute initialized to newPorts.
                         MessageEvent::dispatch_jsval(
+                            cx,
                             message_event_target,
                             self,
                             message_clone.handle(),
                             Some(&origin.ascii_serialization()),
                             None,
                             ports,
-                            CanGc::from_cx(cx),
                         );
                     }
                 } else if let Some(transform) = cross_realm_transform.deref().as_ref() {
@@ -1741,7 +1741,7 @@ impl GlobalScope {
                 let _ = self.script_to_constellation_chan().send(
                     ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(
                         *router_id,
-                        dom_channel.Name().to_string(),
+                        String::from(dom_channel.Name()),
                         self.origin().immutable().clone(),
                     ),
                 );
@@ -2135,6 +2135,28 @@ impl GlobalScope {
         }
     }
 
+    /// Send a PromoteMemory message to register a new blob URL entry
+    /// with the file manager for the given byte data.
+    /// Return the generated UUID.
+    fn promote_memory_entry(
+        &self,
+        blob_info: &BlobInfo,
+        blob_bytes: &[u8],
+        set_valid: bool,
+    ) -> Uuid {
+        let origin = self.origin().immutable();
+        let blob_buf = BlobBuf {
+            filename: None,
+            type_string: blob_info.blob_impl.type_string(),
+            size: blob_bytes.len() as u64,
+            bytes: blob_bytes.to_vec(),
+        };
+        let id = Uuid::new_v4();
+        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
+        self.send_to_file_manager(msg);
+        id
+    }
+
     /// Promote non-Slice blob:
     /// 1. Memory-based: The bytes in data slice will be transferred to file manager thread.
     /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
@@ -2149,6 +2171,12 @@ impl GlobalScope {
             },
             BlobData::File(f) => {
                 if set_valid {
+                    // File blobs with cached byte data (converted from Memory)
+                    // need a unique UUID per URL.createObjectURL call.
+                    if let Some(cached_bytes) = f.get_cache() {
+                        return self.promote_memory_entry(blob_info, &cached_bytes, true);
+                    }
+
                     let origin = self.origin().immutable();
                     let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
 
@@ -2168,18 +2196,7 @@ impl GlobalScope {
             BlobData::Memory(bytes_in) => mem::swap(bytes_in, &mut bytes),
         };
 
-        let origin = self.origin().immutable();
-
-        let blob_buf = BlobBuf {
-            filename: None,
-            type_string: blob_info.blob_impl.type_string(),
-            size: bytes.len() as u64,
-            bytes: bytes.to_vec(),
-        };
-
-        let id = Uuid::new_v4();
-        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
-        self.send_to_file_manager(msg);
+        let id = self.promote_memory_entry(blob_info, &bytes, set_valid);
 
         *blob_info.blob_impl.blob_data_mut() = BlobData::File(FileBlob::new(
             id,
@@ -2210,12 +2227,12 @@ impl GlobalScope {
         let (file_id, size) = match self.get_blob_bytes_or_file_id(blob_id) {
             BlobResult::Bytes(bytes) => {
                 // If we have all the bytes in memory, queue them and close the stream.
-                return ReadableStream::new_from_bytes(cx, self, bytes);
+                return ReadableStream::new_from_bytes_with_byte_reading_support(cx, self, bytes);
             },
             BlobResult::File(id, size) => (id, size),
         };
 
-        let stream = ReadableStream::new_with_external_underlying_source(
+        let stream = ReadableStream::new_with_external_underlying_byte_source(
             cx,
             self,
             UnderlyingSourceType::Blob(size),
@@ -2763,28 +2780,36 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-an-exception>
-    pub(crate) fn report_an_exception(&self, cx: SafeJSContext, error: HandleValue, can_gc: CanGc) {
+    pub(crate) fn report_an_exception(&self, cx: &mut js::context::JSContext, error: HandleValue) {
         // Step 1. Let notHandled be true.
         //
         // Handled in `report_an_error`
 
         // Step 2. Let errorInfo be the result of extracting error information from exception.
+        let error_info = ErrorInfo::from_value(cx, error);
+
         // Step 3. Let script be a script found in an implementation-defined way, or null.
         // This should usually be the running script (most notably during run a classic script).
-        // Step 4. If script is a classic script and script's muted errors is true, then set errorInfo[error] to null,
-        // errorInfo[message] to "Script error.", errorInfo[filename] to the empty string,
-        // errorInfo[lineno] to 0, and errorInfo[colno] to 0.
-        let error_info = crate::dom::bindings::error::ErrorInfo::from_value(error, cx, can_gc);
+        // Step 4. If script is a classic script and script's muted errors is true, then set
+        // errorInfo[error] to null, errorInfo[message] to "Script error.", errorInfo[filename]
+        // to the empty string, errorInfo[lineno] to 0, and errorInfo[colno] to 0.
+        // Note: This is handled in 'run_a_classic_script'.
+
         // Step 5. If omitError is true, then set errorInfo[error] to null.
         //
         // `omitError` defaults to `false`
 
         // Steps 6-7
-        self.report_an_error(error_info, error, can_gc);
+        self.report_an_error(cx, error_info, error);
     }
 
     /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
-    pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
+    pub(crate) fn report_an_error(
+        &self,
+        cx: &mut js::context::JSContext,
+        error_info: ErrorInfo,
+        value: HandleValue,
+    ) {
         self.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
             self.webview_id(),
             ConsoleLogLevel::Error,
@@ -2816,7 +2841,6 @@ impl GlobalScope {
         // using ErrorEvent, with the cancelable attribute initialized to true,
         // and additional attributes initialized according to errorInfo.
 
-        // FIXME(#13195): muted errors.
         let event = ErrorEvent::new(
             self,
             atom!("error"),
@@ -2827,12 +2851,12 @@ impl GlobalScope {
             error_info.lineno,
             error_info.column,
             value,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let not_handled = event
             .upcast::<Event>()
-            .fire(self.upcast::<EventTarget>(), can_gc);
+            .fire(cx, self.upcast::<EventTarget>());
 
         // Step 6.3. Set global's in error reporting mode to false.
         self.in_error_reporting_mode.set(false);
@@ -2922,9 +2946,6 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
-        let in_realm_proof = cx.into();
-        let in_realm = InRealm::Already(&in_realm_proof);
-
         run_a_script::<DomTypeHolder, _>(self, || {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script();
@@ -2944,7 +2965,7 @@ impl GlobalScope {
 
             let Some(script) = NonNull::new(*compiled_script) else {
                 debug!("error compiling Dom string");
-                report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+                report_pending_exception(cx);
                 return Err(JavaScriptEvaluationError::CompilationFailure);
             };
 
@@ -3154,20 +3175,18 @@ impl GlobalScope {
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
     pub(crate) fn supported_performance_entry_types(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         retval: MutableHandleValue,
-        can_gc: CanGc,
     ) {
         self.frozen_supported_performance_entry_types.get_or_init(
+            cx,
             || {
                 EntryType::VARIANTS
                     .iter()
                     .map(|t| DOMString::from(t.as_str()))
                     .collect()
             },
-            cx,
             retval,
-            can_gc,
         );
     }
 
@@ -3189,14 +3208,11 @@ impl GlobalScope {
         match self.top_level_creation_url() {
             None => {
                 // Workers and worklets don't have a top-level creation URL
-                assert!(
-                    self.downcast::<WorkerGlobalScope>().is_some() ||
-                        self.downcast::<WorkletGlobalScope>().is_some()
-                );
+                assert!(self.is::<WorkerGlobalScope>() || self.is::<WorkletGlobalScope>());
                 true
             },
             Some(top_level_creation_url) => {
-                assert!(self.downcast::<Window>().is_some());
+                assert!(self.is::<Window>());
                 // Step 2. If the result of Is url potentially trustworthy?
                 // given environment's top-level creation URL is "Potentially Trustworthy", then return true.
                 // Step 3. Return false.
@@ -3212,7 +3228,7 @@ impl GlobalScope {
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
     pub(crate) fn get_csp_list(&self) -> Option<CspList> {
-        if self.downcast::<Window>().is_some() || self.downcast::<WorkerGlobalScope>().is_some() {
+        if self.is::<Window>() || self.is::<WorkerGlobalScope>() {
             return self.policy_container().csp_list;
         }
         // TODO: Worklet global scopes.

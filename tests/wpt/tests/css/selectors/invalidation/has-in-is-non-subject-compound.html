@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>:has() invalidation when :has() is in a non-subject compound of an enclosing :is()</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div { color: grey }
+/* :has() sits in the leftmost (ancestor) compound of the :is() argument; the actual
+   has-bearer is some ancestor of #outer, not #outer itself. */
+#outer:is(:has(.test) .outer) #subject { color: red }
+</style>
+<div>
+  <div id="trigger">
+    <div id="outer" class="outer">
+      <div id="subject"></div>
+    </div>
+  </div>
+</div>
+<script>
+const grey = 'rgb(128, 128, 128)';
+const red = 'rgb(255, 0, 0)';
+
+test(() => {
+  assert_equals(getComputedStyle(subject).color, grey);
+}, 'initial: #subject is grey');
+
+test(() => {
+  const testElement = document.createElement('div');
+  testElement.className = 'test';
+  trigger.appendChild(testElement);
+  assert_equals(getComputedStyle(subject).color, red);
+}, 'insert .test under #trigger: #subject becomes red');
+
+test(() => {
+  trigger.querySelector('.test').remove();
+  assert_equals(getComputedStyle(subject).color, grey);
+}, 'remove .test: #subject returns to grey');
+</script>

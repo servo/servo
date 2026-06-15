@@ -12,6 +12,7 @@ use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::{FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -19,9 +20,8 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
 };
-use js::typedarray::ArrayBufferViewU8;
+use js::typedarray::{ArrayBufferViewU8, Uint8};
 use rustc_hash::FxHashMap;
-use script_bindings::conversions::SafeToJSValConvertible;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
@@ -37,7 +37,7 @@ use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult, SafeFromJSValConvertible};
+use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult, get_property, get_property_jsval};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriter_Binding::WritableStreamDefaultWriterMethods;
 use crate::dom::stream::writablestream::WritableStream;
@@ -46,7 +46,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::stream::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTeePullAlgorithm, ByteTeeUnderlyingSource};
 use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
@@ -63,12 +62,12 @@ use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_auto_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::StructuredData;
 
-use crate::dom::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource, create_buffer_source};
 use super::readablestreambyobreader::ReadIntoRequest;
 
 /// State Machine for `PipeTo`.
@@ -213,7 +212,6 @@ impl Callback for PipeTo {
     /// - the current state.
     /// - the type of `result`.
     /// - the state of a stored promise(in some cases).
-    #[expect(unsafe_code)]
     fn callback(&self, cx: &mut CurrentRealm, result: SafeHandleValue) {
         let global = self.reader.global();
 
@@ -250,8 +248,7 @@ impl Callback for PipeTo {
                 // If dest.[[state]] is "writable",
                 // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
                 if dest.is_writable() && !dest.close_queued_or_in_flight() {
-                    let Ok(done) = get_read_promise_done(cx.into(), &result, CanGc::from_cx(cx))
-                    else {
+                    let Ok(done) = get_read_promise_done(cx, &result) else {
                         // This is the case that the microtask ran in reaction
                         // to the closed promise of the reader,
                         // so we should wait for subsequent chunks,
@@ -334,7 +331,7 @@ impl Callback for PipeTo {
                     if !result.is_object() {
                         false
                     } else {
-                        unsafe { is_array_like::<crate::DomTypeHolder>(cx.raw_cx(), result) }
+                        is_array_like::<crate::DomTypeHolder>(cx, result)
                     }
                 };
 
@@ -382,10 +379,10 @@ impl PipeTo {
             self.read_chunk(cx, global);
         } else {
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 Some(Box::new(self.clone())),
                 Some(Box::new(self.clone())),
-                CanGc::from_cx(cx),
             );
             ready_promise.append_native_handler(cx, &handler);
 
@@ -402,10 +399,10 @@ impl PipeTo {
         *self.state.borrow_mut() = PipeToState::PendingRead;
         let chunk_promise = self.reader.Read(cx);
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            CanGc::from_cx(cx),
         );
         chunk_promise.append_native_handler(cx, &handler);
 
@@ -417,7 +414,6 @@ impl PipeTo {
 
     /// Try to write a chunk using the jsval, and returns wether it succeeded
     // It will fail if it is the last `done` chunk, or if it is not a chunk at all.
-    #[expect(unsafe_code)]
     fn write_chunk(
         &self,
         cx: &mut JSContext,
@@ -427,22 +423,13 @@ impl PipeTo {
         if chunk.is_object() {
             rooted!(&in(cx) let object = chunk.to_object());
             rooted!(&in(cx) let mut bytes = UndefinedValue());
-            let has_value = unsafe {
-                get_dictionary_property(
-                    cx.raw_cx(),
-                    object.handle(),
-                    c"value",
-                    bytes.handle_mut(),
-                    CanGc::from_cx(cx),
-                )
-                .expect("Chunk should have a value.")
-            };
-            if has_value {
-                // Write the chunk.
-                let write_promise = self.writer.write(cx, global, bytes.handle());
-                self.pending_writes.borrow_mut().push_back(write_promise);
-                return true;
-            }
+            get_property_jsval(cx, object.handle(), c"value", bytes.handle_mut())
+                .expect("Chunk should have a value.");
+
+            // Write the chunk.
+            let write_promise = self.writer.write(cx, global, bytes.handle());
+            self.pending_writes.borrow_mut().push_back(write_promise);
+            return true;
         }
         false
     }
@@ -457,10 +444,10 @@ impl PipeTo {
         promise: Rc<Promise>,
     ) {
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            CanGc::from_cx(cx),
         );
         promise.append_native_handler(cx, &handler);
     }
@@ -581,12 +568,7 @@ impl PipeTo {
             rooted!(&in(cx) let mut dest_closed = UndefinedValue());
             let error =
                 Error::Type(c"Destination is closed or has closed queued or in flight".to_owned());
-            error.to_jsval(
-                cx.into(),
-                global,
-                dest_closed.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            error.to_jsval(cx, global, dest_closed.handle_mut());
             self.set_shutdown_error(dest_closed.handle());
 
             // If preventCancel is false,
@@ -720,10 +702,10 @@ impl PipeTo {
         // Upon fulfillment of p, finalize, passing along originalError if it was given.
         // Upon rejection of p with reason newError, finalize with newError.
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            CanGc::from_cx(cx),
         );
         promise.append_native_handler(cx, &handler);
         *self.shutdown_action_promise.borrow_mut() = Some(promise);
@@ -734,7 +716,7 @@ impl PipeTo {
         *self.state.borrow_mut() = PipeToState::Finalized;
 
         // Perform ! WritableStreamDefaultWriterRelease(writer).
-        self.writer.release(cx.into(), global, CanGc::from_cx(cx));
+        self.writer.release(cx, global);
 
         // If reader implements ReadableStreamBYOBReader,
         // perform ! ReadableStreamBYOBReaderRelease(reader).
@@ -755,10 +737,10 @@ impl PipeTo {
             error.set(shutdown_error.get());
             // If error was given, reject promise with error.
             self.result_promise
-                .reject_native(&error.handle(), CanGc::from_cx(cx));
+                .reject_native_with_cx(cx, &error.handle());
         } else {
             // Otherwise, resolve promise with undefined.
-            self.result_promise.resolve_native(&(), CanGc::from_cx(cx));
+            self.result_promise.resolve_native_with_cx(cx, &());
         }
     }
 }
@@ -776,7 +758,7 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        self.result.resolve_native(&(), CanGc::from_cx(cx));
+        self.result.resolve_native_with_cx(cx, &());
     }
 }
 
@@ -793,7 +775,7 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        self.result.reject_native(&v, CanGc::from_cx(cx));
+        self.result.reject_native_with_cx(cx, &v);
     }
 }
 
@@ -992,6 +974,22 @@ impl ReadableStream {
         Ok(stream)
     }
 
+    /// <https://streams.spec.whatwg.org/#readablestream-set-up-with-byte-reading-support>
+    pub(crate) fn new_from_bytes_with_byte_reading_support(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        bytes: Vec<u8>,
+    ) -> Fallible<DomRoot<ReadableStream>> {
+        let stream = ReadableStream::new_with_external_underlying_byte_source(
+            cx,
+            global,
+            UnderlyingSourceType::Memory(bytes.len()),
+        )?;
+        stream.enqueue_native(cx, bytes);
+        stream.controller_close_native(cx);
+        Ok(stream)
+    }
+
     /// Build a stream backed by a Rust underlying source.
     /// Note: external sources are always paired with a default controller.
     pub(crate) fn new_with_external_underlying_source(
@@ -1009,6 +1007,19 @@ impl ReadableStream {
             CanGc::from_cx(cx),
         );
         controller.setup(cx, stream.clone())?;
+        Ok(stream)
+    }
+
+    /// <https://streams.spec.whatwg.org/#readablestream-set-up-with-byte-reading-support>
+    pub(crate) fn new_with_external_underlying_byte_source(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        source: UnderlyingSourceType,
+    ) -> Fallible<DomRoot<ReadableStream>> {
+        assert!(source.is_native());
+        let stream = ReadableStream::new_with_proto(global, None, CanGc::from_cx(cx));
+        let controller = ReadableByteStreamController::new(source, 0.0, global, CanGc::from_cx(cx));
+        controller.setup(cx, global, stream.clone())?;
         Ok(stream)
     }
 
@@ -1116,18 +1127,37 @@ impl ReadableStream {
         }
     }
 
-    /// Endpoint to enqueue chunks directly from Rust.
-    /// Note: in other use cases this call happens via the controller.
+    /// <https://streams.spec.whatwg.org/#readablestream-enqueue>
     pub(crate) fn enqueue_native(&self, cx: &mut JSContext, bytes: Vec<u8>) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
                 .enqueue_native(cx, bytes),
+            Some(ControllerType::Byte(controller)) => {
+                if bytes.is_empty() {
+                    return;
+                }
+
+                let controller = controller.get().expect("Stream should have controller.");
+                rooted!(&in(cx) let mut chunk_object = ptr::null_mut::<JSObject>());
+                create_buffer_source::<Uint8>(
+                    cx.into(),
+                    &bytes,
+                    chunk_object.handle_mut(),
+                    CanGc::from_cx(cx),
+                )
+                .expect("failed to create buffer source for native byte chunk.");
+
+                let chunk = RootedTraceableBox::new(HeapBufferSource::<ArrayBufferViewU8>::new(
+                    BufferSource::ArrayBufferView(Heap::boxed(*chunk_object.handle())),
+                ));
+                controller
+                    .enqueue(cx, chunk)
+                    .expect("Enqueuing a native byte chunk should not fail.");
+            },
             _ => {
-                unreachable!(
-                    "Enqueueing chunk to a stream from Rust on other than default controller"
-                );
+                unreachable!("Enqueueing chunk to a stream from Rust without a controller");
             },
         }
     }
@@ -1169,7 +1199,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
-            reader.error_read_into_requests(e, CanGc::from_cx(cx));
+            reader.error_read_into_requests(cx, e);
         }
 
         // If reader is undefined, return.
@@ -1184,17 +1214,12 @@ impl ReadableStream {
     /// Note: in other use cases this call happens via the controller.
     pub(crate) fn error_native(&self, cx: &mut JSContext, error: Error) {
         rooted!(&in(cx) let mut error_val = UndefinedValue());
-        error.to_jsval(
-            cx.into(),
-            &self.global(),
-            error_val.handle_mut(),
-            CanGc::from_cx(cx),
-        );
+        error.to_jsval(cx, &self.global(), error_val.handle_mut());
         self.error(cx, error_val.handle());
     }
 
     /// Call into the controller's `Close` method.
-    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
+    /// <https://streams.spec.whatwg.org/#readablestream-close>
     pub(crate) fn controller_close_native(&self, cx: &mut JSContext) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => {
@@ -1203,8 +1228,14 @@ impl ReadableStream {
                     .expect("Stream should have controller.")
                     .Close(cx);
             },
+            Some(ControllerType::Byte(controller)) => {
+                let _ = controller
+                    .get()
+                    .expect("Stream should have controller.")
+                    .close(cx);
+            },
             _ => {
-                unreachable!("Native closing is only done on default controllers.")
+                unreachable!("Native closing requires a stream controller.")
             },
         }
     }
@@ -1217,11 +1248,11 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .in_memory(),
-            _ => {
-                unreachable!(
-                    "Checking if source is in memory for a stream with a non-default controller"
-                )
-            },
+            Some(ControllerType::Byte(controller)) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .in_memory(),
+            _ => unreachable!("Checking if source is in memory for a stream without a controller"),
         }
     }
 
@@ -1233,11 +1264,13 @@ impl ReadableStream {
                 .get()
                 .expect("Stream should have controller.")
                 .get_in_memory_bytes()
-                .as_deref()
-                .map(GenericSharedMemory::from_bytes),
-            _ => {
-                unreachable!("Getting in-memory bytes for a stream with a non-default controller")
-            },
+                .map(GenericSharedMemory::from_vec),
+            Some(ControllerType::Byte(controller)) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .get_in_memory_bytes()
+                .map(GenericSharedMemory::from_vec),
+            _ => unreachable!("Getting in-memory bytes for a stream without a controller"),
         }
     }
 
@@ -1247,13 +1280,13 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
     pub(crate) fn acquire_default_reader(
         &self,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
         // Let reader be a new ReadableStreamDefaultReader.
-        let reader = ReadableStreamDefaultReader::new(&self.global(), can_gc);
+        let reader = ReadableStreamDefaultReader::new(cx, &self.global());
 
         // Perform ? SetUpReadableStreamDefaultReader(reader, stream).
-        reader.set_up(self, &self.global(), can_gc)?;
+        reader.set_up(cx, self, &self.global())?;
 
         // Return reader.
         Ok(reader)
@@ -1262,12 +1295,12 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-byob-reader>
     pub(crate) fn acquire_byob_reader(
         &self,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) -> Fallible<DomRoot<ReadableStreamBYOBReader>> {
         // Let reader be a new ReadableStreamBYOBReader.
-        let reader = ReadableStreamBYOBReader::new(&self.global(), can_gc);
+        let reader = ReadableStreamBYOBReader::new(cx, &self.global());
         // Perform ? SetUpReadableStreamBYOBReader(reader, stream).
-        reader.set_up(self, &self.global(), can_gc)?;
+        reader.set_up(cx, self, &self.global())?;
 
         // Return reader.
         Ok(reader)
@@ -1580,9 +1613,8 @@ impl ReadableStream {
         if self.is_errored() {
             let promise = Promise::new2(cx, global);
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            self.stored_error
-                .safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
-            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
+            self.stored_error.safe_to_jsval(cx, rval.handle_mut());
+            promise.reject_native_with_cx(cx, &rval.handle());
             return promise;
         }
         // Perform ! ReadableStreamClose(stream).
@@ -1629,10 +1661,10 @@ impl ReadableStream {
             result: result_promise.clone(),
         });
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             Some(fulfillment_handler),
             Some(rejection_handler),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();
@@ -1655,7 +1687,7 @@ impl ReadableStream {
         // Assert: stream.[[controller]] implements ReadableByteStreamController.
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
-        let reader = self.acquire_default_reader(CanGc::from_cx(cx))?;
+        let reader = self.acquire_default_reader(cx)?;
         let reader = Rc::new(RefCell::new(ReaderType::Default(MutNullableDom::new(
             Some(&reader),
         ))));
@@ -1758,7 +1790,7 @@ impl ReadableStream {
         let clone_for_branch_2 = Rc::new(Cell::new(clone_for_branch_2));
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
-        let reader = self.acquire_default_reader(CanGc::from_cx(cx))?;
+        let reader = self.acquire_default_reader(cx)?;
 
         // Let reading be false.
         let reading = Rc::new(Cell::new(false));
@@ -1881,7 +1913,7 @@ impl ReadableStream {
 
         // Otherwise, let reader be ! AcquireReadableStreamDefaultReader(source).
         let reader = self
-            .acquire_default_reader(CanGc::from_cx(cx))
+            .acquire_default_reader(cx)
             .expect("Acquiring a default reader for pipe_to cannot fail");
 
         // Let writer be ! AcquireWritableStreamDefaultWriter(dest).
@@ -2076,7 +2108,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         // converted to an IDL value of type UnderlyingSource.
         let underlying_source_dict = if !underlying_source_obj.is_null() {
             rooted!(&in(cx) let obj_val = ObjectValue(underlying_source_obj.get()));
-            match JsUnderlyingSource::new(cx.into(), obj_val.handle(), CanGc::from_cx(cx)) {
+            match JsUnderlyingSource::new(cx, obj_val.handle()) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => {
                     return Err(Error::Type(error.into_owned()));
@@ -2151,10 +2183,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"stream is locked".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"stream is locked".to_owned()));
             promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).
@@ -2165,13 +2194,13 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-get-reader>
     fn GetReader(
         &self,
+        cx: &mut JSContext,
         options: &ReadableStreamGetReaderOptions,
-        can_gc: CanGc,
     ) -> Fallible<ReadableStreamReader> {
         // 1, If options["mode"] does not exist, return ? AcquireReadableStreamDefaultReader(this).
         if options.mode.is_none() {
             return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
-                self.acquire_default_reader(can_gc)?,
+                self.acquire_default_reader(cx)?,
             ));
         }
         // 2. Assert: options["mode"] is "byob".
@@ -2179,7 +2208,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
         // 3. Return ? AcquireReadableStreamBYOBReader(this).
         Ok(ReadableStreamReader::ReadableStreamBYOBReader(
-            self.acquire_byob_reader(can_gc)?,
+            self.acquire_byob_reader(cx)?,
         ))
     }
 
@@ -2202,10 +2231,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Source stream is locked".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Source stream is locked".to_owned()));
             return promise;
         }
 
@@ -2213,10 +2239,8 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if destination.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Destination stream is locked".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise
+                .reject_error_with_cx(cx, Error::Type(c"Destination stream is locked".to_owned()));
             return promise;
         }
 
@@ -2277,15 +2301,13 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     }
 }
 
-#[expect(unsafe_code)]
 /// The initial steps for the message handler for both readable and writable cross realm transforms.
 /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
 /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
-pub(crate) unsafe fn get_type_and_value_from_message(
-    cx: SafeJSContext,
+pub(crate) fn get_type_and_value_from_message(
+    cx: &mut JSContext,
     data: SafeHandleValue,
     value: SafeMutableHandleValue,
-    can_gc: CanGc,
 ) -> DOMString {
     // Let data be the data of the message.
     // Note: we are passed the data as argument,
@@ -2293,34 +2315,24 @@ pub(crate) unsafe fn get_type_and_value_from_message(
 
     // Assert: data is an Object.
     assert!(data.is_object());
-    rooted!(in(*cx) let data_object = data.to_object());
+    rooted!(&in(cx) let data_object = data.to_object());
 
     // Let type be ! Get(data, "type").
-    rooted!(in(*cx) let mut type_ = UndefinedValue());
-    unsafe {
-        get_dictionary_property(
-            *cx,
-            data_object.handle(),
-            c"type",
-            type_.handle_mut(),
-            can_gc,
-        )
-    }
-    .expect("Getting the type should not fail.");
+    let type_ = get_property::<DOMString>(
+        cx,
+        data_object.handle(),
+        c"type",
+        StringificationBehavior::Empty,
+    );
 
     // Let value be ! Get(data, "value").
-    unsafe { get_dictionary_property(*cx, data_object.handle(), c"value", value, can_gc) }
+    get_property_jsval(cx, data_object.handle(), c"value", value)
         .expect("Getting the value should not fail.");
 
     // Assert: type is a String.
-    let result =
-        DOMString::safe_from_jsval(cx, type_.handle(), StringificationBehavior::Empty, can_gc)
-            .expect("The type of the message should be a string");
-    let ConversionResult::Success(type_string) = result else {
-        unreachable!("The type of the message should be a string");
-    };
-
-    type_string
+    type_
+        .expect("The type of the message should be a string")
+        .expect("Property should be present")
 }
 
 impl js::gc::Rootable for CrossRealmTransformReadable {}
@@ -2338,7 +2350,6 @@ pub(crate) struct CrossRealmTransformReadable {
 impl CrossRealmTransformReadable {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
     /// Add a handler for port’s message event with the following steps:
-    #[expect(unsafe_code)]
     pub(crate) fn handle_message(
         &self,
         cx: &mut CurrentRealm,
@@ -2347,14 +2358,7 @@ impl CrossRealmTransformReadable {
         message: SafeHandleValue,
     ) {
         rooted!(&in(cx) let mut value = UndefinedValue());
-        let type_string = unsafe {
-            get_type_and_value_from_message(
-                cx.into(),
-                message,
-                value.handle_mut(),
-                CanGc::from_cx(cx),
-            )
-        };
+        let type_string = get_type_and_value_from_message(cx, message, value.handle_mut());
 
         // If type is "chunk",
         if type_string == "chunk" {
@@ -2394,7 +2398,7 @@ impl CrossRealmTransformReadable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(global, DOMErrorName::DataCloneError, CanGc::from_cx(cx));
         rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-        error.safe_to_jsval(cx.into(), rooted_error.handle_mut(), CanGc::from_cx(cx));
+        error.safe_to_jsval(cx, rooted_error.handle_mut());
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(cx, rooted_error.handle());
@@ -2407,74 +2411,49 @@ impl CrossRealmTransformReadable {
     }
 }
 
-#[expect(unsafe_code)]
 /// Get the `done` property of an object that a read promise resolved to.
 pub(crate) fn get_read_promise_done(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     v: &SafeHandleValue,
-    can_gc: CanGc,
 ) -> Result<bool, Error> {
     if !v.is_object() {
         return Err(Error::Type(c"Unknown format for done property.".to_owned()));
     }
-    unsafe {
-        rooted!(in(*cx) let object = v.to_object());
-        rooted!(in(*cx) let mut done = UndefinedValue());
-        match get_dictionary_property(*cx, object.handle(), c"done", done.handle_mut(), can_gc) {
-            Ok(true) => match bool::safe_from_jsval(cx, done.handle(), (), can_gc) {
-                Ok(ConversionResult::Success(val)) => Ok(val),
-                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-                _ => Err(Error::Type(c"Unknown format for done property.".to_owned())),
-            },
-            Ok(false) => Err(Error::Type(c"Promise has no done property.".to_owned())),
-            Err(()) => Err(Error::JSFailed),
-        }
-    }
+
+    rooted!(&in(cx) let object = v.to_object());
+    get_property::<bool>(cx, object.handle(), c"done", ())?
+        .ok_or(Error::Type(c"Promise has no done property.".to_owned()))
 }
 
-#[expect(unsafe_code)]
 /// Get the `value` property of an object that a read promise resolved to.
 pub(crate) fn get_read_promise_bytes(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     v: &SafeHandleValue,
-    can_gc: CanGc,
 ) -> Result<Vec<u8>, Error> {
     if !v.is_object() {
         return Err(Error::Type(
             c"Unknown format for for bytes read.".to_owned(),
         ));
     }
-    unsafe {
-        rooted!(in(*cx) let object = v.to_object());
-        rooted!(in(*cx) let mut bytes = UndefinedValue());
-        match get_dictionary_property(*cx, object.handle(), c"value", bytes.handle_mut(), can_gc) {
-            Ok(true) => {
-                match Vec::<u8>::safe_from_jsval(
-                    cx,
-                    bytes.handle(),
-                    ConversionBehavior::EnforceRange,
-                    can_gc,
-                ) {
-                    Ok(ConversionResult::Success(val)) => Ok(val),
-                    Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-                    _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
-                }
-            },
-            Ok(false) => Err(Error::Type(c"Promise has no value property.".to_owned())),
-            Err(()) => Err(Error::JSFailed),
-        }
-    }
+
+    rooted!(&in(cx) let object = v.to_object());
+    get_property::<Vec<u8>>(
+        cx,
+        object.handle(),
+        c"value",
+        ConversionBehavior::EnforceRange,
+    )?
+    .ok_or(Error::Type(c"Promise has no value property.".to_owned()))
 }
 
 /// Convert a raw stream `chunk` JS value to `Vec<u8>`.
 /// This mirrors the conversion used inside `get_read_promise_bytes`,
 /// but operates on the raw chunk (no `{ value, done }` wrapper).
 pub(crate) fn bytes_from_chunk_jsval(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     chunk: &RootedTraceableBox<Heap<JSVal>>,
-    can_gc: CanGc,
 ) -> Result<Vec<u8>, Error> {
-    match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange, can_gc) {
+    match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange) {
         Ok(ConversionResult::Success(vec)) => Ok(vec),
         Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
         _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),

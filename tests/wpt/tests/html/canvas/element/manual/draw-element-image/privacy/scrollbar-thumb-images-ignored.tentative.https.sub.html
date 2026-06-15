@@ -1,0 +1,89 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin scrollbar thumb images</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+  #child {
+    width: 120px;
+    height: 200px;
+    background: blue;
+    position: relative;
+  }
+  .scroller::-webkit-scrollbar {
+    width: 100px;
+  }
+  .scroller::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #sameOrigin {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 120px;
+    height: 100px;
+    overflow-y: scroll;
+  }
+  #sameOrigin::-webkit-scrollbar-thumb {
+    background-image: url("https://{{location[host]}}/images/green-100x100.png");
+    min-height: 100px;
+  }
+  @supports not selector(::-webkit-scrollbar-thumb) {
+    #sameOrigin {
+      background-color: #0f0;
+    }
+  }
+  #crossOrigin {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+    width: 120px;
+    height: 100px;
+    overflow-y: scroll;
+  }
+  #crossOrigin::-webkit-scrollbar-thumb {
+    background-image: url("https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png");
+    min-height: 100px;
+  }
+  .scroll-content {
+    width: 20px;
+    height: 200px;
+    background: lightblue;
+  }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="100" height="200" layoutsubtree>
+    <div id="child">
+      <div id="sameOrigin" class="scroller">
+        <div class="scroll-content"></div>
+      </div>
+      <div id="crossOrigin" class="scroller">
+        <div class="scroll-content"></div>
+      </div>
+    </div>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 60, 50);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Same origin should draw");
+
+        pixel = _getPixelFromImageData(imgData, 60, 150);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin should not draw");
+      });
+    };
+  </script>
+</body>
+</html>

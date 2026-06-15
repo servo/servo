@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Container Queries Test: style() range queries with dynamic changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+
+<style>
+@font-face {
+  font-family: TallLineHeight;
+  src: url("/fonts/Ahem.ttf");
+  /* override metrics so that 'normal' line-height should resolve to 4em:
+     ascent + descent = 2em, and line-gap is an additional 2em. */
+  ascent-override: 160%;
+  descent-override: 40%;
+  line-gap-override: 200%;
+}
+
+html { font: 16px/1.2 serif; }
+
+div.container { font-size: 16px; line-height: 1.4; }
+
+div.container.lh3 { line-height: normal; }
+
+div.test { background: red; width: 80px; height: 40px; margin: 10px; }
+
+@container style(1rem > 20px) {
+  div.test.rem { background: green; }
+}
+
+@container style(1em > 20px) {
+  div.test.em { background: green; }
+}
+
+@container style(1rlh > 28px) {
+  div.test.rlh1 { background: green; }
+}
+
+@container style(1rlh > 30px) {
+  div.test.rlh2 { background: green; }
+}
+
+@container style(1lh > 40px) {
+  div.test.lh1 { background: green; }
+}
+
+@container style(1lh > 45px) {
+  div.test.lh2 { background: green; }
+}
+
+@container style(1lh > 60px) {
+  div.test.lh3 { background: green; }
+}
+</style>
+
+<p>All the boxes should end up green:</p>
+
+<div class="container rem">
+  <div class="test rem"></div>
+</div>
+
+<div class="container em">
+  <div class="test em"></div>
+</div>
+
+<div class="container rlh1">
+  <div class="test rlh1"></div>
+</div>
+
+<div class="container rlh2">
+  <div class="test rlh2"></div>
+</div>
+
+<div class="container lh1">
+  <div class="test lh1"></div>
+</div>
+
+<div class="container lh2">
+  <div class="test lh2"></div>
+</div>
+
+<div class="container lh3">
+  <div class="test lh3"></div>
+</div>
+
+<script>
+function expect(list) {
+  for (const e of list) {
+    const selector = "div.test." + e[0];
+    const bg = window.getComputedStyle(document.querySelector(selector)).backgroundColor;
+    assert_equals(bg, e[1], "color of " + selector);
+  }
+};
+
+const red = "rgb(255, 0, 0)";
+const green = "rgb(0, 128, 0)";
+
+test(() => {
+  // Initially all test <div>s are red.
+  expect([
+    ["rem", red],
+    ["em", red],
+    ["rlh1", red],
+    ["rlh2", red],
+    ["lh1", red],
+    ["lh2", red],
+    ["lh3", red],
+  ]);
+}, "Initial state: none of the style queries match");
+
+test(() => {
+  // Increase the root font-size. (This will also increase the used root line-height
+  // to 28.8px)
+  document.documentElement.style.fontSize = "24px";
+  expect([
+    ["rem", green],
+    ["em", red],
+    ["rlh1", green],
+    ["rlh2", red],
+    ["lh1", red],
+    ["lh2", red],
+    ["lh3", red],
+  ]);
+}, "After increasing root font-size");
+
+test(() => {
+  // Increase root line-height; it should now compute to 24px * 1.5 = 36px.
+  document.documentElement.style.lineHeight = "1.5";
+  expect([
+    ["rem", green],
+    ["em", red],
+    ["rlh1", green],
+    ["rlh2", green],
+    ["lh1", red],
+    ["lh2", red],
+    ["lh3", red],
+  ]);
+}, "After increasing root line-height");
+
+test(() => {
+  // Increase the container font-size.
+  document.querySelector("div.container.em").style.fontSize = "24px";
+  expect([
+    ["rem", green],
+    ["em", green],
+    ["rlh1", green],
+    ["rlh2", green],
+    ["lh1", red],
+    ["lh2", red],
+    ["lh3", red],
+  ]);
+}, "After increasing container font-size for em");
+
+test(() => {
+  // Increase font-size so that line-height:1.4 computes to >40px.
+  document.querySelector("div.container.lh1").style.fontSize = "30px";
+  expect([
+    ["rem", green],
+    ["em", green],
+    ["rlh1", green],
+    ["rlh2", green],
+    ["lh1", green],
+    ["lh2", red],
+    ["lh3", red],
+  ]);
+}, "After increasing container font-size for lh1");
+
+test(() => {
+  // Increase the line-height factor.
+  document.querySelector("div.container.lh2").style.lineHeight = "3";
+  expect([
+    ["rem", green],
+    ["em", green],
+    ["rlh1", green],
+    ["rlh2", green],
+    ["lh1", green],
+    ["lh2", green],
+    ["lh3", red],
+  ]);
+}, "After increasing container line-height");
+
+document.fonts.load("16px TallLineHeight").then(() => {
+  test(() => {
+    // Set font family to TallLineHeight; line-height is normal.
+    // lh should compute to 16px * 4 = 64px.
+    document.querySelector("div.container.lh3").style.fontFamily = "TallLineHeight";
+    expect([
+      ["rem", green],
+      ["em", green],
+      ["rlh1", green],
+      ["rlh2", green],
+      ["lh1", green],
+      ["lh2", green],
+      ["lh3", green],
+    ]);
+  }, "After changing container font-family to TallLineHeight");
+});
+</script>

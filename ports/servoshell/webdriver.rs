@@ -147,10 +147,7 @@ impl RunningAppState {
                 },
                 WebDriverCommandMsg::IsWebViewOpen(webview_id, sender) => {
                     let context = self.webview_by_id(webview_id);
-
-                    if let Err(error) = sender.send(context.is_some()) {
-                        warn!("Failed to send response of IsWebViewOpen: {error}");
-                    }
+                    sender.send_or_warn(context.is_some());
                 },
                 WebDriverCommandMsg::IsBrowsingContextOpen(..) => {
                     self.servo().execute_webdriver_command(msg);

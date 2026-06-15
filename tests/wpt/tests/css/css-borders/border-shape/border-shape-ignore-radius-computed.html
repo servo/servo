@@ -19,9 +19,9 @@ test(() => {
     assert_equals(style.borderTopRightRadius, '999px');
     assert_equals(style.borderBottomRightRadius, '999px');
     assert_equals(style.borderBottomLeftRadius, '999px');
-    assert_equals(style.cornerTopLeftShape, 'bevel');
-    assert_equals(style.cornerTopRightShape, 'bevel');
-    assert_equals(style.cornerBottomRightShape, 'bevel');
-    assert_equals(style.cornerBottomLeftShape, 'bevel');
+    assert_equals(style.cornerTopLeftShape, 'superellipse(0)');
+    assert_equals(style.cornerTopRightShape, 'superellipse(0)');
+    assert_equals(style.cornerBottomRightShape, 'superellipse(0)');
+    assert_equals(style.cornerBottomLeftShape, 'superellipse(0)');
 }, "border-radius and corner-shape are NOT reset in computed style when border-shape is specified");
 </script>

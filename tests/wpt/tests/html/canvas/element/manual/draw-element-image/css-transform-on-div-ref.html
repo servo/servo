@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+  <title>drawElementImage ignores CSS transforms - ref</title>
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <style>
+    #wrapper {
+      width: 100px;
+      height: 100px;
+      overflow: clip;
+      background: black;
+    }
+    #rotated {
+      width: 100px;
+      height: 100px;
+      background-color: green;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrapper">
+    <div id="rotated"></div>
+  </div>
+</body>

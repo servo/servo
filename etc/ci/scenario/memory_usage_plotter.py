@@ -9,20 +9,25 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from io import TextIOWrapper
 import argparse
+import os
 import threading
 import time
 import csv
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 import subprocess
-from typing import List, Optional
+from typing import List, Optional, Self, Type
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import datetime as dt
 from pathlib import Path
 from selenium import webdriver
+from selenium.webdriver.remote.webdriver import WebDriver
 import sys
-from hdc_py.hdc import HarmonyDeviceConnector
-from common_function_for_servo_test import create_driver
+from hdc_py.hdc import HarmonyDeviceConnector  # type: ignore[import-untyped]
+from types import TracebackType
+from common_function_for_servo_test import HostOptions, create_driver, get_target_os_from_environment
 
 PACKAGE_NAME = "org.servo.servo"
 
@@ -31,18 +36,19 @@ PACKAGE_NAME = "org.servo.servo"
 @dataclass
 class MemoryLoggingOptions:
     verbose: bool = False
-    frequency: int = 2
-    pid: int = None
+    frequency: float = 2
+    pid: Optional[int] = None
     log_to_file: bool = False
     plot: bool = False
     file_name: str = "memory_usage_plotter"
-    pre_time: int = 0
-    post_time: int = 0
+    pre_time: float = 0
+    post_time: float = 0
     set_minimal_history: bool = False
-    from_dump: str = None
+    from_dump: Optional[str] = None
     mode: str = "collect"
-    reset_tab: str = None
+    reset_tab: Optional[str | bool] = None
     create_own_webdriver: bool = False
+    target_os: Optional[HostOptions] = None
 
 
 @dataclass
@@ -76,19 +82,7 @@ class MemoryInfo:
     __repr__ = __str__
 
 
-def get_memory_info(pid: int) -> Optional[MemoryInfo]:
-    cmd = ["hdc", "shell", "cat", f"/proc/{pid}/status"]
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except subprocess.CalledProcessError:
-        return None
-
+def parse_memory_info(status_text: str) -> MemoryInfo:
     fields = {
         "VmRSS": 0,
         "VmHWM": 0,
@@ -99,7 +93,7 @@ def get_memory_info(pid: int) -> Optional[MemoryInfo]:
         "RssShmem": 0,
     }
 
-    for line in result.stdout.splitlines():
+    for line in status_text.splitlines():
         for key in fields:
             if line.startswith(key + ":"):
                 parts = line.split()
@@ -115,6 +109,54 @@ def get_memory_info(pid: int) -> Optional[MemoryInfo]:
         rss_file_kb=fields["RssFile"],
         rss_shmem_kb=fields["RssShmem"],
     )
+
+
+def get_memory_info(pid: int, target_os: HostOptions) -> Optional[MemoryInfo]:
+    if target_os == HostOptions.OHOS:
+        cmd = ["hdc", "shell", "cat", f"/proc/{pid}/status"]
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            return None
+        return parse_memory_info(result.stdout)
+
+    if target_os == HostOptions.LINUX:
+        status_path = Path(f"/proc/{pid}/status")
+        if not status_path.is_file():
+            return None
+        return parse_memory_info(status_path.read_text(encoding="utf-8"))
+
+    if target_os == HostOptions.MACOS:
+        try:
+            result = subprocess.run(
+                ["ps", "-o", "rss=,vsz=", "-p", str(pid)],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            return None
+        values = result.stdout.split()
+        if len(values) < 2:
+            return None
+        rss_kb = int(values[0])
+        vsz_kb = int(values[1])
+        return MemoryInfo(
+            vm_rss_kb=rss_kb,
+            vm_hwm_kb=rss_kb,
+            vm_size_kb=vsz_kb,
+            vm_swap_kb=0,
+            rss_anon_kb=0,
+            rss_file_kb=0,
+            rss_shmem_kb=0,
+        )
+
+    return None
 
 
 class InvalidInputFile(Exception):
@@ -133,13 +175,27 @@ def raise_if_input_invalid(file_path: str) -> None:
         raise InvalidInputFile("Invalid CSV header")
 
 
-def pidof(package_name: str, hdc: HarmonyDeviceConnector) -> List[int]:
-    completed_process = hdc.cmd("pidof " + package_name, capture_output=True, encoding="utf-8")
-    output = str(completed_process.stdout)
-    if not output:
-        return []
+def pidof(package_name: str, target_os: HostOptions, hdc: Optional[HarmonyDeviceConnector] = None) -> List[int]:
+    if target_os == HostOptions.OHOS:
+        if hdc is None:
+            raise ValueError("HDC connector is required for OHOS PID lookup")
+        completed_process = hdc.cmd("pidof " + package_name, capture_output=True, encoding="utf-8")
+        output = str(completed_process.stdout)
+        if not output:
+            return []
+        return [int(pid) for pid in output.split() if pid.isdigit()]
 
-    return [int(pid) for pid in output.split() if pid.isdigit()]
+    process_name = os.path.basename(package_name)
+    try:
+        completed_process = subprocess.run(
+            ["pgrep", "-x", process_name],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError:
+        return []
+    return [int(pid) for pid in completed_process.stdout.split() if pid.isdigit()]
 
 
 @dataclass(slots=True)
@@ -154,10 +210,10 @@ class MemorySample:
 class MemoryLog:
     samples: List[MemorySample] = field(default_factory=list)
 
-    def add(self, sample: MemorySample):
+    def add(self, sample: MemorySample) -> None:
         self.samples.append(sample)
 
-    def clear(self):
+    def clear(self) -> None:
         self.samples.clear()
 
 
@@ -172,8 +228,8 @@ def load_memory_log(path: str) -> MemoryLog:
 
             sample = MemorySample(
                 timestamp=float(row["timestamp"]),
-                RSS_MB=float(row["rss (kb)"]),
-                Swap_MB=float(row["swap (kb)"]),
+                RSS_MB=float(row["rss (mb)"]),
+                Swap_MB=float(row["swap (mb)"]),
                 event_name=event,
             )
 
@@ -187,65 +243,71 @@ class WebDriverIsNotSet(Exception):
 
 
 class NonBlockingMemoryLogging:
-    def set_webdriver(self, webdriver: webdriver):
-        self.driver = webdriver
+    def set_webdriver(self, driver: webdriver.Remote) -> None:
+        self.driver = driver
 
-    def from_dump(self):
-        self.log = load_memory_log(self.options.from_dump)
-        self.plot_memory_log()
+    def from_dump(self) -> None:
+        if self.options.from_dump is not None:
+            self.log = load_memory_log(self.options.from_dump)
+            self.plot_memory_log()
 
-    def __init__(self, options: MemoryLoggingOptions = None):
+    def __init__(self, options: Optional[MemoryLoggingOptions] = None) -> None:
         # Defaults:
         self.options = MemoryLoggingOptions()
         if options is not None:
             self.options = options
-        self.driver = None
+        self.driver: Optional[WebDriver] = None
+        self.hdc: Optional[HarmonyDeviceConnector] = None
+        self.csv_file: Optional[TextIOWrapper] = None
+        self.target_os = self.options.target_os or get_target_os_from_environment()
         if self.options.create_own_webdriver:
             self.driver = create_driver(timeout=1)
-            if self.driver is None:
-                print("Doublecheck that servo is running and has `--psn=--webdriver`")
-                sys.exit(0)
 
         if self.options.verbose:
             print(f"Memory plotter options: {self.options}")
 
         # check for the `file` mode
-        if options.mode is None:
+        if self.options.mode is None:
             print("No mode has been specified. Exiting")
             sys.exit(1)
-        if options.mode == "plot" and options.from_dump is not None:
-            raise_if_input_invalid(options.from_dump)
+        if self.options.mode == "plot" and self.options.from_dump is not None:
+            raise_if_input_invalid(self.options.from_dump)
             self.from_dump()
             sys.exit(0)
         self.log = MemoryLog()
         if self.options.log_to_file:
             self.csv_file = open(self.options.file_name + ".csv", "w", newline="", encoding="utf-8")
             self.writer = csv.writer(self.csv_file)
-            self.writer.writerow(["timestamp", "rss (kb)", "swap (kb)", "event"])
+            self.writer.writerow(["timestamp", "rss (mb)", "swap (mb)", "event"])
         self._stop_event = threading.Event()
         self._thread = threading.Thread(
             target=self._run,
             daemon=True,
         )
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         self.start()
-        self.csv_file = None
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.stop()
         if self.csv_file:
             self.csv_file.close()
         if self.driver is not None:
             self.driver.quit()
-        return False
 
-    def start(self):
+    def start(self) -> None:
         if self.options.pid is None:
             try:
-                self.hdc = HarmonyDeviceConnector()
-                self.options.pid = get_servo_pid(PACKAGE_NAME, self.hdc)
+                if self.target_os == HostOptions.OHOS:
+                    self.hdc = HarmonyDeviceConnector()
+                package_name = PACKAGE_NAME if self.target_os == HostOptions.OHOS else "servoshell"
+                self.options.pid = get_servo_pid(package_name, self.target_os, self.hdc)
             except (MoreThanOneInstanceOfServo, ProcessLookupError) as e:
                 print(f"Failed to get servo PID: {e}")
             else:
@@ -255,7 +317,7 @@ class NonBlockingMemoryLogging:
                     time.sleep(abs(self.options.pre_time))
                 self.event("start")
 
-    def stop(self):
+    def stop(self) -> None:
         self.event("stop")
         if self.options.post_time is not None:
             self.verbose_print(f"post-logging for {self.options.post_time}s...")
@@ -263,7 +325,7 @@ class NonBlockingMemoryLogging:
                 if self.driver is None:
                     raise WebDriverIsNotSet("The `-r` argument or Tab Reset was passed, but the webdriver is not set")
                 self.verbose_print(f"Setting the url to reset_tab: {self.options.reset_tab}")
-                if self.options.reset_tab is not str:
+                if not isinstance(self.options.reset_tab, str):
                     self.options.reset_tab = "about:blank"
                 self.driver.get(self.options.reset_tab)
             time.sleep(self.options.post_time)
@@ -273,18 +335,24 @@ class NonBlockingMemoryLogging:
             self._thread.join()
             if self.options.verbose:
                 print(self.log)
-            if self.options.log_to_file:
+            if self.options.log_to_file and self.csv_file:
                 self.csv_file.close()
             if self.options.plot:
                 self.plot_memory_log()
 
-    def _run(self):
+    def _run(self) -> None:
         while not self._stop_event.is_set():
             self.event()
             time.sleep(1 / self.options.frequency)
 
-    def event(self, event_name: str = None):
-        memory_point = get_memory_info(self.options.pid)
+    def event(self, event_name: Optional[str] = None) -> None:
+        if self.options.pid is None:
+            return
+
+        memory_point = get_memory_info(self.options.pid, self.target_os)
+        if memory_point is None:
+            return
+
         if self.options.verbose:
             print(memory_point)
         sample = MemorySample(
@@ -295,7 +363,8 @@ class NonBlockingMemoryLogging:
         )
         if self.options.log_to_file:
             self.writer.writerow([sample.timestamp, sample.RSS_MB, sample.Swap_MB, event_name])
-            self.csv_file.flush()
+            if self.csv_file:
+                self.csv_file.flush()
         self.log.add(sample)
 
     def verbose_print(self, to_print: str) -> None:
@@ -307,7 +376,7 @@ class NonBlockingMemoryLogging:
             raise ValueError("MemoryLog is empty")
 
         # Extract data
-        times = [dt.datetime.fromtimestamp(s.timestamp) for s in self.log.samples]
+        times = mdates.date2num([dt.datetime.fromtimestamp(s.timestamp) for s in self.log.samples])
         rss = [s.RSS_MB for s in self.log.samples]
         swap = [s.Swap_MB for s in self.log.samples]
         total = [r + s for r, s in zip(rss, swap)]
@@ -349,6 +418,9 @@ class NonBlockingMemoryLogging:
             plt.title(self.options.file_name)
         else:
             plt.title("Memory Usage Over Time")
+        ax = plt.gca()
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b %H:%M:%S"))
+        plt.gcf().autofmt_xdate()
         plt.ylim(bottom=0)
         plt.legend()
         plt.grid(True)
@@ -360,8 +432,10 @@ class MoreThanOneInstanceOfServo(Exception):
     pass
 
 
-def get_servo_pid(package_name: str, hdc: HarmonyDeviceConnector) -> int | None:
-    pids = pidof(package_name, hdc)
+def get_servo_pid(
+    package_name: str, target_os: HostOptions, hdc: Optional[HarmonyDeviceConnector] = None
+) -> int | None:
+    pids = pidof(package_name, target_os, hdc)
     if not pids:
         raise ProcessLookupError(f"No running instances of {package_name}")
     if len(pids) > 1:
@@ -372,6 +446,13 @@ def get_servo_pid(package_name: str, hdc: HarmonyDeviceConnector) -> int | None:
 if __name__ == "__main__":
     default_options = MemoryLoggingOptions()
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--target-os",
+        type=HostOptions.from_str,
+        choices=tuple(option.value for option in HostOptions),
+        default=HostOptions.OHOS,
+        help="Where Servo should run: connected OpenHarmony device or local host",
+    )
     parser.add_argument(
         "-v",
         "--verbose",
@@ -447,6 +528,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.create_own_webdriver = True
-    with NonBlockingMemoryLogging(args) as worker:
+    options_kwargs = {
+        field.name: getattr(args, field.name) for field in fields(MemoryLoggingOptions) if hasattr(args, field.name)
+    }
+    options = MemoryLoggingOptions(**options_kwargs)
+    options.create_own_webdriver = True
+    with NonBlockingMemoryLogging(options) as worker:
         time.sleep(2)
         print("Exiting memory_usage_plotter.py")

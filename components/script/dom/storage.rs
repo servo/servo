@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use dom_struct::dom_struct;
+use js::context::NoGC;
 use profile_traits::generic_channel;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::{GenericSend, SendResult};
@@ -182,7 +184,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
         let time_profiler = self.global().time_profiler_chan().clone();
         let (sender, receiver) = generic_channel::channel(time_profiler).unwrap();
 
@@ -260,7 +262,7 @@ impl Storage {
                     Some(&this),
                     CanGc::from_cx(cx)
                 );
-                event.upcast::<Event>().fire(global.upcast(), CanGc::from_cx(cx));
+                event.upcast::<Event>().fire(cx, global.upcast());
             }),
         );
     }

@@ -13,11 +13,12 @@ use js::glue::{
     JS_GetReservedSlot, UnwrapObjectDynamic,
 };
 use js::jsapi::{
-    Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
-    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, JSContext, JSObject,
+    Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_NewStringCopyN, JSContext, JSObject,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
-use js::rust::wrappers::IsArrayObject;
+use js::rust::wrappers2::{
+    IsArrayObject, JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength,
+};
 use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
     is_dom_object, maybe_wrap_value,
@@ -77,44 +78,28 @@ pub enum StringificationBehavior {
     Empty,
 }
 
-/// A safe wrapper for `FromJSValConvertible`.
-pub trait SafeFromJSValConvertible: Sized {
-    type Config;
-
-    #[allow(clippy::result_unit_err)] // Type definition depends on mozjs
-    fn safe_from_jsval(
-        cx: SafeJSContext,
-        value: HandleValue,
-        option: Self::Config,
-        _can_gc: CanGc,
-    ) -> Result<ConversionResult<Self>, ()>;
-}
-
-impl<T: FromJSValConvertible> SafeFromJSValConvertible for T {
-    type Config = <T as FromJSValConvertible>::Config;
-
-    fn safe_from_jsval(
-        cx: SafeJSContext,
-        value: HandleValue,
-        option: Self::Config,
-        _can_gc: CanGc,
-    ) -> Result<ConversionResult<Self>, ()> {
-        unsafe { T::from_jsval(*cx, value, option) }
-    }
-}
-
 // https://heycam.github.io/webidl/#es-DOMString
 impl FromJSValConvertible for DOMString {
     type Config = StringificationBehavior;
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
+        value: HandleValue,
+        null_behavior: StringificationBehavior,
+    ) -> Result<ConversionResult<DOMString>, ()> {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, null_behavior)
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
         value: HandleValue,
         null_behavior: StringificationBehavior,
     ) -> Result<ConversionResult<DOMString>, ()> {
         if null_behavior == StringificationBehavior::Empty && value.get().is_null() {
             Ok(ConversionResult::Success(DOMString::new()))
         } else {
-            match DOMString::from_js_string(unsafe { SafeJSContext::from_ptr(cx) }, value) {
+            match DOMString::from_js_string(cx, value) {
                 Ok(domstring) => Ok(ConversionResult::Success(domstring)),
                 Err(_) => Err(()),
             }
@@ -126,28 +111,29 @@ impl FromJSValConvertible for DOMString {
 impl FromJSValConvertible for USVString {
     type Config = ();
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         _: (),
     ) -> Result<ConversionResult<USVString>, ()> {
-        let Some(jsstr) = ptr::NonNull::new(ToString(cx, value)) else {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, ())
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        _: (),
+    ) -> Result<ConversionResult<USVString>, ()> {
+        let Some(jsstr) = ptr::NonNull::new(unsafe { ToString(cx, value) }) else {
             debug!("ToString failed");
             return Err(());
         };
-        let latin1 = JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr());
-        if latin1 {
-            // FIXME(ajeffrey): Convert directly from DOMString to USVString
-            return Ok(ConversionResult::Success(USVString(jsstr_to_string(
-                cx, jsstr,
-            ))));
-        }
-        let mut length = 0;
-        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr.as_ptr(), &mut length);
-        assert!(!chars.is_null());
-        let char_vec = slice::from_raw_parts(chars, length);
-        Ok(ConversionResult::Success(USVString(
-            String::from_utf16_lossy(char_vec),
-        )))
+
+        // FIXME(ajeffrey): Convert directly from DOMString to USVString
+        Ok(ConversionResult::Success(USVString(unsafe {
+            jsstr_to_string(cx, jsstr)
+        })))
     }
 }
 
@@ -170,39 +156,51 @@ impl ToJSValConvertible for ByteString {
 impl FromJSValConvertible for ByteString {
     type Config = ();
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         _option: (),
     ) -> Result<ConversionResult<ByteString>, ()> {
-        let string = ToString(cx, value);
-        if string.is_null() {
-            debug!("ToString failed");
-            return Err(());
-        }
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, ())
+    }
 
-        let latin1 = JS_DeprecatedStringHasLatin1Chars(string);
-        if latin1 {
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        _option: (),
+    ) -> Result<ConversionResult<ByteString>, ()> {
+        unsafe {
+            let string = ToString(cx, value);
+            if string.is_null() {
+                debug!("ToString failed");
+                return Err(());
+            }
+
+            let latin1 = JS_DeprecatedStringHasLatin1Chars(string);
+            if latin1 {
+                let mut length = 0;
+                let chars = JS_GetLatin1StringCharsAndLength(cx, string, &mut length);
+                assert!(!chars.is_null());
+
+                let char_slice = slice::from_raw_parts(chars as *mut u8, length);
+                return Ok(ConversionResult::Success(ByteString::new(
+                    char_slice.to_vec(),
+                )));
+            }
+
             let mut length = 0;
-            let chars = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
-            assert!(!chars.is_null());
+            let chars = JS_GetTwoByteStringCharsAndLength(cx, string, &mut length);
+            let char_vec = slice::from_raw_parts(chars, length);
 
-            let char_slice = slice::from_raw_parts(chars as *mut u8, length);
-            return Ok(ConversionResult::Success(ByteString::new(
-                char_slice.to_vec(),
-            )));
-        }
-
-        let mut length = 0;
-        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), string, &mut length);
-        let char_vec = slice::from_raw_parts(chars, length);
-
-        if char_vec.iter().any(|&c| c > 0xFF) {
-            throw_type_error(cx, c"Invalid ByteString");
-            Err(())
-        } else {
-            Ok(ConversionResult::Success(ByteString::new(
-                char_vec.iter().map(|&c| c as u8).collect(),
-            )))
+            if char_vec.iter().any(|&c| c > 0xFF) {
+                throw_type_error(cx.raw_cx(), c"Invalid ByteString");
+                Err(())
+            } else {
+                Ok(ConversionResult::Success(ByteString::new(
+                    char_vec.iter().map(|&c| c as u8).collect(),
+                )))
+            }
         }
     }
 }
@@ -220,16 +218,24 @@ impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
     type Config = ();
 
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         _config: Self::Config,
     ) -> Result<ConversionResult<DomRoot<T>>, ()> {
-        Ok(
-            match root_from_handlevalue(value, SafeJSContext::from_ptr(cx)) {
-                Ok(result) => ConversionResult::Success(result),
-                Err(()) => ConversionResult::Failure(c"value is not an object".into()),
-            },
-        )
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, ())
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        _config: Self::Config,
+    ) -> Result<ConversionResult<DomRoot<T>>, ()> {
+        Ok(match root_from_handlevalue(value, cx.into()) {
+            Ok(result) => ConversionResult::Success(result),
+            Err(()) => ConversionResult::Failure(c"value is not an object".into()),
+        })
     }
 }
 
@@ -412,14 +418,11 @@ where
 /// integer.
 ///
 /// Handling of invalid UTF-16 in strings depends on the relevant option.
-///
-/// # Safety
-/// - cx must point to a non-null, valid JSContext instance.
-pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
+pub fn jsid_to_string(cx: &js::context::JSContext, id: HandleId) -> Option<DOMString> {
     let id_raw = *id;
     if id_raw.is_string() {
-        let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
-        return Some(jsstr_to_string(cx, jsstr).into());
+        let jsstr = ptr::NonNull::new(id_raw.to_string()).unwrap();
+        return Some(unsafe { jsstr_to_string(cx, jsstr) }.into());
     }
 
     if id_raw.is_int() {
@@ -441,22 +444,37 @@ impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Fini
     type Config = ();
 
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         option: (),
     ) -> Result<ConversionResult<Finite<T>>, ()> {
-        let result = match FromJSValConvertible::from_jsval(cx, value, option)? {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, option)
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        option: (),
+    ) -> Result<ConversionResult<Finite<T>>, ()> {
+        let result = match FromJSValConvertible::safe_from_jsval(cx, value, option)? {
             ConversionResult::Success(v) => v,
             ConversionResult::Failure(error) => {
                 // FIXME(emilio): Why throwing instead of propagating the error?
-                throw_type_error(cx, &error);
+                unsafe { throw_type_error(cx.raw_cx(), &error) };
                 return Err(());
             },
         };
         match Finite::new(result) {
             Some(v) => Ok(ConversionResult::Success(v)),
             None => {
-                throw_type_error(cx, c"this argument is not a finite floating-point value");
+                unsafe {
+                    throw_type_error(
+                        cx.raw_cx(),
+                        c"this argument is not a finite floating-point value",
+                    )
+                };
                 Err(())
             },
         }
@@ -533,11 +551,21 @@ where
     type Config = T::Config;
 
     unsafe fn from_jsval(
-        cx: *mut JSContext,
+        _cx: *mut JSContext,
         value: HandleValue,
         config: Self::Config,
     ) -> Result<ConversionResult<Self>, ()> {
-        T::from_jsval(cx, value, config).map(|result| match result {
+        // TODO https://github.com/servo/mozjs/issues/749
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        FromJSValConvertible::safe_from_jsval(&mut cx, value, config)
+    }
+
+    fn safe_from_jsval(
+        cx: &mut js::context::JSContext,
+        value: HandleValue,
+        config: Self::Config,
+    ) -> Result<ConversionResult<Self>, ()> {
+        T::safe_from_jsval(cx, value, config).map(|result| match result {
             ConversionResult::Success(inner) => {
                 ConversionResult::Success(RootedTraceableBox::from_box(Heap::boxed(inner)))
             },
@@ -549,39 +577,42 @@ where
 /// Returns whether `value` is an array-like object (Array, FileList,
 /// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
 /// NodeList, DOMTokenList).
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-pub unsafe fn is_array_like<D: crate::DomTypes>(cx: *mut JSContext, value: HandleValue) -> bool {
+pub fn is_array_like<D: crate::DomTypes>(
+    cx: &mut js::context::JSContext,
+    value: HandleValue,
+) -> bool {
     let mut is_array = false;
-    assert!(IsArrayObject(cx, value, &mut is_array));
+    assert!(unsafe { IsArrayObject(cx, value, &mut is_array) });
     if is_array {
         return true;
     }
 
-    let object: *mut JSObject = match FromJSValConvertible::from_jsval(cx, value, ()).unwrap() {
+    let object: *mut JSObject = match FromJSValConvertible::safe_from_jsval(cx, value, ()).unwrap()
+    {
         ConversionResult::Success(object) => object,
         _ => return false,
     };
 
-    // TODO: HTMLAllCollection
-    if root_from_object::<D::DOMTokenList>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::FileList>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::HTMLCollection>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::HTMLFormControlsCollection>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::HTMLOptionsCollection>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::NodeList>(object, cx).is_ok() {
-        return true;
+    unsafe {
+        // TODO: HTMLAllCollection
+        if root_from_object::<D::DOMTokenList>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::FileList>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::HTMLCollection>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::HTMLFormControlsCollection>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::HTMLOptionsCollection>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
+        if root_from_object::<D::NodeList>(object, cx.raw_cx()).is_ok() {
+            return true;
+        }
     }
 
     false

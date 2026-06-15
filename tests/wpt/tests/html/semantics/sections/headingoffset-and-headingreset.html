@@ -4,7 +4,6 @@
 <link rel="help" href="https://github.com/whatwg/html/pull/11086" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="resources/invoker-utils.js"></script>
 
 <div headingoffset="1" title="container headingoffset=1">
   <!-- h1s are now h2s and so on -->
@@ -284,9 +283,11 @@
     modal.showModal();
     t.add_cleanup(() => modal.close());
 
-    assert_true(modal.headingReset, `modal dialogs return headingReset true`);
+    assert_false(modal.headingReset, `modal dialogs return headingReset false by default`);
     assert_true(el.matches(":heading"), `h1 inside modal should match :heading`);
-    assert_true(el.matches(":heading(1)"), `h1 inside modal should match :heading(1)`);
+    assert_true(el.matches(":heading(9)"), `h1 inside modal should match :heading(9)`);
+    modal.headingReset = true;
+    assert_true(el.matches(":heading(1)"), `h1 inside modal should match :heading(1) if modal is headingreset`);
     const bools = matchAllLevels(el);
     const expected_bools = levels.map((l) => l == 1);
     assert_array_equals(

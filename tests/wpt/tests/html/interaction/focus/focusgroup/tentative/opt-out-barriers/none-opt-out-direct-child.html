@@ -22,27 +22,16 @@
 <script>
 
   promise_test(async t => {
-    var before = document.getElementById("before");
-    var first = document.getElementById("first");
-    var optedout = document.getElementById("optedout");
-    var last = document.getElementById("last");
-    var after = document.getElementById("after");
-
     // Tab navigation should include the opted-out element in the normal tab order.
     await assert_focusgroup_tab_navigation([before, first, optedout, last, after]);
   }, "Tab navigation includes opted-out element in normal tab order");
 
   promise_test(async t => {
-    var first = document.getElementById("first");
-    var last = document.getElementById("last");
-
     // Directional navigation should skip the opted-out element.
     await assert_directional_navigation_bidirectional([first, last]);
   }, "Directional navigation skips opted-out element");
 
   promise_test(async t => {
-    var optedout = document.getElementById("optedout");
-
     await focusAndWait(optedout);
     assert_equals(document.activeElement, optedout, "Should be able to manually focus opted-out element");
 

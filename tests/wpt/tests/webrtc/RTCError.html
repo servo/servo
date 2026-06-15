@@ -89,9 +89,7 @@ nullableAttributes.forEach(attribute => {
     });
   }, 'RTCError.' + attribute + ' is readonly');
 });
-}
 
-if (rest) {
 test(function() {
   assert_false("httpRequestStatusCode" in RTCError.prototype,
                "Should not be supported on the prototype");

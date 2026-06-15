@@ -13,14 +13,13 @@ async_test(t => {
   iframe.onunhandledrejection = t.unreached_func("Unhandled promise rejection detected");
   iframe.onerror = t.unreached_func("Error loading iframe");
 
-  let onLoadWasCalled = false;
   iframe.onload = t.step_func(() => {
-    onLoadWasCalled = true;
     assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
     iframe.onload = null;
   });
   document.addEventListener("documentWriteDone", t.step_func_done(() => {
-    assert_true(onLoadWasCalled, "onload must be called");
+    // If the timer fires before load, ignore the load listener.
+    iframe.onload = null;
     assert_equals(iframe.contentDocument.body.textContent, "document.write body contents\n");
   }));
 

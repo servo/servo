@@ -72,8 +72,8 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::{InRealm, enter_realm};
-use crate::script_runtime::CanGc;
+use crate::realms::{enter_auto_realm, enter_realm};
+use crate::script_runtime::{CanGc, IntroductionType};
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
 /// Generated from WebIDL definitions of EventHandler attributes on interfaces
@@ -682,8 +682,8 @@ impl EventTarget {
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
         let url = cformat!("{}", handler.url);
-        let options =
-            unsafe { CompileOptionsWrapper::new_raw(cx.raw_cx(), url, handler.line as u32) };
+        let mut options = CompileOptionsWrapper::new(cx, url, handler.line as u32);
+        options.set_introduction_type(IntroductionType::EVENT_HANDLER);
 
         // Step 3.9, subsection Scope steps 1-6
         let scopechain =
@@ -710,8 +710,8 @@ impl EventTarget {
         });
         if handler.get().is_null() {
             // Step 3.7
-            let ar = enter_realm(self);
-            report_pending_exception(cx.into(), InRealm::Entered(&ar), CanGc::from_cx(cx));
+            let mut realm = enter_auto_realm(cx, self);
+            report_pending_exception(&mut realm.current_realm());
             return None;
         }
 
@@ -870,7 +870,7 @@ impl EventTarget {
             CanGc::from_cx(cx),
         );
         event.set_composed(composed.into());
-        event.fire(self, CanGc::from_cx(cx))
+        event.fire(cx, self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>
@@ -1006,7 +1006,7 @@ impl EventTarget {
         }
 
         // The get the parent algorithm for an IDBDatabase returns null.
-        if self.downcast::<IDBDatabase>().is_some() {
+        if self.is::<IDBDatabase>() {
             return None;
         }
 

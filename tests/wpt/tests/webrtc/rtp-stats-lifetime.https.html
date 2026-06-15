@@ -104,6 +104,9 @@ promise_test(async t => {
   pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
   pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
 
+  const tracks = [];
+  pc2.ontrack = e => tracks.push(e.track);
+
   // Negotaite to send, but don't send anything yet (track is null).
   const {sender} = pc1.addTransceiver('video');
   await pc1.setLocalDescription();
@@ -112,6 +115,7 @@ promise_test(async t => {
   await pc1.setRemoteDescription(pc2.localDescription);
   assert_false(await hasStats(pc2, 'inbound-rtp'),
                'inbound-rtp does not exist before packets are received');
+  assert_equals(tracks.length, 1, 'track event fired');
 
   // Start sending. This results in inbound-rtp being created.
   const stream = await getNoiseStream({video:true});
@@ -125,6 +129,7 @@ promise_test(async t => {
   assert_greater_than(
       inboundRtp.packetsReceived, 0,
       'inbound-rtp must only exist after packets have been received');
+  assert_equals(tracks[0].id, inboundRtp.trackIdentifier);
 }, `RTCInboundRtpStreamStats are created by packet reception`);
 
 [{name: "pc", statsSource: pc => pc, kind: "audio"},

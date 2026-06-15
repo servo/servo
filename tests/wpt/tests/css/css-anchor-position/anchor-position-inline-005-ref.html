@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Reference: Resolve anchor() in inline containing block()</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+.rel {
+  position: relative;
+  background: lightgray;
+}
+
+.anchor {
+  color: green;
+}
+</style>
+
+<div style="font: 20px/1 Ahem; width: 11em">
+  <div>
+    Lorem
+    <span class="rel">
+      ipsum <span class="anchor">dolor</span> sit
+    </span>
+    amet.
+  </div>
+
+  <div>
+    Lorem
+    <span class="rel">
+      ipsum dolor <span class="anchor">sit</span>
+    </span>
+    amet.
+  </div>
+</div>

@@ -77,12 +77,21 @@ impl From<indexeddb::KeyPath> for KeyPath {
 impl From<KeyPath> for indexeddb::KeyPath {
     fn from(item: KeyPath) -> Self {
         match item {
-            KeyPath::String(s) => Self::String(s.to_string()),
+            KeyPath::String(s) => Self::String(String::from(s)),
             KeyPath::StringSequence(ss) => {
-                Self::Sequence(ss.into_iter().map(|s| s.to_string()).collect())
+                Self::Sequence(ss.into_iter().map(String::from).collect())
             },
         }
     }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct IDBObjectStoreRollbackState {
+    newly_created_during_transaction: bool,
+    rollback_name: Option<DOMString>,
+    #[no_trace]
+    rollback_indexes: Vec<indexeddb::IndexedDBIndex>,
+    key_generator_current_number: Option<i64>,
 }
 
 #[dom_struct]
@@ -91,13 +100,20 @@ pub struct IDBObjectStore {
     name: DomRefCell<DOMString>,
     key_path: Option<KeyPath>,
     index_set: DomRefCell<HashMap<DOMString, Dom<IDBIndex>>>,
+    abort_state_on_abort: DomRefCell<Option<IDBObjectStoreRollbackState>>,
     transaction: Dom<IDBTransaction>,
     has_key_generator: bool,
-    key_generator_current_number: Cell<Option<i32>>,
+    key_generator_current_number: Cell<Option<i64>>,
 
     // We store the db name in the object store to address backend operations
     // that are keyed by (origin, database name, object store name).
     db_name: DOMString,
+}
+
+pub(crate) struct IDBObjectStoreAbortState {
+    pub(crate) newly_created_during_transaction: bool,
+    pub(crate) rollback_indexes_on_abort: Vec<indexeddb::IndexedDBIndex>,
+    pub(crate) key_generator_current_number: Option<i64>,
 }
 
 impl IDBObjectStore {
@@ -105,7 +121,7 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
-        key_generator_current_number: Option<i32>,
+        abort_state: IDBObjectStoreAbortState,
         transaction: &IDBTransaction,
     ) -> IDBObjectStore {
         let key_path: Option<KeyPath> = match options {
@@ -118,6 +134,11 @@ impl IDBObjectStore {
             None => None,
         };
         let has_key_generator = options.is_some_and(|options| options.autoIncrement);
+        let IDBObjectStoreAbortState {
+            newly_created_during_transaction,
+            rollback_indexes_on_abort,
+            key_generator_current_number,
+        } = abort_state;
         let key_generator_current_number = if has_key_generator {
             Some(key_generator_current_number.unwrap_or(1))
         } else {
@@ -129,6 +150,12 @@ impl IDBObjectStore {
             name: DomRefCell::new(name),
             key_path,
             index_set: DomRefCell::new(HashMap::new()),
+            abort_state_on_abort: DomRefCell::new(Some(IDBObjectStoreRollbackState {
+                newly_created_during_transaction,
+                rollback_name: None,
+                rollback_indexes: rollback_indexes_on_abort,
+                key_generator_current_number,
+            })),
             transaction: Dom::from_ref(transaction),
             has_key_generator,
             key_generator_current_number: Cell::new(key_generator_current_number),
@@ -141,7 +168,7 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
-        key_generator_current_number: Option<i32>,
+        abort_state: IDBObjectStoreAbortState,
         can_gc: CanGc,
         transaction: &IDBTransaction,
     ) -> DomRoot<IDBObjectStore> {
@@ -150,7 +177,7 @@ impl IDBObjectStore {
                 db_name,
                 name,
                 options,
-                key_generator_current_number,
+                abort_state,
                 transaction,
             )),
             global,
@@ -160,6 +187,42 @@ impl IDBObjectStore {
 
     pub fn get_name(&self) -> DOMString {
         self.name.borrow().clone()
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction>
+    pub(crate) fn restore_metadata_after_abort(&self, can_gc: CanGc) {
+        let Some(abort_state) = self.abort_state_on_abort.borrow().as_ref().cloned() else {
+            return;
+        };
+
+        // Step 5.1. If handle’s object store was not newly created during transaction,
+        // set handle’s name to its object store’s name.
+        if !abort_state.newly_created_during_transaction &&
+            let Some(name) = abort_state.rollback_name
+        {
+            *self.name.borrow_mut() = name;
+        }
+
+        // Step 5.2. Set handle’s index set to the set of indexes that reference
+        // its object store.
+        self.index_set.borrow_mut().clear();
+        for index in abort_state.rollback_indexes {
+            self.add_index(
+                index.name.clone().into(),
+                &IDBIndexParameters {
+                    multiEntry: index.multi_entry,
+                    unique: index.unique,
+                },
+                index.key_path.clone().into(),
+                can_gc,
+            );
+        }
+
+        // Restore key generator state for existing object store handles.
+        if self.has_key_generator && !abort_state.newly_created_during_transaction {
+            self.key_generator_current_number
+                .set(abort_state.key_generator_current_number);
+        }
     }
 
     pub(crate) fn transaction(&self) -> DomRoot<IDBTransaction> {
@@ -208,7 +271,7 @@ impl IDBObjectStore {
     }
 
     /// <https://w3c.github.io/IndexedDB/#generate-a-key>
-    fn generate_key_for_put(&self) -> Fallible<(IndexedDBKeyType, i32)> {
+    fn generate_key_for_put(&self) -> Fallible<(IndexedDBKeyType, i64)> {
         // Step 1. Let generator be store's key generator.
         let Some(current_number) = self.key_generator_current_number.get() else {
             return Err(Error::Data(None));
@@ -228,7 +291,7 @@ impl IDBObjectStore {
     }
 
     /// <https://w3c.github.io/IndexedDB/#possibly-update-the-key-generator>
-    fn possibly_update_the_key_generator(&self, key: &IndexedDBKeyType) -> Option<i32> {
+    fn possibly_update_the_key_generator(&self, key: &IndexedDBKeyType) -> Option<i64> {
         // Step 1. If the type of key is not number, abort these steps.
         let IndexedDBKeyType::Number(number) = key else {
             return None;
@@ -249,12 +312,10 @@ impl IDBObjectStore {
         }
 
         let next = value + 1.0;
-        // Servo currently stores the key generator current number as i32.
-        // Saturate to keep "no more generated keys" behavior when this overflows.
-        if next >= i32::MAX as f64 {
-            return Some(i32::MAX);
+        if next > i64::MAX as f64 {
+            return Some(i64::MAX);
         }
-        Some(next as i32)
+        Some(next as i64)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#object-store-in-line-keys>
@@ -840,9 +901,20 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             return Err(Error::Constraint(None));
         }
 
+        let old_name = self.name.borrow().clone();
+        if let Some(abort_state) = self.abort_state_on_abort.borrow_mut().as_mut() &&
+            abort_state.rollback_name.is_none()
+        {
+            abort_state.rollback_name = Some(old_name.clone());
+        }
+
         // Step 9. Set store’s name to name.
+        transaction
+            .Db()
+            .rename_object_store_name(&old_name, name.clone());
         // Step 10. Set this’s name to name.
-        *self.name.borrow_mut() = name;
+        *self.name.borrow_mut() = name.clone();
+        transaction.rename_object_store_handle_cache(&old_name, &name, self);
         Ok(())
     }
 
@@ -959,7 +1031,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             self.global().origin().immutable().clone(),
             self.db_name.to_string(),
             self.name.borrow().to_string(),
-            name.to_string(),
+            String::from(name),
         );
         self.get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(delete_index_operation))

@@ -3,8 +3,8 @@
 // (https://github.com/w3c/webref)
 // Source: WebRTC Encoded Transform (https://w3c.github.io/webrtc-encoded-transform/)
 
-typedef (RTCSFrameSenderTransform or RTCRtpScriptTransform) RTCRtpSenderTransform;
-typedef (RTCSFrameReceiverTransform or RTCRtpScriptTransform) RTCRtpReceiverTransform;
+typedef (RTCRtpSFrameEncrypter or RTCRtpScriptTransform) RTCRtpSenderTransform;
+typedef (RTCRtpSFrameDecrypter or RTCRtpScriptTransform) RTCRtpReceiverTransform;
 
 // New methods for RTCRtpSender and RTCRtpReceiver
 partial interface RTCRtpSender {
@@ -36,7 +36,7 @@ enum SFrameType {
     "per-packet"
 };
 
-dictionary RTCSFrameSenderTransformOptions : SFrameTransformOptions {
+dictionary RTCRtpSFrameEncrypterOptions : SFrameTransformOptions {
     SFrameType type = "per-frame";
 };
 
@@ -54,19 +54,19 @@ interface mixin SFrameDecrypterManager {
 };
 
 [Exposed=Window]
-interface RTCSFrameSenderTransform {
-    constructor(RTCSFrameSenderTransformOptions options);
+interface RTCRtpSFrameEncrypter {
+    constructor(RTCRtpSFrameEncrypterOptions options);
 };
-RTCSFrameSenderTransform includes SFrameEncrypterManager;
+RTCRtpSFrameEncrypter includes SFrameEncrypterManager;
 
 [Exposed=Window]
-interface RTCSFrameReceiverTransform : EventTarget {
+interface RTCRtpSFrameDecrypter : EventTarget {
     constructor(SFrameTransformOptions options);
 };
-RTCSFrameReceiverTransform includes SFrameDecrypterManager;
+RTCRtpSFrameDecrypter includes SFrameDecrypterManager;
 
 [Exposed=(Window,DedicatedWorker)]
-interface SFrameEncrypterStream : EventTarget {
+interface SFrameEncrypterStream {
     constructor(SFrameTransformOptions options);
 };
 SFrameEncrypterStream includes GenericTransformStream;

@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use log::warn;
 use script_bindings::codegen::InheritTypes::{
     AudioNodeTypeId, AudioScheduledSourceNodeTypeId, EventTargetTypeId,
@@ -48,6 +49,7 @@ pub(crate) struct AudioNode {
 
 impl AudioNode {
     pub(crate) fn new_inherited(
+        cx: &mut JSContext,
         node_type: AudioNodeInit,
         context: &BaseAudioContext,
         options: UnwrappedAudioNodeOptions,
@@ -74,7 +76,7 @@ impl AudioNode {
             const MESSAGE: &str =
                 "Failed to create an AudioNode backend. The constructed AudioNode will be inert.";
             warn!("{MESSAGE}");
-            Console::internal_warn(&context.global(), MESSAGE.to_string());
+            Console::internal_warn(cx, &context.global(), MESSAGE.to_string());
         }
 
         Ok(AudioNode::new_inherited_for_id(

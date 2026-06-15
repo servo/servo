@@ -12,7 +12,7 @@ use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
@@ -186,7 +186,7 @@ impl Callback for TransferBackPressurePromiseReaction {
             global.disentangle_port(cx, &self.port);
 
             // Return a promise rejected with result.[[Value]].
-            self.result_promise.reject_error(error, can_gc);
+            self.result_promise.reject_error_with_cx(cx, error);
         } else {
             // Otherwise, return a promise resolved with undefined.
             self.result_promise.resolve_native(&(), can_gc);
@@ -354,11 +354,11 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
+        cx: &mut JSContext,
         global: &GlobalScope,
         underlying_sink_type: UnderlyingSinkType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
-        can_gc: CanGc,
     ) -> WritableStreamDefaultController {
         WritableStreamDefaultController {
             reflector_: Reflector::new(),
@@ -369,28 +369,28 @@ impl WritableStreamDefaultController {
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
             started: Default::default(),
-            abort_controller: Dom::from_ref(&AbortController::new_with_proto(global, None, can_gc)),
+            abort_controller: Dom::from_ref(&AbortController::new_with_proto(cx, global, None)),
         }
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         underlying_sink_type: UnderlyingSinkType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
-        can_gc: CanGc,
     ) -> DomRoot<WritableStreamDefaultController> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(WritableStreamDefaultController::new_inherited(
+                cx,
                 global,
                 underlying_sink_type,
                 strategy_hwm,
                 strategy_size,
-                can_gc,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -501,10 +501,10 @@ impl WritableStreamDefaultController {
         }));
 
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
             rejection_handler.take().map(|h| Box::new(h) as Box<_>),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
@@ -613,8 +613,8 @@ impl WritableStreamDefaultController {
                     ))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new(global, CanGc::from_cx(cx));
-                    promise.reject_error(e, CanGc::from_cx(cx));
+                    let promise = Promise::new2(cx, global);
+                    promise.reject_error_with_cx(cx, e);
                     promise
                 })
             },
@@ -628,14 +628,14 @@ impl WritableStreamDefaultController {
                 // Disentangle port.
                 global.disentangle_port(cx, port);
 
-                let promise = Promise::new(global, CanGc::from_cx(cx));
+                let promise = Promise::new2(cx, global);
 
                 // If result is an abrupt completion, return a promise rejected with result.[[Value]]
                 if let Err(error) = result {
-                    promise.reject_error(error, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, error);
                 } else {
                     // Otherwise, return a promise resolved with undefined.
-                    promise.resolve_native(&(), CanGc::from_cx(cx));
+                    promise.resolve_native_with_cx(cx, &());
                 }
                 promise
             },
@@ -687,7 +687,7 @@ impl WritableStreamDefaultController {
                 };
                 result.unwrap_or_else(|e| {
                     let promise = Promise::new2(cx, global);
-                    promise.reject_error(e, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, e);
                     promise
                 })
             },
@@ -714,10 +714,10 @@ impl WritableStreamDefaultController {
                     result_promise: result_promise.clone(),
                 }));
                 let handler = PromiseNativeHandler::new(
+                    cx,
                     global,
                     fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
                     None,
-                    CanGc::from_cx(cx),
                 );
                 let mut realm = enter_auto_realm(cx, global);
                 let realm = &mut realm.current_realm();
@@ -761,7 +761,7 @@ impl WritableStreamDefaultController {
                 };
                 result.unwrap_or_else(|e| {
                     let promise = Promise::new2(cx, global);
-                    promise.reject_error(e, CanGc::from_cx(cx));
+                    promise.reject_error_with_cx(cx, e);
                     promise
                 })
             },
@@ -824,10 +824,10 @@ impl WritableStreamDefaultController {
 
         // Attach handlers to the promise.
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
             rejection_handler.take().map(|h| Box::new(h) as Box<_>),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();
@@ -916,10 +916,10 @@ impl WritableStreamDefaultController {
 
         // Attach handlers to the promise.
         let handler = PromiseNativeHandler::new(
+            cx,
             global,
             fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
             rejection_handler.take().map(|h| Box::new(h) as Box<_>),
-            CanGc::from_cx(cx),
         );
         let mut realm = enter_auto_realm(cx, global);
         let realm = &mut realm.current_realm();
@@ -974,12 +974,7 @@ impl WritableStreamDefaultController {
                 // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, returnValue.[[Value]]).
                 // Create a rooted value for the error.
                 rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-                error.to_jsval(
-                    cx.into(),
-                    global,
-                    rooted_error.handle_mut(),
-                    CanGc::from_cx(cx),
-                );
+                error.to_jsval(cx, global, rooted_error.handle_mut());
                 self.error_if_needed(cx, rooted_error.handle(), global);
 
                 // Return 1.
@@ -1009,12 +1004,7 @@ impl WritableStreamDefaultController {
             // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueResult.[[Value]]).
             // Create a rooted value for the error.
             rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-            error.to_jsval(
-                cx.into(),
-                global,
-                rooted_error.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            error.to_jsval(cx, global, rooted_error.handle_mut());
             self.error_if_needed(cx, rooted_error.handle(), global);
 
             // Return.

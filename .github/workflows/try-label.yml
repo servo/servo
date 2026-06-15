@@ -66,7 +66,7 @@ jobs:
             }
 
             return try_string;
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           sparse-checkout: |
             python/servo/try_parser.py
@@ -127,12 +127,14 @@ jobs:
       wpt: ${{ matrix.wpt }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
+      devtools-tests: ${{ matrix.devtools_tests }}
       build-libservo: ${{ matrix.build_libservo }}
       wpt-args: ${{ matrix.wpt_args }}
       build-args: ${{ matrix.build_args }}
       number-of-wpt-chunks: ${{ matrix.number_of_wpt_chunks }}
       bencher: ${{ matrix.bencher }}
       coverage: ${{ matrix.coverage }}
+      capi: ${{ matrix.capi }}
 
   results:
     name: Results

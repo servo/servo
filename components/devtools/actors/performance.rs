@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry, new_actor_name};
 use crate::protocol::{ActorDescription, ClientRequest, Method};
 
 #[derive(MallocSizeOf)]
@@ -53,8 +55,8 @@ struct SuccessMsg {
 enum Error {}
 
 impl Actor for PerformanceActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 
     fn handle_message(
@@ -68,7 +70,7 @@ impl Actor for PerformanceActor {
         match msg_type {
             "connect" => {
                 let msg = ConnectReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     traits: PerformanceTraits {
                         features: PerformanceFeatures {
                             with_markers: true,
@@ -83,7 +85,7 @@ impl Actor for PerformanceActor {
             },
             "canCurrentlyRecord" => {
                 let msg = CanCurrentlyRecordReply {
-                    from: self.name(),
+                    from: self.name().into(),
                     value: SuccessMsg {
                         success: true,
                         errors: vec![],
@@ -98,11 +100,10 @@ impl Actor for PerformanceActor {
 }
 
 impl PerformanceActor {
-    pub fn register(registry: &ActorRegistry) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = PerformanceActor { name: name.clone() };
-        registry.register::<Self>(actor);
-        name
+    pub fn register(registry: &ActorRegistry) -> Arc<Self> {
+        let name = new_actor_name::<Self>();
+        let actor = PerformanceActor { name };
+        registry.register::<Self>(actor)
     }
 
     pub fn description() -> ActorDescription {

@@ -16,7 +16,9 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
+use script_bindings::reflector::{
+    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+};
 use script_bindings::root::Dom;
 
 use super::byteteereadintorequest::ByteTeeReadIntoRequest;
@@ -119,12 +121,12 @@ impl ReadIntoRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-error-steps%E2%91%A0>
-    pub(crate) fn error_steps(&self, e: SafeHandleValue, can_gc: CanGc) {
+    pub(crate) fn error_steps(&self, cx: &mut JSContext, e: SafeHandleValue) {
         match self {
             ReadIntoRequest::Read(promise) => {
                 // error steps, given e
                 // Reject promise with e.
-                promise.reject_native(&e, can_gc)
+                promise.reject_native_with_cx(cx, &e)
             },
             ReadIntoRequest::ByteTee {
                 byte_tee_read_into_request,
@@ -170,7 +172,7 @@ impl Callback for ByteTeeClosedPromiseRejectionHandler {
 
         // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
+            self.cancel_promise.resolve_native_with_cx(cx, &());
         }
     }
 }
@@ -192,41 +194,40 @@ pub(crate) struct ReadableStreamBYOBReader {
 
 impl ReadableStreamBYOBReader {
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<ReadableStreamBYOBReader> {
-        reflect_dom_object_with_proto(
-            Box::new(ReadableStreamBYOBReader::new_inherited(global, can_gc)),
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(ReadableStreamBYOBReader::new_inherited(cx, global)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
-    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamBYOBReader {
+    fn new_inherited(cx: &mut JSContext, global: &GlobalScope) -> ReadableStreamBYOBReader {
         ReadableStreamBYOBReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_into_requests: DomRefCell::new(Default::default()),
-            closed_promise: DomRefCell::new(Promise::new(global, can_gc)),
+            closed_promise: DomRefCell::new(Promise::new2(cx, global)),
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ReadableStreamBYOBReader> {
-        reflect_dom_object(
-            Box::new(Self::new_inherited(global, can_gc)),
-            global,
-            can_gc,
-        )
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> DomRoot<ReadableStreamBYOBReader> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(cx, global)), global, cx)
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-byob-reader>
     pub(crate) fn set_up(
         &self,
+        cx: &mut JSContext,
         stream: &ReadableStream,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         // If ! IsReadableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
@@ -241,7 +242,7 @@ impl ReadableStreamBYOBReader {
         }
 
         // Perform ! ReadableStreamReaderGenericInitialize(reader, stream).
-        self.generic_initialize(global, stream, can_gc);
+        self.generic_initialize(cx, global, stream);
 
         // Set reader.[[readIntoRequests]] to a new empty list.
         self.read_into_requests.borrow_mut().clear();
@@ -250,29 +251,26 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreaderrelease>
-    pub(crate) fn release(&self, can_gc: CanGc) -> Fallible<()> {
+    pub(crate) fn release(&self, cx: &mut JSContext) -> Fallible<()> {
         // Perform ! ReadableStreamReaderGenericRelease(reader).
-        self.generic_release(can_gc)
-            .expect("Generic release failed");
+        self.generic_release(cx).expect("Generic release failed");
         // Let e be a new TypeError exception.
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut error = UndefinedValue());
+        rooted!(&in(cx) let mut error = UndefinedValue());
         Error::Type(c"Reader is released".to_owned()).to_jsval(
             cx,
             &self.global(),
             error.handle_mut(),
-            can_gc,
         );
 
         // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
-        self.error_read_into_requests(error.handle(), can_gc);
+        self.error_read_into_requests(cx, error.handle());
         Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreadererrorreadintorequests>
-    pub(crate) fn error_read_into_requests(&self, e: SafeHandleValue, can_gc: CanGc) {
+    pub(crate) fn error_read_into_requests(&self, cx: &mut JSContext, e: SafeHandleValue) {
         // Reject reader.[[closedPromise]] with e.
-        self.closed_promise.borrow().reject_native(&e, can_gc);
+        self.closed_promise.borrow().reject_native_with_cx(cx, &e);
 
         // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
         self.closed_promise.borrow().set_promise_is_handled();
@@ -283,7 +281,7 @@ impl ReadableStreamBYOBReader {
         // Set reader.[[readIntoRequests]] to a new empty list.
         for request in read_into_requests.drain(0..) {
             // Perform readIntoRequest’s error steps, given e.
-            request.error_steps(e, can_gc);
+            request.error_steps(cx, e);
         }
     }
 
@@ -338,7 +336,7 @@ impl ReadableStreamBYOBReader {
             rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
 
-            read_into_request.error_steps(error.handle(), CanGc::from_cx(cx));
+            read_into_request.error_steps(cx, error.handle());
         } else {
             // Otherwise,
             // perform ! ReadableByteStreamControllerPullInto(stream.[[controller]], view, min, readIntoRequest).
@@ -375,6 +373,7 @@ impl ReadableStreamBYOBReader {
 
         let global = self.global();
         let handler = PromiseNativeHandler::new(
+            cx,
             &global,
             None,
             Some(Box::new(ByteTeeClosedPromiseRejectionHandler {
@@ -386,7 +385,6 @@ impl ReadableStreamBYOBReader {
                 reader_version,
                 expected_version,
             })),
-            CanGc::from_cx(cx),
         );
 
         let mut realm = enter_auto_realm(cx, &*global);
@@ -401,15 +399,15 @@ impl ReadableStreamBYOBReader {
 impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#byob-reader-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
-        let reader = Self::new_with_proto(global, proto, can_gc);
+        let reader = Self::new_with_proto(cx, global, proto);
 
         // Perform ? SetUpReadableStreamBYOBReader(this, stream).
-        Self::set_up(&reader, stream, global, can_gc)?;
+        reader.set_up(cx, stream, global)?;
 
         Ok(reader)
     }
@@ -428,18 +426,15 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
         if view.byte_length() == 0 {
-            promise.reject_error(
-                Error::Type(c"view byte length is 0".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"view byte length is 0".to_owned()));
             return promise;
         }
         // If view.[[ViewedArrayBuffer]].[[ArrayBufferByteLength]] is 0,
         // return a promise rejected with a TypeError exception.
         if view.viewed_buffer_array_byte_length(cx.into()) == 0 {
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::Type(c"viewed buffer byte length is 0".to_owned()),
-                CanGc::from_cx(cx),
             );
             return promise;
         }
@@ -447,16 +442,13 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
         // return a promise rejected with a TypeError exception.
         if view.is_detached_buffer(cx.into()) {
-            promise.reject_error(
-                Error::Type(c"view is detached".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"view is detached".to_owned()));
             return promise;
         }
 
         // If options["min"] is 0, return a promise rejected with a TypeError exception.
         if min == 0 {
-            promise.reject_error(Error::Type(c"min is 0".to_owned()), CanGc::from_cx(cx));
+            promise.reject_error_with_cx(cx, Error::Type(c"min is 0".to_owned()));
             return promise;
         }
 
@@ -464,9 +456,9 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         if view.has_typed_array_name() {
             // If options["min"] > view.[[ArrayLength]], return a promise rejected with a RangeError exception.
             if min > (view.get_typed_array_length() as u64) {
-                promise.reject_error(
+                promise.reject_error_with_cx(
+                    cx,
                     Error::Range(c"min is greater than array length".to_owned()),
-                    CanGc::from_cx(cx),
                 );
                 return promise;
             }
@@ -474,9 +466,9 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
             // Otherwise (i.e., it is a DataView),
             // If options["min"] > view.[[ByteLength]], return a promise rejected with a RangeError exception.
             if min > (view.byte_length() as u64) {
-                promise.reject_error(
+                promise.reject_error_with_cx(
+                    cx,
                     Error::Range(c"min is greater than byte length".to_owned()),
-                    CanGc::from_cx(cx),
                 );
                 return promise;
             }
@@ -484,9 +476,9 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::Type(c"min is greater than byte length".to_owned()),
-                CanGc::from_cx(cx),
             );
             return promise;
         }
@@ -511,14 +503,14 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     }
 
     /// <https://streams.spec.whatwg.org/#byob-reader-release-lock>
-    fn ReleaseLock(&self, can_gc: CanGc) -> Fallible<()> {
+    fn ReleaseLock(&self, cx: &mut JSContext) -> Fallible<()> {
         if self.stream.get().is_none() {
             // If this.[[stream]] is undefined, return.
             return Ok(());
         }
 
         // Perform !ReadableStreamBYOBReaderRelease(this).
-        self.release(can_gc)
+        self.release(cx)
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>

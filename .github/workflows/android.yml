@@ -49,13 +49,13 @@ jobs:
           tool-cache: true
           android: false
           swap-storage: false
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 2
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -75,9 +75,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
-          packages: 'tools platform-tools platforms;android-33'
+          packages: 'tools platform-tools platforms;android-34'
       - name: Install Android NDK
         uses: nttld/setup-ndk@v1
         id: setup-ndk
@@ -124,14 +124,14 @@ jobs:
         id: upload-apk
         with:
           name: ${{ inputs.profile }}-binary-android-${{ matrix.target }}
-          path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
+          path: target/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
           if-no-files-found: error
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v7
         id: upload-aar
         with:
           name: ${{ inputs.profile }}-library-android-${{ matrix.target }}
-          path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
+          path: target/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
           if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         if: matrix.target == 'aarch64-linux-android'

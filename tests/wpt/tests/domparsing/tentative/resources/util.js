@@ -1,11 +1,17 @@
 function prepare_html_partial_update(target_type, ref_type, pos, t) {
-  const div = document.createElement("div");
-  document.body.append(div);
-  t.add_cleanup(() => div.remove());
-  let target = div;
-  if (target_type === "ShadowRoot") {
-    const shadow_root = div.attachShadow({ mode: "open" });
-    target = shadow_root;
+  let target;
+  let template;
+  if (target_type === "template.content") {
+    template = document.createElement("template");
+    target = template.content;
+  } else {
+    const div = document.createElement("div");
+    document.body.append(div);
+    t.add_cleanup(() => div.remove());
+    target = div;
+    if (target_type === "ShadowRoot") {
+      target = div.attachShadow({ mode: "open" });
+    }
   }
 
   let ref = document.createElement("span");
@@ -26,7 +32,12 @@ function prepare_html_partial_update(target_type, ref_type, pos, t) {
       throw new Error("Invalid ref_type");
   }
   target.append(ref);
-  const object = ["append", "prepend"].includes(pos) ? target : ref;
+  let object;
+  if (["append", "prepend"].includes(pos)) {
+    object = (target_type === "template.content") ? template : target;
+  } else {
+    object = ref;
+  }
   return { target, ref, object };
 }
 

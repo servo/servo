@@ -1,0 +1,28 @@
+<!doctype html>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+
+<style>
+  body {
+    font-family: monospace;
+    font-size: 16px;
+  }
+  .select {
+    box-sizing: border-box;
+    background-color: transparent;
+    padding-block: 0.25em;
+    padding-inline: 0.5em;
+    border: 1px solid currentColor;
+    border-radius: 0.5em;
+    display: inline-flex;
+    min-inline-size: 24px;
+    min-block-size: max(24px, 1lh);
+    gap: 0.5rem;
+  }
+  .no-gap {
+    gap: 0;
+  }
+</style>
+
+<span class="select">One</span>
+<span class="select">One<span></span></span>
+<span class="select no-gap">One</span>

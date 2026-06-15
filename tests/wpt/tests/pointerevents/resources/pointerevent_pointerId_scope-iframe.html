@@ -24,7 +24,8 @@ http://www.w3.org/wiki/PointerEvents/TestAssertions
                         };
                         top.postMessage(pass_data, "*");
                     });
-               });
+                });
+                parent.postMessage({ type: 'subframe-ready' }, '*');
             }
         </script>
     </head>

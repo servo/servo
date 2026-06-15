@@ -49,6 +49,6 @@
     const icps = await helper.withTimeoutMessage(
         icpPromise, 'ICP not detected.', /*timeout=*/ 3000);
     assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
-    assert_equals(icps[0].id, 'target', 'Expected ICP candidate to be "target"');
+    assert_equals(icps[0].largestContentfulPaint.id, 'target', 'Expected ICP candidate to be "target"');
   }, 'Soft Navigation Detection supports setting URL after paint');
 </script>

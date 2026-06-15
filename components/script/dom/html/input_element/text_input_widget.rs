@@ -54,7 +54,8 @@ impl TextInputWidget {
     }
 
     pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext, element: &impl TextControlElement) {
-        self.get_or_create_shadow_tree(cx, element).update(element)
+        self.get_or_create_shadow_tree(cx, element)
+            .update(cx, element)
     }
 
     pub(crate) fn update_placeholder_contents(
@@ -171,7 +172,7 @@ impl TextInputWidgetShadowTree {
         if let Some(character_data) = self.placeholder_character_data(cx, element) {
             let placeholder_value = element.placeholder_text();
             if character_data.Data() != *placeholder_value {
-                character_data.SetData(placeholder_value.clone());
+                character_data.SetData(cx, placeholder_value.clone());
             }
         }
     }
@@ -187,7 +188,7 @@ impl TextInputWidgetShadowTree {
 
     // TODO(stevennovaryo): The rest of textual input shadow dom structure should act
     // like an exstension to this one.
-    pub(crate) fn update(&self, element: &impl TextControlElement) {
+    pub(crate) fn update(&self, cx: &mut JSContext, element: &impl TextControlElement) {
         // The addition of zero-width space here forces the text input to have an inline formatting
         // context that might otherwise be trimmed if there's no text. This is important to ensure
         // that the input element is at least as tall as the line gap of the caret:
@@ -212,7 +213,7 @@ impl TextInputWidgetShadowTree {
         if let Some(character_data) = self.value_character_data() &&
             character_data.Data() != value_text
         {
-            character_data.SetData(value_text);
+            character_data.SetData(cx, value_text);
         }
     }
 }

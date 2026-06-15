@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: Row rule paints correctly across a gap that follows
+  a leading collapsed `repeat(auto-fit, ...)` row range.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-collapsed-leading-auto-fit-ref.html">
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 100px 100px 100px;
+    /* `repeat(auto-fit, 100px)` produces leading collapsed row tracks
+       because no items occupy them. The two trailing 100px row tracks
+       remain non-collapsed; the only emitted row gap is the one between
+       them. */
+    grid-template-rows: repeat(auto-fit, 100px) 100px 100px;
+    gap: 10px;
+    width: 320px;
+    height: 430px;
+    align-content: start;
+
+    row-rule: 6px solid red;
+    row-rule-visibility-items: around;
+    rule-inset: 0px;
+  }
+
+  .item {
+    width: 100%;
+    height: 100%;
+    background: lightgray;
+    opacity: 0.8;
+  }
+</style>
+<div class="grid">
+  <div class="item" style="grid-column: 1 / 4; grid-row: 4 / 5"></div>
+</div>

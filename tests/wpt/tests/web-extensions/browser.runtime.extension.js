@@ -1,1 +1,1 @@
-runTestsWithWebExtension("/resources/runtime/")
+runTestsWithWebExtension("/resources/runtime/");

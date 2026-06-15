@@ -17,8 +17,10 @@ import sys
 import re
 import json
 import argparse
+from contextlib import nullcontext
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
+from types import TracebackType
+from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode  # type: ignore[import-untyped]
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
@@ -27,23 +29,22 @@ from selenium.webdriver.support import expected_conditions as EC
 from dataclasses import dataclass
 import threading
 import csv
-from typing import Dict
-from common_function_for_servo_test import create_driver, setup_hdc_forward, stop_servo, close_usb_popup
+from typing import Any, Dict, Optional, Type
+from common_function_for_servo_test import (
+    ABOUT_BLANK,
+    DEFAULT_SERVO_BIN_PATH,
+    HostOptions,
+    RunTestOptions,
+    WEBDRIVER_PORT,
+    close_usb_popup,
+    create_driver,
+    setup_hdc_forward,
+    start_servo,
+    stop_servo,
+)
 
 
-class PortMapResult(Enum):
-    SUCCESSFUL = (1,)
-    PORT_EXISTS = (2,)
-    FORWARD_FAILED = (3,)
-
-    def is_success(self) -> bool:
-        return self == PortMapResult.SUCCESSFUL or self == PortMapResult.PORT_EXISTS
-
-
-WEBDRIVER_PORT = 7000
 BLINK_PERF_FILES_SERVE_PORT = random.randrange(7150, 9000)
-SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
-ABOUT_BLANK = "about:blank"
 DIRECTORY = "tests/blink_perf_tests/perf_tests"
 
 # Tests we will skip because they are currently broken.
@@ -71,7 +72,7 @@ tests_that_hang_memory_report = [
 ]
 
 ### `tests_that_take_extra_time_to_load` tests take several seconds to load instead of default 0.05s - 2s
-# can be overriden using `--page_loading_timeout` (in seconds)
+# can be overriden using `--page-loading-timeout` (in seconds)
 tests_that_take_extra_time_to_load = [
     ("subtree-detaching.html", 20),
     ("abspos.html", 5),
@@ -108,15 +109,15 @@ class AbortReason(Enum):
 
 
 class LocalFileServe:
-    def __init__(self, port: int, *args, **kwargs):
-        self.local_server = None
+    def __init__(self, port: int) -> None:
+        self.local_server: Optional[ThreadingHTTPServer] = None
         self.port = port
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         print(f"Serving local test files on port {self.port}")
 
         class StaticHandler(SimpleHTTPRequestHandler):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
                 super().__init__(*args, directory=DIRECTORY, **kwargs)
 
         self.local_server = ThreadingHTTPServer(
@@ -127,8 +128,14 @@ class LocalFileServe:
         thread = threading.Thread(target=self.local_server.serve_forever, daemon=True)
         thread.start()
 
-    def __exit__(self, *args):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         if self.local_server is not None:
+            self.local_server.shutdown()
             self.local_server.server_close()
 
 
@@ -137,7 +144,7 @@ def get_serve_path_for_file(root: str, file: str) -> str:
 
 
 def run_single_test(
-    test_file_name: str, driver: webdriver.Remote, port: int, serve_path, cli_args
+    test_file_name: str, driver: webdriver.Remote, port: int, serve_path: str, cli_args: argparse.Namespace
 ) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
@@ -149,23 +156,25 @@ def run_single_test(
         before_get = time.perf_counter()
         driver.get(url)
         after_get = time.perf_counter()
-        if cli_args.page_loading_timeout is None:
+        page_loading_timeout = cli_args.page_loading_timeout
+        if page_loading_timeout is None:
             special_case_time = next(
                 (value for s, value in tests_that_take_extra_time_to_load if test_file_name in s), None
             )
             if special_case_time is not None:
-                cli_args.page_loading_timeout = special_case_time
+                page_loading_timeout = special_case_time
             else:
-                cli_args.page_loading_timeout = 2
-        if after_get - before_get > cli_args.page_loading_timeout:
-            raise TimeoutError(
-                f"Page loading took {(after_get - before_get):.2f}s (> {cli_args.page_loading_timeout}s limit)"
-            )
+                page_loading_timeout = 2
+        if after_get - before_get > page_loading_timeout:
+            raise TimeoutError(f"Page loading took {(after_get - before_get):.2f}s (> {page_loading_timeout}s limit)")
         print(f">>> Page loading took {(after_get - before_get):.2f}s")
 
-        avg_line, min_line, max_line = None, None, None
-        start_time, latest_time = time.perf_counter(), 0
-        while latest_time - start_time < 60:
+        avg_line: Optional[float] = None
+        min_line: Optional[float] = None
+        max_line: Optional[float] = None
+        unit: Optional[str] = None
+        start_time, latest_time = time.perf_counter(), 0.0
+        while latest_time - start_time < MAX_WAIT_TIME:
             try:
                 element = driver.find_element(By.ID, "log")
                 latest_time = time.perf_counter()
@@ -192,12 +201,12 @@ def run_single_test(
     return AbortReason.NotFound
 
 
-def oswalk_error(error: OSError):
+def oswalk_error(error: OSError) -> None:
     print(error)
     sys.exit(1)
 
 
-def write_file(results):
+def write_file(results: dict[str, dict[str, Any]]) -> None:
     with open("results.json", "w") as f:
         json.dump(results, f)
 
@@ -322,15 +331,16 @@ def memory_report_to_bencher_metrics(
     }
 
 
-def verbose_print(str_to_print: str, is_verbose: bool = False):
+def verbose_print(str_to_print: str, is_verbose: bool = False) -> None:
     if is_verbose:
         print(str_to_print)
 
 
-def run_tests(port, cli_args):
+def run_tests(port: int, cli_args: argparse.Namespace, hdc: Optional[HarmonyDeviceConnector]) -> None:
     skip_until = cli_args.skip_until
+    target_os = cli_args.target_os
 
-    final_result = {}
+    final_result: dict[str, dict[str, Any]] = {}
     csv_file, csv_writer = None, None
     if cli_args and cli_args.extra_csv:
         csv_file = open("blink_perf_test_logs.csv", "w", newline="", encoding="utf-8")
@@ -348,66 +358,97 @@ def run_tests(port, cli_args):
                     if filePath in skipped_tests:
                         continue
                     print("Starting new servo instance...")
-                    cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver --psn=--pref=session_history_max_length=1"
-                    hdc.cmd(cmd_str, timeout=10)
-                    with HarmonyDevicePerfMode(screen_timeout_seconds=2 * 60 * 60):
-                        close_usb_popup(hdc)
-                        webdriver = create_driver(timeout=1)
-                        if webdriver is None:
-                            continue
-
-                        try:
-                            result = run_single_test(
-                                filePath, webdriver, port, get_serve_path_for_file(root, filePath), cli_args=cli_args
-                            )
-
-                            verbose_print(f"result: {result}", cli_args.verbose)
-
-                            if result == AbortReason.NotFound or result == AbortReason.Panic:
+                    servo_process = start_servo(
+                        RunTestOptions(
+                            test_fn=lambda: None,
+                            test_name=filePath,
+                            target_os=target_os,
+                            session_history_max_length=1,
+                            url=ABOUT_BLANK,
+                            resolved_servo_bin_path=cli_args.servo_bin,
+                        )
+                    )
+                    try:
+                        with (
+                            HarmonyDevicePerfMode(screen_timeout_seconds=2 * 60 * 60)
+                            if target_os == HostOptions.OHOS
+                            else nullcontext()
+                        ):
+                            if target_os == HostOptions.OHOS:
+                                assert hdc is not None
+                                close_usb_popup(hdc)
+                            try:
+                                webdriver = create_driver()
+                            except RuntimeError as exc:
+                                print(f"Failed to create webdriver for {filePath}: {exc}")
                                 if csv_writer:
-                                    csv_writer.writerow([filePath, "error"])
-                            else:
-                                combined_result = {
-                                    "value": result.value,
-                                    "lower_value": result.lower_value,
-                                    "upper_value": result.upper_value,
-                                }
-                                parent_dir = get_serve_path_for_file(root, filePath)
+                                    csv_writer.writerow([filePath, "driver_start_failed"])
+                                if cli_args.single_test:
+                                    write_file(final_result)
+                                    return
+                                continue
 
-                                bencher_unit = None
-                                if result.unit == "ms":
-                                    bencher_unit = "ms"
-                                elif result.unit == "runs/s":
-                                    bencher_unit = "throughput"
+                            try:
+                                result = run_single_test(
+                                    filePath,
+                                    webdriver,
+                                    port,
+                                    get_serve_path_for_file(root, filePath),
+                                    cli_args=cli_args,
+                                )
+
+                                verbose_print(f"result: {result}", cli_args.verbose)
+
+                                if isinstance(result, AbortReason):
+                                    if csv_writer:
+                                        csv_writer.writerow([filePath, "error"])
                                 else:
-                                    bencher_unit = "other"
+                                    metrics: dict[str, dict[str, float]] = {}
+                                    combined_result = {
+                                        "value": result.value,
+                                        "lower_value": result.lower_value,
+                                        "upper_value": result.upper_value,
+                                    }
+                                    parent_dir = get_serve_path_for_file(root, filePath)
 
-                                if cli_args.memory_report and filePath not in tests_that_hang_memory_report:
-                                    memory_report = get_memory_report_str(webdriver)
-
-                                    if isinstance(memory_report, ParseError):
-                                        print(f"Test memory parsing failed: {memory_report.message}")
+                                    bencher_unit = None
+                                    if result.unit == "ms":
+                                        bencher_unit = "ms"
+                                    elif result.unit == "runs/s":
+                                        bencher_unit = "throughput"
                                     else:
-                                        verbose_print(
-                                            f"memory after test {memory_report}",
-                                            cli_args.verbose,
-                                        )
-                                        metrics = memory_report_to_bencher_metrics(memory_report)
-                                    final_result[f"perf_tests/{parent_dir}/{filePath}"] = {
-                                        bencher_unit: combined_result,
-                                        **metrics,
-                                    }
-                                else:
-                                    final_result[f"perf_tests/{parent_dir}/{filePath}"] = {
-                                        bencher_unit: combined_result
-                                    }
-                                if csv_writer:
-                                    csv_writer.writerow([filePath, result.value])
-                        finally:
-                            webdriver.quit()
-                        if csv_writer:
-                            csv_file.flush()
-                    stop_servo()
+                                        bencher_unit = "other"
+
+                                    if cli_args.memory_report and filePath not in tests_that_hang_memory_report:
+                                        memory_report = get_memory_report_str(webdriver)
+
+                                        if isinstance(memory_report, ParseError):
+                                            print(f"Test memory parsing failed: {memory_report.message}")
+                                        else:
+                                            verbose_print(
+                                                f"memory after test {memory_report}",
+                                                cli_args.verbose,
+                                            )
+                                            metrics = memory_report_to_bencher_metrics(memory_report)
+                                        final_result[f"perf_tests/{parent_dir}/{filePath}"] = {
+                                            bencher_unit: combined_result,
+                                            **metrics,
+                                        }
+                                    else:
+                                        final_result[f"perf_tests/{parent_dir}/{filePath}"] = {
+                                            bencher_unit: combined_result
+                                        }
+                                    if csv_writer:
+                                        csv_writer.writerow([filePath, result.value])
+                            finally:
+                                webdriver.quit()
+                            if csv_writer and csv_file:
+                                csv_file.flush()
+                    finally:
+                        stop_servo(target_os, servo_process)
+                    if cli_args.single_test:
+                        write_file(final_result)
+                        return
         print(f"final_result {final_result}")
     finally:
         if csv_file:
@@ -435,8 +476,20 @@ def get_memory_report_str(driver: webdriver.Remote) -> MemoryReport | ParseError
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--target-os",
+        type=HostOptions.from_str,
+        choices=tuple(option.value for option in HostOptions),
+        default=HostOptions.OHOS,
+        help="Where Servo should run: connected OpenHarmony device or local host",
+    )
+    parser.add_argument(
+        "--servo-bin",
+        default=DEFAULT_SERVO_BIN_PATH,
+        help="Path to the servoshell binary used for local runs",
+    )
+    parser.add_argument(
         "-m",
-        "--memory_report",
+        "--memory-report",
         action="store_true",
         help="Include memory report in results.json",
     )
@@ -447,38 +500,44 @@ if __name__ == "__main__":
         help="Add more prints",
     )
     parser.add_argument(
-        "-e", "--extra_csv", action="store_true", help="Creates output.csv that contains skipper and failed tests"
+        "-e", "--extra-csv", action="store_true", help="Creates output.csv that contains skipper and failed tests"
     )
     parser.add_argument(
         "-s",
-        "--single_test",
+        "--single-test",
         action="store_true",
         help="Executes only first test. Can be used with --skip-until to run only one specific test",
     )
     parser.add_argument(
-        "--skip_until",
+        "--skip-until",
         type=str,
         default=None,
-        help="Skips all test until specified one, and if --single_test is not set, continues until the end.",
+        help="Skips all tests until the specified one, and if --single-test is not set, continues until the end.",
     )
     parser.add_argument(
-        "--page_loading_timeout",
+        "--page-loading-timeout",
         type=int,
         default=None,
         help="Pages should load very fast, but if takes longer (than default 2s or specified), the result parsing is skipped",
     )
     args = parser.parse_args()
-    hdc = HarmonyDeviceConnector()
+    hdc = HarmonyDeviceConnector() if args.target_os == HostOptions.OHOS else None
     try:
         print("Stopping potential old servo instance ...")
-        stop_servo()
-        setup_hdc_forward(webdriver_port=WEBDRIVER_PORT, host_service_port=BLINK_PERF_FILES_SERVE_PORT)
+        stop_servo(args.target_os)
+        setup_hdc_forward(
+            webdriver_port=WEBDRIVER_PORT,
+            host_service_port=BLINK_PERF_FILES_SERVE_PORT,
+            target_os=args.target_os,
+        )
         with LocalFileServe(BLINK_PERF_FILES_SERVE_PORT):
-            run_tests(BLINK_PERF_FILES_SERVE_PORT, cli_args=args)
+            run_tests(BLINK_PERF_FILES_SERVE_PORT, cli_args=args, hdc=hdc)
     except Exception as e:
         print(f"Test failed with error: {e} (exception: {type(e)})")
-        hdc.screenshot("Blink_perf_test_error.jpg")
-        stop_servo()
+        if args.target_os == HostOptions.OHOS:
+            assert hdc is not None
+            hdc.screenshot("Blink_perf_test_error.jpg")
+        stop_servo(args.target_os)
         sys.exit(1)
     print("\033[32mTest Succeeded.\033[0m")
-    stop_servo()
+    stop_servo(args.target_os)

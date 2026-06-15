@@ -24,13 +24,15 @@ function blocked_request_test(setup_fn, description) {
 
     const url = `${BLOCKED_ORIGIN}${STORE_URL}?${params.toString()}`;
 
-    setup_fn(t, url);
+    setup_fn(t, url, key, value);
 
-    const result = await Promise.race([
-      new Promise(r => t.step_timeout(r, 2000)),
-      nextValueFromServer(key)
-    ]);
-    assert_equals(result, undefined,
+    // Wait briefly for the blocked request to potentially arrive at the
+    // server. CA blocks requests at the network stack level before they
+    // leave the process, so 500ms is more than sufficient.
+    await new Promise(r => t.step_timeout(r, 500));
+    // Check once whether the value leaked.
+    const {status} = await readValueFromServer(key);
+    assert_false(status,
         `Request should be blocked by Connection-Allowlist.`);
   }, description);
 }
@@ -81,17 +83,27 @@ blocked_request_test((t, url) => {
 }, 'Multi-value rel="prefetch stylesheet" to blocked origin must be blocked.');
 
 // --- Form cross-origin action ---
-// Form submission to a non-allowlisted origin should be blocked.
+// Form GET submission replaces the action URL's query string with form
+// field data. To ensure the key-value store receives the key/value
+// params, pass them as hidden inputs rather than embedding them in the
+// action URL.
 
-blocked_request_test((t, url) => {
+// Append hidden inputs for key/value params to a form element.
+function appendHiddenParams(form, key, value) {
+  for (const [name, val] of [['key', key], ['value', value]]) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = val;
+    form.appendChild(input);
+  }
+}
+
+blocked_request_test((t, url, key, value) => {
   const form = document.createElement('form');
   form.method = 'GET';
-  form.action = url;
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = 'data';
-  input.value = 'exfil';
-  form.appendChild(input);
+  form.action = `${BLOCKED_ORIGIN}${STORE_URL}`;
+  appendHiddenParams(form, key, value);
   document.body.appendChild(form);
   t.add_cleanup(() => form.remove());
 
@@ -106,13 +118,15 @@ blocked_request_test((t, url) => {
 
 // --- formaction attribute ---
 
-blocked_request_test((t, url) => {
+blocked_request_test((t, url, key, value) => {
   const form = document.createElement('form');
   form.method = 'GET';
   form.action = SAME_ORIGIN + '/';
+  appendHiddenParams(form, key, value);
+
   const button = document.createElement('button');
   button.type = 'submit';
-  button.formAction = url;
+  button.formAction = `${BLOCKED_ORIGIN}${STORE_URL}`;
   form.appendChild(button);
   document.body.appendChild(form);
   t.add_cleanup(() => form.remove());

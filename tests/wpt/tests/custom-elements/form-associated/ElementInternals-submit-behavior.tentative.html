@@ -548,6 +548,26 @@ promise_test(async t => {
     'User click on custom submit button should submit form');
 }, 'User-initiated click submits form via HTMLSubmitButtonBehavior');
 
+promise_test(async t => {
+  t.add_cleanup(reset);
+  let submitted = false;
+  form.onsubmit = (e) => { e.preventDefault(); submitted = true; };
+  customSubmit.focus();
+  await test_driver.send_keys(customSubmit, '\uE007');
+  assert_true(submitted,
+    'User pressing Enter on custom submit button should submit form');
+}, 'User-initiated Enter key submits form via HTMLSubmitButtonBehavior');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  let submitted = false;
+  form.onsubmit = (e) => { e.preventDefault(); submitted = true; };
+  customSubmit.focus();
+  await test_driver.send_keys(customSubmit, ' ');
+  assert_true(submitted,
+    'User pressing Space on custom submit button should submit form');
+}, 'User-initiated Space key submits form via HTMLSubmitButtonBehavior');
+
 test(t => {
   t.add_cleanup(reset);
   const nativeButton = addNativeSubmitButton({prepend: true});
@@ -626,26 +646,6 @@ promise_test(async t => {
   assert_true(win.location.href.includes('/common/blank.html'),
     'Form should be submitted into the frame specified by behavior formTarget');
 }, 'formTarget on HTMLSubmitButtonBehavior overrides form target');
-
-promise_test(async t => {
-  t.add_cleanup(reset);
-  let submitted = false;
-  form.onsubmit = (e) => { e.preventDefault(); submitted = true; };
-  customSubmit.focus();
-  await test_driver.send_keys(customSubmit, '\uE007');
-  assert_true(submitted,
-    'User pressing Enter on custom submit button should submit form');
-}, 'User-initiated Enter key submits form via HTMLSubmitButtonBehavior');
-
-promise_test(async t => {
-  t.add_cleanup(reset);
-  let submitted = false;
-  form.onsubmit = (e) => { e.preventDefault(); submitted = true; };
-  customSubmit.focus();
-  await test_driver.send_keys(customSubmit, ' ');
-  assert_true(submitted,
-    'User pressing Space on custom submit button should submit form');
-}, 'User-initiated Space key submits form via HTMLSubmitButtonBehavior');
 
 promise_test(async t => {
   t.add_cleanup(reset);

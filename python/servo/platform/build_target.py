@@ -132,12 +132,6 @@ class AndroidTarget(CrossBuildTarget):
         if config["android"]["ndk"]:
             env["ANDROID_NDK_ROOT"] = config["android"]["ndk"]
 
-        toolchains = path.join(topdir, "android-toolchains")
-        for kind in ["sdk", "ndk"]:
-            default = os.path.join(toolchains, kind)
-            if os.path.isdir(default):
-                env.setdefault(f"ANDROID_{kind.upper()}_ROOT", default)
-
         if "IN_NIX_SHELL" in env and ("ANDROID_NDK_ROOT" not in env or "ANDROID_SDK_ROOT" not in env):
             print("Please set SERVO_ANDROID_BUILD=1 when starting the Nix shell to include the Android SDK/NDK.")
             sys.exit(1)
@@ -151,8 +145,6 @@ class AndroidTarget(CrossBuildTarget):
         ndk_configuration = self.ndk_configuration()
         android_platform = ndk_configuration["platform"]
         android_toolchain_name = ndk_configuration["toolchain_name"]
-        android_lib = ndk_configuration["lib"]
-
         android_api = android_platform.replace("android-", "")
 
         # Check if the NDK version is 28
@@ -260,21 +252,6 @@ class AndroidTarget(CrossBuildTarget):
         # These two variables are needed for the mozjs compilation.
         env["ANDROID_API_LEVEL"] = android_api
         env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
-
-        # The two variables set below are passed by our custom
-        # support/android/toolchain.cmake to the NDK's CMake toolchain file
-        env["ANDROID_ABI"] = android_lib
-        env["ANDROID_PLATFORM"] = android_platform
-        env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(
-            env["ANDROID_NDK_ROOT"], "build", "cmake", "android.toolchain.cmake"
-        )
-        env["CMAKE_TOOLCHAIN_FILE"] = path.join(topdir, "support", "android", "toolchain.cmake")
-
-        # Set output dir for gradle aar files
-        env["AAR_OUT_DIR"] = path.join(topdir, "target", "android", "aar")
-        if not os.path.exists(env["AAR_OUT_DIR"]):
-            os.makedirs(env["AAR_OUT_DIR"])
-
         env["TARGET_PKG_CONFIG_SYSROOT_DIR"] = path.join(llvm_toolchain, "sysroot")
 
     def binary_name(self) -> str:
@@ -288,7 +265,7 @@ class AndroidTarget(CrossBuildTarget):
 
     def get_package_path(self, build_type_directory: str) -> str:
         base_path = util.get_target_dir()
-        base_path = path.join(base_path, "android", self.triple())
+        base_path = path.join(base_path, self.triple())
         apk_name = "servoapp.apk"
         return path.join(base_path, build_type_directory, apk_name)
 

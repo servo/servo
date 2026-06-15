@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
+use std::borrow::{Cow, ToOwned};
 use std::cell::Cell;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -11,10 +11,9 @@ use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentType, HeaderMapExt};
 use html5ever::{LocalName, Prefix, local_name};
 use http::Method;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use mime::{self, Mime};
-use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
 use rand::random;
 use rustc_hash::FxBuildHasher;
@@ -522,7 +521,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
         // Step 1
         #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
         enum SourcedNameSource {
@@ -701,30 +700,12 @@ impl HTMLFormElement {
         self.owner_document().encoding()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm>
-    fn encode_plaintext(&self, form_data: &mut [FormDatum]) -> String {
-        // Step 1
-        let mut result = String::new();
-
-        // Step 2
-        for entry in form_data.iter() {
-            let value = match &entry.value {
-                FormDatumValue::File(f) => f.name(),
-                FormDatumValue::String(s) => s,
-            };
-            result.push_str(&format!("{}={}\r\n", entry.name, value));
-        }
-
-        // Step 3
-        result
-    }
-
-    pub(crate) fn update_validity(&self, can_gc: CanGc) {
+    pub(crate) fn update_validity(&self, cx: &mut JSContext) {
         let is_any_invalid = self
             .controls
             .borrow()
             .iter()
-            .any(|control| control.is_invalid(false, can_gc));
+            .any(|control| control.is_invalid(cx, false));
 
         self.upcast::<Element>()
             .set_state(ElementState::VALID, !is_any_invalid);
@@ -798,7 +779,7 @@ impl HTMLFormElement {
                 CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
-            event.fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx));
+            event.fire(cx, self.upcast::<EventTarget>());
 
             // Step 6.6
             self.firing_submission_events.set(false);
@@ -816,11 +797,10 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
 
         // Step 8
-        let mut form_data =
-            match self.get_form_dataset(Some(submitter), Some(encoding), CanGc::from_cx(cx)) {
-                Some(form_data) => form_data,
-                None => return,
-            };
+        let mut form_data = match self.get_form_dataset(cx, Some(submitter), Some(encoding)) {
+            Some(form_data) => form_data,
+            None => return,
+        };
 
         // Step 9. If form cannot navigate, then return.
         if self.upcast::<Element>().cannot_navigate() {
@@ -1022,7 +1002,20 @@ impl HTMLFormElement {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::TEXT_PLAIN));
-                self.encode_plaintext(form_data).into_bytes()
+                // Step 1: Let pairs be the result of converting to a list
+                // of name-value pairs with entry list.
+                // <https://html.spec.whatwg.org/multipage/#convert-to-a-list-of-name-value-pairs>
+                let pairs = form_data.iter().map(|field| {
+                    (
+                        field.name.normalize_crlf(),
+                        field.replace_value().normalize_crlf(),
+                    )
+                });
+                // Step 2: Let body be the result of running the text/plain
+                // encoding algorithm with pairs.
+                let body = encode_plaintext(pairs);
+                // Step 3: Set body to the result of encoding body using encoding.
+                encode_with_html_fallback(&body, encoding).into_owned()
             },
         };
 
@@ -1048,7 +1041,7 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
         url.as_mut_url()
             .query_pairs_mut()
-            .encoding_override(Some(&|s| encoding.encode(s).0))
+            .encoding_override(Some(&|s| encode_with_html_fallback(s, encoding)))
             .clear()
             .extend_pairs(pairs);
     }
@@ -1165,7 +1158,7 @@ impl HTMLFormElement {
 
         for elem in unhandled_invalid_controls {
             if let Some(validatable) = elem.as_maybe_validatable() {
-                error!("Validation error: {}", validatable.validation_message());
+                error!("Validation error: {}", validatable.validation_message(cx));
             }
             if first && let Some(html_elem) = elem.downcast::<HTMLElement>() {
                 // Step 3.1: User agents may focus one of those elements in the process,
@@ -1195,7 +1188,7 @@ impl HTMLFormElement {
             .iter()
             .filter_map(|field| {
                 if let Some(element) = field.downcast::<Element>() {
-                    if element.is_invalid(true, CanGc::from_cx(cx)) {
+                    if element.is_invalid(cx, true) {
                         Some(DomRoot::from_ref(element))
                     } else {
                         None
@@ -1255,7 +1248,12 @@ impl HTMLFormElement {
                 match element {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
-                        data_set.append(&mut input.form_datums(submitter, encoding));
+                        let (ref mut form_datums, should_continue) =
+                            input.form_datums(submitter, encoding);
+                        data_set.append(form_datums);
+                        if should_continue {
+                            continue;
+                        }
                     },
                     HTMLElementTypeId::HTMLButtonElement => {
                         let button = child.downcast::<HTMLButtonElement>().unwrap();
@@ -1295,22 +1293,27 @@ impl HTMLFormElement {
                 }
             }
 
-            // Step: 5.13. Add an entry if element has dirname attribute
-            // An element can only have a dirname attribute if it is a textarea element
-            // or an input element whose type attribute is in either the Text state or the Search state
+            // Step: 5.11.1 Let dirname be the value of the element's dirname attribute.
             let child_element = child.downcast::<Element>().unwrap();
-            let input_matches = child_element
-                .downcast::<HTMLInputElement>()
-                .is_some_and(|input| {
-                    matches!(
-                        *input.input_type(),
-                        InputType::Text(_) | InputType::Search(_)
-                    )
-                });
-            let textarea_matches = child_element.is::<HTMLTextAreaElement>();
             let dirname = child_element.get_string_attribute(&local_name!("dirname"));
-            if (input_matches || textarea_matches) && !dirname.is_empty() {
+
+            // Step: 5.11. If the element has a dirname attribute, that attribute's value is not the empty
+            // string, and the element is an auto-directionality form-associated element:
+            // From: <https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements>
+            // Input elements whose type attribute is in the Hidden, Text, Search, Telephone, URL, Email,
+            // Password, Submit Button, Reset Button, or Button state, and textarea elements.
+            let is_input_auto_directionality_form_associated_element = child_element
+                .downcast::<HTMLInputElement>()
+                .is_some_and(|input| input.is_auto_directionality_form_associated_element());
+            let is_textarea_element = child_element.is::<HTMLTextAreaElement>();
+            if !dirname.is_empty() &&
+                (is_input_auto_directionality_form_associated_element || is_textarea_element)
+            {
+                // Step: 5.11.2 Let dir be the string "ltr" if the directionality of the element is 'ltr',
+                // and "rtl" otherwise (i.e., when the directionality of the element is 'rtl').
                 let dir = DOMString::from(child_element.directionality());
+
+                // Step: 5.11.3 Create an entry with dirname and dir, and append it to entry list.
                 data_set.push(FormDatum {
                     ty: DOMString::from("string"),
                     name: dirname,
@@ -1324,9 +1327,9 @@ impl HTMLFormElement {
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     pub(crate) fn get_form_dataset(
         &self,
+        cx: &mut JSContext,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
-        can_gc: CanGc,
     ) -> Option<Vec<FormDatum>> {
         // Step 1
         if self.constructing_entry_list.get() {
@@ -1337,12 +1340,12 @@ impl HTMLFormElement {
         self.constructing_entry_list.set(true);
 
         // Step 3-6
-        let ret = self.get_unclean_dataset(submitter, encoding, can_gc);
+        let ret = self.get_unclean_dataset(submitter, encoding, CanGc::from_cx(cx));
 
         let window = self.owner_window();
 
         // Step 6
-        let form_data = FormData::new(Some(ret), &window.global(), can_gc);
+        let form_data = FormData::new(Some(ret), &window.global(), CanGc::from_cx(cx));
 
         // Step 7
         let event = FormDataEvent::new(
@@ -1351,12 +1354,12 @@ impl HTMLFormElement {
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             &form_data,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         event
             .upcast::<Event>()
-            .fire(self.upcast::<EventTarget>(), can_gc);
+            .fire(cx, self.upcast::<EventTarget>());
 
         // Step 8
         self.constructing_entry_list.set(false);
@@ -1397,7 +1400,7 @@ impl HTMLFormElement {
         self.marked_for_reset.set(false);
     }
 
-    fn add_control<T: ?Sized + FormControl>(&self, control: &T, can_gc: CanGc) {
+    fn add_control<T: ?Sized + FormControl>(&self, cx: &mut JSContext, control: &T) {
         {
             let root = self.upcast::<Element>().root_element();
             let root = root.upcast::<Node>();
@@ -1415,10 +1418,10 @@ impl HTMLFormElement {
                 controls.push(Dom::from_ref(control_element));
             }
         }
-        self.update_validity(can_gc);
+        self.update_validity(cx);
     }
 
-    fn remove_control<T: ?Sized + FormControl>(&self, control: &T, can_gc: CanGc) {
+    fn remove_control<T: ?Sized + FormControl>(&self, cx: &mut JSContext, control: &T) {
         {
             let control = control.to_element();
             let mut controls = self.controls.borrow_mut();
@@ -1434,7 +1437,7 @@ impl HTMLFormElement {
             let mut past_names_map = self.past_names_map.borrow_mut();
             past_names_map.0.retain(|_k, v| v.0 != control);
         }
-        self.update_validity(can_gc);
+        self.update_validity(cx);
     }
 }
 
@@ -1657,16 +1660,16 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     // Part of step 12.
     // '..suppress the running of the reset the form owner algorithm
     // when the parser subsequently attempts to insert the element..'
-    fn set_form_owner_from_parser(&self, form: &HTMLFormElement, can_gc: CanGc) {
+    fn set_form_owner_from_parser(&self, cx: &mut JSContext, form: &HTMLFormElement) {
         let elem = self.to_element();
         let node = elem.upcast::<Node>();
         node.set_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER, true);
-        form.add_control(self, can_gc);
+        form.add_control(cx, self);
         self.set_form_owner(Some(form));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-the-form-owner>
-    fn reset_form_owner(&self, can_gc: CanGc) {
+    fn reset_form_owner(&self, cx: &mut JSContext) {
         let elem = self.to_element();
         let node = elem.upcast::<Node>();
         let old_owner = self.form_owner();
@@ -1692,9 +1695,9 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
             let first_relevant_element = if let Some(shadow_root) = self.containing_shadow_root() {
                 shadow_root
                     .upcast::<DocumentFragment>()
-                    .GetElementById(form_id)
+                    .GetElementById(cx, form_id)
             } else {
-                node.owner_document().GetElementById(form_id)
+                node.owner_document().GetElementById(cx, form_id)
             };
 
             first_relevant_element.and_then(DomRoot::downcast::<HTMLFormElement>)
@@ -1705,10 +1708,10 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
 
         if old_owner != new_owner {
             if let Some(o) = old_owner {
-                o.remove_control(self, can_gc);
+                o.remove_control(cx, self);
             }
             if let Some(ref new_owner) = new_owner {
-                new_owner.add_control(self, can_gc);
+                new_owner.add_control(cx, self);
             }
             // https://html.spec.whatwg.org/multipage/#custom-element-reactions:reset-the-form-owner
             if let Some(html_elem) = elem.downcast::<HTMLElement>() &&
@@ -1727,7 +1730,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
-    fn form_attribute_mutated(&self, mutation: AttributeMutation, can_gc: CanGc) {
+    fn form_attribute_mutated(&self, cx: &mut JSContext, mutation: AttributeMutation) {
         match mutation {
             AttributeMutation::Set(..) => {
                 self.register_if_necessary();
@@ -1737,7 +1740,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
             },
         }
 
-        self.reset_form_owner(can_gc);
+        self.reset_form_owner(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
@@ -1763,7 +1766,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
-    fn bind_form_control_to_tree(&self, can_gc: CanGc) {
+    fn bind_form_control_to_tree(&self, cx: &mut JSContext) {
         let elem = self.to_element();
         let node = elem.upcast::<Node>();
 
@@ -1776,14 +1779,14 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
 
         if !must_skip_reset {
             self.form_attribute_mutated(
+                cx,
                 AttributeMutation::Set(None, AttributeMutationReason::Directly),
-                can_gc,
             );
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms>
-    fn unbind_form_control_from_tree(&self, can_gc: CanGc) {
+    fn unbind_form_control_from_tree(&self, cx: &mut JSContext) {
         let elem = self.to_element();
         let has_form_attr = elem.has_attribute(&local_name!("form"));
         let same_subtree = self
@@ -1798,7 +1801,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
         // subtree) if it appears later in the tree order. Hence invoke
         // reset from here if this control has the form attribute set.
         if !same_subtree || (self.is_listed() && has_form_attr) {
-            self.reset_form_owner(can_gc);
+            self.reset_form_owner(cx);
         }
     }
 
@@ -1856,7 +1859,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
             .form_owner()
             .is_none_or(|form| self.to_element().is_in_same_home_subtree(&*form));
         if !same_subtree {
-            self.reset_form_owner(CanGc::from_cx(cx))
+            self.reset_form_owner(cx)
         }
     }
 
@@ -1887,7 +1890,7 @@ impl VirtualMethods for HTMLFormElement {
             control
                 .as_maybe_form_control()
                 .expect("Element must be a form control")
-                .reset_form_owner(CanGc::from_cx(cx));
+                .reset_form_owner(cx);
         }
     }
 
@@ -1971,6 +1974,35 @@ impl FormControlElementHelpers for Element {
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm>
+fn encode_plaintext(pairs: impl Iterator<Item = (String, String)>) -> String {
+    // Step 1. Let result be the empty string.
+    let mut result = String::new();
+    // Step 2. For each pair in pairs:
+    for (name, value) in pairs {
+        // Step 2.1. Append pair's name to result.
+        result.push_str(&name);
+        // Step 2.2. Append a single U+003D EQUALS SIGN character (=) to result.
+        result.push('=');
+        // Step 2.3. Append pair's value to result.
+        result.push_str(&value);
+        // Step 2.4. Append a U+000D CARRIAGE RETURN (CR) U+000A LINE FEED (LF)
+        // character pair to result.
+        result.push_str("\r\n");
+    }
+    // Step 3. Return result.
+    result
+}
+
+/// Encode a string with the form's encoding, converted to a byte sequence.
+/// <https://encoding.spec.whatwg.org/#encode>
+///
+/// Characters that can't be encoded in the given charset are replaced
+/// with HTML decimal numeric character references (e.g. 😂 → &#128514;).
+fn encode_with_html_fallback<'a>(input: &'a str, encoding: &'static Encoding) -> Cow<'a, [u8]> {
+    encoding.encode(input).0
+}
+
 /// <https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm>
 pub(crate) fn encode_multipart_form_data(
     form_data: &mut [FormDatum],
@@ -1979,85 +2011,86 @@ pub(crate) fn encode_multipart_form_data(
 ) -> Vec<u8> {
     let mut result = vec![];
 
-    // For field names and filenames for file fields, the result
+    // Step 2.4: For field names and filenames for file fields, the result
     // of the encoding must be escaped by replacing:
     //   0x0A (LF) bytes with `%0A`,
     //   0x0D (CR) bytes with `%0D`,
     //   0x22 (") bytes with `%22`.
     // The user agent must not perform any other escapes.
-    fn escape_for_header(s: &DOMString) -> String {
-        s.str()
-            .replace('\n', "%0A")
-            .replace('\r', "%0D")
-            .replace('"', "%22")
+    fn escape_header_bytes(input: &[u8]) -> Vec<u8> {
+        let mut output = Vec::with_capacity(input.len());
+        for &b in input {
+            match b {
+                b'\n' => output.extend(b"%0A"),
+                b'\r' => output.extend(b"%0D"),
+                b'"' => output.extend(b"%22"),
+                _ => output.push(b),
+            }
+        }
+        output
     }
 
     for entry in form_data.iter_mut() {
-        // Step 1.1: Perform newline replacement on entry's name
+        // Step 1.1: Replace every occurrence of U+000D (CR) not followed by U+000A (LF),
+        // and every occurrence of U+000A (LF) not preceded by U+000D (CR),
+        // in entry's name, by a string consisting of a U+000D (CR) and U+000A (LF).
         entry.name = entry.name.normalize_crlf().into();
 
-        // Step 1.2: If entry's value is not a File object, perform newline replacement on entry's
-        // value
+        // Step 1.2: If entry's value is not a File object,
+        // then replace every occurrence of U+000D (CR) not followed by U+000A (LF),
+        // and every occurrence of U+000A (LF) not preceded by U+000D (CR), in entry's value,
+        // by a string consisting of a U+000D (CR) and U+000A (LF).
         if let FormDatumValue::String(ref s) = entry.value {
             entry.value = FormDatumValue::String(s.normalize_crlf().into());
         }
 
-        // Step 2: Return the byte sequence resulting from encoding the entry list.
-        // https://tools.ietf.org/html/rfc7578#section-4
-        // NOTE(izgzhen): The encoding here expected by most servers seems different from
-        // what spec says (that it should start with a '\r\n').
+        // Step 2.6: Boundary string
         let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
         result.append(&mut boundary_bytes);
 
-        let escaped_name = escape_for_header(&entry.name);
+        // Step 2.3: Encode name with the form's encoding
+        let name_str = &*entry.name.str();
+        let encoded_name = encode_with_html_fallback(name_str, encoding);
+        // Step 2.4: Escape name for header
+        let escaped_name = escape_header_bytes(&encoded_name);
 
-        // TODO(eijebong): Everthing related to content-disposition it to redo once typed headers
-        // are capable of it.
         match entry.value {
             FormDatumValue::String(ref s) => {
-                // Step 2.4
-                let content_disposition = format!("form-data; name=\"{}\"", escaped_name);
-                let mut bytes =
-                    format!("Content-Disposition: {content_disposition}\r\n\r\n{s}\r\n",)
-                        .into_bytes();
-                result.append(&mut bytes);
+                // Step 2.3: Encode value with the form's encoding
+                let value_str = &*s.str();
+                let encoded_value = encode_with_html_fallback(value_str, encoding);
+
+                // Step 2.5: Non-file fields must not have `Content-Type` header specified
+                result.extend(b"Content-Disposition: form-data; name=\"");
+                result.extend(&escaped_name);
+                result.extend(b"\"\r\n\r\n");
+                result.extend_from_slice(&encoded_value);
+                result.extend(b"\r\n");
             },
             FormDatumValue::File(ref f) => {
-                let charset = encoding.name();
-                // Step 2.4
-                // For field names and filenames for file fields, the result
-                // of the encoding must be escaped by replacing:
-                //   0x0A (LF) bytes with `%0A`,
-                //   0x0D (CR) bytes with `%0D`,
-                //   0x22 (") bytes with `%22`.
-                // The user agent must not perform any other escapes.
-                let extra = if charset.to_lowercase() == "utf-8" {
-                    let escaped = escape_for_header(f.name());
-                    format!("filename=\"{}\"", escaped)
-                } else {
-                    format!(
-                        "filename*=\"{}\"''{}",
-                        charset,
-                        http_percent_encode(&f.name().as_bytes())
-                    )
-                };
+                // Step 2.3: Encode filename with the form's encoding
+                let filename_str = &*f.name().str();
+                let encoded_filename = encode_with_html_fallback(filename_str, encoding);
+                // Step 2.4: Escape filename for header
+                let escaped_filename = escape_header_bytes(&encoded_filename);
 
-                let content_disposition =
-                    format!("form-data; name=\"{}\"; {}", escaped_name, extra);
+                result.extend(b"Content-Disposition: form-data; name=\"");
+                result.extend(&escaped_name);
+                result.extend(b"\"; filename=\"");
+                result.extend(&escaped_filename);
+
                 // https://tools.ietf.org/html/rfc7578#section-4.4
+                result.extend(b"\"\r\nContent-Type: ");
+
                 let content_type: Mime = f
                     .upcast::<Blob>()
                     .Type()
                     .parse()
                     .unwrap_or(mime::TEXT_PLAIN);
-                let mut type_bytes = format!(
-                    "Content-Disposition: {}\r\nContent-Type: {}\r\n\r\n",
-                    content_disposition, content_type
-                )
-                .into_bytes();
-                result.append(&mut type_bytes);
+                result.extend(content_type.as_ref().as_bytes());
+                result.extend(b"\r\n\r\n");
 
-                let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);
+                let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or_default();
 
                 result.append(&mut bytes);
                 result.extend(b"\r\n");
@@ -2065,6 +2098,7 @@ pub(crate) fn encode_multipart_form_data(
         }
     }
 
+    // Step 2.6: Closing boundary string
     let mut boundary_bytes = format!("--{boundary}--\r\n").into_bytes();
     result.append(&mut boundary_bytes);
 

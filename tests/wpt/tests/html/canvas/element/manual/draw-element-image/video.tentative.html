@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<head>
+  <title>drawElementImage repaints video frames</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <div id=child>
+      <video id="video" width="100" height="100" src="/media/rgb100.webm" autoplay loop muted></video>
+    </div>
+  </canvas>
+
+  <script type="module">
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d", {willReadFrequently:true});
+    const child = document.getElementById("child");
+
+    promise_test(() => new Promise((resolve, reject) => {
+      // Video color reproduction is not 100% consistent.
+      const channelTolerance = 3;
+      const approxEquals = (a, b) => Math.abs(a-b) < channelTolerance;
+      const colorEquals = (a, b) => {
+        return approxEquals(a[0], b[0]) &&
+               approxEquals(a[1], b[1]) &&
+               approxEquals(a[2], b[2]) &&
+               approxEquals(a[3], b[3]);
+      };
+
+      let seenColors = [];
+      let sawRed = false, sawGreen = false, sawBlue = false;
+      let paintCount = 0;
+      canvas.onpaint = (evt) => {
+        if (evt.changedElements.length != 1 || evt.changedElements[0] != child) {
+          reject("Canvas paint event 'changedElements' should contain just " +
+                 "the child element.");
+        }
+        if (++paintCount > 10) {
+          reject(`After ${paintCount} paints, seen colors=[${seenColors.join(" ")}]`);
+        }
+        ctx.clearRect(0, 0, 100, 100);
+        ctx.drawElementImage(child, 0, 0);
+        const imageData = ctx.getImageData(25, 25, 1, 1);
+        seenColors.push(`(${imageData.data.join(", ")})`);
+        if (colorEquals(imageData.data, [255, 1, 0, 255])) {
+          sawRed = true;
+        } else if (colorEquals(imageData.data, [0, 153, 0, 255])) {
+          sawGreen = true;
+        } else if (colorEquals(imageData.data, [0, 0, 255, 255])) {
+          sawBlue = true;
+        }
+        if (sawRed && sawGreen && sawBlue) {
+          canvas.onpaint = null;
+          resolve("Saw red, green, and blue video frames.");
+        }
+      };
+    }));
+  </script>
+</body>

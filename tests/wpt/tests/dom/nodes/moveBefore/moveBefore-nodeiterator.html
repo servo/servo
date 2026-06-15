@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>NodeIterator + moveBefore() pre-remove steps</title>
+
+<div id="oldParent">
+    <div id="a"></div>
+    <div id="target">
+        <div id="inner"></div>
+    </div>
+    <div id="b"></div>
+</div>
+
+<div id="newParent"></div>
+
+<script>
+test(() => {
+    const oldParent = document.getElementById("oldParent");
+    const newParent = document.getElementById("newParent");
+    const target = document.getElementById("target");
+    const b = document.getElementById("b");
+
+    const iterator = document.createNodeIterator(
+        oldParent,
+        NodeFilter.SHOW_ELEMENT
+    );
+
+    assert_equals(iterator.nextNode().id, "oldParent");
+    assert_equals(iterator.nextNode().id, "a");
+    assert_equals(iterator.nextNode().id, "target");
+    assert_equals(iterator.nextNode().id, "inner");
+
+    newParent.moveBefore(target, null);
+
+    assert_equals(iterator.nextNode(), b);
+}, "moveBefore() runs NodeIterator pre-remove steps");
+</script>

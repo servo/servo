@@ -178,17 +178,13 @@ class PackageCommands(CommandBase):
             # Inform the android build of where `libservoshell.so` is located.
             env["SERVO_TARGET_DIR"] = target_dir
 
-            flavor_name = "Basic"
-            if flavor is not None:
-                flavor_name = flavor.title()
-
-            dir_to_resources = path.join(self.get_top_dir(), "target", "android", "resources")
+            dir_to_resources = path.join(self.get_top_dir(), "target", target_triple, "resources")
             if path.exists(dir_to_resources):
                 delete(dir_to_resources)
 
             copy_packaged_resources(dir_to_root, dir_to_resources)
 
-            variant = ":assemble" + flavor_name + arch_string + build_type_string
+            variant = ":assemble" + arch_string + build_type_string
             apk_task_name = ":servoapp" + variant
             aar_task_name = ":servoview" + variant
             argv = ["./gradlew", "--no-daemon", apk_task_name, aar_task_name]

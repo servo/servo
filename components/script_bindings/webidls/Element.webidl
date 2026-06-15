@@ -127,7 +127,7 @@ partial interface Element {
 
 // https://html.spec.whatwg.org/multipage/#dom-parsing-and-serialization
 partial interface Element {
-  [CEReactions, Throws] undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
+  [CEReactions, Throws] undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
   DOMString getHTML(optional GetHTMLOptions options = {});
 
   [CEReactions, Throws] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
@@ -154,6 +154,13 @@ partial interface Element {
   Promise<undefined> requestFullscreen();
 };
 
+// https://w3c.github.io/pointerevents/#extensions-to-the-element-interface
+partial interface Element {
+  [Throws] undefined setPointerCapture(long pointerId);
+  [Throws] undefined releasePointerCapture(long pointerId);
+  boolean hasPointerCapture(long pointerId);
+};
+
 Element includes ChildNode;
 Element includes NonDocumentTypeChildNode;
 Element includes ParentNode;
@@ -169,3 +176,6 @@ partial interface Element {
 partial interface Element {
   [CEReactions, Throws] undefined setHTML(DOMString html, optional SetHTMLOptions options = {});
 };
+
+// https://drafts.csswg.org/web-animations-1/#extensions-to-the-element-interface
+Element includes Animatable;

@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::jsapi::JSContext;
+use js::context::JSContext;
+use js::jsapi::JSContext as RawJSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webxr_api::{FingerJoint, Hand, Joint};
 
 use crate::dom::bindings::codegen::Bindings::XRHandBinding::{XRHandJoint, XRHandMethods};
@@ -15,7 +16,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrjointspace::XRJointSpace;
-use crate::script_runtime::CanGc;
 
 const JOINT_SPACE_MAP: [(XRHandJoint, Joint); 25] = [
     (XRHandJoint::Wrist, Joint::Wrist),
@@ -117,40 +117,27 @@ impl XRHand {
         XRHand {
             reflector_: Reflector::new(),
             source: Dom::from_ref(source),
-            spaces: spaces.map(|j, _| j.as_ref().map(|j| Dom::from_ref(&**j))),
+            spaces: spaces.map(&mut (), |_, j, _| j.as_ref().map(|j| Dom::from_ref(&**j))),
         }
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         source: &XRInputSource,
         support: Hand<()>,
-        can_gc: CanGc,
     ) -> DomRoot<XRHand> {
         let id = source.id();
         let session = source.session();
-        let spaces = support.map(|field, joint| {
+        let spaces = support.map(cx, |cx, field, joint| {
             let hand_joint = JOINT_SPACE_MAP
                 .iter()
                 .find(|&&(_, value)| value == joint)
                 .map(|&(hand_joint, _)| hand_joint)
                 .expect("Invalid joint name");
-            field.map(|_| {
-                XRJointSpace::new(
-                    global,
-                    session,
-                    id,
-                    joint,
-                    hand_joint,
-                    CanGc::deprecated_note(),
-                )
-            })
+            field.map(|_| XRJointSpace::new(cx, global, session, id, joint, hand_joint))
         });
-        reflect_dom_object(
-            Box::new(XRHand::new_inherited(source, &spaces)),
-            global,
-            can_gc,
-        )
+        reflect_dom_object_with_cx(Box::new(XRHand::new_inherited(source, &spaces)), global, cx)
     }
 }
 
@@ -180,7 +167,7 @@ pub(crate) struct ValueWrapper(pub DomRoot<XRJointSpace>);
 
 impl ToJSValConvertible for ValueWrapper {
     #[expect(unsafe_code)]
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut RawJSContext, rval: MutableHandleValue) {
         unsafe { self.0.to_jsval(cx, rval) }
     }
 }

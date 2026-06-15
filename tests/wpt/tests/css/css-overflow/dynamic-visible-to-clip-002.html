@@ -1,0 +1,24 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>The viewport scrollbar is updated when the root element's overflow is dynamically changed to 'clip'</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#overflow-propagation">
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#valdef-overflow-clip">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2040247">
+<link rel="match" href="dynamic-visible-to-clip-002-ref.html">
+<style>
+  #fill {
+    height: 200vh;
+  }
+</style>
+<div id="fill"></div>
+<script>
+onload = function() {
+  // Force an initial layout so the viewport scrollbar is present.
+  window.unused = document.documentElement.getBoundingClientRect();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.style.overflow = "clip";
+    document.documentElement.removeAttribute("class");
+  }));
+}
+</script>

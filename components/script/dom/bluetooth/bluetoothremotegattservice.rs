@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_bluetooth_traits::{BluetoothResponse, GATTType};
@@ -20,7 +21,6 @@ use crate::dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUI
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 #[dom_struct]
@@ -50,7 +50,7 @@ impl BluetoothRemoteGATTService {
 
     #[expect(non_snake_case)]
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         device: &BluetoothDevice,
         uuid: DOMString,
@@ -176,7 +176,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
     fn handle_response(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         response: BluetoothResponse,
         promise: &Rc<Promise>,
     ) {
@@ -186,10 +186,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
             // Step 7.
             BluetoothResponse::GetCharacteristics(characteristics_vec, single) => {
                 if single {
-                    promise.resolve_native(
-                        &device.get_or_create_characteristic(cx, &characteristics_vec[0], self),
-                        CanGc::from_cx(cx),
-                    );
+                    let characteristic =
+                        device.get_or_create_characteristic(cx, &characteristics_vec[0], self);
+                    promise.resolve_native_with_cx(cx, &characteristic);
                     return;
                 }
                 let mut characteristics = vec![];
@@ -198,29 +197,27 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                         device.get_or_create_characteristic(cx, &characteristic, self);
                     characteristics.push(bt_characteristic);
                 }
-                promise.resolve_native(&characteristics, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &characteristics);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetIncludedServices(services_vec, single) => {
                 let gatt_server = device.get_gatt(cx);
                 if single {
-                    return promise.resolve_native(
-                        &device.get_or_create_service(cx, &services_vec[0], &gatt_server),
-                        CanGc::from_cx(cx),
-                    );
+                    let characteristic =
+                        device.get_or_create_service(cx, &services_vec[0], &gatt_server);
+                    return promise.resolve_native_with_cx(cx, &characteristic);
                 }
                 let mut services = vec![];
                 for service in services_vec {
                     let bt_service = device.get_or_create_service(cx, &service, &gatt_server);
                     services.push(bt_service);
                 }
-                promise.resolve_native(&services, CanGc::from_cx(cx));
+                promise.resolve_native_with_cx(cx, &services);
             },
-            _ => promise.reject_error(
-                Error::Type(c"Something went wrong...".to_owned()),
-                CanGc::from_cx(cx),
-            ),
+            _ => {
+                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
+            },
         }
     }
 }

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Computed values of 'corner-block-start'</title>
+<link rel="author" title="Chromium" href="https://chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shorthand">
+<meta name="assert" content="This test checks that the computed value of 'corner-block-start' is correct across writing mode variants.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_computed_value("corner-block-start", "0px round", "normal");
+test_computed_value("corner-block-start", "10px bevel");
+test_computed_value("corner-block-start", "normal / 2px round");
+test_computed_value("corner-block-start", "4px 2% squircle / 1em scoop", "4px 2% squircle / 16px scoop");
+</script>

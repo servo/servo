@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage respects backdrop-filter bounds for tiny/empty content</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    #wrapper {
+      width: 100px;
+      height: 100px;
+      background: red;
+    }
+    .filtered {
+      width: 100px;
+      height: 100px;
+      /* Invert red to cyan */
+      backdrop-filter: invert(1);
+    }
+    .tiny-content {
+      width: 1px;
+      height: 1px;
+      background: black;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <div id="wrapper">
+      <div class="filtered">
+        <div class="tiny-content"></div>
+      </div>
+    </div>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+
+        var ctx = canvas.getContext('2d');
+        ctx.drawElementImage(document.getElementById('wrapper'), 0, 0);
+
+        // Check a pixel well outside the tiny 1x1 painted content.
+        // If the bounds weren't expanded, this would be red ([255, 0, 0, 255]).
+        // If the bounds were correctly expanded, the backdrop invert filter turns it cyan ([0, 255, 255, 255]).
+        const pixel = ctx.getImageData(50, 50, 1, 1).data;
+        assert_array_equals(pixel, [0, 255, 255, 255], "Backdrop filter bounds should be expanded to cover the whole element");
+      }, "drawElementImage applies backdrop-filter bounds beyond child drawable bounds");
+    }
+  </script>
+</body>
+</html>

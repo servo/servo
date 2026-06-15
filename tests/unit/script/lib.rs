@@ -16,6 +16,8 @@ mod size_of;
 mod textinput;
 #[cfg(test)]
 mod timeranges;
+#[cfg(test)]
+mod unminify;
 
 /**
 ```compile_fail,E0277

@@ -37,6 +37,7 @@ Mako == 1.3.12
 
 # For devtools tests.
 geckordp == 1.0.3
+pytest-xdist == 3.8.0
 
 # For Python static type checking
 pyrefly == 0.63.1

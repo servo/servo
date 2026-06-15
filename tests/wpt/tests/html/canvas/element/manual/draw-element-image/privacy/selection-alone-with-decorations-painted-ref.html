@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>drawElementImage draws selection - ref</title>
+<style>
+  :focus {
+    outline: none;
+  }
+  #child {
+    width: 100px;
+    height: 100px;
+    background: green;
+    position: absolute;
+    left: 8px;
+    top: 8px;
+  }
+  #canvas {
+    background: grey;
+  }
+  ::selection {
+    background-color: lime;
+    color: green;
+    text-decoration: 2px blue underline;
+    text-shadow: pink 2px 5px;
+  }
+</style>
+<canvas id=canvas width="200" height="200"></canvas>
+<div id="child">
+  <div id="editable" contenteditable="true">Many things can happen.</div>
+</div>
+<script>
+  function setSelection(element, start, end) {
+    const textNode = element.firstChild;
+    if (element.childNodes.length != 1 || textNode.nodeName != '#text') {
+      throw new Error('element must contain a single #text node only');
+    }
+    const range = document.createRange();
+    range.setStart(textNode, start);
+    range.setEnd(textNode, end);
+
+    const selection = getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  function runTest() {
+    setSelection(editable, 5, 11)
+  }
+
+  onload = () => runTest();
+</script>

@@ -69,6 +69,13 @@ test(() => {
 }, 'Empty value with cols/rows');
 
 test(() => {
+  let pair = addTwoElements(`<textarea ${DISABLE} disabled></textarea>`,
+                            `<textarea ${DISABLE}></textarea>`);
+  assert_equals(pair.e1.offsetWidth, pair.e2.offsetWidth, 'width');
+  assert_equals(pair.e1.offsetHeight, pair.e2.offsetHeight, 'height');
+}, 'Disabled textarea with an empty value should have one-line height');
+
+test(() => {
   let pair = addElements(`<textarea>${LONG_TEXT}</textarea>`);
   assert_greater_than(pair.content.offsetWidth, pair.fixed.offsetWidth);
   pair = addElements(`<textarea placeholder="${LONG_TEXT}"></textarea>`);

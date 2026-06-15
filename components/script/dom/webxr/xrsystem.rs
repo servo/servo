@@ -8,10 +8,12 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
 use ipc_channel::router::ROUTER;
+use js::context::JSContext;
+use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::ipc;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
@@ -20,7 +22,7 @@ use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
     XRSessionInit, XRSessionMode, XRSystemMethods,
 };
-use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertible};
+use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -29,13 +31,10 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepad::Gamepad;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
-use crate::realms::InRealm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -63,11 +62,11 @@ impl XRSystem {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<XRSystem> {
-        reflect_dom_object(
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<XRSystem> {
+        reflect_dom_object_with_cx(
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -115,9 +114,9 @@ impl Convert<SessionMode> for XRSessionMode {
 
 impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     /// <https://immersive-web.github.io/webxr/#dom-xr-issessionsupported>
-    fn IsSessionSupported(&self, mode: XRSessionMode, can_gc: CanGc) -> Rc<Promise> {
+    fn IsSessionSupported(&self, cx: &mut CurrentRealm, mode: XRSessionMode) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new(&self.global(), can_gc);
+        let promise = Promise::new_in_realm(cx);
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
         let global = self.global();
         let task_source = global
@@ -158,14 +157,13 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     /// <https://immersive-web.github.io/webxr/#dom-xr-requestsession>
     fn RequestSession(
         &self,
+        realm: &mut CurrentRealm,
         mode: XRSessionMode,
         init: RootedTraceableBox<XRSessionInit>,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         let global = self.global();
         let window = global.as_window();
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_realm(realm);
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
@@ -174,13 +172,13 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                         "The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR."
                     );
                 } else {
-                    promise.reject_error(Error::Security(None), can_gc);
+                    promise.reject_error_with_cx(realm, Error::Security(None));
                     return promise;
                 }
             }
 
             if self.pending_or_active_session() {
-                promise.reject_error(Error::InvalidState(None), can_gc);
+                promise.reject_error_with_cx(realm, Error::InvalidState(None));
                 return promise;
             }
 
@@ -189,12 +187,11 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
 
         let mut required_features = vec![];
         let mut optional_features = vec![];
-        let cx = GlobalScope::get_cx();
 
         if let Some(ref r) = init.requiredFeatures {
             for feature in r {
                 if let Ok(ConversionResult::Success(s)) =
-                    String::safe_from_jsval(cx, feature.handle(), (), can_gc)
+                    String::safe_from_jsval(realm, feature.handle(), ())
                 {
                     required_features.push(s)
                 } else {
@@ -202,7 +199,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     if mode != XRSessionMode::Inline {
                         self.pending_immersive_session.set(false);
                     }
-                    promise.reject_error(Error::NotSupported(None), can_gc);
+                    promise.reject_error_with_cx(realm, Error::NotSupported(None));
                     return promise;
                 }
             }
@@ -211,7 +208,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
         if let Some(ref o) = init.optionalFeatures {
             for feature in o {
                 if let Ok(ConversionResult::Success(s)) =
-                    String::safe_from_jsval(cx, feature.handle(), (), can_gc)
+                    String::safe_from_jsval(realm, feature.handle(), ())
                 {
                     optional_features.push(s)
                 } else {
@@ -256,8 +253,8 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     error!("requestSession callback given incorrect payload");
                     return;
                 };
-                task_source.queue(task!(request_session: move || {
-                    this.root().session_obtained(message, trusted.root(), mode, frame_receiver, CanGc::deprecated_note());
+                task_source.queue(task!(request_session: move |cx| {
+                    this.root().session_obtained(cx, message, trusted.root(), mode, frame_receiver);
                 }));
             }),
         );
@@ -268,20 +265,19 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn Test(&self) -> DomRoot<XRTest> {
-        self.test
-            .or_init(|| XRTest::new(&self.global(), CanGc::deprecated_note()))
+    fn Test(&self, cx: &mut JSContext) -> DomRoot<XRTest> {
+        self.test.or_init(|| XRTest::new(cx, &self.global()))
     }
 }
 
 impl XRSystem {
     fn session_obtained(
         &self,
+        cx: &mut JSContext,
         response: Result<Session, XRError>,
         promise: Rc<Promise>,
         mode: XRSessionMode,
         frame_receiver: IpcReceiver<Frame>,
-        can_gc: CanGc,
     ) {
         let session = match response {
             Ok(session) => session,
@@ -290,17 +286,11 @@ impl XRSystem {
                 if mode != XRSessionMode::Inline {
                     self.pending_immersive_session.set(false);
                 }
-                promise.reject_error(Error::NotSupported(None), can_gc);
+                promise.reject_error_with_cx(cx, Error::NotSupported(None));
                 return;
             },
         };
-        let session = XRSession::new(
-            self.global().as_window(),
-            session,
-            mode,
-            frame_receiver,
-            CanGc::deprecated_note(),
-        );
+        let session = XRSession::new(cx, self.global().as_window(), session, mode, frame_receiver);
         if mode == XRSessionMode::Inline {
             self.active_inline_sessions
                 .borrow_mut()
@@ -308,7 +298,7 @@ impl XRSystem {
         } else {
             self.set_active_immersive_session(&session);
         }
-        promise.resolve_native(&session, can_gc);
+        promise.resolve_native_with_cx(cx, &session);
         // https://github.com/immersive-web/webxr/issues/961
         // This must be called _after_ the promise is resolved
         session.setup_initial_inputs();

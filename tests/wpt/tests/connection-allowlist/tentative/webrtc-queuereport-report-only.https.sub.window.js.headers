@@ -1,0 +1,2 @@
+Reporting-Endpoints: endpoint="/reporting/resources/report.py?reportID=593e9558-bbec-4f10-9cba-ecb85906246a"
+Connection-Allowlist-Report-Only: (response-origin); webrtc=block; report-to=endpoint

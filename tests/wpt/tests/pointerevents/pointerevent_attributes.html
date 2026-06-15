@@ -36,8 +36,6 @@
     'pointermove'
   ];
 
-  let eventsLogged = [];
-
   function verifyButtonAttributes(event) {
     let downButton, upButton, downButtons, upButtons;
     if (button == 'right') {
@@ -124,7 +122,7 @@
       const testName = `${testNamePrefix} attribute test.`;
 
       promise_test(async test => {
-        eventsLogged = [];
+        let eventsLogged = [];
 
         function eventChecker(e) {
           e.preventDefault();
@@ -132,7 +130,8 @@
 
           verifyButtonAttributes(e);
           verifyPosition(e);
-          assert_true(e.isPrimary, `${testNamePrefix}: isPrimary attribute is true`);
+          assert_true(e.isPrimary,
+                      `${testNamePrefix}: isPrimary attribute is true`);
           check_PointerEvent(e, testNamePrefix);
         };
 
@@ -169,7 +168,7 @@
         // all other events should have been handled.
         {
           const doneButton = document.getElementById('done');
-          const clickOnDone = getEvent('click', doneButton);
+          const clickOnDone = getEvent('pointerup', doneButton);
           await new test_driver.Actions()
             .addPointer('pointer1', pointerType)
             .pointerMove(0, 0, {origin: doneButton})

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting CharacterData.data while slot distribution is dirty should not crash</title>
+<link rel="help" href="https://crbug.com/673967">
+<div id="host">XXX</div>
+<script>
+  document.body.offsetTop;
+  var root = host.attachShadow({mode: "open"});
+  root.innerHTML = "<slot></slot>";
+  host.firstChild.data = " ";
+</script>

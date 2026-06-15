@@ -10,7 +10,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlformelement::{FormControl, ResetFrom};
 use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
 use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::SpecificInputType;
+use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::NodeTraits;
 
 const DEFAULT_RESET_VALUE: &str = "Reset";
@@ -21,11 +21,22 @@ pub(crate) struct ResetInputType {
     text_value_widget: DomRefCell<TextValueWidget>,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct ResetInputActivation;
+
 impl SpecificInputType for ResetInputType {
     fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> DOMString {
         DEFAULT_RESET_VALUE.into()
     }
 
+    fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
+        self.text_value_widget
+            .borrow()
+            .update_shadow_tree(cx, input)
+    }
+}
+
+impl SpecificInputActivationType for ResetInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):input-activation-behavior>
     fn activation_behavior(
         &self,
@@ -46,11 +57,5 @@ impl SpecificInputType for ResetInputType {
             // Step 3: Reset the form owner from the element.
             form_owner.reset(cx, ResetFrom::NotFromForm);
         }
-    }
-
-    fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.text_value_widget
-            .borrow()
-            .update_shadow_tree(cx, input)
     }
 }

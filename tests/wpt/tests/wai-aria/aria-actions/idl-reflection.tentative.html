@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>aria-actions: ariaActionsElements IDL reflection (tentative)</title>
+<link rel="help" href="https://github.com/w3c/aria/pull/1805">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+class AriaActionsTestElement extends HTMLElement {
+  constructor() {
+    super();
+    this.i = this.attachInternals();
+  }
+}
+customElements.define("aria-actions-test-element", AriaActionsTestElement);
+
+function runSharedTests(label, makeFixture) {
+  test(() => {
+    const { reflector } = makeFixture();
+    assert_equals(reflector.ariaActionsElements, null);
+  }, `[${label}] ariaActionsElements is null by default`);
+
+  test(() => {
+    const { reflector } = makeFixture();
+    const a = document.createElement("button");
+    const b = document.createElement("button");
+    document.body.append(a, b);
+    reflector.ariaActionsElements = [a, b];
+    assert_array_equals(reflector.ariaActionsElements, [a, b]);
+    a.remove();
+    b.remove();
+  }, `[${label}] IDL setter exposes elements via the getter, in order`);
+
+  test(() => {
+    const { reflector } = makeFixture();
+    const a = document.createElement("button");
+    document.body.appendChild(a);
+    reflector.ariaActionsElements = [a];
+    reflector.ariaActionsElements = null;
+    assert_equals(reflector.ariaActionsElements, null);
+    a.remove();
+  }, `[${label}] Setting to null clears the IDL reflection`);
+
+  test(() => {
+    const { reflector } = makeFixture();
+    reflector.ariaActionsElements = [];
+    assert_array_equals(reflector.ariaActionsElements, []);
+    reflector.ariaActionsElements = null;
+    assert_equals(reflector.ariaActionsElements, null,
+        "[] and null are distinct");
+  }, `[${label}] ariaActionsElements distinguishes [] from null`);
+
+  test(() => {
+    const { reflector } = makeFixture();
+    const a = document.createElement("button");
+    const b = document.createElement("button");
+    document.body.append(a, b);
+    reflector.ariaActionsElements = [a];
+
+    const first = reflector.ariaActionsElements;
+    assert_equals(reflector.ariaActionsElements, first,
+        "Repeated reads return the same FrozenArray");
+
+    reflector.ariaActionsElements = [a, b];
+    const after = reflector.ariaActionsElements;
+    assert_not_equals(after, first,
+        "Reassignment yields a new FrozenArray");
+    assert_array_equals(after, [a, b]);
+
+    a.remove();
+    b.remove();
+  }, `[${label}] FrozenArray identity is preserved across reads until reassignment`);
+}
+
+runSharedTests("Element", () => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  return { host, reflector: host };
+});
+
+runSharedTests("ElementInternals", () => {
+  const host = document.createElement("aria-actions-test-element");
+  document.body.appendChild(host);
+  return { host, reflector: host.i };
+});
+
+test(() => {
+  const host = document.createElement("div");
+  const a = document.createElement("button");
+  a.id = "aa-target-a";
+  const b = document.createElement("button");
+  b.id = "aa-target-b";
+  document.body.append(host, a, b);
+  host.setAttribute("aria-actions", "aa-target-a aa-target-b");
+  assert_array_equals(host.ariaActionsElements, [a, b]);
+  host.remove();
+  a.remove();
+  b.remove();
+}, "[Element] Content attribute with resolvable IDREFs reflects to those elements");
+
+test(() => {
+  const host = document.createElement("div");
+  host.setAttribute("aria-actions", "no-such-id");
+  document.body.appendChild(host);
+  assert_array_equals(host.ariaActionsElements, []);
+  host.remove();
+}, "[Element] Unresolvable IDREFs reflect to an empty list");
+
+test(() => {
+  const host = document.createElement("div");
+  const a = document.createElement("button");
+  document.body.append(host, a);
+  host.ariaActionsElements = [a];
+  assert_equals(host.getAttribute("aria-actions"), "",
+      "Setter writes empty string as the presence flag");
+  host.remove();
+  a.remove();
+}, "[Element] IDL setter writes empty string to the aria-actions content attribute");
+
+test(() => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  host.ariaActionsElements = [];
+  assert_equals(host.getAttribute("aria-actions"), "");
+  host.remove();
+}, "[Element] Setting to [] writes empty string to the content attribute");
+
+test(() => {
+  const host = document.createElement("div");
+  const a = document.createElement("button");
+  document.body.append(host, a);
+  host.ariaActionsElements = [a];
+  host.ariaActionsElements = null;
+  assert_false(host.hasAttribute("aria-actions"),
+      "Setting to null removes the content attribute");
+  host.remove();
+  a.remove();
+}, "[Element] Setting ariaActionsElements to null removes the aria-actions content attribute");
+
+test(() => {
+  const host = document.createElement("div");
+  const a = document.createElement("button");
+  document.body.append(host, a);
+  host.ariaActionsElements = [a];
+  assert_array_equals(host.ariaActionsElements, [a], "Pre-condition");
+  host.removeAttribute("aria-actions");
+  assert_array_equals(host.ariaActionsElements, [a],
+      "IDL-set elements survive content-attribute removal");
+  host.remove();
+  a.remove();
+}, "[Element] Removing the aria-actions content attribute preserves IDL-set elements");
+
+test(() => {
+  const host = document.createElement("div");
+  const a = document.createElement("button");
+  document.body.append(host, a);
+  host.ariaActionsElements = [a];
+  const initial = host.ariaActionsElements;
+  assert_array_equals(initial, [a],
+      "Pre-condition: target reflected while connected");
+  assert_equals(host.ariaActionsElements, initial,
+      "Identity preserved across reads with no intervening change");
+
+  a.remove();
+  const afterRemove = host.ariaActionsElements;
+  assert_array_equals(afterRemove, [],
+      "Disconnected target filtered out");
+  assert_not_equals(afterRemove, initial,
+      "Removing an element from the DOM yields a new FrozenArray");
+
+  document.body.appendChild(a);
+  const afterReadd = host.ariaActionsElements;
+  assert_array_equals(afterReadd, [a],
+      "Reconnected target restored");
+  assert_not_equals(afterReadd, afterRemove,
+      "Re-adding an element to the DOM yields a new FrozenArray");
+
+  host.remove();
+  a.remove();
+}, "[Element] Disconnecting a target hides it; reconnecting restores it");
+
+test(() => {
+  const host = document.createElement("div");
+  const idlTarget = document.createElement("button");
+  idlTarget.id = "idl-target";
+  const contentTarget = document.createElement("button");
+  contentTarget.id = "content-target";
+  document.body.append(host, idlTarget, contentTarget);
+
+  host.setAttribute("aria-actions", "content-target");
+  host.ariaActionsElements = [idlTarget];
+
+  assert_array_equals(host.ariaActionsElements, [idlTarget],
+      "IDL-set element wins over content-attribute IDREF");
+  assert_equals(host.getAttribute("aria-actions"), "",
+      "Setter replaces the content attribute value with empty string");
+
+  host.remove();
+  idlTarget.remove();
+  contentTarget.remove();
+}, "[Element] IDL setter takes precedence over the content attribute value");
+
+test(() => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const shadowHost = document.createElement("div");
+  document.body.appendChild(shadowHost);
+  const shadowRoot = shadowHost.attachShadow({ mode: "open" });
+  const inShadow = document.createElement("button");
+  shadowRoot.appendChild(inShadow);
+
+  // inShadow is in a shadow tree that is not an ancestor of host.
+  host.ariaActionsElements = [inShadow];
+  assert_array_equals(host.ariaActionsElements, []);
+
+  host.remove();
+  shadowHost.remove();
+}, "[Element] Cross-shadow-tree targets are filtered out");
+
+test(() => {
+  const shadowHost = document.createElement("div");
+  document.body.appendChild(shadowHost);
+  const shadowRoot = shadowHost.attachShadow({ mode: "open" });
+  const host = document.createElement("div");
+  const target = document.createElement("button");
+  shadowRoot.append(host, target);
+
+  host.ariaActionsElements = [target];
+  assert_array_equals(host.ariaActionsElements, [target]);
+
+  shadowHost.remove();
+}, "[Element] Same-shadow-tree targets are reflected");
+</script>
+</body>

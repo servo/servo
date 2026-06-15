@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: styles for children of canvas</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:chrishtr@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  * {
+    contain: none !important;
+    position: absolute !important;
+  }
+</style>
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id=child1>
+    <div id=grandchild1></div>
+  </div>
+  <div id=child2>
+    <div id=grandchild2></div>
+  </div>
+</canvas>
+<script>
+promise_test(async () => {
+  child_asserts = {
+    contain: 'paint',
+    position: 'static'};
+  grandchild_asserts = {
+    contain: 'none',
+    position: 'absolute'};
+
+  for (a in child_asserts) {
+    assert_equals(getComputedStyle(child1)[a], child_asserts[a]);
+    assert_equals(getComputedStyle(child2)[a], child_asserts[a]);
+  }
+  for (a in grandchild_asserts) {
+    assert_equals(getComputedStyle(grandchild1)[a], grandchild_asserts[a]);
+    assert_equals(getComputedStyle(grandchild2)[a], grandchild_asserts[a]);
+  }
+}, 'canvas child containment');
+</script>

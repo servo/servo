@@ -14,7 +14,11 @@ promise_test(async t => {
     onpopstate_fired = true;
     last_state = e.state;
   }
-  navigation.onnavigate = t.step_func(e => e.intercept());
+  navigation.onnavigate = t.step_func(e => e.intercept({handler: () => {
+    const {promise, resolve} = Promise.withResolvers();
+    t.step_timeout(resolve, 5);
+    return promise;
+  }}));
 
   await navigation.navigate("#").finished;
   assert_true(navigation.canGoBack);
@@ -22,5 +26,5 @@ promise_test(async t => {
   await navigation.back().finished;
   assert_true(onpopstate_fired);
   assert_not_equals(last_state, null);
-}, "event.intercept() should provide popstate with a valid state object");
+}, "event.intercept() should provide popstate with a valid state object 2");
 </script>

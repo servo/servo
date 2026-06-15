@@ -6,10 +6,11 @@ use std::sync::Arc;
 
 use dom_struct::dom_struct;
 use itertools::Itertools;
+use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::rust::HandleObject;
 use js::typedarray::Float32Array;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::audio::iir_filter_node::{IIRFilterNode as IIRFilter, IIRFilterNodeOptions};
 use servo_media::audio::node::AudioNodeInit;
 
@@ -26,7 +27,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct IIRFilterNode {
@@ -38,6 +38,7 @@ pub(crate) struct IIRFilterNode {
 impl IIRFilterNode {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
+        cx: &mut JSContext,
         _window: &Window,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
@@ -58,6 +59,7 @@ impl IIRFilterNode {
         let feedback = (*options.feedback).to_vec();
         let init_options = options.clone().convert();
         let node = AudioNode::new_inherited(
+            cx,
             AudioNodeInit::IIRFilterNode(init_options),
             context,
             node_options,
@@ -72,28 +74,28 @@ impl IIRFilterNode {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
-        Self::new_with_proto(window, None, context, options, can_gc)
+        Self::new_with_proto(cx, window, None, context, options)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
-        let node = IIRFilterNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object_with_proto(
+        let node = IIRFilterNode::new_inherited(cx, window, context, options)?;
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(node),
             window,
             proto,
-            can_gc,
+            cx,
         ))
     }
 }
@@ -101,13 +103,13 @@ impl IIRFilterNode {
 impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-iirfilternode-iirfilternode>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
-        IIRFilterNode::new_with_proto(window, proto, context, options, can_gc)
+        IIRFilterNode::new_with_proto(cx, window, proto, context, options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-iirfilternode-getfrequencyresponse>

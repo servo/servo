@@ -44,8 +44,8 @@ jobs:
     steps:
       - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
         with:
-          fetch-depth: 2
-
+          # Fetch all commits, for `mach test-tidy`
+          fetch-depth: 0
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         if: ${{ runner.environment != 'self-hosted' }}
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
@@ -78,4 +78,6 @@ jobs:
         run: |
           ./mach clippy --locked --github-annotations -- -- --deny warnings
       - name: Tidy
+        env:
+          CI_PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
         run: ./mach test-tidy --no-progress --all --github-annotations

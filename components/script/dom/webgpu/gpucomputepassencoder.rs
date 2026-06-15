@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{WebGPU, WebGPUComputePass, WebGPURequest};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePassEncoderMethods;
@@ -15,7 +16,6 @@ use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::webgpu::gpucomputepipeline::GPUComputePipeline;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUComputePassEncoder {
@@ -64,14 +64,14 @@ impl GPUComputePassEncoder {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         channel: WebGPU,
         parent: &GPUCommandEncoder,
         compute_pass: WebGPUComputePass,
         label: USVString,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(GPUComputePassEncoder::new_inherited(
                 channel,
                 parent,
@@ -79,7 +79,7 @@ impl GPUComputePassEncoder {
                 label,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 }
@@ -176,6 +176,53 @@ impl GPUComputePassEncoderMethods<crate::DomTypeHolder> for GPUComputePassEncode
             })
         {
             warn!("Error sending WebGPURequest::ComputePassSetPipeline: {e:?}")
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup>
+    fn PushDebugGroup(&self, group_label: USVString) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassPushDebugGroup {
+                compute_pass_id: self.droppable.compute_pass.0,
+                label: group_label.to_string(),
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassPushDebugGroup: {e:?}")
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup>
+    fn PopDebugGroup(&self) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassPopDebugGroup {
+                compute_pass_id: self.droppable.compute_pass.0,
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassPopDebugGroup: {e:?}")
+        }
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
+    fn InsertDebugMarker(&self, marker_label: USVString) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassInsertDebugMarker {
+                compute_pass_id: self.droppable.compute_pass.0,
+                label: marker_label.to_string(),
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassInsertDebugMarker: {e:?}")
         }
     }
 }

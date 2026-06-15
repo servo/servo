@@ -493,7 +493,7 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         try:
             while not self.close_connection:
                 data = self.request.recv(window_size)
-                if data == '':
+                if data == b'':
                     self.logger.debug('(%s) Socket Closed' % self.uid)
                     self.close_connection = True
                     continue
@@ -501,6 +501,11 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
                 with self.conn as connection:
                     frames = connection.receive_data(data)
                     window_size = connection.remote_settings.initial_window_size
+                    non_closed_streams = {
+                        stream_id
+                        for stream_id, stream in connection.streams.items()
+                        if not stream.closed
+                    }
 
                 self.logger.debug('(%s) Frames Received: ' % self.uid + str(frames))
 
@@ -513,17 +518,24 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
                         for stream_id, (thread, queue) in stream_queues.items():
                             queue.put(frame)
 
-                    elif hasattr(frame, 'stream_id'):
+                    elif hasattr(frame, 'stream_id') and frame.stream_id != 0:
+                        # Stream ID 0 is reserved for connection control messages (RFC 9113 § 5.1.1)
+                        # and is handled directly by h2, so we only create streams for stream IDs > 0
                         if frame.stream_id not in stream_queues:
                             queue = Queue()
                             stream_queues[frame.stream_id] = (self.start_stream_thread(frame, queue), queue)
                         stream_queues[frame.stream_id][1].put(frame)
 
-                        if isinstance(frame, StreamEnded) or getattr(frame, "stream_ended", False):
-                            del stream_queues[frame.stream_id]
+                for closed_id in set(stream_queues.keys()) - non_closed_streams:
+                    self.logger.debug(f'({self.uid}) Stream {closed_id} is closed, removing queue')
+                    del stream_queues[closed_id]
 
         except OSError as e:
             self.logger.error(f'({self.uid}) Closing Connection - \n{str(e)}')
+            if not self.close_connection:
+                self.close_connection = True
+        except ProtocolError as e:
+            self.logger.debug(f'H2 protocol error - {str(e)}')
             if not self.close_connection:
                 self.close_connection = True
         except Exception as e:
@@ -607,9 +619,9 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
             # wire. Flush the headers here.
             try:
                 h2response.write_status_headers()
-            except StreamClosedError:
+            except (StreamClosedError, ProtocolError):
                 # work around https://github.com/web-platform-tests/wpt/issues/27786
-                # The stream was already closed.
+                # The stream or connection was already closed.
                 return
 
             request_wrapper._dispatcher = dispatcher
@@ -737,9 +749,12 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
             if getattr(frame, "stream_ended", False):
                 try:
                     self.finish_handling(request, response, req_handler)
-                except StreamClosedError:
-                    self.logger.debug('(%s - %s) Unable to write response; stream closed' %
-                                    (self.uid, stream_id))
+                except (StreamClosedError, ProtocolError):
+                    # The stream or connection was closed before we could
+                    # finish writing the response.
+                    self.logger.debug(
+                        '(%s - %s) Unable to write response; stream or '
+                        'connection closed' % (self.uid, stream_id))
                 break
 
         cleanup()

@@ -292,7 +292,7 @@ impl Snapshot {
         let (data, byte_range) = match &self.data {
             SnapshotData::SharedMemory(data, byte_range) => (data.clone(), byte_range.clone()),
             SnapshotData::SharedVec(data, byte_range) => (
-                Arc::new(GenericSharedMemory::from_bytes(data)),
+                Arc::new(GenericSharedMemory::from_arc_vec(data.clone())),
                 byte_range.clone(),
             ),
             SnapshotData::Owned(data) => (

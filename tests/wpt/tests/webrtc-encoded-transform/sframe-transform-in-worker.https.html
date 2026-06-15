@@ -29,7 +29,7 @@ promise_test(async (test) => {
     const localStream = await navigator.mediaDevices.getUserMedia({ video: true });
 
     let sender, receiver;
-    const senderTransform = new SFrameTransform({ compatibilityMode: "H264" });
+    const senderTransform = new RTCRtpSFrameEncrypter({ cipherSuite: "AES_128_CTR_HMAC_SHA256_80" });
     const receiverTransform = new RTCRtpScriptTransform(worker, "SFrameRTCRtpTransform");
 
     const key = await crypto.subtle.importKey("raw", new Uint8Array([143, 77, 43, 10, 72, 19, 37, 67, 236, 219, 24, 93, 26, 165, 91, 178]), "HKDF", false, ["deriveBits", "deriveKey"]);

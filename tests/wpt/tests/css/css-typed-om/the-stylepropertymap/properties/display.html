@@ -52,8 +52,15 @@ for (let value of ['inline math', 'math inline']) {
   }, `'display' does not support setting '${value}'`);
 }
 
+// TODO: Consider adding the run-in combinations once they are supported by
+// browsers at the CSS OM level.
 runUnsupportedPropertyTests('display', [
-  'block math', 'math block'
+  'block math',
+  'math block',
+  'block ruby',
+  'inline list-item',
+  'flow-root list-item',
+  'inline flow-root list-item'
 ]);
 
 </script>

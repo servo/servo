@@ -8,8 +8,9 @@ use std::fmt;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use itertools::Itertools;
+use js::context::JSContext;
 use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use stylo_dom::ElementState;
 
 use super::bindings::codegen::Bindings::ElementInternalsBinding::ValidityStateFlags;
@@ -22,7 +23,6 @@ use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#validity-states>
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -91,12 +91,12 @@ impl ValidityState {
         }
     }
 
-    pub(crate) fn new(window: &Window, element: &Element, can_gc: CanGc) -> DomRoot<ValidityState> {
-        reflect_dom_object(
-            Box::new(ValidityState::new_inherited(element)),
-            window,
-            can_gc,
-        )
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        element: &Element,
+    ) -> DomRoot<ValidityState> {
+        reflect_dom_object_with_cx(Box::new(ValidityState::new_inherited(element)), window, cx)
     }
 
     // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
@@ -105,9 +105,9 @@ impl ValidityState {
     }
 
     // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
-    pub(crate) fn set_custom_error_message(&self, error: DOMString) {
+    pub(crate) fn set_custom_error_message(&self, cx: &mut JSContext, error: DOMString) {
         *self.custom_error_message.borrow_mut() = error;
-        self.perform_validation_and_update(ValidationFlags::CUSTOM_ERROR, CanGc::deprecated_note());
+        self.perform_validation_and_update(cx, ValidationFlags::CUSTOM_ERROR);
     }
 
     /// Given a set of [ValidationFlags], recalculate their value by performing
@@ -117,14 +117,14 @@ impl ValidityState {
     /// to reflect the existance of a custom error.
     pub(crate) fn perform_validation_and_update(
         &self,
+        cx: &mut JSContext,
         update_flags: ValidationFlags,
-        can_gc: CanGc,
     ) {
         let mut invalid_flags = self.invalid_flags.get();
         invalid_flags.remove(update_flags);
 
         if let Some(validatable) = self.element.as_maybe_validatable() {
-            let new_flags = validatable.perform_validation(update_flags, can_gc);
+            let new_flags = validatable.perform_validation(cx, update_flags);
             invalid_flags.insert(new_flags);
         }
 
@@ -136,7 +136,7 @@ impl ValidityState {
         }
 
         self.invalid_flags.set(invalid_flags);
-        self.update_pseudo_classes(can_gc);
+        self.update_pseudo_classes(cx);
     }
 
     pub(crate) fn update_invalid_flags(&self, update_flags: ValidationFlags) {
@@ -147,7 +147,7 @@ impl ValidityState {
         self.invalid_flags.get()
     }
 
-    pub(crate) fn update_pseudo_classes(&self, can_gc: CanGc) {
+    pub(crate) fn update_pseudo_classes(&self, cx: &mut JSContext) {
         if self.element.is_instance_validatable() {
             let is_valid = self.invalid_flags.get().is_empty();
             self.element.set_state(ElementState::VALID, is_valid);
@@ -160,7 +160,7 @@ impl ValidityState {
         if let Some(form_control) = self.element.as_maybe_form_control() &&
             let Some(form_owner) = form_control.form_owner()
         {
-            form_owner.update_validity(can_gc);
+            form_owner.update_validity(cx);
         }
 
         if let Some(fieldset) = self
@@ -169,7 +169,7 @@ impl ValidityState {
             .ancestors()
             .find_map(DomRoot::downcast::<HTMLFieldSetElement>)
         {
-            fieldset.update_validity(can_gc);
+            fieldset.update_validity(cx);
         }
     }
 }

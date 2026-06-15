@@ -24,6 +24,9 @@ on:
       unit-tests:
         required: false
         type: boolean
+      devtools-tests:
+        required: false
+        type: boolean
       bencher:
         required: false
         type: boolean
@@ -35,7 +38,7 @@ jobs:
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           sparse-checkout: |
@@ -112,12 +115,14 @@ jobs:
       wpt: ${{ matrix.wpt }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
+      devtools-tests: ${{ matrix.devtools_tests }}
       build-libservo: ${{ matrix.build_libservo }}
       build-args: ${{ matrix.build_args }}
       wpt-args: ${{ matrix.wpt_args }}
       number-of-wpt-chunks: ${{ matrix.number_of_wpt_chunks }}
       bencher: ${{ matrix.bencher }}
       coverage: ${{ matrix.coverage }}
+      capi: ${{ matrix.capi }}
 
   build-result:
     name: Result

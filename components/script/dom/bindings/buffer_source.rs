@@ -13,8 +13,6 @@ use std::ptr;
 #[cfg(feature = "webgpu")]
 use std::sync::Arc;
 
-#[cfg(feature = "webgpu")]
-use js::jsapi::NewExternalArrayBuffer;
 use js::jsapi::{
     ArrayBufferClone, ArrayBufferCopyData, GetArrayBufferByteLength,
     HasDefinedArrayBufferDetachKey, Heap, IsArrayBufferObject, IsDetachedArrayBufferObject,
@@ -30,6 +28,8 @@ use js::jsapi::{
 };
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers::DetachArrayBuffer;
+#[cfg(feature = "webgpu")]
+use js::rust::wrappers2::NewExternalArrayBuffer;
 use js::rust::{
     CustomAutoRooterGuard, Handle, MutableHandleObject,
     MutableHandleValue as SafeMutableHandleValue,
@@ -521,12 +521,11 @@ where
 
     pub(crate) fn set_data(
         &self,
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         data: &[T::Element],
-        can_gc: CanGc,
     ) -> Result<(), ()> {
-        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _ = create_buffer_source::<T>(cx, data, array.handle_mut(), can_gc)?;
+        rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
+        let _ = create_buffer_source::<T>(cx.into(), data, array.handle_mut(), CanGc::from_cx(cx))?;
 
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
@@ -914,6 +913,7 @@ pub(crate) fn create_array_buffer_with_size(
 
 #[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DataBlock {
     #[conditional_malloc_size_of]
     data: Arc<Box<[u8]>>,
@@ -955,7 +955,11 @@ impl DataBlock {
     }
 
     /// Returns error if requested range is already mapped
-    pub(crate) fn view(&mut self, range: Range<usize>, _can_gc: CanGc) -> Result<&DataView, ()> {
+    pub(crate) fn view(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        range: Range<usize>,
+    ) -> Result<&DataView, ()> {
         if self
             .data_views
             .iter()
@@ -963,23 +967,33 @@ impl DataBlock {
         {
             return Err(());
         }
-        let cx = GlobalScope::get_cx();
+        let range_len = range
+            .end
+            .checked_sub(range.start)
+            .expect("range end must be >= range start");
+        assert!(range.end <= self.data.len());
+
         /// `freeFunc()` must be threadsafe, should be safely callable from any thread
         /// without causing conflicts, unexpected behavior.
         unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-            // Clippy warns about "creating a `Arc` from a void raw pointer" here, but suggests
-            // the exact same line to fix it. Doing the cast is tricky because of the use of
-            // a generic type in this parameter.
-            #[expect(clippy::from_raw_with_void_ptr)]
-            drop(unsafe { Arc::from_raw(free_user_data as *const _) });
+            let raw: *const Box<[u8]> = free_user_data.cast();
+            // SAFETY: `free_func` is called by SM and returns ownership of the Arc we
+            // leaked below with `into_raw`. Hence it is safe to reconstruct the Arc,
+            // and destroy it to release the reference count.
+            drop(unsafe { Arc::from_raw(raw) });
         }
-        let raw: *mut Box<[u8]> = Arc::into_raw(Arc::clone(&self.data)) as _;
-        rooted!(in(*cx) let object = unsafe {
+        let raw: *const Box<[u8]> = Arc::into_raw(Arc::clone(&self.data));
+        // SAFETY: We leaked the Arc, so the underlying slice will stay alive
+        // until `free_func` is called. `range.start..range.end` is inside
+        // the valid range of the slice.
+        let data_ptr = unsafe { (**raw).as_ptr().add(range.start) };
+        rooted!(&in(cx) let object = unsafe {
             NewExternalArrayBuffer(
-                *cx,
-                range.end - range.start,
-                // SAFETY: This is safe because we have checked there is no overlapping view
-                (&mut (*raw))[range.clone()].as_mut_ptr() as _,
+                cx,
+                range_len,
+                // FIXME(jschwe): I believe casting to a mutable pointer is unsound.
+                // We would need interior mutability.
+                data_ptr.cast_mut().cast(),
                 Some(free_func),
                 raw as _,
             )
@@ -994,7 +1008,7 @@ impl DataBlock {
 
 #[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DataView {
     #[no_trace]
     range: Range<usize>,

@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long" />
+<title>HTMLUserMediaElement setConstraints() camera microphone behavior combinations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/pepc-helper.js"></script>
+<script src="resources/set-constraints-helper.js"></script>
+<body>
+  <script>
+    const testCases = [
+      // type="camera microphone"
+      { type: "camera microphone", video: undefined, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: "camera microphone", video: true, audio: undefined, expVideo: 1, expAudio: 0 },
+      { type: "camera microphone", video: true, audio: false, expVideo: 1, expAudio: 0 },
+      { type: "camera microphone", video: true, audio: true, expVideo: 1, expAudio: 1 },
+      { type: "camera microphone", video: false, audio: true, expVideo: 0, expAudio: 1 },
+      { type: "camera microphone", video: false, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: "camera microphone", video: false, audio: false, expVideo: 0, expAudio: 0 },
+      { type: "camera microphone", video: undefined, audio: true, expVideo: 0, expAudio: 1 },
+      { type: "camera microphone", video: undefined, audio: false, expVideo: 0, expAudio: 0 },
+    ];
+
+    runSetConstraintsTests(testCases);
+  </script>
+</body>

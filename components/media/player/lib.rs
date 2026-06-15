@@ -109,6 +109,7 @@ pub trait Player: Send + MediaInstance {
     fn set_volume(&self, volume: f64) -> Result<(), PlayerError>;
     fn volume(&self) -> f64;
     fn set_input_size(&self, size: u64) -> Result<(), PlayerError>;
+    fn set_seekable(&self, seekable: bool) -> Result<(), PlayerError>;
     fn set_playback_rate(&self, playback_rate: f64) -> Result<(), PlayerError>;
     fn playback_rate(&self) -> f64;
     fn push_data(&self, data: Vec<u8>) -> Result<(), PlayerError>;

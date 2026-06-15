@@ -597,7 +597,7 @@ impl OpenXRInput {
     pub(crate) fn input_source(&self) -> InputSource {
         let hand_support = if self.hand_tracker.is_some() {
             // openxr runtimes must always support all or none joints
-            Some(Hand::<()>::default().map(|_, _| Some(())))
+            Some(Hand::<()>::default().map(&mut (), |_, _, _| Some(())))
         } else {
             None
         };
@@ -719,7 +719,7 @@ fn locate_hand<G: Graphics>(
         return None;
     };
 
-    Some(Box::new(locations.map(|loc, _| {
+    Some(Box::new(locations.map(&mut (), |_, loc, _| {
         loc.and_then(|location| {
             let pose_valid = location.location_flags.intersects(
                 SpaceLocationFlags::POSITION_VALID | SpaceLocationFlags::ORIENTATION_VALID,

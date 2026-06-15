@@ -48,6 +48,11 @@ test(() => {
 }, 'behaviors array cannot be modified after attachment');
 
 test(() => {
+  class CustomSubmitBehavior extends HTMLSubmitButtonBehavior {}
+  assert_throws_js(TypeError, () => new CustomSubmitBehavior());
+}, 'HTMLSubmitButtonBehavior cannot be subclassed');
+
+test(() => {
   const element = document.createElement('test-element');
   const b = new HTMLSubmitButtonBehavior();
   assert_throws_js(TypeError,

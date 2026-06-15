@@ -30,14 +30,11 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::utils::{
-    define_dictionary_property, get_dictionary_property, has_own_property,
-};
+use crate::dom::bindings::utils::{define_dictionary_property, has_own_property};
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
-use crate::script_runtime::CanGc;
 
 // https://www.w3.org/TR/IndexedDB-3/#convert-key-to-value
 #[expect(unsafe_code)]
@@ -263,7 +260,7 @@ pub fn convert_value_to_key(
     if input.is_string() {
         // 3.1. Return a new key with type string and value input.
         let string_ptr = std::ptr::NonNull::new(input.to_string()).unwrap();
-        let key = unsafe { jsstr_to_string(cx.raw_cx(), string_ptr) };
+        let key = unsafe { jsstr_to_string(cx, string_ptr) };
         return Ok(ConversionResult::Valid(IndexedDBKeyType::String(key)));
     }
 
@@ -533,23 +530,21 @@ pub(crate) fn evaluate_key_path_on_value(
 
                 // If value is an Array and identifier is "length"
                 if identifier == "length" {
-                    unsafe {
-                        let mut is_array = false;
-                        if !IsArrayObject(cx, current_value.handle(), &mut is_array) {
-                            return Err(Error::JSFailed);
-                        }
-                        if is_array {
-                            // Let value be ! ToLength(! Get(value, "length")).
-                            rooted!(&in(cx) let object = current_value.to_object());
-                            get_property_jsval(
-                                cx.into(),
-                                object.handle(),
-                                c"length",
-                                current_value.handle_mut(),
-                            )?;
+                    let mut is_array = false;
+                    if unsafe { !IsArrayObject(cx, current_value.handle(), &mut is_array) } {
+                        return Err(Error::JSFailed);
+                    }
+                    if is_array {
+                        // Let value be ! ToLength(! Get(value, "length")).
+                        rooted!(&in(cx) let object = current_value.to_object());
+                        get_property_jsval(
+                            cx,
+                            object.handle(),
+                            c"length",
+                            current_value.handle_mut(),
+                        )?;
 
-                            continue;
-                        }
+                        continue;
                     }
                 }
 
@@ -615,43 +610,35 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // Otherwise
-                unsafe {
-                    // If Type(value) is not Object, return failure.
-                    if !current_value.is_object() {
-                        return Ok(EvaluationResult::Failure);
-                    }
+                // If Type(value) is not Object, return failure.
+                if !current_value.is_object() {
+                    return Ok(EvaluationResult::Failure);
+                }
 
-                    rooted!(&in(cx) let object = current_value.to_object());
-                    let identifier_name =
-                        CString::new(identifier).expect("Failed to convert str to CString");
+                rooted!(&in(cx) let object = current_value.to_object());
+                let identifier_name =
+                    CString::new(identifier).expect("Failed to convert str to CString");
 
-                    // Let hop be ! HasOwnProperty(value, identifier).
-                    let hop =
-                        has_own_property(cx.into(), object.handle(), identifier_name.as_c_str())
-                            .map_err(|_| Error::JSFailed)?;
+                // Let hop be ! HasOwnProperty(value, identifier).
+                let hop = has_own_property(cx.into(), object.handle(), identifier_name.as_c_str())
+                    .map_err(|_| Error::JSFailed)?;
 
-                    // If hop is false, return failure.
-                    if !hop {
-                        return Ok(EvaluationResult::Failure);
-                    }
+                // If hop is false, return failure.
+                if !hop {
+                    return Ok(EvaluationResult::Failure);
+                }
 
-                    // Let value be ! Get(value, identifier).
-                    match get_dictionary_property(
-                        cx.raw_cx(),
-                        object.handle(),
-                        identifier_name.as_c_str(),
-                        current_value.handle_mut(),
-                        CanGc::deprecated_note(),
-                    ) {
-                        Ok(true) => {},
-                        Ok(false) => return Ok(EvaluationResult::Failure),
-                        Err(()) => return Err(Error::JSFailed),
-                    }
+                // Let value be ! Get(value, identifier).
+                get_property_jsval(
+                    cx,
+                    object.handle(),
+                    identifier_name.as_c_str(),
+                    current_value.handle_mut(),
+                )?;
 
-                    // If value is undefined, return failure.
-                    if current_value.get().is_undefined() {
-                        return Ok(EvaluationResult::Failure);
-                    }
+                // If value is undefined, return failure.
+                if current_value.get().is_undefined() {
+                    return Ok(EvaluationResult::Failure);
                 }
             }
 
@@ -674,7 +661,6 @@ pub(crate) enum ExtractionResult {
 }
 
 /// <https://w3c.github.io/IndexedDB/#check-that-a-key-could-be-injected-into-a-value>
-#[expect(unsafe_code)]
 pub(crate) fn can_inject_key_into_value(
     cx: &mut JSContext,
     value: HandleValue,
@@ -720,19 +706,12 @@ pub(crate) fn can_inject_key_into_value(
         }
 
         // Step 3.4. Set value to ? Get(value, identifier).
-        match unsafe {
-            get_dictionary_property(
-                cx.raw_cx(),
-                current_object.handle(),
-                identifier_name.as_c_str(),
-                current_value.handle_mut(),
-                CanGc::deprecated_note(),
-            )
-        } {
-            Ok(true) => {},
-            Ok(false) => return Ok(false),
-            Err(()) => return Err(Error::JSFailed),
-        }
+        get_property_jsval(
+            cx,
+            current_object.handle(),
+            identifier_name.as_c_str(),
+            current_value.handle_mut(),
+        )?;
     }
 
     // Step 4. Return true if value is an Object or an Array, and false otherwise.
@@ -800,19 +779,12 @@ pub(crate) fn inject_key_into_value(
         }
 
         // Step 4.3 Let value be ! Get(value, identifier).
-        match unsafe {
-            get_dictionary_property(
-                cx.raw_cx(),
-                current_object.handle(),
-                identifier_name.as_c_str(),
-                current_value.handle_mut(),
-                CanGc::deprecated_note(),
-            )
-        } {
-            Ok(true) => {},
-            Ok(false) => return Ok(false),
-            Err(()) => return Err(Error::JSFailed),
-        }
+        get_property_jsval(
+            cx,
+            current_object.handle(),
+            identifier_name.as_c_str(),
+            current_value.handle_mut(),
+        )?;
 
         // Step 5 "Assert: value is an Object or an Array."
         if !current_value.is_object() {

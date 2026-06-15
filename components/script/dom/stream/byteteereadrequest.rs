@@ -131,12 +131,7 @@ impl ByteTeeReadRequest {
         // Helper to surface clone failures exactly once
         let handle_clone_error = |cx: &mut JSContext, error: Error| {
             rooted!(&in(cx) let mut error_value = UndefinedValue());
-            error.to_jsval(
-                cx.into(),
-                &self.global(),
-                error_value.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            error.to_jsval(cx, &self.global(), error_value.handle_mut());
 
             let branch_1_controller = self.branch_1.get_byte_controller();
             let branch_2_controller = self.branch_2.get_byte_controller();
@@ -148,7 +143,7 @@ impl ByteTeeReadRequest {
                 .stream
                 .cancel(cx, &self.stream.global(), error_value.handle());
             self.cancel_promise
-                .resolve_native(&cancel_result, CanGc::from_cx(cx));
+                .resolve_native_with_cx(cx, &cancel_result);
         };
 
         // Prepare per branch chunks ahead of the spec enqueue steps.
@@ -254,7 +249,7 @@ impl ByteTeeReadRequest {
 
         // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
+            self.cancel_promise.resolve_native_with_cx(cx, &());
         }
 
         Ok(())

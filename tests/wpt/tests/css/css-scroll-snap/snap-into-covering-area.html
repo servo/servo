@@ -49,9 +49,6 @@
   </div>
   <script>
     promise_test(async(t) => {
-      const x = scroller.clientWidth / 2;
-      const y = scroller.clientHeight / 2;
-
       // Scroll all the way down to the smaller snap area which doesn't cover
       // the snapport.
       let scrollend_promise = new Promise((resolve) => {

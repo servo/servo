@@ -52,15 +52,20 @@ impl CredentialsContainer {
         assert!(global.is_secure_context());
         // Step 3. Let document be settings’s relevant global object's associated Document.
         let document = global.as_window().Document();
+
+        let promise = Promise::new_in_realm(cx);
         // Step 4. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
-            return Err(Error::InvalidState(None));
+            promise.reject_error_with_cx(cx, Error::InvalidState(None));
+            return Ok(promise);
         }
         // Step 5. If options.signal is aborted, then return a promise rejected with options.signal’s abort reason.
         if options.signal.as_ref().is_some_and(|s| s.aborted()) {
-            return Err(Error::Abort(None));
+            promise.reject_error_with_cx(cx, Error::Abort(None));
+            return Ok(promise);
         }
-        Err(Error::NotSupported(None))
+        promise.reject_error_with_cx(cx, Error::NotSupported(None));
+        Ok(promise)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-store-a-credential>
@@ -73,11 +78,15 @@ impl CredentialsContainer {
         let global = GlobalScope::from_current_realm(cx);
         // Step 2. Assert: settings is a secure context.
         assert!(global.is_secure_context());
+
+        let promise = Promise::new_in_realm(cx);
         // Step 3. If settings’s relevant global object's associated Document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !global.as_window().Document().is_fully_active() {
-            return Err(Error::InvalidState(None));
+            promise.reject_error_with_cx(cx, Error::InvalidState(None));
+            return Ok(promise);
         }
-        Err(Error::NotSupported(None))
+        promise.reject_error_with_cx(cx, Error::NotSupported(None));
+        Ok(promise)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-create-a-credential>
@@ -93,11 +102,15 @@ impl CredentialsContainer {
         // Step 3. Let global be settings’ global object.
         // Step 4. Let document be the relevant global object’s associated Document.
         let document = global.as_window().Document();
+
+        let promise = Promise::new_in_realm(cx);
         // Step 5. If document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
         if !document.is_fully_active() {
-            return Err(Error::InvalidState(None));
+            promise.reject_error_with_cx(cx, Error::InvalidState(None));
+            return Ok(promise);
         }
-        Err(Error::NotSupported(None))
+        promise.reject_error_with_cx(cx, Error::NotSupported(None));
+        Ok(promise)
     }
 }
 
@@ -126,7 +139,9 @@ impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>
-    fn PreventSilentAccess(&self) -> Fallible<Rc<Promise>> {
-        Err(Error::NotSupported(None))
+    fn PreventSilentAccess(&self, cx: &mut CurrentRealm) -> Fallible<Rc<Promise>> {
+        let promise = Promise::new_in_realm(cx);
+        promise.reject_error_with_cx(cx, Error::NotSupported(None));
+        Ok(promise)
     }
 }

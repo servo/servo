@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -19,7 +20,6 @@ use crate::dom::event::Event;
 use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRReferenceSpaceEvent {
@@ -41,21 +41,22 @@ impl XRReferenceSpaceEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         space: &XRReferenceSpace,
         transform: Option<&XRRigidTransform>,
-        can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpaceEvent> {
         Self::new_with_proto(
-            window, None, type_, bubbles, cancelable, space, transform, can_gc,
+            cx, window, None, type_, bubbles, cancelable, space, transform,
         )
     }
 
     #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -63,13 +64,12 @@ impl XRReferenceSpaceEvent {
         cancelable: bool,
         space: &XRReferenceSpace,
         transform: Option<&XRRigidTransform>,
-        can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpaceEvent> {
-        let trackevent = reflect_dom_object_with_proto(
+        let trackevent = reflect_dom_object_with_proto_and_cx(
             Box::new(XRReferenceSpaceEvent::new_inherited(space, transform)),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = trackevent.upcast::<Event>();
@@ -82,13 +82,14 @@ impl XRReferenceSpaceEvent {
 impl XRReferenceSpaceEventMethods<crate::DomTypeHolder> for XRReferenceSpaceEvent {
     /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceevent-xrreferencespaceevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &XRReferenceSpaceEventInit,
     ) -> Fallible<DomRoot<XRReferenceSpaceEvent>> {
         Ok(XRReferenceSpaceEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
@@ -96,7 +97,6 @@ impl XRReferenceSpaceEventMethods<crate::DomTypeHolder> for XRReferenceSpaceEven
             init.parent.cancelable,
             &init.referenceSpace,
             init.transform.as_deref(),
-            can_gc,
         ))
     }
 

@@ -1,7 +1,10 @@
 <!doctype HTML>
 <head>
 <script>
-window.parent.postMessage('slow-will-block', '*');
+window.parent.postMessage({
+  action: 'slow-will-block',
+  viewportHeight: window.innerHeight
+}, '*');
 </script>
 <script src="slow.js"></script>
 <style>

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use script_bindings::reflector::DomObject;
+use servo_base::id::PipelineId;
 use servo_constellation_traits::StructuredSerializedData;
 use servo_url::ImmutableOrigin;
 
@@ -21,6 +22,7 @@ pub(crate) enum WorkerScriptMsg {
 pub(crate) struct MessageData {
     pub origin: ImmutableOrigin,
     pub data: Box<StructuredSerializedData>,
+    pub pipeline_id: PipelineId,
 }
 
 pub(crate) struct SimpleWorkerErrorHandler<T: DomObject> {

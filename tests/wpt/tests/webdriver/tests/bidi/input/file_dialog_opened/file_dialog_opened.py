@@ -58,7 +58,8 @@ async def test_subscribe(bidi_session, subscribe_events, inline, top_context,
     )
 
     event = await wait_for_future_safe(on_entry)
-    assert_file_dialog_opened_event(event, top_context["context"])
+    assert_file_dialog_opened_event(event, top_context["context"],
+                                    top_context["userContext"])
 
 
 async def test_show_picker(bidi_session, subscribe_events, inline, top_context,
@@ -78,7 +79,8 @@ async def test_show_picker(bidi_session, subscribe_events, inline, top_context,
     )
 
     event = await wait_for_future_safe(on_entry)
-    assert_file_dialog_opened_event(event, top_context["context"])
+    assert_file_dialog_opened_event(event, top_context["context"],
+                                    top_context["userContext"])
 
 
 @pytest.mark.parametrize("multiple", [True, False])
@@ -100,6 +102,7 @@ async def test_multiple(bidi_session, subscribe_events, inline, top_context,
     )
     event = await wait_for_future_safe(on_entry)
     assert_file_dialog_opened_event(event, top_context["context"],
+                                    top_context["userContext"],
                                     multiple=multiple)
 
 
@@ -124,4 +127,5 @@ async def test_element(bidi_session, subscribe_events, inline, top_context,
         'sharedId': node["sharedId"],
     }
     assert_file_dialog_opened_event(event, top_context["context"],
+                                    top_context["userContext"],
                                     element=expected_element)

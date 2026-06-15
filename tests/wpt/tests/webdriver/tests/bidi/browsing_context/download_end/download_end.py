@@ -91,6 +91,7 @@ async def test_download_attribute(bidi_session, subscribe_events, new_tab, inlin
             'status': 'complete',
             'timestamp': any_int,
             'url': download_link,
+            **({"userContext": new_tab["userContext"]} if "userContext" in event else {}),
         }, event)
 
     # Assert file content is available.
@@ -150,6 +151,7 @@ async def test_content_disposition_header(
             "status": "complete",
             "timestamp": any_int,
             "url": content_disposition_link,
+            **({"userContext": new_tab["userContext"]} if "userContext" in download_event else {}),
         },
         download_event,
     )

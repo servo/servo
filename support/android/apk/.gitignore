@@ -1,3 +1,4 @@
+.gradle/
 /assets/
 /bin/
 /gen/
@@ -5,3 +6,4 @@
 /local.properties
 /obj/
 /proguard-project.txt
+build

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, ns};
+use js::context::NoGC;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
@@ -189,7 +190,7 @@ impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names>
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
         // > The supported property names on a DOMStringMap object at any instant are
         // > the names of each pair returned from getting the DOMStringMap's name-value
         // > pairs at that instant, in the order returned.

@@ -5,9 +5,10 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::MutableHandleValue;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webxr_api::SubImages;
 
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
@@ -18,7 +19,6 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::window::Window;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
-use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub(crate) struct XRRenderState {
@@ -50,15 +50,15 @@ impl XRRenderState {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         depth_near: f64,
         depth_far: f64,
         inline_vertical_fov: Option<f64>,
         layer: Option<&XRWebGLLayer>,
         layers: Vec<&XRLayer>,
-        can_gc: CanGc,
     ) -> DomRoot<XRRenderState> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(XRRenderState::new_inherited(
                 depth_near,
                 depth_far,
@@ -67,19 +67,19 @@ impl XRRenderState {
                 layers,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
-    pub(crate) fn clone_object(&self) -> DomRoot<Self> {
+    pub(crate) fn clone_object(&self, cx: &mut JSContext) -> DomRoot<Self> {
         XRRenderState::new(
+            cx,
             self.global().as_window(),
             self.depth_near.get(),
             self.depth_far.get(),
             self.inline_vertical_fov.get(),
             self.base_layer.get().as_deref(),
             self.layers.borrow().iter().map(|x| &**x).collect(),
-            CanGc::deprecated_note(),
         )
     }
 
@@ -150,10 +150,10 @@ impl XRRenderStateMethods<crate::DomTypeHolder> for XRRenderState {
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrrenderstate-layers>
-    fn Layers(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn Layers(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         // TODO: cache this array?
         let layers = self.layers.borrow();
         let layers: Vec<&XRLayer> = layers.iter().map(|x| &**x).collect();
-        to_frozen_array(&layers[..], cx, retval, can_gc)
+        to_frozen_array(cx, &layers[..], retval)
     }
 }

@@ -1,0 +1,80 @@
+<!DOCTYPE HTML>
+<head>
+  <title>captureElementImage repaints video frames in worker</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <div id=child>
+      <video id="video" width="100" height="100" src="/media/rgb100.webm" autoplay loop muted></video>
+    </div>
+  </canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const child = document.getElementById("child");
+    const workerCode = `
+  let ctx;
+  self.onmessage = (e) => {
+    if (e.data.canvas) {
+      ctx = e.data.canvas.getContext('2d');
+    }
+    if (e.data.elementImage) {
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.drawElementImage(e.data.elementImage, 0, 0);
+      const imageData = ctx.getImageData(25, 25, 1, 1);
+      self.postMessage({pixel: Array.from(imageData.data)});
+    }
+  };`;
+
+    promise_test(() => new Promise((resolve, reject) => {
+      // Video color reproduction is not 100% consistent.
+      const channelTolerance = 3;
+      const approxEquals = (a, b) => Math.abs(a-b) < channelTolerance;
+      const colorEquals = (a, b) => {
+        return approxEquals(a[0], b[0]) &&
+               approxEquals(a[1], b[1]) &&
+               approxEquals(a[2], b[2]) &&
+               approxEquals(a[3], b[3]);
+      };
+
+      let seenColors = [];
+      let sawRed = false, sawGreen = false, sawBlue = false;
+
+      const worker = new Worker(URL.createObjectURL(new Blob([workerCode], {type: 'application/javascript'})));
+      const offscreen = canvas.transferControlToOffscreen();
+      worker.postMessage({ canvas: offscreen }, [offscreen]);
+
+      worker.addEventListener("message", e => {
+        if (e.data.pixel) {
+          seenColors.push(`(${e.data.pixel.join(", ")})`);
+          if (colorEquals(e.data.pixel, [255, 1, 0, 255])) {
+            sawRed = true;
+          } else if (colorEquals(e.data.pixel, [0, 153, 0, 255])) {
+            sawGreen = true;
+          } else if (colorEquals(e.data.pixel, [0, 0, 255, 255])) {
+            sawBlue = true;
+          }
+        }
+        if (sawRed && sawGreen && sawBlue) {
+          resolve("Saw red, green, and blue video frames.");
+        }
+      });
+
+      let paintCount = 0;
+      canvas.onpaint = (evt) => {
+        if (evt.changedElements.length != 1 || evt.changedElements[0] != child) {
+          reject("Canvas paint event 'changedElements' should contain just " +
+                 "the child element.");
+        }
+        if (++paintCount > 10) {
+          reject(`After ${paintCount} paints the colors seen are ${seenColors.join(", ")}.`);
+        }
+        const elementImage = canvas.captureElementImage(child);
+        worker.postMessage({ elementImage: elementImage }, [elementImage]);
+      };
+    }));
+</script>
+</html>

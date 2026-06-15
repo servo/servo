@@ -7,7 +7,7 @@
 
 <div id="container">
   <template shadowrootmode="open"
-    ><?marker name=a>b<?start name=c><?end><template for="a">a</template
+    ><?marker name="a">b<?start name="c"><?end><template for="a">a</template
     ><template for="c">c</template></template
   >
 </div>
@@ -19,7 +19,7 @@
   promise_test(async (t) => {
     const element = document.createElement("div");
     const shadow = element.attachShadow({ mode: "open", marker: "x" });
-    shadow.innerHTML = "<?marker name=a>X<?marker name=b>";
+    shadow.innerHTML = '<?marker name="a">X<?marker name="b">';
     const writer = shadow.streamAppendHTMLUnsafe().getWriter();
     await writer.write("<template for=a>a</template>");
     await writer.write("<template for=b>b</template>");

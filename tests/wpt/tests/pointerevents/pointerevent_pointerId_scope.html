@@ -15,15 +15,6 @@
   <script>
     "use strict"
 
-    function loadFrame() {
-      return new Promise(resolve => {
-        const innerframe = document.getElementById("innerframe");
-        innerframe.onload = resolve;
-        innerframe.src =
-            "resources/pointerevent_pointerId_scope-iframe.html";
-      });
-    }
-
     const eventList = [
       'pointerenter',
       'pointerover',
@@ -96,7 +87,9 @@
     };
 
     async function run() {
-      await loadFrame();
+      await loadFrameAndExcecuteScript(
+          document.getElementById("innerframe"),
+          "resources/pointerevent_pointerId_scope-iframe.html");
 
       const target0 = document.getElementById("target0");
       const innerframe = document.getElementById("innerframe");
@@ -161,7 +154,7 @@
     <div id="target0" class="touchActionNone"></div>
     <!-- Document onload does not guarantee that child iframes have loaded.
          Force synchronization by deferring setting the iframe's source
-         until a promise is set up to capture its load event. The root
+         until a promise is set up to capture its initialization. The root
          document will load first, then the iframe.  This ordering ensures
          deterministic behavior.
       -->

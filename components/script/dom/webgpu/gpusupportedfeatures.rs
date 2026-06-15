@@ -6,10 +6,11 @@
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::like::Setlike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use wgpu_types::Features;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -19,7 +20,6 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GPUSupportedFeatures {
@@ -34,12 +34,14 @@ pub(crate) struct GPUSupportedFeatures {
 
 impl GPUSupportedFeatures {
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         features: Features,
-        can_gc: CanGc,
     ) -> DomRoot<GPUSupportedFeatures> {
         let mut set = IndexSet::new();
+        // everything that wgpu currently does is considered as part of "core"
+        set.insert(GPUFeatureName::Core_features_and_limits);
         if features.contains(Features::DEPTH_CLIP_CONTROL) {
             set.insert(GPUFeatureName::Depth_clip_control);
         }
@@ -90,7 +92,7 @@ impl GPUSupportedFeatures {
         }
         */
 
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(GPUSupportedFeatures {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(set),
@@ -98,18 +100,18 @@ impl GPUSupportedFeatures {
             }),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     #[expect(non_snake_case)]
     pub(crate) fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         features: Features,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUSupportedFeatures>> {
-        Ok(GPUSupportedFeatures::new(global, proto, features, can_gc))
+        Ok(GPUSupportedFeatures::new(cx, global, proto, features))
     }
 }
 
@@ -127,6 +129,8 @@ impl GPUSupportedFeaturesMethods<crate::DomTypeHolder> for GPUSupportedFeatures 
 
 pub(crate) fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
     match feature {
+        // everything that wgpu currently does is considered as part of "core"
+        GPUFeatureName::Core_features_and_limits => Some(Features::empty()),
         GPUFeatureName::Depth_clip_control => Some(Features::DEPTH_CLIP_CONTROL),
         GPUFeatureName::Depth32float_stencil8 => Some(Features::DEPTH32FLOAT_STENCIL8),
         GPUFeatureName::Texture_compression_bc => Some(Features::TEXTURE_COMPRESSION_BC),

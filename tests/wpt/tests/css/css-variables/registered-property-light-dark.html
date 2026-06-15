@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>light-dark() in custom property whose light value equals the registered initial-value</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#light-dark">
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#initial-value-descriptor">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1932544">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+@property --test-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: red;
+}
+.square {
+  width: 100px;
+  height: 100px;
+  color-scheme: dark;
+  --test-color: light-dark(red, green);
+  background-color: var(--test-color);
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="square"></div>

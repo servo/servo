@@ -15,9 +15,9 @@
 <script>
   promise_test(async t => {
     // Wait for the form to get registered.
-    await new Promise(resolve => navigator.modelContext.ontoolchange = resolve);
+    await new Promise(resolve => document.modelContext.ontoolchange = resolve);
 
-    const tools = await navigator.modelContext.getTools();
+    const tools = await document.modelContext.getTools();
     assert_equals(tools.length, 1, "Exactly one tool should be registered");
 
     const tool = tools[0];
@@ -43,6 +43,7 @@
     // 'safe_search' property validation (optional boolean)
     assert_true("safe_search" in schema.properties, "Schema should contain 'safe_search' property");
     assert_equals(schema.properties.safe_search.type, "boolean", "safe_search property type should be boolean");
+    assert_equals(schema.properties.safe_search.description, "Enable safe search filtering", "safe_search property description is correct");
   }, "Test that getTools() returns the correct inputSchema for a declarative tool");
 </script>
 </body>

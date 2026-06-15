@@ -1,0 +1,28 @@
+<title>
+  CSS Gap Decorations: multi-column gap decorations paint
+  in a container with border and overflow: hidden.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-040-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<!DOCTYPE html>
+<style>
+  body {
+    margin: 0;
+  }
+
+  .container {
+    border: 2px solid black;
+    columns: 2;
+    column-fill: auto;
+    width: 60px;
+    height: 60px;
+    background: red;
+    column-gap: 20px;
+    column-rule: 20px solid gold;
+    overflow: hidden;
+  }
+</style>
+<div class="container">
+  <div style="height:120px; background:blue;"></div>
+</div>

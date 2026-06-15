@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Sanitizer API safe streaming setters should not execute scripts when targeting script elements</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  async function test_safe_setter_on_script(method, setup_target) {
+    promise_test(async (t) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+
+      const target = setup_target ? setup_target(script) : script;
+      const var_name = `executed_${method}`;
+      window[var_name] = false;
+
+      let writable;
+      try {
+        writable = target[method]();
+      } catch (e) {
+        // If the safe setter throws an exception when targeting a script element,
+        // that is a valid safe-mode behavior.
+        assert_false(window[var_name], "Script should not execute");
+        return;
+      }
+
+      assert_true(writable instanceof WritableStream);
+      const writer = writable.getWriter();
+      await writer.write(`window.${var_name} = true;`);
+      await writer.close();
+
+      assert_false(window[var_name], `Streaming content into a script element using safe ${method} should not execute the script`);
+    }, `Safe streaming setter ${method} targeting a script element should not allow script execution`);
+  }
+
+  for (const method of ["streamHTML", "streamAppendHTML", "streamPrependHTML"]) {
+    test_safe_setter_on_script(method);
+  }
+
+  for (const method of ["streamBeforeHTML", "streamAfterHTML", "streamReplaceWithHTML"]) {
+    test_safe_setter_on_script(method, (s) => {
+      s.appendChild(document.createTextNode("/* setup */"));
+      return s.firstChild;
+    });
+  }
+</script>
+</body>

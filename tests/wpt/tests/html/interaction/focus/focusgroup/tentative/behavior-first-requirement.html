@@ -46,24 +46,18 @@
 <script>
   promise_test(async t => {
     // Valid behavior-first syntax should enable focusgroup navigation
-    var item1 = document.getElementById("item1");
-    var item2 = document.getElementById("item2");
 
     await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item2, "Valid 'toolbar' behavior should enable navigation");
   }, "Valid behavior-first token 'toolbar' enables focusgroup navigation");
 
   promise_test(async t => {
-    var item3 = document.getElementById("item3");
-    var item4 = document.getElementById("item4");
 
     await focusAndSendDirectionalInput(item3, kRight);
     assert_equals(document.activeElement, item4, "Valid 'tablist inline' behavior should enable navigation");
   }, "Valid behavior-first token 'tablist' with modifier enables focusgroup navigation");
 
   promise_test(async t => {
-    var item5 = document.getElementById("item5");
-    var item6 = document.getElementById("item6");
 
     await focusAndSendDirectionalInput(item5, kRight);
     assert_equals(document.activeElement, item6, "Valid 'radiogroup wrap' behavior should enable navigation");
@@ -71,24 +65,18 @@
 
   promise_test(async t => {
     // Invalid behavior-first syntax should NOT enable focusgroup navigation
-    var item7 = document.getElementById("item7");
-    var item8 = document.getElementById("item8");
 
     await focusAndSendDirectionalInput(item7, kRight);
     assert_equals(document.activeElement, item7, "Empty focusgroup attribute should not enable navigation");
   }, "Empty focusgroup attribute is rejected and does not enable navigation");
 
   promise_test(async t => {
-    var item9 = document.getElementById("item9");
-    var item10 = document.getElementById("item10");
 
     await focusAndSendDirectionalInput(item9, kRight);
     assert_equals(document.activeElement, item9, "Invalid first token 'inline' should not enable navigation");
   }, "Invalid first token 'inline' is rejected and does not enable navigation");
 
   promise_test(async t => {
-    var item11 = document.getElementById("item11");
-    var item12 = document.getElementById("item12");
 
     await focusAndSendDirectionalInput(item11, kRight);
     assert_equals(document.activeElement, item11, "Invalid first token 'wrap' should not enable navigation");

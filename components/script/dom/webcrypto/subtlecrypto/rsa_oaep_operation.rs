@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
-use pkcs8::rand_core::OsRng;
-use rsa::Oaep;
+use rsa::oaep::{DecryptingKey, EncryptingKey};
+use rsa::traits::{Decryptor, RandomizedEncryptor};
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
@@ -38,11 +38,7 @@ pub(crate) fn encrypt(
 
     // Step 2. Let label be the label member of normalizedAlgorithm or the empty byte sequence if
     // the label member of normalizedAlgorithm is not present.
-    let label = normalized_algorithm
-        .label
-        .as_ref()
-        .map(|label| String::from_utf8_lossy(label))
-        .unwrap_or_default();
+    let label = normalized_algorithm.label.as_deref().unwrap_or_default();
 
     // Step 3. Perform the encryption operation defined in Section 7.1 of [RFC3447] with the key
     // represented by key as the recipient's RSA public key, plaintext as the message to be
@@ -61,21 +57,32 @@ pub(crate) fn encrypt(
             "[[algorithm]] internal slot of key is not an RsaHashedKeyAlgorithm".to_string(),
         )));
     };
-    let padding = match algorithm.hash.name() {
-        CryptoAlgorithm::Sha1 => Oaep::new_with_label::<Sha1, _>(label),
-        CryptoAlgorithm::Sha256 => Oaep::new_with_label::<Sha256, _>(label),
-        CryptoAlgorithm::Sha384 => Oaep::new_with_label::<Sha384, _>(label),
-        CryptoAlgorithm::Sha512 => Oaep::new_with_label::<Sha512, _>(label),
-        _ => {
+    let mut rng = rand::rng();
+    let ciphertext = match algorithm.hash.name() {
+        CryptoAlgorithm::Sha1 => {
+            let encryption_key = EncryptingKey::<Sha1>::new_with_label(public_key.clone(), label);
+            encryption_key.encrypt_with_rng(&mut rng, plaintext)
+        },
+        CryptoAlgorithm::Sha256 => {
+            let encryption_key = EncryptingKey::<Sha256>::new_with_label(public_key.clone(), label);
+            encryption_key.encrypt_with_rng(&mut rng, plaintext)
+        },
+        CryptoAlgorithm::Sha384 => {
+            let encryption_key = EncryptingKey::<Sha384>::new_with_label(public_key.clone(), label);
+            encryption_key.encrypt_with_rng(&mut rng, plaintext)
+        },
+        CryptoAlgorithm::Sha512 => {
+            let encryption_key = EncryptingKey::<Sha512>::new_with_label(public_key.clone(), label);
+            encryption_key.encrypt_with_rng(&mut rng, plaintext)
+        },
+        algorithm_hash_name => {
             return Err(Error::Operation(Some(format!(
-                "Unsupported \"{}\" hash for RSASSA-PKCS1-v1_5",
-                algorithm.hash.name().as_str()
+                "Unsupported hash for RSASSA-PKCS1-v1_5: {}",
+                algorithm_hash_name.as_str()
             ))));
         },
-    };
-    let ciphertext = public_key
-        .encrypt(&mut OsRng, padding, plaintext)
-        .map_err(|_| Error::Operation(Some("RSA-OAEP failed to encrypt plaintext".to_string())))?;
+    }
+    .map_err(|_| Error::Operation(Some("RSA-OAEP failed to encrypt plaintext".into())))?;
 
     // Step 6. Return ciphertext.
     Ok(ciphertext)
@@ -97,11 +104,7 @@ pub(crate) fn decrypt(
 
     // Step 2. Let label be the label member of normalizedAlgorithm or the empty byte sequence if
     // the label member of normalizedAlgorithm is not present.
-    let label = normalized_algorithm
-        .label
-        .as_ref()
-        .map(|label| String::from_utf8_lossy(label))
-        .unwrap_or_default();
+    let label = normalized_algorithm.label.as_deref().unwrap_or_default();
 
     // Step 3. Perform the decryption operation defined in Section 7.1 of [RFC3447] with the key
     // represented by key as the recipient's RSA private key, ciphertext as the ciphertext to be
@@ -120,21 +123,34 @@ pub(crate) fn decrypt(
             "[[algorithm]] internal slot of key is not an RsaHashedKeyAlgorithm".to_string(),
         )));
     };
-    let padding = match algorithm.hash.name() {
-        CryptoAlgorithm::Sha1 => Oaep::new_with_label::<Sha1, _>(label),
-        CryptoAlgorithm::Sha256 => Oaep::new_with_label::<Sha256, _>(label),
-        CryptoAlgorithm::Sha384 => Oaep::new_with_label::<Sha384, _>(label),
-        CryptoAlgorithm::Sha512 => Oaep::new_with_label::<Sha512, _>(label),
-        _ => {
+    let plaintext = match algorithm.hash.name() {
+        CryptoAlgorithm::Sha1 => {
+            let decrypting_key = DecryptingKey::<Sha1>::new_with_label(private_key.clone(), label);
+            decrypting_key.decrypt(ciphertext)
+        },
+        CryptoAlgorithm::Sha256 => {
+            let decrypting_key =
+                DecryptingKey::<Sha256>::new_with_label(private_key.clone(), label);
+            decrypting_key.decrypt(ciphertext)
+        },
+        CryptoAlgorithm::Sha384 => {
+            let decrypting_key =
+                DecryptingKey::<Sha384>::new_with_label(private_key.clone(), label);
+            decrypting_key.decrypt(ciphertext)
+        },
+        CryptoAlgorithm::Sha512 => {
+            let decrypting_key =
+                DecryptingKey::<Sha512>::new_with_label(private_key.clone(), label);
+            decrypting_key.decrypt(ciphertext)
+        },
+        algorithm_hash_name => {
             return Err(Error::Operation(Some(format!(
-                "Unsupported \"{}\" hash for RSASSA-PKCS1-v1_5",
-                algorithm.hash.name().as_str()
+                "Unsupported hash for RSASSA-PKCS1-v1_5: {}",
+                algorithm_hash_name.as_str()
             ))));
         },
-    };
-    let plaintext = private_key
-        .decrypt(padding, ciphertext)
-        .map_err(|_| Error::Operation(Some("RSA-OAEP failed to decrypt ciphertext".to_string())))?;
+    }
+    .map_err(|_| Error::Operation(Some("RSA-OAEP failed to decrypt ciphertext".into())))?;
 
     // Step 6. Return plaintext.
     Ok(plaintext)

@@ -36,8 +36,6 @@
     'pointermove'
   ];
 
-  let eventsLogged = [];
-
   async function runTests() {
     await frameLoadedPromise;
 
@@ -49,7 +47,7 @@
       const testName = `${testNamePrefix} attribute test.`;
 
       promise_test(async test => {
-        eventsLogged = [];
+        let eventsLogged = [];
 
         function eventChecker(e) {
           e.preventDefault();
@@ -90,7 +88,7 @@
         // all other events should have been handled.
         {
           const doneButton = document.getElementById('done');
-          const clickOnDone = getEvent('click', doneButton);
+          const clickOnDone = getEvent('pointerup', doneButton);
           await new test_driver.Actions()
             .addPointer('pointer1', pointerType)
             .pointerMove(0, 0, {origin: doneButton})

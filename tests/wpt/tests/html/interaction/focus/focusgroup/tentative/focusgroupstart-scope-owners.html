@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Non-entry scope owners skipped on Shift+Tab</title>
+<meta name="assert" content="Non-entry focusgroup scope owners should be skipped when Shift+Tab exits an inner focus scope.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<!--
+  The invoker is a non-entry focusgroup item (pop_entry has focusgroupstart).
+  Popover is manual so it does NOT auto-close on focus loss. When focus is
+  inside the popover and the user Shift+Tabs, the focus should skip the
+  invoker and reach the entry element.
+-->
+<button id="pop_before">pop_before</button>
+<div focusgroup="toolbar nomemory">
+  <button id="pop_entry" focusgroupstart>pop_entry</button>
+  <button id="pop_invoker" popovertarget="pop1">pop_invoker</button>
+  <button id="pop_after_item">pop_after_item</button>
+</div>
+<div id="pop1" popover="manual">
+  <button id="pop_inside">pop_inside</button>
+</div>
+<button id="pop_outside">pop_outside</button>
+
+<script>
+promise_test(async t => {
+  const pop = document.getElementById("pop1");
+  // Open with source to establish invoker→popover scope for focus nav.
+  pop.showPopover({source: pop_invoker});
+  assert_true(pop.matches(":popover-open"), "popover should be open");
+  t.add_cleanup(() => pop.hidePopover());
+
+  // Verify Tab from invoker enters the popover (scope is established).
+  pop_invoker.focus();
+  assert_equals(document.activeElement, pop_invoker, "invoker focused");
+  await sendTabForward();
+  assert_equals(document.activeElement, pop_inside,
+    "Tab from invoker should enter the popover");
+}, "Setup sanity: Tab from invoker enters manual popover");
+
+promise_test(async t => {
+  const pop = document.getElementById("pop1");
+  pop.showPopover({source: pop_invoker});
+  assert_true(pop.matches(":popover-open"), "popover should be open");
+  t.add_cleanup(() => pop.hidePopover());
+
+  pop_inside.focus();
+  assert_equals(document.activeElement, pop_inside, "pop_inside focused");
+
+  // Shift+Tab should exit the popover, skip the non-entry invoker,
+  // and reach the entry element.
+  await navigateFocusBackward();
+  assert_true(pop.matches(":popover-open"),
+    "Manual popover should stay open after focus leaves");
+  assert_not_equals(document.activeElement, pop_invoker,
+    "Shift+Tab should NOT stop on the non-entry invoker");
+  assert_equals(document.activeElement, pop_entry,
+    "Shift+Tab should reach the focusgroup entry element");
+}, "Popover invoker: Shift+Tab from manual popover skips non-entry invoker");
+</script>

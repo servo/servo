@@ -50,24 +50,22 @@ pub(crate) enum FileReadingTask {
 
 impl TaskOnce for FileReadingTask {
     fn run_once(self, cx: &mut js::context::JSContext) {
-        self.handle_task(CanGc::from_cx(cx));
+        self.handle_task(cx);
     }
 }
 
 impl FileReadingTask {
-    pub(crate) fn handle_task(self, can_gc: CanGc) {
+    pub(crate) fn handle_task(self, cx: &mut js::context::JSContext) {
         use self::FileReadingTask::*;
 
         match self {
-            ProcessRead(reader, gen_id) => FileReader::process_read(reader, gen_id, can_gc),
-            ProcessReadData(reader, gen_id) => {
-                FileReader::process_read_data(reader, gen_id, can_gc)
-            },
+            ProcessRead(reader, gen_id) => FileReader::process_read(cx, reader, gen_id),
+            ProcessReadData(reader, gen_id) => FileReader::process_read_data(cx, reader, gen_id),
             ProcessReadError(reader, gen_id, error) => {
-                FileReader::process_read_error(reader, gen_id, error, can_gc)
+                FileReader::process_read_error(cx, reader, gen_id, error)
             },
             ProcessReadEOF(reader, gen_id, metadata, blob_contents) => {
-                FileReader::process_read_eof(reader, gen_id, metadata, blob_contents, can_gc)
+                FileReader::process_read_eof(cx, reader, gen_id, metadata, blob_contents)
             },
         }
     }
@@ -216,10 +214,10 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-error-steps
     pub(crate) fn process_read_error(
+        cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
         gen_id: GenerationId,
         error: DOMErrorName,
-        can_gc: CanGc,
     ) {
         let fr = filereader.root();
 
@@ -236,13 +234,13 @@ impl FileReader {
         fr.change_ready_state(FileReaderReadyState::Done);
         *fr.result.borrow_mut() = None;
 
-        let exception = DOMException::new(&fr.global(), error, can_gc);
+        let exception = DOMException::new(&fr.global(), error, CanGc::from_cx(cx));
         fr.error.set(Some(&exception));
 
-        fr.dispatch_progress_event(atom!("error"), 0, None, can_gc);
+        fr.dispatch_progress_event(cx, atom!("error"), 0, None);
         return_on_abort!();
         // Step 3
-        fr.dispatch_progress_event(atom!("loadend"), 0, None, can_gc);
+        fr.dispatch_progress_event(cx, atom!("loadend"), 0, None);
         return_on_abort!();
         // Step 4
         fr.terminate_ongoing_reading();
@@ -250,9 +248,9 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     pub(crate) fn process_read_data(
+        cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
         gen_id: GenerationId,
-        can_gc: CanGc,
     ) {
         let fr = filereader.root();
 
@@ -265,11 +263,15 @@ impl FileReader {
         );
         return_on_abort!();
         // FIXME Step 7 send current progress
-        fr.dispatch_progress_event(atom!("progress"), 0, None, can_gc);
+        fr.dispatch_progress_event(cx, atom!("progress"), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub(crate) fn process_read(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
+    pub(crate) fn process_read(
+        cx: &mut js::context::JSContext,
+        filereader: TrustedFileReader,
+        gen_id: GenerationId,
+    ) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -281,16 +283,16 @@ impl FileReader {
         );
         return_on_abort!();
         // Step 6
-        fr.dispatch_progress_event(atom!("loadstart"), 0, None, can_gc);
+        fr.dispatch_progress_event(cx, atom!("loadstart"), 0, None);
     }
 
     // https://w3c.github.io/FileAPI/#readOperation
     pub(crate) fn process_read_eof(
+        cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
         gen_id: GenerationId,
         data: ReadMetaData,
         blob_contents: Vec<u8>,
-        can_gc: CanGc,
     ) {
         let fr = filereader.root();
 
@@ -331,11 +333,11 @@ impl FileReader {
         };
 
         // Step 8.3
-        fr.dispatch_progress_event(atom!("load"), 0, None, can_gc);
+        fr.dispatch_progress_event(cx, atom!("load"), 0, None);
         return_on_abort!();
         // Step 8.4
         if fr.ready_state.get() != FileReaderReadyState::Loading {
-            fr.dispatch_progress_event(atom!("loadend"), 0, None, can_gc);
+            fr.dispatch_progress_event(cx, atom!("loadend"), 0, None);
         }
         return_on_abort!();
     }
@@ -462,7 +464,7 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-abort>
-    fn Abort(&self, can_gc: CanGc) {
+    fn Abort(&self, cx: &mut js::context::JSContext) {
         // Step 2
         if self.ready_state.get() == FileReaderReadyState::Loading {
             self.change_ready_state(FileReaderReadyState::Done);
@@ -470,13 +472,14 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         // Steps 1 & 3
         *self.result.borrow_mut() = None;
 
-        let exception = DOMException::new(&self.global(), DOMErrorName::AbortError, can_gc);
+        let exception =
+            DOMException::new(&self.global(), DOMErrorName::AbortError, CanGc::from_cx(cx));
         self.error.set(Some(&exception));
 
         self.terminate_ongoing_reading();
         // Steps 5 & 6
-        self.dispatch_progress_event(atom!("abort"), 0, None, can_gc);
-        self.dispatch_progress_event(atom!("loadend"), 0, None, can_gc);
+        self.dispatch_progress_event(cx, atom!("abort"), 0, None);
+        self.dispatch_progress_event(cx, atom!("loadend"), 0, None);
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-error>
@@ -506,7 +509,13 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
 }
 
 impl FileReader {
-    fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>, can_gc: CanGc) {
+    fn dispatch_progress_event(
+        &self,
+        cx: &mut js::context::JSContext,
+        type_: Atom,
+        loaded: u64,
+        total: Option<u64>,
+    ) {
         let progressevent = ProgressEvent::new(
             &self.global(),
             type_,
@@ -515,9 +524,9 @@ impl FileReader {
             total.is_some(),
             Finite::wrap(loaded as f64),
             Finite::wrap(total.unwrap_or(0) as f64),
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        progressevent.upcast::<Event>().fire(self.upcast(), can_gc);
+        progressevent.upcast::<Event>().fire(cx, self.upcast());
     }
 
     fn terminate_ongoing_reading(&self) {
@@ -551,7 +560,7 @@ impl FileReader {
         let stream = blob.get_stream(cx);
 
         // Let reader be the result of getting a reader from stream.
-        let reader = stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx)))?;
+        let reader = stream.and_then(|s| s.acquire_default_reader(cx))?;
 
         let load_data = ReadMetaData::new(
             String::from(blob.Type()),

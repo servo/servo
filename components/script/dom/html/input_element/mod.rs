@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell, RefMut};
-use std::ptr::NonNull;
 use std::{f64, ptr};
 
 use dom_struct::dom_struct;
@@ -22,7 +21,6 @@ use js::rust::wrappers2::{DateGetMsecSinceEpoch, ObjectIsDate};
 use js::rust::{HandleObject, MutableHandleObject};
 use layout_api::{ScriptSelection, SharedSelection};
 use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
 use servo_base::text::Utf16CodeUnitLength;
@@ -67,10 +65,11 @@ use crate::dom::html::htmlformelement::{
 use crate::dom::htmlinputelement::radio_input_type::{
     broadcast_radio_checked, perform_radio_group_validation,
 };
-use crate::dom::input_element::input_type::InputType;
+use crate::dom::input_element::input_type::{InputActivationType, InputType};
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::{
-    BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
+    BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
@@ -242,7 +241,7 @@ impl HTMLInputElement {
     pub(crate) fn auto_directionality(&self) -> Option<String> {
         match *self.input_type() {
             InputType::Text(_) | InputType::Search(_) | InputType::Url(_) | InputType::Email(_) => {
-                let value: String = self.Value().to_string();
+                let value: String = String::from(self.Value());
                 Some(HTMLInputElement::directionality_from_value(&value))
             },
             _ => None,
@@ -330,6 +329,23 @@ impl HTMLInputElement {
         )
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#auto-directionality-form-associated-elements>
+    pub(crate) fn is_auto_directionality_form_associated_element(&self) -> bool {
+        matches!(
+            *self.input_type(),
+            InputType::Hidden(_) |
+                InputType::Text(_) |
+                InputType::Search(_) |
+                InputType::Tel(_) |
+                InputType::Url(_) |
+                InputType::Email(_) |
+                InputType::Password(_) |
+                InputType::Submit(_) |
+                InputType::Reset(_) |
+                InputType::Button(_)
+        )
+    }
+
     fn does_minmaxlength_apply(&self) -> bool {
         matches!(
             *self.input_type(),
@@ -388,13 +404,16 @@ impl HTMLInputElement {
 
         // Step 2. Otherwise, if the attribute is absent, then the allowed value step
         // is the default step multiplied by the step scale factor.
-        let Some(attribute) = self.upcast::<Element>().get_attribute(&local_name!("step")) else {
+        let Some(step_value) = self
+            .upcast::<Element>()
+            .get_attribute_string_value(&local_name!("step"))
+        else {
             return Some(default_step * self.step_scale_factor());
         };
 
         // Step 3. Otherwise, if the attribute's value is an ASCII case-insensitive match
         // for the string "any", then there is no allowed value step.
-        if attribute.value().eq_ignore_ascii_case("any") {
+        if step_value.eq_ignore_ascii_case("any") {
             return None;
         }
 
@@ -402,7 +421,7 @@ impl HTMLInputElement {
         // are applied to the attribute's value, return an error, zero, or a number less than zero,
         // then the allowed value step is the default step multiplied by the step scale factor.
         let Some(parsed_value) =
-            parse_floating_point_number(&attribute.value()).filter(|value| *value > 0.0)
+            parse_floating_point_number(&step_value).filter(|value| *value > 0.0)
         else {
             return Some(default_step * self.step_scale_factor());
         };
@@ -416,16 +435,16 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage#concept-input-min>
     fn minimum(&self) -> Option<f64> {
         self.upcast::<Element>()
-            .get_attribute(&local_name!("min"))
-            .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
+            .get_attribute_string_value(&local_name!("min"))
+            .and_then(|value| self.convert_string_to_number(&value))
             .or_else(|| self.default_minimum())
     }
 
     /// <https://html.spec.whatwg.org/multipage#concept-input-max>
     fn maximum(&self) -> Option<f64> {
         self.upcast::<Element>()
-            .get_attribute(&local_name!("max"))
-            .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
+            .get_attribute_string_value(&local_name!("max"))
+            .and_then(|value| self.convert_string_to_number(&value))
             .or_else(|| self.default_maximum())
     }
 
@@ -521,8 +540,8 @@ impl HTMLInputElement {
         // is not an error, then return that result.
         if let Some(minimum) = self
             .upcast::<Element>()
-            .get_attribute(&local_name!("min"))
-            .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
+            .get_attribute_string_value(&local_name!("min"))
+            .and_then(|value| self.convert_string_to_number(&value))
         {
             return minimum;
         }
@@ -532,8 +551,8 @@ impl HTMLInputElement {
         // is not an error, then return that result.
         if let Some(value) = self
             .upcast::<Element>()
-            .get_attribute(&local_name!("value"))
-            .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
+            .get_attribute_string_value(&local_name!("value"))
+            .and_then(|value| self.convert_string_to_number(&value))
         {
             return value;
         }
@@ -892,10 +911,9 @@ impl HTMLInputElement {
             _ => {
                 if let Some(attribute_value) = self
                     .upcast::<Element>()
-                    .get_attribute(&local_name!("value"))
-                    .map(|attribute| attribute.Value())
+                    .get_attribute_string_value(&local_name!("value"))
                 {
-                    return attribute_value;
+                    return attribute_value.into();
                 }
                 input_type.as_specific().value_for_shadow_dom(self)
             },
@@ -1153,16 +1171,14 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => self
                 .upcast::<Element>()
-                .get_attribute(&local_name!("value"))
-                .map_or(DOMString::from(""), |a| {
-                    DOMString::from(a.summarize().value)
-                }),
+                .get_attribute_string_value(&local_name!("value"))
+                .map(|value| value.into())
+                .unwrap_or_default(),
             ValueMode::DefaultOn => self
                 .upcast::<Element>()
-                .get_attribute(&local_name!("value"))
-                .map_or(DOMString::from("on"), |a| {
-                    DOMString::from(a.summarize().value)
-                }),
+                .get_attribute_string_value(&local_name!("value"))
+                .map(|value| value.into())
+                .unwrap_or(DOMString::from("on")),
             ValueMode::Filename => {
                 let mut path = DOMString::from("");
                 match self.input_type().as_specific().get_files() {
@@ -1251,16 +1267,17 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
     #[expect(unsafe_code)]
-    fn GetValueAsDate(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {
-        self.input_type()
+    fn GetValueAsDate(&self, cx: SafeJSContext, mut return_value: MutableHandleObject) {
+        if let Some(date_time) = self
+            .input_type()
             .as_specific()
             .convert_string_to_naive_datetime(self.Value())
-            .map(|date_time| unsafe {
-                let time = ClippedTime {
-                    t: (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64,
-                };
-                NonNull::new_unchecked(NewDateObject(*cx, time))
-            })
+        {
+            let time = ClippedTime {
+                t: (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64,
+            };
+            return_value.set(unsafe { NewDateObject(*cx, time) });
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
@@ -1562,7 +1579,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
     fn Validity(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
-        self.validity_state(CanGc::from_cx(cx))
+        self.validity_state(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
@@ -1576,14 +1593,13 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self) -> DOMString {
-        self.validation_message()
+    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+        self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
-        self.validity_state(CanGc::from_cx(cx))
-            .set_custom_error_message(error);
+        self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }
 
@@ -1594,32 +1610,56 @@ impl HTMLInputElement {
         &self,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
-    ) -> Vec<FormDatum> {
-        // 3.1: disabled state check is in get_unclean_dataset
-
-        // Step 5.2
+    ) -> (Vec<FormDatum>, bool) {
         let ty = self.Type();
-
-        // Step 5.4
         let name = self.Name();
         let is_submitter = match submitter {
             Some(FormSubmitterElement::Input(s)) => self == s,
             _ => false,
         };
 
+        // 5.1: disabled state check is in get_unclean_dataset
         match *self.input_type() {
             // Step 5.1: it's a button but it is not submitter.
             InputType::Submit(_) | InputType::Button(_) | InputType::Reset(_) if !is_submitter => {
-                return vec![];
+                return (vec![], true);
             },
 
             // Step 5.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
-            InputType::Radio(_) | InputType::Checkbox(_) => {
-                if !self.Checked() || name.is_empty() {
-                    return vec![];
-                }
+            InputType::Radio(_) | InputType::Checkbox(_) if !self.Checked() => {
+                return (vec![], true);
             },
 
+            // Step 5.2: If the field element is an input element whose type attribute is in the Image Button state:
+            InputType::Image(_) => return (vec![], true), // Unimplemented
+
+            // Step 5.4: If either the field element does not have a name attribute specified, or its name attribute's value is the empty string, then continue.
+            _ => {
+                if name.is_empty() {
+                    return (vec![], true);
+                }
+            },
+        }
+
+        let datums = match *self.input_type() {
+            // Step 5.7: Otherwise, if the field element is an input element whose type attribute is in the Checkbox state or the Radio Button state:
+            InputType::Checkbox(_) | InputType::Radio(_) => {
+                // Step 5.7.1: If the field element has a value attribute specified, then let value be the value of that attribute; otherwise, let value be the string "on".
+                let field_value = self.Value();
+                let value = if field_value.is_empty() {
+                    DOMString::from("on")
+                } else {
+                    field_value
+                };
+                // Step 5.7.2: Create an entry with name and value, and append it to entry list.
+                vec![FormDatum {
+                    ty,
+                    name,
+                    value: FormDatumValue::String(value),
+                }]
+            },
+
+            // Step 5.8: Otherwise, if the field element is an input element whose type attribute is in the File Upload state:
             InputType::File(_) => {
                 let mut datums = vec![];
 
@@ -1627,15 +1667,7 @@ impl HTMLInputElement {
                 let name = self.Name();
 
                 match self.GetFiles() {
-                    Some(fl) => {
-                        for f in fl.iter_files() {
-                            datums.push(FormDatum {
-                                ty: ty.clone(),
-                                name: name.clone(),
-                                value: FormDatumValue::File(DomRoot::from_ref(f)),
-                            });
-                        }
-                    },
+                    // Step 5.8.1: If there are no selected files, then create an entry with name and a new File object with an empty name, application/octet-stream as type, and an empty body, and append it to entry list.
                     None => {
                         datums.push(FormDatum {
                             // XXX(izgzhen): Spec says 'application/octet-stream' as the type,
@@ -1645,41 +1677,44 @@ impl HTMLInputElement {
                             value: FormDatumValue::String(DOMString::from("")),
                         })
                     },
+                    // Step 5.8.2: Otherwise, for each file in selected files, create an entry with name and a File object representing the file, and append it to entry list.
+                    Some(fl) => {
+                        for f in fl.iter_files() {
+                            datums.push(FormDatum {
+                                ty: ty.clone(),
+                                name: name.clone(),
+                                value: FormDatumValue::File(DomRoot::from_ref(f)),
+                            });
+                        }
+                    },
                 }
 
-                return datums;
+                datums
             },
 
-            InputType::Image(_) => return vec![], // Unimplemented
-
-            // Step 5.10: it's a hidden field named _charset_
-            InputType::Hidden(_) => {
-                if name.to_ascii_lowercase() == "_charset_" {
-                    return vec![FormDatum {
-                        ty,
-                        name,
-                        value: FormDatumValue::String(match encoding {
-                            None => DOMString::from("UTF-8"),
-                            Some(enc) => DOMString::from(enc.name()),
-                        }),
-                    }];
-                }
+            // Step 5.9: Otherwise, if the field element is an input element whose type attribute is in the Hidden state and name is an ASCII case-insensitive match for "_charset_":
+            InputType::Hidden(_) if name.to_ascii_lowercase() == "_charset_" => {
+                // Step 5.9.1: Let charset be the name of encoding.
+                let charset = match encoding {
+                    None => DOMString::from("UTF-8"),
+                    Some(enc) => DOMString::from(enc.name()),
+                };
+                // Step 5.9.2: Create an entry with name and charset, and append it to entry list.
+                vec![FormDatum {
+                    ty,
+                    name,
+                    value: FormDatumValue::String(charset),
+                }]
             },
 
-            // Step 5.1: it's not the "Image Button" and doesn't have a name attribute.
-            _ => {
-                if name.is_empty() {
-                    return vec![];
-                }
-            },
-        }
-
-        // Step 5.12
-        vec![FormDatum {
-            ty,
-            name,
-            value: FormDatumValue::String(self.Value()),
-        }]
+            // Step 5.10: Otherwise, create an entry with name and the value of the field element, and append it to entry list.
+            _ => vec![FormDatum {
+                ty,
+                name,
+                value: FormDatumValue::String(self.Value()),
+            }],
+        };
+        (datums, false)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#radio-button-group>
@@ -1896,8 +1931,8 @@ impl HTMLInputElement {
                 perform_radio_group_validation(cx, self, self.radio_group_name().as_ref())
             },
             _ => {
-                self.validity_state(CanGc::from_cx(cx))
-                    .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+                self.validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::all());
             },
         }
     }
@@ -1962,7 +1997,7 @@ impl HTMLInputElement {
                     ControlElement::Ime(DomRoot::from_ref(self.upcast())),
                     EmbedderControlRequest::InputMethod(InputMethodRequest {
                         input_method_type,
-                        text: self.Value().to_string(),
+                        text: String::from(self.Value()),
                         insertion_point: self.GetSelectionEnd(),
                         multiline: false,
                         // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
@@ -2048,8 +2083,16 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("type") => {
                 match mutation {
-                    AttributeMutation::Set(..) => {
+                    AttributeMutation::Set(previous_value, _) => {
                         // https://html.spec.whatwg.org/multipage/#input-type-change
+
+                        // Ensure there was actually a change in type
+                        if previous_value
+                            .is_some_and(|previous_value| **previous_value == **attr.value())
+                        {
+                            return;
+                        }
+
                         let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
                         let previously_selectable = self.selection_api_applies();
 
@@ -2080,10 +2123,9 @@ impl VirtualMethods for HTMLInputElement {
                                 self.SetValue(
                                     cx,
                                     self.upcast::<Element>()
-                                        .get_attribute(&local_name!("value"))
-                                        .map_or(DOMString::from(""), |a| {
-                                            DOMString::from(a.summarize().value)
-                                        }),
+                                        .get_attribute_string_value(&local_name!("value"))
+                                        .unwrap_or_default()
+                                        .into(),
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -2196,7 +2238,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+                self.form_attribute_mutated(cx, mutation);
             },
             _ => {
                 self.input_type()
@@ -2261,15 +2303,12 @@ impl VirtualMethods for HTMLInputElement {
             el.check_disabled_attribute();
         }
 
-        self.input_type().as_specific().unbind_from_tree(
-            self,
-            form_owner,
-            context,
-            CanGc::from_cx(cx),
-        );
+        self.input_type()
+            .as_specific()
+            .unbind_from_tree(cx, self, form_owner, context);
 
-        self.validity_state(CanGc::from_cx(cx))
-            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
     }
 
     // This represents behavior for which the UIEvents spec and the
@@ -2371,6 +2410,10 @@ impl VirtualMethods for HTMLInputElement {
         elem.checked_changed.set(self.checked_changed.get());
         elem.upcast::<Element>()
             .set_state(ElementState::CHECKED, self.Checked());
+        // The spec does not mention cloning the indeterminate state, but other browsers
+        // do it and there are WPT tests expecting cloned nodes to preserve this attribute.
+        elem.upcast::<Element>()
+            .set_state(ElementState::INDETERMINATE, self.Indeterminate());
         elem.textinput
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
@@ -2397,9 +2440,9 @@ impl Validatable for HTMLInputElement {
         self.upcast()
     }
 
-    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), can_gc))
+            .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {
@@ -2421,8 +2464,8 @@ impl Validatable for HTMLInputElement {
 
     fn perform_validation(
         &self,
+        cx: &mut JSContext,
         validate_flags: ValidationFlags,
-        can_gc: CanGc,
     ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
@@ -2440,7 +2483,7 @@ impl Validatable for HTMLInputElement {
         }
 
         if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
-            self.suffers_from_pattern_mismatch(&value, can_gc)
+            self.suffers_from_pattern_mismatch(&value, CanGc::from_cx(cx))
         {
             failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }
@@ -2545,9 +2588,16 @@ impl Activatable for HTMLInputElement {
         event: &Event,
         target: &EventTarget,
     ) {
-        self.input_type()
-            .as_specific()
-            .activation_behavior(cx, self, event, target);
+        let input_activation_type = {
+            let input_type = self.input_type();
+            InputActivationType::new_from_input_type(&input_type)
+        };
+
+        if let Some(input_activation_type) = input_activation_type {
+            input_activation_type
+                .as_specific()
+                .activation_behavior(cx, self, event, target);
+        }
     }
 }
 

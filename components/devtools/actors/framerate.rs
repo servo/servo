@@ -10,7 +10,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::PipelineId;
 
-use crate::actor::{Actor, ActorRegistry};
+use crate::actor::{Actor, ActorRegistry, new_actor_name};
 use crate::actors::timeline::HighResolutionStamp;
 
 #[derive(MallocSizeOf)]
@@ -23,8 +23,8 @@ pub(crate) struct FramerateActor {
 }
 
 impl Actor for FramerateActor {
-    fn name(&self) -> String {
-        self.name.clone()
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 
@@ -35,7 +35,7 @@ impl FramerateActor {
         pipeline_id: PipelineId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
-        let actor_name = registry.new_name::<Self>();
+        let actor_name = new_actor_name::<Self>();
         let mut actor = FramerateActor {
             name: actor_name.clone(),
             pipeline_id,
@@ -55,7 +55,10 @@ impl FramerateActor {
             .push(HighResolutionStamp::wrap(tick));
 
         if self.is_recording {
-            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline_id, self.name());
+            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(
+                self.pipeline_id,
+                self.name().into(),
+            );
             self.script_sender.send(msg).unwrap();
         }
     }
@@ -71,7 +74,8 @@ impl FramerateActor {
 
         self.is_recording = true;
 
-        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline_id, self.name());
+        let msg =
+            DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline_id, self.name().into());
         self.script_sender.send(msg).unwrap();
     }
 

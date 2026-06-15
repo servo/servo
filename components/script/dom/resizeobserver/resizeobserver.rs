@@ -30,7 +30,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::resizeobserverentry::ResizeObserverEntry;
 use crate::dom::resizeobserversize::{ResizeObserverSize, ResizeObserverSizeImpl};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-depth-for-node>
 #[derive(Debug, Default, PartialEq, PartialOrd)]
@@ -225,34 +224,34 @@ fn create_and_populate_a_resizeobserverentry(
     );
 
     let border_box_size = ResizeObserverSize::new(
+        cx,
         window,
         ResizeObserverSizeImpl::new(border_box_size.width(), border_box_size.height()),
-        CanGc::from_cx(cx),
     );
     let content_box_size = ResizeObserverSize::new(
+        cx,
         window,
         ResizeObserverSizeImpl::new(content_box_size.width(), content_box_size.height()),
-        CanGc::from_cx(cx),
     );
     let device_pixel_content_box = ResizeObserverSize::new(
+        cx,
         window,
         ResizeObserverSizeImpl::new(
             device_pixel_content_box.width(),
             device_pixel_content_box.height(),
         ),
-        CanGc::from_cx(cx),
     );
 
     // Step 1. Let this be a new ResizeObserverEntry.
     // Step 2. Set this.target slot to target.
     ResizeObserverEntry::new(
+        cx,
         window,
         target,
         &content_rect,
         &[&*border_box_size],
         &[&*content_box_size],
         &[&*device_pixel_content_box],
-        CanGc::from_cx(cx),
     )
 }
 

@@ -205,8 +205,8 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
-    fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
-        self.validity_state(can_gc)
+    fn Validity(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
+        self.validity_state(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
@@ -220,14 +220,13 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self) -> DOMString {
-        self.validation_message()
+    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+        self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
-        self.validity_state(CanGc::from_cx(cx))
-            .set_custom_error_message(error);
+        self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }
 
@@ -263,7 +262,7 @@ impl HTMLButtonElement {
         })
     }
 
-    fn set_type(&self, value: DOMString, can_gc: CanGc) {
+    fn set_type(&self, cx: &mut JSContext, value: DOMString) {
         let value = match value.to_ascii_lowercase().as_str() {
             "reset" => ButtonType::Reset,
             "button" => ButtonType::Button,
@@ -280,11 +279,11 @@ impl HTMLButtonElement {
             },
         };
         self.button_type.set(value);
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.validity_state(cx)
+            .perform_validation_and_update(cx, ValidationFlags::all());
     }
 
-    fn command_for_element(&self) -> Option<DomRoot<Element>> {
+    fn command_for_element(&self, cx: &mut JSContext) -> Option<DomRoot<Element>> {
         let command_for_value = self
             .upcast::<Element>()
             .get_attribute_string_value(&local_name!("commandfor"))?
@@ -295,9 +294,9 @@ impl HTMLButtonElement {
             .GetRootNode(&GetRootNodeOptions::empty());
 
         if let Some(document) = root_node.downcast::<Document>() {
-            return document.GetElementById(command_for_value);
+            return document.GetElementById(cx, command_for_value);
         } else if let Some(document_fragment) = root_node.downcast::<DocumentFragment>() {
-            return document_fragment.GetElementById(command_for_value);
+            return document_fragment.GetElementById(cx, command_for_value);
         }
         unreachable!("Button element must be in a document or document fragment");
     }
@@ -386,24 +385,24 @@ impl VirtualMethods for HTMLButtonElement {
                         el.check_ancestors_disabled_state_for_form_control();
                     },
                 }
-                self.validity_state(CanGc::from_cx(cx))
-                    .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
+                self.validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::all());
             },
-            local_name!("type") => self.set_type(attr.to_dom_string(), CanGc::from_cx(cx)),
+            local_name!("type") => self.set_type(cx, attr.to_dom_string()),
             local_name!("command") => self.set_type(
+                cx,
                 self.upcast::<Element>()
                     .get_string_attribute(&local_name!("type")),
-                CanGc::from_cx(cx),
             ),
             local_name!("commandfor") => self.set_type(
+                cx,
                 self.upcast::<Element>()
                     .get_string_attribute(&local_name!("type")),
-                CanGc::from_cx(cx),
             ),
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
-                self.validity_state(CanGc::from_cx(cx))
-                    .perform_validation_and_update(ValidationFlags::empty(), CanGc::from_cx(cx));
+                self.form_attribute_mutated(cx, mutation);
+                self.validity_state(cx)
+                    .perform_validation_and_update(cx, ValidationFlags::empty());
             },
             _ => {},
         }
@@ -453,9 +452,9 @@ impl Validatable for HTMLButtonElement {
         self.upcast()
     }
 
-    fn validity_state(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
+    fn validity_state(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), can_gc))
+            .or_init(|| ValidityState::new(cx, &self.owner_window(), self.upcast()))
     }
 
     fn is_instance_validatable(&self) -> bool {
@@ -541,7 +540,7 @@ impl Activatable for HTMLButtonElement {
         // Step 4. Let target be the result of running element's get the commandfor-associated
         // element.
         // Step 5. If target is not null:
-        if let Some(target) = self.command_for_element() {
+        if let Some(target) = self.command_for_element(cx) {
             // Steps 5.1 Let command be element's command attribute.
             let command = self.command_state();
             // Step 5.2 If the result of determining if a command is valid for a target given command and target is false, then return.
@@ -564,7 +563,7 @@ impl Activatable for HTMLButtonElement {
                 CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
-            if !event.fire(target.upcast::<EventTarget>(), CanGc::from_cx(cx)) {
+            if !event.fire(cx, target.upcast::<EventTarget>()) {
                 return;
             }
             // Step 5.5 If target is not connected, then return.

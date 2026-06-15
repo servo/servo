@@ -2064,22 +2064,25 @@ impl Handler {
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
         let script = format!(
-            r#"(async function() {{
+            r#"(async function(__wd_eid) {{
                 try {{
                     let result = (async function() {{
                         {func_body}
                     }})({});
                     let value = await result;
-                    window.webdriverCallback(value);
+                    if (window.__wd_eid === __wd_eid) {{
+                        window.webdriverCallback(value);
+                    }}
                 }} catch (err) {{
-                    window.webdriverException(err);
+                    if (window.__wd_eid === __wd_eid) {{
+                        window.webdriverException(err);
+                    }}
                 }}
-            }})();"#,
+            }})(window.__wd_eid = (window.__wd_eid || 0) + 1);"#,
             args_string.join(", ")
         );
 
         debug!("{}", script);
-
         // Step 2. If session's current browsing context is no longer open,
         // return error with error code no such window.
         self.verify_browsing_context_is_open(self.browsing_context_id()?)?;
@@ -2114,16 +2117,24 @@ impl Handler {
 
         let joined_args = args_string.join(", ");
         let script = format!(
-            r#"(function() {{
-                new Promise(function(resolve, reject) {{
-                  (async function() {{
-                    {function_body}
-                  }})({joined_args})
-                    .catch(reject)
-              }})
-              .then((v) => window.webdriverCallback(v), (r) => window.webdriverException(r))
-              .catch((r) => window.webdriverException(r));
-            }})();"#,
+            r#"(async function(__wd_eid) {{
+                try {{
+                    let result = new Promise(function(resolve, reject) {{
+                      (async function() {{
+                        {function_body}
+                      }})({joined_args})
+                        .catch(reject)
+                    }});
+                    let value = await result;
+                    if (window.__wd_eid === __wd_eid) {{
+                        window.webdriverCallback(value);
+                    }}
+                }} catch (err) {{
+                    if (window.__wd_eid === __wd_eid) {{
+                        window.webdriverException(err);
+                    }}
+                }}
+            }})(window.__wd_eid = (window.__wd_eid || 0) + 1);"#,
         );
         debug!("{}", script);
 

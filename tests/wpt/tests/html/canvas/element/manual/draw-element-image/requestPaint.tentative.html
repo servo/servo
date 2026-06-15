@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<title>canvas.requestPaint should cause canvas.onpaint to fire</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  canvas {
+    background: blue;
+  }
+  .color-change {
+    background: green;
+  }
+  div {
+    width: 100px;
+    height: 100px;
+    background: blue;
+  }
+</style>
+
+<canvas id="canvasa" width="200" height="200" layoutsubtree>
+  <div id="childa"></div>
+</canvas>
+<canvas id="canvasb" width="200" height="200" layoutsubtree>
+  <div id="childb"></div>
+</canvas>
+
+<script>
+  'use strict';
+
+  function waitForOneFrame() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
+
+  promise_test(async t => {
+    // Wait a frame.
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    canvasa.onpaint = () => {
+      onPaintCount++;
+    };
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 0, 'onpaint should not fire without changes');
+
+    canvasa.requestPaint();
+    assert_equals(onPaintCount, 0, 'onpaint should fire on the frame after requestPaint is called');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1, 'onpaint should fire after requestPaint is called');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1, 'onpaint should only fire once in response to requestPaint');
+  }, 'requestPaint should cause onpaint to fire without changes');
+
+  promise_test(async t => {
+    // Wait a frame.
+    await waitForOneFrame();
+
+    let onCanvasAPaintCount = 0;
+    canvasa.onpaint = () => {
+      onCanvasAPaintCount++;
+    };
+
+    let onCanvasBPaintCount = 0;
+    canvasb.onpaint = () => {
+      onCanvasBPaintCount++;
+    };
+
+    await waitForOneFrame();
+    assert_equals(onCanvasAPaintCount, 0, 'canvasa.onpaint should not fire without changes');
+    assert_equals(onCanvasBPaintCount, 0, 'canvasb.onpaint should not fire without changes');
+
+    canvasa.requestPaint();
+    assert_equals(onCanvasAPaintCount, 0, 'canvasa.onpaint should fire on the frame after requestPaint');
+    assert_equals(onCanvasBPaintCount, 0, 'canvasb.onpaint should not fire without changes or requestPaint');
+
+    await waitForOneFrame();
+    assert_equals(onCanvasAPaintCount, 1, 'canvasa.onpaint should fire after requestPaint');
+    assert_equals(onCanvasBPaintCount, 0, 'canvasb.onpaint should not fire without changes or requestPaint');
+
+    await waitForOneFrame();
+    assert_equals(onCanvasAPaintCount, 1, 'canvasa.onpaint should only fire once after requestPaint');
+    assert_equals(onCanvasBPaintCount, 0, 'canvasb.onpaint should not fire without changes or requestPaint');
+
+    canvasb.requestPaint();
+    assert_equals(onCanvasAPaintCount, 1, 'canvasa.onpaint should not fire without changes or requestPaint');
+    assert_equals(onCanvasBPaintCount, 0, 'canvasb.onpaint should fire on the frame after requestPaint');
+
+    await waitForOneFrame();
+    assert_equals(onCanvasAPaintCount, 1, 'canvasa.onpaint should not fire without changes or requestPaint');
+    assert_equals(onCanvasBPaintCount, 1, 'canvasb.onpaint should fire on the frame after requestPaint');
+
+    await waitForOneFrame();
+    assert_equals(onCanvasAPaintCount, 1, 'canvasa.onpaint should not fire without changes or requestPaint');
+    assert_equals(onCanvasBPaintCount, 1, 'canvasb.onpaint should only fire once after requestPaint');
+  }, 'requestPaint should cause onpaint to fire without changes, with two canvases');
+
+  promise_test(async t => {
+    // Wait a frame.
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    canvasa.onpaint = () => {
+      onPaintCount++;
+      if (onPaintCount === 1) {
+        canvasa.requestPaint();
+      }
+    };
+
+    await waitForOneFrame();
+    canvasa.requestPaint();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1, 'onpaint should fire after requestPaint is called');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 2, 'onpaint should fire after requestPaint is called from within onpaint');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 2, 'onpaint should not fire without changes or requestPaint');
+  }, 'requestPaint can be called in onpaint');
+</script>

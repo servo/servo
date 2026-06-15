@@ -47,6 +47,7 @@ mod imp {
         srcpad: gstreamer::GhostPad,
         position: Mutex<Position>,
         seeking: AtomicBool,
+        seekable: AtomicBool,
         size: Mutex<Option<i64>>,
     }
 
@@ -63,6 +64,10 @@ mod imp {
             if self.appsrc.size() == -1 {
                 self.appsrc.set_size(size);
             }
+        }
+
+        pub fn set_seekable(&self, seekable: bool) {
+            self.seekable.store(seekable, Ordering::Relaxed);
         }
 
         pub fn set_seek_offset<O: IsA<gstreamer::Object>>(&self, parent: &O, offset: u64) -> bool {
@@ -204,22 +209,25 @@ mod imp {
 
             // In order to make buffering/downloading work as we want, apart from
             // setting the appropriate flags on the player playbin,
-            // the source needs to either:
+            // the source:
             //
-            // 1. be an http, mms, etc. scheme
-            // 2. report that it is "bandwidth limited".
-            //
-            // 1. is not straightforward because we are using a servosrc scheme for now.
-            // This may change in the future if we end up handling http/https/data
-            // URIs, which is what WebKit does.
-            //
-            // For 2. we need to make servosrc handle the scheduling properties query
-            // to report that it "is bandwidth limited".
+            // 1. Announces seekability when the media element confirmed it.
+            // 2. Assumes seekable = true as default.
+            // 3. Keeps assuming bandwidth limited.
+            // 4. set_seekable is called when range requests are supported or not.
             let ret = match query.view_mut() {
                 gstreamer::QueryViewMut::Scheduling(ref mut q) => {
-                    let flags = gstreamer::SchedulingFlags::SEQUENTIAL |
-                        gstreamer::SchedulingFlags::BANDWIDTH_LIMITED;
-                    q.set(flags, 1, -1, 0);
+                    let seekability_flag = if self.seekable.load(Ordering::Relaxed) {
+                        gstreamer::SchedulingFlags::SEEKABLE
+                    } else {
+                        gstreamer::SchedulingFlags::SEQUENTIAL
+                    };
+                    q.set(
+                        seekability_flag | gstreamer::SchedulingFlags::BANDWIDTH_LIMITED,
+                        1,
+                        -1,
+                        0,
+                    );
                     q.add_scheduling_modes([gstreamer::PadMode::Push]);
                     true
                 },
@@ -272,6 +280,7 @@ mod imp {
                 srcpad: ghost_pad,
                 position: Mutex::new(Default::default()),
                 seeking: AtomicBool::new(false),
+                seekable: AtomicBool::new(true),
                 size: Mutex::new(None),
             }
         }
@@ -389,6 +398,10 @@ unsafe impl Sync for ServoSrc {}
 impl ServoSrc {
     pub fn set_size(&self, size: i64) {
         self.imp().set_size(size);
+    }
+
+    pub fn set_seekable(&self, seekable: bool) {
+        self.imp().set_seekable(seekable);
     }
 
     pub fn set_seek_offset(&self, offset: u64) -> bool {

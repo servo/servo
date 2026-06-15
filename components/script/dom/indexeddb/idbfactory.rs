@@ -71,7 +71,7 @@ impl IDBFactory {
     }
 
     pub(crate) fn register_indexeddb_transaction(&self, txn: &IDBTransaction) {
-        let db_name = DBName(txn.get_db_name().to_string());
+        let db_name = DBName(String::from(txn.get_db_name()));
         let mut map = self.indexeddb_transactions.borrow_mut();
         let bucket = map.entry(db_name).or_default();
         if !bucket.iter().any(|entry| &**entry == txn) {
@@ -81,7 +81,7 @@ impl IDBFactory {
     }
 
     pub(crate) fn unregister_indexeddb_transaction(&self, txn: &IDBTransaction) {
-        let db_name = DBName(txn.get_db_name().to_string());
+        let db_name = DBName(String::from(txn.get_db_name()));
         let mut map = self.indexeddb_transactions.borrow_mut();
         if let Some(bucket) = map.get_mut(&db_name) {
             bucket.retain(|entry| &**entry != txn);
@@ -441,7 +441,7 @@ impl IDBFactory {
             EventCancelable::Cancelable,
             CanGc::from_cx(cx),
         );
-        event.fire(request.upcast(), CanGc::from_cx(cx));
+        event.fire(cx, request.upcast());
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
@@ -470,7 +470,7 @@ impl IDBFactory {
         let open_operation = SyncOperation::OpenDatabase(
             callback,
             storage_key,
-            name.to_string(),
+            String::from(name),
             version,
             request.get_id(),
             proxy_map,
@@ -603,7 +603,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 4: Runs in parallel
         if request
-            .delete_database(storage_key, name.to_string(), proxy_map)
+            .delete_database(storage_key, String::from(name), proxy_map)
             .is_err()
         {
             return Err(Error::Operation(None));
@@ -623,14 +623,14 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let storage_key = match global.obtain_storage_key() {
             Some(storage_key) => storage_key,
             None => {
-                let p = Promise::new(&global, CanGc::from_cx(cx));
-                p.reject_error(Error::Security(None), CanGc::from_cx(cx));
+                let p = Promise::new2(cx, &global);
+                p.reject_error_with_cx(cx, Error::Security(None));
                 return p;
             },
         };
 
         // Step 3: Let p be a new promise.
-        let p = Promise::new(&global, CanGc::from_cx(cx));
+        let p = Promise::new2(cx, &global);
 
         // Note: the option is required to pass the promise to a task from within the generic callback,
         // see #41356
@@ -656,8 +656,8 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                         let error = map_backend_error_to_dom_error(err);
                         rooted!(&in(cx) let mut rval = UndefinedValue());
                         error
-                            .to_jsval(cx.into(), &promise.global(), rval.handle_mut(), CanGc::from_cx(cx));
-                        promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
+                            .to_jsval(cx, &promise.global(), rval.handle_mut());
+                        promise.reject_native_with_cx(cx, &rval.handle());
                     },
                     Ok(info_list) => {
                         let info_list: Vec<IDBDatabaseInfo> = info_list
@@ -667,7 +667,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                                 version: Some(info.version),
                         })
                         .collect();
-                        promise.resolve_native(&info_list, CanGc::from_cx(cx));
+                        promise.resolve_native_with_cx(cx, &info_list);
                 },
             }
             }));

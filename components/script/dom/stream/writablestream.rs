@@ -65,8 +65,7 @@ struct AbortAlgorithmFulfillmentHandler {
 impl Callback for AbortAlgorithmFulfillmentHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // Resolve abortRequest’s promise with undefined.
-        self.abort_request_promise
-            .resolve_native(&(), CanGc::from_cx(cx));
+        self.abort_request_promise.resolve_native_with_cx(cx, &());
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
@@ -91,7 +90,7 @@ impl Callback for AbortAlgorithmRejectionHandler {
     fn callback(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) {
         // Reject abortRequest’s promise with reason.
         self.abort_request_promise
-            .reject_native(&reason, CanGc::from_cx(cx));
+            .reject_native_with_cx(cx, &reason);
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
@@ -278,7 +277,7 @@ impl WritableStream {
         let write_requests = mem::take(&mut *self.write_requests.borrow_mut());
         for request in write_requests {
             // Reject writeRequest with storedError.
-            request.reject(cx.into(), stored_error.handle(), CanGc::from_cx(cx));
+            request.reject_with_cx(cx, stored_error.handle());
         }
 
         // Set stream.[[writeRequests]] to an empty list.
@@ -300,11 +299,9 @@ impl WritableStream {
             // If abortRequest’s was already erroring is true,
             if pending_abort_request.was_already_erroring {
                 // Reject abortRequest’s promise with storedError.
-                pending_abort_request.promise.reject(
-                    cx.into(),
-                    stored_error.handle(),
-                    CanGc::from_cx(cx),
-                );
+                pending_abort_request
+                    .promise
+                    .reject_with_cx(cx, stored_error.handle());
 
                 // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
                 self.reject_close_and_closed_promise_if_needed(cx);
@@ -331,10 +328,10 @@ impl WritableStream {
             }));
 
             let handler = PromiseNativeHandler::new(
+                cx,
                 global,
                 fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
                 rejection_handler.take().map(|h| Box::new(h) as Box<_>),
-                CanGc::from_cx(cx),
             );
 
             let mut realm = enter_auto_realm(cx, global);
@@ -425,7 +422,7 @@ impl WritableStream {
         // Let writer be stream.[[writer]].
         if let Some(writer) = self.writer.get() {
             // If writer is not undefined, perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected
-            writer.ensure_ready_promise_rejected(global, error, CanGc::from_cx(cx));
+            writer.ensure_ready_promise_rejected(cx, global, error);
         }
 
         // If ! WritableStreamHasOperationMarkedInFlight(stream) is false and controller.[[started]] is true
@@ -560,7 +557,7 @@ impl WritableStream {
         };
 
         // Reject stream.[[inFlightCloseRequest]] with error.
-        in_flight_close_request.reject_native(&error, CanGc::from_cx(cx));
+        in_flight_close_request.reject_native_with_cx(cx, &error);
 
         // Set stream.[[inFlightCloseRequest]] to undefined.
         // Done above with `take`.
@@ -574,7 +571,7 @@ impl WritableStream {
             // Reject stream.[[pendingAbortRequest]]'s promise with error.
             pending_abort_request
                 .promise
-                .reject_native(&error, CanGc::from_cx(cx));
+                .reject_native_with_cx(cx, &error);
 
             // Set stream.[[pendingAbortRequest]] to undefined.
             // Done above with `take`.
@@ -597,7 +594,7 @@ impl WritableStream {
         };
 
         // Reject stream.[[inFlightWriteRequest]] with error.
-        in_flight_write_request.reject_native(&error, CanGc::from_cx(cx));
+        in_flight_write_request.reject_native_with_cx(cx, &error);
 
         // Set stream.[[inFlightWriteRequest]] to undefined.
         // Done above with `take`.
@@ -745,10 +742,8 @@ impl WritableStream {
         if self.is_closed() || self.is_errored() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, global);
-            promise.reject_error(
-                Error::Type(c"Stream is closed or errored.".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise
+                .reject_error_with_cx(cx, Error::Type(c"Stream is closed or errored.".to_owned()));
             return promise;
         }
 
@@ -883,13 +878,11 @@ impl WritableStream {
         // Note: other algorithms defined in the controller at call site.
 
         // Let backpressurePromise be a new promise.
-        let backpressure_promise = Rc::new(RefCell::new(Some(Promise::new(
-            &global,
-            CanGc::from_cx(cx),
-        ))));
+        let backpressure_promise = Rc::new(RefCell::new(Some(Promise::new2(cx, &global))));
 
         // Let controller be a new WritableStreamDefaultController.
         let controller = WritableStreamDefaultController::new(
+            cx,
             &global,
             UnderlyingSinkType::Transfer {
                 backpressure_promise: backpressure_promise.clone(),
@@ -897,7 +890,6 @@ impl WritableStream {
             },
             1.0,
             size_algorithm,
-            CanGc::from_cx(cx),
         );
 
         // Add a handler for port’s message event with the following steps:
@@ -954,6 +946,7 @@ impl WritableStream {
         // takes an argument reason and returns the result of invoking underlyingSinkDict["abort"]
         // with argument list « reason » and callback this value underlyingSink.
         let controller = WritableStreamDefaultController::new(
+            cx,
             global,
             UnderlyingSinkType::new_js(
                 underlying_sink.abort.clone(),
@@ -963,7 +956,6 @@ impl WritableStream {
             ),
             strategy_hwm,
             strategy_size,
-            CanGc::from_cx(cx),
         );
 
         // Note: this must be done before `setup`,
@@ -993,11 +985,11 @@ pub(crate) fn create_writable_stream(
 
     // Let controller be a new WritableStreamDefaultController.
     let controller = WritableStreamDefaultController::new(
+        cx,
         global,
         underlying_sink_type,
         writable_high_water_mark,
         writable_size_algorithm,
-        CanGc::from_cx(cx),
     );
 
     // Perform ? SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm,
@@ -1024,7 +1016,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // converted to an IDL value of type UnderlyingSink.
         let underlying_sink_dict = if !underlying_sink_obj.is_null() {
             rooted!(&in(cx) let obj_val = ObjectValue(underlying_sink_obj.get()));
-            match UnderlyingSink::new(cx.into(), obj_val.handle(), CanGc::from_cx(cx)) {
+            match UnderlyingSink::new(cx, obj_val.handle()) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => {
                     return Err(Error::Type(error.into_owned()));
@@ -1080,10 +1072,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Stream is locked.".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
 
@@ -1099,10 +1088,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
-                Error::Type(c"Stream is locked.".to_owned()),
-                CanGc::from_cx(cx),
-            );
+            promise.reject_error_with_cx(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
 
@@ -1110,9 +1096,9 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error(
+            promise.reject_error_with_cx(
+                cx,
                 Error::Type(c"Stream has closed queued or in-flight".to_owned()),
-                CanGc::from_cx(cx),
             );
             return promise;
         }
@@ -1154,7 +1140,6 @@ pub(crate) struct CrossRealmTransformWritable {
 impl CrossRealmTransformWritable {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
     /// Add a handler for port’s message event with the following steps:
-    #[expect(unsafe_code)]
     pub(crate) fn handle_message(
         &self,
         cx: &mut CurrentRealm,
@@ -1162,14 +1147,7 @@ impl CrossRealmTransformWritable {
         message: SafeHandleValue,
     ) {
         rooted!(&in(cx) let mut value = UndefinedValue());
-        let type_string = unsafe {
-            get_type_and_value_from_message(
-                cx.into(),
-                message,
-                value.handle_mut(),
-                CanGc::from_cx(cx),
-            )
-        };
+        let type_string = get_type_and_value_from_message(cx, message, value.handle_mut());
 
         // If type is "pull",
         // Done below as the steps are the same for both types.
@@ -1186,7 +1164,7 @@ impl CrossRealmTransformWritable {
         // If backpressurePromise is not undefined,
         if let Some(promise) = backpressure_promise {
             // Resolve backpressurePromise with undefined.
-            promise.resolve_native(&(), CanGc::from_cx(cx));
+            promise.resolve_native_with_cx(cx, &());
 
             // Set backpressurePromise to undefined.
             // Done above with `take`.

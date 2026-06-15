@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>performance.getSpeculations() - navigationDestinationURL</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+setup(() => {
+  assert_true(isSpeculationMeasurementEnabled(),
+    "SpeculationMeasurement feature must be enabled");
+  assert_true('navigation' in window, "Navigation API must be supported");
+});
+
+// The intercept(), fragment, and pushState tests all mutate the document URL.
+// Capture the original URL at load time and reset to it at the start of any
+// test that depends on a known URL, so tests are order-independent even if a
+// previous test failed mid-way.
+const BASE_URL = location.href;
+function resetUrl() {
+  history.replaceState({}, '', BASE_URL);
+}
+
+// Loads support/navigation-destination-url-iframe.html in an iframe and tells
+// it to navigate to `navigateTo`. Returns the navigationDestinationURL that
+// the iframe observed in its pagehide handler, just before unloading.
+async function observeFromIframe(t, navigateTo) {
+  const received = new Promise(resolve => {
+    addEventListener('message', e => resolve(e.data), { once: true });
+  });
+
+  const iframe = document.createElement('iframe');
+  iframe.src = `support/navigation-destination-url-iframe.html` +
+               `?navigateTo=${encodeURIComponent(navigateTo)}`;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  const data = await received;
+  return data.navigationDestinationURL;
+}
+
+// Runs a navigation in this document and lets the handler decide what to do
+// with the event (preventDefault, intercept, or nothing). Returns once the
+// navigation has settled. Used for the negative tests where the page must
+// stay alive so we can inspect navigationDestinationURL afterward.
+async function navigateInThisDocument(t, url, handlerImpl) {
+  const handler = (event) => {
+    if (event.destination.url !== url) return;
+    handlerImpl(event);
+  };
+  navigation.addEventListener('navigate', handler);
+  t.add_cleanup(() => navigation.removeEventListener('navigate', handler));
+
+  const result = navigation.navigate(url);
+  // Both promises may reject when canceled/intercepted; swallow.
+  await Promise.allSettled([result.committed, result.finished]);
+}
+
+// -- Initial state ----------------------------------------------------------
+
+test(() => {
+  const data = performance.getSpeculations();
+  assert_true('navigationDestinationURL' in data,
+    "SpeculationData should expose navigationDestinationURL");
+  assert_equals(data.navigationDestinationURL, null,
+    "navigationDestinationURL should be null before any navigation");
+}, "navigationDestinationURL is null before any navigation");
+
+// -- Positive: a real cross-document same-origin navigation that commits ----
+
+promise_test(async t => {
+  const iframeSrc = new URL(
+      'support/navigation-destination-url-iframe.html', location.href);
+  const navigateTo = new URL('?committed', iframeSrc).href;
+
+  const observed = await observeFromIframe(t, navigateTo);
+  assert_equals(observed, navigateTo,
+    "navigationDestinationURL must be set for a committed cross-doc nav");
+}, "Cross-document same-origin navigation populates navigationDestinationURL");
+
+// -- Negatives: preventDefault, intercept, same-document, cross-origin ------
+
+// Navigate to a slow endpoint so pagehide doesn't fire while we inspect. This
+// also covers all late-cancellation paths (beforeunload, network error, etc.):
+// pending is never exposed unless pagehide fires.
+promise_test(async t => {
+  const slowUrl = new URL(
+      '/navigation-api/navigation-methods/resources/slow-no-store.py',
+      location.href).href;
+
+  const iframe = document.createElement('iframe');
+  iframe.src = 'support/navigation-destination-url-iframe-pending.html' +
+               `?navigateTo=${encodeURIComponent(slowUrl)}`;
+
+  const fired = new Promise(resolve => {
+    addEventListener('message', (e) => {
+      if (e.data && e.data.navigateEventFired) resolve();
+    }, { once: true });
+  });
+
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  await fired;
+
+  // Pending is stashed, but pagehide hasn't fired — so public must be null.
+  const inFlightUrl =
+      iframe.contentWindow.performance.getSpeculations()
+          .navigationDestinationURL;
+  assert_equals(inFlightUrl, null,
+    "navigationDestinationURL must be null until pagehide promotes pending");
+}, "In-flight (not-yet-committed) navigation does NOT populate navigationDestinationURL");
+
+promise_test(async t => {
+  const before = performance.getSpeculations().navigationDestinationURL;
+  const url = new URL('?prevented-cross-doc', BASE_URL).href;
+
+  await navigateInThisDocument(t, url, (event) => event.preventDefault());
+
+  assert_equals(performance.getSpeculations().navigationDestinationURL, before,
+    "navigationDestinationURL must NOT be set for a canceled navigation");
+}, "Canceled cross-document navigation does NOT populate navigationDestinationURL");
+
+promise_test(async t => {
+  resetUrl();
+  const before = performance.getSpeculations().navigationDestinationURL;
+  const url = new URL('?intercepted-cross-doc', BASE_URL).href;
+
+  await navigateInThisDocument(t, url,
+    (event) => event.intercept({ handler: async () => {} }));
+
+  assert_equals(performance.getSpeculations().navigationDestinationURL, before,
+    "navigationDestinationURL must NOT be set for an intercepted navigation");
+}, "Intercepted cross-document navigation does NOT populate navigationDestinationURL");
+
+promise_test(async t => {
+  resetUrl();
+  const before = performance.getSpeculations().navigationDestinationURL;
+
+  // Fragment navigation: event_type is kFragment (same-document).
+  const fragmentUrl = new URL('#nav-dest-url-fragment', BASE_URL).href;
+  let sameDocumentObserved = false;
+  const handler = (event) => {
+    if (event.destination.url !== fragmentUrl) return;
+    sameDocumentObserved = event.destination.sameDocument;
+  };
+  navigation.addEventListener('navigate', handler);
+  t.add_cleanup(() => navigation.removeEventListener('navigate', handler));
+
+  const result = navigation.navigate(fragmentUrl);
+  await Promise.allSettled([result.committed, result.finished]);
+
+  assert_true(sameDocumentObserved,
+    "fragment nav should have fired a same-document navigate event");
+  assert_equals(performance.getSpeculations().navigationDestinationURL, before,
+    "navigationDestinationURL must NOT change for a same-document fragment nav");
+}, "Same-document fragment navigation does NOT populate navigationDestinationURL");
+
+promise_test(async t => {
+  resetUrl();
+  const before = performance.getSpeculations().navigationDestinationURL;
+  history.pushState({}, '', '?nav-dest-url-pushState');
+  assert_equals(performance.getSpeculations().navigationDestinationURL, before,
+    "navigationDestinationURL must NOT change for history.pushState");
+}, "history.pushState does NOT populate navigationDestinationURL");
+
+promise_test(async t => {
+  // Cross-origin: the iframe is same-origin and navigates itself to a
+  // cross-origin URL. Our same-origin filter should reject it; the iframe's
+  // pagehide handler should report null.
+  const crossOriginUrl = new URL(
+      '/dummy?nav-dest-url-cross-origin',
+      get_host_info().HTTPS_REMOTE_ORIGIN).href;
+
+  const observed = await observeFromIframe(t, crossOriginUrl);
+  assert_equals(observed, null,
+    "navigationDestinationURL must NOT be set for cross-origin destinations");
+}, "Cross-origin navigation does NOT populate navigationDestinationURL");
+</script>
+</body>

@@ -206,6 +206,15 @@
   fuzzy_test_computed_color(`hsl(from rebeccapurple calc((h / 360) * 360deg) calc((s / 100) * 100%) calc((l / 100) * 100%) / calc(alpha * 100%))`, `color(srgb 0.4 0.2 0.6)`);
   fuzzy_test_computed_color(`hsl(from rebeccapurple h s calc(50% * l / 100))`, `color(srgb 0.2 0.1 0.3)`);
 
+  // Component keywords resolve to <number>.
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(l) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(sin(l)) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(asin(sin(l))) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(clamp(0, l, 50)) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(l * 1) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(l * (50rad / 50)) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+  fuzzy_test_computed_color(`hsl(from hsl(50 50 50) h s calc((sin(l * (50rad / (50deg * (180 / pi)))) + 1) * 50))`, `color(srgb 0.553 0.492 0.184)`);
+
   // Alpha is clamped to [0,1]
   fuzzy_test_computed_color(`hsl(from hsl(from rebeccapurple h s l / calc(alpha + 0.5)) h s l / calc(alpha - 0.5))`, `color(srgb 0.4 0.2 0.6 / 0.5)`);
   fuzzy_test_computed_color(`hsl(from hsl(from rebeccapurple h s l / calc(alpha - 1.5)) h s l / calc(alpha + 0.5))`, `color(srgb 0.4 0.2 0.6 / 0.5)`);
@@ -884,6 +893,16 @@
   fuzzy_test_computed_color(`var(--mygray)`, `lch(62.75 0 326.96)`, 0.02);
   fuzzy_test_computed_color(`lch(from var(--mygray) l 30 h)`, `lch(62.75 30 326.96)`, 0.02);
   fuzzy_test_computed_color(`LCH(from var(--accent) l c calc(h + 180 * sibling-index()))`, `lch(65.49 39.45 10.11)`, 0.02);
+
+  // https://github.com/w3c/csswg-drafts/issues/13938
+  fuzzy_test_computed_color(`hsl(from hsl(200 50 50) h s calc(l + sin(3) * 100))`, `color(srgb 0.46168 0.700933 0.82056)`);
+  fuzzy_test_computed_color(`hsl(from hsl(200 50 50) h s calc(sin(pi / 4) * 100))`, `color(srgb 0.56066 0.755922 0.853553)`);
+  fuzzy_test_computed_color(`hsl(from hsl(200 50 50) h s calc((sin(50) + 2) * 20))`, `color(srgb 0.173763 0.405446 0.521288)`);
+  fuzzy_test_computed_color(`hsl(from hsl(200 50 50) h s calc((sin(l) + 2) * 20))`, `color(srgb 0.173763 0.405446 0.521288)`);
+  fuzzy_test_computed_color_using_currentcolor(`hsl(from currentColor h s calc((sin(l) + 2) * 20))`, `color(srgb 0.173763 0.405446 0.521288)`, `hsl(200 50 50)`);
+
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1951206
+  fuzzy_test_computed_color(`oklch(from green pow(l, 1) c h)`, `oklch(0.519752 0.176858 142.4953)`);
 </script>
 </body>
 </html>

@@ -16,7 +16,7 @@ promise_test(async t => {
   await load_promise;
 
   const iDOMException = iframe.contentWindow.DOMException;
-  const iframe_modelContext = iframe.contentWindow.navigator.modelContext;
+  const iframe_modelContext = iframe.contentWindow.document.modelContext;
   iframe.remove();
 
   await promise_rejects_dom(t, 'InvalidStateError', iDOMException, iframe_modelContext.getTools());

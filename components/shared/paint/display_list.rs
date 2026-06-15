@@ -802,7 +802,7 @@ impl ScrollTree {
     // TODO(stevennovaryo): add information about which fragment that
     //                      defines this node.
     pub fn debug_print(&self) {
-        let mut print_tree = PrintTree::new("Scroll Tree".to_owned());
+        let mut print_tree = PrintTree::new("Scroll Tree");
 
         let adj_list = self.nodes_in_adjacency_list();
         let root_id = ScrollTreeNodeId { index: 0 };

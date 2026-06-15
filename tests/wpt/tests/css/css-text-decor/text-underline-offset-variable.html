@@ -22,13 +22,21 @@ line-height: 1.8;
 .close_underline {
 text-decoration: underline;
 font-family: underline-variable, sans-serif;
-text-underline-offset: -2.5px;
+/* Start the underline at a calculated whole number value (6px) so that
+   platform-specific rounding of font information does not interfere with this
+   test of text-underline-offset. */
+font-variation-settings: 'UNDO' 640;
+text-underline-offset: -3.84325px;
 }
 
 .far_underline {
 text-decoration: underline;
 font-family: underline-variable, sans-serif;
-text-underline-offset: 4.6px;
+/* Start the underline at a calculated whole number value (6px) so that
+   platform-specific rounding of font information does not interfere with this
+   test of text-underline-offset. */
+font-variation-settings: 'UNDO' 640;
+text-underline-offset: 3.375px;
 }
 </style>
 </head>

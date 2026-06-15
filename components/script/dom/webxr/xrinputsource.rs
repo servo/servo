@@ -4,11 +4,12 @@
 
 use dom_struct::dom_struct;
 use embedder_traits::GamepadSupportedHapticEffects;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
@@ -17,13 +18,12 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::gamepad::Gamepad;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrhand::XRHand;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
-use crate::realms::enter_realm;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::realms::enter_auto_realm;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
 pub(crate) struct XRInputSource {
@@ -41,13 +41,14 @@ pub(crate) struct XRInputSource {
 
 impl XRInputSource {
     pub(crate) fn new_inherited(
+        cx: &mut JSContext,
         window: &Window,
         session: &XRSession,
         info: InputSource,
-        can_gc: CanGc,
     ) -> XRInputSource {
         // <https://www.w3.org/TR/webxr-gamepads-module-1/#gamepad-differences>
         let gamepad = Gamepad::new(
+            cx,
             window,
             0,
             "".into(),
@@ -59,7 +60,6 @@ impl XRInputSource {
                 supports_trigger_rumble: false,
             },
             true,
-            can_gc,
         );
         XRInputSource {
             reflector: Reflector::new(),
@@ -74,24 +74,24 @@ impl XRInputSource {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         session: &XRSession,
         info: InputSource,
-        can_gc: CanGc,
     ) -> DomRoot<XRInputSource> {
-        let source = reflect_dom_object(
-            Box::new(XRInputSource::new_inherited(window, session, info, can_gc)),
+        let source = reflect_dom_object_with_cx(
+            Box::new(XRInputSource::new_inherited(cx, window, session, info)),
             window,
-            can_gc,
+            cx,
         );
 
-        let _ac = enter_realm(window);
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut profiles = UndefinedValue());
+        let mut realm = enter_auto_realm(cx, window);
+        let cx = &mut realm.current_realm();
+        rooted!(&in(cx) let mut profiles = UndefinedValue());
         source
             .info
             .profiles
-            .safe_to_jsval(cx, profiles.handle_mut(), can_gc);
+            .safe_to_jsval(cx.into(), profiles.handle_mut(), CanGc::from_cx(cx));
         source.profiles.set(profiles.get());
         source
     }
@@ -143,38 +143,26 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-targetrayspace>
-    fn TargetRaySpace(&self) -> DomRoot<XRSpace> {
+    fn TargetRaySpace(&self, cx: &mut JSContext) -> DomRoot<XRSpace> {
         self.target_ray_space.or_init(|| {
             let global = self.global();
-            XRSpace::new_inputspace(
-                &global,
-                &self.session,
-                self,
-                false,
-                CanGc::deprecated_note(),
-            )
+            XRSpace::new_inputspace(cx, &global, &self.session, self, false)
         })
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-gripspace>
-    fn GetGripSpace(&self) -> Option<DomRoot<XRSpace>> {
+    fn GetGripSpace(&self, cx: &mut JSContext) -> Option<DomRoot<XRSpace>> {
         if self.info.supports_grip {
             Some(self.grip_space.or_init(|| {
                 let global = self.global();
-                XRSpace::new_inputspace(
-                    &global,
-                    &self.session,
-                    self,
-                    true,
-                    CanGc::deprecated_note(),
-                )
+                XRSpace::new_inputspace(cx, &global, &self.session, self, true)
             }))
         } else {
             None
         }
     }
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles>
-    fn Profiles(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+    fn Profiles(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.profiles.get())
     }
 
@@ -191,11 +179,10 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     }
 
     /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
-    fn GetHand(&self) -> Option<DomRoot<XRHand>> {
+    fn GetHand(&self, cx: &mut JSContext) -> Option<DomRoot<XRHand>> {
         self.info.hand_support.as_ref().map(|hand| {
-            self.hand.or_init(|| {
-                XRHand::new(&self.global(), self, hand.clone(), CanGc::deprecated_note())
-            })
+            self.hand
+                .or_init(|| XRHand::new(cx, &self.global(), self, hand.clone()))
         })
     }
 }

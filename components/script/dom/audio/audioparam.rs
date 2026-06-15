@@ -6,8 +6,9 @@ use std::cell::Cell;
 use std::sync::mpsc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::{ParamRate, ParamType, RampKind, UserAutomationEvent};
@@ -21,7 +22,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct AudioParam {
@@ -70,6 +70,7 @@ impl AudioParam {
     #[allow(clippy::too_many_arguments)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         context: &BaseAudioContext,
         node: Option<NodeId>,
@@ -79,7 +80,6 @@ impl AudioParam {
         default_value: f32,
         min_value: f32,
         max_value: f32,
-        can_gc: CanGc,
     ) -> DomRoot<AudioParam> {
         let audio_param = AudioParam::new_inherited(
             context,
@@ -91,7 +91,7 @@ impl AudioParam {
             min_value,
             max_value,
         );
-        reflect_dom_object(Box::new(audio_param), window, can_gc)
+        reflect_dom_object_with_cx(Box::new(audio_param), window, cx)
     }
 
     fn message_node(&self, message: AudioNodeMessage) {

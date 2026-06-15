@@ -75,4 +75,18 @@
     assert_equals(document.activeElement.id, "tree3",
       "ArrowUp from tree3_1 should move to tree3");
   }, "Slotted focusgroupstart in tree: arrow navigation works");
+
+  promise_test(async t => {
+    await assert_focusgroup_tab_navigation([
+      tree3_1,
+      tree_after,
+    ]);
+  }, "Slotted focusgroupstart in tree: Tab exits to next element");
+
+  promise_test(async t => {
+    await assert_focusgroup_shift_tab_navigation([
+      tree3_1,
+      tree_before,
+    ]);
+  }, "Slotted focusgroupstart in tree: Shift+Tab exits without stopping on host");
 </script>

@@ -42,7 +42,7 @@ promise_test(async t => {
   await new Promise(resolve => t.step_timeout(resolve, 1000));
 
   // Verify that the parent (unexposed origin) cannot see the tool via getTools().
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   assert_array_equals(tools, [], 'Parent frame should see no tools');
 
   // Manually construct a fake RegisteredTool pointing to the cross-origin iframe window.
@@ -54,7 +54,7 @@ promise_test(async t => {
   };
 
   // Parent attempts to execute the unexposed tool directly. This should reject with UnknownError.
-  const promise = navigator.modelContext.executeTool(fake_tool, '{}');
+  const promise = document.modelContext.executeTool(fake_tool, '{}');
   await promise_rejects_dom(t, 'UnknownError', promise, 'executeTool should reject with UnknownError when parent is not authorized to execute the iframe tool');
 }, 'executeTool() rejects when parent frame attempts unauthorized execution of cross-origin iframe tool');
 </script>

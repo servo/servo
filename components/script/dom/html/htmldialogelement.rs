@@ -111,7 +111,7 @@ impl HTMLDialogElement {
             CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
-        if !event.fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx)) {
+        if !event.fire(cx, self.upcast::<EventTarget>()) {
             return Ok(());
         }
 
@@ -184,7 +184,7 @@ impl HTMLDialogElement {
             CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
-        event.fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx));
+        event.fire(cx, self.upcast::<EventTarget>());
 
         // Step 3. If subject does not have an open attribute, then return.
         if !subject.has_attribute(&local_name!("open")) {
@@ -269,7 +269,7 @@ impl HTMLDialogElement {
                     CanGc::from_cx(cx),
                 );
                 let event = event.upcast::<Event>();
-                event.fire(this.upcast::<EventTarget>(), CanGc::from_cx(cx));
+                event.fire(cx, this.upcast::<EventTarget>());
 
                 // TODO: Step 2.2. Set element's dialog toggle task tracker to null.
             }));
@@ -324,7 +324,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
             CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
-        if !event.fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx)) {
+        if !event.fire(cx, self.upcast::<EventTarget>()) {
             return Ok(());
         }
 

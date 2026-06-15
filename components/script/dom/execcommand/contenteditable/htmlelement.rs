@@ -20,9 +20,9 @@ use crate::dom::execcommand::contenteditable::node::move_preserving_ranges;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
-use crate::dom::node::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::node::{Node, NodeTraits};
 use crate::dom::text::Text;
-use crate::script_runtime::CanGc;
 
 impl HTMLElement {
     pub(crate) fn local_name(&self) -> &str {
@@ -183,7 +183,7 @@ impl HTMLElement {
         };
         let range = self
             .upcast::<Element>()
-            .ensure_contenteditable_selection_range(&document, CanGc::from_cx(cx));
+            .ensure_contenteditable_selection_range(cx, &document);
         // If the current range is already associated with this contenteditable
         // element, then we shouldn't do anything. This is important when focus
         // is lost and regained, but selection was changed beforehand. In that

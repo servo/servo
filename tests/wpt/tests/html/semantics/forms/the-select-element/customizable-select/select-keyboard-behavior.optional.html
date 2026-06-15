@@ -131,7 +131,7 @@ for (const id of ['defaultbutton', 'custombutton']) {
     form.addEventListener('submit', event => {
       event.preventDefault();
       formWasSubmitted = true;
-    }, {once: true});
+    });
     await test_driver.send_keys(select, Enter);
     await new Promise(requestAnimationFrame);
     assert_false(formWasSubmitted,

@@ -116,6 +116,7 @@ partial interface mixin GlobalEventHandlers {
 // https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
 partial interface mixin GlobalEventHandlers {
            attribute EventHandler ontransitionrun;
+           attribute EventHandler ontransitionstart;
            attribute EventHandler ontransitionend;
            attribute EventHandler ontransitioncancel;
 };
@@ -159,4 +160,16 @@ partial interface mixin GlobalEventHandlers {
            attribute EventHandler onpointercancel;
            attribute EventHandler onpointerout;
            attribute EventHandler onpointerleave;
+};
+
+// https://w3c.github.io/touch-events/#extensions-to-the-globaleventhandlers-mixin
+partial interface mixin GlobalEventHandlers {
+           [Pref="dom_touch_events_legacy_apis_enabled"]
+           attribute EventHandler ontouchstart;
+           [Pref="dom_touch_events_legacy_apis_enabled"]
+           attribute EventHandler ontouchend;
+           [Pref="dom_touch_events_legacy_apis_enabled"]
+           attribute EventHandler ontouchmove;
+           [Pref="dom_touch_events_legacy_apis_enabled"]
+           attribute EventHandler ontouchcancel;
 };

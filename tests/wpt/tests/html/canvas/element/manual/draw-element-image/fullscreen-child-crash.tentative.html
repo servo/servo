@@ -1,0 +1,29 @@
+<!doctype html>
+<html class="test-wait">
+<title>Canvas.drawElementImage should not crash when drawing canvas child in fullscreen</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="target">PASS if there is no crash.</div>
+</canvas>
+
+<script>
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const target = document.getElementById("target");
+  canvas.onpaint = () => {
+    ctx.drawElementImage(target, 0, 0);
+  }
+  canvas.requestPaint();
+
+  async function goFullscreen() {
+    await test_driver.bless("request fullscreen", () => target.requestFullscreen());
+    document.documentElement.classList.remove("test-wait");
+  }
+  window.onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(goFullscreen));
+  };
+</script>
+</html>

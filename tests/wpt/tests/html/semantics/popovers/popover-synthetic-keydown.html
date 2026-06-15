@@ -1,0 +1,27 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<body>
+<div popover id="popover"></div>
+<script>
+test(() => {
+  popover.showPopover();
+
+  let keydown = new KeyboardEvent("keydown", {key: "Escape", keyCode: 27});
+  document.body.dispatchEvent(keydown);
+  let keyup = new KeyboardEvent("keyup", {key: "Escape", keyCode: 27});
+  document.body.dispatchEvent(keyup);
+
+  assert_true(popover.matches(':popover-open'));
+
+  let keyup2 = document.createEvent("Event");
+  keyup2.initEvent("keyup", true);
+  document.body.dispatchEvent(keyup2);
+
+  assert_true(popover.matches(':popover-open'));
+}, "close via synthesized Esc key must not work");
+</script>

@@ -98,19 +98,19 @@ impl InnerDOMLayoutData {
         }
     }
 
-    fn with_layout_box_base(&self, callback: impl Fn(&LayoutBoxBase)) {
+    fn with_layout_box_base(&self, callback: impl FnMut(&LayoutBoxBase)) {
         if let Some(data) = self.self_box.borrow().as_ref() {
             data.with_base(callback);
         }
     }
 
-    fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {
-        self.with_layout_box_base(&callback);
+    fn with_layout_box_base_including_pseudos(&self, mut callback: impl FnMut(&LayoutBoxBase)) {
+        self.with_layout_box_base(&mut callback);
         for pseudo_layout_data in self.pseudo_boxes.iter() {
             pseudo_layout_data
                 .data
                 .borrow()
-                .with_layout_box_base(&callback);
+                .with_layout_box_base(&mut callback);
         }
     }
 }
@@ -347,7 +347,7 @@ pub(crate) trait NodeExt<'dom> {
     fn rendering_type(&self) -> NodeRenderingType;
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
-    fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase));
+    fn with_layout_box_base_including_pseudos(&self, callback: impl FnMut(&LayoutBoxBase));
 
     fn repair_style(&self, context: &SharedStyleContext);
 
@@ -543,7 +543,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         }
     }
 
-    fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {
+    fn with_layout_box_base_including_pseudos(&self, callback: impl FnMut(&LayoutBoxBase)) {
         if let Some(inner_layout_data) = self.inner_layout_data() {
             inner_layout_data.with_layout_box_base_including_pseudos(callback);
         }

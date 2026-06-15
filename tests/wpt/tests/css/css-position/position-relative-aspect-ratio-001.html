@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>CSS Position: relative position percentage top with aspect-ratio containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#valdef-top-percentage">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+    margin: 0;
+}
+
+.green {
+    width: 20px;
+    height: 20px;
+    background: green;
+    position: relative;
+}
+</style>
+
+<!-- 1. Explicit width + aspect-ratio, top: 50% -->
+<div id="t1" style="width: 200px; aspect-ratio: 2 / 1;">
+    <div class="green" id="t1-rel" style="top: 50%;"></div>
+</div>
+
+<!-- 2. Explicit width + aspect-ratio, bottom: 25% -->
+<div id="t2" style="width: 200px; aspect-ratio: 2 / 1;">
+    <div class="green" id="t2-rel" style="bottom: 25%;"></div>
+</div>
+
+<!-- 3. Auto width block (fills available space) + aspect-ratio, top: 50% -->
+<div style="width: 400px;">
+    <div id="t3" style="aspect-ratio: 2 / 1;">
+        <div class="green" id="t3-rel" style="top: 50%;"></div>
+    </div>
+</div>
+
+<!-- 4. No aspect-ratio, auto height, top: 50% should not resolve -->
+<div id="t4" style="width: 200px;">
+    <div class="green" id="t4-rel" style="top: 50%;"></div>
+</div>
+
+<script>
+function offsetFromParent(relId, parentId) {
+    var rel = document.getElementById(relId);
+    var parent = document.getElementById(parentId);
+    return rel.getBoundingClientRect().top - parent.getBoundingClientRect().top;
+}
+
+test(function() {
+    assert_equals(offsetFromParent('t1-rel', 't1'), 50);
+}, 'Explicit width + aspect-ratio 2/1, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t2-rel', 't2'), -25);
+}, 'Explicit width + aspect-ratio 2/1, bottom: 25%');
+
+test(function() {
+    assert_equals(offsetFromParent('t3-rel', 't3'), 100);
+}, 'Auto width block + aspect-ratio 2/1, top: 50%');
+
+test(function() {
+    assert_equals(offsetFromParent('t4-rel', 't4'), 0);
+}, 'No aspect-ratio, auto height, top: 50% does not resolve');
+</script>

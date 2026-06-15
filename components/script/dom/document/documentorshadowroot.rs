@@ -7,37 +7,32 @@ use std::ffi::c_void;
 use std::fmt;
 
 use embedder_traits::UntrustedNodeAddress;
+use js::context::JSContext;
+use js::conversions::FromJSValConvertible;
 use js::rust::HandleValue;
-use layout_api::ElementsFromPointFlags;
-use rustc_hash::FxBuildHasher;
-use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::error::{Error, ErrorResult};
-use script_bindings::script_runtime::{CanGc, JSContext};
 use servo_arc::Arc;
 use servo_config::pref;
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::stylesheets::{Stylesheet, StylesheetContents};
-use stylo_atoms::Atom;
 use webrender_api::units::LayoutPoint;
 
 use crate::dom::Document;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
-use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertible};
+use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::css::stylesheetlist::StyleSheetListOwner;
 use crate::dom::element::Element;
-use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
-use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::types::{CSSStyleSheet, EventTarget};
+use crate::dom::node::{self, Node};
+use crate::dom::types::{CSSStyleSheet, EventTarget, ShadowRoot};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
 
@@ -134,10 +129,35 @@ impl DocumentOrShadowRoot {
         }
     }
 
+    /// Retarget the result of `elementsFromPoint` or `elementFromPoint` according to the
+    /// resolution in <https://github.com/w3c/csswg-drafts/issues/556>.
+    pub(crate) fn retarget_hit_test_result(
+        &self,
+        this: &Node,
+        node: DomRoot<Node>,
+    ) -> Option<DomRoot<Element>> {
+        let retargeted_node =
+            DomRoot::downcast::<Node>(node.upcast::<EventTarget>().retarget(this.upcast()))?;
+        DomRoot::downcast::<Element>(retargeted_node.clone()).or_else(|| {
+            let parent_node = retargeted_node.GetParentNode()?;
+
+            // This node has already been retargeted, but if it is the direct descendant of
+            // a shadow root and it isn't an element, the only reasonable thing to return is
+            // the shadow host (even though that is outside of `this`.) This is a surprising
+            // behavior, but this is what browsers do.
+            if let Some(shadow_root) = parent_node.downcast::<ShadowRoot>() {
+                Some(shadow_root.Host())
+            } else {
+                retargeted_node.GetParentElement()
+            }
+        })
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint>
     #[expect(unsafe_code)]
-    // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
     pub(crate) fn element_from_point(
         &self,
+        this: &Node,
         x: Finite<f64>,
         y: Finite<f64>,
         document_element: Option<DomRoot<Element>>,
@@ -157,7 +177,7 @@ impl DocumentOrShadowRoot {
 
         let results = self
             .window
-            .elements_from_point_query(LayoutPoint::new(x, y), ElementsFromPointFlags::empty());
+            .elements_from_point_query(LayoutPoint::new(x, y));
         let Some(result) = results.first() else {
             return document_element;
         };
@@ -166,20 +186,15 @@ impl DocumentOrShadowRoot {
         // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
         let address = UntrustedNodeAddress(result.node.0 as *const c_void);
         let node = unsafe { node::from_untrusted_node_address(address) };
-        DomRoot::downcast::<Element>(node.clone()).or_else(|| {
-            let parent_node = node.GetParentNode()?;
-            if let Some(shadow_root) = parent_node.downcast::<ShadowRoot>() {
-                Some(shadow_root.Host())
-            } else {
-                node.GetParentElement()
-            }
-        })
+
+        self.retarget_hit_test_result(this, node)
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint>
     #[expect(unsafe_code)]
-    // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
     pub(crate) fn elements_from_point(
         &self,
+        this: &Node,
         x: Finite<f64>,
         y: Finite<f64>,
         document_element: Option<DomRoot<Element>>,
@@ -198,29 +213,46 @@ impl DocumentOrShadowRoot {
             return vec![];
         }
 
-        // Step 1 and Step 3
+        // Step 1: Let sequence be a new empty sequence.
+        // Step 3: For each box in the viewport, in paint order, starting with the topmost
+        // box, that would be a target for hit testing at coordinates x,y even if nothing
+        // would be overlapping it, when applying the transforms that apply to the
+        // descendants of the viewport, append the associated element to sequence.
         let nodes = self
             .window
-            .elements_from_point_query(LayoutPoint::new(x, y), ElementsFromPointFlags::FindAll);
-        let mut elements: Vec<DomRoot<Element>> = nodes
+            .elements_from_point_query(LayoutPoint::new(x, y));
+
+        let mut elements: Vec<_> = nodes
             .iter()
             .flat_map(|result| {
                 // SAFETY: This is safe because `Self::query_elements_from_point` has ensured that
                 // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
                 let address = UntrustedNodeAddress(result.node.0 as *const c_void);
                 let node = unsafe { node::from_untrusted_node_address(address) };
-                DomRoot::downcast::<Element>(node)
+                self.retarget_hit_test_result(this, node)
             })
             .collect();
 
-        // Step 4
+        // Now remove consecutive duplicates. This isn't in the specification, but it
+        // follows browser behavior. See https://github.com/w3c/csswg-drafts/issues/556.
+        let mut last_seen = None;
+        elements.retain(|element| {
+            if Some(element) == last_seen.as_ref() {
+                return false;
+            }
+            last_seen = Some(element.clone());
+            true
+        });
+
+        // Step 4: If the document has a root element, and the last item in sequence is
+        // not the root element, append the root element to sequence.
         if let Some(root_element) = document_element &&
             elements.last() != Some(&root_element)
         {
             elements.push(root_element);
         }
 
-        // Step 5
+        // Step 5: Return sequence.
         elements
     }
 
@@ -315,53 +347,6 @@ impl DocumentOrShadowRoot {
         }
     }
 
-    /// Remove any existing association between the provided id/name and any elements in this document.
-    pub(crate) fn unregister_named_element(
-        &self,
-        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
-        to_unregister: &Element,
-        id: &Atom,
-    ) {
-        debug!(
-            "Removing named element {:p}: {:p} id={}",
-            self, to_unregister, id
-        );
-        let mut id_map = id_map.borrow_mut();
-        let is_empty = match id_map.get_mut(id) {
-            None => false,
-            Some(elements) => {
-                let position = elements
-                    .iter()
-                    .position(|element| &**element == to_unregister)
-                    .expect("This element should be in registered.");
-                elements.remove(position);
-                elements.is_empty()
-            },
-        };
-        if is_empty {
-            id_map.remove(id);
-        }
-    }
-
-    /// Associate an element present in this document with the provided id/name.
-    pub(crate) fn register_named_element(
-        &self,
-        id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
-        element: &Element,
-        id: &Atom,
-        root: DomRoot<Node>,
-    ) {
-        debug!("Adding named element {:p}: {:p} id={}", self, element, id);
-        assert!(
-            element.upcast::<Node>().is_in_a_document_tree() ||
-                element.upcast::<Node>().is_in_a_shadow_tree()
-        );
-        assert!(!id.is_empty());
-        let mut id_map = id_map.borrow_mut();
-        let elements = id_map.entry(id.clone()).or_default();
-        elements.insert_pre_order(element, &root);
-    }
-
     /// Inner part of adopted stylesheet. We are setting it by, assuming it is a FrozenArray
     /// instead of an ObservableArray. Thus, it would have a completely different workflow
     /// compared to the spec. The workflow here is actually following Gecko's implementation
@@ -375,6 +360,7 @@ impl DocumentOrShadowRoot {
     // TODO: Handle duplicated adoptedstylesheet correctly, Stylo is preventing duplicates inside a
     //       Stylesheet Set. But this is not ideal. https://bugzilla.mozilla.org/show_bug.cgi?id=1978755
     fn set_adopted_stylesheet(
+        cx: &mut JSContext,
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_stylesheets: &[Dom<CSSStyleSheet>],
         owner: &StyleSheetListOwner,
@@ -433,7 +419,7 @@ impl DocumentOrShadowRoot {
                 sheet.add_adopter(owner.clone());
             }
 
-            owner.append_constructed_stylesheet(sheet);
+            owner.append_constructed_stylesheet(cx, sheet);
         }
 
         *adopted_stylesheets = incoming_stylesheets.to_vec();
@@ -444,20 +430,20 @@ impl DocumentOrShadowRoot {
     /// Set adoptedStylesheet given a js value by converting and passing the converted
     /// values to the inner [DocumentOrShadowRoot::set_adopted_stylesheet].
     pub(crate) fn set_adopted_stylesheet_from_jsval(
-        context: JSContext,
+        cx: &mut JSContext,
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_value: HandleValue,
         owner: &StyleSheetListOwner,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let maybe_stylesheets =
-            Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(context, incoming_value, (), can_gc);
+            Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(cx, incoming_value, ());
 
         match maybe_stylesheets {
             Ok(ConversionResult::Success(stylesheets)) => {
                 rooted_vec!(let stylesheets <- stylesheets.iter().map(|s| s.as_traced()));
 
                 DocumentOrShadowRoot::set_adopted_stylesheet(
+                    cx,
                     adopted_stylesheets,
                     &stylesheets,
                     owner,

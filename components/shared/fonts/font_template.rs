@@ -257,7 +257,10 @@ impl FontTemplate {
                     .iter()
                     .map(|variation| FontVariation {
                         tag: variation.tag.0,
-                        value: variation.value.get(),
+                        value: variation.value.get().expect(
+                            "The value is enforced to be resolvable at parse time \
+                            (see FontVariationSettings::parse_for_font_face_rule).",
+                        ),
                     })
                     .for_each(&mut add_variation);
             }

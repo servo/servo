@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>User agent gracefully handles pointer lock request spam</title>
+<link rel="help" href="https://w3c.github.io/pointerlock/" />
+  <style>
+    html {
+      font-family: sans-serif;
+    }
+
+    input {
+      width: 400px;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>Manual test for pointer lock spam handling</h1>
+  <p>This page will spam pointer lock requests and free them as soon as the lock
+    is acquired. Ideally, the User Agent would have some sort of mechanism to
+    prevent the webpage from being too obtrusive of the user experience.</p>
+  <p>The
+    <a href="https://w3c.github.io/pointerlock/#security">spec</a> states
+    that the U.A. can implement whatever mechanism it deems appropriate to
+    prevent abuse.
+  </p>
+  <p><strong>Press spacebar to toggle pointer lock requests on/off.</strong>
+    Status: <span id="status">Active</span></p>
+  <input id="inputElem" name="name" autofocus value="Interactivity test">
+</body>
+<script>
+  // Constantly spam pointer lock requests and release them as soon as they
+  // are acquired.
+  let spamActive = true;
+  const statusElem = document.getElementById('status');
+
+  setInterval(() => {
+    if (spamActive) {
+      document.body.requestPointerLock();
+    }
+  }, 0);
+  document.addEventListener('pointerlockchange', () => {
+    if (document.pointerLockElement != null) {
+      document.exitPointerLock();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      spamActive = !spamActive;
+      statusElem.textContent = spamActive ? 'Active' : 'Stopped';
+    }
+  });
+</script>
+</html>

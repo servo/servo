@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>canvas.onpaint event should contain changedElements</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  canvas {
+    background: blue;
+  }
+  .color-change {
+    background: green;
+  }
+  div {
+    background: blue;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+
+<canvas id="canvas" width="200" height="200" layoutsubtree>
+  <div id="childa"></div>
+  <div id="childb"></div>
+</canvas>
+
+<script>
+  'use strict';
+
+  async function waitForOneFrame() {
+    await new Promise(requestAnimationFrame);
+    await new Promise(setTimeout);
+  }
+
+  promise_test(async t => {
+    // Wait a frame.
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = (event) => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    // 1. Make a change that causes #childa to repaint.
+    childa.classList.toggle('color-change');
+
+    // 2. Wait a frame and assert that onpaint fires.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after #childa changes.');
+    assert_array_equals(lastChanged, [childa]);
+
+    // 3. Make a change that causes #childb to repaint.
+    childb.classList.toggle('color-change');
+
+    // 4. Wait a frame and assert that onpaint fires.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 2,
+      'onpaint should fire after #childb changes.');
+    assert_array_equals(lastChanged, [childb]);
+
+    // 5. Make a change that causes #childa and #childb to repaint.
+    childa.classList.toggle('color-change');
+    childb.classList.toggle('color-change');
+
+    // 6. Wait a frame and assert that onpaint fires.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 3,
+      'onpaint should fire after both children change.');
+    assert_equals(lastChanged.length, 2);
+    assert_equals(lastChanged.includes(childa), true);
+    assert_equals(lastChanged.includes(childb), true);
+
+    // 7. Wait a frame and assert that onpaint doesn't fire.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 3,
+      'onpaint should not fire without changes.');
+
+    // 8. Use requestPaint and ensure onpaint fires, but without reporting any
+    // changed elements.
+    canvas.requestPaint();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 4, 'onpaint should fire due to requestPaint.');
+    assert_equals(lastChanged.length, 0,
+      'changedElements should be empty without changes.');
+
+    // 9. Wait a frame and assert that onpaint doesn't fire.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 4,
+      'onpaint should not fire without changes.');
+
+    // 10. Use requestPaint and make a change at the same time, and ensure that
+    // onpaint fires with a changed element.
+    canvas.requestPaint();
+    childa.classList.toggle('color-change');
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 5,
+      'onpaint should fire after both a child change and requestPaint.');
+    assert_array_equals(lastChanged, [childa]);
+  }, 'onpaint event should have a list of changed elements');
+</script>

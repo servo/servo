@@ -130,3 +130,27 @@ indexeddb_test(
         t.done();
       });
     }, 'Cursor update checks and keypath evaluations operate on a clone');
+
+indexeddb_test(
+    createObjectStoreWithIndex(
+        'store', null, 'index', 'blob.expando.val'),
+    (t, db) => {
+      const {store} = createTransactionAndReturnObjectStore(db, 'store');
+
+      const blob = new Blob(['data']);
+      let trapFired = false;
+      blob.expando = new Proxy({val: 'key'}, {
+        getOwnPropertyDescriptor(target, prop) {
+          trapFired = true;
+          return Reflect.getOwnPropertyDescriptor(target, prop);
+        },
+      });
+
+      const request = store.put({blob}, 'key');
+      request.onsuccess = t.step_func(() => {
+        assert_false(trapFired, 'Proxy trap on Blob expando must not fire');
+        t.done();
+      });
+      request.onerror = t.unreached_func('put() should not fail');
+    },
+    'Blob expando properties are stripped in the clone used for index key path evaluation');

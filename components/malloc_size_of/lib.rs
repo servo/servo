@@ -1305,6 +1305,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrIdentifier);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrValue);
 malloc_size_of_is_stylo_malloc_size_of!(style::color::AbsoluteColor);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_caps::T);
+malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_position::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_style::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_rendering::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
@@ -1327,6 +1328,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylist::Stylist);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::BorderStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::ContentDistribution);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontFeatureSettings);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);
@@ -1377,5 +1379,18 @@ impl MallocSizeOf for resvg::usvg::fontdb::FaceInfo {
 impl MallocSizeOf for resvg::usvg::fontdb::Database {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.faces().map(|face| face.size_of(ops)).sum()
+    }
+}
+
+impl<T> MallocSizeOf for once_cell::race::OnceBox<T>
+where
+    T: MallocSizeOf,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if let Some(value) = self.get() {
+            (unsafe { ops.malloc_size_of::<T>(value) }) + value.size_of(ops)
+        } else {
+            0
+        }
     }
 }

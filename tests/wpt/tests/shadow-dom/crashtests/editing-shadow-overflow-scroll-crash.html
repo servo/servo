@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Editing contenteditable with overflow scroll in shadow DOM should not crash</title>
+<link rel="help" href="https://crbug.com/927983">
+<div id="host">
+  <div style="overflow:scroll">
+    <div contenteditable></div>
+  </div>
+</div>
+<script>
+  const root = host.attachShadow({mode: "open"});
+  root.innerHTML = `
+    <div style="overflow:scroll">
+      <div contenteditable></div>
+      <slot></slot>
+    </div>
+  `;
+</script>

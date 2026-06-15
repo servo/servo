@@ -6,8 +6,9 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
+use js::context::JSContext;
 use js::typedarray::{Float32, HeapFloat32Array};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::trace::RootedTraceableBox;
 use webxr_api::{ApiSpace, View};
 
@@ -15,11 +16,9 @@ use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{BaseSpace, BaseTransform, XRSession, cast_transform};
-use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub(crate) struct XRView {
@@ -56,18 +55,18 @@ impl XRView {
     }
 
     pub(crate) fn new<V: Copy>(
+        cx: &mut JSContext,
         window: &Window,
         session: &XRSession,
         view: &View<V>,
         eye: XREye,
         viewport_index: usize,
         to_base: &BaseTransform,
-        can_gc: CanGc,
     ) -> DomRoot<XRView> {
         let transform: RigidTransform3D<f32, V, BaseSpace> = view.transform.then(to_base);
-        let transform = XRRigidTransform::new(window, cast_transform(transform), can_gc);
+        let transform = XRRigidTransform::new(cx, window, cast_transform(transform));
 
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(XRView::new_inherited(
                 session,
                 &transform,
@@ -76,7 +75,7 @@ impl XRView {
                 view.cast_unit(),
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -96,17 +95,12 @@ impl XRViewMethods<crate::DomTypeHolder> for XRView {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix>
-    fn ProjectionMatrix(
-        &self,
-        _cx: JSContext,
-        can_gc: CanGc,
-    ) -> RootedTraceableBox<HeapFloat32Array> {
+    fn ProjectionMatrix(&self, cx: &mut JSContext) -> RootedTraceableBox<HeapFloat32Array> {
         if !self.proj.is_initialized() {
-            let cx = GlobalScope::get_cx();
             // row_major since euclid uses row vectors
             let proj = self.view.projection.to_array();
             self.proj
-                .set_data(cx, &proj, can_gc)
+                .set_data(cx, &proj)
                 .expect("Failed to set projection matrix.")
         }
         self.proj

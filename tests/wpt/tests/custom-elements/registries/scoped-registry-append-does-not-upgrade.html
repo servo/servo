@@ -110,6 +110,51 @@ test((test) => {
     assert_true(elementFromContentDoc instanceof ABElement);
 }, 'Inserting a node from another document with null registry results in the custom element registry to be set and upgraded.');
 
+test((test) => {
+    const [doc, win] = makeIframe(test);
+    doc.documentElement.setHTMLUnsafe('<div id="host"><template shadowrootmode="open" shadowrootclonable="true" shadowrootcustomelementregistry><a-b></a-b></template></div>'
+        + '<template id="t"><a-b></a-b></template>');
+    const registry = new win.CustomElementRegistry();
+    const hostClone = doc.getElementById('host').cloneNode(true);
+    registry.initialize(hostClone.shadowRoot);
+    doc.body.appendChild(hostClone);
+
+    // Clone from template (null registry, no browsing context).
+    const templateContent = doc.getElementById('t').content;
+    const cloned = templateContent.firstElementChild.cloneNode(true);
+    assert_equals(cloned.customElementRegistry, null,
+        'Cloned element from template should have null registry');
+
+    // Append into scoped shadow root.
+    hostClone.shadowRoot.appendChild(cloned);
+    assert_equals(cloned.customElementRegistry, win.customElements,
+        'Element from template appended into scoped shadow root should get global registry');
+}, 'Inserting a node cloned from a template with null registry into a scoped shadow root should set global registry');
+
+test((test) => {
+    const [doc, win] = makeIframe(test);
+    doc.documentElement.setHTMLUnsafe('<div id="host"><template shadowrootmode="open" shadowrootclonable="true" shadowrootcustomelementregistry><a-b></a-b></template></div>'
+        + '<template id="t"><a-b></a-b></template>');
+    const registry = new win.CustomElementRegistry();
+    const hostClone = doc.getElementById('host').cloneNode(true);
+    registry.initialize(hostClone.shadowRoot);
+    doc.body.appendChild(hostClone);
+
+    // Clone from template (null registry), adopt into main doc first.
+    const templateContent = doc.getElementById('t').content;
+    const cloned = templateContent.firstElementChild.cloneNode(true);
+    assert_equals(cloned.customElementRegistry, null,
+        'Cloned element from template should have null registry');
+    doc.adoptNode(cloned);
+    assert_equals(cloned.customElementRegistry, win.customElements,
+        'After adoptNode, element should have global registry');
+
+    // Append into scoped shadow root.
+    hostClone.shadowRoot.appendChild(cloned);
+    assert_equals(cloned.customElementRegistry, win.customElements,
+        'Element adopted then appended into scoped shadow root should keep global registry');
+}, 'adoptNode then inserting into a scoped shadow root should preserve global registry');
+
 </script>
 </body>
 </html>

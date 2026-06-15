@@ -12,7 +12,7 @@ test(() => {
   ];
 
   for (const name of validNames) {
-    navigator.modelContext.registerTool({
+    document.modelContext.registerTool({
       name: name,
       description: 'valid name test',
       execute: async () => 'empty'
@@ -59,7 +59,7 @@ test(() => {
     assert_throws_dom(
       'InvalidStateError',
       () => {
-        navigator.modelContext.registerTool({
+        document.modelContext.registerTool({
           name: name,
           description: 'invalid name test',
           execute: async () => 'empty'

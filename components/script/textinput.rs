@@ -31,7 +31,6 @@ use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{ClipboardEvent, UIEvent};
 use crate::drag_data_store::Kind;
-use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {
@@ -1141,11 +1140,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         let global = target.global();
         let target = Trusted::new(target);
         global.task_manager().user_interaction_task_source().queue(
-            task!(fire_input_event: move || {
+            task!(fire_input_event: move |cx| {
                 let target = target.root();
                 let global = target.global();
                 let window = global.as_window();
                 let event = InputEvent::new(
+                    cx,
                     window,
                     None,
                     atom!("input"),
@@ -1156,11 +1156,10 @@ impl<T: ClipboardProvider> TextInput<T> {
                     data.map(DOMString::from),
                     is_composing.into(),
                     input_type.as_str().into(),
-                    CanGc::deprecated_note(),
                 );
                 let event = event.upcast::<Event>();
                 event.set_composed(true);
-                event.fire(&target, CanGc::deprecated_note());
+                event.fire(cx, &target);
             }),
         );
     }

@@ -974,16 +974,15 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                     .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx))
             },
             XMLHttpRequestResponseType::Json => self.json_response(cx.into(), rval),
-            XMLHttpRequestResponseType::Blob => self
-                .blob_response(CanGc::from_cx(cx))
-                .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx)),
-            XMLHttpRequestResponseType::Arraybuffer => {
-                match self.arraybuffer_response(cx.into(), CanGc::from_cx(cx)) {
-                    Some(array_buffer) => {
-                        array_buffer.safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx))
-                    },
-                    None => rval.set(NullValue()),
-                }
+            XMLHttpRequestResponseType::Blob => {
+                self.blob_response(cx)
+                    .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx))
+            },
+            XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
+                Some(array_buffer) => {
+                    array_buffer.safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx))
+                },
+                None => rval.set(NullValue()),
             },
         }
     }
@@ -1041,7 +1040,7 @@ impl XMLHttpRequest {
                 EventCancelable::Cancelable,
                 CanGc::from_cx(cx),
             );
-            event.fire(self.upcast(), CanGc::from_cx(cx));
+            event.fire(cx, self.upcast());
         }
     }
 
@@ -1201,7 +1200,7 @@ impl XMLHttpRequest {
                         EventCancelable::Cancelable,
                         CanGc::from_cx(cx),
                     );
-                    event.fire(self.upcast(), CanGc::from_cx(cx));
+                    event.fire(cx, self.upcast());
                     return_if_fetch_was_terminated!();
                     self.dispatch_response_progress_event(cx, atom!("progress"));
                 }
@@ -1303,9 +1302,7 @@ impl XMLHttpRequest {
         } else {
             self.upcast()
         };
-        progressevent
-            .upcast::<Event>()
-            .fire(target, CanGc::from_cx(cx));
+        progressevent.upcast::<Event>().fire(cx, target);
     }
 
     fn dispatch_upload_progress_event(
@@ -1370,7 +1367,7 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#blob-response>
-    fn blob_response(&self, can_gc: CanGc) -> DomRoot<Blob> {
+    fn blob_response(&self, cx: &mut js::context::JSContext) -> DomRoot<Blob> {
         // Step 1
         if let Some(response) = self.response_blob.get() {
             return response;
@@ -1380,11 +1377,7 @@ impl XMLHttpRequest {
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
-        let blob = Blob::new(
-            &self.global(),
-            BlobImpl::new_from_bytes(bytes, mime),
-            can_gc,
-        );
+        let blob = Blob::new(cx, &self.global(), BlobImpl::new_from_bytes(bytes, mime));
         self.response_blob.set(Some(&blob));
         blob
     }
@@ -1392,8 +1385,7 @@ impl XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#arraybuffer-response>
     fn arraybuffer_response(
         &self,
-        cx: JSContext,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Option<RootedTraceableBox<HeapArrayBuffer>> {
         // Step 5: Set the response object to a new ArrayBuffer with the received bytes
         // For caching purposes, skip this step if the response is already created
@@ -1401,9 +1393,7 @@ impl XMLHttpRequest {
             let bytes = self.response.borrow();
 
             // If this is not successful, the response won't be set and the function will return None
-            self.response_arraybuffer
-                .set_data(cx, &bytes, can_gc)
-                .ok()?;
+            self.response_arraybuffer.set_data(cx, &bytes).ok()?;
         }
 
         // Return the correct ArrayBuffer

@@ -13,9 +13,10 @@ use std::sync::LazyLock;
 use std::{fmt, slice, str};
 
 use html5ever::{LocalName, Namespace};
+use js::context::{JSContext, RawJSContext};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
-use js::gc::MutableHandleValue;
-use js::jsapi::{Heap, JS_GetLatin1StringCharsAndLength, JSContext, JSString};
+use js::gc::{HandleValue, MutableHandleValue};
+use js::jsapi::{Heap, JS_GetLatin1StringCharsAndLength, JSString};
 use js::jsval::StringValue;
 use js::rust::{Runtime, Trace};
 use malloc_size_of::MallocSizeOfOps;
@@ -26,7 +27,6 @@ use style::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
 use zeroize::Zeroize;
 
-use crate::script_runtime::JSContext as SafeJSContext;
 use crate::trace::RootedTraceableBox;
 
 const ASCII_END: u8 = 0x7E;
@@ -94,10 +94,12 @@ impl EncodedBytes<'_> {
     }
 }
 
+#[derive(Zeroize)]
 enum DOMStringType {
     /// A simple rust string
     Rust(String),
     /// A JS String stored in mozjs.
+    #[zeroize(skip)]
     JSString(RootedTraceableBox<Heap<*mut JSString>>),
     #[cfg(test)]
     /// This is used for testing of the bindings to give
@@ -108,12 +110,6 @@ enum DOMStringType {
 impl Default for DOMStringType {
     fn default() -> Self {
         Self::Rust(Default::default())
-    }
-}
-
-impl Zeroize for DOMStringType {
-    fn zeroize(&mut self) {
-        self.ensure_rust_string().zeroize()
     }
 }
 
@@ -136,11 +132,10 @@ impl DOMStringType {
     fn ensure_rust_string(&mut self) -> &mut String {
         let new_string = match self {
             DOMStringType::Rust(string) => return string,
-            DOMStringType::JSString(rooted_traceable_box) => unsafe {
-                jsstr_to_string(
-                    Runtime::get().expect("JS runtime has shut down").as_ptr(),
-                    NonNull::new(rooted_traceable_box.get()).unwrap(),
-                )
+            DOMStringType::JSString(rooted_traceable_box) => {
+                let cx = unsafe { JSContext::get_from_thread() };
+                let cx = cx.as_ref().expect("JS runtime has shut down");
+                unsafe { jsstr_to_string(cx, NonNull::new(rooted_traceable_box.get()).unwrap()) }
             },
             #[cfg(test)]
             DOMStringType::Latin1Vec(items) => {
@@ -320,10 +315,10 @@ impl DOMString {
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
     /// to the JSString. Otherwise do the conversion to utf8 now.
     pub fn from_js_string(
-        cx: SafeJSContext,
-        value: js::gc::HandleValue,
+        cx: &mut JSContext,
+        value: HandleValue,
     ) -> Result<DOMString, DOMStringErrorType> {
-        let string_ptr = unsafe { js::rust::ToString(*cx, value) };
+        let string_ptr = unsafe { js::rust::ToString(cx, value) };
         if string_ptr.is_null() {
             debug!("ToString failed");
             Err(DOMStringErrorType::JSConversionError)
@@ -335,7 +330,7 @@ impl DOMString {
             } else {
                 // We need to convert the string anyway as it is not just latin1
                 DOMStringType::Rust(unsafe {
-                    jsstr_to_string(*cx, ptr::NonNull::new(string_ptr).unwrap())
+                    jsstr_to_string(cx, NonNull::new(string_ptr).unwrap())
                 })
             };
             Ok(DOMString(RefCell::new(inner)))
@@ -351,15 +346,12 @@ impl DOMString {
 
     /// Debug the current  state of the string without modifying it.
     #[expect(unused)]
-    fn debug_js(&self) {
+    fn debug_js(&self, cx: &JSContext) {
         match *self.0.borrow() {
             DOMStringType::Rust(ref s) => info!("Rust String ({})", s),
             DOMStringType::JSString(ref rooted_traceable_box) => {
                 let s = unsafe {
-                    jsstr_to_string(
-                        Runtime::get().expect("JS runtime has shut down").as_ptr(),
-                        ptr::NonNull::new(rooted_traceable_box.get()).unwrap(),
-                    )
+                    jsstr_to_string(cx, NonNull::new(rooted_traceable_box.get()).unwrap())
                 };
                 info!("JSString ({})", s);
             },
@@ -775,7 +767,7 @@ impl Extend<char> for DOMString {
 }
 
 impl ToJSValConvertible for DOMString {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut RawJSContext, mut rval: MutableHandleValue) {
         let val = self.0.borrow();
         match *val {
             DOMStringType::Rust(ref s) => unsafe {
@@ -913,13 +905,27 @@ impl From<DOMString> for Atom {
 
 impl From<DOMString> for String {
     fn from(val: DOMString) -> Self {
-        val.str().to_owned()
+        val.ensure_rust_string();
+        let inner = val.0.take();
+        match inner {
+            DOMStringType::Rust(s) => s,
+            DOMStringType::JSString(_) => unreachable!(),
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(items) => String::from_utf8(items).expect("Not valid latin1"),
+        }
     }
 }
 
 impl From<DOMString> for Vec<u8> {
     fn from(value: DOMString) -> Self {
-        value.str().as_bytes().to_vec()
+        value.ensure_rust_string();
+        let inner = value.0.take();
+        match inner {
+            DOMStringType::Rust(s) => s.into_bytes(),
+            DOMStringType::JSString(_) => unreachable!(),
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(items) => items,
+        }
     }
 }
 
@@ -931,7 +937,7 @@ impl From<Cow<'_, str>> for DOMString {
 
 impl Zeroize for DOMString {
     fn zeroize(&mut self) {
-        self.0.borrow_mut().zeroize()
+        self.0.get_mut().zeroize();
     }
 }
 

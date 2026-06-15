@@ -31,10 +31,6 @@ ignore = [
     # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
     # See the comment above `bincode` entry in Cargo.toml.
     "RUSTSEC-2025-0141",
-    # The crate `ml-dsa 0.0.4` is the latest stable release.
-    # The attack complexity of this vulnerability is high,
-    # and no exploit is known yet.
-    "RUSTSEC-2025-0144",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -115,8 +111,6 @@ skip = [
 
     # Duplicated by egui-file-dialog
     "windows",
-    "windows-implement",
-    "windows-interface",
     "windows-link",
     "windows-result",
 
@@ -168,20 +162,8 @@ skip = [
     # and bindgen updates the cexpr version
     "nom",
 
-    # duplicated by core-graphics
-    "core-graphics-types",
-
-    # usvg depends on svgtypes, which depends on old version of kurbo
-    "kurbo",
-
     # Dependency by quick_cache and other
     "hashbrown",
-
-    # Duplicated by ml-kem 0.2.1 and ml-dsa 0.0.4. They use different
-    # version of hybrid-array. Once ml-kem releases the next version
-    # 0.3.0 and ml-dsa releases the next version 0.1.0, we can remove
-    # this.
-    "hybrid-array",
 
     # The following 5 duplicates were introduced when Servo's CI was failing to
     # detect duplicates introduced in automatic dependabot PRs (#38945). They
@@ -191,35 +173,43 @@ skip = [
     "libloading",
 
     # Duplicated by wgpu/egui+dependencies
-    "font-types",
-    "glow",
     "objc2-ui-kit",
-    "peniko",
     "read-fonts",
     "skrifa",
     "vello_common",
     "vello_cpu",
+    "fearless_simd",
 
     # Duplicated by resvg/image
     "pastey",
-    "png",
     "roxmltree",
     "tiny-skia",
     "tiny-skia-path",
 
-    # wgpu-core stuff gets duplicated by vello (which is disabled by default)
-    "bit-set",
-    "bit-vec",
-    "codespan-reporting",
-    "gpu-allocator",
-    "naga",
-    "spirv",
-    "wgpu-core",
-    "wgpu-core-deps-apple",
-    "wgpu-core-deps-emscripten",
-    "wgpu-core-deps-windows-linux-android",
-    "wgpu-hal",
-    "wgpu-types",
+    # Duplicated by RustCrypto crates. We are upgrading RustCrypto
+    # dependencies in multiple rounds (issue #42206). During the
+    # upgrading process, we might have some duplicated dependencies due
+    # to partial upgrade, temporarily.
+    "const-oid",
+    "cpufeatures",
+    "crypto-common",
+    "digest",
+    "sha3",
+    "der",
+    "pkcs8",
+    "spki",
+    "signature",
+    "block-buffer",
+    "hkdf",
+    "hmac",
+    "sha1",
+    "sha2",
+    "crypto-bigint",
+    "pem-rfc7468",
+    "aead",
+    "cipher",
+    "inout",
+    "universal-hash",
 ]
 
 # github.com organizations to allow git sources for

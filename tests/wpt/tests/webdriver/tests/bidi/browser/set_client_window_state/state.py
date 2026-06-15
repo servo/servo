@@ -6,6 +6,8 @@ from webdriver.bidi.modules.browser import (
     ClientWindowRectState,
 )
 
+pytestmark = pytest.mark.asyncio
+
 
 TRANSITION_STATES = [
     ("fullscreen", "normal"),
@@ -30,7 +32,6 @@ TRANSITION_STATES = [
         for initial, target in TRANSITION_STATES
     ],
 )
-@pytest.mark.asyncio
 async def test_set_client_window_state_transitions(
     bidi_session, top_context, initial_state, target_state
 ):
@@ -54,7 +55,6 @@ async def test_set_client_window_state_transitions(
         ClientWindowNamedState.MINIMIZED.value,
     ],
 )
-@pytest.mark.asyncio
 async def test_idempotent_state_change(bidi_session, top_context, state):
     result1 = await bidi_session.browser.set_client_window_state(
         client_window=top_context["clientWindow"], state=state
@@ -67,7 +67,6 @@ async def test_idempotent_state_change(bidi_session, top_context, state):
     assert result2["state"] == state
 
 
-@pytest.mark.asyncio
 async def test_set_client_window_state_maximized(
     bidi_session, top_context, initial_window_state
 ):
@@ -83,7 +82,6 @@ async def test_set_client_window_state_maximized(
     assert result["y"] <= initial_window_state["y"]
 
 
-@pytest.mark.asyncio
 async def test_set_client_window_state_minimized(bidi_session, top_context):
     result = await bidi_session.browser.set_client_window_state(
         client_window=top_context["clientWindow"],
@@ -93,7 +91,6 @@ async def test_set_client_window_state_minimized(bidi_session, top_context):
     assert result["state"] == ClientWindowNamedState.MINIMIZED.value
 
 
-@pytest.mark.asyncio
 async def test_set_client_window_state_fullscreen(bidi_session, top_context):
     result = await bidi_session.browser.set_client_window_state(
         client_window=top_context["clientWindow"],

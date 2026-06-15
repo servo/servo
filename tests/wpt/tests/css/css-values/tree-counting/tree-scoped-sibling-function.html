@@ -6,8 +6,7 @@
 <style>
   #host1::part(--p) {
     z-index: sibling-index();
-    /* Add 1 since widows does not accept 0 */
-    widows: calc(1 + sibling-count());
+    order: sibling-count();
   }
 </style>
 <div id="host1">
@@ -21,7 +20,7 @@
   test(() => {
     const style = getComputedStyle(host1.shadowRoot.querySelector("#t1"));
     assert_equals(style.zIndex, "0", "z-index should be 0");
-    assert_equals(style.widows, "1", "widows should be 1");
+    assert_equals(style.order, "0", "order should be 0");
   }, "sibling-index() and sibling-count() evaluates to 0 from outer tree with ::part");
 </script>
 
@@ -33,7 +32,7 @@
       <style>
         :host {
           z-index: sibling-index();
-          widows: sibling-count();
+          order: sibling-count();
         }
       </style>
     </template>
@@ -45,6 +44,6 @@
   test(() => {
     const style = getComputedStyle(t2);
     assert_equals(style.zIndex, "3", ":host is the third sibling");
-    assert_equals(style.widows, "5", ":host total sibling count is 5");
+    assert_equals(style.order, "5", ":host total sibling count is 5");
   }, "sibling-index() and sibling-count() evaluate as normal from inner tree");
 </script>

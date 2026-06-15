@@ -517,6 +517,192 @@ const lesserTests = [
       }
     }
   },
+  {
+    'name': 'lesser float32 broadcast 4D to 5D',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [0, 1, 2, 8, 0, 255],
+          'descriptor': {shape: [2, 1, 1, 3], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [255, 0, 1, 8],
+          'descriptor': {shape: [1, 2, 2, 1, 1], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+          'descriptor': {shape: [1, 2, 2, 1, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'lesser float32 5D and broadcastable 4D',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [255, 0, 1, 8],
+          'descriptor': {shape: [1, 2, 2, 1, 1], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [0, 1, 2, 8, 0, 255],
+          'descriptor': {shape: [2, 1, 1, 3], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1],
+          'descriptor': {shape: [1, 2, 2, 1, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'lesser float32 broadcasting two 5D inputs with a leading batch size of 1',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [255, 0, 1, 8],
+          'descriptor': {shape: [1, 2, 2, 1, 1], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [0, 1, 2, 8, 0, 255],
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1],
+          'descriptor': {shape: [1, 2, 2, 1, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    // 5D inputs whose broadcast roles alternate on every axis so no adjacent
+    // axes can be collapsed; exercises the explicit BROADCAST_TO + flatten
+    // fallback path.
+    'name': 'lesser float32 5D inputs with alternating broadcast axes',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [1, 0, 1, 0, 1, 0, 1, 0],
+          'descriptor': {shape: [2, 1, 2, 1, 2], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [1, 1, 0, 0],
+          'descriptor': {shape: [1, 2, 1, 2, 1], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    // Two 5D inputs with identical shapes (no broadcast); CollapseBroadcast-
+    // Shapes folds both operands down to rank-1 before the binary kernel.
+    'name': 'lesser float32 two 5D inputs with identical shapes',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            -3.5, -2,    -1,   0,    1,   2.5,  3,    4.5,
+            5,    -5.5,  6,    -6.5, 7,   -7.5, 8,    -8.5,
+            9,    10.5,  -11,  12.5, -13, 14.5, -15,  16.5,
+            0,    0.5,   1.5,  2,    2.5, 3,    3.5,  4
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [
+            -3.5, -2,    0,     1,    1,     2,    3.5,  4,
+            5,    -5.5,  5.5,   -7,   7,     -7.5, 9,    -8.5,
+            9.5,  10.5,  -11.5, 12.5, -12.5, 14.5, -16,  16.5,
+            0,    1,     1,     2,    3,     3,    4,    4
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+            1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    // 5D tensor with a 0D scalar; commonly used pattern that broadcasts the
+    // scalar against every element.
+    'name': 'lesser float32 5D tensor and broadcastable 0D scalar',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            -3.5, -2,    -1,   0,    1,   2.5,  3,    4.5,
+            5,    -5.5,  6,    -6.5, 7,   -7.5, 8,    -8.5,
+            9,    10.5,  -11,  12.5, -13, 14.5, -15,  16.5,
+            0,    0.5,   1.5,  2,    2.5, 3,    3.5,  4
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'float32'}
+        },
+        'inputB':
+            {'data': [2.5], 'descriptor': {shape: [], dataType: 'float32'}}
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1,
+            0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'uint8'}
+        }
+      }
+    }
+  },
 
   // float16 tests
   {
@@ -981,6 +1167,192 @@ const lesserTests = [
             1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0
           ],
           'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'lesser float16 broadcast 4D to 5D',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [0, 1, 2, 8, 0, 255],
+          'descriptor': {shape: [2, 1, 1, 3], dataType: 'float16'}
+        },
+        'inputB': {
+          'data': [255, 0, 1, 8],
+          'descriptor': {shape: [1, 2, 2, 1, 1], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+          'descriptor': {shape: [1, 2, 2, 1, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'lesser float16 5D and broadcastable 4D',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [255, 0, 1, 8],
+          'descriptor': {shape: [1, 2, 2, 1, 1], dataType: 'float16'}
+        },
+        'inputB': {
+          'data': [0, 1, 2, 8, 0, 255],
+          'descriptor': {shape: [2, 1, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1],
+          'descriptor': {shape: [1, 2, 2, 1, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'lesser float16 broadcasting two 5D inputs with a leading batch size of 1',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [255, 0, 1, 8],
+          'descriptor': {shape: [1, 2, 2, 1, 1], dataType: 'float16'}
+        },
+        'inputB': {
+          'data': [0, 1, 2, 8, 0, 255],
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1],
+          'descriptor': {shape: [1, 2, 2, 1, 3], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    // 5D inputs whose broadcast roles alternate on every axis so no adjacent
+    // axes can be collapsed; exercises the explicit BROADCAST_TO + flatten
+    // fallback path.
+    'name': 'lesser float16 5D inputs with alternating broadcast axes',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [1, 0, 1, 0, 1, 0, 1, 0],
+          'descriptor': {shape: [2, 1, 2, 1, 2], dataType: 'float16'}
+        },
+        'inputB': {
+          'data': [1, 1, 0, 0],
+          'descriptor': {shape: [1, 2, 1, 2, 1], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    // Two 5D inputs with identical shapes (no broadcast); CollapseBroadcast-
+    // Shapes folds both operands down to rank-1 before the binary kernel.
+    'name': 'lesser float16 two 5D inputs with identical shapes',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            -3.5, -2,    -1,   0,    1,   2.5,  3,    4.5,
+            5,    -5.5,  6,    -6.5, 7,   -7.5, 8,    -8.5,
+            9,    10.5,  -11,  12.5, -13, 14.5, -15,  16.5,
+            0,    0.5,   1.5,  2,    2.5, 3,    3.5,  4
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'float16'}
+        },
+        'inputB': {
+          'data': [
+            -3.5, -2,    0,     1,    1,     2,    3.5,  4,
+            5,    -5.5,  5.5,   -7,   7,     -7.5, 9,    -8.5,
+            9.5,  10.5,  -11.5, 12.5, -12.5, 14.5, -16,  16.5,
+            0,    1,     1,     2,    3,     3,    4,    4
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+            1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    // 5D tensor with a 0D scalar; commonly used pattern that broadcasts the
+    // scalar against every element.
+    'name': 'lesser float16 5D tensor and broadcastable 0D scalar',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            -3.5, -2,    -1,   0,    1,   2.5,  3,    4.5,
+            5,    -5.5,  6,    -6.5, 7,   -7.5, 8,    -8.5,
+            9,    10.5,  -11,  12.5, -13, 14.5, -15,  16.5,
+            0,    0.5,   1.5,  2,    2.5, 3,    3.5,  4
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'float16'}
+        },
+        'inputB':
+            {'data': [2.5], 'descriptor': {shape: [], dataType: 'float16'}}
+      },
+      'operators': [{
+        'name': 'lesser',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1,
+            0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0
+          ],
+          'descriptor': {shape: [2, 2, 2, 2, 2], dataType: 'uint8'}
         }
       }
     }

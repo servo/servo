@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>subframe that draws HTML images</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+  #child {
+    width: 10px;
+    height: 20px;
+    background: green;
+  }
+  #sameOrigin {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+  }
+  #crossOrigin {
+    position: absolute;
+    left: 0px;
+    top: 10px;
+  }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="10" height="20" layoutsubtree>
+    <div id=child>
+      <img id=sameOrigin width=10 height=10 src="https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/green-100x100.png"/>
+      <img id=crossOrigin width=10 height=10 src="https://{{host}}:{{ports[https][0]}}/images/red-100x100.png"/>
+    </div>
+  </canvas>
+  <script>
+    window.onload = function() {
+      promise_test(async function(t) {
+        // Wait for the window to have a non-zero size.
+        while (window.innerWidth == 0) {
+          await new Promise(resolve => requestAnimationFrame(resolve));
+        }
+
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let pixel = _getPixelFromImageData(imgData, 5, 5);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Same origin should draw");
+
+        pixel = _getPixelFromImageData(imgData, 5, 15);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin should not draw");
+
+        t.done();
+      });
+    };
+  </script>
+</body>
+</html>

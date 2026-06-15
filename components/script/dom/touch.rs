@@ -87,6 +87,7 @@ impl Touch {
         event_type: &str,
         pointer_id: i32,
         is_primary: bool,
+        pointer_type: &str,
         modifiers: keyboard_types::Modifiers,
         is_cancelable: bool,
         point_in_node: Option<euclid::Point2D<f32, style_traits::CSSPixel>>,
@@ -164,7 +165,7 @@ impl Touch {
             0,        // twist
             PI / 2.0, // altitude_angle (perpendicular to surface)
             0.0,      // azimuth_angle
-            "touch".into(),
+            pointer_type.into(),
             is_primary,
             vec![], // coalesced_events
             vec![], // predicted_events

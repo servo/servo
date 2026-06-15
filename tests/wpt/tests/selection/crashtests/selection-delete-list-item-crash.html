@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Deleting selection containing list-item should not crash</title>
+<link rel="help" href="https://crbug.com/844301">
+<object>
+  <div id="foo0"></div>
+  <div id="foo1"></div>
+  <div id="foo2"></div>
+  <div id="foo3"></div>
+  <div id="foo4"></div>
+  <div id="foo5"></div>
+  <div id="foo6" style="display:list-item"></div>
+  <button>
+</object>
+<script>
+  window.addEventListener('load', () => {
+    const selection = window.getSelection();
+    document.execCommand("SelectAll");
+    selection.deleteFromDocument();
+  });
+</script>

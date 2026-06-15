@@ -4,7 +4,8 @@
 
 //! Utilities for the implementation of JSAPI proxy handlers.
 
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
+use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
 use std::ptr;
 use std::ptr::NonNull;
@@ -14,8 +15,9 @@ use js::glue::{GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, SetProxy
 use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, GetWellKnownSymbol, Handle as RawHandle,
     HandleId as RawHandleId, HandleObject as RawHandleObject, HandleValue as RawHandleValue,
-    JS_DefinePropertyById, JSContext, JSErrNum, JSFunctionSpec, JSObject, JSPropertySpec,
-    MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
+    JS_DefinePropertyById, JSContext, JSErrNum, JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY,
+    JSITER_SYMBOLS, JSObject, JSPropertySpec, MutableHandle as RawMutableHandle,
+    MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
 };
@@ -25,6 +27,10 @@ use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
     AppendToIdVector, JS_AlreadyHasOwnPropertyById, JS_NewObjectWithGivenProto,
     SetDataPropertyDescriptor,
+};
+use js::rust::wrappers2::{
+    GetPropertyKeys, JS_AtomizeAndPinString, JS_IdToValue, JS_IsExceptionPending, JS_ValueToSource,
+    RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID, int_to_jsid,
 };
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
@@ -36,7 +42,7 @@ use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::DomObject;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::str::DOMString;
 use crate::utils::delete_property_by_id;
 
@@ -220,20 +226,20 @@ pub fn set_property_descriptor(
     *is_none = false;
 }
 
-pub(crate) fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> {
+fn id_to_source(cx: &mut js::context::JSContext, id: HandleId) -> Option<DOMString> {
     unsafe {
-        if js::glue::RUST_JSID_IS_VOID(id) {
+        if RUST_JSID_IS_VOID(id) {
             return None;
         }
-        rooted!(in(*cx) let mut value = UndefinedValue());
-        rooted!(in(*cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
-        jsapi::JS_IdToValue(*cx, id.get(), value.handle_mut().into())
+        rooted!(&in(cx) let mut value = UndefinedValue());
+        rooted!(&in(cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
+        JS_IdToValue(cx, id.get(), value.handle_mut())
             .then(|| {
-                jsstr.set(jsapi::JS_ValueToSource(*cx, value.handle().into()));
+                jsstr.set(JS_ValueToSource(cx, value.handle()));
                 jsstr.get()
             })
             .and_then(ptr::NonNull::new)
-            .map(|jsstr| jsstr_to_string(*cx, jsstr).into())
+            .map(|jsstr| jsstr_to_string(cx, jsstr).into())
     }
 }
 
@@ -378,7 +384,7 @@ pub(crate) unsafe fn cross_origin_has_own(
     // TODO: Once we have the slot for the holder, it'd be more efficient to
     //       use `ensure_cross_origin_property_holder`. We'll need `_proxy` to
     //       do that.
-    *bp = jsid_to_string(cx.raw_cx(), Handle::from_raw(id)).is_some_and(|key| {
+    *bp = jsid_to_string(cx, Handle::from_raw(id)).is_some_and(|key| {
         cross_origin_properties.keys().any(|defined_key| {
             let defined_key = CStr::from_ptr(defined_key);
             defined_key.to_bytes() == key.str().as_bytes()
@@ -425,7 +431,7 @@ pub(crate) fn is_cross_origin_allowlisted_prop(
     id: RawHandleId,
 ) -> bool {
     unsafe {
-        if jsid_to_string(cx.raw_cx(), Handle::from_raw(id)).is_some_and(|st| st == "then") {
+        if jsid_to_string(cx, Handle::from_raw(id)).is_some_and(|st| st == "then") {
             return true;
         }
 
@@ -542,10 +548,10 @@ pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: SafeJSContext, obj: RawHan
 /// "Throw a `SecurityError` DOMException".
 pub(crate) fn report_cross_origin_denial<D: DomTypes>(
     cx: &mut CurrentRealm,
-    id: RawHandleId,
+    id: HandleId,
     access: &str,
 ) -> bool {
-    if let Some(id) = id_to_source(cx.into(), id) {
+    if let Some(id) = id_to_source(cx, id) {
         debug!(
             "permission denied to {} property {} on cross-origin object",
             access,
@@ -555,15 +561,10 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
         debug!("permission denied to {} on cross-origin object", access);
     }
     unsafe {
-        if !js::rust::wrappers2::JS_IsExceptionPending(cx) {
+        if !JS_IsExceptionPending(cx) {
             let global = D::GlobalScope::from_current_realm(cx);
             // TODO: include `id` and `access` in the exception message
-            <D as DomHelpers<D>>::throw_dom_exception(
-                cx.into(),
-                &global,
-                Error::Security(None),
-                CanGc::deprecated_note(),
-            );
+            <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security(None));
         }
     }
     false
@@ -712,7 +713,7 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
     rooted!(&in(cx) let mut getter = ptr::null_mut::<JSObject>());
     get_getter_object(&descriptor, getter.handle_mut().into());
     if getter.get().is_null() {
-        return report_cross_origin_denial::<D>(cx, id.into_handle(), "get");
+        return report_cross_origin_denial::<D>(cx, id, "get");
     }
 
     rooted!(&in(cx) let mut getter_jsval = UndefinedValue());
@@ -775,7 +776,7 @@ pub(crate) unsafe fn cross_origin_set<D: DomTypes>(
     get_setter_object(&descriptor, setter.handle_mut().into());
     if setter.get().is_null() {
         // > 4. Throw a "SecurityError" DOMException.
-        return report_cross_origin_denial::<D>(cx, id.into_handle(), "set");
+        return report_cross_origin_denial::<D>(cx, id, "set");
     }
 
     rooted!(&in(cx) let mut setter_jsval = UndefinedValue());
@@ -835,6 +836,188 @@ pub(crate) fn cross_origin_property_fallback<D: DomTypes>(
         return true;
     }
 
+    let id = unsafe { Handle::from_raw(id) };
+
     // > 2. Throw a `SecurityError` `DOMException`.
     report_cross_origin_denial::<D>(cx, id, "access")
+}
+
+// The types will be rooted in the function using them
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct JSProxyHandlerOwnPropertyKeysConfig<T>
+where
+    T: DomObject,
+{
+    pub(crate) indexed_getter_and_length: Option<fn(&T, &mut js::context::JSContext) -> u32>,
+    pub(crate) cross_origin: Option<&'static CrossOriginProperties>,
+    pub(crate) unwrapped_proxy: unsafe fn(RawHandleObject) -> *const T,
+    pub(crate) supported_named_properties:
+        Option<fn(*const T, &mut js::context::JSContext) -> Vec<DOMString>>,
+}
+
+/// Helper type to keep AutoRealm and &mut CurrentRealm alive with Deref to JSContext
+enum Realm<'a> {
+    AutoRealm(AutoRealm<'a>),
+    CurrentRealm(&'a mut CurrentRealm<'a>),
+}
+
+impl<'cx> Deref for Realm<'cx> {
+    type Target = js::context::JSContext;
+
+    fn deref(&'_ self) -> &'_ Self::Target {
+        match self {
+            Realm::AutoRealm(auto_realm) => auto_realm,
+            Realm::CurrentRealm(current_realm) => current_realm,
+        }
+    }
+}
+
+impl<'cx> DerefMut for Realm<'cx> {
+    fn deref_mut(&'_ mut self) -> &'_ mut Self::Target {
+        match self {
+            Realm::AutoRealm(auto_realm) => auto_realm,
+            Realm::CurrentRealm(current_realm) => current_realm,
+        }
+    }
+}
+
+#[expect(non_snake_case)]
+/// SAFETY: cx must point to a valid, non-null JS context.
+pub(crate) unsafe fn JSProxyHandlerOwnPropertyKeys<D, T>(
+    config: JSProxyHandlerOwnPropertyKeysConfig<T>,
+    cx: *mut js::jsapi::JSContext,
+    proxy: RawHandleObject,
+    props: RawMutableHandleIdVector,
+) -> bool
+where
+    D: DomTypes,
+    T: DomObject,
+{
+    unsafe {
+        let mut cx = js::context::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+        let mut cx = CurrentRealm::assert(&mut cx);
+        let current_realm = &mut cx;
+        let unwrapped_proxy = (config.unwrapped_proxy)(proxy);
+
+        let mut cx = if let Some(cross_origin_properties) = config.cross_origin {
+            if !<D as DomHelpers<D>>::is_platform_object_same_origin(current_realm, proxy) {
+                return cross_origin_own_property_keys(
+                    current_realm,
+                    proxy,
+                    cross_origin_properties,
+                    props,
+                );
+            }
+
+            // Safe to enter the Realm of proxy now.
+            let cx = AutoRealm::new_from_handle(current_realm, Handle::from_raw(proxy));
+            Realm::AutoRealm(cx)
+        } else {
+            Realm::CurrentRealm(current_realm)
+        };
+
+        if let Some(length_fn) = config.indexed_getter_and_length {
+            let length = (length_fn)(&*unwrapped_proxy, &mut cx);
+            rooted!(&in(cx) let mut rooted_jsid: jsid);
+            for i in 0..length {
+                int_to_jsid(i as i32, rooted_jsid.handle_mut());
+                AppendToIdVector(props, rooted_jsid.handle());
+            }
+        }
+
+        if let Some(properties) = config.supported_named_properties {
+            for name in properties(unwrapped_proxy, &mut cx) {
+                let cstring = CString::new(name).unwrap();
+                let jsstring = JS_AtomizeAndPinString(&cx, cstring.as_ptr());
+                rooted!(&in(cx) let rooted = jsstring);
+                rooted!(&in(cx) let mut rooted_jsid: jsid);
+                RUST_INTERNED_STRING_TO_JSID(
+                    &mut cx,
+                    rooted.handle().get(),
+                    rooted_jsid.handle_mut(),
+                );
+                AppendToIdVector(props, rooted_jsid.handle());
+            }
+        }
+
+        rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
+        get_expando_object(proxy, expando.handle_mut());
+
+        if !expando.is_null() &&
+            !GetPropertyKeys(
+                &mut cx,
+                expando.handle(),
+                JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
+                props,
+            )
+        {
+            return false;
+        }
+    }
+    true
+}
+
+// The types will be rooted in the function using them
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct JSProxyHandlerOwnEnumerablePropertyKeysConfig<T: DomObject> {
+    pub(crate) unwrapped_proxy: unsafe fn(RawHandleObject) -> *const T,
+    #[expect(clippy::type_complexity)]
+    pub(crate) indexed_getter_and_length:
+        Option<Box<dyn Fn(&T, &mut js::context::JSContext) -> u32>>,
+    pub(crate) cross_origin: bool,
+}
+
+#[expect(non_snake_case)]
+pub(crate) fn JSProxyHandlerGetOwnEnumerablePropertyKeys<T, D>(
+    config: JSProxyHandlerOwnEnumerablePropertyKeysConfig<T>,
+    cx: *mut js::jsapi::JSContext,
+    proxy: RawHandleObject,
+    props: RawMutableHandleIdVector,
+) -> bool
+where
+    D: DomTypes,
+    T: DomObject,
+{
+    unsafe {
+        let mut cx = js::context::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+        let unwrapped_proxy = (config.unwrapped_proxy)(proxy);
+        let mut cx = CurrentRealm::assert(&mut cx);
+        let current_realm = &mut cx;
+
+        let mut cx = if config.cross_origin {
+            if !<D as DomHelpers<D>>::is_platform_object_same_origin(current_realm, proxy) {
+                // There are no enumerable cross-origin props, so we're done.
+                return true;
+            }
+
+            // Safe to enter the Realm of proxy now.
+            let cx = AutoRealm::new_from_handle(current_realm, Handle::from_raw(proxy));
+            Realm::AutoRealm(cx)
+        } else {
+            Realm::CurrentRealm(current_realm)
+        };
+        if let Some(length_fn) = config.indexed_getter_and_length {
+            let length = (length_fn)(&*unwrapped_proxy, &mut cx);
+            rooted!(&in(cx) let mut rooted_jsid: jsid);
+            for i in 0..length {
+                int_to_jsid(i as i32, rooted_jsid.handle_mut());
+                AppendToIdVector(props, rooted_jsid.handle());
+            }
+        }
+
+        rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
+        get_expando_object(proxy, expando.handle_mut());
+        if !expando.is_null() &&
+            !GetPropertyKeys(
+                &mut cx,
+                expando.handle(),
+                JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
+                props,
+            )
+        {
+            return false;
+        }
+    }
+
+    true
 }

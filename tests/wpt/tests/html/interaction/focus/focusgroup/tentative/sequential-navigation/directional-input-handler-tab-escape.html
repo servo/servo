@@ -25,8 +25,6 @@
 <script>
   // Directional input CAN navigate TO a native directional input handler (entry works).
   promise_test(async t => {
-    const bold = document.getElementById("bold");
-    const search = document.getElementById("search");
 
     await focusAndWait(bold);
     assert_equals(document.activeElement, bold, "Precondition: focus starts on bold button");
@@ -39,7 +37,6 @@
   // Directional input CANNOT navigate FROM a native directional input handler (exit blocked).
   // The element's native directional input behavior takes precedence.
   promise_test(async t => {
-    const search = document.getElementById("search");
 
     await focusAndWait(search);
     assert_equals(document.activeElement, search, "Precondition: focus starts on native directional input handler");
@@ -56,8 +53,6 @@
   // Tab from native directional input handler should move to the next adjacent
   // focusgroup item.
   promise_test(async t => {
-    const search = document.getElementById("search");
-    const italic = document.getElementById("italic");
 
     await focusAndWait(search);
     assert_equals(document.activeElement, search, "Precondition: focus starts on native directional input handler");
@@ -70,8 +65,6 @@
   // Shift+Tab from native directional input handler: focus moves to the previous
   // adjacent focusgroup item.
   promise_test(async t => {
-    const bold = document.getElementById("bold");
-    const search = document.getElementById("search");
 
     await focusAndWait(search);
     assert_equals(document.activeElement, search, "Precondition: focus starts on native directional input handler");

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>attr() name is case-sensitive on non-HTML elements in HTML documents</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-attr-name">
+<link rel="match" href="svg-attr-case-sensitivity-ref.html"/>
+
+<style>
+.exact rect {
+  fill: attr(myAttr type(<color>), red);
+}
+.lower rect {
+  fill: attr(myattr type(<color>), green);
+}
+</style>
+
+<p>Test passes if there are two green squares and no red.</p>
+
+<svg class="exact" width="100" height="100">
+  <rect width="100" height="100"/>
+</svg>
+
+<svg class="lower" width="100" height="100">
+  <rect width="100" height="100"/>
+</svg>
+
+<script>
+  // setAttribute preserves case on SVG elements (unlike the HTML parser, which
+  // ASCII-lowercases attribute names during tokenization).
+  for (const rect of document.querySelectorAll(".exact rect, .lower rect"))
+    rect.setAttribute("myAttr", rect.closest(".exact") ? "green" : "red");
+</script>

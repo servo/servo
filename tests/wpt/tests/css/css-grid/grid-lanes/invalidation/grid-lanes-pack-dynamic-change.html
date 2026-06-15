@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: grid-lanes-pack dynamic change triggers relayout</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="../../../reference/ref-filled-green-100px-square-only.html">
+  <style>
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-columns: repeat(2, 50px);
+    }
+
+    .item {
+      height: 50px;
+      background: green;
+    }
+
+    .span2 {
+      grid-column: span 2;
+    }
+  </style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div class="grid-lanes" id="gridLanes">
+  <div class="item"></div>
+  <div class="item span2"></div>
+  <div class="item"></div>
+</div>
+
+<script>
+  document.body.offsetTop;
+  document.getElementById("gridLanes").style.gridLanesPack = "dense";
+</script>
+</body>
+</html>

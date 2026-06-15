@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTMLUserMediaElement: onerror attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    test(() => {
+      const element = document.createElement("usermedia");
+      element.setConstraints({ video: {} });
+      assert_true("onerror" in element, "onerror should be in element");
+
+      let called = false;
+      element.onerror = () => {
+        called = true;
+      };
+      element.dispatchEvent(new Event("error"));
+      assert_true(called, "onerror IDL attribute should work");
+    }, "onerror IDL attribute");
+
+    test(() => {
+      const container = document.createElement("div");
+      container.innerHTML = '<usermedia onerror="window.onerror_called = true"></usermedia>';
+      const element = container.firstChild;
+
+      window.onerror_called = false;
+      element.dispatchEvent(new Event("error"));
+      assert_true(window.onerror_called, "onerror HTML attribute should work");
+    }, "onerror HTML attribute");
+
+    test(() => {
+      const element = document.createElement("usermedia");
+      let called = false;
+      element.addEventListener("error", () => {
+        called = true;
+      });
+      element.dispatchEvent(new Event("error"));
+      assert_true(called, 'addEventListener("error") should work');
+    }, "addEventListener error");
+  </script>
+</body>

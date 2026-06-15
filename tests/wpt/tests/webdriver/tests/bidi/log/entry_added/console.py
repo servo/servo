@@ -34,7 +34,7 @@ async def test_text_with_argument_variation(
         bidi_session, top_context, "log", log_argument)
     event_data = await wait_for_future_safe(on_entry_added)
 
-    assert_console_entry(event_data, text=expected_text, context=top_context["context"])
+    assert_console_entry(event_data, text=expected_text, context=top_context["context"], user_context=top_context["userContext"])
 
 
 @pytest.mark.parametrize(
@@ -144,7 +144,7 @@ async def test_new_context_with_new_window(bidi_session, subscribe_events, top_c
     await create_console_api_message_from_string(
         bidi_session, top_context, 'log', "'foo'")
     event_data = await wait_for_future_safe(on_entry_added)
-    assert_console_entry(event_data, text="foo", context=top_context["context"])
+    assert_console_entry(event_data, text="foo", context=top_context["context"], user_context=top_context["userContext"])
 
     new_context = await bidi_session.browsing_context.create(type_hint="tab")
 
@@ -152,7 +152,9 @@ async def test_new_context_with_new_window(bidi_session, subscribe_events, top_c
     await create_console_api_message_from_string(
         bidi_session, new_context, 'log', "'foo_in_new_window'")
     event_data = await wait_for_future_safe(on_entry_added)
-    assert_console_entry(event_data, text="foo_in_new_window", context=new_context["context"])
+    # userContext is optional in the return from browsingContext.create
+    new_user_context = new_context["userContext"] if "userContext" in new_context else None
+    assert_console_entry(event_data, text="foo_in_new_window", context=new_context["context"], user_context=new_user_context)
 
 
 async def test_new_context_with_refresh(bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe):
@@ -172,7 +174,7 @@ async def test_new_context_with_refresh(bidi_session, subscribe_events, top_cont
         bidi_session, top_context, 'log', "'foo_after_refresh'")
     event_data = await wait_for_future_safe(on_entry_added)
     assert_console_entry(
-        event_data, text="foo_after_refresh", context=top_context["context"]
+        event_data, text="foo_after_refresh", context=top_context["context"], user_context=top_context["userContext"]
     )
 
 
@@ -197,10 +199,10 @@ async def test_different_contexts(
     await create_console_api_message_from_string(
         bidi_session, top_context, "log", "'foo'")
     event_data = await wait_for_future_safe(on_entry_added)
-    assert_console_entry(event_data, text="foo", context=top_context["context"])
+    assert_console_entry(event_data, text="foo", context=top_context["context"], user_context=top_context["userContext"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
         bidi_session, frame_context, "log", "'bar'")
     event_data = await wait_for_future_safe(on_entry_added)
-    assert_console_entry(event_data, text="bar", context=frame_context["context"])
+    assert_console_entry(event_data, text="bar", context=frame_context["context"], user_context=frame_context["userContext"])

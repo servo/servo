@@ -18,6 +18,8 @@ use fonts::SystemFontService;
     not(target_os = "android"),
     not(target_arch = "arm"),
     not(target_arch = "aarch64"),
+    not(target_arch = "riscv32"),
+    not(target_arch = "riscv64"),
     not(target_env = "ohos"),
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
@@ -56,6 +58,8 @@ use servo_config::{opts, pref, prefs};
     not(target_os = "android"),
     not(target_arch = "arm"),
     not(target_arch = "aarch64"),
+    not(target_arch = "riscv32"),
+    not(target_arch = "riscv64"),
     not(target_env = "ohos"),
 ))]
 use servo_constellation::content_process_sandbox_profile;
@@ -592,10 +596,10 @@ impl ServoInner {
                         .request_permission(webview, permission_request);
                 }
             },
-            EmbedderMsg::RequestWakeLockPermission(webview_id, callback) => {
+            EmbedderMsg::RequestWakeLockPermission(webview_id, callback, type_) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     let permission_request = PermissionRequest {
-                        requested_feature: PermissionFeature::ScreenWakeLock,
+                        requested_feature: PermissionFeature::ScreenWakeLock(type_),
                         allow_deny_request: AllowOrDenyRequest::new_from_callback(
                             callback,
                             AllowOrDeny::Deny,
@@ -1365,6 +1369,8 @@ pub fn run_content_process(token: String) {
     not(target_os = "android"),
     not(target_arch = "arm"),
     not(target_arch = "aarch64"),
+    not(target_arch = "riscv32"),
+    not(target_arch = "riscv64"),
     not(target_env = "ohos"),
 ))]
 fn create_sandbox() {
@@ -1379,10 +1385,12 @@ fn create_sandbox() {
     target_os = "android",
     target_arch = "arm",
     target_arch = "aarch64",
+    target_arch = "riscv32",
+    target_arch = "riscv64",
     target_env = "ohos",
 ))]
 fn create_sandbox() {
-    panic!("Sandboxing is not supported on Windows, iOS, ARM targets and android.");
+    panic!("Sandboxing is not supported on Windows, iOS, ARM, RISC-V targets and android.");
 }
 
 struct DefaultEventLoopWaker;

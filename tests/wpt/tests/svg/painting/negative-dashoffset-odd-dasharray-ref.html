@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Negative stroke-dashoffset with odd-length stroke-dasharray (reference)</title>
+</head>
+<body>
+<p>Each pair of lines should be identical. The odd-length dasharray (left value)
+should render the same as the equivalent even-length dasharray (right value).</p>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300">
+    <path d="M20,30 L280,30" stroke="black" stroke-width="8" fill="none"
+          stroke-dasharray="60 60" stroke-dashoffset="-30"/>
+    <path d="M320,30 L580,30" stroke="black" stroke-width="8" fill="none"
+          stroke-dasharray="60 60" stroke-dashoffset="-30"/>
+
+    <path d="M20,70 L280,70" stroke="black" stroke-width="8" fill="none"
+          stroke-dasharray="40 20 10 40 20 10" stroke-dashoffset="-15"/>
+    <path d="M320,70 L580,70" stroke="black" stroke-width="8" fill="none"
+          stroke-dasharray="40 20 10 40 20 10" stroke-dashoffset="-15"/>
+
+    <path d="M20,110 L280,110" stroke="black" stroke-width="8" fill="none"
+          stroke-dasharray="30 30" stroke-dashoffset="-45"/>
+    <path d="M320,110 L580,110" stroke="black" stroke-width="8" fill="none"
+          stroke-dasharray="30 30" stroke-dashoffset="-45"/>
+
+    <path d="M20,150 L280,150" stroke="black" stroke-width="8" fill="none"
+          stroke-dasharray="50 30 20 50 30 20" stroke-dashoffset="-200"/>
+    <path d="M320,150 L580,150" stroke="black" stroke-width="8" fill="none"
+          stroke-dasharray="50 30 20 50 30 20" stroke-dashoffset="-200"/>
+</svg>
+</body>
+</html>

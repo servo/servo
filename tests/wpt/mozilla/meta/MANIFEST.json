@@ -169,6 +169,15 @@
       {}
      ]
     ],
+    "webgl": {
+     "weak-reference-crash.html": [
+      "e557c86a1ad014bd96b8370ab5306dd2342d0cdb",
+      [
+       null,
+       {}
+      ]
+     ]
+    },
     "window-resizeTo-not-permitted-crash.html": [
      "7b6a67ff81436a91048bdb627f303f7fab2762f7",
      [
@@ -12980,7 +12989,7 @@
      ]
     ],
     "css-property-listing.html": [
-     "912d205e115768698d444242cd04d27f1a560780",
+     "fbf14639715e1537edb464f8a148369ee37e4a58",
      [
       null,
       {}
@@ -13143,7 +13152,7 @@
    },
    "incremental-layout": {
     "basic-fragment-tree-layout.html": [
-     "9cdf3e36941658512926988e3d9e467cabd3087d",
+     "8ca5549a672cbc8356307a0c50a33ac0b0542693",
      [
       null,
       {}
@@ -13192,7 +13201,7 @@
      ]
     ],
     "preserved-same-formatting-context-block-layout.html": [
-     "0a370296d767cec1db6e2ce6893478506b6ee88c",
+     "ffeb8baac76aae684b13b5a4519ee5ea578bc9c9",
      [
       null,
       {}
@@ -14426,7 +14435,7 @@
      ]
     ],
     "interfaces.worker.js": [
-     "093670e117fa0e13b2c820cee86941cf2862bd9b",
+     "5acb874e8d8467ac450fb9569ee1a51c8cf7a7b1",
      [
       "mozilla/interfaces.worker.html",
       {}
@@ -14656,7 +14665,7 @@
      ]
     ],
     "ns.any.js": [
-     "05087872b02abdeeb48c21ee9ec037b3a1483c03",
+     "8fa275c14fdfc9e162285477aaa9f97849e7a363",
      [
       "mozilla/ns.any.html",
       {
@@ -14957,6 +14966,13 @@
     ],
     "style-remove-prop.html": [
      "07b319bb67ec2a4fe234a6ba98ddd17fc090d593",
+     [
+      null,
+      {}
+     ]
+    ],
+    "svg-content-event-handler.html": [
+     "651dd8563e059da447fab9aebb8c257c812afaf0",
      [
       null,
       {}

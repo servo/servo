@@ -23,6 +23,9 @@ on:
       unit-tests:
         required: true
         type: boolean
+      devtools-tests:
+        required: true
+        type: boolean
       build-libservo:
         required: true
         type: boolean
@@ -30,6 +33,9 @@ on:
         required: true
         type: boolean
       coverage:
+        required: true
+        type: boolean
+      capi:
         required: true
         type: boolean
     outputs:
@@ -49,6 +55,7 @@ jobs:
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       bencher: ${{ inputs.bencher }}
+      capi: ${{ inputs.capi }}
 
   macos:
     if: ${{ inputs.workflow == 'macos' }}
@@ -63,6 +70,7 @@ jobs:
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
+      capi: ${{ inputs.capi }}
 
   macos-arm64:
     if: ${{ inputs.workflow == 'macos-arm64' }}
@@ -77,6 +85,7 @@ jobs:
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
+      capi: ${{ inputs.capi }}
 
   linux:
     if: ${{ inputs.workflow == 'linux' }}
@@ -89,10 +98,12 @@ jobs:
       wpt: ${{ inputs.wpt }}
       number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
       unit-tests: ${{ inputs.unit-tests }}
+      devtools-tests: ${{ inputs.devtools-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
       coverage: ${{ inputs.coverage }}
+      capi: ${{ inputs.capi }}
 
   lint:
     if: ${{ inputs.workflow == 'lint' }}

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CSS Transforms: User agents should properly normalize parameters to 3D `rotate`</title>
+  <link rel="help" href="https://drafts.csswg.org/css-transforms-2/#interpolation-of-transform-functions">
+  <link rel="author" title="Martin Robinson" href="mrobinson@igalia.com" />
+  <link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+  <style type="text/css">
+  .rotated {
+      background-color: green;
+      rotate: 2 0 0 180deg;
+      height: 100px;
+      width: 100px;
+  }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="rotated"></div>
+ </body>
+</html>

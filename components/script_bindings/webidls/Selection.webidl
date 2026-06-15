@@ -28,5 +28,5 @@ readonly attribute Node? anchorNode;
   [CEReactions, Throws]
   undefined deleteFromDocument();
   boolean containsNode(Node node, optional boolean allowPartialContainment = false);
-  stringifier DOMString ();
+  stringifier;
 };

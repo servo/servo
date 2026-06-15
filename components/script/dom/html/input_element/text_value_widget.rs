@@ -48,7 +48,7 @@ impl TextValueWidget {
     }
 
     pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.get_or_create_shadow_tree(cx, input).update(input)
+        self.get_or_create_shadow_tree(cx, input).update(cx, input)
     }
 }
 
@@ -67,11 +67,11 @@ impl TextValueShadowTree {
         }
     }
 
-    fn update(&self, input_element: &HTMLInputElement) {
+    fn update(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
         let character_data = self.value.upcast::<CharacterData>();
         let value = input_element.value_for_shadow_dom();
         if character_data.Data() != value {
-            character_data.SetData(value);
+            character_data.SetData(cx, value);
         }
     }
 }

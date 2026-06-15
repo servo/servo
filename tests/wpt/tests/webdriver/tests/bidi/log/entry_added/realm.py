@@ -28,5 +28,6 @@ async def test_realm(bidi_session, subscribe_events, top_context, wait_for_event
         event_data,
         text=expected_text,
         context=top_context["context"],
+        user_context=top_context["userContext"],
         realm=result["realm"],
     )

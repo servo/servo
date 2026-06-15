@@ -17,10 +17,10 @@ use crate::codegen::GenericBindings::WindowBinding::Window_Binding::WindowMethod
 use crate::error::{Error, Fallible};
 use crate::inheritance::Castable;
 use crate::interfaces::{DocumentHelpers, DomHelpers, GlobalScopeHelpers};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::reflector::DomObject;
 use crate::root::Dom;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 use crate::settings_stack::{run_a_callback, run_a_script};
 use crate::{DomTypes, cformat};
 
@@ -283,15 +283,7 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
             if handling == ExceptionHandling::Report {
                 let mut realm = enter_auto_realm::<D>(cx, &**global);
                 let cx = &mut realm.current_realm();
-
-                let in_realm_proof = cx.into();
-                let in_realm = InRealm::Already(&in_realm_proof);
-
-                <D as DomHelpers<D>>::report_pending_exception(
-                    cx.into(),
-                    in_realm,
-                    CanGc::from_cx(cx),
-                );
+                <D as DomHelpers<D>>::report_pending_exception(cx);
             }
             result
         };

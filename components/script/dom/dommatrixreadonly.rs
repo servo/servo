@@ -501,7 +501,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
                 if s.is_empty() {
                     return Ok(Self::new(global, true, Transform3D::identity(), can_gc));
                 }
-                transform_to_matrix(s.to_string())
+                transform_to_matrix(&s.str())
                     .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
             },
             StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
@@ -848,7 +848,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry/#dommatrixreadonly-stringification-behavior
     #[expect(unsafe_code)]
-    fn Stringifier(&self) -> Fallible<DOMString> {
+    fn Stringifier(&self, cx: &mut js::context::JSContext) -> Fallible<DOMString> {
         // Step 1. If one or more of m11 element through m44 element are a non-finite value,
         // then throw an "InvalidStateError" DOMException.
         let mat = self.matrix.borrow();
@@ -872,16 +872,12 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             return Err(error::Error::InvalidState(None));
         }
 
-        let cx = GlobalScope::get_cx();
-        let to_string = |f: f64| {
-            let value = jsval::DoubleValue(f);
-
-            unsafe {
-                rooted!(in(*cx) let mut rooted_value = value);
-                let serialization = std::ptr::NonNull::new(ToString(*cx, rooted_value.handle()))
+        let mut to_string = |f: f64| {
+            rooted!(&in(cx) let rooted_value = jsval::DoubleValue(f));
+            let serialization =
+                std::ptr::NonNull::new(unsafe { ToString(cx, rooted_value.handle()) })
                     .expect("Pointer cannot be null");
-                jsstr_to_string(*cx, serialization)
-            }
+            unsafe { jsstr_to_string(cx, serialization) }
         };
 
         // Step 2. Let string be the empty string.
@@ -1220,10 +1216,10 @@ fn normalize_point(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
     }
 }
 
-pub(crate) fn transform_to_matrix(value: String) -> Fallible<(bool, Transform3D<f64>)> {
+pub(crate) fn transform_to_matrix(value: &str) -> Fallible<(bool, Transform3D<f64>)> {
     use style::properties::longhands::transform;
 
-    let mut input = ParserInput::new(&value);
+    let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
     let url_data = Url::parse("about:blank").unwrap().into();
     let context =

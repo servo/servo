@@ -50,6 +50,7 @@ async def test_beforeunload(
         "context": new_tab["context"],
         "accepted": accept,
         "type": "beforeunload",
+        **({"userContext": new_tab["userContext"]} if "userContext" in event else {})
     }
 
     # Wait for the navigation to finish or fail.

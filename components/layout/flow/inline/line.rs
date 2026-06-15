@@ -212,7 +212,37 @@ impl LineItemLayout<'_, '_> {
         }
     }
 
-    pub(super) fn layout(&mut self, mut line_items: Vec<LineItem>) -> Vec<Fragment> {
+    /// If the inline formatting context that this line is being laid out for had
+    /// right-to-left content, reorder the line contents according to their pre-calculated
+    /// BiDi levels.
+    ///
+    /// Returns an iterator over the line contents.
+    fn reorder_line_items_for_bidi(
+        &self,
+        mut line_items: Vec<LineItem>,
+    ) -> impl Iterator<Item = LineItem> + use<> {
+        let iterator = |line_items: Vec<LineItem>| {
+            // `BidiInfo::reorder_visual` will reorder the contents of the line so that they
+            // are in the correct order as if one was looking at the line from left-to-right.
+            // During this layout we do not lay out from left to right. Instead we lay out
+            // from inline-start to inline-end. If the overall line contents have been flipped
+            // for BiDi, flip them again so that they are in line start-to-end order rather
+            // than left-to-right order.
+            if self.containing_block().style.writing_mode.is_bidi_ltr() {
+                Either::Left(line_items.into_iter())
+            } else {
+                Either::Right(line_items.into_iter().rev())
+            }
+        };
+
+        if !self.layout.ifc.has_right_to_left_content {
+            // Even if the actual content of the inline formatting context does not
+            // contain internal right-to-left text, the overall direction of the inline
+            // formatting context might be right-to-left. In that case we still want to
+            // return a reverse iterator.
+            return iterator(line_items);
+        }
+
         let mut last_level = Level::ltr();
         let levels: Vec<_> = line_items
             .iter()
@@ -239,23 +269,12 @@ impl LineItemLayout<'_, '_> {
             })
             .collect();
 
-        if self.layout.ifc.has_right_to_left_content {
-            sort_by_indices_in_place(&mut line_items, BidiInfo::reorder_visual(&levels));
-        }
+        sort_by_indices_in_place(&mut line_items, BidiInfo::reorder_visual(&levels));
+        iterator(line_items)
+    }
 
-        // `BidiInfo::reorder_visual` will reorder the contents of the line so that they
-        // are in the correct order as if one was looking at the line from left-to-right.
-        // During this layout we do not lay out from left to right. Instead we lay out
-        // from inline-start to inline-end. If the overall line contents have been flipped
-        // for BiDi, flip them again so that they are in line start-to-end order rather
-        // than left-to-right order.
-        let containing_block = self.containing_block();
-        let line_item_iterator = if containing_block.style.writing_mode.is_bidi_ltr() {
-            Either::Left(line_items.into_iter())
-        } else {
-            Either::Right(line_items.into_iter().rev())
-        };
-
+    pub(super) fn layout(&mut self, line_items: Vec<LineItem>) -> Vec<Fragment> {
+        let line_item_iterator = self.reorder_line_items_for_bidi(line_items);
         for item in line_item_iterator.into_iter().by_ref() {
             // When preparing to lay out a new line item, start and end inline boxes, so that the current
             // inline box state reflects the item's parent. Items in the line are not necessarily in tree
@@ -718,7 +737,7 @@ impl LineItemLayout<'_, '_> {
         let hoisted_fragment = hoisted_box.fragment.clone();
         self.current_positioning_context_mut().push(hoisted_box);
         self.current_state.fragments.push((
-            Fragment::AbsoluteOrFixedPositioned(hoisted_fragment),
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(hoisted_fragment),
             LogicalRect::zero(),
         ));
     }

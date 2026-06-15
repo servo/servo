@@ -659,7 +659,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     let (pre_server, pre_url) = make_server(pre_handler);
 
     let content = "Body on POST!";
-    let request_body = create_request_body_with_content(content);
+    let request_body = create_request_body_with_content(content.to_string());
 
     let request = RequestBuilder::new(None, pre_url.clone(), Referrer::NoReferrer)
         .body(Some(request_body))
@@ -976,7 +976,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         };
     let (server, url) = make_server(handler);
 
-    let request_body = create_request_body_with_content(content);
+    let request_body = create_request_body_with_content(content.to_string());
 
     let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
         .method(Method::POST)

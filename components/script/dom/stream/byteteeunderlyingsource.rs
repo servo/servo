@@ -183,12 +183,12 @@ impl ByteTeeUnderlyingSource {
                 byte_reader
                     .get()
                     .expect("Reader should be set.")
-                    .release(CanGc::from_cx(cx))?;
+                    .release(cx)?;
 
                 // Acquire default reader.
                 let default_reader = self
                     .stream
-                    .acquire_default_reader(CanGc::from_cx(cx))
+                    .acquire_default_reader(cx)
                     .expect("AcquireReadableStreamDefaultReader should not fail");
 
                 *reader = ReaderType::Default(MutNullableDom::new(Some(&default_reader)));
@@ -304,7 +304,7 @@ impl ByteTeeUnderlyingSource {
                 // Set reader to ! AcquireReadableStreamBYOBReader(stream).
                 let byob_reader = self
                     .stream
-                    .acquire_byob_reader(CanGc::from_cx(cx))
+                    .acquire_byob_reader(cx)
                     .expect("Reader should be set.");
 
                 *reader = ReaderType::BYOB(MutNullableDom::new(Some(&byob_reader)));
@@ -483,6 +483,6 @@ impl ByteTeeUnderlyingSource {
 
         // Resolve cancelPromise with cancelResult.
         self.cancel_promise
-            .resolve_native(&cancel_result, CanGc::from_cx(cx));
+            .resolve_native_with_cx(cx, &cancel_result);
     }
 }
