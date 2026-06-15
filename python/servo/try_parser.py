@@ -220,7 +220,7 @@ class Config(object):
                 words.extend(["linux-wpt", "linux-bencher"])
                 words.extend(["android", "ohos", "lint"])
                 words.extend(["linux-build-libservo", "windows-build-libservo"])
-                words.extend(["linux-capi", "windows-capi", "macos-arm-capi"])
+                words.extend(["linux-capi", "windows-capi"])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(
@@ -341,7 +341,7 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                     },
                     {
-                        "name": "MacOS Arm64 (Unit Tests, C API)",
+                        "name": "MacOS Arm64 (Unit Tests)",
                         "workflow": "macos-arm64",
                         "wpt": False,
                         "profile": "checked-release",
@@ -350,7 +350,7 @@ class TestParser(unittest.TestCase):
                         "build_libservo": False,
                         "bencher": False,
                         "build_args": "",
-                        "capi": True,
+                        "capi": False,
                         "coverage": False,
                         "wpt_args": "",
                         "number_of_wpt_chunks": 20,
