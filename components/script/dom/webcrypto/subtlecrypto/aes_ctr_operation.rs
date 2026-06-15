@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use aes::{Aes128, Aes192, Aes256};
-use cipher::{KeyIvInit, StreamCipher};
 use ctr::Ctr128BE;
+use ctr::cipher::StreamCipher;
+use ctr::cipher::common::KeyIvInit;
 use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
@@ -17,6 +18,10 @@ use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
     ExportedKey, SubtleAesCtrParams, SubtleAesDerivedKeyParams, SubtleAesKeyGenParams, aes_common,
 };
+
+/// Use aes::Ctr128BE by default. According to the WebCrypto API specification, the counter MUST be
+/// 16 bytes (the AES block size), and the counter bits are interpreted as a big-endian integer.
+type Ctr<T> = Ctr128BE<T>;
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-encrypt>
 pub(crate) fn encrypt(
@@ -48,19 +53,23 @@ pub(crate) fn encrypt(
     // normalizedAlgorithm as the initial value of the counter block, the length member of
     // normalizedAlgorithm as the input parameter m to the standard counter block incrementing
     // function defined in Appendix B.1 of [NIST-SP800-38A] and plaintext as the input plaintext.
-    let iv = normalized_algorithm.counter.as_slice();
+    let iv = normalized_algorithm
+        .counter
+        .as_slice()
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-CTR counter".into())))?;
     let mut ciphertext = plaintext.to_vec();
     match key.handle() {
         Handle::Aes128Key(key) => {
-            let mut cipher = Ctr128BE::<Aes128>::new(key, iv.into());
+            let mut cipher = Ctr::<Aes128>::new(key, iv);
             cipher.apply_keystream(&mut ciphertext);
         },
         Handle::Aes192Key(key) => {
-            let mut cipher = Ctr128BE::<Aes192>::new(key, iv.into());
+            let mut cipher = Ctr::<Aes192>::new(key, iv);
             cipher.apply_keystream(&mut ciphertext);
         },
         Handle::Aes256Key(key) => {
-            let mut cipher = Ctr128BE::<Aes256>::new(key, iv.into());
+            let mut cipher = Ctr::<Aes256>::new(key, iv);
             cipher.apply_keystream(&mut ciphertext);
         },
         _ => {
@@ -104,19 +113,23 @@ pub(crate) fn decrypt(
     // normalizedAlgorithm as the initial value of the counter block, the length member of
     // normalizedAlgorithm as the input parameter m to the standard counter block incrementing
     // function defined in Appendix B.1 of [NIST-SP800-38A] and ciphertext as the input ciphertext.
-    let iv = normalized_algorithm.counter.as_slice();
+    let iv = normalized_algorithm
+        .counter
+        .as_slice()
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-CTR counter".into())))?;
     let mut plaintext = ciphertext.to_vec();
     match key.handle() {
         Handle::Aes128Key(key) => {
-            let mut cipher = Ctr128BE::<Aes128>::new(key, iv.into());
+            let mut cipher = Ctr::<Aes128>::new(key, &iv);
             cipher.apply_keystream(&mut plaintext);
         },
         Handle::Aes192Key(key) => {
-            let mut cipher = Ctr128BE::<Aes192>::new(key, iv.into());
+            let mut cipher = Ctr::<Aes192>::new(key, &iv);
             cipher.apply_keystream(&mut plaintext);
         },
         Handle::Aes256Key(key) => {
-            let mut cipher = Ctr128BE::<Aes256>::new(key, iv.into());
+            let mut cipher = Ctr::<Aes256>::new(key, &iv);
             cipher.apply_keystream(&mut plaintext);
         },
         _ => {

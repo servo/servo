@@ -31,9 +31,9 @@ rust-version = "1.88.0"
 [workspace.dependencies]
 accesskit = { version = "0.24.0", features = ["serde"] }
 accesskit_consumer = "0.35.0"
-aes = "0.8.4"
-aes-gcm = "0.10.3"
-aes-kw = { version = "0.2.1", features = ["alloc"] }
+aes = { version = "0.9", features = ["zeroize"] }
+aes-gcm = { version = "0.11.0-rc.4", features = ["hazmat", "zeroize"] }
+aes-kw = { version = "0.3", features = ["zeroize"] }
 android_logger = "0.15"
 app_units = "0.7"
 arboard = "3"
@@ -57,13 +57,12 @@ byte-slice-cast = "1.2.3"
 bytemuck = "1"
 byteorder = "1.5"
 bytes = "1.0"
-cbc = "0.1.2"
+cbc = { version = "0.2", features = ["alloc", "zeroize"] }
 cc = "1.2"
 cfg-if = "1.0.4"
 chacha20poly1305 = { version = "=0.11.0-rc.3", features = ["rand_core", "zeroize"] }
 chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
-cipher = { version = "0.4.4", features = ["alloc", "rand_core"] }
 content-security-policy = { version = "0.8.0", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 criterion = "0.8"
@@ -71,7 +70,7 @@ crossbeam-channel = "0.5"
 crypto-bigint = "0.7"
 cshake = "0.2"
 cssparser = { version = "0.37", features = ["serde"] }
-ctr = "0.9.2"
+ctr = { version = "0.10", features = ["zeroize"] }
 data-url = "0.3"
 digest = "0.11"
 dirs = "6.0"
@@ -170,7 +169,7 @@ objc2-core-foundation = "0.3.2"
 objc2-core-graphics = "0.3.2"
 objc2-core-text = "0.3.2"
 objc2-foundation = { version = "0.3.1", default-features = false }
-ocb3 = "0.1.0"
+ocb3 = { version = "0.2.0-rc.3", features = ["zeroize"] }
 ohos-abilitykit-sys = "0.1.6"
 ohos-deviceinfo = "0.1.0"
 ohos-deviceinfo-sys = "0.1.7"

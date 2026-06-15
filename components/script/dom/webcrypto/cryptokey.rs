@@ -50,9 +50,9 @@ pub(crate) enum Handle {
     Ed25519PublicKey(Vec<u8>),
     X25519PrivateKey(x25519_dalek::StaticSecret),
     X25519PublicKey(x25519_dalek::PublicKey),
-    Aes128Key(aes::cipher::crypto_common::Key<aes::Aes128>),
-    Aes192Key(aes::cipher::crypto_common::Key<aes::Aes192>),
-    Aes256Key(aes::cipher::crypto_common::Key<aes::Aes256>),
+    Aes128Key(aes::cipher::common::Key<aes::Aes128>),
+    Aes192Key(aes::cipher::common::Key<aes::Aes192>),
+    Aes256Key(aes::cipher::common::Key<aes::Aes256>),
     HkdfSecret(Zeroizing<Vec<u8>>),
     Pbkdf2(Zeroizing<Vec<u8>>),
     Hmac(Zeroizing<Vec<u8>>),
@@ -392,21 +392,15 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
             SerializableCryptoKeyHandle::X25519PublicKey(public_key) => {
                 Ok(Handle::X25519PublicKey((*public_key).into()))
             },
-            SerializableCryptoKeyHandle::Aes128Key(key) => {
-                Ok(Handle::Aes128Key(aes::cipher::crypto_common::Key::<
-                    aes::Aes128,
-                >::clone_from_slice(key)))
-            },
-            SerializableCryptoKeyHandle::Aes192Key(key) => {
-                Ok(Handle::Aes192Key(aes::cipher::crypto_common::Key::<
-                    aes::Aes192,
-                >::clone_from_slice(key)))
-            },
-            SerializableCryptoKeyHandle::Aes256Key(key) => {
-                Ok(Handle::Aes256Key(aes::cipher::crypto_common::Key::<
-                    aes::Aes256,
-                >::clone_from_slice(key)))
-            },
+            SerializableCryptoKeyHandle::Aes128Key(key) => Ok(Handle::Aes128Key(
+                aes::cipher::common::Key::<aes::Aes128>::try_from(key).map_err(|_| ())?,
+            )),
+            SerializableCryptoKeyHandle::Aes192Key(key) => Ok(Handle::Aes192Key(
+                aes::cipher::common::Key::<aes::Aes192>::try_from(key).map_err(|_| ())?,
+            )),
+            SerializableCryptoKeyHandle::Aes256Key(key) => Ok(Handle::Aes256Key(
+                aes::cipher::common::Key::<aes::Aes256>::try_from(key).map_err(|_| ())?,
+            )),
             SerializableCryptoKeyHandle::Hmac(bytes) => Ok(Handle::Hmac(bytes.clone().into())),
             SerializableCryptoKeyHandle::HkdfSecret(bytes) => {
                 Ok(Handle::HkdfSecret(bytes.clone().into()))
@@ -533,15 +527,9 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
             Handle::X25519PublicKey(public_key) => Ok(
                 SerializableCryptoKeyHandle::X25519PublicKey(public_key.to_bytes()),
             ),
-            Handle::Aes128Key(key) => Ok(SerializableCryptoKeyHandle::Aes128Key(
-                key.as_slice().into(),
-            )),
-            Handle::Aes192Key(key) => Ok(SerializableCryptoKeyHandle::Aes192Key(
-                key.as_slice().into(),
-            )),
-            Handle::Aes256Key(key) => Ok(SerializableCryptoKeyHandle::Aes256Key(
-                key.as_slice().into(),
-            )),
+            Handle::Aes128Key(key) => Ok(SerializableCryptoKeyHandle::Aes128Key(key.to_vec())),
+            Handle::Aes192Key(key) => Ok(SerializableCryptoKeyHandle::Aes192Key(key.to_vec())),
+            Handle::Aes256Key(key) => Ok(SerializableCryptoKeyHandle::Aes256Key(key.to_vec())),
             Handle::Hmac(bytes) => Ok(SerializableCryptoKeyHandle::Hmac(bytes.to_vec())),
             Handle::HkdfSecret(bytes) => {
                 Ok(SerializableCryptoKeyHandle::HkdfSecret(bytes.to_vec()))

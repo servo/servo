@@ -57,7 +57,6 @@ cbc = { workspace = true }
 chacha20poly1305 = { workspace = true }
 chardetng = { workspace = true }
 chrono = { workspace = true }
-cipher = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
