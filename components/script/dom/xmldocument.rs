@@ -14,6 +14,7 @@ use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::document_loader::DocumentLoader;
+use crate::dom::animations::documenttimeline::DocumentTimeline;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, NamedPropertyValue,
 };
@@ -50,7 +51,7 @@ impl XMLDocument {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
-        can_gc: CanGc,
+        timeline: &DocumentTimeline,
     ) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(
@@ -74,7 +75,7 @@ impl XMLDocument {
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
                 window.Document().creation_sandboxing_flag_set(),
-                can_gc,
+                timeline,
             ),
         }
     }
@@ -96,6 +97,7 @@ impl XMLDocument {
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         can_gc: CanGc,
     ) -> DomRoot<XMLDocument> {
+        let timeline = DocumentTimeline::new(window, can_gc);
         let doc = reflect_dom_object(
             Box::new(XMLDocument::new_inherited(
                 window,
@@ -111,7 +113,7 @@ impl XMLDocument {
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
-                can_gc,
+                &timeline,
             )),
             window,
             can_gc,
