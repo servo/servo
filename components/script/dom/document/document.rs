@@ -3521,7 +3521,7 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
-        can_gc: CanGc,
+        timeline: &DocumentTimeline,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3646,7 +3646,7 @@ impl Document {
             dirty_canvases: DomRefCell::new(Default::default()),
             has_pending_animated_image_update: Cell::new(false),
             selection: MutNullableDom::new(None),
-            timeline: DocumentTimeline::new(window, can_gc).as_traced(),
+            timeline: Dom::from_ref(timeline),
             animations: Animations::new(),
             image_animation_manager: DomRefCell::new(ImageAnimationManager::default()),
             dirty_root: Default::default(),
@@ -3851,6 +3851,7 @@ impl Document {
         creation_sandboxing_flag_set: SandboxingFlagSet,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
+        let timeline = DocumentTimeline::new(window, can_gc);
         let document = reflect_dom_object_with_proto(
             Box::new(Document::new_inherited(
                 window,
@@ -3873,7 +3874,7 @@ impl Document {
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
                 creation_sandboxing_flag_set,
-                can_gc,
+                &timeline,
             )),
             window,
             proto,
