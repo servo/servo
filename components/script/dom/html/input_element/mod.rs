@@ -2200,11 +2200,11 @@ impl VirtualMethods for HTMLInputElement {
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
             },
-            local_name!("maxlength") => match *attr.value() {
+            local_name!("maxlength") if self.does_minmaxlength_apply() => match *attr.value() {
                 AttrValue::Int(_, value) => {
                     let mut textinput = self.textinput.borrow_mut();
 
-                    if value < 0 || !self.does_minmaxlength_apply() {
+                    if value < 0 {
                         textinput.set_max_length(None);
                     } else {
                         textinput.set_max_length(Some(Utf16CodeUnitLength(value as usize)))
@@ -2212,11 +2212,11 @@ impl VirtualMethods for HTMLInputElement {
                 },
                 _ => panic!("Expected an AttrValue::Int"),
             },
-            local_name!("minlength") => match *attr.value() {
+            local_name!("minlength") if self.does_minmaxlength_apply() => match *attr.value() {
                 AttrValue::Int(_, value) => {
                     let mut textinput = self.textinput.borrow_mut();
 
-                    if value < 0 || !self.does_minmaxlength_apply() {
+                    if value < 0 {
                         textinput.set_min_length(None);
                     } else {
                         textinput.set_min_length(Some(Utf16CodeUnitLength(value as usize)))
