@@ -1312,6 +1312,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
 malloc_size_of_is_stylo_malloc_size_of!(style::logical_geometry::WritingMode);
 malloc_size_of_is_stylo_malloc_size_of!(style::media_queries::MediaList);
+malloc_size_of_is_stylo_malloc_size_of!(style::properties::generated::font_face::Descriptors);
 malloc_size_of_is_stylo_malloc_size_of!(
     style::properties::longhands::align_items::computed_value::T
 );

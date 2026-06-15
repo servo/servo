@@ -10,7 +10,7 @@ pub(crate) use harfbuzz::Shaper;
 use read_fonts::types::Tag;
 use rustc_hash::FxHashMap;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
-use style::font_face::FontFaceRule;
+use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::values::computed::{FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric};
 
 use crate::{
@@ -63,7 +63,7 @@ pub(crate) trait GlyphShapingResult {
 /// <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>.
 pub(crate) fn compute_used_font_features(
     options: &ShapingOptions,
-    font_face_rule: Option<&FontFaceRule>,
+    font_face_rule: Option<&FontFaceRuleDescriptors>,
 ) -> impl Iterator<Item = (Tag, u32)> {
     let mut features = FxHashMap::default();
 
@@ -79,7 +79,7 @@ pub(crate) fn compute_used_font_features(
     // Step 7. If the font is defined via an @font-face rule, the font features implied
     // by the font-feature-settings descriptor in the @font-face rule are applied.
     if let Some(font_feature_settings) =
-        font_face_rule.and_then(|rule| rule.descriptors.font_feature_settings.as_ref())
+        font_face_rule.and_then(|rule| rule.font_feature_settings.as_ref())
     {
         for feature_setting in font_feature_settings.0.iter() {
             add_feature(

@@ -14,7 +14,8 @@ use serde::{Deserialize, Serialize};
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
-use style::stylesheets::{DocumentStyleSheet, FontFaceRule};
+use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
+use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::font::FontWeight;
 use webrender_api::FontVariation;
 
@@ -164,7 +165,7 @@ pub struct FontTemplate {
     /// If this font is a web font, this is a reference to the `@font-face` rule that
     /// created it.
     #[serde(skip)]
-    pub font_face_rule: Option<FontFaceRule>,
+    pub font_face_rule: Option<FontFaceRuleDescriptors>,
 }
 
 impl Debug for FontTemplate {
@@ -182,7 +183,7 @@ impl FontTemplate {
         identifier: FontIdentifier,
         descriptor: FontTemplateDescriptor,
         stylesheet: Option<DocumentStyleSheet>,
-        font_face_rule: Option<FontFaceRule>,
+        font_face_rule: Option<FontFaceRuleDescriptors>,
     ) -> FontTemplate {
         assert!(
             (stylesheet.is_some() && font_face_rule.is_some()) ||
@@ -203,7 +204,7 @@ impl FontTemplate {
         local_template: FontTemplateRef,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
         stylesheet: Option<DocumentStyleSheet>,
-        font_face_rule: Option<FontFaceRule>,
+        font_face_rule: Option<FontFaceRuleDescriptors>,
     ) -> Result<FontTemplate, &'static str> {
         let mut alias_template = local_template.borrow().clone();
         alias_template
@@ -249,9 +250,7 @@ impl FontTemplate {
         if let Some(font_face_rule) = &self.font_face_rule {
             // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
             // descriptor in the @font-face rule are applied.
-            if let Some(variation_settings) =
-                font_face_rule.descriptors.font_variation_settings.as_ref()
-            {
+            if let Some(variation_settings) = font_face_rule.font_variation_settings.as_ref() {
                 variation_settings
                     .0
                     .iter()
@@ -310,7 +309,7 @@ pub trait FontTemplateRefMethods {
     fn char_in_unicode_range(&self, character: char) -> bool;
 
     /// Return the `@font-face` rule that defined this template, if any.
-    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRule>>;
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRuleDescriptors>>;
 }
 
 impl FontTemplateRefMethods for FontTemplateRef {
@@ -339,7 +338,7 @@ impl FontTemplateRefMethods for FontTemplateRef {
             .is_none_or(|ranges| ranges.iter().any(|range| range.contains(&character)))
     }
 
-    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRule>> {
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRuleDescriptors>> {
         AtomicRef::filter_map(self.borrow(), |template| template.font_face_rule.as_ref())
     }
 }
