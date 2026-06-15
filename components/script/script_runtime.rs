@@ -23,8 +23,8 @@ use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
-    CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun, JS_GetReservedSlot,
-    JobQueueTraps, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
+    CreateJobQueue, DeleteJobQueue, DispatchablePointer, JS_GetReservedSlot, JobQueueTraps,
+    RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
     RunScriptEnvironmentPreparerClosure, SetBuildId, StreamConsumerConsumeChunk,
     StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
@@ -45,11 +45,12 @@ use js::realm::CurrentRealm;
 pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::wrappers2::{
-    CollectServoSizes, ContextOptionsRef, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_SetGCCallback,
-    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetSecurityCallbacks, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue,
-    SetPreserveWrapperCallbacks, SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
+    CollectServoSizes, ContextOptionsRef, DispatchableRun, InitConsumeStreamCallback,
+    JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
+    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_SetOffthreadIonCompilationEnabled, JS_SetSecurityCallbacks, SetDOMCallbacks,
+    SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
 };
 use js::rust::{
     Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle, JSEngine, JSEngineHandle,
@@ -831,10 +832,8 @@ impl Runtime {
             };
 
             let runnable = Runnable(dispatchable);
-            let task = task!(dispatch_to_event_loop_message: move || {
-                if let Some(cx) = RustRuntime::get() {
-                    runnable.run(cx.as_ptr(), Dispatchable_MaybeShuttingDown::NotShuttingDown);
-                }
+            let task = task!(dispatch_to_event_loop_message: move |cx| {
+                runnable.run(cx, Dispatchable_MaybeShuttingDown::NotShuttingDown);
             });
 
             script_event_loop_sender
@@ -1461,7 +1460,11 @@ unsafe impl Send for Runnable {}
 
 #[expect(unsafe_code)]
 impl Runnable {
-    fn run(&self, cx: *mut RawJSContext, maybe_shutting_down: Dispatchable_MaybeShuttingDown) {
+    fn run(
+        &self,
+        cx: &mut js::context::JSContext,
+        maybe_shutting_down: Dispatchable_MaybeShuttingDown,
+    ) {
         unsafe {
             DispatchableRun(cx, self.0, maybe_shutting_down);
         }
