@@ -103,6 +103,7 @@ pub(crate) fn prepare_workerscope_init(
         storage_threads: global.storage_threads().clone(),
         mem_profiler_chan: global.mem_profiler_chan().clone(),
         to_devtools_sender: global.devtools_chan().cloned(),
+        to_webdriver_sender: global.webdriver_chan().cloned(),
         time_profiler_chan: global.time_profiler_chan().clone(),
         from_devtools_sender: devtools_sender,
         script_to_constellation_chan: global.script_to_constellation_chan().clone(),
@@ -176,8 +177,8 @@ impl FetchResponseListener for ScriptFetchContext {
         if response
             .as_ref()
             .inspect_err(|e| error!("error loading script {} ({:?})", self.url, e))
-            .is_err() ||
-            self.response.is_none()
+            .is_err()
+            || self.response.is_none()
         {
             scope.on_complete(cx, None);
             return;
@@ -358,6 +359,7 @@ impl WorkerGlobalScope {
             globalscope: GlobalScope::new_inherited(
                 init.pipeline_id,
                 init.to_devtools_sender,
+                init.to_webdriver_sender,
                 init.mem_profiler_chan,
                 init.time_profiler_chan,
                 init.script_to_constellation_chan,

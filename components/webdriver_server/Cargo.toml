@@ -21,7 +21,7 @@ cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-futures-util = { workspace = true }
+futures-util = { workspace = true, features = ["alloc"] }
 http = { workspace = true }
 http02 = { workspace = true }
 image = { workspace = true }

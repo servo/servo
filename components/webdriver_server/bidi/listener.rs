@@ -1,31 +1,47 @@
-use std::{
-    net::{SocketAddr, TcpListener as StdTcpListener},
-    rc::Rc,
-};
+use std::{net::SocketAddr, sync::Arc};
 
 use async_tungstenite::{
     tokio::accept_hdr_async,
     tungstenite::handshake::server::{ErrorResponse as WsErrorResponse, Request, Response},
 };
 use log::info;
-use tokio::{net::TcpListener, sync::RwLock};
+use tokio::{
+    net::TcpListener,
+    sync::{RwLock, mpsc::UnboundedSender},
+    task,
+};
 
-use crate::bidi::ActiveSessions;
+use crate::bidi::{ActiveSessions, session::common::SessionMessage};
 
 pub struct Listener {
     address: SocketAddr,
-    active_sessions: Rc<RwLock<ActiveSessions>>,
+    active_sessions: Arc<RwLock<ActiveSessions>>,
+    static_sender: UnboundedSender<SessionMessage>,
 }
 
 impl Listener {
-    pub fn new(address: SocketAddr, active_sessions: Rc<RwLock<ActiveSessions>>) -> Self {
+    /// Start `Listener` as a tokio local task.
+    pub(crate) fn start(
+        address: SocketAddr,
+        active_sessions: Arc<RwLock<ActiveSessions>>,
+        static_sender: UnboundedSender<SessionMessage>,
+    ) -> task::JoinHandle<()> {
+        task::spawn_local(Self::new(address, active_sessions, static_sender).run())
+    }
+
+    fn new(
+        address: SocketAddr,
+        active_sessions: Arc<RwLock<ActiveSessions>>,
+        static_sender: UnboundedSender<SessionMessage>,
+    ) -> Self {
         Self {
             address,
             active_sessions,
+            static_sender,
         }
     }
 
-    pub async fn run(mut self) {
+    async fn run(mut self) {
         let listener = TcpListener::bind(self.address).await.unwrap();
         let addr = listener.local_addr().unwrap();
         if self.address.port() == 0 {
@@ -38,15 +54,13 @@ impl Listener {
                 .await
                 .expect("Accept websocket stream fails");
             {
-                self.active_sessions
-                    .read()
-                    .await
-                    // TODO: clone to minimize
-                    // TODO: impl parse session id and send to specific session
-                    .get(&None)
-                    .expect("static session missing")
-                    .associate(ws_stream.into())
-                    .await;
+                // TODO: impl parse session id and send to specific session
+                if let Err(e) = self
+                    .static_sender
+                    .send(SessionMessage::Associate(ws_stream.into()))
+                {
+                    log::warn!("Send connection error: {e:?}");
+                };
             }
         }
     }

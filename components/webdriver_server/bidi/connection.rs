@@ -1,84 +1,62 @@
-use std::sync::atomic::{AtomicU64, Ordering::SeqCst};
+use std::ops::{Deref, DerefMut};
 
-use async_tungstenite::{WebSocketStream, tokio::TokioAdapter, tungstenite::Message as WsMessage};
-use log::error;
-use tokio::{net::TcpStream, sync::mpsc::UnboundedSender};
+use async_tungstenite::{WebSocketStream, tokio::TokioAdapter};
+use tokio::net::TcpStream;
+use webdriver_traits::bidi::{ErrorCode, ErrorResponse, Message as BidiMessage};
 
-use webdriver_traits::bidi::Message as BidiMessage;
+// TODO: support wss in the future. at that time a enum should be used.
 
-/// A WebSocket connection is a network connection that follows the requirements of
-/// the WebSocket protocol.
-pub enum Connection {
-    Tcp(WebSocketStream<TokioAdapter<TcpStream>>),
-    // TODO: Tls
-}
+/// A WebSocket connection.
+pub(crate) struct Connection(pub(crate) WebSocketStream<TokioAdapter<TcpStream>>);
 
 impl From<WebSocketStream<TokioAdapter<TcpStream>>> for Connection {
     fn from(value: WebSocketStream<TokioAdapter<TcpStream>>) -> Self {
-        Self::Tcp(value)
-    }
-}
-
-impl Connection {
-    pub async fn send(&mut self, message: String) {
-        match self {
-            Connection::Tcp(stream) => {
-                if let Err(err) = stream.send(message.into()).await {
-                    log::warn!("Send a WebSocket message failed");
-                }
-            },
-        }
-    }
-}
-
-// TODO: do we need connection id now? e.g. for log?
-
-static CONNECTION_ID: AtomicU64 = AtomicU64::new(0);
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
-pub struct ConnectionId(u64);
-
-impl From<u64> for ConnectionId {
-    fn from(value: u64) -> Self {
         Self(value)
     }
 }
 
-impl ConnectionId {
-    pub fn next() -> Self {
-        Self(CONNECTION_ID.fetch_add(1, SeqCst))
+impl Deref for Connection {
+    type Target = WebSocketStream<TokioAdapter<TcpStream>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
-/// A handle to the WebSocket connection on BiDi server thread.
-#[derive(Debug)]
-pub struct ConnectionOld {
-    id: ConnectionId,
-    tx: UnboundedSender<WsMessage>,
+impl DerefMut for Connection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
-impl ConnectionOld {
-    pub fn new(id: ConnectionId, tx: UnboundedSender<WsMessage>) -> Self {
-        Self { id, tx }
-    }
-
-    pub fn id(&self) -> ConnectionId {
-        self.id
-    }
-
-    pub fn send(&self, bidi_msg: &BidiMessage) {
-        // PERF: duplicate serialize here, for each connection in target.
-        // but we should abstract away ws message type from dispatcher.
-        // an once cache type should be used.
-        let Ok(serialized) = serde_json::to_string(&bidi_msg) else {
-            error!("fail to serialize: {:?}", bidi_msg);
-            return;
+impl Connection {
+    /// Send an error response to the WebSocket connection.
+    ///
+    /// <https://www.w3.org/TR/webdriver-bidi/#send-an-error-response>
+    pub(crate) async fn send_an_error_response(
+        &mut self,
+        command_id: Option<u64>,
+        error_code: ErrorCode,
+    ) {
+        // 1
+        let error_data = BidiMessage::ErrorResponse(Box::new(ErrorResponse {
+            id: command_id,
+            error: error_code,
+            // SKIP: implementation-defined
+            message: "".to_string(),
+            stacktrace: None,
+            extensible: Default::default(),
+        }));
+        // 2.
+        let response = match serde_json::to_string(&error_data) {
+            Ok(response) => response,
+            Err(e) => {
+                log::warn!("Serializing error response failed: {e:?}");
+                return;
+            },
         };
-        // TODO: serialize error should also be sent.
-        let ws_msg = WsMessage::Text(serialized.into());
-        if let Err(err) = self.tx.send(ws_msg) {
-            // As channel is already broken, there is no need to retry send.
-            error!("fail to send ws message: {:?}", err);
+        // 3.
+        if let Err(e) = self.0.send(response.into()).await {
+            log::warn!("Sending error response failed: {e:?}");
         }
     }
 }

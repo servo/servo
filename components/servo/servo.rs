@@ -931,7 +931,7 @@ impl Servo {
 
         let (webdriver_sender, webdriver_receiver) = if pref!(devtools_server_enabled) {
             let (sender, receiver) =
-                webdriver_server::bidi::WebDriverBidi::start(embedder_proxy.clone());
+                webdriver_server::bidi::WebDriverBidiThread::start(embedder_proxy.clone());
             (Some(sender), Some(receiver))
         } else {
             (None, None)
@@ -1196,7 +1196,7 @@ fn create_constellation(
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
-    webdriver_sender: Option<UnboundedSender<webdriver_traits::ConstellationToWebDriverMessage>>,
+    webdriver_sender: Option<UnboundedSender<webdriver_traits::WebDriverMessage>>,
     webdriver_receiver: Option<Receiver<webdriver_traits::WebDriverToConstellationMessage>>,
     protocols: Arc<ProtocolRegistry>,
     public_resource_threads: ResourceThreads,

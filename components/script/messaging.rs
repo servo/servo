@@ -24,6 +24,7 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_constellation_traits::ScriptToConstellationMessage;
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
+use webdriver_traits::ScriptToWebDriverMessage;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
 
@@ -410,6 +411,10 @@ pub(crate) struct ScriptThreadSenders {
 
     #[no_trace]
     pub(crate) devtools_client_to_script_thread_sender: GenericSender<DevtoolScriptControlMsg>,
+
+    /// For providing instructions to an optional webdriver server.
+    #[no_trace]
+    pub(crate) webdriver_server_sender: Option<GenericCallback<ScriptToWebDriverMessage>>,
 }
 
 #[derive(JSTraceable)]

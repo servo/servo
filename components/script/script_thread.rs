@@ -797,6 +797,7 @@ impl ScriptThread {
                         mem_profiler_chan: script_thread.senders.memory_profiler_sender.clone(),
                         time_profiler_chan: script_thread.senders.time_profiler_sender.clone(),
                         devtools_chan: script_thread.senders.devtools_server_sender.clone(),
+                        webdriver_chan: script_thread.senders.webdriver_server_sender.clone(),
                         to_constellation_sender: script_thread
                             .senders
                             .pipeline_to_constellation_sender
@@ -924,6 +925,8 @@ impl ScriptThread {
         let (ipc_devtools_sender, ipc_devtools_receiver) = generic_channel::channel().unwrap();
         let devtools_server_receiver = ipc_devtools_receiver.route_preserving_errors();
 
+        let webdriver_server_sender = state.webdriver_server_sender;
+
         let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
 
         let closing = Arc::new(AtomicBool::new(false));
@@ -965,6 +968,7 @@ impl ScriptThread {
             memory_profiler_sender: state.memory_profiler_sender,
             devtools_server_sender,
             devtools_client_to_script_thread_sender: ipc_devtools_sender,
+            webdriver_server_sender,
         };
 
         let microtask_queue = runtime.microtask_queue.clone();
@@ -984,6 +988,7 @@ impl ScriptThread {
             PipelineId::new(),
             senders.devtools_server_sender.clone(),
             senders.devtools_client_to_script_thread_sender.clone(),
+            senders.webdriver_server_sender.clone(),
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
             script_to_constellation_chan,
@@ -1340,10 +1345,10 @@ impl ScriptThread {
             .iter()
             .any(|(_, document)| document.needs_rendering_update());
         let running_animations = self.documents.borrow().iter().any(|(_, document)| {
-            document.is_fully_active() &&
-                !document.window().throttled() &&
-                (document.animations().running_animation_count() != 0 ||
-                    document.has_active_request_animation_frame_callbacks())
+            document.is_fully_active()
+                && !document.window().throttled()
+                && (document.animations().running_animation_count() != 0
+                    || document.has_active_request_animation_frame_callbacks())
         });
 
         // If we are not running animations and no rendering update is
@@ -1759,9 +1764,9 @@ impl ScriptThread {
         };
         let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
-            if let Some(pipeline_id) = pipeline_id &&
-                pipeline_id == doc_id &&
-                task_duration.as_nanos() > MAX_TASK_NS
+            if let Some(pipeline_id) = pipeline_id
+                && pipeline_id == doc_id
+                && task_duration.as_nanos() > MAX_TASK_NS
             {
                 if opts::get()
                     .debug
@@ -1948,9 +1953,9 @@ impl ScriptThread {
                     document.handle_no_longer_waiting_on_asynchronous_image_updates();
                 }
             },
-            msg @ ScriptThreadMessage::SpawnPipeline(..) |
-            msg @ ScriptThreadMessage::ExitFullScreen(..) |
-            msg @ ScriptThreadMessage::ExitScriptThread => {
+            msg @ ScriptThreadMessage::SpawnPipeline(..)
+            | msg @ ScriptThreadMessage::ExitFullScreen(..)
+            | msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
@@ -3460,6 +3465,7 @@ impl ScriptThread {
             self.senders.memory_profiler_sender.clone(),
             self.senders.time_profiler_sender.clone(),
             self.senders.devtools_server_sender.clone(),
+            self.senders.webdriver_server_sender.clone(),
             script_to_constellation_chan,
             self.senders.pipeline_to_embedder_sender.clone(),
             self.senders.constellation_sender.clone(),
@@ -3972,8 +3978,8 @@ impl ScriptThread {
             // we need to register an iframe entry to the performance timeline if present
             if let Some(window_proxy) = context
                 .get_document()
-                .and_then(|document| document.browsing_context()) &&
-                let Some(frame_element) = window_proxy.frame_element()
+                .and_then(|document| document.browsing_context())
+                && let Some(frame_element) = window_proxy.frame_element()
             {
                 let iframe_ctx = IframeContext::new(
                     frame_element
@@ -4175,8 +4181,8 @@ impl ScriptThread {
             return;
         };
 
-        if let Some(window) = self.documents.borrow().find_window(pipeline_id) &&
-            window.live_devtools_updates()
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id)
+            && window.live_devtools_updates()
         {
             let css_error = CSSError {
                 filename,

@@ -15,24 +15,38 @@ pub mod bidi {
 use serde::{Deserialize, Serialize};
 use servo_base::id::BrowsingContextId;
 
-use crate::bidi::{browsing_context::Info, log::EntryAdded};
+use crate::bidi::{browsing_context, log, script};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverMessage {
-    Constellation(ConstellationToWebDriverMessage),
-    Script(ScriptToWebDriverMessage),
+    FromConstellation(ConstellationToWebDriverMessage),
+    FromScript(ScriptToWebDriverMessage),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ConstellationToWebDriverMessage {
-    BrowsingContextCreated(Info),
+    BrowsingContextCreated(browsing_context::Info),
+    FromScript(),
 }
 
 // TODO: command responses need session id
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ScriptToWebDriverMessage {
-    EntryAdded(Vec<BrowsingContextId>, EntryAdded),
+    LogEntryAdded(Vec<BrowsingContextId>, log::EntryAdded),
+    RealmCreated(script::RealmInfo),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToConstellationMessage {}
+
+impl From<ConstellationToWebDriverMessage> for WebDriverMessage {
+    fn from(value: ConstellationToWebDriverMessage) -> Self {
+        Self::FromConstellation(value)
+    }
+}
+
+impl From<ScriptToWebDriverMessage> for WebDriverMessage {
+    fn from(value: ScriptToWebDriverMessage) -> Self {
+        Self::FromScript(value)
+    }
+}

@@ -32,7 +32,6 @@ use js::rust::{
 use script_bindings::conversions::get_dom_class;
 use webdriver_traits::ScriptToWebDriverMessage;
 use webdriver_traits::bidi::log::{BaseLogEntry, ConsoleLogEntry};
-use webdriver_traits::bidi::script::RemoteValue;
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 use crate::dom::bindings::error::report_pending_exception;
@@ -73,34 +72,6 @@ impl Console {
             stacktrace,
         }
     }
-
-    // fn build_log_entry(global: &GlobalScope) -> ConsoleLogEntry {
-    //     // TODO: currently test message, should actual build
-
-    //     // TODO: WebDriver BiDi requires Realm id to be opaque,
-    //     // we will patch that in session.
-    //     let pipeline_id = global.pipeline_id();
-    //     let worker_id = global
-    //         .downcast::<WorkerGlobalScope>()
-    //         .map(|worker| worker.worker_id());
-    //     let realm_id = format!("{}-{:?}", global.pipeline_id(), worker_id);
-
-    //     ConsoleLogEntry {
-    //         base_log_entry: BaseLogEntry {
-    //             level: webdriver_traits::bidi::log::Level::Info,
-    //             source: webdriver_traits::bidi::script::Source {
-    //                 realm: realm_id,
-    //                 context: Some(pipeline_id.namespace_id),
-    //                 user_context: None,
-    //             },
-    //             text: Some("hello, test".to_string()),
-    //             timestamp: get_time_stamp(),
-    //             stack_trace: None,
-    //         },
-    //         method: "log".to_string(),
-    //         args: vec![],
-    //     }
-    // }
 
     /// Helper to send a message that only consists of a single string
     fn send_string_message(
@@ -196,7 +167,7 @@ impl Console {
         };
 
         // 1.
-        for chan in global.webdriver_chans() {
+        if let Some(chan) = global.webdriver_chan() {
             // 1.1.
             let level = match method {
                 ConsoleLogLevel::Error => Level::Error,
@@ -224,7 +195,7 @@ impl Console {
             // 1.8.
             let serialization_options = SerializationOptions::default();
             // 1.9.
-            for arg in args.iter() {
+            for arg in args {
                 // 1.9.1.
                 let serialized_arg = serialize_as_a_remote_value(
                     cx,
@@ -261,7 +232,7 @@ impl Console {
             // 1.15. TODO
             let related_navigables = vec![];
             // 1.16: continue in webdriver thread callback
-            if let Err(err) = chan.send(ScriptToWebDriverMessage::EntryAdded(
+            if let Err(err) = chan.send(ScriptToWebDriverMessage::LogEntryAdded(
                 related_navigables,
                 body,
             )) {

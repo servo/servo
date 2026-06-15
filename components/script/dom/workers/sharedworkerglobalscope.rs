@@ -361,6 +361,7 @@ impl SharedWorkerGlobalScope {
                     init.from_devtools_sender
                         .clone()
                         .expect("Guaranteed by SharedWorker::Constructor"),
+                    init.to_webdriver_sender.clone(),
                     init.mem_profiler_chan.clone(),
                     init.time_profiler_chan.clone(),
                     init.script_to_constellation_chan.clone(),

@@ -382,10 +382,10 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the constellation to send messages to the
     /// webdriver thread.
-    pub(crate) webdriver_sender: Option<UnboundedSender<ConstellationToWebDriverMessage>>,
+    pub(crate) webdriver_sender: Option<UnboundedSender<WebDriverMessage>>,
 
-    /// A channel for the constellation to receive messages from script threads.
-    /// This is the constellation's view of `script_sender`.
+    /// A channel for the constellation to receive messages from webdriver thread.
+    /// This is the constellation's view of `webdriver_sender`.
     pub webdriver_receiver: Option<Receiver<WebDriverToConstellationMessage>>,
 
     /// A (potentially) IPC-based channel to the webdriver, if enabled. This allows
@@ -558,7 +558,7 @@ pub struct InitialConstellationState {
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the webdriver server, if applicable.
-    pub webdriver_sender: Option<UnboundedSender<ConstellationToWebDriverMessage>>,
+    pub webdriver_sender: Option<UnboundedSender<WebDriverMessage>>,
 
     // TODO: comment
     pub webdriver_receiver: Option<Receiver<WebDriverToConstellationMessage>>,
@@ -6030,6 +6030,37 @@ where
             .clone()
     }
 
+    pub(crate) fn script_to_webdriver_callback(
+        &self,
+    ) -> Option<GenericCallback<ScriptToWebDriverMessage>> {
+        self.script_to_webdriver_callback
+            .get_or_init(|| {
+                self.webdriver_sender.as_ref().and_then(|webdriver_sender| {
+                    let webdriver_sender = webdriver_sender.clone();
+                    let callback = GenericCallback::new(move |message| match message {
+                        Err(error) => {
+                            error!("Cast to ScriptToWebDriverMessage failed ({error}).")
+                        },
+                        Ok(message) => {
+                            if let Err(error) =
+                                webdriver_sender.send(WebDriverMessage::FromScript(message))
+                            {
+                                warn!("Sending to webdriver failed ({error:?})")
+                            }
+                        },
+                    });
+                    match callback {
+                        Ok(callback) => Some(callback),
+                        Err(error) => {
+                            error!("Could not create WebDriver communication channel: {error}");
+                            None
+                        },
+                    }
+                })
+            })
+            .clone()
+    }
+
     /// The event trigger for WebDriver BiDi `browsingContext.contextCreated`.
     ///
     /// <https://w3.org/TR/webdriver-bidi/#webdriver-bidi-navigable-created>
@@ -6052,7 +6083,7 @@ where
                 user_context: "".to_string(),
                 parent: None,
             });
-            if let Err(e) = chan.send(msg) {
+            if let Err(e) = chan.send(msg.into()) {
                 warn!("Send message to webdriver failed: {e:?}");
             };
         }

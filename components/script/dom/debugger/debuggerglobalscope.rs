@@ -21,6 +21,7 @@ use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
 use servo_constellation_traits::ScriptToConstellationChan;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
+use webdriver_traits::ScriptToWebDriverMessage;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerValue;
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::GenericBindings::ObjectPreview;
@@ -92,6 +93,7 @@ impl DebuggerGlobalScope {
         debugger_pipeline_id: PipelineId,
         script_to_devtools_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
         devtools_to_script_sender: GenericSender<DevtoolScriptControlMsg>,
+        script_to_webdriver_sender: Option<GenericCallback<ScriptToWebDriverMessage>>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
@@ -105,6 +107,7 @@ impl DebuggerGlobalScope {
             global_scope: GlobalScope::new_inherited(
                 debugger_pipeline_id,
                 script_to_devtools_sender,
+                script_to_webdriver_sender,
                 mem_profiler_chan,
                 time_profiler_chan,
                 script_to_constellation_chan,
@@ -451,8 +454,8 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 IntroductionType::EVENT_HANDLER_STR,
                 IntroductionType::DOM_TIMER_STR,
             ]
-            .contains(&&*introduction_type.str()) &&
-                url_override.is_none()
+            .contains(&&*introduction_type.str())
+                && url_override.is_none()
             {
                 debug!(
                     "Not creating debuggee: `introductionType` is `{introduction_type}` but no valid url"

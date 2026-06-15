@@ -20,6 +20,7 @@ use servo_constellation_traits::{ScriptToConstellationChan, ScriptToConstellatio
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use stylo_atoms::Atom;
+use webdriver_traits::ScriptToWebDriverMessage;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -110,6 +111,7 @@ impl WorkletGlobalScope {
             globalscope: GlobalScope::new_inherited(
                 pipeline_id,
                 init.devtools_chan.clone(),
+                init.webdriver_chan.clone(),
                 init.mem_profiler_chan.clone(),
                 init.time_profiler_chan.clone(),
                 script_to_constellation_chan,
@@ -208,6 +210,8 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) time_profiler_chan: time::ProfilerChan,
     /// Channel to devtools
     pub(crate) devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+    /// Channel to webserver
+    pub(crate) webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
     /// Messages to send to constellation
     pub(crate) to_constellation_sender:
         GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,

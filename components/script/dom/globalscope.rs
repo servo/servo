@@ -262,9 +262,8 @@ pub(crate) struct GlobalScope {
     devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
 
     /// For sending messages to the WebDriver sessions.
-    /// Each session has a separate channel.
     #[no_trace]
-    webdriver_chans: Vec<GenericCallback<ScriptToWebDriverMessage>>,
+    webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
 
     /// For sending messages to the memory profiler.
     #[no_trace]
@@ -792,6 +791,7 @@ impl GlobalScope {
     pub(crate) fn new_inherited(
         pipeline_id: PipelineId,
         devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+        webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
@@ -821,7 +821,7 @@ impl GlobalScope {
             console_timers: DomRefCell::new(Default::default()),
             module_map: DomRefCell::new(Default::default()),
             devtools_chan,
-            webdriver_chans: vec![],
+            webdriver_chan,
             mem_profiler_chan,
             time_profiler_chan,
             script_to_constellation_chan,
@@ -2491,8 +2491,10 @@ impl GlobalScope {
         self.devtools_chan.as_ref()
     }
 
-    pub(crate) fn webdriver_chans(&self) -> &[GenericCallback<ScriptToWebDriverMessage>] {
-        self.webdriver_chans.as_slice()
+    /// Get an `&IpcSender<ScriptToWebDriverMessage>` to send messages
+    /// to the webdriver thread when available.
+    pub(crate) fn webdriver_chan(&self) -> Option<&GenericCallback<ScriptToWebDriverMessage>> {
+        self.webdriver_chan.as_ref()
     }
 
     /// Get a sender to the memory profiler thread.
