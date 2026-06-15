@@ -23,8 +23,8 @@ use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
-    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun,
-    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
+    CreateJobQueue, DeleteJobQueue, DispatchablePointer, JS_GetReservedSlot, JobQueueTraps,
+    RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
     RunScriptEnvironmentPreparerClosure, SetBuildId, StreamConsumerConsumeChunk,
     StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
@@ -45,11 +45,12 @@ use js::realm::CurrentRealm;
 pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::wrappers2::{
-    ContextOptionsRef, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_SetGCCallback,
-    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetSecurityCallbacks, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue,
-    SetPreserveWrapperCallbacks, SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
+    CollectServoSizes, ContextOptionsRef, DispatchableRun, InitConsumeStreamCallback,
+    JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
+    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_SetOffthreadIonCompilationEnabled, JS_SetSecurityCallbacks, SetDOMCallbacks,
+    SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
 };
 use js::rust::{
     Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle, JSEngine, JSEngineHandle,
@@ -831,10 +832,8 @@ impl Runtime {
             };
 
             let runnable = Runnable(dispatchable);
-            let task = task!(dispatch_to_event_loop_message: move || {
-                if let Some(cx) = RustRuntime::get() {
-                    runnable.run(cx.as_ptr(), Dispatchable_MaybeShuttingDown::NotShuttingDown);
-                }
+            let task = task!(dispatch_to_event_loop_message: move |cx| {
+                runnable.run(cx, Dispatchable_MaybeShuttingDown::NotShuttingDown);
             });
 
             script_event_loop_sender
@@ -1226,73 +1225,69 @@ unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
 pub(crate) use script_bindings::script_runtime::JSContext;
 
-/// Extra methods for the JSContext type defined in script_bindings, when
-/// the methods are only called by code in the script crate.
-pub(crate) trait JSContextHelper {
-    fn get_reports(&self, path_seg: String, ops: &mut MallocSizeOfOps) -> Vec<Report>;
-}
+#[expect(unsafe_code)]
+pub(crate) fn get_reports(
+    cx: &mut js::context::JSContext,
+    path_seg: String,
+    ops: &mut MallocSizeOfOps,
+) -> Vec<Report> {
+    MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
+    let stats = unsafe {
+        let mut stats = ::std::mem::zeroed();
+        if !CollectServoSizes(cx, &mut stats, Some(get_size)) {
+            return vec![];
+        }
+        stats
+    };
+    MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
 
-impl JSContextHelper for JSContext {
-    #[expect(unsafe_code)]
-    fn get_reports(&self, path_seg: String, ops: &mut MallocSizeOfOps) -> Vec<Report> {
-        MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
-        let stats = unsafe {
-            let mut stats = ::std::mem::zeroed();
-            if !CollectServoSizes(**self, &mut stats, Some(get_size)) {
-                return vec![];
-            }
-            stats
-        };
-        MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
+    let mut reports = vec![];
+    let mut report = |mut path_suffix, kind, size| {
+        let mut path = path![path_seg, "js"];
+        path.append(&mut path_suffix);
+        reports.push(Report { path, kind, size })
+    };
 
-        let mut reports = vec![];
-        let mut report = |mut path_suffix, kind, size| {
-            let mut path = path![path_seg, "js"];
-            path.append(&mut path_suffix);
-            reports.push(Report { path, kind, size })
-        };
+    // A note about possibly confusing terminology: the JS GC "heap" is allocated via
+    // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
+    // `ExplicitNonHeapSize` as its kind.
+    report(
+        path!["gc-heap", "used"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.gcHeapUsed,
+    );
 
-        // A note about possibly confusing terminology: the JS GC "heap" is allocated via
-        // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
-        // `ExplicitNonHeapSize` as its kind.
-        report(
-            path!["gc-heap", "used"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.gcHeapUsed,
-        );
+    report(
+        path!["gc-heap", "unused"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.gcHeapUnused,
+    );
 
-        report(
-            path!["gc-heap", "unused"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.gcHeapUnused,
-        );
+    report(
+        path!["gc-heap", "admin"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.gcHeapAdmin,
+    );
 
-        report(
-            path!["gc-heap", "admin"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.gcHeapAdmin,
-        );
+    report(
+        path!["gc-heap", "decommitted"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.gcHeapDecommitted,
+    );
 
-        report(
-            path!["gc-heap", "decommitted"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.gcHeapDecommitted,
-        );
+    // SpiderMonkey uses the system heap, not jemalloc.
+    report(
+        path!["malloc-heap"],
+        ReportKind::ExplicitSystemHeapSize,
+        stats.mallocHeap,
+    );
 
-        // SpiderMonkey uses the system heap, not jemalloc.
-        report(
-            path!["malloc-heap"],
-            ReportKind::ExplicitSystemHeapSize,
-            stats.mallocHeap,
-        );
-
-        report(
-            path!["non-heap"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.nonHeap,
-        );
-        reports
-    }
+    report(
+        path!["non-heap"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.nonHeap,
+    );
+    reports
 }
 
 pub(crate) struct StreamConsumer(*mut JSStreamConsumer);
@@ -1465,7 +1460,11 @@ unsafe impl Send for Runnable {}
 
 #[expect(unsafe_code)]
 impl Runnable {
-    fn run(&self, cx: *mut RawJSContext, maybe_shutting_down: Dispatchable_MaybeShuttingDown) {
+    fn run(
+        &self,
+        cx: &mut js::context::JSContext,
+        maybe_shutting_down: Dispatchable_MaybeShuttingDown,
+    ) {
         unsafe {
             DispatchableRun(cx, self.0, maybe_shutting_down);
         }
