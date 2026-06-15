@@ -4,8 +4,10 @@ use indexmap::{IndexMap, IndexSet};
 use servo_base::id::BrowsingContextId;
 use tokio::sync::RwLock;
 use webdriver_traits::bidi::{
-    CommandData, EmptyResult, ErrorCode, Event, LogEvent, ResultData,
-    script::PreloadScript as PreloadScriptId, session::Subscription as SubscriptionId,
+    CommandData, EmptyParams, EmptyResult, ErrorCode, Event, LogEvent, ResultData, SessionCommand,
+    SessionResult,
+    script::PreloadScript as PreloadScriptId,
+    session::{self, Subscription as SubscriptionId},
 };
 
 use crate::bidi::{
@@ -52,37 +54,64 @@ impl<'a> BidiSession<'a> {
         &mut self,
         command: &CommandData,
     ) -> Result<ResultData, ErrorCode> {
-        todo!()
+        match command {
+            CommandData::BrowserCommand(cmd) => todo!(),
+            CommandData::BrowsingContextCommand(cmd) => todo!(),
+            CommandData::EmulationCommand(cmd) => todo!(),
+            CommandData::InputCommand(cmd) => todo!(),
+            CommandData::NetworkCommand(cmd) => todo!(),
+            CommandData::ScriptCommand(cmd) => todo!(),
+            CommandData::SessionCommand(cmd) => match cmd {
+                SessionCommand::End(cmd) => self.handle_session_end(&cmd.params).await,
+                SessionCommand::New(_) => todo!(),
+                SessionCommand::Status(cmd) => self.handle_session_status(&cmd.params).await,
+                SessionCommand::Subscribe(subscribe) => todo!(),
+                SessionCommand::Unsubscribe(unsubscribe) => todo!(),
+            },
+            CommandData::StorageCommand(cmd) => todo!(),
+            CommandData::WebExtensionCommand(cmd) => todo!(),
+        }
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-session-status>
+    async fn handle_session_status(&mut self, _: &EmptyParams) -> Result<ResultData, ErrorCode> {
+        // 1.
+        let body = session::StatusResult {
+            // Though BiDi spec does not mention this,
+            // we infer from classsic spec that ready should be false
+            ready: false,
+            // implementation-defined
+            message: "".to_string(),
+        };
+        // 2.
+        Ok(ResultData::SessionResult(SessionResult::StatusResult(body)))
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-session-end>
-    async fn handle_session_end(&mut self) -> Result<EmptyResult, ErrorCode> {
+    async fn handle_session_end(&mut self, _: &EmptyParams) -> Result<ResultData, ErrorCode> {
         // 1.
         self.end_the_session().await;
-        // 3. cleanup should happens after response
-        if let Err(e) = self.common.sender.send(SessionMessage::Cleanup) {
+        // 3. cleanup should happens after response, see `handle_receiver`
+        if let Err(e) = self.common.session_sender.send(SessionMessage::Cleanup) {
             log::warn!("Cleanup message sent failed: {e:?}");
         };
         // 2.
-        Ok(EmptyResult {
-            extensible: Default::default(),
-        })
+        Ok(ResultData::SessionResult(SessionResult::EndResult(
+            EmptyResult {
+                extensible: Default::default(),
+            },
+        )))
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#end-the-session>
     async fn end_the_session(&self) {
         // 1.
-        self.common
-            .remote_end_state
-            .active_sessions
-            .write()
-            .await
-            .remove(&self.id);
+        self.active_sessions().write().await.remove(&self.id);
         // 2. TODO: blocked by webdriver-active flag not implemented
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#cleanup-the-session>
-    async fn cleanup_the_session(&mut self) {
+    pub(crate) async fn cleanup_the_session(&mut self) {
         // 1.
         self.close_the_websocket_connections().await;
         // 2. TODO: blocked by user contet not implemented.
@@ -90,14 +119,7 @@ impl<'a> BidiSession<'a> {
         // 4. TODO: network module not implemented
         // 5. TODO: screencast not implemented
         // 6.
-        if self
-            .common
-            .remote_end_state
-            .active_sessions
-            .read()
-            .await
-            .is_empty()
-        {
+        if self.active_sessions().read().await.is_empty() {
             self.common.remote_end_state.cleanup();
         }
         // 7. SKIP: implementation specific
@@ -161,7 +183,7 @@ impl<'a> BidiSession<'a> {
         self.connections_mut().get_mut(conn_idx)
     }
 
-    pub(crate) fn active_session(&self) -> &Arc<RwLock<ActiveSessions>> {
+    pub(crate) fn active_sessions(&self) -> &Arc<RwLock<ActiveSessions>> {
         &self.common.remote_end_state.active_sessions
     }
 }

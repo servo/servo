@@ -13,12 +13,9 @@ use std::{
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
-use tokio::{
-    join,
-    sync::{
-        RwLock,
-        mpsc::{self, UnboundedReceiver, UnboundedSender},
-    },
+use tokio::sync::{
+    RwLock,
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 use webdriver_traits::{WebDriverMessage, WebDriverToConstellationMessage};
 
@@ -37,7 +34,6 @@ pub struct WebDriverBidiThread {
     port: u16,
     embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
     constellation_sender: Sender<WebDriverToConstellationMessage>,
-
     // Remote end states are shared across all sessions.
     // Though this is a single threaded
     remote_end_state: Rc<RemoteEndState>,
@@ -83,13 +79,20 @@ impl WebDriverBidiThread {
             .block_on(async move {
                 let remote_end_state = &self.remote_end_state;
                 let active_sessions = &remote_end_state.active_sessions;
+                let embedder_proxy = &self.embedder_proxy;
+                let constellation_sender = &self.constellation_sender;
 
-                let (session, sender) = Session::start_static(remote_end_state.clone());
-                let listener = Listener::start(address, active_sessions.clone(), sender);
-                let bridge =
+                let (_, sender) = Session::start_static(
+                    remote_end_state.clone(),
+                    embedder_proxy.clone(),
+                    constellation_sender.clone(),
+                );
+                Listener::start(address, active_sessions.clone(), sender);
+
+                let forward =
                     Self::forward_constellation_messages(active_sessions.clone(), receiver);
 
-                join!(listener, session, bridge);
+                forward.await
             });
     }
 
@@ -122,7 +125,7 @@ type ActiveSessions = HashMap<SessionId, SessionProxy>;
 
 impl RemoteEndState {
     /// <https://www.w3.org/TR/webdriver-bidi/#cleanup-remote-end-state>
-    fn cleanup(&self) {
+    pub(crate) fn cleanup(&self) {
         // 1. TODO: blocked by network module
         // 2. TODO: blocked by network module
         // 3. TODO: blocked by network module

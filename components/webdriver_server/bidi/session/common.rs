@@ -3,10 +3,14 @@
 use core::fmt;
 use std::{ops::Deref, rc::Rc};
 
+use crossbeam_channel::Sender;
+use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
-use webdriver_traits::{ScriptToWebDriverMessage, WebDriverMessage};
+use webdriver_traits::{
+    ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
+};
 
 use crate::bidi::{RemoteEndState, connection::Connection, session::Session};
 
@@ -30,8 +34,10 @@ pub enum SessionMessage {
 /// The common components of a session, regardless of static, http or bidi.
 pub struct CommonPart {
     pub(crate) remote_end_state: Rc<RemoteEndState>,
-    pub(crate) sender: UnboundedSender<SessionMessage>,
-    pub(crate) receiver: UnboundedReceiver<SessionMessage>,
+    pub(crate) embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+    pub(crate) constellation_sender: Sender<WebDriverToConstellationMessage>,
+    pub(crate) session_sender: UnboundedSender<SessionMessage>,
+    pub(crate) session_receiver: UnboundedReceiver<SessionMessage>,
 }
 
 impl Deref for Session {

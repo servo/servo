@@ -6,13 +6,16 @@ pub(crate) mod r#static;
 use std::rc::Rc;
 
 use async_tungstenite::tungstenite;
+use crossbeam_channel::Sender;
+use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
 use futures_util::stream::StreamExt;
 use tokio::{
     sync::mpsc::{self, UnboundedSender},
     task,
 };
-use webdriver_traits::bidi::{
-    CommandData, CommandResponse, ErrorCode, Message as BidiMessage, SessionCommand,
+use webdriver_traits::{
+    WebDriverToConstellationMessage,
+    bidi::{CommandData, CommandResponse, ErrorCode, Message as BidiMessage, SessionCommand},
 };
 
 use crate::bidi::{
@@ -25,14 +28,7 @@ use crate::bidi::{
     },
 };
 
-/// The spec state it in a class and inheritence manner.
-/// we have to emulate this in Rust.
 pub enum Session {
-    // TODO: doc share logic in handle incoming message
-    /// The static handler which handles a static command when connection is not associated to an active session.
-    ///
-    /// Though the spec does not give it a formal name, it is often mentioned as "when session is null",
-    /// so we call it static session here.
     Static {
         common: CommonPart,
         connections: Vec<Connection>,
@@ -48,9 +44,11 @@ impl Session {
     /// Start static session as a tokio local task.
     pub(crate) fn start_static(
         remote_end_state: Rc<RemoteEndState>,
+        embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+        constellation_sender: Sender<WebDriverToConstellationMessage>,
     ) -> (task::JoinHandle<()>, UnboundedSender<SessionMessage>) {
-        let session = Self::new_static(remote_end_state);
-        let sender = session.sender.clone();
+        let session = Self::new_static(remote_end_state, embedder_proxy, constellation_sender);
+        let sender = session.session_sender.clone();
         let handle = task::spawn_local(session.run());
         (handle, sender)
     }
@@ -58,12 +56,18 @@ impl Session {
     /// Create a new static session.
     /// The only constructor for session is `new_static`.
     /// All other session should be created by the static session.
-    fn new_static(remote_end_state: Rc<RemoteEndState>) -> Self {
+    fn new_static(
+        remote_end_state: Rc<RemoteEndState>,
+        embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+        constellation_sender: Sender<WebDriverToConstellationMessage>,
+    ) -> Self {
         let (sender, receiver) = mpsc::unbounded_channel();
         let common = CommonPart {
             remote_end_state,
-            sender,
-            receiver,
+            embedder_proxy,
+            constellation_sender,
+            session_sender: sender,
+            session_receiver: receiver,
         };
         Self::Static {
             common,
@@ -85,7 +89,7 @@ impl Session {
                     bidi: BidiPart { connections, .. },
                     ..
                 } => {
-                    let receiver_next = common.receiver.recv();
+                    let receiver_next = common.session_receiver.recv();
                     let connections_next =
                         futures_util::future::select_all(connections.iter_mut().map(|c| c.next()));
                     tokio::select! {
@@ -123,7 +127,11 @@ impl Session {
                     self.associate_connection(connection);
                 },
                 SessionMessage::Cleanup => {
-                    // TODO:
+                    if let Some(Ok(mut bidi_session)) = self.as_bidi_or_static() {
+                        bidi_session.cleanup_the_session().await;
+                    } else {
+                        log::warn!("Cannot cleanup a non BiDi session");
+                    }
                 },
                 SessionMessage::Script(_script) => {
                     // TODO
@@ -209,7 +217,7 @@ impl Session {
         // 5. if is Ok(BidiSession) instead of `Some(BidiSession)`
         if let Ok(ref bidi_session) = session
             && bidi_session
-                .active_session()
+                .active_sessions()
                 .read()
                 .await
                 .contains_key(bidi_session.id)

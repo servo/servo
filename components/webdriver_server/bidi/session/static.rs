@@ -1,4 +1,7 @@
-use webdriver_traits::bidi::{self, CommandData, ErrorCode, ResultData, SessionCommand};
+use webdriver_traits::bidi::{
+    self, CommandData, EmptyParams, ErrorCode, ResultData, SessionCommand, SessionResult,
+    session::{NewParameters, StatusResult},
+};
 
 use crate::bidi::{
     connection::Connection,
@@ -19,6 +22,26 @@ impl<'a> StaticSession<'a> {
         &mut self,
         command: StaticCommand<'a>,
     ) -> Result<ResultData, ErrorCode> {
+        match command {
+            StaticCommand::SessionStatus(cmd) => self.handle_session_status(&cmd.params).await,
+            StaticCommand::SessionNew(cmd) => self.handle_session_new(&cmd.params).await,
+        }
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-session-end>
+    async fn handle_session_status(&mut self, _: &EmptyParams) -> Result<ResultData, ErrorCode> {
+        // 1.
+        let body = StatusResult {
+            ready: true,
+            // implementation-defined
+            message: "".to_string(),
+        };
+        // 2.
+        Ok(ResultData::SessionResult(SessionResult::StatusResult(body)))
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-session-end>
+    async fn handle_session_new(&mut self, _: &NewParameters) -> Result<ResultData, ErrorCode> {
         todo!()
     }
 }
