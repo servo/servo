@@ -18,7 +18,6 @@ use crate::dom::bindings::codegen::Bindings::WheelEventBinding::WheelEventMethod
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -205,14 +204,7 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
         init: &WheelEventBinding::WheelEventInit,
     ) -> Fallible<DomRoot<WheelEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.parent.bubbles);
-        let globalscope = window.global();
-        let eventtarget = globalscope.eventtarget();
-        let fetch_listeners = eventtarget.get_listeners_for(&atom!("fetch"));
-        let cancelable = EventCancelable::from(
-            !(*fetch_listeners)
-                .iter()
-                .all(|listener| eventtarget.is_passive(listener)),
-        );
+        let cancelable = EventCancelable::from(init.parent.parent.parent.parent.cancelable);
         let scroll_offset = window.scroll_offset();
 
         let page_point = Point2D::<i32, CSSPixel>::new(
