@@ -65,6 +65,7 @@ use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, SnapshotMap};
+use style::servo::media_features::PointerCapabilities;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
@@ -795,6 +796,8 @@ impl LayoutThread {
             Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
             ComputedValues::initial_values_with_font_override(font),
             config.theme.into(),
+            PointerCapabilities::default(),
+            PointerCapabilities::default(),
         );
 
         LayoutThread {
