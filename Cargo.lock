@@ -822,7 +822,7 @@ dependencies = [
  "bitflags 2.13.0",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "regex",
@@ -5130,7 +5130,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.16.3"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#e44b7da7d7bb43dc93e308a6c9ad957fcfc599af"
+source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#5e8570af5d50bc9744d0cef5c71c5c292f0816a6"
 dependencies = [
  "bindgen",
  "cc",
@@ -5144,7 +5144,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "140.11.0-2"
-source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#e44b7da7d7bb43dc93e308a6c9ad957fcfc599af"
+source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#5e8570af5d50bc9744d0cef5c71c5c292f0816a6"
 dependencies = [
  "bindgen",
  "cc",

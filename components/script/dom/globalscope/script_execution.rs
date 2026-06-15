@@ -9,16 +9,19 @@ use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
-use js::jsapi::{ExceptionStackBehavior, Heap, InstantiateOptions, JSScript, SetScriptPrivate};
+use js::jsapi::{
+    ExceptionStackBehavior, HadFrontendErrors, Heap, InstantiateOptions, JSScript, SetScriptPrivate,
+};
 use js::jsval::{PrivateValue, UndefinedValue};
-use js::offthread::InstantiationStorage;
+use js::offthread::CompilationResult;
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
-    Compile1, InstantiateGlobalStencil, JS_ClearPendingException, JS_ExecuteScript,
-    JS_GetScriptPrivate, JS_IsExceptionPending, JS_SetPendingException,
+    Compile1, ConvertFrontendErrorsToRuntimeErrors, InstantiateGlobalStencil,
+    JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate, JS_IsExceptionPending,
+    JS_SetPendingException,
 };
 use js::rust::{
-    CompileOptionsWrapper, HandleValue, MutableHandleValue, OwningCompileOptionsWrapper, Stencil,
+    CompileOptionsWrapper, HandleValue, MutableHandleValue, OwningCompileOptionsWrapper,
     transform_str_to_source_text,
 };
 use script_bindings::cformat;
@@ -56,28 +59,37 @@ pub(crate) struct ClassicScript {
 }
 
 impl ClassicScript {
-    #[expect(clippy::too_many_arguments)]
     #[expect(unsafe_code)]
     pub(crate) fn from_stencil(
         cx: &mut JSContext,
         global: &GlobalScope,
-        stencil: Stencil,
-        mut storage: InstantiationStorage,
+        compilation_result: CompilationResult,
         owning_options: OwningCompileOptionsWrapper,
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
         muted_errors: ErrorReporting,
     ) -> ClassicScript {
-        // TODO needs FrontendContext
-        // check JS_HadFrontendErrors and call JS_ConvertFrontendErrorsToRuntimeErrors
-        let record = if stencil.is_null() {
-            Err(gen_type_error(
-                cx,
-                global,
-                Error::Type(c"Off-thread compilation failed".to_owned()),
-            ))
+        let options = owning_options.read_only();
+        let CompilationResult {
+            stencil,
+            mut storage,
+            fc,
+        } = compilation_result;
+
+        let record = if unsafe { HadFrontendErrors(*fc) } {
+            unsafe { ConvertFrontendErrorsToRuntimeErrors(cx, *fc, options) };
+
+            if unsafe { JS_IsExceptionPending(cx) } {
+                Err(RethrowError::from_pending_exception(cx))
+            } else {
+                Err(gen_type_error(
+                    cx,
+                    global,
+                    Error::Type(c"Off-thread compilation failed".to_owned()),
+                ))
+            }
         } else {
-            let options = owning_options.read_only();
+            debug_assert!(!stencil.is_null());
             let instantiate_options = InstantiateOptions {
                 skipFilenameValidation: options._base.skipFilenameValidation_,
                 hideScriptFromDebugger: options._base.hideScriptFromDebugger_,

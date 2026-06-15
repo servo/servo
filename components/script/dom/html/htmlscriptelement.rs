@@ -15,14 +15,13 @@ use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::offthread::compile_to_stencil_offthread;
-use js::rust::{CompileOptionsWrapper, HandleObject, OwningCompileOptionsWrapper};
+use js::rust::{HandleObject, OwningCompileOptionsWrapper};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
-use script_bindings::cformat;
 use servo_base::id::WebViewId;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -55,7 +54,7 @@ use crate::dom::element::{
 };
 use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::script_execution::{ClassicScript, ErrorReporting, RethrowErrors, fill_compile_options};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
@@ -398,8 +397,14 @@ impl FetchResponseListener for ClassicContext {
         let fetch_options = self.fetch_options.clone();
 
         if pref!(dom_script_asynch) {
-            let url = cformat!("{}", final_url.as_str());
-            let options = CompileOptionsWrapper::new(cx, url, 1);
+            let options = fill_compile_options(
+                cx,
+                final_url.as_str(),
+                Some(IntroductionType::SRC_SCRIPT),
+                muted_errors,
+                true,
+                1,
+            );
             let owning_options = OwningCompileOptionsWrapper::new_copied(cx, options.ptr);
 
             let src = Arc::new(source_text.to_string());
@@ -411,29 +416,27 @@ impl FetchResponseListener for ClassicContext {
 
             let trusted = self.elem.clone();
 
-            let _offthread_token =
-                compile_to_stencil_offthread(options.ptr, src, move |stencil, storage| {
-                    task_source.queue(task!(instantiate_stencil: move |cx| {
-                        let script_element = trusted.root();
-                        let global = script_element.global();
+            let _offthread_token = compile_to_stencil_offthread(options.ptr, src, move |result| {
+                task_source.queue(task!(instantiate_stencil: move |cx| {
+                    let script_element = trusted.root();
+                    let global = script_element.global();
 
-                        let script = ClassicScript::from_stencil(
-                            cx,
-                            &global,
-                            stencil,
-                            storage,
-                            owning_options,
-                            final_url,
-                            fetch_options,
-                            muted_errors,
-                        );
+                    let script = ClassicScript::from_stencil(
+                        cx,
+                        &global,
+                        result,
+                        owning_options,
+                        final_url,
+                        fetch_options,
+                        muted_errors,
+                    );
 
-                        *script_element.result.borrow_mut() = Some(Ok(Script::Classic(script)));
-                        finish_fetching_a_script(&script_element, self.kind, cx);
-                    }));
+                    *script_element.result.borrow_mut() = Some(Ok(Script::Classic(script)));
+                    finish_fetching_a_script(&script_element, self.kind, cx);
+                }));
 
-                    None
-                });
+                None
+            });
 
             return;
         }
