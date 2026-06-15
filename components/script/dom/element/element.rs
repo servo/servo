@@ -163,7 +163,7 @@ use crate::dom::node::{
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
-use crate::dom::raredata::ElementRareData;
+use crate::dom::raredata::{ElementRareData, ToggleEventTracker};
 use crate::dom::sanitizer::Sanitizer;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::servoparser::ServoParser;
@@ -1018,6 +1018,18 @@ impl Element {
                 .display
                 .is_none()
         })
+    }
+
+    pub(crate) fn toggle_event_tracker_mut(&self) -> RefMut<'_, Option<ToggleEventTracker>> {
+        RefMut::map(self.ensure_rare_data(), |data| {
+            &mut data.toggle_event_tracker
+        })
+    }
+
+    pub(crate) fn take_toggle_event_tracker(&self) -> Option<ToggleEventTracker> {
+        self.rare_data_mut()
+            .as_mut()
+            .and_then(|data| data.toggle_event_tracker.take())
     }
 }
 

@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, Ref};
+use std::cell::Ref;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -34,6 +36,7 @@ use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{
     BindContext, ChildrenMutation, IsShadowTree, Node, NodeDamage, NodeTraits, UnbindContext,
 };
+use crate::dom::raredata::ToggleEventTracker;
 use crate::dom::text::Text;
 use crate::dom::toggleevent::ToggleEvent;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -58,7 +61,6 @@ struct ShadowTree {
 #[dom_struct]
 pub(crate) struct HTMLDetailsElement {
     htmlelement: HTMLElement,
-    toggle_counter: Cell<u32>,
 
     /// Represents the UA widget for the details element
     shadow_tree: DomRefCell<Option<ShadowTree>>,
@@ -137,7 +139,6 @@ impl HTMLDetailsElement {
     ) -> HTMLDetailsElement {
         HTMLDetailsElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            toggle_counter: Cell::new(0),
             shadow_tree: Default::default(),
         }
     }
@@ -374,6 +375,61 @@ impl HTMLDetailsElement {
             }
         }
     }
+
+    /// Queue a "details toggle event task" for this element, implementing the
+    /// toggle task tracker coalescing behaviour.
+    ///
+    /// This follows the same steps as
+    /// <https://html.spec.whatwg.org/multipage/#queue-a-dialog-toggle-event-task>
+    /// adapted for `<details>`, which has no `source` and is not cancelable.
+    fn queue_details_toggle_event_task(&self, old_state: &str, new_state: &str) {
+        let old_state = {
+            let element = self.upcast::<Element>();
+            if let Some(tracker) = element.take_toggle_event_tracker() {
+                tracker.canceller.store(true, Ordering::SeqCst);
+                tracker.old_state
+            } else {
+                old_state.to_string()
+            }
+        };
+
+        let canceller = Arc::new(AtomicBool::new(false));
+        let task_canceller = canceller.clone();
+        let event_old_state = old_state.clone();
+        let this = Trusted::new(self);
+        let new_state = new_state.to_string();
+        self.owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(details_notification_task_steps: move |cx| {
+                let this = this.root();
+
+                if task_canceller.load(Ordering::SeqCst) {
+                    return;
+                }
+
+                let event = ToggleEvent::new(
+                    this.global().as_window(),
+                    atom!("toggle"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    DOMString::from(event_old_state),
+                    DOMString::from(new_state),
+                    None,
+                    CanGc::from_cx(cx),
+                );
+                let event = event.upcast::<Event>();
+                event.fire(cx, this.upcast::<EventTarget>());
+
+                // Step 2.2. Set element's toggle task tracker to null.
+                *this.upcast::<Element>().toggle_event_tracker_mut() = None;
+            }));
+        // Step 3. Set element's toggle task tracker.
+        *self.upcast::<Element>().toggle_event_tracker_mut() = Some(ToggleEventTracker {
+            old_state,
+            canceller,
+        });
+    }
 }
 
 impl HTMLDetailsElementMethods<crate::DomTypeHolder> for HTMLDetailsElement {
@@ -450,35 +506,13 @@ impl VirtualMethods for HTMLDetailsElement {
         else if attr.local_name() == &local_name!("open") {
             self.update_shadow_tree_styles(cx);
 
-            let counter = self.toggle_counter.get().wrapping_add(1);
-            self.toggle_counter.set(counter);
             let (old_state, new_state) = if self.Open() {
                 ("closed", "open")
             } else {
                 ("open", "closed")
             };
 
-            let this = Trusted::new(self);
-            self.owner_global()
-                .task_manager()
-                .dom_manipulation_task_source()
-                .queue(task!(details_notification_task_steps: move |cx| {
-                    let this = this.root();
-                    if counter == this.toggle_counter.get() {
-                        let event = ToggleEvent::new(
-                            this.global().as_window(),
-                            atom!("toggle"),
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::NotCancelable,
-                            DOMString::from(old_state),
-                            DOMString::from(new_state),
-                            None,
-                            CanGc::from_cx(cx),
-                        );
-                        let event = event.upcast::<Event>();
-                        event.fire(cx, this.upcast::<EventTarget>());
-                    }
-                }));
+            self.queue_details_toggle_event_task(old_state, new_state);
             self.upcast::<Node>().dirty(NodeDamage::Other);
 
             // Step 3.2. If oldValue is null and value is not null, then ensure details exclusivity
