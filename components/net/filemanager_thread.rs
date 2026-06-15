@@ -313,7 +313,7 @@ impl FileManager {
                     &mut response.headers,
                     len,
                     buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
-                    /* filename */ None,
+                    buf.filename.clone(),
                     content_range,
                 );
 
@@ -933,7 +933,7 @@ fn set_headers(
     if let Some(content_range) = content_range {
         headers.typed_insert(content_range);
     }
-    headers.typed_insert(ContentType::from(mime.clone()));
+    headers.typed_insert(ContentType::from(mime));
     let name = match filename {
         Some(name) => name,
         None => return,
