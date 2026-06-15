@@ -473,7 +473,7 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
                 ))
             },
             SerializableCryptoKeyHandle::ChaCha20Poly1305Key(key) => Ok(
-                Handle::ChaCha20Poly1305Key(chacha20poly1305::Key::clone_from_slice(key)),
+                Handle::ChaCha20Poly1305Key(chacha20poly1305::Key::try_from(key).map_err(|_| ())?),
             ),
             SerializableCryptoKeyHandle::Argon2Password(password) => {
                 Ok(Handle::Argon2Password(password.clone().into()))
