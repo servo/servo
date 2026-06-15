@@ -17,6 +17,7 @@ use crate::bidi::{
 };
 
 /// BiDi-specific components of a session.
+#[derive(Default)]
 pub struct BidiPart {
     /// A set of session WebSocket connections associated with this session.
     /// Deviation: we cannot use (ordered) set as we need `iter_mut`.
@@ -63,7 +64,7 @@ impl<'a> BidiSession<'a> {
             CommandData::ScriptCommand(cmd) => todo!(),
             CommandData::SessionCommand(cmd) => match cmd {
                 SessionCommand::End(cmd) => self.handle_session_end(&cmd.params).await,
-                SessionCommand::New(_) => todo!(),
+                SessionCommand::New(cmd) => self.handle_session_new(&cmd.params).await,
                 SessionCommand::Status(cmd) => self.handle_session_status(&cmd.params).await,
                 SessionCommand::Subscribe(subscribe) => todo!(),
                 SessionCommand::Unsubscribe(unsubscribe) => todo!(),
@@ -87,6 +88,16 @@ impl<'a> BidiSession<'a> {
         Ok(ResultData::SessionResult(SessionResult::StatusResult(body)))
     }
 
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-session-new>
+    async fn handle_session_new(
+        &mut self,
+        _: &session::NewParameters,
+    ) -> Result<ResultData, ErrorCode> {
+        // 1. in bidi session, session if not null
+        Err(ErrorCode::SessionNotCreated)
+        // 2-9. SKIP
+    }
+
     /// <https://www.w3.org/TR/webdriver-bidi/#command-session-end>
     async fn handle_session_end(&mut self, _: &EmptyParams) -> Result<ResultData, ErrorCode> {
         // 1.
@@ -103,11 +114,40 @@ impl<'a> BidiSession<'a> {
         )))
     }
 
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-session-subscribe>
+    async fn handle_session_subscribe(
+        &mut self,
+        _: &session::SubscribeParameters,
+    ) -> Result<ResultData, ErrorCode> {
+        // 1.
+        // 2.
+        // 3.
+        // 4.
+        // 5.
+        // 6.
+        // 7.
+        // 8.
+        // 8.1.
+        // 8.2.
+        // 8.3.
+        // 8.3.1.
+        // 9.
+        // 9.1.
+        // 9.1.1.
+        // 9.1.2.
+        // 9.1.3.
+        // 9.1.3.1.
+        // 10.
+        // 11.
+        // 12.
+        todo!()
+    }
+
     /// <https://www.w3.org/TR/webdriver-bidi/#end-the-session>
     async fn end_the_session(&self) {
         // 1.
         self.active_sessions().write().await.remove(&self.id);
-        // 2. TODO: blocked by webdriver-active flag not implemented
+        // 2. TODO: blocked by webdriver classic active flag not implemented
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#cleanup-the-session>

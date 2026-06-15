@@ -6,7 +6,7 @@ use crate::bidi::{connection::Connection, session::common::SessionMessage};
 /// So only session itself owns the data, while others only channel to it.
 #[derive(Clone)]
 pub struct SessionProxy {
-    bidi_flag: bool,
+    pub(crate) bidi_flag: bool,
     pub(crate) sender: UnboundedSender<SessionMessage>,
 }
 

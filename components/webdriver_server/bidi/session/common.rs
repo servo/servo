@@ -32,6 +32,7 @@ pub enum SessionMessage {
 }
 
 /// The common components of a session, regardless of static, http or bidi.
+#[derive(Clone)]
 pub struct CommonPart {
     pub(crate) remote_end_state: Rc<RemoteEndState>,
     pub(crate) embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,

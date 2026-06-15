@@ -24,6 +24,7 @@ use crate::bidi::{
     session::{
         bidi::{BidiPart, BidiSession},
         common::{CommonPart, SessionId, SessionMessage},
+        proxy::SessionProxy,
         r#static::StaticSession,
     },
 };
@@ -116,6 +117,13 @@ impl Session {
             })),
             Session::BidiOnly { id, common, bidi } => Some(Ok(BidiSession { id, common, bidi })),
         }
+    }
+
+    /// Create a proxy to self, so that self can receive message from `active_sessions`.
+    fn to_proxy(&self) -> SessionProxy {
+        let bidi_flag = matches!(self, Session::BidiOnly { .. });
+        let sender = self.session_sender.clone();
+        SessionProxy { bidi_flag, sender }
     }
 
     /// Handle messages from receiver.
