@@ -7,6 +7,7 @@ use std::{
 use indexmap::{IndexMap, IndexSet};
 use servo_base::id::BrowsingContextId;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 use webdriver_traits::bidi::{
     CommandData, EmptyParams, EmptyResult, ErrorCode, Event, LogEvent, ResultData, SessionCommand,
     SessionResult,
@@ -32,6 +33,9 @@ pub struct BidiPart {
     /// Deviation: use map so that item removal is more efficient.
     /// <https://www.w3.org/TR/webdriver-bidi/#event-subscriptions>
     pub(crate) subscriptions: HashMap<SubscriptionId, Subscription>,
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#event-known-subscription-ids>
+    pub(crate) known_subscription_ids: HashSet<SubscriptionId>,
 
     /// A map from UUID to preload script.
     /// <https://www.w3.org/TR/webdriver-bidi/#preload-script-map>
@@ -68,7 +72,7 @@ impl<'a> BidiSession<'a> {
                 SessionCommand::End(cmd) => self.handle_session_end(&cmd.params).await,
                 SessionCommand::New(cmd) => self.handle_session_new(&cmd.params).await,
                 SessionCommand::Status(cmd) => self.handle_session_status(&cmd.params).await,
-                SessionCommand::Subscribe(cmd) => todo!(),
+                SessionCommand::Subscribe(cmd) => self.handle_session_subscribe(&cmd.params).await,
                 SessionCommand::Unsubscribe(cmd) => {
                     self.handle_session_unsubscribe(&cmd.params).await
                 },
@@ -121,30 +125,94 @@ impl<'a> BidiSession<'a> {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-session-subscribe>
     async fn handle_session_subscribe(
         &mut self,
-        _: &session::SubscribeParameters,
+        command_parameters: &session::SubscribeParameters,
     ) -> Result<ResultData, ErrorCode> {
         // 1.
+        let mut event_names = HashSet::<String>::new();
         // 2.
+        for name in &command_parameters.events {
+            // union is slow, insert instead
+            for event_name in obtain_a_set_of_event_names(&name)? {
+                event_names.insert(event_name);
+            }
+        }
         // 3.
+        let input_user_context_ids: HashSet<_> = command_parameters
+            .user_contexts
+            .iter()
+            .flat_map(|s| s.iter())
+            .collect();
         // 4.
+        let input_context_ids: HashSet<_> = command_parameters
+            .contexts
+            .iter()
+            .flat_map(|s| s.iter())
+            .collect();
         // 5.
+        if !input_user_context_ids.is_empty() && !input_context_ids.is_empty() {
+            return Err(ErrorCode::InvalidArgument);
+        }
         // 6.
+        let subscription_naviables = HashSet::<()>::new();
         // 7.
+        let top_level_traversable_context_ids = HashSet::new();
         // 8.
-        // 8.1.
-        // 8.2.
-        // 8.3.
-        // 8.3.1.
+        if !input_context_ids.is_empty() {
+            // 8.1.
+            // 8.2.
+            // 8.3.
+            // 8.3.1.
+        }
         // 9.
-        // 9.1.
-        // 9.1.1.
-        // 9.1.2.
-        // 9.1.3.
-        // 9.1.3.1.
-        // 10.
+        else if !input_user_context_ids.is_empty() {
+            // 9.1.
+            for user_context_id in input_user_context_ids {
+                // TODO: user context not implemented
+            }
+        }
+        // 10. TODO: should have event to sync from constellation
         // 11.
+        let subscription = Subscription {
+            id: Uuid::new_v4(),
+            event_names: event_names.clone(),
+            top_level_traversable_ids: top_level_traversable_context_ids,
+            user_context_ids: Default::default(),
+        };
         // 12.
-        todo!()
+        let subscribe_step_events = HashMap::<(), ()>::new();
+        // 13.
+        for event_name in event_names.iter() {
+            // 13.1.
+            if !EVENT_NAMES.contains(event_name) {
+                continue;
+            }
+            // 13.2. TODO: how to compute existing
+            // 13.3. TODO:
+        }
+        // 14.
+        let subscription_id = subscription.id;
+        let subscription_is_global = subscription.is_global();
+        self.bidi
+            .subscriptions
+            .insert(subscription_id, subscription);
+        // 15.
+        self.bidi.known_subscription_ids.insert(subscription_id);
+        // 16. TODO: sort, subscribe step, how to dispatch for each event
+        // 17.
+        let include_global = subscription_is_global;
+        // 18.
+        for event_name in event_names {
+            // 18.1.
+            self.subscribe_event(&event_name, include_global).await;
+        }
+        // 19.
+        let body = session::SubscribeResult {
+            subscription: subscription_id,
+        };
+        // 20.
+        Ok(ResultData::SessionResult(SessionResult::SubscribeResult(
+            body,
+        )))
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-session-unsubscribe>
@@ -219,10 +287,11 @@ impl<'a> BidiSession<'a> {
             // 2.
             session::UnsubscribeParameters::UnsubscribeByIdRequest(command_parameters) => {
                 // 2.1.
-                let subscriptions: HashSet<_> = command_parameters.subscriptions.iter().collect();
+                let subscriptions: HashSet<_> =
+                    command_parameters.subscriptions.iter().copied().collect();
                 // 2.2.
-                let known_subscription_ids = self.known_subscription_ids();
-                let unknown_subscription_ids = subscriptions.difference(&known_subscription_ids);
+                let unknown_subscription_ids =
+                    subscriptions.difference(&self.bidi.known_subscription_ids);
                 // 2.3.
                 if unknown_subscription_ids.count() == 0 {
                     // 2.3.1.
@@ -238,7 +307,10 @@ impl<'a> BidiSession<'a> {
                         subscriptions_to_remove.insert(*subsription);
                     }
                 }
-                // 2.6. SKIP: known_subscription_ids is dynamically computed
+                // 2.6. remove is more efficient
+                for subscription in subscriptions {
+                    self.bidi.known_subscription_ids.remove(&subscription);
+                }
                 // 2.7.
                 for subscription in subscriptions_to_remove {
                     self.bidi.subscriptions.remove(&subscription);
@@ -251,6 +323,19 @@ impl<'a> BidiSession<'a> {
                 extensible: Default::default(),
             },
         )))
+    }
+
+    /// The "remote end subscribe" step for the event
+    async fn subscribe_event(&mut self, event_name: &str, include_global: bool) {
+        // TODO: match event_name and dispatch e.g. subscribe_log_entry_added
+        match event_name {
+            "log.entryAdded" => self.subscribe_log_entry_added(include_global).await,
+            _ => {},
+        }
+    }
+
+    async fn subscribe_log_entry_added(&mut self, include_global: bool) {
+        // TODO:
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#end-the-session>
@@ -336,20 +421,16 @@ impl<'a> BidiSession<'a> {
     pub(crate) fn active_sessions(&self) -> &Arc<RwLock<ActiveSessions>> {
         &self.common.remote_end_state.active_sessions
     }
-
-    /// <https://www.w3.org/TR/webdriver-bidi/#event-known-subscription-ids>
-    fn known_subscription_ids(&self) -> HashSet<&SubscriptionId> {
-        self.bidi.subscriptions.keys().collect()
-    }
 }
 
 /// <https://www.w3.org/TR/webdriver-bidi/#event-subscription>
 pub struct Subscription {
     id: SubscriptionId,
     event_names: HashSet<String>,
-    top_level_traversable_ids: IndexSet<BrowsingContextId>,
-    user_context_ids: IndexSet<()>,
+    top_level_traversable_ids: HashSet<BrowsingContextId>,
+    user_context_ids: HashSet<()>,
 }
+
 impl Subscription {
     /// <https://www.w3.org/TR/webdriver-bidi/#subscription-global>
     pub fn is_global(&self) -> bool {
@@ -447,11 +528,13 @@ static MODULE_EVENT_SLICE: &'static [(&'static str, &'static [&'static str])] = 
     ("input", &["fileDialogOpened"]),
     ("webExtension", &[]),
 ];
+
 static EVENT_NAMES: LazyLock<HashSet<String>> = LazyLock::new(|| {
     MODULE_EVENT_SLICE
         .iter()
         .flat_map(|(module, events)| events.iter().map(move |e| format!("{module}.{e}")))
         .collect()
 });
+
 static MODULE_EVENT_MAP: LazyLock<HashMap<&'static str, &'static [&'static str]>> =
     LazyLock::new(|| MODULE_EVENT_SLICE.iter().copied().collect());

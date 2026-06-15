@@ -1,3 +1,8 @@
+// TODO: doc naming convention
+// - handle_xxx: remote end step for command
+// - subscribe_xxx: remote end step for subscribe
+// - trigger_xxx: trigger event
+
 pub(crate) mod bidi;
 pub(crate) mod common;
 pub(crate) mod proxy;
