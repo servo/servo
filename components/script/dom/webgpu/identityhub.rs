@@ -5,13 +5,13 @@
 use webgpu_traits::{ComputePass, ComputePassId, RenderPass, RenderPassId};
 use wgpu_core::id::markers::{
     Adapter, BindGroup, BindGroupLayout, Buffer, CommandBuffer, CommandEncoder, ComputePipeline,
-    Device, PipelineLayout, Queue, RenderBundle, RenderPipeline, Sampler, ShaderModule, Texture,
-    TextureView,
+    Device, PipelineLayout, QuerySet, Queue, RenderBundle, RenderPipeline, Sampler, ShaderModule,
+    Texture, TextureView,
 };
 use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
-    ComputePipelineId, DeviceId, PipelineLayoutId, QueueId, RenderBundleId, RenderPipelineId,
-    SamplerId, ShaderModuleId, TextureId, TextureViewId,
+    ComputePipelineId, DeviceId, PipelineLayoutId, QuerySetId, QueueId, RenderBundleId,
+    RenderPipelineId, SamplerId, ShaderModuleId, TextureId, TextureViewId,
 };
 use wgpu_core::identity::IdentityManager;
 
@@ -35,6 +35,7 @@ pub(crate) struct IdentityHub {
     render_bundles: IdentityManager<RenderBundle>,
     compute_passes: IdentityManager<ComputePass>,
     render_passes: IdentityManager<RenderPass>,
+    query_sets: IdentityManager<QuerySet>,
 }
 
 impl Default for IdentityHub {
@@ -58,6 +59,7 @@ impl Default for IdentityHub {
             render_bundles: IdentityManager::new(),
             compute_passes: IdentityManager::new(),
             render_passes: IdentityManager::new(),
+            query_sets: IdentityManager::new(),
         }
     }
 }
@@ -205,5 +207,13 @@ impl IdentityHub {
 
     pub(crate) fn free_render_pass_id(&self, id: RenderPassId) {
         self.render_passes.free(id);
+    }
+
+    pub(crate) fn create_query_set_id(&self) -> QuerySetId {
+        self.query_sets.process()
+    }
+
+    pub(crate) fn free_query_set_id(&self, id: QuerySetId) {
+        self.query_sets.free(id);
     }
 }

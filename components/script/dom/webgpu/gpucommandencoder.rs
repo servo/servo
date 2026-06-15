@@ -24,6 +24,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuconvert::{convert_load_op, convert_texture_for_wgpu_with_cx};
+use crate::dom::types::GPUQuerySet;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::webgpu::gpucomputepassencoder::GPUComputePassEncoder;
@@ -159,6 +160,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                 command_encoder_id: self.id().0,
                 compute_pass_id,
                 label: (&descriptor.parent).convert(),
+                timestamp_writes: descriptor.timestampWrites.as_ref().map(|tw| tw.convert()),
                 device_id: self.device.id().0,
             })
         {
@@ -239,6 +241,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                 label: (&descriptor.parent).convert(),
                 depth_stencil_attachment,
                 color_attachments,
+                timestamp_writes: descriptor.timestampWrites.as_ref().map(|tw| tw.convert()),
                 device_id: self.device.id().0,
             })
         {
@@ -419,6 +422,32 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                 })
         {
             warn!("Error sending WebGPURequest::CommandEncoderInsertDebugMarker: {e:?}")
+        }
+    }
+
+    fn ResolveQuerySet(
+        &self,
+        query_set: &GPUQuerySet,
+        first_query: u32,
+        query_count: u32,
+        destination: &GPUBuffer,
+        destination_offset: u64,
+    ) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ResolveQuerySet {
+                command_encoder_id: self.droppable.encoder.0,
+                query_set_id: query_set.id().0,
+                start_query: first_query,
+                query_count,
+                destination: destination.id().0,
+                destination_offset,
+                device_id: self.device.id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ResolveQuerySet: {e:?}")
         }
     }
 }
