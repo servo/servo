@@ -21,7 +21,7 @@ import androidx.core.content.ContextCompat;
 import org.servo.servoview.ServoView;
 
 public class MediaSession {
-    private class NotificationID {
+    private static class NotificationID {
         private int lastID = 0;
         public int getNext() {
           lastID++;
@@ -56,17 +56,17 @@ public class MediaSession {
     private static final String KEY_MEDIA_NEXT = "org.servo.servoview.MainActivity.next";
     private static final String KEY_MEDIA_STOP = "org.servo.servoview.MainActivity.stop";
 
-    ServoView mView;
-    Context mContext;
+    private final ServoView mView;
+    private final Context mContext;
 
-    NotificationID mNotificationID;
-    BroadcastReceiver mMediaSessionActionReceiver;
+    private final NotificationID mNotificationID;
+    private BroadcastReceiver mMediaSessionActionReceiver;
 
-    int mPlaybackState = PLAYBACK_STATE_PAUSED;
+    private int mPlaybackState = PLAYBACK_STATE_PAUSED;
 
-    String mTitle;
-    String mArtist;
-    String mAlbum;
+    private String mTitle;
+    private String mArtist;
+    private String mAlbum;
 
     public MediaSession(ServoView view, Context context) {
       mView = view;
