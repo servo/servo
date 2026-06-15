@@ -649,6 +649,11 @@ impl ScrollTree {
         &self,
         node_id: ScrollTreeNodeId,
     ) -> ScrollTreeNodeTransformationCache {
+        // Safety: fragments may cache stale spatial node ids if the scroll tree was rebuilt.
+        // Return identity transform instead of panicking on out-of-bounds access.
+        if node_id.index >= self.nodes.len() {
+            return ScrollTreeNodeTransformationCache::default();
+        }
         let node = self.get_node(node_id);
         if let Some(cached_transforms) = node.transformation_cache.get() {
             return cached_transforms;

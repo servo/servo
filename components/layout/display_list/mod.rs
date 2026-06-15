@@ -268,11 +268,15 @@ impl DisplayListBuilder<'_> {
     }
 
     pub(crate) fn add_all_spatial_nodes(&mut self) {
-        // A count of the number of SpatialTree nodes pushed to the WebRender display
-        // list. This is merely to ensure that the currently-unused SpatialTreeItemKey
-        // produced for every SpatialTree node is unique.
-        let mut scroll_tree = std::mem::take(&mut self.paint_info.scroll_tree);
-        let mut mapping = Vec::with_capacity(scroll_tree.nodes.len());
+    // Clear cached spatial node ids from all fragments before rebuilding the scroll tree.
+    // Fragments may have cached ids that are no longer valid after scroll tree reconstruction.
+         self.fragment_tree.clear_all_spatial_tree_node_ids();
+
+    // A count of the number of SpatialTree nodes pushed to the WebRender display
+    // list. This is merely to ensure that the currently-unused SpatialTreeItemKey
+    // produced for every SpatialTree node is unique.
+           let mut scroll_tree = std::mem::take(&mut self.paint_info.scroll_tree);
+           let mut mapping = Vec::with_capacity(scroll_tree.nodes.len());
 
         mapping.push(SpatialId::root_reference_frame(self.pipeline_id()));
         mapping.push(SpatialId::root_scroll_node(self.pipeline_id()));
