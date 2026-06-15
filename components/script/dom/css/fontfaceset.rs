@@ -6,7 +6,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use fonts::FontContextWebFontMethods;
 use js::context::JSContext;
 use js::gc::Handle;
 use js::jsapi::Value;
