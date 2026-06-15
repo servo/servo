@@ -91,6 +91,7 @@ ipc-channel = { workspace = true }
 itertools = { workspace = true }
 js = { workspace = true }
 jstraceable_derive = { workspace = true }
+k12 = { workspace = true }
 keyboard-types = { workspace = true }
 layout_api = { workspace = true }
 libc = { workspace = true }
