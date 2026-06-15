@@ -679,6 +679,14 @@ impl Paint {
             .resize_rendering_context(new_size);
     }
 
+    pub fn set_screen_size(&self, webview_id: WebViewId, new_size: Size2D<f32, DevicePixel>) {
+        if self.shutdown_state() != ShutdownState::NotShuttingDown {
+            return;
+        }
+        self.painter_mut(webview_id.into())
+            .set_screen_size(webview_id, new_size);
+    }
+
     pub fn set_page_zoom(&self, webview_id: WebViewId, new_zoom: f32) {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
