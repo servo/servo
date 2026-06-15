@@ -576,6 +576,13 @@ impl EventTarget {
         listener.borrow().passive
     }
 
+    /// Determines if there are any non-passive listeners for a given event type.
+    pub(crate) fn has_non_passive_listener(&self, type_: &Atom) -> bool {
+        self.get_listeners_for(type_)
+            .iter()
+            .any(|listener| !self.is_passive(listener))
+    }
+
     fn get_inline_event_listener(
         &self,
         cx: &mut JSContext,

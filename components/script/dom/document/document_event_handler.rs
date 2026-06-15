@@ -1643,13 +1643,17 @@ impl DocumentEventHandler {
         let event_type = "wheel".into();
 
         let globalscope = self.window.global();
-        let eventtarget = globalscope.upcast::<EventTarget>();
-        let fetch_listeners = eventtarget.get_listeners_for(&event_type);
-        let cancelable = EventCancelable::from(
-            !(*fetch_listeners)
-                .iter()
-                .all(|listener| eventtarget.is_passive(listener)),
-        );
+        let cancelable = EventCancelable::from(EventCancelable::from(
+            globalscope
+                .upcast::<EventTarget>()
+                .has_non_passive_listener(&event_type) ||
+                node.inclusive_ancestors(ShadowIncluding::Yes)
+                    .any(|target| {
+                        target
+                            .upcast::<EventTarget>()
+                            .has_non_passive_listener(&event_type)
+                    }),
+        ));
         // https://w3c.github.io/uievents/#event-wheelevents
         let dom_event = WheelEvent::new(
             &self.window,
