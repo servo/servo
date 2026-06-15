@@ -20,6 +20,7 @@ use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegE
 use js::rust::wrappers2::{DateGetMsecSinceEpoch, ObjectIsDate};
 use js::rust::{HandleObject, MutableHandleObject};
 use layout_api::{ScriptSelection, SharedSelection};
+use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
@@ -2153,6 +2154,19 @@ impl VirtualMethods for HTMLInputElement {
                         textinput.set_content(value);
                         self.upcast::<Node>().dirty(NodeDamage::Other);
 
+                        // Set or remove the length restrictions depending on whether they apply
+                        if self.does_minmaxlength_apply() {
+                            textinput.set_min_length(
+                                self.MinLength().to_usize().map(Utf16CodeUnitLength),
+                            );
+                            textinput.set_max_length(
+                                self.MaxLength().to_usize().map(Utf16CodeUnitLength),
+                            );
+                        } else {
+                            textinput.set_min_length(None);
+                            textinput.set_max_length(None);
+                        }
+
                         // Steps 7-9
                         if !previously_selectable && self.selection_api_applies() {
                             textinput.clear_selection_to_start();
@@ -2186,7 +2200,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
             },
-            local_name!("maxlength") => match *attr.value() {
+            local_name!("maxlength") if self.does_minmaxlength_apply() => match *attr.value() {
                 AttrValue::Int(_, value) => {
                     let mut textinput = self.textinput.borrow_mut();
 
@@ -2198,7 +2212,7 @@ impl VirtualMethods for HTMLInputElement {
                 },
                 _ => panic!("Expected an AttrValue::Int"),
             },
-            local_name!("minlength") => match *attr.value() {
+            local_name!("minlength") if self.does_minmaxlength_apply() => match *attr.value() {
                 AttrValue::Int(_, value) => {
                     let mut textinput = self.textinput.borrow_mut();
 
