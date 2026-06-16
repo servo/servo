@@ -7,7 +7,7 @@ use std::thread::LocalKey;
 
 use js::context::JSContext;
 use js::glue::JSPrincipalsCallbacks;
-use js::jsapi::{CallArgs, HandleObject as RawHandleObject, JSContext as RawJSContext, JSObject};
+use js::jsapi::{CallArgs, HandleObject as RawHandleObject, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleObject};
 use servo_url::{MutableOrigin, ServoUrl};

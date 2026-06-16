@@ -15,6 +15,7 @@ use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
+use js::context::JSContext;
 use js::jsapi::{Heap, JSContext as RawJSContext, Value};
 use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
@@ -86,9 +87,9 @@ use crate::fetch::{CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_w
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::{CanGc, IntroductionType, JSContext, Runtime, get_reports};
+use crate::script_runtime::{CanGc, IntroductionType, Runtime, get_reports};
 use crate::task::TaskCanceller;
 use crate::timers::{IsInterval, TimerCallback};
 
@@ -1103,11 +1104,10 @@ impl WorkerGlobalScope {
 #[expect(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
     // SAFETY: it is safe to construct a JSContext from engine hook.
-    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
-    let cx = &mut cx;
+    let mut cx = unsafe { JSContext::from_ptr(std::ptr::NonNull::new(cx).unwrap()) };
+    let realm = CurrentRealm::assert(&mut cx);
 
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx.into());
-    let global = GlobalScope::from_safe_context(cx.into(), InRealm::Already(&in_realm_proof));
+    let global = GlobalScope::from_current_realm(&realm);
 
     // If we are running the debugger script, just exit immediately.
     let Some(worker) = global.downcast::<WorkerGlobalScope>() else {

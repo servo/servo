@@ -96,7 +96,7 @@ use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
-use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
@@ -402,8 +402,8 @@ unsafe extern "C" fn enqueue_promise_job(
                 GlobalScope::from_object(incumbent_global.to_object())
             }
         } else {
-            let realm = AlreadyInRealm::assert_for_cx(cx.into());
-            GlobalScope::from_safe_context(cx.into(), InRealm::already(&realm))
+            let realm = CurrentRealm::assert(cx);
+            GlobalScope::from_current_realm(&realm)
         };
         let pipeline = global.pipeline_id();
         let interaction = if promise.get().is_null() {
@@ -444,10 +444,10 @@ unsafe extern "C" fn promise_rejection_tracker(
     // Step 3.
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
-    let cx = &mut cx;
+    let mut realm = CurrentRealm::assert(&mut cx);
 
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx.into());
-    let global = GlobalScope::from_safe_context(cx.into(), InRealm::Already(&in_realm_proof));
+    let global = GlobalScope::from_current_realm(&realm);
+    let cx = &mut realm;
 
     wrap_panic(&mut || {
         match state {

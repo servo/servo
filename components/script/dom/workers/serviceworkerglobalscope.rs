@@ -58,7 +58,7 @@ use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -581,11 +581,10 @@ impl ServiceWorkerGlobalScope {
 #[expect(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
     // SAFETY: it is safe to construct a JSContext from engine hook.
-    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
-    let cx = &mut cx;
+    let mut cx = unsafe { JSContext::from_ptr(std::ptr::NonNull::new(cx).unwrap()) };
+    let realm = CurrentRealm::assert(&mut cx);
 
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx.into());
-    let global = GlobalScope::from_safe_context(cx.into(), InRealm::Already(&in_realm_proof));
+    let global = GlobalScope::from_current_realm(&realm);
     let worker =
         DomRoot::downcast::<WorkerGlobalScope>(global).expect("global is not a worker scope");
     assert!(worker.is::<ServiceWorkerGlobalScope>());
