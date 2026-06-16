@@ -42,6 +42,9 @@ pub fn get_default_url(
             ("file", None, Ok(ref path)) if exists(path) => {
                 new_url = cmdline_url;
             },
+            (domain, None, Err(_)) if is_not_normal_scheme(domain) => {
+                new_url = ServoUrl::parse(&format!("http://{}:{}", domain, &url.path())).ok();
+            },
             _ => {},
         }
     }
@@ -99,4 +102,14 @@ fn try_as_search_page(request: &str, searchpage: &str) -> Option<ServoUrl> {
         return None;
     }
     ServoUrl::parse(&searchpage.replace("%s", request)).ok()
+}
+
+fn is_not_normal_scheme(s: &str) -> bool {
+    s != "file" &&
+        s != "http" &&
+        s != "https" &&
+        s != "ws" &&
+        s != "wss" &&
+        s != "ftp" &&
+        s != "data"
 }
