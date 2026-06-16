@@ -696,6 +696,51 @@ impl<'a> BidiSession<'a> {
         &self,
         command_parameters: &storage::GetCookiesParameters,
     ) -> Result<storage::GetCookiesResult, ErrorCode> {
+        // 1.
+        let filter = command_parameters
+            .filter
+            .clone()
+            .unwrap_or(storage::CookieFilter {
+                name: None,
+                value: None,
+                domain: None,
+                path: None,
+                size: None,
+                http_only: None,
+                secure: None,
+                same_site: None,
+                expiry: None,
+                extensible: Default::default(),
+            });
+        // 2.
+        let partition_spec = &command_parameters.partition;
+        // 3.
+        let partition_key = self
+            .expand_a_storage_partition(partition_spec.clone())
+            .await?;
+        // TODO: 4-7. may should happen in resource thread.
+        // here we do not need to query script thread because associated storage partition is synced before.
+        // cookie store can be defined as a key-channel pair to resource thread
+        // 4. TODO: get cookie store
+        // 5. TODO: get matching cookies
+        // 6.
+        // 7.
+        let serialized_cookies = vec![];
+        // 8.
+        let body = storage::GetCookiesResult {
+            cookies: serialized_cookies,
+            partition_key,
+        };
+        // 9.
+        Ok(body)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#expand-a-partition-key>
+    async fn expand_a_storage_partition(
+        &self,
+        partition_spec: Option<storage::PartitionDescriptor>,
+    ) -> Result<storage::PartitionKey, ErrorCode> {
+        // TODO
         todo!()
     }
 
