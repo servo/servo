@@ -155,6 +155,12 @@ fn test_cmdline_and_location_bar_url() {
         "file:///fake/cwd/dragonfruit",
         "https://duckduckgo.com/html/?q=dragonfruit",
     );
+    test_url(
+        "localhost:80",
+        "http://localhost:80",
+        "file:///fake/cwd/localhost",
+        "http://localhost:80",
+    )
 }
 
 #[test]
@@ -208,6 +214,12 @@ fn test_cmdline_and_location_bar_url() {
         "file:///C:/fake/cwd/dragonfruit",
         "https://duckduckgo.com/html/?q=dragonfruit",
     );
+    test_url(
+        "localhost:80",
+        "http://localhost:80",
+        "file:///C:/fake/cwd/localhost",
+        "http://localhost:80",
+    )
 }
 
 #[cfg(target_os = "linux")]
