@@ -13,10 +13,10 @@ use webdriver_traits::{
     bidi::{
         BrowserCommand, BrowserResult, BrowsingContextCommand, BrowsingContextResult, CommandData,
         EmptyParams, EmptyResult, EmulationCommand, EmulationResult, ErrorCode, Event,
-        InputCommand, InputResult, LogEvent, ResultData, SessionCommand, SessionResult,
-        StorageCommand, StorageResult, WebExtensionCommand, WebExtensionResult, browser,
-        browsing_context, emulation, input,
-        script::PreloadScript as PreloadScriptId,
+        InputCommand, InputResult, LogEvent, ResultData, ScriptCommand, ScriptResult,
+        SessionCommand, SessionResult, StorageCommand, StorageResult, WebExtensionCommand,
+        WebExtensionResult, browser, browsing_context, emulation, input,
+        script::{self, PreloadScript as PreloadScriptId},
         session::{self, Subscription as SubscriptionId},
         storage, web_extension,
     },
@@ -228,7 +228,33 @@ impl<'a> BidiSession<'a> {
             }
             .map(ResultData::InputResult),
             CommandData::NetworkCommand(cmd) => todo!(),
-            CommandData::ScriptCommand(cmd) => todo!(),
+            CommandData::ScriptCommand(cmd) => match cmd {
+                ScriptCommand::AddPreloadScript(cmd) => self
+                    .handle_script_add_preload_script(&cmd.params)
+                    .await
+                    .map(ScriptResult::AddPreloadScriptResult),
+                ScriptCommand::CallFunction(cmd) => self
+                    .handle_script_call_function(&cmd.params)
+                    .await
+                    .map(ScriptResult::CallFunctionResult),
+                ScriptCommand::Disown(cmd) => self
+                    .handle_script_disown(&cmd.params)
+                    .await
+                    .map(ScriptResult::DisownResult),
+                ScriptCommand::Evaluate(cmd) => self
+                    .handle_script_evaluate(&cmd.params)
+                    .await
+                    .map(ScriptResult::EvaluateResult),
+                ScriptCommand::GetRealms(cmd) => self
+                    .handle_script_get_realms(&cmd.params)
+                    .await
+                    .map(ScriptResult::GetRealmsResult),
+                ScriptCommand::RemovePreloadScript(cmd) => self
+                    .handle_script_remove_preload_script(&cmd.params)
+                    .await
+                    .map(ScriptResult::RemovePreloadScriptResult),
+            }
+            .map(|r| ResultData::ScriptResult(Box::new(r))),
             CommandData::SessionCommand(cmd) => match cmd {
                 SessionCommand::End(cmd) => self.handle_session_end(&cmd.params).await,
                 SessionCommand::New(cmd) => self.handle_session_new(&cmd.params).await,
@@ -974,6 +1000,54 @@ impl<'a> BidiSession<'a> {
         // TODO: blocked by user agent being global
         // TODO: this may be easy to implement
         Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-script-addPreloadScript>
+    async fn handle_script_add_preload_script(
+        &self,
+        _: &script::AddPreloadScriptParameters,
+    ) -> Result<script::AddPreloadScriptResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-script-disown>
+    async fn handle_script_disown(
+        &self,
+        _: &script::DisownParameters,
+    ) -> Result<script::DisownResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-script-callFunction>
+    async fn handle_script_call_function(
+        &self,
+        _: &script::CallFunctionParameters,
+    ) -> Result<script::CallFunctionResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-script-evaluate>
+    async fn handle_script_evaluate(
+        &self,
+        _: &script::EvaluateParameters,
+    ) -> Result<script::EvaluateResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-script-getRealms>
+    async fn handle_script_get_realms(
+        &self,
+        _: &script::GetRealmsParameters,
+    ) -> Result<script::GetRealmsResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-script-removePreloadScript>
+    async fn handle_script_remove_preload_script(
+        &self,
+        _: &script::RemovePreloadScriptParameters,
+    ) -> Result<script::RemovePreloadScriptResult, ErrorCode> {
+        todo!()
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-getGookies>
