@@ -149,50 +149,48 @@ fn find_or_claim_shared_worker(key: SharedWorkerKey) -> SharedWorkerClaimResult 
     let (workers, ready) = &*SHARED_WORKERS;
     let mut workers = workers.lock().expect("SharedWorker registry poisoned");
 
+    prune_closed_shared_workers(&mut workers);
+
+    let Some(index) = find_matching_shared_worker(&workers, &key) else {
+        workers.push(SharedWorkerRegistryEntry {
+            key,
+            state: SharedWorkerRegistryState::Creating { waiters: 0 },
+        });
+        return SharedWorkerClaimResult::Claimed;
+    };
+
+    match &mut workers[index].state {
+        SharedWorkerRegistryState::Creating { waiters } => *waiters += 1,
+        SharedWorkerRegistryState::Created(registration) => {
+            return SharedWorkerClaimResult::Created(registration.clone());
+        },
+        SharedWorkerRegistryState::Failed { waiters } => *waiters += 1,
+    };
+
     loop {
-        prune_closed_shared_workers(&mut workers);
+        workers = ready.wait(workers).expect("SharedWorker registry poisoned");
 
         let Some(index) = find_matching_shared_worker(&workers, &key) else {
-            workers.push(SharedWorkerRegistryEntry {
-                key,
-                state: SharedWorkerRegistryState::Creating { waiters: 0 },
-            });
-            return SharedWorkerClaimResult::Claimed;
+            return SharedWorkerClaimResult::Failed;
         };
 
         match &mut workers[index].state {
-            SharedWorkerRegistryState::Creating { waiters } => *waiters += 1,
+            SharedWorkerRegistryState::Creating { .. } => {},
             SharedWorkerRegistryState::Created(registration) => {
                 return SharedWorkerClaimResult::Created(registration.clone());
             },
-            SharedWorkerRegistryState::Failed { waiters } => *waiters += 1,
-        };
-
-        loop {
-            workers = ready.wait(workers).expect("SharedWorker registry poisoned");
-
-            let Some(index) = find_matching_shared_worker(&workers, &key) else {
+            SharedWorkerRegistryState::Failed { waiters } => {
+                debug_assert!(*waiters > 0);
+                if *waiters > 0 {
+                    *waiters -= 1;
+                }
+                if *waiters == 0 {
+                    workers.remove(index);
+                    // No notify needed here: this waiter has already observed
+                    // the failure and no waiter remains blocked on the condvar.
+                }
                 return SharedWorkerClaimResult::Failed;
-            };
-
-            match &mut workers[index].state {
-                SharedWorkerRegistryState::Creating { .. } => {},
-                SharedWorkerRegistryState::Created(registration) => {
-                    return SharedWorkerClaimResult::Created(registration.clone());
-                },
-                SharedWorkerRegistryState::Failed { waiters } => {
-                    debug_assert!(*waiters > 0);
-                    if *waiters > 0 {
-                        *waiters -= 1;
-                    }
-                    if *waiters == 0 {
-                        workers.remove(index);
-                        // No notify needed here: this waiter has already observed
-                        // the failure and no waiter remains blocked on the condvar.
-                    }
-                    return SharedWorkerClaimResult::Failed;
-                },
-            }
+            },
         }
     }
 }
