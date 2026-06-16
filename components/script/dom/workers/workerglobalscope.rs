@@ -145,7 +145,7 @@ impl FetchResponseListener for ScriptFetchContext {
 
     fn process_response(
         &mut self,
-        _: &mut js::context::JSContext,
+        _: &mut JSContext,
         _request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -155,18 +155,13 @@ impl FetchResponseListener for ScriptFetchContext {
         });
     }
 
-    fn process_response_chunk(
-        &mut self,
-        _: &mut js::context::JSContext,
-        _: RequestId,
-        mut chunk: Vec<u8>,
-    ) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, mut chunk: Vec<u8>) {
         self.body_bytes.append(&mut chunk);
     }
 
     fn process_response_eof(
         mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -404,7 +399,7 @@ impl WorkerGlobalScope {
     }
 
     /// Perform a microtask checkpoint.
-    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
         // Only perform the checkpoint if we're not shutting down.
         if !self.is_closing() {
             self.microtask_queue.checkpoint(
@@ -579,7 +574,7 @@ impl WorkerGlobalScope {
 
     /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[expect(unsafe_code)]
-    pub(crate) fn on_complete(&self, cx: &mut js::context::JSContext, script: Option<Script>) {
+    pub(crate) fn on_complete(&self, cx: &mut JSContext, script: Option<Script>) {
         // Step 1. If script is null or if script's error to rethrow is non-null, then:
         let script = match script {
             Some(Script::Classic(script)) if script.record.is_ok() => Script::Classic(script),
@@ -689,7 +684,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts>
     fn ImportScripts(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         url_strings: Vec<TrustedScriptURLOrUSVString>,
     ) -> ErrorResult {
         // https://html.spec.whatwg.org/multipage/#import-scripts-into-worker-global-scope
@@ -842,7 +837,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
-    fn ReportError(&self, cx: &mut js::context::JSContext, error: HandleValue) {
+    fn ReportError(&self, cx: &mut JSContext, error: HandleValue) {
         self.upcast::<GlobalScope>().report_an_exception(cx, error);
     }
 
@@ -859,7 +854,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout>
     fn SetTimeout(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -891,7 +886,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval>
     fn SetInterval(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -1000,7 +995,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
     fn StructuredClone(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
         retval: MutableHandleValue,
@@ -1010,7 +1005,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-windoworworkerglobalscope-trustedtypes>
-    fn TrustedTypes(&self, cx: &mut js::context::JSContext) -> DomRoot<TrustedTypePolicyFactory> {
+    fn TrustedTypes(&self, cx: &mut JSContext) -> DomRoot<TrustedTypePolicyFactory> {
         self.trusted_types.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
             TrustedTypePolicyFactory::new(cx, global_scope)
@@ -1033,11 +1028,7 @@ impl WorkerGlobalScope {
     /// Process a single event as if it were the next event
     /// in the queue for this worker event-loop.
     /// Returns a boolean indicating whether further events should be processed.
-    pub(crate) fn process_event(
-        &self,
-        msg: CommonScriptMsg,
-        cx: &mut js::context::JSContext,
-    ) -> bool {
+    pub(crate) fn process_event(&self, msg: CommonScriptMsg, cx: &mut JSContext) -> bool {
         if self.is_closing() {
             return false;
         }
@@ -1070,7 +1061,7 @@ impl WorkerGlobalScope {
     pub(super) fn init_debugger_global(
         &self,
         debugger_global: &DebuggerGlobalScope,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
@@ -1086,11 +1077,7 @@ impl WorkerGlobalScope {
         self.debugger_global.set(*wrapped_global);
     }
 
-    pub(super) fn handle_devtools_message(
-        &self,
-        msg: DevtoolScriptControlMsg,
-        cx: &mut js::context::JSContext,
-    ) {
+    pub(super) fn handle_devtools_message(&self, msg: DevtoolScriptControlMsg, cx: &mut JSContext) {
         match msg {
             DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _wants_updates) => {},
             DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
@@ -1115,8 +1102,12 @@ impl WorkerGlobalScope {
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(unsafe { JSContext::from_ptr(cx) });
-    let global = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
+
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx.into());
+    let global = GlobalScope::from_safe_context(cx.into(), InRealm::Already(&in_realm_proof));
 
     // If we are running the debugger script, just exit immediately.
     let Some(worker) = global.downcast::<WorkerGlobalScope>() else {

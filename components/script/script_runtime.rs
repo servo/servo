@@ -384,7 +384,10 @@ unsafe extern "C" fn enqueue_promise_job(
     _allocation_site: HandleObject,
     host_defined_data: HandleObject,
 ) -> bool {
-    let cx = unsafe { JSContext::from_ptr(cx) };
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
+
     let mut result = false;
     wrap_panic(&mut || {
         let microtask_queue = unsafe { &*(extra as *const MicrotaskQueue) };
@@ -399,8 +402,8 @@ unsafe extern "C" fn enqueue_promise_job(
                 GlobalScope::from_object(incumbent_global.to_object())
             }
         } else {
-            let realm = AlreadyInRealm::assert_for_cx(cx);
-            unsafe { GlobalScope::from_context(*cx, InRealm::already(&realm)) }
+            let realm = AlreadyInRealm::assert_for_cx(cx.into());
+            GlobalScope::from_safe_context(cx.into(), InRealm::already(&realm))
         };
         let pipeline = global.pipeline_id();
         let interaction = if promise.get().is_null() {
@@ -412,11 +415,11 @@ unsafe extern "C" fn enqueue_promise_job(
             interaction == PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
         microtask_queue.enqueue(
             Microtask::Promise(EnqueuedPromiseCallback {
-                callback: unsafe { PromiseJobCallback::new(cx, job.get()) },
+                callback: unsafe { PromiseJobCallback::new(cx.into(), job.get()) },
                 pipeline,
                 is_user_interacting,
             }),
-            cx,
+            cx.into(),
         );
         result = true
     });
@@ -439,9 +442,12 @@ unsafe extern "C" fn promise_rejection_tracker(
     }
 
     // Step 3.
-    let cx = unsafe { JSContext::from_ptr(cx) };
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-    let global = unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
+
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx.into());
+    let global = GlobalScope::from_safe_context(cx.into(), InRealm::Already(&in_realm_proof));
 
     wrap_panic(&mut || {
         match state {
@@ -475,7 +481,7 @@ unsafe extern "C" fn promise_rejection_tracker(
 
                 let target = Trusted::new(global.upcast::<EventTarget>());
                 let promise =
-                    Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx);
+                    Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx.into());
                 let trusted_promise = TrustedPromise::new(promise);
 
                 // Step 5-4.
@@ -499,7 +505,7 @@ unsafe extern "C" fn promise_rejection_tracker(
 
                     event.upcast::<Event>().fire(cx, &target);
                 })
-            );
+                );
             },
         };
     })

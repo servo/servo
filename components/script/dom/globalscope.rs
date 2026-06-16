@@ -3594,10 +3594,6 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
 
 #[expect(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
-    unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
-        unsafe { GlobalScope::from_context(cx, realm) }
-    }
-
     fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
         GlobalScope::from_current_realm(realm)
     }
