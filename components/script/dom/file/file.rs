@@ -35,7 +35,7 @@ pub(crate) struct File {
     // TODO: This depends on the `webkitdirectory` from `HTMLInputElement`.
     // Then need to change `SelectedFile` in embedder,
     // and filemanager_thread to recursively walk.
-    webkitrelativepath: DOMString,
+    webkit_relative_path: USVString,
 }
 
 impl File {
@@ -43,14 +43,14 @@ impl File {
         blob_impl: &BlobImpl,
         name: DOMString,
         modified: Option<SystemTime>,
-        webkit_relative_path: DOMString,
+        webkit_relative_path: USVString,
     ) -> File {
         File {
             blob: Blob::new_inherited(blob_impl),
             name,
             // https://w3c.github.io/FileAPI/#dfn-lastModified
             modified: modified.unwrap_or_else(SystemTime::now),
-            webkitrelativepath: webkit_relative_path,
+            webkit_relative_path,
         }
     }
 
@@ -67,7 +67,7 @@ impl File {
             blob_impl,
             name,
             modified,
-            DOMString::new(),
+            USVString::default(),
             can_gc,
         )
     }
@@ -78,7 +78,7 @@ impl File {
         blob_impl: BlobImpl,
         name: DOMString,
         modified: Option<SystemTime>,
-        webkit_relative_path: DOMString,
+        webkit_relative_path: USVString,
         can_gc: CanGc,
     ) -> DomRoot<File> {
         let file = reflect_dom_object_with_proto(
@@ -145,7 +145,7 @@ impl File {
             blob_impl,
             name: self.name.to_string(),
             modified: self.LastModified(),
-            webkit_relative_path: self.webkitrelativepath.to_string(),
+            webkit_relative_path: self.webkit_relative_path.to_string(),
         })
     }
 }
@@ -172,7 +172,7 @@ impl Serializable for File {
             serialized.blob_impl,
             serialized.name.into(),
             Some(modified.into()),
-            DOMString::from(serialized.webkit_relative_path),
+            USVString::from(serialized.webkit_relative_path),
             CanGc::from_cx(cx),
         ))
     }
@@ -216,7 +216,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
             BlobImpl::new_from_bytes(bytes, type_string),
             filename,
             modified,
-            DOMString::new(),
+            USVString::default(),
             can_gc,
         ))
     }
@@ -228,7 +228,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
 
     /// <https://wicg.github.io/entries-api/#dom-file-webkitrelativepath>
     fn WebkitRelativePath(&self) -> USVString {
-        USVString(self.webkitrelativepath.to_string())
+        self.webkit_relative_path.clone()
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-lastModified>
