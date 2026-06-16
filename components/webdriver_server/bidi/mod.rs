@@ -26,7 +26,7 @@ use webdriver_traits::{
     ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
     WebDriverToScriptMessage,
     bidi::{
-        ErrorCode,
+        ErrorCode, browsing_context,
         script::{BaseRealmInfo, RealmInfo, WindowRealmInfo, WindowRealmInfoType},
     },
 };
@@ -216,6 +216,14 @@ pub(crate) struct Navigable {
     pub(crate) sender: GenericSender<WebDriverToScriptMessage>,
     pub(crate) webview_id: Option<WebViewId>,
     pub(crate) active_document: PipelineId,
+}
+
+impl Navigable {
+    /// <https://www.w3.org/TR/webdriver-bidi/#get-the-navigable-info>
+    pub(crate) fn get_the_navigable_info(&self, max_depth: Option<u64>) -> browsing_context::Info {
+        // TODO:
+        todo!()
+    }
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

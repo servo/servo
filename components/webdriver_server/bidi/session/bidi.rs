@@ -465,13 +465,56 @@ impl<'a> BidiSession<'a> {
         todo!()
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-getTree>
     async fn handle_browsing_context_get_tree(
         &self,
         command_parameters: &browsing_context::GetTreeParameters,
     ) -> Result<browsing_context::GetTreeResult, ErrorCode> {
-        // TODO:
-        todo!()
+        // 1.
+        let root_id = &command_parameters.root;
+        // 2.
+        let max_depth = command_parameters.max_depth;
+        // 3.
+        let mut navigables = vec![];
+        // 4.
+        if let Some(root_id) = root_id {
+            navigables.push(
+                self.common
+                    .remote_end_state
+                    .get_a_navigable(Some(root_id))
+                    .await?
+                    .unwrap(),
+            );
+        } else {
+            for navigable in self
+                .common
+                .remote_end_state
+                .navigables
+                .read()
+                .await
+                .values()
+            {
+                // top-level only
+                // TODO: better distinguishable
+                if navigable.webview_id.is_some() {
+                    navigables.push(navigable.clone());
+                }
+            }
+        }
+        // 5.
+        let mut navigable_infos = vec![];
+        // 6.
+        for navigable in navigables {
+            // 6.1.
+            let info = navigable.get_the_navigable_info(max_depth);
+            navigable_infos.push(info);
+        }
+        // 7.
+        let body = browsing_context::GetTreeResult {
+            contexts: navigable_infos,
+        };
+        // 8.
+        Ok(body)
     }
 
     // TODO: link
