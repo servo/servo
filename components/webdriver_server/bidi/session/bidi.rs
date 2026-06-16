@@ -793,7 +793,33 @@ impl<'a> BidiSession<'a> {
         &self,
         command_parameters: &storage::DeleteCookiesParameters,
     ) -> Result<storage::DeleteCookiesResult, ErrorCode> {
-        todo!()
+        // 1.
+        let filter = command_parameters
+            .filter
+            .clone()
+            .unwrap_or(storage::CookieFilter {
+                name: None,
+                value: None,
+                domain: None,
+                path: None,
+                size: None,
+                http_only: None,
+                secure: None,
+                same_site: None,
+                expiry: None,
+                extensible: Default::default(),
+            });
+        // 2.
+        let partition_spec = &command_parameters.partition;
+        // 3.
+        let partition_key = self
+            .expand_a_storage_partition(partition_spec.clone())
+            .await?;
+        // 4-6. TODO: continue in resource thread
+        // 7.
+        let body = storage::DeleteCookiesResult { partition_key };
+        // 8.
+        Ok(body)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#expand-a-partition-key>
