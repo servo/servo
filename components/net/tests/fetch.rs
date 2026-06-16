@@ -180,7 +180,7 @@ fn test_fetch_blob() {
 
     let bytes = b"content";
     let blob_buf = BlobBuf {
-        filename: Some("test.txt".into()),
+        filename: Some("test .txt".into()),
         type_string: "text/plain".into(),
         size: bytes.len() as u64,
         bytes: bytes.to_vec(),
@@ -216,7 +216,7 @@ fn test_fetch_blob() {
     let fetch_response = receiver.recv().unwrap();
     assert!(!fetch_response.is_network_error());
 
-    assert_eq!(fetch_response.headers.len(), 2);
+    assert_eq!(fetch_response.headers.len(), 3);
 
     let content_type: Mime = fetch_response
         .headers
@@ -227,6 +227,15 @@ fn test_fetch_blob() {
 
     let content_length: ContentLength = fetch_response.headers.typed_get().unwrap();
     assert_eq!(content_length.0, bytes.len() as u64);
+
+    let content_disposition = fetch_response
+        .headers
+        .get(header::CONTENT_DISPOSITION)
+        .unwrap();
+    assert_eq!(
+        content_disposition.to_str().unwrap(),
+        "inline; filename*=UTF-8''test%20.txt"
+    );
 
     assert_eq!(*fetch_response.body.lock(), ResponseBody::Receiving(vec![]));
 }
