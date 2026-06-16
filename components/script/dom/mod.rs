@@ -211,8 +211,6 @@ pub(crate) mod types {
 
 pub(crate) mod abortcontroller;
 pub(crate) mod abortsignal;
-#[expect(dead_code)]
-pub(crate) mod abstractrange;
 pub(crate) mod activation;
 pub(crate) mod animations;
 pub(crate) use self::animations::*;
@@ -326,6 +324,7 @@ pub(crate) mod promisenativehandler;
 pub(crate) mod quotaexceedederror;
 pub(crate) mod radionodelist;
 pub(crate) mod range;
+pub(crate) use self::range::*;
 pub(crate) mod raredata;
 pub(crate) mod reporting;
 pub(crate) use self::reporting::*;
@@ -342,7 +341,6 @@ pub(crate) mod servointernals;
 #[expect(dead_code)]
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
-pub(crate) mod staticrange;
 pub(crate) mod storage;
 pub(crate) mod storagemanager;
 pub(crate) mod stream;

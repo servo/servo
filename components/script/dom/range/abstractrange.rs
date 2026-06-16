@@ -7,15 +7,13 @@ use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 
 use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::Reflector;
 
 use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRangeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use crate::dom::bindings::root::{DomRoot, MutDom};
-use crate::dom::document::Document;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::Node;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct AbstractRange {
@@ -36,26 +34,6 @@ impl AbstractRange {
             start: BoundaryPoint::new(start_container, start_offset),
             end: BoundaryPoint::new(end_container, end_offset),
         }
-    }
-
-    pub(crate) fn new(
-        document: &Document,
-        start_container: &Node,
-        start_offset: u32,
-        end_container: &Node,
-        end_offset: u32,
-        can_gc: CanGc,
-    ) -> DomRoot<AbstractRange> {
-        reflect_dom_object(
-            Box::new(AbstractRange::new_inherited(
-                start_container,
-                start_offset,
-                end_container,
-                end_offset,
-            )),
-            document.window(),
-            can_gc,
-        )
     }
 
     pub(crate) fn start(&self) -> &BoundaryPoint {
