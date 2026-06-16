@@ -1,3 +1,4 @@
+mod callback;
 mod connection;
 mod error;
 mod listener;
@@ -189,17 +190,14 @@ impl RemoteEndState {
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#get-a-navigable>
+    /// Deviation: in spec the output is null iff input is null,
+    /// to avoid unwrapping option, we disallow the null case here.
     pub(crate) async fn get_a_navigable(
         &self,
-        navigable_id: Option<&str>,
+        navigable_id: BrowsingContextId,
     ) -> Result<Option<Navigable>, ErrorCode> {
-        // 1.
-        let Some(navigable_id) = navigable_id else {
-            return Ok(None);
-        };
+        // 1. SKIP: disallow null
         // 2.
-        let navigable_id =
-            BrowsingContextId::from_string(navigable_id).ok_or(ErrorCode::NoSuchFrame)?;
         let Some(navigable) = self.navigables.read().await.get(&navigable_id).cloned() else {
             return Err(ErrorCode::NoSuchFrame);
         };
@@ -223,6 +221,12 @@ impl Navigable {
     pub(crate) fn get_the_navigable_info(&self, max_depth: Option<u64>) -> browsing_context::Info {
         // TODO:
         todo!()
+    }
+
+    pub(crate) fn send_to_script(&self, message: WebDriverToScriptMessage) {
+        if let Err(e) = self.sender.send(message) {
+            log::warn!("WebDriver to script channel closed: {e:?}");
+        };
     }
 }
 

@@ -21,6 +21,7 @@ use webdriver_traits::{
 
 use crate::bidi::{
     ActiveSessions,
+    callback::new_oneshot_callback,
     connection::Connection,
     session::common::{CommonPart, SessionId, SessionMessage},
 };
@@ -392,13 +393,52 @@ impl<'a> BidiSession<'a> {
         )))
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-activate>
     async fn handle_browsing_context_activate(
         &self,
         command_parameters: &browsing_context::ActivateParameters,
     ) -> Result<browsing_context::ActivateResult, ErrorCode> {
+        // 1.
+        let navigable_id = BrowsingContextId::from_string(&command_parameters.context)
+            .ok_or(ErrorCode::InvalidArgument)?;
+        // 2.
+        let navigable = self
+            .common
+            .remote_end_state
+            .get_a_navigable(navigable_id)
+            .await?
+            .unwrap();
+        // 3.
+        if navigable.webview_id.is_none() {
+            return Err(ErrorCode::InvalidArgument);
+        }
+        // 4.
+        self.activate_a_navigable(navigable_id).await
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#activate-a-navigable>
+    async fn activate_a_navigable(
+        &self,
+        navigable_id: BrowsingContextId,
+    ) -> Result<EmptyResult, ErrorCode> {
         // TODO:
-        todo!()
+        // 1-2. continue in constellation
+        let (callback, receiver) = new_oneshot_callback();
+        self.send_to_constellation(WebDriverToConstellationMessage::Activate(
+            navigable_id,
+            callback,
+        ));
+        let possible = receiver
+            .await
+            .map_err(|_| ErrorCode::UnknownError)?
+            .map_err(|_| ErrorCode::UnknownError)?;
+        if !possible {
+            return Err(ErrorCode::UnsupportedOperation);
+        }
+        // 3.
+        Ok(EmptyResult {
+            extensible: Default::default(),
+        })
     }
 
     // TODO: link
@@ -416,14 +456,15 @@ impl<'a> BidiSession<'a> {
         command_parameters: &browsing_context::CloseParameters,
     ) -> Result<browsing_context::CloseResult, ErrorCode> {
         // 1.
-        let navigable_id = &command_parameters.context;
+        let navigable_id = BrowsingContextId::from_string(&command_parameters.context)
+            .ok_or(ErrorCode::InvalidArgument)?;
         // 2.
         let prompt_unload = command_parameters.prompt_unload.unwrap_or(false);
         // 3.
         let navigable = self
             .common
             .remote_end_state
-            .get_a_navigable(Some(navigable_id))
+            .get_a_navigable(navigable_id)
             .await?
             .unwrap();
         // 4. SKIP: Assert
@@ -432,24 +473,15 @@ impl<'a> BidiSession<'a> {
             return Err(ErrorCode::InvalidArgument);
         }
         // 6. & 7.
-        // TODO: GenericOneshotCallback
-        let (sender, mut receiver) = mpsc::channel(1);
-        let callback = GenericCallback::new(move |_| {
-            if let Err(e) = sender.try_send(()) {
-                log::warn!("Callback channel failed: {e:?}");
-            };
-        })
-        .unwrap();
-        if let Err(e) = navigable
-            .sender
-            .send(WebDriverToScriptMessage::CloseNavigable(
-                prompt_unload,
-                callback,
-            ))
-        {
-            log::warn!("WebDriver to script channel closed: {e:?}");
-        };
-        receiver.recv().await;
+        let (callback, receiver) = new_oneshot_callback();
+        navigable.send_to_script(WebDriverToScriptMessage::CloseNavigable(
+            prompt_unload,
+            callback,
+        ));
+        if let Err(e) = receiver.await {
+            log::warn!("Receiving callback failed: {e:?}");
+            return Err(ErrorCode::UnknownError);
+        }
         // 8.
         Ok(EmptyResult {
             extensible: Default::default(),
@@ -478,10 +510,12 @@ impl<'a> BidiSession<'a> {
         let mut navigables = vec![];
         // 4.
         if let Some(root_id) = root_id {
+            let root_id =
+                BrowsingContextId::from_string(root_id).ok_or(ErrorCode::InvalidArgument)?;
             navigables.push(
                 self.common
                     .remote_end_state
-                    .get_a_navigable(Some(root_id))
+                    .get_a_navigable(root_id)
                     .await?
                     .unwrap(),
             );
@@ -535,17 +569,19 @@ impl<'a> BidiSession<'a> {
         todo!()
     }
 
+    // TODO: link
     async fn handle_browsing_context_navigate(
         &self,
         command_parameters: &browsing_context::NavigateParameters,
     ) -> Result<browsing_context::NavigateResult, ErrorCode> {
         // 1.
-        let navigable_id = &command_parameters.context;
+        let navigable_id = BrowsingContextId::from_string(&command_parameters.context)
+            .ok_or(ErrorCode::InvalidArgument)?;
         // 2.
         let navigable = self
             .common
             .remote_end_state
-            .get_a_navigable(Some(navigable_id))
+            .get_a_navigable(navigable_id)
             .await?
             .unwrap();
         // 3. SKIP: Assert
@@ -603,16 +639,16 @@ impl<'a> BidiSession<'a> {
         todo!()
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-setViewport>
     async fn handle_browsing_context_set_viewport(
         &self,
-        command_parameters: &browsing_context::SetViewportParameters,
+        _: &browsing_context::SetViewportParameters,
     ) -> Result<browsing_context::SetViewportResult, ErrorCode> {
-        // TODO:
-        todo!()
+        // TODO: blocked by viewport not actually implemented
+        Err(ErrorCode::UnknownError)
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-startScreencast>
     async fn handle_browsing_context_start_screencast(
         &self,
         command_parameters: &browsing_context::StartScreencastParameters,
@@ -621,7 +657,7 @@ impl<'a> BidiSession<'a> {
         todo!()
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-stopScreencast>
     async fn handle_browsing_context_stop_screencast(
         &self,
         command_parameters: &browsing_context::StopScreencastParameters,
@@ -630,7 +666,7 @@ impl<'a> BidiSession<'a> {
         todo!()
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-traverseHistory>
     async fn handle_browsing_context_traverse_history(
         &self,
         command_parameters: &browsing_context::TraverseHistoryParameters,

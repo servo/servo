@@ -62,6 +62,7 @@ pub enum ScriptToWebDriverMessage {
 pub enum WebDriverToConstellationMessage {
     Request(String),
     TraverseHistory(i64),
+    Activate(BrowsingContextId, GenericCallback<bool>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

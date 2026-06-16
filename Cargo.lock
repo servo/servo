@@ -9262,6 +9262,7 @@ dependencies = [
  "http 1.4.1",
  "image",
  "indexmap 2.14.0",
+ "ipc-channel",
  "keyboard-types",
  "log",
  "rustc-hash 2.1.2",
