@@ -1,6 +1,6 @@
 # Implementation status of WebDriver
 
-## WebDriver (Classic)
+## WebDriver Classic (HTTP)
 
 TODO: write doc for this part.
 
@@ -8,12 +8,12 @@ TODO: write doc for this part.
 
 ### Overall
 
-| Feature                                 | Status | Details                                    |
-| --------------------------------------- | ------ | ------------------------------------------ |
-| CDDL to serde codegen                   | ✅     | Some edge cases not handled.               |
-| Custom module (`{app}:{module}.{name}`) | ❌     | Our parser cannot handle this currently    |
-| TLS secure connection (`wss://`)        | ❌     |                                            |
-| Channel-based connection from embedder  | ❌     | Not in spec, but useful for embedded usage |
+| Feature                                 | Status | Details                                     |
+| --------------------------------------- | ------ | ------------------------------------------- |
+| CDDL to serde codegen                   | ✅     | Some edge cases not handled.                |
+| Custom module (`{app}:{module}.{name}`) | ❌     | Our parser cannot handle this currently.    |
+| TLS secure connection (`wss://`)        | ❌     |                                             |
+| Channel-based connection from embedder  | ❌     | Not in spec, but useful for embedded usage. |
 
 ### The `session` module
 
