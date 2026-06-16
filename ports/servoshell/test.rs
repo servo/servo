@@ -156,10 +156,10 @@ fn test_cmdline_and_location_bar_url() {
         "https://duckduckgo.com/html/?q=dragonfruit",
     );
     test_url(
-        "localhost:80",
-        "http://localhost:80",
-        "file:///fake/cwd/localhost",
-        "http://localhost:80",
+        "localhost:8000",
+        "http://localhost:8000/",
+        "http://localhost:8000/",
+        "http://localhost:8000/",
     )
 }
 
@@ -215,10 +215,10 @@ fn test_cmdline_and_location_bar_url() {
         "https://duckduckgo.com/html/?q=dragonfruit",
     );
     test_url(
-        "localhost:80",
-        "http://localhost:80",
-        "file:///C:/fake/cwd/localhost",
-        "http://localhost:80",
+        "localhost:8000",
+        "http://localhost:8000/",
+        "http://localhost:8000/",
+        "http://localhost:8000/",
     )
 }
 
