@@ -206,10 +206,6 @@ skip = [
     "sha2",
     "crypto-bigint",
     "pem-rfc7468",
-    "aead",
-    "cipher",
-    "inout",
-    "universal-hash",
 ]
 
 # github.com organizations to allow git sources for

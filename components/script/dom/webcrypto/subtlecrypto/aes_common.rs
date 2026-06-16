@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use aes::cipher::crypto_common::Key;
+use aes::cipher::common::{Generate, Key};
 use aes::{Aes128, Aes192, Aes256};
-use cipher::rand_core::{OsRng, RngCore};
 use js::context::JSContext;
 use zeroize::Zeroizing;
 
@@ -88,21 +87,21 @@ pub(crate) fn generate_key(
     // Step 4. If the key generation step fails, then throw an OperationError.
     let handle =
         match normalized_algorithm.length {
-            128 => {
-                let mut key_bytes = vec![0; 16];
-                OsRng.fill_bytes(&mut key_bytes);
-                Handle::Aes128Key(Key::<Aes128>::clone_from_slice(&key_bytes))
-            },
-            192 => {
-                let mut key_bytes = vec![0; 24];
-                OsRng.fill_bytes(&mut key_bytes);
-                Handle::Aes192Key(Key::<Aes192>::clone_from_slice(&key_bytes))
-            },
-            256 => {
-                let mut key_bytes = vec![0; 32];
-                OsRng.fill_bytes(&mut key_bytes);
-                Handle::Aes256Key(Key::<Aes256>::clone_from_slice(&key_bytes))
-            },
+            128 => Handle::Aes128Key(Key::<Aes128>::try_generate().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to generate AES key with length 128 bits".into(),
+                ))
+            })?),
+            192 => Handle::Aes192Key(Key::<Aes192>::try_generate().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to generate AES key with length 192 bits".into(),
+                ))
+            })?),
+            256 => Handle::Aes256Key(Key::<Aes256>::try_generate().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to generate AES key with length 256 bits".into(),
+                ))
+            })?),
             _ => return Err(Error::Operation(Some(
                 "The length member of normalizedAlgorithm is not equal to one of 128, 192 or 256"
                     .to_string(),
@@ -463,9 +462,18 @@ pub(crate) fn import_key(
     // Step 7. Set the length attribute of algorithm to the length, in bits, of data.
     // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
     let handle = match data.len() {
-        16 => Handle::Aes128Key(Key::<Aes128>::clone_from_slice(&data)),
-        24 => Handle::Aes192Key(Key::<Aes192>::clone_from_slice(&data)),
-        32 => Handle::Aes256Key(Key::<Aes256>::clone_from_slice(&data)),
+        16 => Handle::Aes128Key(
+            Key::<Aes128>::try_from(data.as_slice())
+                .map_err(|_| Error::Operation(Some("Invalid AES-128 key".into())))?,
+        ),
+        24 => Handle::Aes192Key(
+            Key::<Aes192>::try_from(data.as_slice())
+                .map_err(|_| Error::Operation(Some("Invalid AES-192 key".into())))?,
+        ),
+        32 => Handle::Aes256Key(
+            Key::<Aes256>::try_from(data.as_slice())
+                .map_err(|_| Error::Operation(Some("Invalid AES-256 key".into())))?,
+        ),
         _ => {
             return Err(Error::Data(Some(
                 "The length in bits of data is not 128, 192 or 256".to_string(),

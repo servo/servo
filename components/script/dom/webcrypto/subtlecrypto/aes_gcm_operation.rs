@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use aes::cipher::crypto_common::Key;
-use aes::cipher::typenum::{U12, U13, U14, U15, U16, U32};
 use aes::{Aes128, Aes192, Aes256};
-use aes_gcm::aead::AeadMutInPlace;
-use aes_gcm::{AesGcm, KeyInit};
-use cipher::{ArrayLength, BlockCipher, BlockEncrypt, BlockSizeUser};
+use aes_gcm::aead::common::BlockSizeUser;
+use aes_gcm::aead::common::array::ArraySize;
+use aes_gcm::aead::common::typenum::{U4, U8, U12, U13, U14, U15, U16, U32};
+use aes_gcm::aes::cipher::BlockCipherEncrypt;
+use aes_gcm::{AeadInOut, AesGcm, Key, KeyInit, TagSize as SealedTagSize};
 use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
@@ -87,30 +87,13 @@ pub(crate) fn encrypt(
     // parameter, tagLength as the t pre-requisite and plaintext as the input plaintext.
     // Step 7. Let ciphertext be equal to C | T, where '|' denotes concatenation.
     //
-    // NOTE: We currently support:
-    // - IV: 96-bit, 128-bit, 256-bit
-    // - Tag length: 32-bit, 64-bit, 96-bit, 104-bit, 112-bit, 120-bit, 128-bit
-    //
-    // NOTE: The crate `aes-gcm` does not directly support 32-bit and 64-bit tag length. Our
-    // workaround is to perform the Authenticated Encryption Function using 96-bit tag length, and
-    // then remove the last 64 bits for 32-bit tag length, and remove last 32 bits for 64-bit tag
-    // length, from the ciphertext.
+    // NOTE: We currently only support IV with length 96-bit, 128-bit, or 256-bit.
     let iv = normalized_algorithm.iv.as_slice();
     let ciphertext = match key.handle() {
         Handle::Aes128Key(key) => match (iv.len(), tag_length) {
             // 96-bit nonce
-            (12, 32) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes128, U12, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 8);
-                ciphertext
-            },
-            (12, 64) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes128, U12, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 4);
-                ciphertext
-            },
+            (12, 32) => gcm_encrypt::<Aes128, U12, U4>(key, plaintext, iv, additional_data)?,
+            (12, 64) => gcm_encrypt::<Aes128, U12, U8>(key, plaintext, iv, additional_data)?,
             (12, 96) => gcm_encrypt::<Aes128, U12, U12>(key, plaintext, iv, additional_data)?,
             (12, 104) => gcm_encrypt::<Aes128, U12, U13>(key, plaintext, iv, additional_data)?,
             (12, 112) => gcm_encrypt::<Aes128, U12, U14>(key, plaintext, iv, additional_data)?,
@@ -118,18 +101,8 @@ pub(crate) fn encrypt(
             (12, 128) => gcm_encrypt::<Aes128, U12, U16>(key, plaintext, iv, additional_data)?,
 
             // 128-bit nonce
-            (16, 32) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes128, U16, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 8);
-                ciphertext
-            },
-            (16, 64) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes128, U16, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 4);
-                ciphertext
-            },
+            (16, 32) => gcm_encrypt::<Aes128, U16, U4>(key, plaintext, iv, additional_data)?,
+            (16, 64) => gcm_encrypt::<Aes128, U16, U8>(key, plaintext, iv, additional_data)?,
             (16, 96) => gcm_encrypt::<Aes128, U16, U12>(key, plaintext, iv, additional_data)?,
             (16, 104) => gcm_encrypt::<Aes128, U16, U13>(key, plaintext, iv, additional_data)?,
             (16, 112) => gcm_encrypt::<Aes128, U16, U14>(key, plaintext, iv, additional_data)?,
@@ -137,45 +110,25 @@ pub(crate) fn encrypt(
             (16, 128) => gcm_encrypt::<Aes128, U16, U16>(key, plaintext, iv, additional_data)?,
 
             // 256-bit nonce
-            (32, 32) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes128, U32, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 8);
-                ciphertext
-            },
-            (32, 64) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes128, U32, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 4);
-                ciphertext
-            },
+            (32, 32) => gcm_encrypt::<Aes128, U32, U4>(key, plaintext, iv, additional_data)?,
+            (32, 64) => gcm_encrypt::<Aes128, U32, U8>(key, plaintext, iv, additional_data)?,
             (32, 96) => gcm_encrypt::<Aes128, U32, U12>(key, plaintext, iv, additional_data)?,
             (32, 104) => gcm_encrypt::<Aes128, U32, U13>(key, plaintext, iv, additional_data)?,
             (32, 112) => gcm_encrypt::<Aes128, U32, U14>(key, plaintext, iv, additional_data)?,
             (32, 120) => gcm_encrypt::<Aes128, U32, U15>(key, plaintext, iv, additional_data)?,
             (32, 128) => gcm_encrypt::<Aes128, U32, U16>(key, plaintext, iv, additional_data)?,
+
             _ => {
                 return Err(Error::Operation(Some(format!(
-                    "Unsupported iv size ({}-bit) and/or tag length ({}-bit)",
+                    "Unsupported iv size: {} bytes",
                     iv.len() * 8,
-                    tag_length
                 ))));
             },
         },
         Handle::Aes192Key(key) => match (iv.len(), tag_length) {
             // 96-bit nonce
-            (12, 32) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes192, U12, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 8);
-                ciphertext
-            },
-            (12, 64) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes192, U12, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 4);
-                ciphertext
-            },
+            (12, 32) => gcm_encrypt::<Aes192, U12, U4>(key, plaintext, iv, additional_data)?,
+            (12, 64) => gcm_encrypt::<Aes192, U12, U8>(key, plaintext, iv, additional_data)?,
             (12, 96) => gcm_encrypt::<Aes192, U12, U12>(key, plaintext, iv, additional_data)?,
             (12, 104) => gcm_encrypt::<Aes192, U12, U13>(key, plaintext, iv, additional_data)?,
             (12, 112) => gcm_encrypt::<Aes192, U12, U14>(key, plaintext, iv, additional_data)?,
@@ -183,18 +136,8 @@ pub(crate) fn encrypt(
             (12, 128) => gcm_encrypt::<Aes192, U12, U16>(key, plaintext, iv, additional_data)?,
 
             // 128-bit nonce
-            (16, 32) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes192, U16, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 8);
-                ciphertext
-            },
-            (16, 64) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes192, U16, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 4);
-                ciphertext
-            },
+            (16, 32) => gcm_encrypt::<Aes192, U16, U4>(key, plaintext, iv, additional_data)?,
+            (16, 64) => gcm_encrypt::<Aes192, U16, U8>(key, plaintext, iv, additional_data)?,
             (16, 96) => gcm_encrypt::<Aes192, U16, U12>(key, plaintext, iv, additional_data)?,
             (16, 104) => gcm_encrypt::<Aes192, U16, U13>(key, plaintext, iv, additional_data)?,
             (16, 112) => gcm_encrypt::<Aes192, U16, U14>(key, plaintext, iv, additional_data)?,
@@ -202,45 +145,25 @@ pub(crate) fn encrypt(
             (16, 128) => gcm_encrypt::<Aes192, U16, U16>(key, plaintext, iv, additional_data)?,
 
             // 256-bit nonce
-            (32, 32) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes192, U32, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 8);
-                ciphertext
-            },
-            (32, 64) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes192, U32, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 4);
-                ciphertext
-            },
+            (32, 32) => gcm_encrypt::<Aes192, U32, U4>(key, plaintext, iv, additional_data)?,
+            (32, 64) => gcm_encrypt::<Aes192, U32, U8>(key, plaintext, iv, additional_data)?,
             (32, 96) => gcm_encrypt::<Aes192, U32, U12>(key, plaintext, iv, additional_data)?,
             (32, 104) => gcm_encrypt::<Aes192, U32, U13>(key, plaintext, iv, additional_data)?,
             (32, 112) => gcm_encrypt::<Aes192, U32, U14>(key, plaintext, iv, additional_data)?,
             (32, 120) => gcm_encrypt::<Aes192, U32, U15>(key, plaintext, iv, additional_data)?,
             (32, 128) => gcm_encrypt::<Aes192, U32, U16>(key, plaintext, iv, additional_data)?,
+
             _ => {
                 return Err(Error::Operation(Some(format!(
-                    "Unsupported iv size ({}-bit) and/or tag length ({}-bit)",
+                    "Unsupported iv size: {} bytes",
                     iv.len() * 8,
-                    tag_length
                 ))));
             },
         },
         Handle::Aes256Key(key) => match (iv.len(), tag_length) {
             // 96-bit nonce
-            (12, 32) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes256, U12, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 8);
-                ciphertext
-            },
-            (12, 64) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes256, U12, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 4);
-                ciphertext
-            },
+            (12, 32) => gcm_encrypt::<Aes256, U12, U4>(key, plaintext, iv, additional_data)?,
+            (12, 64) => gcm_encrypt::<Aes256, U12, U8>(key, plaintext, iv, additional_data)?,
             (12, 96) => gcm_encrypt::<Aes256, U12, U12>(key, plaintext, iv, additional_data)?,
             (12, 104) => gcm_encrypt::<Aes256, U12, U13>(key, plaintext, iv, additional_data)?,
             (12, 112) => gcm_encrypt::<Aes256, U12, U14>(key, plaintext, iv, additional_data)?,
@@ -248,18 +171,8 @@ pub(crate) fn encrypt(
             (12, 128) => gcm_encrypt::<Aes256, U12, U16>(key, plaintext, iv, additional_data)?,
 
             // 128-bit nonce
-            (16, 32) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes256, U16, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 8);
-                ciphertext
-            },
-            (16, 64) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes256, U16, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 4);
-                ciphertext
-            },
+            (16, 32) => gcm_encrypt::<Aes256, U16, U4>(key, plaintext, iv, additional_data)?,
+            (16, 64) => gcm_encrypt::<Aes256, U16, U8>(key, plaintext, iv, additional_data)?,
             (16, 96) => gcm_encrypt::<Aes256, U16, U12>(key, plaintext, iv, additional_data)?,
             (16, 104) => gcm_encrypt::<Aes256, U16, U13>(key, plaintext, iv, additional_data)?,
             (16, 112) => gcm_encrypt::<Aes256, U16, U14>(key, plaintext, iv, additional_data)?,
@@ -267,28 +180,18 @@ pub(crate) fn encrypt(
             (16, 128) => gcm_encrypt::<Aes256, U16, U16>(key, plaintext, iv, additional_data)?,
 
             // 256-bit nonce
-            (32, 32) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes256, U32, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 8);
-                ciphertext
-            },
-            (32, 64) => {
-                let mut ciphertext =
-                    gcm_encrypt::<Aes256, U32, U12>(key, plaintext, iv, additional_data)?;
-                ciphertext.truncate(ciphertext.len() - 4);
-                ciphertext
-            },
+            (32, 32) => gcm_encrypt::<Aes256, U32, U4>(key, plaintext, iv, additional_data)?,
+            (32, 64) => gcm_encrypt::<Aes256, U32, U8>(key, plaintext, iv, additional_data)?,
             (32, 96) => gcm_encrypt::<Aes256, U32, U12>(key, plaintext, iv, additional_data)?,
             (32, 104) => gcm_encrypt::<Aes256, U32, U13>(key, plaintext, iv, additional_data)?,
             (32, 112) => gcm_encrypt::<Aes256, U32, U14>(key, plaintext, iv, additional_data)?,
             (32, 120) => gcm_encrypt::<Aes256, U32, U15>(key, plaintext, iv, additional_data)?,
             (32, 128) => gcm_encrypt::<Aes256, U32, U16>(key, plaintext, iv, additional_data)?,
+
             _ => {
                 return Err(Error::Operation(Some(format!(
-                    "Unsupported iv size ({}-bit) and/or tag length ({}-bit)",
+                    "Unsupported iv size: {} bytes",
                     iv.len() * 8,
-                    tag_length
                 ))));
             },
         },
@@ -311,15 +214,17 @@ fn gcm_encrypt<Aes, NonceSize, TagSize>(
     additional_data: &[u8],
 ) -> Result<Vec<u8>, Error>
 where
-    Aes: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + KeyInit,
-    NonceSize: ArrayLength<u8>,
-    TagSize: aes_gcm::TagSize,
+    Aes: BlockSizeUser<BlockSize = U16> + BlockCipherEncrypt + KeyInit,
+    NonceSize: ArraySize,
+    TagSize: SealedTagSize,
 {
+    let nonce = iv
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-GCM IV".into())))?;
     let mut ciphertext = plaintext.to_vec();
-
-    let mut cipher = AesGcm::<Aes, NonceSize, TagSize>::new(key);
+    let cipher = AesGcm::<Aes, NonceSize, TagSize>::new(key);
     cipher
-        .encrypt_in_place(iv.into(), additional_data, &mut ciphertext)
+        .encrypt_in_place(&nonce, additional_data, &mut ciphertext)
         .map_err(|_| {
             Error::Operation(Some(
                 "AES-GCM failed to perform the Authenticated Encryption Function".to_string(),
@@ -407,16 +312,13 @@ pub(crate) fn decrypt(
     // Otherwise:
     //     Let plaintext be the output P of the Authenticated Decryption Function.
     //
-    // NOTE: We currently support:
-    // - IV: 96-bit, 128-bit, 256-bit
-    // - Tag length: 96-bit, 104-bit, 112-bit, 120-bit, 128-bit
-    //
-    // NOTE: We currently do not support 32-bit and 64-bit tag length in decryption since the crate
-    // `aes-gcm` does not support 32-bit and 64-bit tag length.
+    // NOTE: We currently only support IV with length 96-bit, 128-bit, or 256-bit.
     let iv = normalized_algorithm.iv.as_slice();
     let plaintext = match key.handle() {
         Handle::Aes128Key(key) => match (iv.len(), tag_length) {
             // 96-bit nonce
+            (12, 32) => gcm_decrypt::<Aes128, U12, U4>(key, ciphertext, iv, additional_data)?,
+            (12, 64) => gcm_decrypt::<Aes128, U12, U8>(key, ciphertext, iv, additional_data)?,
             (12, 96) => gcm_decrypt::<Aes128, U12, U12>(key, ciphertext, iv, additional_data)?,
             (12, 104) => gcm_decrypt::<Aes128, U12, U13>(key, ciphertext, iv, additional_data)?,
             (12, 112) => gcm_decrypt::<Aes128, U12, U14>(key, ciphertext, iv, additional_data)?,
@@ -424,6 +326,8 @@ pub(crate) fn decrypt(
             (12, 128) => gcm_decrypt::<Aes128, U12, U16>(key, ciphertext, iv, additional_data)?,
 
             // 128-bit nonce
+            (16, 32) => gcm_decrypt::<Aes128, U16, U4>(key, ciphertext, iv, additional_data)?,
+            (16, 64) => gcm_decrypt::<Aes128, U16, U8>(key, ciphertext, iv, additional_data)?,
             (16, 96) => gcm_decrypt::<Aes128, U16, U12>(key, ciphertext, iv, additional_data)?,
             (16, 104) => gcm_decrypt::<Aes128, U16, U13>(key, ciphertext, iv, additional_data)?,
             (16, 112) => gcm_decrypt::<Aes128, U16, U14>(key, ciphertext, iv, additional_data)?,
@@ -431,6 +335,8 @@ pub(crate) fn decrypt(
             (16, 128) => gcm_decrypt::<Aes128, U16, U16>(key, ciphertext, iv, additional_data)?,
 
             // 256-bit nonce
+            (32, 32) => gcm_decrypt::<Aes128, U32, U4>(key, ciphertext, iv, additional_data)?,
+            (32, 64) => gcm_decrypt::<Aes128, U32, U8>(key, ciphertext, iv, additional_data)?,
             (32, 96) => gcm_decrypt::<Aes128, U32, U12>(key, ciphertext, iv, additional_data)?,
             (32, 104) => gcm_decrypt::<Aes128, U32, U13>(key, ciphertext, iv, additional_data)?,
             (32, 112) => gcm_decrypt::<Aes128, U32, U14>(key, ciphertext, iv, additional_data)?,
@@ -439,14 +345,15 @@ pub(crate) fn decrypt(
 
             _ => {
                 return Err(Error::Operation(Some(format!(
-                    "Unsupported iv size ({}-bit) and/or tag length ({}-bit)",
+                    "Unsupported iv size: {} bytes",
                     iv.len() * 8,
-                    tag_length
                 ))));
             },
         },
         Handle::Aes192Key(key) => match (iv.len(), tag_length) {
             // 96-bit nonce
+            (12, 32) => gcm_decrypt::<Aes192, U12, U4>(key, ciphertext, iv, additional_data)?,
+            (12, 64) => gcm_decrypt::<Aes192, U12, U8>(key, ciphertext, iv, additional_data)?,
             (12, 96) => gcm_decrypt::<Aes192, U12, U12>(key, ciphertext, iv, additional_data)?,
             (12, 104) => gcm_decrypt::<Aes192, U12, U13>(key, ciphertext, iv, additional_data)?,
             (12, 112) => gcm_decrypt::<Aes192, U12, U14>(key, ciphertext, iv, additional_data)?,
@@ -454,6 +361,8 @@ pub(crate) fn decrypt(
             (12, 128) => gcm_decrypt::<Aes192, U12, U16>(key, ciphertext, iv, additional_data)?,
 
             // 128-bit nonce
+            (16, 32) => gcm_decrypt::<Aes192, U16, U4>(key, ciphertext, iv, additional_data)?,
+            (16, 64) => gcm_decrypt::<Aes192, U16, U8>(key, ciphertext, iv, additional_data)?,
             (16, 96) => gcm_decrypt::<Aes192, U16, U12>(key, ciphertext, iv, additional_data)?,
             (16, 104) => gcm_decrypt::<Aes192, U16, U13>(key, ciphertext, iv, additional_data)?,
             (16, 112) => gcm_decrypt::<Aes192, U16, U14>(key, ciphertext, iv, additional_data)?,
@@ -461,6 +370,8 @@ pub(crate) fn decrypt(
             (16, 128) => gcm_decrypt::<Aes192, U16, U16>(key, ciphertext, iv, additional_data)?,
 
             // 256-bit nonce
+            (32, 32) => gcm_decrypt::<Aes192, U32, U4>(key, ciphertext, iv, additional_data)?,
+            (32, 64) => gcm_decrypt::<Aes192, U32, U8>(key, ciphertext, iv, additional_data)?,
             (32, 96) => gcm_decrypt::<Aes192, U32, U12>(key, ciphertext, iv, additional_data)?,
             (32, 104) => gcm_decrypt::<Aes192, U32, U13>(key, ciphertext, iv, additional_data)?,
             (32, 112) => gcm_decrypt::<Aes192, U32, U14>(key, ciphertext, iv, additional_data)?,
@@ -469,14 +380,15 @@ pub(crate) fn decrypt(
 
             _ => {
                 return Err(Error::Operation(Some(format!(
-                    "Unsupported iv size ({}-bit) and/or tag length ({}-bit)",
+                    "Unsupported iv size: {} bytes",
                     iv.len() * 8,
-                    tag_length
                 ))));
             },
         },
         Handle::Aes256Key(key) => match (iv.len(), tag_length) {
             // 96-bit nonce
+            (12, 32) => gcm_decrypt::<Aes256, U12, U4>(key, ciphertext, iv, additional_data)?,
+            (12, 64) => gcm_decrypt::<Aes256, U12, U8>(key, ciphertext, iv, additional_data)?,
             (12, 96) => gcm_decrypt::<Aes256, U12, U12>(key, ciphertext, iv, additional_data)?,
             (12, 104) => gcm_decrypt::<Aes256, U12, U13>(key, ciphertext, iv, additional_data)?,
             (12, 112) => gcm_decrypt::<Aes256, U12, U14>(key, ciphertext, iv, additional_data)?,
@@ -484,6 +396,8 @@ pub(crate) fn decrypt(
             (12, 128) => gcm_decrypt::<Aes256, U12, U16>(key, ciphertext, iv, additional_data)?,
 
             // 128-bit nonce
+            (16, 32) => gcm_decrypt::<Aes256, U16, U4>(key, ciphertext, iv, additional_data)?,
+            (16, 64) => gcm_decrypt::<Aes256, U16, U8>(key, ciphertext, iv, additional_data)?,
             (16, 96) => gcm_decrypt::<Aes256, U16, U12>(key, ciphertext, iv, additional_data)?,
             (16, 104) => gcm_decrypt::<Aes256, U16, U13>(key, ciphertext, iv, additional_data)?,
             (16, 112) => gcm_decrypt::<Aes256, U16, U14>(key, ciphertext, iv, additional_data)?,
@@ -491,6 +405,8 @@ pub(crate) fn decrypt(
             (16, 128) => gcm_decrypt::<Aes256, U16, U16>(key, ciphertext, iv, additional_data)?,
 
             // 256-bit nonce
+            (32, 32) => gcm_decrypt::<Aes256, U32, U4>(key, ciphertext, iv, additional_data)?,
+            (32, 64) => gcm_decrypt::<Aes256, U32, U8>(key, ciphertext, iv, additional_data)?,
             (32, 96) => gcm_decrypt::<Aes256, U32, U12>(key, ciphertext, iv, additional_data)?,
             (32, 104) => gcm_decrypt::<Aes256, U32, U13>(key, ciphertext, iv, additional_data)?,
             (32, 112) => gcm_decrypt::<Aes256, U32, U14>(key, ciphertext, iv, additional_data)?,
@@ -499,9 +415,8 @@ pub(crate) fn decrypt(
 
             _ => {
                 return Err(Error::Operation(Some(format!(
-                    "Unsupported iv size ({}-bit) and/or tag length ({}-bit)",
+                    "Unsupported iv size: {} bytes",
                     iv.len() * 8,
-                    tag_length
                 ))));
             },
         },
@@ -524,15 +439,17 @@ fn gcm_decrypt<Aes, NonceSize, TagSize>(
     additional_data: &[u8],
 ) -> Result<Vec<u8>, Error>
 where
-    Aes: BlockCipher + BlockSizeUser<BlockSize = U16> + BlockEncrypt + KeyInit,
-    NonceSize: ArrayLength<u8>,
-    TagSize: aes_gcm::TagSize,
+    Aes: BlockSizeUser<BlockSize = U16> + BlockCipherEncrypt + KeyInit,
+    NonceSize: ArraySize,
+    TagSize: SealedTagSize,
 {
+    let nonce = iv
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-GCM IV".into())))?;
     let mut plaintext = ciphertext.to_vec();
-
-    let mut cipher = AesGcm::<Aes, NonceSize, TagSize>::new(key);
+    let cipher = AesGcm::<Aes, NonceSize, TagSize>::new(key);
     cipher
-        .decrypt_in_place(iv.into(), additional_data, &mut plaintext)
+        .decrypt_in_place(&nonce, additional_data, &mut plaintext)
         .map_err(|_| {
             Error::Operation(Some(
                 "AES-GCM failed to perform the Authenticated Decryption Function".to_string(),
