@@ -1636,12 +1636,25 @@ impl DocumentEventHandler {
             hit_test_result.point_in_frame
         );
 
+        let event_type = "wheel".into();
+
+        let cancelable = EventCancelable::from(
+            self.window
+                .upcast::<EventTarget>()
+                .has_non_passive_listener(&event_type) ||
+                node.inclusive_ancestors(ShadowIncluding::Yes)
+                    .any(|target| {
+                        target
+                            .upcast::<EventTarget>()
+                            .has_non_passive_listener(&event_type)
+                    }),
+        );
         // https://w3c.github.io/uievents/#event-wheelevents
         let dom_event = WheelEvent::new(
             &self.window,
-            "wheel".into(),
+            event_type,
             EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
+            cancelable,
             Some(&self.window),
             0i32,
             hit_test_result.point_in_frame.to_i32(),
