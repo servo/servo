@@ -132,6 +132,7 @@ impl<'a> StaticSession<'a> {
     fn new_bidi_session(&self, session_id: SessionId) -> Session {
         let (session_sender, session_receiver) = mpsc::unbounded_channel();
         let common = CommonPart {
+            running: true,
             remote_end_state: self.common.remote_end_state.clone(),
             embedder_proxy: self.common.embedder_proxy.clone(),
             constellation_sender: self.common.constellation_sender.clone(),

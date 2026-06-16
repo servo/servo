@@ -6,7 +6,10 @@ use std::{
 
 use indexmap::{IndexMap, IndexSet};
 use servo_base::id::BrowsingContextId;
-use tokio::sync::RwLock;
+use tokio::{
+    sync::{RwLock, oneshot},
+    task,
+};
 use uuid::Uuid;
 use webdriver_traits::{
     WebDriverToConstellationMessage, WebDriverToScriptMessage,
@@ -397,9 +400,7 @@ impl<'a> BidiSession<'a> {
         // 1.
         self.end_the_session().await;
         // 3. cleanup should happens after response, see `handle_receiver`
-        if let Err(e) = self.common.session_sender.send(SessionMessage::Cleanup) {
-            log::warn!("Cleanup message sent failed: {e:?}");
-        };
+        self.send_to_self(SessionMessage::CleanupSession(None));
         // 2.
         Ok(EmptyResult {
             extensible: Default::default(),
@@ -608,9 +609,31 @@ impl<'a> BidiSession<'a> {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-close>
     async fn handle_browser_close(
         &self,
-        command_parameters: &EmptyParams,
+        _: &EmptyParams,
     ) -> Result<browser::CloseResult, ErrorCode> {
-        todo!()
+        // 1.
+        self.end_the_session().await;
+        // 2. TODO: the cases for multiple session is unspecified in spec.
+        if !self.active_sessions().read().await.is_empty() {
+            // 2.2.
+            self.send_to_self(SessionMessage::CleanupSession(None));
+            // 2.1.
+            return Err(ErrorCode::UnableToCloseBrowser);
+        }
+        // 3. here we directly drain to remove session
+        for (_, active_session) in self.active_sessions().write().await.drain() {
+            // 3.1. SKIP: already drained
+            // 3.2.
+            active_session.cleanup_the_session().await?;
+        }
+        // 4.2.
+        self.send_to_self(SessionMessage::CleanupSession(None));
+        // 4.3. TODO: close any top-level traversables
+        // 4.4. TODO: implementation-define steps to shutting down browser
+        // 4.1
+        Ok(browser::CloseResult {
+            extensible: Default::default(),
+        })
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-createUsetContext>
@@ -1409,7 +1432,8 @@ impl<'a> BidiSession<'a> {
         if self.active_sessions().read().await.is_empty() {
             self.common.remote_end_state.cleanup();
         }
-        // 7. SKIP: implementation specific
+        // 7. set a flag to exit loop in next tick
+        self.common.running = false;
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#close-the-websocket-connections>
@@ -1477,6 +1501,14 @@ impl<'a> BidiSession<'a> {
     fn send_to_constellation(&self, message: WebDriverToConstellationMessage) {
         if let Err(e) = self.common.constellation_sender.send(message) {
             log::warn!("Sending message to constellation failed: {e:?}");
+        }
+    }
+
+    /// Send a message to self, this is used to defer an operation to next tick,
+    /// which is common in cleanup steps like `browser.close` and `session.end`.
+    fn send_to_self(&self, message: SessionMessage) {
+        if let Err(e) = self.common.session_sender.send(message) {
+            log::warn!("Sending message to self failed: {e:?}");
         }
     }
 }

@@ -6,7 +6,10 @@ use std::{ops::Deref, rc::Rc};
 use crossbeam_channel::Sender;
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::{
+    mpsc::{UnboundedReceiver, UnboundedSender},
+    oneshot,
+};
 use uuid::Uuid;
 use webdriver_traits::{
     ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
@@ -24,7 +27,7 @@ pub enum SessionMessage {
     /// The session should do run "cleanup the session" when
     /// receiving this in next tick. This is used to defer
     /// actual cleanup to after sending resposne to connection.
-    Cleanup,
+    CleanupSession(Option<oneshot::Sender<bool>>),
     // Constellation messages are forwarded to all session, we use Rc to avoid cloning.
     WebDriver(Rc<WebDriverMessage>),
     // Script messages are forwarded to all session, we use Rc to avoid cloning.
@@ -33,6 +36,7 @@ pub enum SessionMessage {
 
 /// The common components of a session, regardless of static, http or bidi.
 pub struct CommonPart {
+    pub(crate) running: bool,
     pub(crate) remote_end_state: Rc<RemoteEndState>,
     pub(crate) embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
     pub(crate) constellation_sender: Sender<WebDriverToConstellationMessage>,

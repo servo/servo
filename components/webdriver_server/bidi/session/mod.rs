@@ -69,6 +69,7 @@ impl Session {
     ) -> Self {
         let (sender, receiver) = mpsc::unbounded_channel();
         let common = CommonPart {
+            running: true,
             remote_end_state,
             embedder_proxy,
             constellation_sender,
@@ -83,7 +84,7 @@ impl Session {
 
     /// The main event loop of a session task.
     async fn run(mut self) {
-        loop {
+        while self.running {
             match &mut self {
                 Session::Static {
                     common,
@@ -139,11 +140,18 @@ impl Session {
                 SessionMessage::Associate(connection) => {
                     self.associate_connection(connection);
                 },
-                SessionMessage::Cleanup => {
-                    if let Some(Ok(mut bidi_session)) = self.as_bidi_or_static() {
+                SessionMessage::CleanupSession(sender) => {
+                    let success = if let Some(Ok(mut bidi_session)) = self.as_bidi_or_static() {
                         bidi_session.cleanup_the_session().await;
+                        true
                     } else {
                         log::warn!("Cannot cleanup a non BiDi session");
+                        false
+                    };
+                    if let Some(sender) = sender {
+                        if let Err(e) = sender.send(success) {
+                            log::warn!("Sending cleanup callback failed: {e:?}");
+                        };
                     }
                 },
                 SessionMessage::Script(_script) => {
