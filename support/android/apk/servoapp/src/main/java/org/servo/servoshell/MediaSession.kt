@@ -95,14 +95,16 @@ class MediaSession(private val view: ServoView, private val context: Context) {
             .setVisibility(Notification.VISIBILITY_PUBLIC)
 
         var contentText = ""
+        val artist = artist
         if (!artist.isNullOrEmpty()) {
-            contentText = artist!!
+            contentText = artist
         }
+        val album = album
         if (!album.isNullOrEmpty()) {
             if (contentText.isNotEmpty()) {
                 contentText += " - $album"
             } else {
-                contentText = album!!
+                contentText = album
             }
         }
 
@@ -132,14 +134,12 @@ class MediaSession(private val view: ServoView, private val context: Context) {
 
         builder.setStyle(MediaStyle().setShowActionsInCompactView(0))
 
-        val notificationManager = context.getSystemService<NotificationManager>()!!
-        notificationManager.notify(id, builder.build())
+        context.getSystemService<NotificationManager>()?.notify(id, builder.build())
     }
 
     fun hideMediaSessionControls() {
         Log.d("MediaSession", "hideMediaSessionControls")
-        val notificationManager = context.getSystemService<NotificationManager>()!!
-        notificationManager.cancel(notificationID.get())
+        context.getSystemService<NotificationManager>()?.cancel(notificationID.get())
         context.unregisterReceiver(mediaSessionActionReceiver)
         mediaSessionActionReceiver = null
     }
