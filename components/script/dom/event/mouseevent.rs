@@ -35,7 +35,6 @@ use crate::dom::node::Node;
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/uievents/#interface-mouseevent>
 #[dom_struct]
@@ -328,8 +327,8 @@ impl MouseEvent {
     /// For mouse, the pointer ID is always -1, and is_primary is always true.
     pub(crate) fn to_pointer_event(
         &self,
+        cx: &mut JSContext,
         event_type: Atom,
-        can_gc: CanGc,
     ) -> DomRoot<crate::dom::pointerevent::PointerEvent> {
         // TODO: This function should almost certainly accept an enumn for the event type.
         let is_pointer_down = &*event_type == "pointerdown";
@@ -358,6 +357,7 @@ impl MouseEvent {
         let window = window.as_window();
 
         let pointer_event = PointerEvent::new(
+            cx,
             window,
             event_type,
             EventBubbles::from(self.upcast::<Event>().Bubbles()),
@@ -386,7 +386,6 @@ impl MouseEvent {
             true,   // is_primary (mouse is always primary)
             vec![], // coalesced_events
             vec![], // predicted_events
-            can_gc,
         );
 
         pointer_event.upcast::<Event>().set_composed(composed);
@@ -399,8 +398,8 @@ impl MouseEvent {
     /// For mouse, the pointer ID is always -1, and is_primary is always true.
     pub(crate) fn to_pointer_hover_event(
         &self,
+        cx: &mut JSContext,
         event_type: &str,
-        can_gc: CanGc,
     ) -> DomRoot<crate::dom::pointerevent::PointerEvent> {
         // Determine bubbles and cancelable based on event type
         // pointerover/pointerout bubble and are cancelable
@@ -417,6 +416,7 @@ impl MouseEvent {
         let window = window.as_window();
 
         let pointer_event = PointerEvent::new(
+            cx,
             window,
             event_type.into(),
             bubbles,
@@ -445,7 +445,6 @@ impl MouseEvent {
             true,   // is_primary (mouse is always primary)
             vec![], // coalesced_events
             vec![], // predicted_events
-            can_gc,
         );
 
         // https://w3c.github.io/pointerevents/#dfn-attributes-and-default-actions

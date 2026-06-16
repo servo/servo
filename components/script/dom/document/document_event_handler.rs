@@ -463,7 +463,7 @@ impl DocumentEventHandler {
 
                 // Fire pointerout before mouseout
                 mouse_out_event
-                    .to_pointer_hover_event("pointerout", CanGc::from_cx(cx))
+                    .to_pointer_hover_event(cx, "pointerout")
                     .upcast::<Event>()
                     .fire(cx, current_hover_target.upcast());
 
@@ -560,7 +560,7 @@ impl DocumentEventHandler {
 
             // Fire pointer event before mouse event
             mouse_event
-                .to_pointer_hover_event(pointer_event_name, CanGc::from_cx(cx))
+                .to_pointer_hover_event(cx, pointer_event_name)
                 .upcast::<Event>()
                 .fire(cx, target.upcast());
 
@@ -648,7 +648,7 @@ impl DocumentEventHandler {
 
                     // Fire pointerout before mouseout
                     mouse_out_event
-                        .to_pointer_hover_event("pointerout", CanGc::from_cx(cx))
+                        .to_pointer_hover_event(cx, "pointerout")
                         .upcast::<Event>()
                         .fire(cx, old_target.upcast());
 
@@ -694,7 +694,7 @@ impl DocumentEventHandler {
 
                 // Fire pointerover before mouseover
                 mouse_over_event
-                    .to_pointer_hover_event("pointerover", CanGc::from_cx(cx))
+                    .to_pointer_hover_event(cx, "pointerover")
                     .upcast::<Event>()
                     .dispatch(cx, new_target.upcast(), false);
 
@@ -735,8 +735,7 @@ impl DocumentEventHandler {
             .map(DomRoot::upcast::<EventTarget>)
             .unwrap_or_else(|| DomRoot::from_ref(new_target.upcast::<EventTarget>()));
 
-        let pointer_event =
-            mouse_event.to_pointer_event(Atom::from("pointermove"), CanGc::from_cx(cx));
+        let pointer_event = mouse_event.to_pointer_event(cx, Atom::from("pointermove"));
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event.upcast::<Event>().fire(cx, &pointer_target);
 
@@ -960,8 +959,7 @@ impl DocumentEventHandler {
                     // > contact geometry (width and height) or chorded buttons.
                     "pointermove".into()
                 };
-                let pointer_event =
-                    mouse_event.to_pointer_event(pointer_event_name, CanGc::from_cx(cx));
+                let pointer_event = mouse_event.to_pointer_event(cx, pointer_event_name);
 
                 // Check for pointer capture target for mouse events
                 let pointer_id = PointerId::Mouse as i32;
@@ -1028,8 +1026,7 @@ impl DocumentEventHandler {
                     // > contact geometry (width and height) or chorded buttons.
                     "pointermove".into()
                 };
-                let pointer_event =
-                    mouse_event.to_pointer_event(pointer_event_name, CanGc::from_cx(cx));
+                let pointer_event = mouse_event.to_pointer_event(cx, pointer_event_name);
 
                 // Check for pointer capture target for mouse events
                 let pointer_id = PointerId::Mouse as i32;
@@ -1173,6 +1170,7 @@ impl DocumentEventHandler {
     ) {
         // <https://w3c.github.io/pointerevents/#contextmenu>
         let menu_event = PointerEvent::new(
+            cx,
             &self.window,                // window
             "contextmenu".into(),        // type
             EventBubbles::Bubbles,       // can_bubble
@@ -1203,7 +1201,6 @@ impl DocumentEventHandler {
             true,                     // is_primary
             vec![],                   // coalesced_events
             vec![],                   // predicted_events
-            CanGc::from_cx(cx),
         );
         menu_event.upcast::<Event>().set_composed(true);
 
@@ -1254,6 +1251,7 @@ impl DocumentEventHandler {
 
         // This is used to construct pointerevent and touchdown event.
         let pointer_touch = Touch::new(
+            cx,
             window,
             identifier,
             &current_target,
@@ -1263,7 +1261,6 @@ impl DocumentEventHandler {
             client_y,
             page_x,
             page_y,
-            CanGc::from_cx(cx),
         );
 
         // Dispatch pointer event before updating active touch points and before touch event.
@@ -1289,6 +1286,7 @@ impl DocumentEventHandler {
         if matches!(event.event_type, TouchEventType::Down) {
             // Fire pointerover
             let pointer_over = pointer_touch.to_pointer_event(
+                cx,
                 window,
                 "pointerover",
                 pointer_id,
@@ -1297,7 +1295,6 @@ impl DocumentEventHandler {
                 input_event.active_keyboard_modifiers,
                 true, // cancelable
                 Some(hit_test_result.point_in_node),
-                CanGc::from_cx(cx),
             );
             pointer_over.upcast::<Event>().fire(cx, &current_target);
 
@@ -1331,6 +1328,7 @@ impl DocumentEventHandler {
             .unwrap_or_else(|| current_target.clone());
 
         let pointer_event = pointer_touch.to_pointer_event(
+            cx,
             window,
             pointer_event_name,
             pointer_id,
@@ -1339,7 +1337,6 @@ impl DocumentEventHandler {
             input_event.active_keyboard_modifiers,
             event.is_cancelable(),
             Some(hit_test_result.point_in_node),
-            CanGc::from_cx(cx),
         );
         pointer_event.upcast::<Event>().fire(cx, &pointer_target);
 
@@ -1369,6 +1366,7 @@ impl DocumentEventHandler {
         ) {
             // Fire pointerout
             let pointer_out = pointer_touch.to_pointer_event(
+                cx,
                 window,
                 "pointerout",
                 pointer_id,
@@ -1377,7 +1375,6 @@ impl DocumentEventHandler {
                 input_event.active_keyboard_modifiers,
                 true, // cancelable
                 Some(hit_test_result.point_in_node),
-                CanGc::from_cx(cx),
             );
             pointer_out.upcast::<Event>().fire(cx, &current_target);
 
@@ -1422,6 +1419,7 @@ impl DocumentEventHandler {
                 let original_target = active_touch_points[index].Target();
 
                 let touch_with_touchstart_target = Touch::new(
+                    cx,
                     window,
                     identifier,
                     &original_target,
@@ -1431,7 +1429,6 @@ impl DocumentEventHandler {
                     client_y,
                     page_x,
                     page_y,
-                    CanGc::from_cx(cx),
                 );
 
                 // Update or remove the stored touch
@@ -2371,6 +2368,7 @@ impl DocumentEventHandler {
 
         for target in targets {
             let pointer_event = touch.to_pointer_event(
+                cx,
                 &self.window,
                 event_name,
                 pointer_id,
@@ -2379,7 +2377,6 @@ impl DocumentEventHandler {
                 input_event.active_keyboard_modifiers,
                 false,
                 Some(hit_test_result.point_in_node),
-                CanGc::from_cx(cx),
             );
             pointer_event.upcast::<Event>().fire(cx, target.upcast());
         }
@@ -2621,6 +2618,7 @@ impl DocumentEventHandler {
         target: &EventTarget,
     ) {
         let pointer_event = PointerEvent::new(
+            cx,
             &self.window,
             event_type.into(),
             EventBubbles::Bubbles,
@@ -2649,7 +2647,6 @@ impl DocumentEventHandler {
             is_primary,
             vec![],
             vec![],
-            CanGc::from_cx(cx),
         );
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event.upcast::<Event>().fire(cx, target);
@@ -2671,6 +2668,7 @@ impl DocumentEventHandler {
         related_target: Option<&Element>,
     ) {
         let pointer_event = PointerEvent::new(
+            cx,
             &self.window,
             event_type.into(),
             bubbles,
@@ -2699,7 +2697,6 @@ impl DocumentEventHandler {
             is_primary,
             vec![],
             vec![],
-            CanGc::from_cx(cx),
         );
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event.upcast::<Event>().fire(cx, target.upcast());

@@ -580,6 +580,7 @@ impl Node {
 
         // <https://w3c.github.io/pointerevents/#the-click-auxclick-and-contextmenu-events>
         let pointer_event = PointerEvent::new(
+            cx,
             &window, // ambiguous in spec
             event_type,
             EventBubbles::Bubbles,              // Step 3: bubbles
@@ -608,7 +609,6 @@ impl Node {
             false,                              // is_primary
             vec![],                             // coalesced_events
             vec![],                             // predicted_events
-            CanGc::from_cx(cx),
         );
 
         // Step 4. Set event's composed flag.

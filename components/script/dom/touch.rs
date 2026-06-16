@@ -6,8 +6,9 @@ use std::f64::consts::PI;
 
 use dom_struct::dom_struct;
 use euclid::Point2D;
+use js::context::JSContext;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::num::Finite;
@@ -16,7 +17,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::pointerevent::PointerEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct Touch {
@@ -58,6 +58,7 @@ impl Touch {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         identifier: i32,
         target: &EventTarget,
@@ -67,14 +68,13 @@ impl Touch {
         client_y: Finite<f64>,
         page_x: Finite<f64>,
         page_y: Finite<f64>,
-        can_gc: CanGc,
     ) -> DomRoot<Touch> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Touch::new_inherited(
                 identifier, target, screen_x, screen_y, client_x, client_y, page_x, page_y,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -83,6 +83,7 @@ impl Touch {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn to_pointer_event(
         &self,
+        cx: &mut JSContext,
         window: &Window,
         event_type: &str,
         pointer_id: i32,
@@ -91,7 +92,6 @@ impl Touch {
         modifiers: keyboard_types::Modifiers,
         is_cancelable: bool,
         point_in_node: Option<euclid::Point2D<f32, style_traits::CSSPixel>>,
-        can_gc: CanGc,
     ) -> DomRoot<PointerEvent> {
         // Pressure is 0.5 for active touches, 0.0 for up/cancel/out/leave
         // <https://w3c.github.io/pointerevents/#dom-pointerevent-pressure>
@@ -141,6 +141,7 @@ impl Touch {
         };
 
         let pointer_event = PointerEvent::new(
+            cx,
             window,
             event_type.into(),
             bubbles,
@@ -169,7 +170,6 @@ impl Touch {
             is_primary,
             vec![], // coalesced_events
             vec![], // predicted_events
-            can_gc,
         );
 
         // https://w3c.github.io/pointerevents/#dfn-attributes-and-default-actions
