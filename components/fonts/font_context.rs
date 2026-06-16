@@ -38,6 +38,7 @@ use style::device::Device;
 use style::font_face::{
     FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source, SourceList, UrlSource,
 };
+use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{
@@ -655,7 +656,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
 
             let initiator = FontFaceRuleInitiator {
                 stylesheet: stylesheet.clone(),
-                font_face_rule: rule.clone(),
+                font_face_rule: rule.descriptors.clone(),
                 callback: finished_callback.clone(),
             };
 
@@ -923,7 +924,7 @@ pub(crate) type ScriptWebFontLoadFinishedCallback =
 
 pub(crate) struct FontFaceRuleInitiator {
     stylesheet: DocumentStyleSheet,
-    font_face_rule: FontFaceRule,
+    font_face_rule: FontFaceRuleDescriptors,
     callback: StylesheetWebFontLoadFinishedCallback,
 }
 
@@ -940,7 +941,7 @@ impl WebFontLoadInitiator {
         }
     }
 
-    pub(crate) fn font_face_rule(&self) -> Option<&FontFaceRule> {
+    pub(crate) fn font_face_rule(&self) -> Option<&FontFaceRuleDescriptors> {
         match self {
             Self::Stylesheet(initiator) => Some(&initiator.font_face_rule),
             Self::Script(_) => None,
