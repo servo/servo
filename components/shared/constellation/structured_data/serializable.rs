@@ -146,6 +146,7 @@ pub struct SerializableFile {
     pub blob_impl: BlobImpl,
     pub name: String,
     pub modified: i64,
+    pub webkit_relative_path: String,
 }
 
 impl BroadcastClone for SerializableFile {
@@ -165,6 +166,7 @@ impl BroadcastClone for SerializableFile {
             blob_impl,
             name: self.name.clone(),
             modified: self.modified,
+            webkit_relative_path: self.webkit_relative_path.clone(),
         })
     }
 }
