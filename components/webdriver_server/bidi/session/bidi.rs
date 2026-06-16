@@ -681,7 +681,7 @@ impl<'a> BidiSession<'a> {
             .await?
             .unwrap();
         // 3.
-        if navigable.webview_id.is_none() {
+        if !navigable.is_top_level_traversable() {
             return Err(ErrorCode::InvalidArgument);
         }
         // 4.
@@ -741,7 +741,7 @@ impl<'a> BidiSession<'a> {
             .unwrap();
         // 4. SKIP: Assert
         // 5.
-        if navigable.webview_id.is_none() {
+        if !navigable.is_top_level_traversable() {
             return Err(ErrorCode::InvalidArgument);
         }
         // 6. & 7.
@@ -802,7 +802,7 @@ impl<'a> BidiSession<'a> {
             {
                 // top-level only
                 // TODO: better distinguishable
-                if navigable.webview_id.is_some() {
+                if navigable.is_top_level_traversable() {
                     navigables.push(navigable.clone());
                 }
             }

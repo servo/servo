@@ -227,6 +227,11 @@ impl Navigable {
             log::warn!("WebDriver to script channel closed: {e:?}");
         };
     }
+
+    /// Checks whether the navigable is a top-level traversable.
+    pub(crate) fn is_top_level_traversable(&self) -> bool {
+        self.webview_id.is_some()
+    }
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
