@@ -5,19 +5,19 @@ use std::{
 };
 
 use indexmap::{IndexMap, IndexSet};
-use servo_base::{generic_channel::GenericCallback, id::BrowsingContextId};
-use tokio::sync::{RwLock, mpsc};
+use servo_base::id::BrowsingContextId;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 use webdriver_traits::{
     WebDriverToConstellationMessage, WebDriverToScriptMessage,
     bidi::{
         BrowsingContextCommand, BrowsingContextResult, CommandData, EmptyParams, EmptyResult,
         ErrorCode, Event, LogEvent, ResultData, SessionCommand, SessionResult, StorageCommand,
-        StorageResult,
+        StorageResult, WebExtensionCommand, WebExtensionResult,
         browsing_context::{self, NavigateResult},
         script::PreloadScript as PreloadScriptId,
         session::{self, Subscription as SubscriptionId},
-        storage,
+        storage, web_extension,
     },
 };
 
@@ -162,7 +162,17 @@ impl<'a> BidiSession<'a> {
                     .map(StorageResult::DeleteCookiesResult),
             }
             .map(|r| ResultData::StorageResult(Box::new(r))),
-            CommandData::WebExtensionCommand(cmd) => todo!(),
+            CommandData::WebExtensionCommand(cmd) => match cmd {
+                WebExtensionCommand::Install(cmd) => self
+                    .handle_web_extension_install(&cmd.params)
+                    .await
+                    .map(WebExtensionResult::InstallResult),
+                WebExtensionCommand::Uninstall(cmd) => self
+                    .handle_web_extension_uninstall(&cmd.params)
+                    .await
+                    .map(WebExtensionResult::UninstallResult),
+            }
+            .map(ResultData::WebExtensionResult),
         }
     }
 
@@ -758,6 +768,24 @@ impl<'a> BidiSession<'a> {
         command_parameters: &storage::DeleteCookiesParameters,
     ) -> Result<storage::DeleteCookiesResult, ErrorCode> {
         todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-webExtension-install>
+    async fn handle_web_extension_install(
+        &self,
+        _: &web_extension::InstallParameters,
+    ) -> Result<web_extension::InstallResult, ErrorCode> {
+        // TODO: blocked by web extension not implemented
+        Err(ErrorCode::UnsupportedOperation)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-webExtension-uninstall>
+    async fn handle_web_extension_uninstall(
+        &self,
+        _: &web_extension::UninstallParameters,
+    ) -> Result<web_extension::UninstallResult, ErrorCode> {
+        // TODO: blocked by web extension not implemented
+        Err(ErrorCode::UnsupportedOperation)
     }
 
     /// The "remote end subscribe" step for the event
