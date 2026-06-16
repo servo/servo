@@ -72,6 +72,29 @@ impl<'a> BidiSession<'a> {
         command: &CommandData,
     ) -> Result<ResultData, ErrorCode> {
         match command {
+            CommandData::SessionCommand(cmd) => match cmd {
+                SessionCommand::Status(cmd) => self
+                    .handle_session_status(&cmd.params)
+                    .await
+                    .map(SessionResult::StatusResult),
+                SessionCommand::New(cmd) => self
+                    .handle_session_new(&cmd.params)
+                    .await
+                    .map(|r| SessionResult::NewResult(Box::new(r))),
+                SessionCommand::End(cmd) => self
+                    .handle_session_end(&cmd.params)
+                    .await
+                    .map(SessionResult::EndResult),
+                SessionCommand::Subscribe(cmd) => self
+                    .handle_session_subscribe(&cmd.params)
+                    .await
+                    .map(SessionResult::SubscribeResult),
+                SessionCommand::Unsubscribe(cmd) => self
+                    .handle_session_unsubscribe(&cmd.params)
+                    .await
+                    .map(SessionResult::UnsubscribeResult),
+            }
+            .map(ResultData::SessionResult),
             CommandData::BrowserCommand(cmd) => match cmd {
                 BrowserCommand::Close(cmd) => self
                     .handle_browser_close(&cmd.params)
@@ -310,15 +333,6 @@ impl<'a> BidiSession<'a> {
                     .map(ScriptResult::RemovePreloadScriptResult),
             }
             .map(|r| ResultData::ScriptResult(Box::new(r))),
-            CommandData::SessionCommand(cmd) => match cmd {
-                SessionCommand::End(cmd) => self.handle_session_end(&cmd.params).await,
-                SessionCommand::New(cmd) => self.handle_session_new(&cmd.params).await,
-                SessionCommand::Status(cmd) => self.handle_session_status(&cmd.params).await,
-                SessionCommand::Subscribe(cmd) => self.handle_session_subscribe(&cmd.params).await,
-                SessionCommand::Unsubscribe(cmd) => {
-                    self.handle_session_unsubscribe(&cmd.params).await
-                },
-            },
             CommandData::StorageCommand(cmd) => match cmd {
                 StorageCommand::GetCookies(cmd) => self
                     .handle_storage_get_cookies(&cmd.params)
@@ -349,7 +363,10 @@ impl<'a> BidiSession<'a> {
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-session-status>
-    async fn handle_session_status(&mut self, _: &EmptyParams) -> Result<ResultData, ErrorCode> {
+    async fn handle_session_status(
+        &mut self,
+        _: &EmptyParams,
+    ) -> Result<session::StatusResult, ErrorCode> {
         // 1.
         let body = session::StatusResult {
             // Though BiDi spec does not mention this,
@@ -359,21 +376,24 @@ impl<'a> BidiSession<'a> {
             message: "".to_string(),
         };
         // 2.
-        Ok(ResultData::SessionResult(SessionResult::StatusResult(body)))
+        Ok(body)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-session-new>
     async fn handle_session_new(
         &mut self,
         _: &session::NewParameters,
-    ) -> Result<ResultData, ErrorCode> {
+    ) -> Result<session::NewResult, ErrorCode> {
         // 1. in bidi session, session if not null
         Err(ErrorCode::SessionNotCreated)
         // 2-9. SKIP
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-session-end>
-    async fn handle_session_end(&mut self, _: &EmptyParams) -> Result<ResultData, ErrorCode> {
+    async fn handle_session_end(
+        &mut self,
+        _: &EmptyParams,
+    ) -> Result<session::EndResult, ErrorCode> {
         // 1.
         self.end_the_session().await;
         // 3. cleanup should happens after response, see `handle_receiver`
@@ -381,18 +401,16 @@ impl<'a> BidiSession<'a> {
             log::warn!("Cleanup message sent failed: {e:?}");
         };
         // 2.
-        Ok(ResultData::SessionResult(SessionResult::EndResult(
-            EmptyResult {
-                extensible: Default::default(),
-            },
-        )))
+        Ok(EmptyResult {
+            extensible: Default::default(),
+        })
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-session-subscribe>
     async fn handle_session_subscribe(
         &mut self,
         command_parameters: &session::SubscribeParameters,
-    ) -> Result<ResultData, ErrorCode> {
+    ) -> Result<session::SubscribeResult, ErrorCode> {
         // 1.
         let mut event_names = HashSet::<String>::new();
         // 2.
@@ -476,16 +494,14 @@ impl<'a> BidiSession<'a> {
             subscription: subscription_id,
         };
         // 20.
-        Ok(ResultData::SessionResult(SessionResult::SubscribeResult(
-            body,
-        )))
+        Ok(body)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-session-unsubscribe>
     async fn handle_session_unsubscribe(
         &mut self,
         command_parameters: &session::UnsubscribeParameters,
-    ) -> Result<ResultData, ErrorCode> {
+    ) -> Result<session::UnsubscribeResult, ErrorCode> {
         match command_parameters {
             // 1.
             session::UnsubscribeParameters::UnsubscribeByAttributesRequest(command_parameters) => {
@@ -584,11 +600,9 @@ impl<'a> BidiSession<'a> {
             },
         }
         // 3.
-        Ok(ResultData::SessionResult(SessionResult::UnsubscribeResult(
-            EmptyResult {
-                extensible: Default::default(),
-            },
-        )))
+        Ok(EmptyResult {
+            extensible: Default::default(),
+        })
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-close>
