@@ -798,7 +798,11 @@ impl BoxFragment {
         let mut new_sticky_data = containing_block_info
             .for_non_absolute_descendants
             .sticky_data;
-        if let Some(ref mut sticky_data) = new_sticky_data {
+        // We want to skip leaving scroll frame for anonymous fragments,
+        // because anonymous fragment belong to same node as its closest non-anonymous child.
+        if let Some(ref mut sticky_data) = new_sticky_data &&
+            !self.base.is_anonymous()
+        {
             sticky_data.leave_scroll_frame();
         }
         let mut new_clip_id = containing_block.clip_id;
