@@ -165,10 +165,7 @@ fn find_or_claim_shared_worker(key: SharedWorkerKey) -> SharedWorkerClaimResult 
             SharedWorkerRegistryState::Created(registration) => {
                 return SharedWorkerClaimResult::Created(registration.clone());
             },
-            SharedWorkerRegistryState::Failed { .. } => {
-                workers = ready.wait(workers).expect("SharedWorker registry poisoned");
-                continue;
-            },
+            SharedWorkerRegistryState::Failed { waiters } => *waiters += 1,
         };
 
         loop {
@@ -190,7 +187,8 @@ fn find_or_claim_shared_worker(key: SharedWorkerKey) -> SharedWorkerClaimResult 
                     }
                     if *waiters == 0 {
                         workers.remove(index);
-                        ready.notify_all();
+                        // No notify needed here: this waiter has already observed
+                        // the failure and no waiter remains blocked on the condvar.
                     }
                     return SharedWorkerClaimResult::Failed;
                 },

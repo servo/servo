@@ -403,6 +403,9 @@ impl SharedWorkerGlobalScope {
 
                 let event_loop_sender = ScriptEventLoopSender::SharedWorker(own_sender.clone());
 
+                // Shared workers currently run on a dedicated script worker thread but
+                // still create their own JS runtime in that thread; this avoids child
+                // runtime lifetime coupling with the embedding script thread.
                 let runtime = Runtime::new(Some(event_loop_sender.clone()));
                 // SAFETY: We are in a new thread, so this first cx.
                 // It is OK to have it separated of runtime here,
@@ -489,6 +492,8 @@ impl SharedWorkerGlobalScope {
                     scope.clear_js_runtime();
                     return;
                 }
+                // Keep cleanup guard alive for the remainder of worker execution.
+                // It is intentionally unused because its Drop unregisters the worker.
                 let _registration_cleanup = SharedWorkerRegistrationCleanup { registration_id };
 
                 let fetch_client = ModuleFetchClient {
