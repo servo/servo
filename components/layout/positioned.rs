@@ -9,6 +9,7 @@ use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
+use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::{Direction, WritingMode};
@@ -502,6 +503,18 @@ impl HoistedAbsolutelyPositionedBox {
         independent_formatting_context
             .base
             .set_fragment(fragment.clone());
+
+        *independent_formatting_context
+            .layout_root_layout_inputs
+            .borrow_mut() = is_layout_root.then(|| {
+            Box::new(LayoutRootLayoutInputs {
+                fully_adjusted_static_position_rect,
+                resolved_alignment: self.resolved_alignment,
+                containing_block_size: containing_block.size,
+                containing_block_style: containing_block.style.clone(),
+                original_parent_writing_mode: self.original_parent_writing_mode,
+            })
+        });
 
         fragment
     }
@@ -1017,5 +1030,67 @@ pub(crate) fn relative_adjustement(
     LogicalVec2 {
         inline: adjust(box_offsets.inline_start, box_offsets.inline_end),
         block: adjust(box_offsets.block_start, box_offsets.block_end),
+    }
+}
+
+/// These are the recorded layout inputs that were used when laying out an
+/// absolutely-positioned element. They can be re-used when the absolutely-positioned
+/// element is a viable layout root (no escaping fixed position elements, currently). The
+/// information here is enough to re-run layout for an absolute.
+#[derive(MallocSizeOf)]
+pub(crate) struct LayoutRootLayoutInputs {
+    /// The fully adjusted static position rectangle used to lay out the absolute. This is
+    /// adjusted by the containing blocks of all of the boxes that come between an
+    /// absolute's tree position and its layout containing block.
+    fully_adjusted_static_position_rect: LogicalRect<Au>,
+    /// The resolved alignment to use when laying out the absolute. This comes from the
+    /// original box.
+    resolved_alignment: LogicalVec2<AlignFlags>,
+    /// This is the containing block size of the absolute's containing block. This is
+    /// stored here because it's easier to access than the parent box.
+    containing_block_size: LogicalVec2<Au>,
+    /// This is the style of the containing block. This is stored here because it's easier
+    /// to access than the parent box.
+    #[conditional_malloc_size_of]
+    containing_block_style: ServoArc<ComputedValues>,
+    /// This is the writing mode of the absolute's tree parent.
+    original_parent_writing_mode: WritingMode,
+}
+
+impl std::fmt::Debug for LayoutRootLayoutInputs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LayoutRootLayoutInputs")
+            .field("containing_block_size", &self.containing_block_size)
+            .finish()
+    }
+}
+
+impl LayoutRootLayoutInputs {
+    /// Re-run layout for the given inputs. This is used to run layout again at layout
+    /// roots.
+    pub(crate) fn layout(
+        &self,
+        layout_context: &LayoutContext,
+        context: &IndependentFormattingContext,
+        shared_fragment: &ArcRefCell<HoistedSharedFragment>,
+    ) -> Result<(), ()> {
+        let containing_block = DefiniteContainingBlock {
+            size: self.containing_block_size,
+            style: &self.containing_block_style,
+        };
+        let (box_fragment, positioning_context) = context.layout_as_absolute(
+            layout_context,
+            &self.fully_adjusted_static_position_rect,
+            &containing_block,
+            self.resolved_alignment,
+            self.original_parent_writing_mode,
+        );
+
+        if !positioning_context.is_empty() {
+            return Err(());
+        }
+
+        shared_fragment.borrow_mut().fragment = Some(Fragment::Box(box_fragment));
+        Ok(())
     }
 }

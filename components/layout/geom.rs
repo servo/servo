@@ -33,7 +33,7 @@ pub struct LogicalVec2<T> {
     pub block: T,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, MallocSizeOf)]
 pub struct LogicalRect<T> {
     pub start_corner: LogicalVec2<T>,
     pub size: LogicalVec2<T>,

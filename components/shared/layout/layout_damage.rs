@@ -8,7 +8,7 @@ use style::selector_parser::RestyleDamage;
 bitflags! {
     /// Individual layout actions that may be necessary after restyling. This is an extension
     /// of `RestyleDamage` from stylo, which only uses the 4 lower bits.
-    #[derive(Clone, Copy, Default, Eq, PartialEq)]
+    #[derive(Clone, Copy, Debug,Default, Eq, PartialEq)]
     pub struct LayoutDamage: u16 {
         // Layout Modes
         //
@@ -26,10 +26,8 @@ bitflags! {
         // Layout-specific damage
         /// Clear the cached inline content sizes and recompute them during the next layout.
         const RecomputeInlineContentSizes = 0b1000_0000_0000_0000;
-        /// There is a change in a descendant of this box that can affect its layout.
-        /// This flag is not propagated upwards when encountering an absolutely positioned
-        /// box, since it's out-of-flow.
-        const LayoutAffectedByInflowDescendant = 0b0100_0000_0000_0000;
+        /// A descendant was collected as a layout root for fragment tree layout.
+        const DescendantCollectedAsLayoutRoot = 0b0100_0000_0000_0000;
         /// Rebuild this box and all of its ancestors. Do not rebuild any children. This
         /// is used when a box's content (such as text content) changes or a descendant
         /// has box damage ([`Self::BOX_DAMAGE`]).
@@ -55,17 +53,5 @@ impl From<RestyleDamage> for LayoutDamage {
 impl From<LayoutDamage> for RestyleDamage {
     fn from(layout_damage: LayoutDamage) -> Self {
         RestyleDamage::from_bits_retain(layout_damage.bits())
-    }
-}
-
-impl std::fmt::Debug for LayoutDamage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.contains(Self::BoxDamage) {
-            f.write_str("REBUILD_BOX")
-        } else if self.contains(Self::DescendantHasBoxDamage) {
-            f.write_str("RECOLLECT_BOX_TREE_CHILDREN")
-        } else {
-            f.write_str("EMPTY")
-        }
     }
 }

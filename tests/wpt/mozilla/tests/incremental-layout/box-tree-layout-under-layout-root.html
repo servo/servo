@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#abspos { position: absolute }
+#flow_root { display: flow-root; }
+</style>
+<div id="container">
+  <div id="abspos">
+      <div id="flow_root"> <!-- This should isolate box tree damage from abspos -->
+          <div id="abspos_child"></div>
+      </div>
+  </div>
+</div>
+
+<script>
+setup({explicit_done:true});
+
+window.onload = () => {
+    test((t) => {
+        ServoTestUtils.forceLayout();
+
+        // Force a new box tree rebuild at abspos_child. This will be converted to
+        // a fragment tree layout at flow-root. Then abspos will be collected as
+        // a layout root, so only three fragments will be laid out again. This is
+        // typical layout root layout.
+        abspos_child.innerHTML = "<div></div>";
+        t.add_cleanup(() => {
+            abspos_child.innerHTML = "";
+        });
+
+        let result = ServoTestUtils.forceLayout();
+
+        // new div + abspos_child + flow_root + abspos
+        assert_equals(result.rebuiltFragmentCount, 4, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+    }, "Box tree layout should be contained by layout roots");
+
+    test((t) => {
+        ServoTestUtils.forceLayout();
+
+        // Force a new box tree rebuild at abspos_child. This will be converted to
+        // a fragment tree layout at flow-root. Then abspos will be collected as
+        // a layout root, but eventually discarded, because abspos_child now escapes
+        // as a new fixed position.
+        abspos_child.style.position = "fixed";
+        t.add_cleanup(() => {
+            abspos_child.style.position = "static";
+        });
+
+        let result = ServoTestUtils.forceLayout();
+
+        // abspos_child + flow_root + abspos + container + body + html
+        assert_equals(result.rebuiltFragmentCount, 6, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+    }, "New fixed position elements escaping layout roots fall back to full layout");
+
+    done();
+}
+</script>
