@@ -12,9 +12,10 @@ use webdriver_traits::{
     WebDriverToConstellationMessage, WebDriverToScriptMessage,
     bidi::{
         BrowserCommand, BrowserResult, BrowsingContextCommand, BrowsingContextResult, CommandData,
-        EmptyParams, EmptyResult, EmulationCommand, EmulationResult, ErrorCode, Event, LogEvent,
-        ResultData, SessionCommand, SessionResult, StorageCommand, StorageResult,
-        WebExtensionCommand, WebExtensionResult, browser, browsing_context, emulation,
+        EmptyParams, EmptyResult, EmulationCommand, EmulationResult, ErrorCode, Event,
+        InputCommand, InputResult, LogEvent, ResultData, SessionCommand, SessionResult,
+        StorageCommand, StorageResult, WebExtensionCommand, WebExtensionResult, browser,
+        browsing_context, emulation, input,
         script::PreloadScript as PreloadScriptId,
         session::{self, Subscription as SubscriptionId},
         storage, web_extension,
@@ -211,7 +212,21 @@ impl<'a> BidiSession<'a> {
                     .map(EmulationResult::SetUserAgentOverrideResult),
             }
             .map(ResultData::EmulationResult),
-            CommandData::InputCommand(cmd) => todo!(),
+            CommandData::InputCommand(cmd) => match cmd {
+                InputCommand::PerformActions(cmd) => self
+                    .handle_input_perform_actions(&cmd.params)
+                    .await
+                    .map(InputResult::PerformActionsResult),
+                InputCommand::ReleaseActions(cmd) => self
+                    .handle_input_release_actions(&cmd.params)
+                    .await
+                    .map(InputResult::ReleaseActionsResult),
+                InputCommand::SetFiles(cmd) => self
+                    .handle_input_set_files(&cmd.params)
+                    .await
+                    .map(InputResult::SetFilesResult),
+            }
+            .map(ResultData::InputResult),
             CommandData::NetworkCommand(cmd) => todo!(),
             CommandData::ScriptCommand(cmd) => todo!(),
             CommandData::SessionCommand(cmd) => match cmd {
@@ -1056,6 +1071,30 @@ impl<'a> BidiSession<'a> {
         let body = storage::DeleteCookiesResult { partition_key };
         // 8.
         Ok(body)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-input-performActions>
+    async fn handle_input_perform_actions(
+        &self,
+        _: &input::PerformActionsParameters,
+    ) -> Result<input::PerformActionsResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-input-releaseActions>
+    async fn handle_input_release_actions(
+        &self,
+        _: &input::ReleaseActionsParameters,
+    ) -> Result<input::ReleaseActionsResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-input-setFiles>
+    async fn handle_input_set_files(
+        &self,
+        _: &input::SetFilesParameters,
+    ) -> Result<input::SetFilesResult, ErrorCode> {
+        todo!()
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#expand-a-partition-key>
