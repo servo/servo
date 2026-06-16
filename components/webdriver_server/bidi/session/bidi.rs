@@ -701,19 +701,19 @@ impl<'a> BidiSession<'a> {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-startScreencast>
     async fn handle_browsing_context_start_screencast(
         &self,
-        command_parameters: &browsing_context::StartScreencastParameters,
+        _: &browsing_context::StartScreencastParameters,
     ) -> Result<browsing_context::StartScreencastResult, ErrorCode> {
-        // TODO:
-        todo!()
+        // TODO: spec is actively changing, deferred
+        Err(ErrorCode::UnsupportedOperation)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-stopScreencast>
     async fn handle_browsing_context_stop_screencast(
         &self,
-        command_parameters: &browsing_context::StopScreencastParameters,
+        _: &browsing_context::StopScreencastParameters,
     ) -> Result<browsing_context::StopScreencastResult, ErrorCode> {
-        // TODO:
-        todo!()
+        // TODO: spec is actively changing, deferred
+        Err(ErrorCode::UnsupportedOperation)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-traverseHistory>
@@ -769,21 +769,23 @@ impl<'a> BidiSession<'a> {
         Ok(body)
     }
 
-    /// <https://www.w3.org/TR/webdriver-bidi/#expand-a-partition-key>
-    async fn expand_a_storage_partition(
-        &self,
-        partition_spec: Option<storage::PartitionDescriptor>,
-    ) -> Result<storage::PartitionKey, ErrorCode> {
-        // TODO
-        todo!()
-    }
-
     /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-setCookie>
     async fn handle_storage_set_cookie(
         &self,
         command_parameters: &storage::SetCookieParameters,
     ) -> Result<storage::SetCookieResult, ErrorCode> {
-        todo!()
+        // 1.
+        let cookie_spec = &command_parameters.cookie;
+        // 2.
+        let partition_sepc = command_parameters.partition.clone();
+        // 3.
+        let partition_key = self.expand_a_storage_partition(partition_sepc).await?;
+        // 4.
+        // 5-6. TODO: continue in resource thread
+        // 7.
+        let body = storage::SetCookieResult { partition_key };
+        // 8.
+        Ok(body)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-deleteCookies>
@@ -791,6 +793,15 @@ impl<'a> BidiSession<'a> {
         &self,
         command_parameters: &storage::DeleteCookiesParameters,
     ) -> Result<storage::DeleteCookiesResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#expand-a-partition-key>
+    async fn expand_a_storage_partition(
+        &self,
+        partition_spec: Option<storage::PartitionDescriptor>,
+    ) -> Result<storage::PartitionKey, ErrorCode> {
+        // TODO
         todo!()
     }
 
