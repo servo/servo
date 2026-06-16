@@ -9273,6 +9273,7 @@ dependencies = [
  "servo-devtools-traits",
  "servo-embedder-traits",
  "servo-geometry",
+ "servo-net-traits",
  "servo-url",
  "servo-webdriver-traits",
  "stylo_traits",

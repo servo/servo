@@ -135,6 +135,7 @@ impl<'a> StaticSession<'a> {
             running: true,
             remote_end_state: self.common.remote_end_state.clone(),
             embedder_proxy: self.common.embedder_proxy.clone(),
+            resource_threads: self.common.resource_threads.clone(),
             constellation_sender: self.common.constellation_sender.clone(),
             session_sender,
             session_receiver,

@@ -5,6 +5,7 @@ use std::{ops::Deref, rc::Rc};
 
 use crossbeam_channel::Sender;
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
+use net_traits::ResourceThreads;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
@@ -39,6 +40,7 @@ pub struct CommonPart {
     pub(crate) running: bool,
     pub(crate) remote_end_state: Rc<RemoteEndState>,
     pub(crate) embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+    pub(crate) resource_threads: ResourceThreads,
     pub(crate) constellation_sender: Sender<WebDriverToConstellationMessage>,
     pub(crate) session_sender: UnboundedSender<SessionMessage>,
     pub(crate) session_receiver: UnboundedReceiver<SessionMessage>,

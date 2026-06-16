@@ -18,6 +18,7 @@ use async_tungstenite::tungstenite;
 use crossbeam_channel::Sender;
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
 use futures_util::stream::StreamExt;
+use net_traits::ResourceThreads;
 use tokio::{
     sync::mpsc::{self, UnboundedSender},
     task,
@@ -55,9 +56,15 @@ impl Session {
     pub(crate) fn start_static(
         remote_end_state: Rc<RemoteEndState>,
         embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+        resource_threads: ResourceThreads,
         constellation_sender: Sender<WebDriverToConstellationMessage>,
     ) -> (task::JoinHandle<()>, UnboundedSender<SessionMessage>) {
-        let session = Self::new_static(remote_end_state, embedder_proxy, constellation_sender);
+        let session = Self::new_static(
+            remote_end_state,
+            embedder_proxy,
+            resource_threads,
+            constellation_sender,
+        );
         let sender = session.session_sender.clone();
         let handle = task::spawn_local(session.run());
         (handle, sender)
@@ -69,6 +76,7 @@ impl Session {
     fn new_static(
         remote_end_state: Rc<RemoteEndState>,
         embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+        resource_threads: ResourceThreads,
         constellation_sender: Sender<WebDriverToConstellationMessage>,
     ) -> Self {
         let (sender, receiver) = mpsc::unbounded_channel();
@@ -76,6 +84,7 @@ impl Session {
             running: true,
             remote_end_state,
             embedder_proxy,
+            resource_threads,
             constellation_sender,
             session_sender: sender,
             session_receiver: receiver,

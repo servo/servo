@@ -929,14 +929,6 @@ impl Servo {
             None
         };
 
-        let (webdriver_sender, webdriver_receiver) = if pref!(devtools_server_enabled) {
-            let (sender, receiver) =
-                webdriver_server::bidi::WebDriverBidiThread::start(embedder_proxy.clone());
-            (Some(sender), Some(receiver))
-        } else {
-            (None, None)
-        };
-
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
         let js_engine_setup = if !opts.multiprocess {
@@ -983,6 +975,16 @@ impl Servo {
             opts.config_dir.clone(),
             opts.temporary_storage,
         );
+
+        let (webdriver_sender, webdriver_receiver) = if pref!(devtools_server_enabled) {
+            let (sender, receiver) = webdriver_server::bidi::WebDriverBidiThread::start(
+                embedder_proxy.clone(),
+                public_resource_threads.clone(),
+            );
+            (Some(sender), Some(receiver))
+        } else {
+            (None, None)
+        };
 
         create_constellation(
             embedder_to_constellation_receiver,

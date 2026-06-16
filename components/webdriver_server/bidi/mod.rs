@@ -14,6 +14,7 @@ use std::{
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::WorkerId;
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
+use net_traits::ResourceThreads;
 use servo_base::{
     generic_channel::GenericSender,
     id::{BrowsingContextId, PipelineId, WebViewId},
@@ -46,6 +47,7 @@ pub struct WebDriverBidiThread {
     port: u16,
     embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
     constellation_sender: Sender<WebDriverToConstellationMessage>,
+    resource_threads: ResourceThreads,
     // Remote end states are shared across all sessions.
     // Though this is a single threaded
     remote_end_state: Rc<RemoteEndState>,
@@ -54,6 +56,7 @@ pub struct WebDriverBidiThread {
 impl WebDriverBidiThread {
     pub fn start(
         embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+        resource_threads: ResourceThreads,
     ) -> (
         UnboundedSender<WebDriverMessage>,
         Receiver<WebDriverToConstellationMessage>,
@@ -64,7 +67,8 @@ impl WebDriverBidiThread {
         thread::Builder::new()
             .name("WebDriverBiDi".to_string())
             .spawn(move || {
-                WebDriverBidiThread::new(0, embedder_proxy, w2c_sender).run(c2w_receiver);
+                WebDriverBidiThread::new(0, embedder_proxy, resource_threads, w2c_sender)
+                    .run(c2w_receiver);
             })
             .expect("Thread spawning failed");
 
@@ -74,11 +78,13 @@ impl WebDriverBidiThread {
     fn new(
         port: u16,
         embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+        resource_threads: ResourceThreads,
         constellation_sender: Sender<WebDriverToConstellationMessage>,
     ) -> Self {
         Self {
             port,
             embedder_proxy,
+            resource_threads,
             constellation_sender,
             remote_end_state: Default::default(),
         }
@@ -91,11 +97,13 @@ impl WebDriverBidiThread {
             .block_on(async move {
                 let remote_end_state = &self.remote_end_state;
                 let embedder_proxy = &self.embedder_proxy;
+                let resource_threads = &self.resource_threads;
                 let constellation_sender = &self.constellation_sender;
 
                 let (_, sender) = Session::start_static(
                     remote_end_state.clone(),
                     embedder_proxy.clone(),
+                    resource_threads.clone(),
                     constellation_sender.clone(),
                 );
                 Listener::start(address, remote_end_state.clone(), sender);
