@@ -27,7 +27,7 @@ use webdriver_traits::{
 };
 
 use crate::bidi::{
-    ActiveSessions,
+    ActiveSessions, ClientWindow,
     callback::new_oneshot_callback,
     connection::Connection,
     session::common::{CommonPart, SessionId, SessionMessage},
@@ -657,9 +657,33 @@ impl<'a> BidiSession<'a> {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-getClientWindows>
     async fn handle_browser_get_client_windows(
         &self,
-        command_parameters: &EmptyParams,
+        _: &EmptyParams,
     ) -> Result<browser::GetClientWindowsResult, ErrorCode> {
-        todo!()
+        // 1.
+        let mut client_window_ids = HashSet::new();
+        // 2.
+        let mut client_windows = vec![];
+        // 3.
+        for traversable in self.common.remote_end_state.top_level_traversables() {
+            // 3.1.
+            let client_window = traversable.associated_client_window();
+            // 3.2.
+            let client_window_id = client_window.id;
+            // 3.3.
+            if client_window_ids.contains(&client_window_id) {
+                continue;
+            }
+            // 3.4.
+            client_window_ids.insert(client_window_id);
+            // 3.5.
+            let client_window_info = self.get_the_client_window_info(client_window).await?;
+            // 3.6.
+            client_windows.push(client_window_info);
+        }
+        // 4.
+        let result = browser::GetClientWindowsResult { client_windows };
+        // 5.
+        Ok(result)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-removeUserContext>
@@ -1531,6 +1555,15 @@ impl<'a> BidiSession<'a> {
             return Err(ErrorCode::UnknownError);
         }
         Ok(())
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#get-the-client-window-info>
+    async fn get_the_client_window_info(
+        &self,
+        client_window: ClientWindow,
+    ) -> Result<browser::ClientWindowInfo, ErrorCode> {
+        // TODO: should send command to embedder
+        todo!()
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#buffer-a-log-event>

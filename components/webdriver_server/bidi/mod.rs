@@ -17,7 +17,7 @@ use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
 use net_traits::ResourceThreads;
 use servo_base::{
     generic_channel::GenericSender,
-    id::{BrowsingContextId, PipelineId, WebViewId},
+    id::{BrowsingContextId, PainterId, PipelineId, WebViewId},
 };
 use tokio::sync::{
     RwLock,
@@ -212,7 +212,13 @@ impl RemoteEndState {
         // 4.
         Ok(navigable)
     }
+
+    pub(crate) fn top_level_traversables(&self) -> Vec<TopLevelTraversable> {
+        todo!()
+    }
 }
+
+// TODO: have a correct representation and storage of hierarchy
 
 #[derive(Clone)]
 pub(crate) struct Navigable {
@@ -244,3 +250,15 @@ impl Navigable {
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct RealmId(pub(crate) PipelineId, pub(crate) Option<WorkerId>);
+
+pub struct TopLevelTraversable {}
+
+impl TopLevelTraversable {
+    fn associated_client_window(&self) -> ClientWindow {
+        todo!()
+    }
+}
+
+pub struct ClientWindow {
+    id: PainterId,
+}
