@@ -5,7 +5,7 @@ use std::{
 };
 
 use indexmap::{IndexMap, IndexSet};
-use servo_base::id::BrowsingContextId;
+use servo_base::id::{BrowsingContextId, WebViewId};
 use tokio::{
     sync::{RwLock, oneshot},
     task,
@@ -783,13 +783,51 @@ impl<'a> BidiSession<'a> {
         })
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-create>
     async fn handle_browsing_context_create(
         &self,
         command_parameters: &browsing_context::CreateParameters,
     ) -> Result<browsing_context::CreateResult, ErrorCode> {
-        // TODO:
-        todo!()
+        // 1.
+        let r#type = &command_parameters.r#type;
+        // 2.
+        let reference_navigable_id = command_parameters
+            .reference_context
+            .as_deref()
+            .map(|s| BrowsingContextId::from_string(s).ok_or(ErrorCode::InvalidArgument))
+            .transpose()?;
+        // 3.
+        let reference_naviable = match reference_navigable_id {
+            Some(id) => self.common.remote_end_state.get_a_navigable(id).await?,
+            None => None,
+        };
+        // 4.
+        if let Some(reference_navigable) = reference_naviable
+            && !reference_navigable.is_top_level_traversable()
+        {
+            return Err(ErrorCode::InvalidArgument);
+        }
+        // 5. SKIP: implementation-defined
+        // 6-9: TODO: blocked by user context not implemented
+        // 10. SKIP: implementation-defined
+        // 11. TODO: setting user context
+        let traversable = self
+            .create_a_new_top_level_traversable(None, "".to_string(), r#type.clone())
+            .await?;
+        // 12.
+        if !command_parameters.background.unwrap_or(false) {
+            // 12.1.
+            let activate_result = self.activate_a_navigable(traversable.1).await;
+            // 12.2.
+            activate_result?;
+        }
+        // 13.
+        let body = browsing_context::CreateResult {
+            context: "".to_string(),
+            user_context: None,
+        };
+        // 14.
+        Ok(body)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-getTree>
@@ -1447,6 +1485,16 @@ impl<'a> BidiSession<'a> {
         }
         // result in handle a connection closing
         self.bidi.connections.clear();
+    }
+
+    async fn create_a_new_top_level_traversable(
+        &self,
+        opener: Option<BrowsingContextId>,
+        target_name: String,
+        r#type: browsing_context::CreateType,
+    ) -> Result<(WebViewId, BrowsingContextId), ErrorCode> {
+        // TODO: send to constellation
+        todo!()
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#buffer-a-log-event>
