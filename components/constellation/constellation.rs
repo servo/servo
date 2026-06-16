@@ -1257,6 +1257,7 @@ where
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangMonitorAlert),
             Embedder(EmbedderToConstellationMessage),
+            WebDriver(WebDriverToConstellationMessage),
             RemoveProcess(usize),
         }
         // Get one incoming request.
@@ -1275,6 +1276,12 @@ where
         sel.recv(&self.script_receiver);
         sel.recv(&self.background_hang_monitor_receiver);
         sel.recv(&self.embedder_to_constellation_receiver);
+
+        let mut process_offset = 4;
+        if let Some(webdriver_receiver) = &self.webdriver_receiver {
+            process_offset += 1;
+            sel.recv(webdriver_receiver);
+        }
 
         self.process_manager.register(&mut sel);
 
@@ -1302,9 +1309,14 @@ where
                     oper.recv(&self.embedder_to_constellation_receiver)
                         .expect("Unexpected embedder channel panic in constellation"),
                 )),
+                4 if let Some(webdriver_receiver) = &self.webdriver_receiver => {
+                    Ok(Request::WebDriver(oper.recv(&webdriver_receiver).expect(
+                        "Unexpected webdriver channel panic in constellation",
+                    )))
+                },
                 _ => {
                     // This can only be a error reading on a closed lifeline receiver.
-                    let process_index = index - 4;
+                    let process_index = index - process_offset;
                     let _ = oper.recv(self.process_manager.receiver_at(process_index));
                     Ok(Request::RemoveProcess(process_index))
                 },
@@ -1321,6 +1333,7 @@ where
                 self.handle_request_for_pipeline_namespace(message)
             },
             Request::Embedder(message) => self.handle_request_from_embedder(message),
+            Request::WebDriver(message) => self.handle_request_from_webdriver(message),
             Request::Script(message) => {
                 self.handle_request_from_script(message);
             },
@@ -1589,6 +1602,31 @@ where
             EmbedderToConstellationMessage::SetAccessibilityActive(webview_id, active) => {
                 self.set_accessibility_active(webview_id, active);
             },
+        }
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn handle_request_from_webdriver(&mut self, message: WebDriverToConstellationMessage) {
+        match message {
+            WebDriverToConstellationMessage::Activate(namespace_index, generic_callback) => todo!(),
+            // Close a top-level traversable.
+            WebDriverToConstellationMessage::CloseWebView {
+                webview_id,
+                callback,
+                // TODO: prompt_iunload is ignored temporily
+                ..
+            } => {
+                self.handle_close_top_level_browsing_context(webview_id);
+                if let Err(e) = callback.send(true) {
+                    warn!("Error replying to webdriver close webview ({})", e);
+                };
+            },
+            WebDriverToConstellationMessage::Request(_) => todo!(),
+            WebDriverToConstellationMessage::TraverseHistory(
+                namespace_index,
+                _,
+                generic_callback,
+            ) => todo!(),
         }
     }
 

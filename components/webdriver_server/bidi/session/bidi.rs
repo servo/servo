@@ -634,7 +634,7 @@ impl<'a> BidiSession<'a> {
         for traversable in self.common.remote_end_state.top_level_traversables() {
             let (callback, receiver) = new_oneshot_callback();
             self.send_to_constellation(WebDriverToConstellationMessage::CloseWebView {
-                id: traversable.webview_id,
+                webview_id: traversable.webview_id,
                 prompt_unload: false,
                 callback,
             })?;

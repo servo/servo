@@ -29,7 +29,7 @@ TODO: write doc for this part.
 
 | Command                        | Status | Details                                  |
 | ------------------------------ | ------ | ---------------------------------------- |
-| `browser.close`                | 🚧     | Server side done, message not handled.   |
+| `browser.close`                | ✅     |                                          |
 | `browser.getClientWindows`     | 🚧     | Server side done, message not handled.   |
 | `browser.setClientWindowState` | ❌     |                                          |
 | `browser.createUserContext`    | ⛔     | Blocked by user context not implemented. |

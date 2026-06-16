@@ -79,7 +79,7 @@ pub enum ScriptToWebDriverMessage {
 pub enum WebDriverToConstellationMessage {
     Activate(BrowsingContextId, GenericCallback<bool>),
     CloseWebView {
-        id: WebViewId,
+        webview_id: WebViewId,
         prompt_unload: bool,
         callback: GenericCallback<bool>,
     },
