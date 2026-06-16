@@ -34,9 +34,9 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAdapterMethods, GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
     GPUDeviceMethods, GPUErrorFilter, GPUPipelineErrorReason, GPUPipelineLayoutDescriptor,
-    GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerDescriptor,
-    GPUShaderModuleDescriptor, GPUTextureDescriptor, GPUTextureFormat, GPUUncapturedErrorEventInit,
-    GPUVertexStepMode,
+    GPUQuerySetDescriptor, GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor,
+    GPUSamplerDescriptor, GPUShaderModuleDescriptor, GPUTextureDescriptor, GPUTextureFormat,
+    GPUUncapturedErrorEventInit, GPUVertexStepMode,
 };
 use crate::dom::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -50,7 +50,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::types::GPUError;
+use crate::dom::types::{GPUError, GPUQuerySet};
 use crate::dom::webgpu::gpuadapter::GPUAdapter;
 use crate::dom::webgpu::gpuadapterinfo::GPUAdapterInfo;
 use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
@@ -586,6 +586,15 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         descriptor: &GPURenderBundleEncoderDescriptor,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
         GPURenderBundleEncoder::create(cx, self, descriptor)
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createqueryset>
+    fn CreateQuerySet(
+        &self,
+        cx: &mut JSContext,
+        descriptor: &GPUQuerySetDescriptor,
+    ) -> Fallible<DomRoot<GPUQuerySet>> {
+        GPUQuerySet::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope>
