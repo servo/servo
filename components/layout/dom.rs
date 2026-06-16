@@ -98,7 +98,7 @@ impl InnerDOMLayoutData {
         }
     }
 
-    fn with_layout_box_base(&self, callback: impl FnMut(&LayoutBoxBase)) {
+    fn with_layout_box_base(&self, callback: impl FnOnce(&LayoutBoxBase)) {
         if let Some(data) = self.self_box.borrow().as_ref() {
             data.with_base(callback);
         }

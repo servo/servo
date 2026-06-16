@@ -27,11 +27,11 @@ bitflags! {
         /// Clear the cached inline content sizes and recompute them during the next layout.
         const RecomputeInlineContentSizes = 0b1000_0000_0000_0000;
         /// A descendant was collected as a layout root for fragment tree layout.
-        const DescendantCollectedAsLayoutRoot = 0b0010_0000_0000_0000;
+        const DescendantCollectedAsLayoutRoot = 0b0100_0000_0000_0000;
         /// Rebuild this box and all of its ancestors. Do not rebuild any children. This
         /// is used when a box's content (such as text content) changes or a descendant
         /// has box damage ([`Self::BOX_DAMAGE`]).
-        const DescendantHasBoxDamage = 0b0001_1111_1111_0000;
+        const DescendantHasBoxDamage = 0b0011_1111_1111_0000;
         /// Rebuild this box, all of its ancestors and all of its descendants. This is the
         /// most a box can be damaged.
         const BoxDamage = 0b1111_1111_1111_0000;
