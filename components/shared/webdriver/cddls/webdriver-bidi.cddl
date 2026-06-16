@@ -8,6 +8,7 @@
 ; Manual patches:
 ;
 ; EmulationResult +/ emulation.SetNetworkConditionsResult
+; EmulationResult +/ emulation.SetScreenSettingsResult
 
 Command = {
   id: js-uint,
@@ -959,6 +960,7 @@ EmulationResult = (
   emulation.SetLocaleOverrideResult /
   emulation.SetNetworkConditionsResult /
   emulation.SetScreenOrientationOverrideResult /
+  emulation.SetScreenSettingsOverrideResult /
   emulation.SetScriptingEnabledResult /
   emulation.SetScrollbarTypeOverrideResult /
   emulation.SetTimezoneOverrideResult /

@@ -12,10 +12,9 @@ use webdriver_traits::{
     WebDriverToConstellationMessage, WebDriverToScriptMessage,
     bidi::{
         BrowserCommand, BrowserResult, BrowsingContextCommand, BrowsingContextResult, CommandData,
-        EmptyParams, EmptyResult, ErrorCode, Event, LogEvent, ResultData, SessionCommand,
-        SessionResult, StorageCommand, StorageResult, WebExtensionCommand, WebExtensionResult,
-        browser,
-        browsing_context::{self, NavigateResult},
+        EmptyParams, EmptyResult, EmulationCommand, EmulationResult, ErrorCode, Event, LogEvent,
+        ResultData, SessionCommand, SessionResult, StorageCommand, StorageResult,
+        WebExtensionCommand, WebExtensionResult, browser, browsing_context, emulation,
         script::PreloadScript as PreloadScriptId,
         session::{self, Subscription as SubscriptionId},
         storage, web_extension,
@@ -165,7 +164,53 @@ impl<'a> BidiSession<'a> {
                     .map(BrowsingContextResult::TraverseHistoryResult),
             }
             .map(ResultData::BrowsingContextResult),
-            CommandData::EmulationCommand(cmd) => todo!(),
+            CommandData::EmulationCommand(cmd) => match cmd {
+                EmulationCommand::SetForcedColorsModeThemeOverride(cmd) => self
+                    .handle_emulation_set_forced_colors_mode_theme_overrde(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetForcedColorsModeThemeOverrideResult),
+                EmulationCommand::SetGeolocationOverride(cmd) => self
+                    .handle_emulation_set_geolocation_override(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetGeolocationOverrideResult),
+                EmulationCommand::SetLocaleOverride(cmd) => self
+                    .handle_emulation_set_locale_override(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetLocaleOverrideResult),
+                EmulationCommand::SetNetworkConditions(cmd) => self
+                    .handle_emulation_set_network_conditions(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetNetworkConditionsResult),
+                EmulationCommand::SetScreenOrientationOverride(cmd) => self
+                    .handle_emulation_set_screen_orientation_override(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetScreenOrientationOverrideResult),
+                EmulationCommand::SetScreenSettingsOverride(cmd) => self
+                    .handle_emulation_set_screen_settings_override(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetScreenSettingsOverrideResult),
+                EmulationCommand::SetScriptingEnabled(cmd) => self
+                    .handle_emulation_set_scripting_enabled(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetScriptingEnabledResult),
+                EmulationCommand::SetScrollbarTypeOverride(cmd) => self
+                    .handle_emulation_set_scrollbar_type_override(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetScrollbarTypeOverrideResult),
+                EmulationCommand::SetTimezoneOverride(cmd) => self
+                    .handle_emulation_set_timezone_override(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetTimezoneOverrideResult),
+                EmulationCommand::SetTouchOverride(cmd) => self
+                    .handle_emulation_set_touch_override(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetTouchOverrideResult),
+                EmulationCommand::SetUserAgentOverride(cmd) => self
+                    .handle_emulation_set_user_agent_override(&cmd.params)
+                    .await
+                    .map(EmulationResult::SetUserAgentOverrideResult),
+            }
+            .map(ResultData::EmulationResult),
             CommandData::InputCommand(cmd) => todo!(),
             CommandData::NetworkCommand(cmd) => todo!(),
             CommandData::ScriptCommand(cmd) => todo!(),
@@ -816,6 +861,106 @@ impl<'a> BidiSession<'a> {
         todo!()
     }
 
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setForcedColorsModeThemeOverride>
+    async fn handle_emulation_set_forced_colors_mode_theme_overrde(
+        &self,
+        _: &emulation::SetForcedColorsModeThemeOverrideParameters,
+    ) -> Result<emulation::SetForcedColorsModeThemeOverrideResult, ErrorCode> {
+        // TODO: blocked by forced colors mode not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setGeolocationOverride>
+    async fn handle_emulation_set_geolocation_override(
+        &self,
+        _: &emulation::SetGeolocationOverrideParameters,
+    ) -> Result<emulation::SetGeolocationOverrideResult, ErrorCode> {
+        // TODO: blocked by geolocation not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setLocaleOverride>
+    async fn handle_emulation_set_locale_override(
+        &self,
+        _: &emulation::SetLocaleOverrideParameters,
+    ) -> Result<emulation::SetLocaleOverrideResult, ErrorCode> {
+        // TODO: blocked by `CURRENT_LOCAL` is `OnceLock`
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setNetworkConditions>
+    async fn handle_emulation_set_network_conditions(
+        &self,
+        _: &emulation::SetNetworkConditionsParameters,
+    ) -> Result<emulation::SetNetworkConditionsResult, ErrorCode> {
+        // TODO: blocked by network condition not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setScreenSettingsOverride>
+    async fn handle_emulation_set_screen_settings_override(
+        &self,
+        _: &emulation::SetScreenSettingsOverrideParameters,
+    ) -> Result<emulation::SetScreenSettingsOverrideResult, ErrorCode> {
+        // TODO: blocked, need to add a layer
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setScreenSettingsOverride>
+    async fn handle_emulation_set_scripting_enabled(
+        &self,
+        _: &emulation::SetScriptingEnabledParameters,
+    ) -> Result<emulation::SetScriptingEnabledResult, ErrorCode> {
+        // TODO: blocked, need a flag
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setScreenOrientationOverride>
+    async fn handle_emulation_set_screen_orientation_override(
+        &self,
+        _: &emulation::SetScreenOrientationOverrideParameters,
+    ) -> Result<emulation::SetScreenOrientationOverrideResult, ErrorCode> {
+        // TODO: blocked by screen orientation not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setScrollbarTypeOverride>
+    async fn handle_emulation_set_scrollbar_type_override(
+        &self,
+        _: &emulation::SetScrollbarTypeOverrideParameters,
+    ) -> Result<emulation::SetScrollbarTypeOverrideResult, ErrorCode> {
+        // TODO: blocked by scrollbar type not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setTimezoneOverride>
+    async fn handle_emulation_set_timezone_override(
+        &self,
+        _: &emulation::SetTimezoneOverrideParameters,
+    ) -> Result<emulation::SetTimezoneOverrideResult, ErrorCode> {
+        // TODO: blocked, `setRealmTimezoneOverride` is not exported by `mozjs`
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setTouchOverride>
+    async fn handle_emulation_set_touch_override(
+        &self,
+        _: &emulation::SetTouchOverrideParameters,
+    ) -> Result<emulation::SetTouchOverrideResult, ErrorCode> {
+        // TODO: blocked,by max touch not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setUserAgentOverride>
+    async fn handle_emulation_set_user_agent_override(
+        &self,
+        _: &emulation::SetUserAgentOverrideParameters,
+    ) -> Result<emulation::SetUserAgentOverrideResult, ErrorCode> {
+        // TODO: blocked by user agent being global
+        // TODO: this may be easy to implement
+        Err(ErrorCode::UnknownError)
+    }
+
     /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-getGookies>
     async fn handle_storage_get_cookies(
         &self,
@@ -954,7 +1099,7 @@ impl<'a> BidiSession<'a> {
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#await-a-navigation>
-    async fn await_a_navigation(&self) -> Result<NavigateResult, ErrorCode> {
+    async fn await_a_navigation(&self) -> Result<browsing_context::NavigateResult, ErrorCode> {
         // TODO
         todo!()
     }
