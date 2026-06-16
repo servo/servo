@@ -1335,21 +1335,7 @@ impl<'a> BidiSession<'a> {
         command_parameters: &storage::GetCookiesParameters,
     ) -> Result<storage::GetCookiesResult, ErrorCode> {
         // 1.
-        let filter = command_parameters
-            .filter
-            .clone()
-            .unwrap_or(storage::CookieFilter {
-                name: None,
-                value: None,
-                domain: None,
-                path: None,
-                size: None,
-                http_only: None,
-                secure: None,
-                same_site: None,
-                expiry: None,
-                extensible: Default::default(),
-            });
+        let filter = command_parameters.filter.clone().unwrap_or_default();
         // 2.
         let partition_spec = &command_parameters.partition;
         // 3.
@@ -1398,21 +1384,7 @@ impl<'a> BidiSession<'a> {
         command_parameters: &storage::DeleteCookiesParameters,
     ) -> Result<storage::DeleteCookiesResult, ErrorCode> {
         // 1.
-        let filter = command_parameters
-            .filter
-            .clone()
-            .unwrap_or(storage::CookieFilter {
-                name: None,
-                value: None,
-                domain: None,
-                path: None,
-                size: None,
-                http_only: None,
-                secure: None,
-                same_site: None,
-                expiry: None,
-                extensible: Default::default(),
-            });
+        let filter = command_parameters.filter.clone().unwrap_or_default();
         // 2.
         let partition_spec = &command_parameters.partition;
         // 3.

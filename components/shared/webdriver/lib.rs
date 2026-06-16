@@ -10,6 +10,23 @@ pub mod bidi {
             }
         }
     }
+
+    impl Default for storage::CookieFilter {
+        fn default() -> Self {
+            Self {
+                name: Default::default(),
+                value: Default::default(),
+                domain: Default::default(),
+                path: Default::default(),
+                size: Default::default(),
+                http_only: Default::default(),
+                secure: Default::default(),
+                same_site: Default::default(),
+                expiry: Default::default(),
+                extensible: Default::default(),
+            }
+        }
+    }
 }
 
 use devtools_traits::WorkerId;
