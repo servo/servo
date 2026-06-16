@@ -53,7 +53,6 @@ use webrender_api::ExternalScrollId;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
@@ -1642,9 +1641,8 @@ impl DocumentEventHandler {
 
         let event_type = "wheel".into();
 
-        let globalscope = self.window.global();
-        let cancelable = EventCancelable::from(EventCancelable::from(
-            globalscope
+        let cancelable = EventCancelable::from(
+            self.window
                 .upcast::<EventTarget>()
                 .has_non_passive_listener(&event_type) ||
                 node.inclusive_ancestors(ShadowIncluding::Yes)
@@ -1653,7 +1651,7 @@ impl DocumentEventHandler {
                             .upcast::<EventTarget>()
                             .has_non_passive_listener(&event_type)
                     }),
-        ));
+        );
         // https://w3c.github.io/uievents/#event-wheelevents
         let dom_event = WheelEvent::new(
             &self.window,
