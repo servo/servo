@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -68,14 +68,14 @@ impl Range {
             .unwrap_or(ancestor_container)
     }
 
-    pub(crate) fn first_formattable_contained_node(&self) -> Option<DomRoot<Node>> {
+    pub(crate) fn first_formattable_contained_node(&self, no_gc: &NoGC) -> Option<DomRoot<Node>> {
         if self.collapsed() {
             return None;
         }
 
         self.ancestor_for_effectively_contained()
             .traverse_preorder(ShadowIncluding::No)
-            .find(|child| child.is_formattable() && self.is_effectively_contained_node(child))
+            .find(|child| child.is_formattable(no_gc) && self.is_effectively_contained_node(child))
     }
 
     pub(crate) fn for_each_effectively_contained_child<Callback: FnMut(&Node)>(
@@ -120,7 +120,7 @@ impl Range {
                 .expect("Must always have a parent");
         }
         // Step 3. If (start node, start offset) is not a block start point, repeat the following steps:
-        if !start_node.is_block_start_point(start_offset as usize) {
+        if !start_node.is_block_start_point(cx.no_gc(), start_offset as usize) {
             loop {
                 // Step 3.1. If start offset is zero, set it to start node's index, then set start node to its parent.
                 if start_offset == 0 {
@@ -133,7 +133,7 @@ impl Range {
                     start_offset -= 1;
                 }
                 // Step 3.3. If (start node, start offset) is a block boundary point, break from this loop.
-                if start_node.is_block_boundary_point(start_offset) {
+                if start_node.is_block_boundary_point(cx.no_gc(), start_offset) {
                     break;
                 }
             }
@@ -159,7 +159,7 @@ impl Range {
                 .expect("Must always have a parent");
         }
         // Step 6. If (end node, end offset) is not a block end point, repeat the following steps:
-        if !end_node.is_block_end_point(end_offset) {
+        if !end_node.is_block_end_point(end_offset, cx.no_gc()) {
             loop {
                 // Step 6.1. If end offset is end node's length, set it to one plus end node's index, then set end node to its parent.
                 if end_offset == end_node.len() {
@@ -170,7 +170,7 @@ impl Range {
                     end_offset += 1;
                 }
                 // Step 6.3. If (end node, end offset) is a block boundary point, break from this loop.
-                if end_node.is_block_boundary_point(end_offset) {
+                if end_node.is_block_boundary_point(cx.no_gc(), end_offset) {
                     break;
                 }
             }
@@ -203,7 +203,7 @@ impl Range {
 
         // Step 2. Let node be the first formattable node effectively contained in the active range,
         // or null if there is none.
-        let Some(node) = self.first_formattable_contained_node() else {
+        let Some(node) = self.first_formattable_contained_node(cx.no_gc()) else {
             // Step 3. If node is null, return overrides.
             return vec![];
         };
@@ -272,7 +272,8 @@ impl Range {
     ) {
         // Step 1. Let node be the first formattable node effectively contained in the active range,
         // or null if there is none.
-        let mut first_formattable_contained_node = self.first_formattable_contained_node();
+        let mut first_formattable_contained_node =
+            self.first_formattable_contained_node(cx.no_gc());
         for override_state in overrides {
             // Step 2. If node is not null, then for each (command, override) pair in overrides, in order:
             if let Some(ref node) = first_formattable_contained_node {
@@ -365,7 +366,8 @@ impl Range {
                     },
                 }
                 // Step 2.6. Set node to the first formattable node effectively contained in the active range, if there is one.
-                first_formattable_contained_node = self.first_formattable_contained_node();
+                first_formattable_contained_node =
+                    self.first_formattable_contained_node(cx.no_gc());
             } else {
                 // Step 3. Otherwise, for each (command, override) pair in overrides, in order:
                 // Step 3.1. If override is a boolean, set the state override for command to override.

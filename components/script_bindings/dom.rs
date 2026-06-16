@@ -143,9 +143,15 @@ impl<'a, T: Castable> UnrootedDom<'a, T> {
     }
 }
 
-impl<'a, T: DomObject> PartialEq<&T> for UnrootedDom<'a, T> {
-    fn eq(&self, other: &&T) -> bool {
-        self.inner == Dom::from_ref(*other)
+impl<'a, T: DomObject> PartialEq<T> for UnrootedDom<'a, T> {
+    fn eq(&self, other: &T) -> bool {
+        self.inner == other
+    }
+}
+
+impl<'a, T: DomObject> PartialEq<UnrootedDom<'a, T>> for UnrootedDom<'a, T> {
+    fn eq(&self, other: &UnrootedDom<'a, T>) -> bool {
+        self.inner == other.inner
     }
 }
 

@@ -57,7 +57,7 @@ pub(crate) fn execute_delete_command(
         if offset == 0 &&
             let Some(sibling) = node.GetPreviousSibling() &&
             sibling.is_editable() &&
-            sibling.is_invisible()
+            sibling.is_invisible(cx.no_gc())
         {
             sibling.remove_self(cx);
             continue;
@@ -71,7 +71,7 @@ pub(crate) fn execute_delete_command(
                 .map(|node| node.as_rooted());
             if let Some(child) = child &&
                 child.is_editable() &&
-                child.is_invisible()
+                child.is_invisible(cx.no_gc())
             {
                 child.remove_self(cx);
                 offset -= 1;
@@ -80,7 +80,7 @@ pub(crate) fn execute_delete_command(
         }
         // Step 4.3. Otherwise, if offset is zero and node is an inline node, or if node is an invisible node,
         // set offset to the index of node, then set node to its parent.
-        if (offset == 0 && node.is_inline_node()) || node.is_invisible() {
+        if (offset == 0 && node.is_inline_node()) || node.is_invisible(cx.no_gc()) {
             offset = node.index();
             node = node.GetParentNode().expect("Must always have a parent");
             continue;
@@ -154,7 +154,7 @@ pub(crate) fn execute_delete_command(
     ) && node
         .GetParentNode()
         .and_then(|parent| parent.children_unrooted(cx.no_gc()).next())
-        .is_some_and(|first| first == &node) &&
+        .is_some_and(|first| **first == *node) &&
         offset == 0
     {
         // Step 7.1. Let items be a list of all lis that are ancestors of node.
@@ -217,7 +217,7 @@ pub(crate) fn execute_delete_command(
             .map(|node| node.as_rooted());
         if let Some(child) = child &&
             child.is_editable() &&
-            child.is_invisible()
+            child.is_invisible(cx.no_gc())
         {
             child.remove_self(cx);
             start_offset -= 1;
@@ -297,7 +297,7 @@ pub(crate) fn execute_delete_command(
         };
         // Step 16.1. If start node's child with index start offset minus one
         // is editable and invisible, remove it from start node, then subtract one from start offset.
-        if child.is_editable() && child.is_invisible() {
+        if child.is_editable() && child.is_invisible(cx.no_gc()) {
             child.remove_self(cx);
             start_offset -= 1;
         } else {

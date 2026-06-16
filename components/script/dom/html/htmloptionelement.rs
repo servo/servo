@@ -7,7 +7,7 @@ use std::convert::TryInto;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use style::str::{split_html_space_chars, str_join};
 use stylo_dom::ElementState;
@@ -98,22 +98,22 @@ impl HTMLOptionElement {
         self.dirtiness.set(dirtiness);
     }
 
-    fn pick_if_selected_and_reset(&self) {
+    fn pick_if_selected_and_reset(&self, no_gc: &NoGC) {
         if let Some(select) = self.owner_select_element() {
             if self.Selected() {
-                select.pick_option(self);
+                select.pick_option(no_gc, self);
             }
-            select.ask_for_reset();
+            select.ask_for_reset(no_gc);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-option-index>
-    fn index(&self) -> i32 {
+    fn index(&self, no_gc: &NoGC) -> i32 {
         let Some(owner_select) = self.owner_select_element() else {
             return 0;
         };
 
-        let Some(position) = owner_select.list_of_options().position(|n| &*n == self) else {
+        let Some(position) = owner_select.list_of_options(no_gc).position(|n| *n == self) else {
             // An option should always be in it's owner's list of options, but it's not worth a browser panic
             warn!("HTMLOptionElement called index_in_select at a select that did not contain it");
             return 0;
@@ -375,13 +375,13 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     fn SetSelected(&self, cx: &mut JSContext, selected: bool) {
         self.dirtiness.set(true);
         self.set_selectedness(selected);
-        self.pick_if_selected_and_reset();
+        self.pick_if_selected_and_reset(cx.no_gc());
         self.update_select_validity(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-index>
-    fn Index(&self) -> i32 {
-        self.index()
+    fn Index(&self, cx: &JSContext) -> i32 {
+        self.index(cx.no_gc())
     }
 }
 
@@ -435,7 +435,7 @@ impl VirtualMethods for HTMLOptionElement {
                 }
 
                 if selectedness_changed {
-                    self.pick_if_selected_and_reset();
+                    self.pick_if_selected_and_reset(cx.no_gc());
 
                     if let Some(select_element) = self.owner_select_element() {
                         select_element.update_shadow_tree(cx);
@@ -463,7 +463,7 @@ impl VirtualMethods for HTMLOptionElement {
         self.upcast::<Element>()
             .check_parent_disabled_state_for_option();
 
-        self.pick_if_selected_and_reset();
+        self.pick_if_selected_and_reset(cx.no_gc());
         self.update_select_validity(cx);
     }
 
@@ -478,7 +478,7 @@ impl VirtualMethods for HTMLOptionElement {
             select
                 .validity_state(cx)
                 .perform_validation_and_update(cx, ValidationFlags::all());
-            select.ask_for_reset();
+            select.ask_for_reset(cx.no_gc());
         }
 
         let node = self.upcast::<Node>();
@@ -502,8 +502,8 @@ impl VirtualMethods for HTMLOptionElement {
             .has_attribute(&local_name!("label")) &&
             let Some(owner_select) = self.owner_select_element() &&
             owner_select
-                .selected_option()
-                .is_some_and(|selected_option| self == &*selected_option)
+                .selected_option(cx.no_gc())
+                .is_some_and(|selected_option| *self == **selected_option)
         {
             owner_select.update_shadow_tree(cx);
         }
@@ -526,7 +526,7 @@ impl VirtualMethods for HTMLOptionElement {
                 select
                     .validity_state(cx)
                     .perform_validation_and_update(cx, ValidationFlags::all());
-                select.ask_for_reset();
+                select.ask_for_reset(cx.no_gc());
             }
 
             if self.upcast::<Node>().GetParentNode().is_some() {
@@ -538,7 +538,7 @@ impl VirtualMethods for HTMLOptionElement {
 
         element.check_parent_disabled_state_for_option();
 
-        self.pick_if_selected_and_reset();
+        self.pick_if_selected_and_reset(cx.no_gc());
         self.update_select_validity(cx);
     }
 }

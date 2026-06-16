@@ -89,6 +89,79 @@ impl Iterator for FollowingNodeIterator {
     }
 }
 
+pub(crate) struct UnrootedFollowingNodeIterator<'a, 'b> {
+    current: Option<UnrootedDom<'b, Node>>,
+    root: UnrootedDom<'b, Node>,
+    shadow_including: ShadowIncluding,
+    no_gc: &'b NoGC,
+    phantom: PhantomData<&'a Node>,
+}
+
+impl<'a, 'b> UnrootedFollowingNodeIterator<'a, 'b> {
+    pub(crate) fn new(
+        current: Option<UnrootedDom<'b, Node>>,
+        root: UnrootedDom<'b, Node>,
+        shadow_including: ShadowIncluding,
+        no_gc: &'b NoGC,
+    ) -> Self
+    where
+        'b: 'a,
+    {
+        UnrootedFollowingNodeIterator {
+            current,
+            root,
+            shadow_including,
+            no_gc,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a, 'b> UnrootedFollowingNodeIterator<'a, 'b> {
+    fn next_skipping_children_impl(
+        &mut self,
+        current: UnrootedDom<'b, Node>,
+    ) -> Option<UnrootedDom<'b, Node>> {
+        if self.root == current {
+            self.current = None;
+            return None;
+        }
+
+        if let Some(next_sibling) = current.get_next_sibling_unrooted(self.no_gc) {
+            self.current = Some(next_sibling);
+            return current.get_next_sibling_unrooted(self.no_gc);
+        }
+
+        for ancestor in current.inclusive_ancestors(self.shadow_including) {
+            if **self.root == *ancestor {
+                break;
+            }
+            if let Some(next_sibling) = ancestor.get_next_sibling_unrooted(self.no_gc) {
+                self.current = Some(next_sibling);
+                return ancestor.get_next_sibling_unrooted(self.no_gc);
+            }
+        }
+        self.current = None;
+        None
+    }
+}
+
+impl<'a, 'b> Iterator for UnrootedFollowingNodeIterator<'a, 'b> {
+    type Item = UnrootedDom<'b, Node>;
+
+    /// <https://dom.spec.whatwg.org/#concept-tree-following>
+    fn next(&mut self) -> Option<UnrootedDom<'b, Node>> {
+        let current = self.current.take()?;
+
+        if let Some(first_child) = current.get_first_child_unrooted(self.no_gc) {
+            self.current = Some(first_child);
+            return current.get_first_child_unrooted(self.no_gc);
+        }
+
+        self.next_skipping_children_impl(current)
+    }
+}
+
 pub(crate) struct PrecedingNodeIterator {
     current: Option<DomRoot<Node>>,
     root: DomRoot<Node>,
@@ -121,6 +194,59 @@ impl Iterator for PrecedingNodeIterator {
             current.GetParentNode()
         };
         self.current.clone()
+    }
+}
+
+pub(crate) struct UnrootedPrecedingNodeIterator<'a, 'b> {
+    current: Option<UnrootedDom<'a, Node>>,
+    no_gc: &'b NoGC,
+    root: UnrootedDom<'a, Node>,
+}
+
+impl<'a, 'b> UnrootedPrecedingNodeIterator<'a, 'b> {
+    pub(crate) fn new(
+        current: Option<UnrootedDom<'a, Node>>,
+        root: UnrootedDom<'a, Node>,
+        no_gc: &'b NoGC,
+    ) -> Self {
+        UnrootedPrecedingNodeIterator {
+            current,
+            no_gc,
+            root,
+        }
+    }
+}
+
+impl<'a, 'b> Iterator for UnrootedPrecedingNodeIterator<'a, 'b>
+where
+    'b: 'a,
+{
+    type Item = UnrootedDom<'b, Node>;
+
+    /// <https://dom.spec.whatwg.org/#concept-tree-preceding>
+    fn next(&mut self) -> Option<UnrootedDom<'b, Node>> {
+        let current = self.current.take()?;
+
+        self.current = if self.root == current {
+            None
+        } else if let Some(previous_sibling) = current.get_previous_sibling_unrooted(self.no_gc) {
+            if self.root == previous_sibling {
+                None
+            } else if let Some(last_child) = previous_sibling
+                .descending_last_children_unrooted(self.no_gc)
+                .last()
+            {
+                Some(last_child)
+            } else {
+                Some(previous_sibling)
+            }
+        } else {
+            current.get_parent_node_unrooted(self.no_gc)
+        };
+
+        self.current
+            .as_ref()
+            .map(|node| UnrootedDom::from_dom((*node).clone(), self.no_gc))
     }
 }
 
