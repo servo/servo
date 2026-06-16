@@ -9269,6 +9269,7 @@ dependencies = [
  "serde_json",
  "servo-base",
  "servo-config",
+ "servo-devtools-traits",
  "servo-embedder-traits",
  "servo-geometry",
  "servo-url",
@@ -9290,6 +9291,7 @@ dependencies = [
  "serde",
  "serde_json",
  "servo-base",
+ "servo-devtools-traits",
  "servo-webdriver-traits-codegen",
  "uuid",
 ]

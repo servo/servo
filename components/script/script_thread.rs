@@ -108,6 +108,7 @@ use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
+use webdriver_traits::ScriptToWebDriverMessage;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 
@@ -926,6 +927,8 @@ impl ScriptThread {
         let devtools_server_receiver = ipc_devtools_receiver.route_preserving_errors();
 
         let webdriver_server_sender = state.webdriver_server_sender;
+        let (ipc_webdriver_sender, ipc_webdriver_receiver) = generic_channel::channel().unwrap();
+        let webdriver_server_receiver = ipc_webdriver_receiver.route_preserving_errors();
 
         let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
 
@@ -950,6 +953,7 @@ impl ScriptThread {
             constellation_receiver,
             image_cache_receiver,
             devtools_server_receiver,
+            webdriver_server_receiver,
             // Initialized to `never` until WebGPU is initialized.
             #[cfg(feature = "webgpu")]
             webgpu_receiver: RefCell::new(crossbeam_channel::never()),
@@ -969,6 +973,7 @@ impl ScriptThread {
             devtools_server_sender,
             devtools_client_to_script_thread_sender: ipc_devtools_sender,
             webdriver_server_sender,
+            webdriver_client_to_script_thread_sender: ipc_webdriver_sender,
         };
 
         let microtask_queue = runtime.microtask_queue.clone();
@@ -3723,6 +3728,31 @@ impl ScriptThread {
                 browsing_context_id,
                 state,
             ));
+        }
+    }
+
+    fn notify_webdriver(
+        &self,
+        title: DOMString,
+        url: ServoUrl,
+        is_top_level_global: bool,
+        (browsing_context_id, pipeline_id, worker_id, webview_id): (
+            BrowsingContextId,
+            PipelineId,
+            Option<WorkerId>,
+            WebViewId,
+        ),
+    ) {
+        if let Some(ref chan) = self.senders.webdriver_server_sender {
+            chan.send(ScriptToWebDriverMessage::RealmCreated(
+                (browsing_context_id, pipeline_id, None, webview_id),
+                self.senders
+                    .webdriver_client_to_script_thread_sender
+                    .clone(),
+            ))
+            .unwrap();
+
+            // TODO: navigation message
         }
     }
 

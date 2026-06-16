@@ -1,21 +1,17 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, rc::Rc};
 
 use async_tungstenite::{
     tokio::accept_hdr_async,
     tungstenite::handshake::server::{ErrorResponse as WsErrorResponse, Request, Response},
 };
 use log::info;
-use tokio::{
-    net::TcpListener,
-    sync::{RwLock, mpsc::UnboundedSender},
-    task,
-};
+use tokio::{net::TcpListener, sync::mpsc::UnboundedSender, task};
 
-use crate::bidi::{ActiveSessions, session::common::SessionMessage};
+use crate::bidi::{RemoteEndState, session::common::SessionMessage};
 
 pub struct Listener {
     address: SocketAddr,
-    active_sessions: Arc<RwLock<ActiveSessions>>,
+    remote_end_state: Rc<RemoteEndState>,
     static_sender: UnboundedSender<SessionMessage>,
 }
 
@@ -23,20 +19,20 @@ impl Listener {
     /// Start `Listener` as a tokio local task.
     pub(crate) fn start(
         address: SocketAddr,
-        active_sessions: Arc<RwLock<ActiveSessions>>,
+        remote_end_state: Rc<RemoteEndState>,
         static_sender: UnboundedSender<SessionMessage>,
     ) -> task::JoinHandle<()> {
-        task::spawn_local(Self::new(address, active_sessions, static_sender).run())
+        task::spawn_local(Self::new(address, remote_end_state, static_sender).run())
     }
 
     fn new(
         address: SocketAddr,
-        active_sessions: Arc<RwLock<ActiveSessions>>,
+        remote_end_state: Rc<RemoteEndState>,
         static_sender: UnboundedSender<SessionMessage>,
     ) -> Self {
         Self {
             address,
-            active_sessions,
+            remote_end_state,
             static_sender,
         }
     }

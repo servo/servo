@@ -12,8 +12,13 @@ pub mod bidi {
     }
 }
 
+use devtools_traits::WorkerId;
 use serde::{Deserialize, Serialize};
-use servo_base::id::BrowsingContextId;
+use servo_base::{
+    generic_channel::{GenericCallback, GenericOneshotSender, GenericSender},
+    id::{BrowsingContextId, PipelineId, WebViewId},
+};
+use uuid::Uuid;
 
 use crate::bidi::{browsing_context, log, script};
 
@@ -22,22 +27,6 @@ pub enum WebDriverMessage {
     FromConstellation(ConstellationToWebDriverMessage),
     FromScript(ScriptToWebDriverMessage),
 }
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ConstellationToWebDriverMessage {
-    BrowsingContextCreated(browsing_context::Info),
-    FromScript(),
-}
-
-// TODO: command responses need session id
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ScriptToWebDriverMessage {
-    LogEntryAdded(Vec<BrowsingContextId>, log::EntryAdded),
-    RealmCreated(script::RealmInfo),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum WebDriverToConstellationMessage {}
 
 impl From<ConstellationToWebDriverMessage> for WebDriverMessage {
     fn from(value: ConstellationToWebDriverMessage) -> Self {
@@ -49,4 +38,28 @@ impl From<ScriptToWebDriverMessage> for WebDriverMessage {
     fn from(value: ScriptToWebDriverMessage) -> Self {
         Self::FromScript(value)
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ConstellationToWebDriverMessage {
+    BrowsingContextCreated(browsing_context::Info),
+}
+
+// TODO: command responses need session id
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ScriptToWebDriverMessage {
+    LogEntryAdded(Vec<BrowsingContextId>, log::EntryAdded),
+    RealmCreated(
+        (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
+        GenericSender<WebDriverToScriptMessage>,
+    ),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum WebDriverToConstellationMessage {}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum WebDriverToScriptMessage {
+    // bool is prompt unload
+    CloseNavigable(bool, GenericCallback<()>),
 }

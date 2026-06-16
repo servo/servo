@@ -1,18 +1,21 @@
 use std::{
     collections::{HashMap, HashSet},
     hash::Hash,
-    sync::{Arc, LazyLock},
+    sync::LazyLock,
 };
 
 use indexmap::{IndexMap, IndexSet};
-use servo_base::id::BrowsingContextId;
-use tokio::sync::RwLock;
+use servo_base::{generic_channel::GenericCallback, id::BrowsingContextId};
+use tokio::sync::{RwLock, mpsc};
 use uuid::Uuid;
-use webdriver_traits::bidi::{
-    CommandData, EmptyParams, EmptyResult, ErrorCode, Event, LogEvent, ResultData, SessionCommand,
-    SessionResult,
-    script::PreloadScript as PreloadScriptId,
-    session::{self, Subscription as SubscriptionId},
+use webdriver_traits::{
+    WebDriverToScriptMessage,
+    bidi::{
+        BrowsingContextCommand, BrowsingContextResult, CommandData, EmptyParams, EmptyResult,
+        ErrorCode, Event, LogEvent, ResultData, SessionCommand, SessionResult, browsing_context,
+        script::PreloadScript as PreloadScriptId,
+        session::{self, Subscription as SubscriptionId},
+    },
 };
 
 use crate::bidi::{
@@ -63,7 +66,25 @@ impl<'a> BidiSession<'a> {
     ) -> Result<ResultData, ErrorCode> {
         match command {
             CommandData::BrowserCommand(cmd) => todo!(),
-            CommandData::BrowsingContextCommand(cmd) => todo!(),
+            CommandData::BrowsingContextCommand(cmd) => match cmd {
+                BrowsingContextCommand::Activate(cmd) => todo!(),
+                BrowsingContextCommand::CaptureScreenshot(cmd) => todo!(),
+                BrowsingContextCommand::Close(cmd) => {
+                    self.handle_browsing_context_close(&cmd.params).await
+                },
+                BrowsingContextCommand::Create(cmd) => todo!(),
+                BrowsingContextCommand::GetTree(cmd) => todo!(),
+                BrowsingContextCommand::HandleUserPrompt(cmd) => todo!(),
+                BrowsingContextCommand::LocateNodes(cmd) => todo!(),
+                BrowsingContextCommand::Navigate(cmd) => todo!(),
+                BrowsingContextCommand::Print(cmd) => todo!(),
+                BrowsingContextCommand::Reload(cmd) => todo!(),
+                BrowsingContextCommand::SetBypassCsp(cmd) => todo!(),
+                BrowsingContextCommand::SetViewport(cmd) => todo!(),
+                BrowsingContextCommand::StartScreencast(cmd) => todo!(),
+                BrowsingContextCommand::StopScreencast(cmd) => todo!(),
+                BrowsingContextCommand::TraverseHistory(cmd) => todo!(),
+            },
             CommandData::EmulationCommand(cmd) => todo!(),
             CommandData::InputCommand(cmd) => todo!(),
             CommandData::NetworkCommand(cmd) => todo!(),
@@ -325,6 +346,53 @@ impl<'a> BidiSession<'a> {
         )))
     }
 
+    async fn handle_browsing_context_close(
+        &mut self,
+        command_parameters: &browsing_context::CloseParameters,
+    ) -> Result<ResultData, ErrorCode> {
+        // 1.
+        let navigable_id = &command_parameters.context;
+        // 2.
+        let prompt_unload = command_parameters.prompt_unload.unwrap_or(false);
+        // 3.
+        let navigable = self
+            .common
+            .remote_end_state
+            .get_a_navigable(Some(navigable_id))
+            .await?
+            .unwrap();
+        // 4. SKIP: Assert
+        // 5.
+        if navigable.webview_id.is_none() {
+            return Err(ErrorCode::InvalidArgument);
+        }
+        // 6. & 7.
+        // TODO: GenericOneshotCallback
+        let (sender, mut receiver) = mpsc::channel(1);
+        let callback = GenericCallback::new(move |_| {
+            if let Err(e) = sender.try_send(()) {
+                log::warn!("Callback channel failed: {e:?}");
+            };
+        })
+        .unwrap();
+        if let Err(e) = navigable
+            .sender
+            .send(WebDriverToScriptMessage::CloseNavigable(
+                prompt_unload,
+                callback,
+            ))
+        {
+            log::warn!("WebDriver to script channel closed: {e:?}");
+        };
+        receiver.recv().await;
+        // 8.
+        Ok(ResultData::BrowsingContextResult(
+            BrowsingContextResult::CloseResult(EmptyResult {
+                extensible: Default::default(),
+            }),
+        ))
+    }
+
     /// The "remote end subscribe" step for the event
     async fn subscribe_event(&mut self, event_name: &str, include_global: bool) {
         // TODO: match event_name and dispatch e.g. subscribe_log_entry_added
@@ -418,7 +486,7 @@ impl<'a> BidiSession<'a> {
         self.connections_mut().get_mut(conn_idx)
     }
 
-    pub(crate) fn active_sessions(&self) -> &Arc<RwLock<ActiveSessions>> {
+    pub(crate) fn active_sessions(&self) -> &RwLock<ActiveSessions> {
         &self.common.remote_end_state.active_sessions
     }
 }

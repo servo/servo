@@ -24,7 +24,7 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_constellation_traits::ScriptToConstellationMessage;
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
-use webdriver_traits::ScriptToWebDriverMessage;
+use webdriver_traits::{ScriptToWebDriverMessage, WebDriverToScriptMessage};
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
 
@@ -415,6 +415,9 @@ pub(crate) struct ScriptThreadSenders {
     /// For providing instructions to an optional webdriver server.
     #[no_trace]
     pub(crate) webdriver_server_sender: Option<GenericCallback<ScriptToWebDriverMessage>>,
+
+    #[no_trace]
+    pub(crate) webdriver_client_to_script_thread_sender: GenericSender<WebDriverToScriptMessage>,
 }
 
 #[derive(JSTraceable)]
@@ -431,6 +434,11 @@ pub(crate) struct ScriptThreadReceivers {
     /// exists. When devtools are not active this will be [`crossbeam_channel::never()`].
     #[no_trace]
     pub(crate) devtools_server_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+
+    /// For receiving commands from an optional webdriver server. Will be ignored if no such server
+    /// exists. When webdriver are not active this will be [`crossbeam_channel::never()`].
+    #[no_trace]
+    pub(crate) webdriver_server_receiver: RoutedReceiver<WebDriverToScriptMessage>,
 
     /// Receiver to receive commands from optional WebGPU server. When there is no active
     /// WebGPU context, this will be [`crossbeam_channel::never()`].

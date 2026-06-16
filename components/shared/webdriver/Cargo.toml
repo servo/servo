@@ -14,6 +14,7 @@ name = "webdriver_traits"
 path = "lib.rs"
 
 [dependencies]
+devtools_traits = { workspace = true } # we need `WorkerId`
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 servo-base = { workspace = true }

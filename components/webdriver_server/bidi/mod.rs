@@ -7,17 +7,29 @@ use std::{
     collections::HashMap,
     net::{SocketAddr, SocketAddrV4},
     rc::Rc,
-    sync::Arc,
     thread::{self},
 };
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
+use devtools_traits::WorkerId;
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
+use servo_base::{
+    generic_channel::GenericSender,
+    id::{BrowsingContextId, PipelineId, WebViewId},
+};
 use tokio::sync::{
     RwLock,
     mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
-use webdriver_traits::{WebDriverMessage, WebDriverToConstellationMessage};
+use webdriver::error::ErrorStatus;
+use webdriver_traits::{
+    ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
+    WebDriverToScriptMessage,
+    bidi::{
+        ErrorCode,
+        script::{BaseRealmInfo, RealmInfo, WindowRealmInfo, WindowRealmInfoType},
+    },
+};
 
 use crate::bidi::{
     listener::Listener,
@@ -78,7 +90,6 @@ impl WebDriverBidiThread {
             .expect("Runtime creation failed")
             .block_on(async move {
                 let remote_end_state = &self.remote_end_state;
-                let active_sessions = &remote_end_state.active_sessions;
                 let embedder_proxy = &self.embedder_proxy;
                 let constellation_sender = &self.constellation_sender;
 
@@ -87,27 +98,66 @@ impl WebDriverBidiThread {
                     embedder_proxy.clone(),
                     constellation_sender.clone(),
                 );
-                Listener::start(address, active_sessions.clone(), sender);
+                Listener::start(address, remote_end_state.clone(), sender);
 
-                let forward =
-                    Self::forward_constellation_messages(active_sessions.clone(), receiver);
+                let forward = Self::handle_thread_message(remote_end_state.clone(), receiver);
 
                 forward.await
             });
     }
 
-    /// Forward constellation message to each active session.
-    async fn forward_constellation_messages(
-        active_session: Arc<RwLock<ActiveSessions>>,
+    /// Handle thread messages from constellation/script/...
+    async fn handle_thread_message(
+        remote_end_state: Rc<RemoteEndState>,
         mut receiver: UnboundedReceiver<WebDriverMessage>,
     ) {
         while let Some(msg) = receiver.recv().await {
-            let msg = Rc::new(msg);
-            for session in active_session.read().await.values() {
-                if let Err(e) = session.sender.send(SessionMessage::WebDriver(msg.clone())) {
-                    log::warn!("Sending constellation message to session failed: {e:?}");
-                }
+            match msg {
+                WebDriverMessage::FromConstellation(constellation_to_web_driver_message) => todo!(),
+                WebDriverMessage::FromScript(msg) => match msg {
+                    ScriptToWebDriverMessage::LogEntryAdded(items, entry_added) => todo!(),
+                    ScriptToWebDriverMessage::RealmCreated(
+                        (browsing_context_id, pipeline_id, worker_id, webview_id),
+                        generic_sender,
+                    ) => {
+                        // realm
+                        remote_end_state.realms.write().await.insert(
+                            RealmId(pipeline_id, worker_id),
+                            // TODO: faked, replace with true info
+                            RealmInfo::WindowRealmInfo(WindowRealmInfo {
+                                r#type: WindowRealmInfoType::Window,
+                                base_realm_info: BaseRealmInfo {
+                                    realm: "".to_string(),
+                                    origin: "".to_string(),
+                                },
+                                context: browsing_context_id.to_string(),
+                                user_context: None,
+                                sandbox: None,
+                            }),
+                        );
+
+                        remote_end_state.navigables.write().await.insert(
+                            browsing_context_id,
+                            Navigable {
+                                id: browsing_context_id,
+                                // unknown here
+                                original_opener: None,
+                                sender: generic_sender.clone(),
+                                webview_id: Some(webview_id),
+                            },
+                        );
+                    },
+                },
             }
+
+            // TODO: should not directly forward
+            // forward to each session
+            // let msg = Rc::new(msg);
+            // for session in remote_end_state.active_sessions.read().await.values() {
+            //     if let Err(e) = session.sender.send(SessionMessage::WebDriver(msg.clone())) {
+            //         log::warn!("Sending constellation message to session failed: {e:?}");
+            //     }
+            // }
         }
     }
 }
@@ -117,8 +167,13 @@ impl WebDriverBidiThread {
 #[derive(Default)]
 pub struct RemoteEndState {
     /// The active sessions of a remote end.
-    /// This uses `Arc` to allow access from ROUTER thread.
-    active_sessions: Arc<RwLock<ActiveSessions>>,
+    active_sessions: RwLock<ActiveSessions>,
+
+    /// The navigables of a remote end.
+    navigables: RwLock<HashMap<BrowsingContextId, Navigable>>,
+
+    /// The navigables of a remote end.
+    realms: RwLock<HashMap<RealmId, RealmInfo>>,
 }
 
 type ActiveSessions = HashMap<SessionId, SessionProxy>;
@@ -131,4 +186,35 @@ impl RemoteEndState {
         // 3. TODO: blocked by network module
         // 4. SKIP: implementation-defined
     }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#get-a-navigable>
+    pub(crate) async fn get_a_navigable(
+        &self,
+        navigable_id: Option<&str>,
+    ) -> Result<Option<Navigable>, ErrorCode> {
+        // 1.
+        let Some(navigable_id) = navigable_id else {
+            return Ok(None);
+        };
+        // 2.
+        let navigable_id =
+            BrowsingContextId::from_string(navigable_id).ok_or(ErrorCode::NoSuchFrame)?;
+        let Some(navigable) = self.navigables.read().await.get(&navigable_id).cloned() else {
+            return Err(ErrorCode::NoSuchFrame);
+        };
+        // 3. SKIP: done in last step
+        // 4.
+        Ok(Some(navigable))
+    }
 }
+
+#[derive(Clone)]
+pub(crate) struct Navigable {
+    pub(crate) id: BrowsingContextId,
+    pub(crate) original_opener: Option<BrowsingContextId>,
+    pub(crate) sender: GenericSender<WebDriverToScriptMessage>,
+    pub(crate) webview_id: Option<WebViewId>,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct RealmId(pub(crate) PipelineId, pub(crate) Option<WorkerId>);

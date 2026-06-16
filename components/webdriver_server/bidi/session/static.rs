@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use tokio::sync::{RwLock, mpsc};
 use uuid::Uuid;
 use webdriver_traits::bidi::{
@@ -148,7 +146,7 @@ impl<'a> StaticSession<'a> {
         }
     }
 
-    pub(crate) fn active_sessions(&self) -> &Arc<RwLock<ActiveSessions>> {
+    pub(crate) fn active_sessions(&self) -> &RwLock<ActiveSessions> {
         &self.common.remote_end_state.active_sessions
     }
 }
