@@ -51,14 +51,29 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     let devtools_receiver = scope.devtools_receiver().unwrap_or(&never);
 
     let event = select! {
-        recv(worker_scope.control_receiver()) -> msg => T::from_control_msg(msg.unwrap()),
-        recv(task_queue.select()) -> msg => {
-            task_queue.take_tasks(msg.unwrap(), &FxHashSet::default());
-            T::from_worker_msg(task_queue.recv().unwrap())
+        recv(worker_scope.control_receiver()) -> msg => match msg {
+            Ok(msg) => Some(T::from_control_msg(msg)),
+            Err(_) => None,
         },
-        // RoutedReceivers have two results
-        recv(devtools_receiver) -> msg => T::from_devtools_msg(msg.unwrap().unwrap()),
-        recv(scope.timer_scheduler().wait_channel()) -> _ => T::from_timer_msg(),
+        recv(task_queue.select()) -> msg => match msg {
+            Ok(msg) => {
+                task_queue.take_tasks(msg, &FxHashSet::default());
+                task_queue.recv().ok().map(T::from_worker_msg)
+            },
+            Err(_) => None,
+        },
+        recv(devtools_receiver) -> msg => match msg {
+            Ok(msg) => msg.ok().map(T::from_devtools_msg),
+            Err(_) => None,
+        },
+        recv(scope.timer_scheduler().wait_channel()) -> _ => Some(T::from_timer_msg()),
+    };
+
+    // Worker channels can be closed during teardown (for example, after an
+    // explicit close/exit Sharedworker path). Treat that as a clean shutdown signal rather
+    // than panicking on RecvError.
+    let Some(event) = event else {
+        return;
     };
 
     scope.timer_scheduler().dispatch_completed_timers();

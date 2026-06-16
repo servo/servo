@@ -180,7 +180,7 @@ pub(crate) struct AutoCloseWorker {
 impl Drop for AutoCloseWorker {
     /// <https://html.spec.whatwg.org/multipage/#terminate-a-worker>
     fn drop(&mut self) {
-        // Step 1.
+        // Step 1. Set the worker's `WorkerGlobalScope` object's closing flag to true.
         self.closing.store(true, Ordering::SeqCst);
 
         if self
@@ -193,8 +193,10 @@ impl Drop for AutoCloseWorker {
 
         self.context.request_interrupt_callback();
 
-        // TODO: step 2 and 3.
-        // Step 4 is unnecessary since we don't use actual ports for dedicated workers.
+        // Step 2. If there are any tasks queued in the `WorkerGlobalScope` object's relevant agent's event loop's task queues, discard them without processing them.
+        // Step 3. Abort the script currently running in the worker.
+        // Step 4. If the worker's WorkerGlobalScope object is actually a DedicatedWorkerGlobalScope object (i.e. the worker is a dedicated worker), then empty the port message queue of the port that the worker's implicit port is entangled with.
+        // TODO Steps 2-4.
         if self
             .join_handle
             .take()
