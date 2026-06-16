@@ -22,7 +22,6 @@ use tokio::sync::{
     RwLock,
     mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
-use webdriver::error::ErrorStatus;
 use webdriver_traits::{
     ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
     WebDriverToScriptMessage,

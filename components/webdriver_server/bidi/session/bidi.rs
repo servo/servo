@@ -12,10 +12,12 @@ use webdriver_traits::{
     WebDriverToConstellationMessage, WebDriverToScriptMessage,
     bidi::{
         BrowsingContextCommand, BrowsingContextResult, CommandData, EmptyParams, EmptyResult,
-        ErrorCode, Event, LogEvent, ResultData, SessionCommand, SessionResult,
+        ErrorCode, Event, LogEvent, ResultData, SessionCommand, SessionResult, StorageCommand,
+        StorageResult,
         browsing_context::{self, NavigateResult},
         script::PreloadScript as PreloadScriptId,
         session::{self, Subscription as SubscriptionId},
+        storage,
     },
 };
 
@@ -145,7 +147,21 @@ impl<'a> BidiSession<'a> {
                     self.handle_session_unsubscribe(&cmd.params).await
                 },
             },
-            CommandData::StorageCommand(cmd) => todo!(),
+            CommandData::StorageCommand(cmd) => match cmd {
+                StorageCommand::GetCookies(cmd) => self
+                    .handle_storage_get_cookies(&cmd.params)
+                    .await
+                    .map(StorageResult::GetCookiesResult),
+                StorageCommand::SetCookie(cmd) => self
+                    .handle_storage_set_cookie(&cmd.params)
+                    .await
+                    .map(StorageResult::SetCookieResult),
+                StorageCommand::DeleteCookies(cmd) => self
+                    .handle_storage_delete_cookies(&cmd.params)
+                    .await
+                    .map(StorageResult::DeleteCookiesResult),
+            }
+            .map(|r| ResultData::StorageResult(Box::new(r))),
             CommandData::WebExtensionCommand(cmd) => todo!(),
         }
     }
@@ -672,6 +688,30 @@ impl<'a> BidiSession<'a> {
         command_parameters: &browsing_context::TraverseHistoryParameters,
     ) -> Result<browsing_context::TraverseHistoryResult, ErrorCode> {
         // TODO:
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-getGookies>
+    async fn handle_storage_get_cookies(
+        &self,
+        command_parameters: &storage::GetCookiesParameters,
+    ) -> Result<storage::GetCookiesResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-setCookie>
+    async fn handle_storage_set_cookie(
+        &self,
+        command_parameters: &storage::SetCookieParameters,
+    ) -> Result<storage::SetCookieResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-storage-deleteCookies>
+    async fn handle_storage_delete_cookies(
+        &self,
+        command_parameters: &storage::DeleteCookiesParameters,
+    ) -> Result<storage::DeleteCookiesResult, ErrorCode> {
         todo!()
     }
 
