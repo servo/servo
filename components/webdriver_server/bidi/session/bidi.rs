@@ -11,9 +11,10 @@ use uuid::Uuid;
 use webdriver_traits::{
     WebDriverToConstellationMessage, WebDriverToScriptMessage,
     bidi::{
-        BrowsingContextCommand, BrowsingContextResult, CommandData, EmptyParams, EmptyResult,
-        ErrorCode, Event, LogEvent, ResultData, SessionCommand, SessionResult, StorageCommand,
-        StorageResult, WebExtensionCommand, WebExtensionResult,
+        BrowserCommand, BrowserResult, BrowsingContextCommand, BrowsingContextResult, CommandData,
+        EmptyParams, EmptyResult, ErrorCode, Event, LogEvent, ResultData, SessionCommand,
+        SessionResult, StorageCommand, StorageResult, WebExtensionCommand, WebExtensionResult,
+        browser,
         browsing_context::{self, NavigateResult},
         script::PreloadScript as PreloadScriptId,
         session::{self, Subscription as SubscriptionId},
@@ -70,7 +71,37 @@ impl<'a> BidiSession<'a> {
         command: &CommandData,
     ) -> Result<ResultData, ErrorCode> {
         match command {
-            CommandData::BrowserCommand(cmd) => todo!(),
+            CommandData::BrowserCommand(cmd) => match cmd {
+                BrowserCommand::Close(cmd) => self
+                    .handle_browser_close(&cmd.params)
+                    .await
+                    .map(BrowserResult::CloseResult),
+                BrowserCommand::CreateUserContext(cmd) => self
+                    .handle_browser_create_user_context(&cmd.params)
+                    .await
+                    .map(BrowserResult::CreateUserContextResult),
+                BrowserCommand::GetClientWindows(cmd) => self
+                    .handle_browser_get_client_windows(&cmd.params)
+                    .await
+                    .map(BrowserResult::GetClientWindowsResult),
+                BrowserCommand::GetUserContexts(cmd) => self
+                    .handle_browser_get_user_contexts(&cmd.params)
+                    .await
+                    .map(BrowserResult::GetUserContextsResult),
+                BrowserCommand::RemoveUserContext(cmd) => self
+                    .handle_browser_remove_user_context(&cmd.params)
+                    .await
+                    .map(BrowserResult::RemoveUserContextResult),
+                BrowserCommand::SetClientWindowState(cmd) => self
+                    .handle_browser_set_client_window_state(&cmd.params)
+                    .await
+                    .map(BrowserResult::SetClientWindowStateResult),
+                BrowserCommand::SetDownloadBehavior(cmd) => self
+                    .handle_browser_set_download_behavior(&cmd.params)
+                    .await
+                    .map(BrowserResult::SetDownloadBehaviorResult),
+            }
+            .map(ResultData::BrowserResult),
             CommandData::BrowsingContextCommand(cmd) => match cmd {
                 BrowsingContextCommand::Activate(cmd) => self
                     .handle_browsing_context_activate(&cmd.params)
@@ -417,6 +448,66 @@ impl<'a> BidiSession<'a> {
                 extensible: Default::default(),
             },
         )))
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-close>
+    async fn handle_browser_close(
+        &self,
+        command_parameters: &EmptyParams,
+    ) -> Result<browser::CloseResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-createUsetContext>
+    async fn handle_browser_create_user_context(
+        &self,
+        _: &browser::CreateUserContextParameters,
+    ) -> Result<browser::CreateUserContextResult, ErrorCode> {
+        // TODO: blocked by user context not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-getUsetContexts>
+    async fn handle_browser_get_user_contexts(
+        &self,
+        _: &EmptyParams,
+    ) -> Result<browser::GetUserContextsResult, ErrorCode> {
+        // TODO: blocked by user context not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-getClientWindows>
+    async fn handle_browser_get_client_windows(
+        &self,
+        command_parameters: &EmptyParams,
+    ) -> Result<browser::GetClientWindowsResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-removeUserContext>
+    async fn handle_browser_remove_user_context(
+        &self,
+        _: &browser::RemoveUserContextParameters,
+    ) -> Result<browser::RemoveUserContextResult, ErrorCode> {
+        // TODO: blocked by user context not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-setClientWindowState>
+    async fn handle_browser_set_client_window_state(
+        &self,
+        command_parameters: &browser::SetClientWindowStateParameters,
+    ) -> Result<browser::SetClientWindowStateResult, ErrorCode> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-setDownloadBehavior>
+    async fn handle_browser_set_download_behavior(
+        &self,
+        _: &browser::SetDownloadBehaviorParameters,
+    ) -> Result<browser::SetDownloadBehaviorResult, ErrorCode> {
+        // TODO: blocked by download not implemented
+        Err(ErrorCode::UnknownError)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-activate>
