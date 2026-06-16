@@ -61,12 +61,13 @@ pub enum ScriptToWebDriverMessage {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToConstellationMessage {
     Request(String),
-    TraverseHistory(i64),
+    TraverseHistory(BrowsingContextId, i64, GenericCallback<bool>),
     Activate(BrowsingContextId, GenericCallback<bool>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToScriptMessage {
+    Reload,
     // bool is prompt unload
     CloseNavigable(bool, GenericCallback<()>),
 }

@@ -194,7 +194,7 @@ impl RemoteEndState {
     pub(crate) async fn get_a_navigable(
         &self,
         navigable_id: BrowsingContextId,
-    ) -> Result<Option<Navigable>, ErrorCode> {
+    ) -> Result<Navigable, ErrorCode> {
         // 1. SKIP: disallow null
         // 2.
         let Some(navigable) = self.navigables.read().await.get(&navigable_id).cloned() else {
@@ -202,7 +202,7 @@ impl RemoteEndState {
         };
         // 3. SKIP: done in last step
         // 4.
-        Ok(Some(navigable))
+        Ok(navigable)
     }
 }
 

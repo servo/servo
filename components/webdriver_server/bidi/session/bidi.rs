@@ -701,8 +701,7 @@ impl<'a> BidiSession<'a> {
             .common
             .remote_end_state
             .get_a_navigable(navigable_id)
-            .await?
-            .unwrap();
+            .await?;
         // 3.
         if !navigable.is_top_level_traversable() {
             return Err(ErrorCode::InvalidArgument);
@@ -760,8 +759,7 @@ impl<'a> BidiSession<'a> {
             .common
             .remote_end_state
             .get_a_navigable(navigable_id)
-            .await?
-            .unwrap();
+            .await?;
         // 4. SKIP: Assert
         // 5.
         if !navigable.is_top_level_traversable() {
@@ -798,7 +796,7 @@ impl<'a> BidiSession<'a> {
             .transpose()?;
         // 3.
         let reference_naviable = match reference_navigable_id {
-            Some(id) => self.common.remote_end_state.get_a_navigable(id).await?,
+            Some(id) => Some(self.common.remote_end_state.get_a_navigable(id).await?),
             None => None,
         };
         // 4.
@@ -849,8 +847,7 @@ impl<'a> BidiSession<'a> {
                 self.common
                     .remote_end_state
                     .get_a_navigable(root_id)
-                    .await?
-                    .unwrap(),
+                    .await?,
             );
         } else {
             for navigable in self
@@ -916,8 +913,7 @@ impl<'a> BidiSession<'a> {
             .common
             .remote_end_state
             .get_a_navigable(navigable_id)
-            .await?
-            .unwrap();
+            .await?;
         // 3. SKIP: Assert
         // 4.
         let wait_condition = "committed";
@@ -1028,8 +1024,33 @@ impl<'a> BidiSession<'a> {
         &self,
         command_parameters: &browsing_context::TraverseHistoryParameters,
     ) -> Result<browsing_context::TraverseHistoryResult, ErrorCode> {
-        // TODO:
-        todo!()
+        // 1.
+        let navigable = self
+            .common
+            .remote_end_state
+            .get_a_navigable(
+                BrowsingContextId::from_string(&command_parameters.context)
+                    .ok_or(ErrorCode::InvalidArgument)?,
+            )
+            .await?;
+        // 2.
+        if !navigable.is_top_level_traversable() {
+            return Err(ErrorCode::InvalidArgument);
+        }
+        // 3. skip asset
+        // 4.
+        let delta = command_parameters.delta;
+        // 5. SKIP: we do not use wait queue
+        // 6-9. TODO: continue in constellation thread
+        self.traverse_the_history_by_a_delta(delta, navigable.id)
+            .await?;
+        // 10. SKIP: spec is todo here
+        // 11.
+        let body = browsing_context::TraverseHistoryResult {
+            extensible: Default::default(),
+        };
+        // 12.
+        Ok(body)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-emulation-setForcedColorsModeThemeOverride>
@@ -1497,6 +1518,21 @@ impl<'a> BidiSession<'a> {
         todo!()
     }
 
+    async fn traverse_the_history_by_a_delta(
+        &self,
+        delta: i64,
+        navigable: BrowsingContextId,
+    ) -> Result<(), ErrorCode> {
+        let (callback, receiver) = new_oneshot_callback();
+        let msg = WebDriverToConstellationMessage::TraverseHistory(navigable, delta, callback);
+        self.send_to_constellation(msg)?;
+        if let Err(e) = receiver.await {
+            log::warn!("Receiving callback from constellation failed: {e:?}");
+            return Err(ErrorCode::UnknownError);
+        }
+        Ok(())
+    }
+
     /// <https://www.w3.org/TR/webdriver-bidi/#buffer-a-log-event>
     fn buffer_a_log_event(&mut self, navigable_ids: &[BrowsingContextId], event: LogEvent) {
         // 1.
@@ -1546,10 +1582,15 @@ impl<'a> BidiSession<'a> {
         &self.common.remote_end_state.active_sessions
     }
 
-    fn send_to_constellation(&self, message: WebDriverToConstellationMessage) {
+    fn send_to_constellation(
+        &self,
+        message: WebDriverToConstellationMessage,
+    ) -> Result<(), ErrorCode> {
         if let Err(e) = self.common.constellation_sender.send(message) {
             log::warn!("Sending message to constellation failed: {e:?}");
+            return Err(ErrorCode::UnknownError);
         }
+        Ok(())
     }
 
     /// Send a message to self, this is used to defer an operation to next tick,

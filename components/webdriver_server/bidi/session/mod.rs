@@ -2,6 +2,10 @@
 // - handle_xxx: remote end step for command
 // - subscribe_xxx: remote end step for subscribe
 // - trigger_xxx: trigger event
+//
+// TODO: doc deviation of async
+// we do not rely on the concept of wait queue, reasons:
+// 1. many steps implicitly async, but no described with wait queue.
 
 pub(crate) mod bidi;
 pub(crate) mod common;
