@@ -577,16 +577,17 @@ impl<'a> BidiSession<'a> {
         Ok(body)
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-handleUserPrompt>
     async fn handle_browsing_context_handle_user_prompt(
         &self,
         command_parameters: &browsing_context::HandleUserPromptParameters,
     ) -> Result<browsing_context::HandleUserPromptResult, ErrorCode> {
-        // TODO:
+        // TODO: should be done in embedder thread
+        // TODO: should design a webdriver to embedder msg
         todo!()
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-locateNodes>
     async fn handle_browsing_context_locate_nodes(
         &self,
         command_parameters: &browsing_context::LocateNodesParameters,
@@ -595,7 +596,7 @@ impl<'a> BidiSession<'a> {
         todo!()
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-navigate>
     async fn handle_browsing_context_navigate(
         &self,
         command_parameters: &browsing_context::NavigateParameters,
@@ -638,7 +639,7 @@ impl<'a> BidiSession<'a> {
         self.await_a_navigation().await
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-print>
     async fn handle_browsing_context_print(
         &self,
         _: &browsing_context::PrintParameters,
@@ -647,16 +648,39 @@ impl<'a> BidiSession<'a> {
         Err(ErrorCode::UnknownError)
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-reload>
     async fn handle_browsing_context_reload(
         &self,
-        _: &browsing_context::ReloadParameters,
+        command_parameters: &browsing_context::ReloadParameters,
     ) -> Result<browsing_context::ReloadResult, ErrorCode> {
-        // TODO
+        // 1.
+        let navigable_id = BrowsingContextId::from_string(&command_parameters.context)
+            .ok_or(ErrorCode::InvalidArgument)?;
+        // 2.
+        let navigable = self
+            .common
+            .remote_end_state
+            .get_a_navigable(navigable_id)
+            .await?;
+        // 3. SKIP: assert
+        // 4.
+        let ignore_cache = command_parameters.ignore_cache;
+        // 5.
+        let wait_condition = "commited";
+        // 6. TODO: wait and wait condition have different type
+        // 7. TODO: since active document, this should be sent to script thread to handle
+        // 8.
+        // 9.
+        let request_id = 0;
+        // TODO: this is different from classic, in classic it is top level, but in bidi it seems to be arbitary.
+        // instead, we should send it to navigable (script thread).
+        // TODO: should allow empty or use seperate variant?
+        self.send_to_constellation(WebDriverToConstellationMessage::Request("".to_string()));
+        // 10.
         todo!()
     }
 
-    // TODO: link
+    /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-setBypassCSP>
     async fn handle_browsing_context_set_bypass_csp(
         &self,
         command_parameters: &browsing_context::SetBypassCspParameters,
