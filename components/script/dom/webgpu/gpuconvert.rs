@@ -822,7 +822,7 @@ impl Convert<ComputePassDescriptor<'static>> for &GPUComputePassDescriptor {
     fn convert(self) -> ComputePassDescriptor<'static> {
         ComputePassDescriptor {
             label: (&self.parent).convert(),
-            timestamp_writes: self.timestampWrites.as_ref().map(|tw| tw.convert()),
+            timestamp_writes: self.timestampWrites.as_ref().map(Convert::convert),
         }
     }
 }

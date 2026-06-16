@@ -29,14 +29,14 @@ struct DroppableGPUQuerySet {
 
 impl Drop for DroppableGPUQuerySet {
     fn drop(&mut self) {
-        if let Err(e) = self
+        if let Err(error) = self
             .channel
             .0
             .send(WebGPURequest::DropQuerySet(self.query_set.0))
         {
             warn!(
-                "Failed to send WebGPURequest::DropQuerySet({:?}) ({})",
-                self.query_set.0, e
+                "Failed to send WebGPURequest::DropQuerySet({:?}) ({error})",
+                self.query_set.0
             );
         }
     }
@@ -108,12 +108,12 @@ impl GPUQuerySet {
         let query_set_id = device.global().wgpu_id_hub().create_query_set_id();
         // 5. Issue the initialization steps on the Device timeline of this.
         let channel = device.channel();
-        if let Err(e) = channel.0.send(WebGPURequest::CreateQuerySet {
+        if let Err(error) = channel.0.send(WebGPURequest::CreateQuerySet {
             device_id: device.id().0,
             query_set_id,
             descriptor: descriptor.convert(),
         }) {
-            warn!("Failed to send WebGPURequest::CreateQuerySet: {e}");
+            warn!("Failed to send WebGPURequest::CreateQuerySet: {error}");
         }
         // 6. Return q
         Ok(Self::new(
@@ -137,7 +137,8 @@ impl GPUQuerySet {
 impl GPUQuerySetMethods<crate::DomTypeHolder> for GPUQuerySet {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-destroy>
     fn Destroy(&self) {
-        // wgpu does not implement proper destroy for query sets
+        // TODO: wgpu does not implement proper destroy for query sets.
+        // Waiting for https://github.com/gfx-rs/wgpu/pull/9671 to be released.
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>

@@ -152,7 +152,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
     ) -> DomRoot<GPUComputePassEncoder> {
         let compute_pass_id = self.global().wgpu_id_hub().create_compute_pass_id();
 
-        if let Err(e) = self
+        if let Err(error) = self
             .droppable
             .channel
             .0
@@ -160,11 +160,11 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                 command_encoder_id: self.id().0,
                 compute_pass_id,
                 label: (&descriptor.parent).convert(),
-                timestamp_writes: descriptor.timestampWrites.as_ref().map(|tw| tw.convert()),
+                timestamp_writes: descriptor.timestampWrites.as_ref().map(Convert::convert),
                 device_id: self.device.id().0,
             })
         {
-            warn!("Failed to send WebGPURequest::BeginComputePass {e:?}");
+            warn!("Failed to send WebGPURequest::BeginComputePass {error:?}");
         }
 
         GPUComputePassEncoder::new(
@@ -231,7 +231,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .collect::<Fallible<Vec<_>>>()?;
         let render_pass_id = self.global().wgpu_id_hub().create_render_pass_id();
 
-        if let Err(e) = self
+        if let Err(error) = self
             .droppable
             .channel
             .0
@@ -241,11 +241,11 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                 label: (&descriptor.parent).convert(),
                 depth_stencil_attachment,
                 color_attachments,
-                timestamp_writes: descriptor.timestampWrites.as_ref().map(|tw| tw.convert()),
+                timestamp_writes: descriptor.timestampWrites.as_ref().map(Convert::convert),
                 device_id: self.device.id().0,
             })
         {
-            warn!("Failed to send WebGPURequest::BeginRenderPass {e:?}");
+            warn!("Failed to send WebGPURequest::BeginRenderPass {error:?}");
         }
 
         Ok(GPURenderPassEncoder::new(
@@ -433,7 +433,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         destination: &GPUBuffer,
         destination_offset: u64,
     ) {
-        if let Err(e) = self
+        if let Err(error) = self
             .droppable
             .channel
             .0
@@ -447,7 +447,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                 device_id: self.device.id().0,
             })
         {
-            warn!("Error sending WebGPURequest::ResolveQuerySet: {e:?}")
+            warn!("Error sending WebGPURequest::ResolveQuerySet: {error:?}")
         }
     }
 }
