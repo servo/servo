@@ -20,7 +20,10 @@ use servo_base::{
 };
 use uuid::Uuid;
 
-use crate::bidi::{browsing_context, log, script};
+use crate::bidi::{
+    browsing_context::{self, ReadinessState},
+    log, script,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverMessage {
@@ -56,7 +59,10 @@ pub enum ScriptToWebDriverMessage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum WebDriverToConstellationMessage {}
+pub enum WebDriverToConstellationMessage {
+    Request(String),
+    TraverseHistory(i64),
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToScriptMessage {

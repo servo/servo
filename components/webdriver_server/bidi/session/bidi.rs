@@ -9,10 +9,11 @@ use servo_base::{generic_channel::GenericCallback, id::BrowsingContextId};
 use tokio::sync::{RwLock, mpsc};
 use uuid::Uuid;
 use webdriver_traits::{
-    WebDriverToScriptMessage,
+    WebDriverToConstellationMessage, WebDriverToScriptMessage,
     bidi::{
         BrowsingContextCommand, BrowsingContextResult, CommandData, EmptyParams, EmptyResult,
-        ErrorCode, Event, LogEvent, ResultData, SessionCommand, SessionResult, browsing_context,
+        ErrorCode, Event, LogEvent, ResultData, SessionCommand, SessionResult,
+        browsing_context::{self, NavigateResult},
         script::PreloadScript as PreloadScriptId,
         session::{self, Subscription as SubscriptionId},
     },
@@ -59,6 +60,7 @@ pub struct BidiSession<'a> {
 }
 
 impl<'a> BidiSession<'a> {
+    // TODO: handle should be changed to &self to avoid blocking each other
     /// Remote end steps, the entry point.
     pub(crate) async fn handle_command(
         &mut self,
@@ -67,24 +69,68 @@ impl<'a> BidiSession<'a> {
         match command {
             CommandData::BrowserCommand(cmd) => todo!(),
             CommandData::BrowsingContextCommand(cmd) => match cmd {
-                BrowsingContextCommand::Activate(cmd) => todo!(),
-                BrowsingContextCommand::CaptureScreenshot(cmd) => todo!(),
-                BrowsingContextCommand::Close(cmd) => {
-                    self.handle_browsing_context_close(&cmd.params).await
-                },
-                BrowsingContextCommand::Create(cmd) => todo!(),
-                BrowsingContextCommand::GetTree(cmd) => todo!(),
-                BrowsingContextCommand::HandleUserPrompt(cmd) => todo!(),
-                BrowsingContextCommand::LocateNodes(cmd) => todo!(),
-                BrowsingContextCommand::Navigate(cmd) => todo!(),
-                BrowsingContextCommand::Print(cmd) => todo!(),
-                BrowsingContextCommand::Reload(cmd) => todo!(),
-                BrowsingContextCommand::SetBypassCsp(cmd) => todo!(),
-                BrowsingContextCommand::SetViewport(cmd) => todo!(),
-                BrowsingContextCommand::StartScreencast(cmd) => todo!(),
-                BrowsingContextCommand::StopScreencast(cmd) => todo!(),
-                BrowsingContextCommand::TraverseHistory(cmd) => todo!(),
-            },
+                BrowsingContextCommand::Activate(cmd) => self
+                    .handle_browsing_context_activate(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::ActivateResult),
+                BrowsingContextCommand::CaptureScreenshot(cmd) => self
+                    .handle_browsing_context_capture_screenshot(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::CaptureScreenshotResult),
+                BrowsingContextCommand::Close(cmd) => self
+                    .handle_browsing_context_close(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::CloseResult),
+                BrowsingContextCommand::Create(cmd) => self
+                    .handle_browsing_context_create(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::CreateResult),
+                BrowsingContextCommand::GetTree(cmd) => self
+                    .handle_browsing_context_get_tree(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::GetTreeResult),
+                BrowsingContextCommand::HandleUserPrompt(cmd) => self
+                    .handle_browsing_context_handle_user_prompt(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::HandleUserPromptResult),
+                BrowsingContextCommand::LocateNodes(cmd) => self
+                    .handle_browsing_context_locate_nodes(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::LocateNodesResult),
+                BrowsingContextCommand::Navigate(cmd) => self
+                    .handle_browsing_context_navigate(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::NavigateResult),
+                BrowsingContextCommand::Print(cmd) => self
+                    .handle_browsing_context_print(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::PrintResult),
+                BrowsingContextCommand::Reload(cmd) => self
+                    .handle_browsing_context_reload(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::ReloadResult),
+                BrowsingContextCommand::SetBypassCsp(cmd) => self
+                    .handle_browsing_context_set_bypass_csp(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::SetBypassCspResult),
+                BrowsingContextCommand::SetViewport(cmd) => self
+                    .handle_browsing_context_set_viewport(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::SetViewportResult),
+                BrowsingContextCommand::StartScreencast(cmd) => self
+                    .handle_browsing_context_start_screencast(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::StartScreencastResult),
+                BrowsingContextCommand::StopScreencast(cmd) => self
+                    .handle_browsing_context_stop_screencast(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::StopScreencastResult),
+                BrowsingContextCommand::TraverseHistory(cmd) => self
+                    .handle_browsing_context_traverse_history(&cmd.params)
+                    .await
+                    .map(BrowsingContextResult::TraverseHistoryResult),
+            }
+            .map(ResultData::BrowsingContextResult),
             CommandData::EmulationCommand(cmd) => todo!(),
             CommandData::InputCommand(cmd) => todo!(),
             CommandData::NetworkCommand(cmd) => todo!(),
@@ -346,10 +392,29 @@ impl<'a> BidiSession<'a> {
         )))
     }
 
+    // TODO: link
+    async fn handle_browsing_context_activate(
+        &self,
+        command_parameters: &browsing_context::ActivateParameters,
+    ) -> Result<browsing_context::ActivateResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_capture_screenshot(
+        &self,
+        command_parameters: &browsing_context::CaptureScreenshotParameters,
+    ) -> Result<browsing_context::CaptureScreenshotResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    // TODO: change to &self
     async fn handle_browsing_context_close(
         &mut self,
         command_parameters: &browsing_context::CloseParameters,
-    ) -> Result<ResultData, ErrorCode> {
+    ) -> Result<browsing_context::CloseResult, ErrorCode> {
         // 1.
         let navigable_id = &command_parameters.context;
         // 2.
@@ -386,11 +451,149 @@ impl<'a> BidiSession<'a> {
         };
         receiver.recv().await;
         // 8.
-        Ok(ResultData::BrowsingContextResult(
-            BrowsingContextResult::CloseResult(EmptyResult {
-                extensible: Default::default(),
-            }),
-        ))
+        Ok(EmptyResult {
+            extensible: Default::default(),
+        })
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_create(
+        &self,
+        command_parameters: &browsing_context::CreateParameters,
+    ) -> Result<browsing_context::CreateResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_get_tree(
+        &self,
+        command_parameters: &browsing_context::GetTreeParameters,
+    ) -> Result<browsing_context::GetTreeResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_handle_user_prompt(
+        &self,
+        command_parameters: &browsing_context::HandleUserPromptParameters,
+    ) -> Result<browsing_context::HandleUserPromptResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_locate_nodes(
+        &self,
+        command_parameters: &browsing_context::LocateNodesParameters,
+    ) -> Result<browsing_context::LocateNodesResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    async fn handle_browsing_context_navigate(
+        &self,
+        command_parameters: &browsing_context::NavigateParameters,
+    ) -> Result<browsing_context::NavigateResult, ErrorCode> {
+        // 1.
+        let navigable_id = &command_parameters.context;
+        // 2.
+        let navigable = self
+            .common
+            .remote_end_state
+            .get_a_navigable(Some(navigable_id))
+            .await?
+            .unwrap();
+        // 3. SKIP: Assert
+        // 4.
+        let wait_condition = "committed";
+        // 5.
+        if let Some(wait) = &command_parameters.wait
+            && !matches!(wait, browsing_context::ReadinessState::None)
+        {
+            // TODO: set wait_condition, they have different type
+        }
+        // 6.
+        let url = &command_parameters.url;
+        // 7.
+        let document = navigable.active_document;
+        // 8. TODO: we have not receive url information of a document
+        let base = "".to_string();
+        // 9. TODO: import servo-url parser
+        let url_record = false;
+        // 10.
+        if !url_record {
+            return Err(ErrorCode::InvalidArgument);
+        }
+        // 11. TODO: id
+        let request_id = 0;
+        self.send_to_constellation(WebDriverToConstellationMessage::Request("".to_string()));
+        // 12.
+        self.await_a_navigation().await
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_print(
+        &self,
+        _: &browsing_context::PrintParameters,
+    ) -> Result<browsing_context::PrintResult, ErrorCode> {
+        // TODO: blocked by PDF not implemented
+        Err(ErrorCode::UnknownError)
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_reload(
+        &self,
+        _: &browsing_context::ReloadParameters,
+    ) -> Result<browsing_context::ReloadResult, ErrorCode> {
+        // TODO
+        todo!()
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_set_bypass_csp(
+        &self,
+        command_parameters: &browsing_context::SetBypassCspParameters,
+    ) -> Result<browsing_context::SetBypassCspResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_set_viewport(
+        &self,
+        command_parameters: &browsing_context::SetViewportParameters,
+    ) -> Result<browsing_context::SetViewportResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_start_screencast(
+        &self,
+        command_parameters: &browsing_context::StartScreencastParameters,
+    ) -> Result<browsing_context::StartScreencastResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_stop_screencast(
+        &self,
+        command_parameters: &browsing_context::StopScreencastParameters,
+    ) -> Result<browsing_context::StopScreencastResult, ErrorCode> {
+        // TODO:
+        todo!()
+    }
+
+    // TODO: link
+    async fn handle_browsing_context_traverse_history(
+        &self,
+        command_parameters: &browsing_context::TraverseHistoryParameters,
+    ) -> Result<browsing_context::TraverseHistoryResult, ErrorCode> {
+        // TODO:
+        todo!()
     }
 
     /// The "remote end subscribe" step for the event
@@ -404,6 +607,12 @@ impl<'a> BidiSession<'a> {
 
     async fn subscribe_log_entry_added(&mut self, include_global: bool) {
         // TODO:
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#await-a-navigation>
+    async fn await_a_navigation(&self) -> Result<NavigateResult, ErrorCode> {
+        // TODO
+        todo!()
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#end-the-session>
@@ -488,6 +697,12 @@ impl<'a> BidiSession<'a> {
 
     pub(crate) fn active_sessions(&self) -> &RwLock<ActiveSessions> {
         &self.common.remote_end_state.active_sessions
+    }
+
+    fn send_to_constellation(&self, message: WebDriverToConstellationMessage) {
+        if let Err(e) = self.common.constellation_sender.send(message) {
+            log::warn!("Sending message to constellation failed: {e:?}");
+        }
     }
 }
 

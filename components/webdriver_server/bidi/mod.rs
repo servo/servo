@@ -144,6 +144,7 @@ impl WebDriverBidiThread {
                                 original_opener: None,
                                 sender: generic_sender.clone(),
                                 webview_id: Some(webview_id),
+                                active_document: pipeline_id,
                             },
                         );
                     },
@@ -214,6 +215,7 @@ pub(crate) struct Navigable {
     pub(crate) original_opener: Option<BrowsingContextId>,
     pub(crate) sender: GenericSender<WebDriverToScriptMessage>,
     pub(crate) webview_id: Option<WebViewId>,
+    pub(crate) active_document: PipelineId,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
