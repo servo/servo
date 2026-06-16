@@ -1443,10 +1443,11 @@ unsafe extern "C" fn invoke_script_environment_preparer(
     let mut cx = unsafe { temp_cx() };
     let global = unsafe { GlobalScope::from_object(global.get()) };
     let mut realm = enter_auto_realm(&mut cx, &*global);
+    let cx = &mut realm.current_realm();
 
-    run_a_script::<DomTypeHolder, _>(&global, || {
-        if unsafe { !RunScriptEnvironmentPreparerClosure(realm.raw_cx(), closure) } {
-            report_pending_exception(&mut realm.current_realm());
+    run_a_script::<DomTypeHolder, _, _>(cx, &global, |cx| {
+        if unsafe { !RunScriptEnvironmentPreparerClosure(cx.raw_cx(), closure) } {
+            report_pending_exception(cx);
         };
     });
 }

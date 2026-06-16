@@ -273,7 +273,7 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
     let global = &global;
 
     // Step 8: Prepare to run script with relevant settings.
-    run_a_script::<D, R>(global, move || {
+    run_a_script::<D, R, _>(cx, global, move |cx| {
         let actual_callback = || {
             let old_realm = unsafe { EnterRealm(cx, callback.callback()) };
             let result = f(cx);

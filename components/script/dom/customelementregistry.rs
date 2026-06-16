@@ -710,7 +710,7 @@ impl CustomElementDefinition {
 
             // Step 5.3.1. Set result to the result of constructing C, with no arguments.
             // https://webidl.spec.whatwg.org/#construct-a-callback-function
-            run_a_script::<DomTypeHolder, _>(window.upcast(), || {
+            run_a_script::<DomTypeHolder, _, _>(cx, window.upcast(), |cx| {
                 run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
                     let args = HandleValueArray::empty();
                     if unsafe { !Construct1(cx, constructor.handle(), &args, element.handle_mut()) }
@@ -921,7 +921,7 @@ fn run_upgrade_constructor(
 
         // Step 9.3. Let constructResult be the result of constructing C, with no arguments.
         // https://webidl.spec.whatwg.org/#construct-a-callback-function
-        run_a_script::<DomTypeHolder, _>(window.upcast(), || {
+        run_a_script::<DomTypeHolder, _, _>(cx, window.upcast(), |cx| {
             run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
                 if unsafe {
                     !Construct1(
