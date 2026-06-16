@@ -77,9 +77,14 @@ pub enum ScriptToWebDriverMessage {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToConstellationMessage {
+    Activate(BrowsingContextId, GenericCallback<bool>),
+    CloseWebView {
+        id: WebViewId,
+        prompt_unload: bool,
+        callback: GenericCallback<bool>,
+    },
     Request(String),
     TraverseHistory(BrowsingContextId, i64, GenericCallback<bool>),
-    Activate(BrowsingContextId, GenericCallback<bool>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

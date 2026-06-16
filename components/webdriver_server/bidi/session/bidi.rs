@@ -613,7 +613,8 @@ impl<'a> BidiSession<'a> {
     ) -> Result<browser::CloseResult, ErrorCode> {
         // 1.
         self.end_the_session().await;
-        // 2. TODO: the cases for multiple session is unspecified in spec.
+        // 2. NOTE: the cases for multiple session is unspecified in spec,
+        // here we only allow last active session to close browser.
         if !self.active_sessions().read().await.is_empty() {
             // 2.2.
             self.send_to_self(SessionMessage::CleanupSession(None));
@@ -626,10 +627,29 @@ impl<'a> BidiSession<'a> {
             // 3.2.
             active_session.cleanup_the_session().await?;
         }
+        // 4.1. later
         // 4.2.
         self.send_to_self(SessionMessage::CleanupSession(None));
-        // 4.3. TODO: close any top-level traversables
-        // 4.4. TODO: implementation-define steps to shutting down browser
+        // 4.3.
+        for traversable in self.common.remote_end_state.top_level_traversables() {
+            let (callback, receiver) = new_oneshot_callback();
+            self.send_to_constellation(WebDriverToConstellationMessage::CloseWebView {
+                id: traversable.webview_id,
+                prompt_unload: false,
+                callback,
+            })?;
+            if !receiver
+                .await
+                .map_err(|_| ErrorCode::UnknownError)?
+                .map_err(|_| ErrorCode::UnknownError)?
+            {
+                return Err(ErrorCode::UnknownError);
+            }
+        }
+        // 4.4. SKIP: implementation-defined
+        // NOTE: Currently we rely on the behavior that servoshell will exit
+        // when all webviews are closed. If this condition change in the future,
+        // we will need an explicit message to notify embedder to close.
         // 4.1
         Ok(browser::CloseResult {
             extensible: Default::default(),

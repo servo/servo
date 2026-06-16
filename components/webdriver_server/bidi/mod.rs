@@ -251,7 +251,9 @@ impl Navigable {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct RealmId(pub(crate) PipelineId, pub(crate) Option<WorkerId>);
 
-pub struct TopLevelTraversable {}
+pub struct TopLevelTraversable {
+    pub(crate) webview_id: WebViewId,
+}
 
 impl TopLevelTraversable {
     fn associated_client_window(&self) -> ClientWindow {
