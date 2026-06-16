@@ -37,7 +37,7 @@ aes-kw = { version = "0.3", features = ["zeroize"] }
 android_logger = "0.15"
 app_units = "0.7"
 arboard = "3"
-argon2 = { version = "0.5", features = ["alloc"] }
+argon2 = { version = "=0.6.0-rc.8", features = ["alloc"] }
 arrayvec = "0.7"
 async-compression = { version = "0.4.12", default-features = false }
 async-recursion = "1.1"
