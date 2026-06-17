@@ -1019,6 +1019,23 @@ impl Element {
                 .is_none()
         })
     }
+
+    pub(crate) fn check_style_on_self_or_eager_pseudos(
+        &self,
+        check_styles_fn: impl Fn(&ComputedValues) -> bool,
+    ) -> bool {
+        let style_data = self.style_data.borrow();
+        let Some(data) = style_data.as_ref().map(|data| data.element_data.borrow()) else {
+            return false;
+        };
+
+        if check_styles_fn(data.styles.primary()) {
+            return true;
+        }
+
+        let mut pseudo_styles = data.styles.pseudos.as_array().iter();
+        pseudo_styles.any(|style| style.as_deref().is_some_and(&check_styles_fn))
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
