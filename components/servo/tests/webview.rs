@@ -1084,7 +1084,9 @@ fn test_preferences_change() {
     let servo_test = ServoTest::new();
     let delegate = Rc::new(WebViewDelegateImpl::default());
 
-    let test_page = Url::parse("data:text/html,<div></div>").expect("Data URL failed to build");
+    let test_page =
+        Url::parse("data:text/html,<div id=\"target\" style=\"backdrop-filter: sepia(1)\"></div>")
+            .expect("Data URL failed to build");
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
@@ -1093,26 +1095,31 @@ fn test_preferences_change() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
     assert_eq!(
-        Ok(JSValue::Boolean(true)),
-        evaluate_javascript(
+        // The zoom style is feature flagged by the layout.unimplemented feature,
+        // so when layout.unimplemented feature is disabled, the zoom style specified in
+        // the stylesheet won't parse and the computed value undefined
+        Ok(JSValue::Undefined),
+        dbg!(evaluate_javascript(
             &servo_test,
             webview.clone(),
-            "typeof Permissions === 'undefined'"
-        )
+            "getComputedStyle(document.getElementById('target')).backdropFilter"
+        ))
     );
 
     servo_test
         .servo()
-        .set_preference("dom_permissions_enabled", PrefValue::Bool(true));
+        .set_preference("layout_unimplemented", PrefValue::Bool(true));
 
     webview.reload();
 
     assert_eq!(
-        Ok(JSValue::Boolean(true)),
+        // When layout.unimplemented feature is enabled, the zoom style specified in
+        // the stylesheet will parse and the computed value will be that value
+        Ok(JSValue::String("sepia(1)".into())),
         evaluate_javascript(
             &servo_test,
             webview,
-            "typeof Permissions !== 'undefined' && navigator.permissions instanceof Permissions"
+            "getComputedStyle(document.getElementById('target')).backdropFilter"
         )
     );
 }
