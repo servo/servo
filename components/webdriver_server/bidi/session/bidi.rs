@@ -1357,9 +1357,53 @@ impl<'a> BidiSession<'a> {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-script-evaluate>
     async fn handle_script_evaluate(
         &self,
-        _: &script::EvaluateParameters,
+        command_parameters: &script::EvaluateParameters,
     ) -> Result<script::EvaluateResult, ErrorCode> {
-        todo!()
+        // 1.
+        // let realm = todo!();
+        // 2.
+        // let realm_id = realm.id;
+        // 3.
+        // let environment_setting = realm.environment_setting_object;
+        // 4.
+        let source = &command_parameters.expression;
+        // 5.
+        let await_promise = &command_parameters.await_promise;
+        // 6.
+        let serialization_options = &command_parameters
+            .serialization_options
+            .clone()
+            .unwrap_or_default();
+        // 7.
+        let result_ownership = command_parameters
+            .result_ownership
+            .clone()
+            .unwrap_or(script::ResultOwnership::None);
+        // 8. TODO:
+        // 9. TODO:
+        // 10.
+        let bypass_disable_scripting = true;
+        // 11. TODO: script thread
+        // 12.
+        if command_parameters.user_activation.unwrap_or(false) {
+            // TODO: activation notification
+        }
+        // 13. TODO: should be in script thread
+        // 14.
+        // 15.
+        // 16.
+        // 17.
+        let evaluation_value = todo!();
+        // 18. SKIP: assert
+        // 19. TODO: await for script callback
+        let result = todo!();
+        // 20.
+        Ok(script::EvaluateResult::EvaluateResultSuccess(
+            script::EvaluateResultSuccess {
+                result: result,
+                realm: todo!(),
+            },
+        ))
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-script-getRealms>

@@ -109,14 +109,14 @@ TODO: write doc for this part.
 
 ### The `script` module
 
-| Commands                     | Status | Details |
-| ---------------------------- | ------ | ------- |
-| `script.addPreloadScript`    | ❌     |         |
-| `script.disown`              | ❌     |         |
-| `script.callFunction`        | ❌     |         |
-| `script.evaluate`            | ❌     |         |
-| `script.getRealms`           | ❌     |         |
-| `script.removePreloadScript` | ❌     |         |
+| Commands                     | Status | Details     |
+| ---------------------------- | ------ | ----------- |
+| `script.evaluate`            | 🚧     | boilerplate |
+| `script.addPreloadScript`    | ❌     |             |
+| `script.disown`              | ❌     |             |
+| `script.callFunction`        | ❌     |             |
+| `script.getRealms`           | ❌     |             |
+| `script.removePreloadScript` | ❌     |             |
 
 | Events                  | Status | Details |
 | ----------------------- | ------ | ------- |
@@ -165,4 +165,5 @@ TODO: write doc for this part.
 | CDDL to serde codegen                   | ✅     | Some edge cases not handled.                |
 | Custom module (`{app}:{module}.{name}`) | ❌     | Our parser cannot handle this currently.    |
 | TLS secure connection (`wss://`)        | ❌     |                                             |
-| Channel-based connection from embedder  | ❌     | Not in spec, but useful for embedded usage. |
+| Channel-based connection from embedder  | ❌     | Not in spec, but useful for embedder usage. |
+| Sandbox realm                           | ❌     |                                             |
