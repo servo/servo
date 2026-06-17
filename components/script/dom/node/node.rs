@@ -2499,7 +2499,10 @@ impl Node {
         // Step 1. Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
         rooted_vec!(let mut new_nodes);
         let new_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
-            new_nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
+            new_nodes.extend(
+                node.children_unrooted(cx.no_gc())
+                    .map(|node| Dom::from_ref(&**node)),
+            );
             new_nodes.r()
         } else {
             from_ref(&node)
