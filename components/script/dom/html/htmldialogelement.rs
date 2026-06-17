@@ -8,6 +8,7 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::error::{Error, ErrorResult};
 use stylo_dom::ElementState;
 
@@ -17,6 +18,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::document::focus::FocusableArea;
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -155,7 +157,8 @@ impl HTMLDialogElement {
 
         // TODO: Step 21. Run hide all popovers until given hideUntil, false, and true.
 
-        // TODO(Issue #32702): Step 22. Run the dialog focusing steps given subject.
+        // Step 22. Run the dialog focusing steps given subject.
+        self.run_dialog_focusing_steps(cx);
         Ok(())
     }
 
@@ -275,6 +278,41 @@ impl HTMLDialogElement {
             }));
         // TODO: Step 3. Set element's dialog toggle task tracker to a struct with task set to the just-queued task and old state set to oldState.
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#dialog-focusing-steps>
+    fn run_dialog_focusing_steps(&self, cx: &mut JSContext) {
+        // TODO: Step 1. If the allow focus steps given subject's node document return false, then return.
+
+        // Step 2. Let control be null.
+        let mut control: Option<FocusableArea> = None;
+
+        // Step 3. If subject has the autofocus attribute, then set control to subject.
+        if self.upcast::<HTMLElement>().Autofocus() {
+            control = self.upcast::<Node>().get_the_focusable_area();
+        }
+
+        // Step 4. If control is null, then set control to the focus delegate of subject.
+        if control.is_none() {
+            control = self.upcast::<Node>().focus_delegate();
+        }
+
+        // Step 5. If control is null, then set control to subject.
+        if control.is_none() {
+            control = self.upcast::<Node>().get_the_focusable_area();
+        }
+
+        // Step 6. Run the focusing steps for control.
+        // FIXME: Use the focusing step once they support a focusable area as an argument
+        if let Some(control) = control {
+            let document = self.owner_document();
+            document.focus_handler().focus(cx, control);
+        }
+
+        // TODO: Step 7. Let topDocument be control's node navigable's top-level traversable's active document.
+        // TODO: Step 8. If control's node document's origin is not the same as the origin of topDocument, then return.
+        // TODO: Step 9. Empty topDocument's autofocus candidates.
+        // TODO: Step 10. Set topDocument's autofocus processed flag to true.
+    }
 }
 
 impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
@@ -352,8 +390,8 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // TODO: Step 12. Run hide all popovers until given hideUntil, false, and true.
 
-        // TODO(Issue #32702): Step 13. Run the dialog focusing steps given this.
-
+        // Step 13. Run the dialog focusing steps given this.
+        self.run_dialog_focusing_steps(cx);
         Ok(())
     }
 
