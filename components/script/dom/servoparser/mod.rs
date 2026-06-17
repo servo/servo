@@ -45,6 +45,7 @@ use tendril::stream::LossyDecoder;
 use tendril::{ByteTendril, TendrilSink};
 
 use crate::document_loader::{DocumentLoader, LoadType};
+use crate::dom::SuppressObserver;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
@@ -1580,6 +1581,61 @@ pub(crate) struct FragmentContext<'a> {
     pub(crate) context_element_allows_scripting: bool,
 }
 
+/// <https://html.spec.whatwg.org/multipage/#insert-an-element-at-the-adjusted-insertion-location>
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
+fn insert_an_element_at_the_adjusted_insertion_location(
+    cx: &mut JSContext,
+    node_to_insert: Dom<Node>,
+    adjusted_insertion_location_parent: &Node,
+    adjusted_insertion_location_child: Option<&Node>,
+    parsing_algorithm: ParsingAlgorithm,
+    custom_element_reaction_stack: &CustomElementReactionStack,
+) {
+    // Step 1: Let the adjusted insertion location be the appropriate place for inserting a node.
+    //
+    // Note: This is handled as part of the input.
+
+    // Step 2: If it is not possible to insert element at the adjusted insertion location,
+    // abort these steps.
+    if Node::ensure_pre_insertion_validity(
+        cx.no_gc(),
+        &node_to_insert,
+        adjusted_insertion_location_parent,
+        adjusted_insertion_location_child,
+    )
+    .is_err()
+    {
+        return;
+    }
+
+    // Step 3. If the parser was not created as part of the HTML fragment parsing algorithm,
+    // then push a new element queue onto element's relevant agent's custom element reactions
+    // stack.
+    let element_in_non_fragment =
+        parsing_algorithm != ParsingAlgorithm::Fragment && node_to_insert.is::<Element>();
+    if element_in_non_fragment {
+        custom_element_reaction_stack.push_new_element_queue();
+    }
+
+    // Step 4: Insert element at the adjusted insertion location.
+    Node::insert(
+        cx,
+        &node_to_insert,
+        adjusted_insertion_location_parent,
+        adjusted_insertion_location_child,
+        SuppressObserver::Unsuppressed,
+    );
+
+    // Step 5: If the parser was not created as part of the HTML fragment parsing algorithm,
+    // then pop the element queue from element's relevant agent's custom element reactions
+    // stack, and invoke custom element reactions in that queue.
+    //
+    // Note: Handled as part of `pop_current_element_queue()`.
+    if element_in_non_fragment {
+        custom_element_reaction_stack.pop_current_element_queue(cx);
+    }
+}
+
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
 fn insert(
     cx: &mut JSContext,
@@ -1590,19 +1646,20 @@ fn insert(
     custom_element_reaction_stack: &CustomElementReactionStack,
 ) {
     match child {
-        NodeOrText::AppendNode(n) => {
-            // https://html.spec.whatwg.org/multipage/#insert-a-foreign-element
-            // applies if this is an element; if not, it may be
-            // https://html.spec.whatwg.org/multipage/#insert-a-comment
-            let element_in_non_fragment =
-                parsing_algorithm != ParsingAlgorithm::Fragment && n.is::<Element>();
-            if element_in_non_fragment {
-                custom_element_reaction_stack.push_new_element_queue();
-            }
-            parent.InsertBefore(cx, &n, reference_child).unwrap();
-            if element_in_non_fragment {
-                custom_element_reaction_stack.pop_current_element_queue(cx);
-            }
+        NodeOrText::AppendNode(node) => {
+            // This encompasses two parts of the specification:
+            //  - https://html.spec.whatwg.org/multipage/#insert-a-foreign-element
+            //  - https://html.spec.whatwg.org/multipage/#insert-a-comment
+            //
+            // TODO: This part of the code should match the specification more closely.
+            insert_an_element_at_the_adjusted_insertion_location(
+                cx,
+                node,
+                parent,
+                reference_child,
+                parsing_algorithm,
+                custom_element_reaction_stack,
+            );
         },
         NodeOrText::AppendText(t) => {
             // https://html.spec.whatwg.org/multipage/#insert-a-character
