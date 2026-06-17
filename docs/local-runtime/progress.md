@@ -1,5 +1,13 @@
 # Local Runtime Progress
 
+## 2026-06-17 — Devcontainer release upload GitHub CLI fix
+
+- Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` to install the GitHub CLI inside the Servo devcontainer before the manual `linux-debug-build` release upload step runs.
+- The failed command was in the release-publishing path after the build/package/artifact path, because GitHub Actions container-job `run` steps execute inside `ghcr.io/servo/servo/devcontainer-ubuntu:latest`, where `gh` is not guaranteed to be present even when it is available on the host runner.
+- Kept the existing build, packaging, artifact upload, stable release tag, `contents: write` permission, and `GH_TOKEN: ${{ github.token }}` release-step authentication unchanged.
+- No Servo crates/modules or local-runtime Rust code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only fix.
+
+
 
 ## 2026-06-17 — Manual Linux debug build workflow gate
 

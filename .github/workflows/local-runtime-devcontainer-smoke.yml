@@ -119,6 +119,19 @@ jobs:
           path: release/servo-linux-debug.zip
           if-no-files-found: error
 
+      - name: Install GitHub CLI
+        run: |
+          set -Eeuo pipefail
+
+          if command -v gh >/dev/null 2>&1; then
+            gh --version
+            exit 0
+          fi
+
+          apt-get update
+          apt-get install -y gh
+          gh --version
+
       - name: Push successful builds to Releases
         env:
           GH_TOKEN: ${{ github.token }}
