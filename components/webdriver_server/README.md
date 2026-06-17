@@ -138,22 +138,22 @@ TODO: write doc for this part.
 
 ### The `log` module
 
-| Events                          | Status | Details                                        |
-| ------------------------------- | ------ | ---------------------------------------------- |
-| `log.entryAdded` (console part) | ✅     |                                                |
-| `log.entryAdded` (jserror part) | ❌     | Do not know where to set global error handler. |
+| Events                          | Status | Details                                    |
+| ------------------------------- | ------ | ------------------------------------------ |
+| `log.entryAdded` (console part) | ✅     |                                            |
+| `log.entryAdded` (jserror part) | ⛔     | Error handler seems not exported in mozjs. |
 
 ### The `input` module
 
 | Commands               | Status | Details |
 | ---------------------- | ------ | ------- |
-| `input.performActions` |        |         |
-| `input.releaseActions` |        |         |
-| `input.setFiles`       |        |         |
+| `input.performActions` | ❌     |         |
+| `input.releaseActions` | ❌     |         |
+| `input.setFiles`       | ❌     |         |
 
-| Events                   | Status | Details |
-| ------------------------ | ------ | ------- |
-| `input.fileDialogOpened` |        |         |
+| Events                   | Status | Details                              |
+| ------------------------ | ------ | ------------------------------------ |
+| `input.fileDialogOpened` | 🚧     | Message done, not sent, not handled. |
 
 ### The `webExtension` module
 

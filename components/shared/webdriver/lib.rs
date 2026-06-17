@@ -39,7 +39,7 @@ use uuid::Uuid;
 
 use crate::bidi::{
     browsing_context::{self, ReadinessState},
-    log, script,
+    input, log, script,
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -78,6 +78,7 @@ pub enum ScriptToWebDriverMessage {
         channel: String,
         data: script::RemoteValue, // TODO: source with realm id & context id
     },
+    FileDialogOpened(input::FileDialogOpened),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

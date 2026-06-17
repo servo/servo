@@ -157,6 +157,7 @@ impl WebDriverBidiThread {
                         );
                     },
                     ScriptToWebDriverMessage::Message { channel, data } => todo!(),
+                    ScriptToWebDriverMessage::FileDialogOpened(file_dialog_opened) => todo!(),
                 },
             }
 
