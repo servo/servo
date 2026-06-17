@@ -1,6 +1,13 @@
 # Local Runtime Progress
 
 
+## 2026-06-17 — Devcontainer CI shell selection fix
+
+- Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` to set the GitHub Actions default run shell to `bash` for the smoke workflow while leaving the job steps and Servo/local-runtime code unchanged.
+- The previous smoke failure occurred before Servo bootstrap: GitHub Actions invoked a `/bin/sh`-compatible shell in the container, and `/bin/sh` rejected the runner's `-o pipefail` option with `set: Illegal option -o pipefail`.
+- No Servo crates/modules were touched, and no runtime resource paths were loaded, logged, or denied by this CI-only fix.
+
+
 ## 2026-06-17 — Net resource-thread request logging
 
 - Inspected `components/net/resource_thread.rs` as the central `CoreResourceManager::fetch` seam where `RequestBuilder` becomes a concrete Fetch `Request` before dispatch into the existing fetch/http/protocol machinery.
