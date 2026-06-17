@@ -20,6 +20,7 @@ path = "main.rs"
 [dependencies]
 cddl = { workspace = true }
 indexmap = { workspace = true }
+nom = { workspace = true }
 
 [dev-dependencies]
 bpaf = { workspace = true }

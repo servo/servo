@@ -9305,6 +9305,7 @@ dependencies = [
  "bpaf",
  "cddl",
  "indexmap 2.14.0",
+ "nom 8.0.0",
 ]
 
 [[package]]

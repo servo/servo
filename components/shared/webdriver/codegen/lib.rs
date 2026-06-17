@@ -1,6 +1,7 @@
 mod common;
 mod convert;
 mod ir;
+mod parse;
 mod patterns;
 mod syntax;
 mod util;

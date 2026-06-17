@@ -13,12 +13,14 @@ type CowStr<'a> = Cow<'a, str>;
 ///
 /// We do not distinguish between type rule and group rule, because
 /// they have no difference for Rust.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Rule<'a> {
-    name: Name<'a>,
-    ty: Type<'a>,
+    pub(crate) name: Name<'a>,
+    pub(crate) ty: Type<'a>,
 }
 
 /// A parsed representation of a name, categorized by its source.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Name<'a> {
     /// A primitive type name.
     ///
@@ -36,18 +38,16 @@ pub enum Name<'a> {
     /// Example include `session.End` and `input.Origin`.
     Prefixed {
         /// The full, original name str.
-        /// This field preserves the original case.
         raw: CowStr<'a>,
         /// The module prefix.
-        /// This field is converted to snake_case.
         prefix: CowStr<'a>,
         /// The stem name without prefix.
-        /// This field preserves the original case.
         name: CowStr<'a>,
     },
 }
 
 /// Primitive types defined in CDDL.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Primitive {
     /// The `any` type, mapped to [`serde_json::Value`].
     Any,
@@ -65,9 +65,45 @@ pub enum Primitive {
     /// The `bool` type, mapped to [`bool`].
     /// This also covers `true` and `false`.
     Bool,
+    /// The `null` type.
+    /// Though we have this type. This should be handled by [`Type::Optional`]
+    /// variant, and this is only for parsing purpose.
+    Null,
+}
+
+impl<'a> Name<'a> {
+    /// Parse a raw str into a name.
+    pub(crate) fn parse(raw: &'a str) -> Self {
+        let splits: Vec<_> = raw.split(".").collect();
+        match splits[..] {
+            [global] => match global {
+                "any" => Self::Primitive(Primitive::Any),
+                "text" => Self::Primitive(Primitive::Text),
+                "float" | "number" => Self::Primitive(Primitive::Float),
+                "int" => Self::Primitive(Primitive::Int),
+                "uint" => Self::Primitive(Primitive::Uint),
+                "bool" | "true" | "false" => Self::Primitive(Primitive::Bool),
+                "null" => Self::Primitive(Primitive::Null),
+                _ => Self::Global(global.into()),
+            },
+            [prefix, name] => Self::Prefixed {
+                raw: raw.into(),
+                prefix: prefix.into(),
+                name: name.into(),
+            },
+            _ => unreachable!("WebDriver BiDi should have at most one module level"),
+        }
+    }
+}
+
+impl<'a> From<&'a str> for Name<'a> {
+    fn from(value: &'a str) -> Self {
+        Self::parse(value)
+    }
 }
 
 /// A recursively defined type, used in right-hand side of a [`Rule`].
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Type<'a> {
     /// A single alias, such as `text`, `0.1..2.0`, or `network.StringValue`.
     ///
@@ -78,6 +114,7 @@ pub enum Type<'a> {
     /// This is typically mapped to a Rust [`Vec`].
     ///
     /// # Example
+    ///
     /// ```text
     /// script.ListLocalValue = [*script.LocalValue]
     /// ```
@@ -87,6 +124,7 @@ pub enum Type<'a> {
     /// This is typically mapped to a Rust tuple `(A, B, ..)`.
     ///
     /// # Example
+    ///
     /// ```text
     /// script.MappingLocalValue = [*[(script.LocalValue / text), script.LocalValue]]
     /// ```
@@ -207,21 +245,22 @@ pub enum Type<'a> {
 /// Represent a map's field in CDDL definition.
 ///
 /// A field can either be a named field or an anonymous embedded type.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Field<'a> {
-    /// A bareword named field with name and value type.
+    /// A bareword named field with key and value type.
     ///
     /// # Example
-    /// ```cddl
-    /// Command = {
-    ///   id: js-uint,
-    ///   CommandData,
-    ///   Extensible,
+    ///
+    /// ```text
+    /// session.CapabilitiesRequest = {
+    ///   ? alwaysMatch: session.CapabilityRequest,
+    ///   ? firstMatch: [*session.CapabilityRequest]
     /// }
     /// ```
-    Named {
+    Keyed {
         // The question mark.
         skip: bool,
-        name: CowStr<'a>,
+        key: CowStr<'a>,
         ty: Type<'a>,
     },
     /// A field of embedded group or groups.
@@ -233,12 +272,15 @@ pub enum Field<'a> {
     /// ```text
     /// Command = {
     ///   id: js-uint,
-    ///   CommandData, ; group name
-    ///   Extensible,  ; group name
+    ///   CommandData, ; group
+    ///   Extensible, ; group
     /// }
     /// ```
+    Group(Name<'a>),
     ///
-    /// In rare cases the group can be inline multiple:
+    /// In rare cases the field can be inline multiple and nested:
+    ///
+    /// # Examples
     ///
     /// ```text
     /// browser.DownloadBehavior = {
@@ -247,6 +289,36 @@ pub enum Field<'a> {
     ///     browser.DownloadBehaviorDenied
     ///   )
     /// }
+    ///
+    /// network.ContinueWithAuthParameters = {
+    ///   request: network.Request,
+    ///   (network.ContinueWithAuthCredentials // network.ContinueWithAuthNoCredentials)
+    /// }
+    ///
+    /// emulation.SetGeolocationOverrideParameters = {
+    ///   (
+    ///     (coordinates: emulation.GeolocationCoordinates / null) //
+    ///     (error: emulation.GeolocationPositionError)
+    ///   ),
+    ///   ? contexts: [+browsingContext.BrowsingContext],
+    ///   ? userContexts: [+browser.UserContext],
+    /// }
+    ///
+    /// session.NewResult = {
+    ///   sessionId: text,
+    ///   capabilities: {
+    ///     acceptInsecureCerts: bool,
+    ///     browserName: text,
+    ///     browserVersion: text,
+    ///     platformName: text,
+    ///     setWindowRect: bool,
+    ///     userAgent: text,
+    ///     ? proxy: session.ProxyConfiguration,
+    ///     ? unhandledPromptBehavior: session.UserPromptHandler,
+    ///     ? webSocketUrl: text,
+    ///     Extensible
+    ///   }
+    /// }
     /// ```
-    Group(Vec<Type<'a>>),
+    Inline(Type<'a>),
 }
