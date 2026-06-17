@@ -1,6 +1,16 @@
 name: Local Runtime Devcontainer Smoke
 
 on:
+  push:
+    paths:
+      - '.devcontainer/**'
+      - '.github/workflows/local-runtime-devcontainer-smoke.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'mach'
+      - 'python/**'
+      - 'docs/local-runtime/**'
   pull_request:
     paths:
       - '.devcontainer/**'
@@ -54,5 +64,29 @@ jobs:
       - name: Check Cargo workspace metadata
         run: cargo metadata --format-version 1 --locked --no-deps
 
+      - name: Check servo-net crate
+        run: cargo check -p servo-net --locked
+
       - name: Print mach build help
         run: ./mach build --help
+
+
+  linux-debug-build:
+    name: Linux debug build
+    runs-on: ubuntu-24.04
+    needs: smoke
+    if: github.event_name == 'workflow_dispatch'
+    timeout-minutes: 180
+    container:
+      image: ghcr.io/servo/servo/devcontainer-ubuntu:latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Prepare devcontainer target directory
+        run: mkdir -p "$CARGO_TARGET_DIR"
+
+      - name: Bootstrap Servo dependencies
+        run: ./mach bootstrap --yes
+
+      - name: Build Servo Linux debug
+        run: ./mach build --debug
