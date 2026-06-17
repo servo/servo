@@ -268,19 +268,15 @@ impl FontTemplate {
         // Step 2. Font variations as enabled by the font-weight, font-width, and font-style properties are applied.
         // FIXME: Apply variations for font-style
         // NOTE: font-stretch is a legacy alias to font-width
-        if descriptor.weight != FontWeight::NORMAL {
-            add_variation(FontVariation {
-                tag: Tag::new(b"wght").to_u32(),
-                value: descriptor.weight.value(),
-            });
-        }
+        add_variation(FontVariation {
+            tag: Tag::new(b"wght").to_u32(),
+            value: descriptor.weight.value(),
+        });
 
-        if descriptor.stretch != FontStretch::NORMAL {
-            add_variation(FontVariation {
-                tag: Tag::new(b"wdth").to_u32(),
-                value: descriptor.stretch.0.to_float(),
-            });
-        }
+        add_variation(FontVariation {
+            tag: Tag::new(b"wdth").to_u32(),
+            value: descriptor.stretch.0.to_float(),
+        });
 
         // This is the implementation for Step 9. Refer to the note on Step 9 for an explanation of why it's here.
         if descriptor.optical_sizing == FontOpticalSizing::Auto {
