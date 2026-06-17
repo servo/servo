@@ -125,6 +125,7 @@ struct Index {
           }.tabBar(this.tabBuilder(String(item), index))
         })
       }.barHeight(40)
+      .scrollable(false)
       .onChange((index: number) => {
         this.currentIndex = index;
         servoshell.focusWebview(index, this.tablist);
