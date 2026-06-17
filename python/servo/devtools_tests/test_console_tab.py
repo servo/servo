@@ -107,6 +107,18 @@ class TestConsoleTab:
         assert preview["length"] == 3
         assert preview["items"] == [1, 2, 3]
 
+    def test_console_log_map(self, run_servoshell):
+        script_tag = "<script>let log_map = () => console.log(new Map([['a', 1], ['b', true]]));</script>"
+        run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = evaluate_and_capture_console_log_output("log_map();")
+        object = result["arguments"][0]
+        assert object["class"] == "Map"
+        preview = object["preview"]
+        assert preview["kind"] == "MapLike"
+        assert preview["size"] == 2
+        assert preview["entries"] == [["a", 1], ["b", True]]
+
     def test_console_log_function(self, run_servoshell):
         script_tag = "<script>function test_function() { }let log_function = () => console.log(test_function);</script>"
         run_servoshell(url=f"data:text/html,{script_tag}")
