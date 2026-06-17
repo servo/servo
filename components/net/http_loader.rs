@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::min;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc as StdArc;
@@ -64,6 +65,7 @@ use rustc_hash::FxHashMap;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId};
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
@@ -2287,6 +2289,7 @@ async fn http_network_fetch(
         .get(http::header::CONTENT_LENGTH)
         .and_then(|header_value| header_value.to_str().ok())
         .and_then(|s| s.parse().ok())
+        .map(|length| min(length, pref!(network_max_content_length) as usize))
     {
         let _ = done_sender.send(Data::ContentLength(possible_length));
     }
