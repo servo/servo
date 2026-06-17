@@ -21,8 +21,7 @@ use js::rust::wrappers2::{
     JS_SetPendingException,
 };
 use js::rust::{
-    CompileOptionsWrapper, HandleValue, MutableHandleValue, OwningCompileOptionsWrapper,
-    transform_str_to_source_text,
+    CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
 };
 use script_bindings::cformat;
 use script_bindings::settings_stack::run_a_script;
@@ -38,7 +37,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
 use crate::script_module::{
-    ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions, gen_type_error,
+    ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions,
 };
 use crate::unminify::unminify_js;
 
@@ -62,32 +61,23 @@ impl ClassicScript {
     #[expect(unsafe_code)]
     pub(crate) fn from_stencil(
         cx: &mut JSContext,
-        global: &GlobalScope,
         compilation_result: CompilationResult,
-        owning_options: OwningCompileOptionsWrapper,
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
         muted_errors: ErrorReporting,
     ) -> ClassicScript {
-        let options = owning_options.read_only();
         let CompilationResult {
             stencil,
             mut storage,
             fc,
+            compile_options,
         } = compilation_result;
+
+        let options = compile_options.read_only();
 
         let record = if unsafe { HadFrontendErrors(*fc) } {
             unsafe { ConvertFrontendErrorsToRuntimeErrors(cx, *fc, options) };
-
-            if unsafe { JS_IsExceptionPending(cx) } {
-                Err(RethrowError::from_pending_exception(cx))
-            } else {
-                Err(gen_type_error(
-                    cx,
-                    global,
-                    Error::Type(c"Off-thread compilation failed".to_owned()),
-                ))
-            }
+            Err(RethrowError::from_pending_exception(cx))
         } else {
             debug_assert!(!stencil.is_null());
             let instantiate_options = InstantiateOptions {
