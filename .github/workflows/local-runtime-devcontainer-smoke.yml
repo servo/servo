@@ -94,22 +94,87 @@ jobs:
       - name: Build Servo Linux debug
         run: ./mach build --debug
 
-      - name: Package Linux debug build
+      - name: Package Linux debug builds
         run: |
           set -Eeuo pipefail
 
           ./mach package --debug
 
-          rm -rf release
-          mkdir -p release
-          cp "$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz" release/servo-linux-debug.tar.gz
+          SRC_TAR="$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz"
+
+          rm -rf release package-work
+          mkdir -p release package-work/extracted
+
+          echo "Original packaged tarball:"
+          du -h "$SRC_TAR"
+
+          cp "$SRC_TAR" release/servo-linux-debug-unstripped.tar.gz
+
           python3 - <<'PYZIP'
           from pathlib import Path
           from zipfile import ZIP_DEFLATED, ZipFile
-          with ZipFile('release/servo-linux-debug.zip', 'w', compression=ZIP_DEFLATED, compresslevel=9) as zf:
-              zf.write('release/servo-linux-debug.tar.gz', arcname='servo-linux-debug.tar.gz')
-          Path('release/servo-linux-debug.tar.gz').unlink()
+
+          src = Path('release/servo-linux-debug-unstripped.tar.gz')
+          dst = Path('release/servo-linux-debug-unstripped.zip')
+
+          with ZipFile(dst, 'w', compression=ZIP_DEFLATED, compresslevel=9) as zf:
+              zf.write(src, arcname=src.name)
+
+          print(f"Created {dst}")
           PYZIP
+
+          tar -xzf "$SRC_TAR" -C package-work/extracted
+
+          if ! command -v file >/dev/null 2>&1 || ! command -v strip >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y file binutils
+          fi
+
+          echo "Largest files before stripping:"
+          find package-work/extracted -type f -printf '%s %p\n' | sort -n | tail -30
+
+          STRIPPED_COUNT=0
+
+          while IFS= read -r -d '' f; do
+            if file -b "$f" | grep -Eq 'ELF .* (executable|shared object|pie executable)'; then
+              echo "Stripping debug symbols: $f"
+              chmod u+w "$f" || true
+              strip --strip-debug "$f" || true
+              STRIPPED_COUNT=$((STRIPPED_COUNT + 1))
+            fi
+          done < <(find package-work/extracted -type f -print0)
+
+          echo "Stripped ELF files: $STRIPPED_COUNT"
+
+          echo "Largest files after stripping:"
+          find package-work/extracted -type f -printf '%s %p\n' | sort -n | tail -30
+
+          tar -czf release/servo-linux-debug-stripped.tar.gz -C package-work/extracted .
+
+          echo "Unstripped tarball:"
+          du -h release/servo-linux-debug-unstripped.tar.gz
+
+          echo "Stripped tarball:"
+          du -h release/servo-linux-debug-stripped.tar.gz
+
+          python3 - <<'PYZIP'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          for src_name, zip_name in [
+              ('servo-linux-debug-stripped.tar.gz', 'servo-linux-debug-stripped.zip'),
+          ]:
+              src = Path('release') / src_name
+              dst = Path('release') / zip_name
+              with ZipFile(dst, 'w', compression=ZIP_DEFLATED, compresslevel=9) as zf:
+                  zf.write(src, arcname=src.name)
+              print(f"Created {dst}")
+          PYZIP
+
+          rm -f release/*.tar.gz
+
+          echo "Final release ZIPs:"
+          du -h release/*.zip
 
       - name: Upload release ZIP artifacts
         id: upload_zips
