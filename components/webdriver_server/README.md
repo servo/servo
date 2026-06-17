@@ -83,21 +83,21 @@ TODO: write doc for this part.
 
 ### The `network` module
 
-| Command                       | Status | Details |
-| ----------------------------- | ------ | ------- |
-| `network.addDataCollector`    | ❌     |         |
-| `network.addIntercept`        | ❌     |         |
-| `network.continueRequest`     | ❌     |         |
-| `network.continueResponse`    | ❌     |         |
-| `network.continueWithAuth`    | ❌     |         |
-| `network.disownData`          | ❌     |         |
-| `network.failRequest`         | ❌     |         |
-| `network.getData`             | ❌     |         |
-| `network.provideResponse`     | ❌     |         |
-| `network.removeDataCollector` | ❌     |         |
-| `network.removeIntercept`     | ❌     |         |
-| `network.setCacheBehavior`    | ❌     |         |
-| `network.setExtraHeaders`     | ❌     |         |
+| Command                       | Status  | Details                                                  |
+| ----------------------------- | ------- | -------------------------------------------------------- |
+| `network.setCacheBehavior`    | ⛔ easy | Blocked by `CacheMode` is per request.                   |
+| `network.removeDataCollector` | ⛔      | Blocked by refactor required in resource thread. [^nc]   |
+| `network.addDataCollector`    | ⛔      | Blocked by refactor required in resource thread.         |
+| `network.disownData`          | ⛔      | Blocked by refactor required in resource thread.         |
+| `network.getData`             | ⛔      | Blocked by refactor required in resource thread.         |
+| `network.addIntercept`        | ⛔      | Blocked by `RequestInterceptor` refactor required. [^ni] |
+| `network.removeIntercept`     | ⛔      | Blocked by `RequestInterceptor` refactor required.       |
+| `network.continueRequest`     | ⛔      | Blocked by `RequestInterceptor` refactor required.       |
+| `network.continueResponse`    | ⛔      | Blocked by `RequestInterceptor` refactor required.       |
+| `network.continueWithAuth`    | ⛔      | Blocked by `RequestInterceptor` refactor required.       |
+| `network.failRequest`         | ⛔      | Blocked by `RequestInterceptor` refactor required.       |
+| `network.provideResponse`     | ⛔      | Blocked by `RequestInterceptor` refactor required.       |
+| `network.setExtraHeaders`     | ⏳      | Unclear: 1. Per sesson? 2. Which requests are affected?  |
 
 | Events                      | Status | Details |
 | --------------------------- | ------ | ------- |
@@ -106,6 +106,10 @@ TODO: write doc for this part.
 | `network.fetchError`        | ❌     |         |
 | `network.responseCompleted` | ❌     |         |
 | `network.responseStarted`   | ❌     |         |
+
+[^nc]: Since network data is cloned, we cannot afford sending every data to WebDriver thread. This should be on demand instead.
+
+[^ni]: Current `RequestInterceptor` is `EmbedderProxyProxy`, should also send message to WebDriver.
 
 ### The `script` module
 
@@ -118,11 +122,11 @@ TODO: write doc for this part.
 | `script.getRealms`           | ❌     |             |
 | `script.removePreloadScript` | ❌     |             |
 
-| Events                  | Status | Details                    |
-| ----------------------- | ------ | -------------------------- |
-| `script.message`        | 🚧     | Message done, not handled. |
-| `script.realmCreated`   | ❌     |                            |
-| `script.realmDestroyed` | ❌     |                            |
+| Events                  | Status | Details                                    |
+| ----------------------- | ------ | ------------------------------------------ |
+| `script.message`        | 🚧     | Message done, not handled.                 |
+| `script.realmCreated`   | 🚧     | Message handled, not forwarded to trigger. |
+| `script.realmDestroyed` | ❌     |                                            |
 
 ### The `storage` module
 
