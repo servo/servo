@@ -1102,14 +1102,14 @@ fn test_preferences_change() {
             JSValue::String("".to_string()),
             JSValue::String("".to_string())
         ])),
-        dbg!(evaluate_javascript(
+        evaluate_javascript(
             &servo_test,
             webview.clone(),
             "let old_value = target.style.getPropertyValue('backdrop-filter');
             target.style.backdropFilter = 'sepia(1)';
             let new_value = target.style.getPropertyValue('backdrop-filter');
             [old_value, new_value]"
-        ))
+        )
     );
 
     servo_test
