@@ -118,11 +118,11 @@ TODO: write doc for this part.
 | `script.getRealms`           | ❌     |             |
 | `script.removePreloadScript` | ❌     |             |
 
-| Events                  | Status | Details |
-| ----------------------- | ------ | ------- |
-| `script.message`        | ❌     |         |
-| `script.realmCreated`   | ❌     |         |
-| `script.realmDestroyed` | ❌     |         |
+| Events                  | Status | Details                    |
+| ----------------------- | ------ | -------------------------- |
+| `script.message`        | 🚧     | Message done, not handled. |
+| `script.realmCreated`   | ❌     |                            |
+| `script.realmDestroyed` | ❌     |                            |
 
 ### The `storage` module
 

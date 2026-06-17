@@ -73,6 +73,11 @@ pub enum ScriptToWebDriverMessage {
         (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
         GenericSender<WebDriverToScriptMessage>,
     ),
+    Message {
+        // TODO: channel should have more speicific id type
+        channel: String,
+        data: script::RemoteValue, // TODO: source with realm id & context id
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

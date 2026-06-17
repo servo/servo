@@ -156,6 +156,7 @@ impl WebDriverBidiThread {
                             },
                         );
                     },
+                    ScriptToWebDriverMessage::Message { channel, data } => todo!(),
                 },
             }
 
