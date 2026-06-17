@@ -1095,14 +1095,20 @@ fn test_preferences_change() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
     assert_eq!(
-        // The zoom style is feature flagged by the layout.unimplemented feature,
+        // The backdrop-filter style is feature flagged by the layout.unimplemented feature,
         // so when layout.unimplemented feature is disabled, the zoom style specified in
         // the stylesheet won't parse and the computed value undefined
-        Ok(JSValue::Undefined),
+        Ok(JSValue::Array(vec![
+            JSValue::String("".to_string()),
+            JSValue::String("".to_string())
+        ])),
         dbg!(evaluate_javascript(
             &servo_test,
             webview.clone(),
-            "getComputedStyle(document.getElementById('target')).backdropFilter"
+            "let old_value = target.style.getPropertyValue('backdrop-filter');
+            target.style.backdropFilter = 'sepia(1)';
+            let new_value = target.style.getPropertyValue('backdrop-filter');
+            [old_value, new_value]"
         ))
     );
 
@@ -1113,13 +1119,19 @@ fn test_preferences_change() {
     webview.reload();
 
     assert_eq!(
-        // When layout.unimplemented feature is enabled, the zoom style specified in
+        // When layout.unimplemented feature is enabled, the backdrop-filter style specified in
         // the stylesheet will parse and the computed value will be that value
-        Ok(JSValue::String("sepia(1)".into())),
+        Ok(JSValue::Array(vec![
+            JSValue::String("sepia(1)".to_string()),
+            JSValue::String("opacity(0.5)".to_string())
+        ])),
         evaluate_javascript(
             &servo_test,
             webview,
-            "getComputedStyle(document.getElementById('target')).backdropFilter"
+            "let old_value = target.style.getPropertyValue('backdrop-filter');
+            target.style.backdropFilter = 'opacity(0.5)';
+            let new_value = target.style.getPropertyValue('backdrop-filter');
+            [old_value, new_value]"
         )
     );
 }
