@@ -16,7 +16,7 @@ use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::offthread::compile_to_stencil_offthread;
-use js::rust::{HandleObject, OwningCompileOptionsWrapper};
+use js::rust::HandleObject;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
@@ -417,7 +417,6 @@ impl FetchResponseListener for ClassicContext {
                 Some(IntroductionType::SRC_SCRIPT),
                 1,
             );
-            let owning_options = OwningCompileOptionsWrapper::new_copied(cx, options.ptr);
 
             let src = Arc::new(source_text.to_string());
 
@@ -431,13 +430,10 @@ impl FetchResponseListener for ClassicContext {
             let _offthread_token = compile_to_stencil_offthread(options.ptr, src, move |result| {
                 task_source.queue(task!(instantiate_stencil: move |cx| {
                     let script_element = trusted.root();
-                    let global = script_element.global();
 
                     let script = ClassicScript::from_stencil(
                         cx,
-                        &global,
                         result,
-                        owning_options,
                         final_url,
                         script_options,
                         fetch_options,
