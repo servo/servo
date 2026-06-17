@@ -1,6 +1,16 @@
 # Local Runtime Progress
 
 
+## 2026-06-17 — Manual Linux debug build workflow gate
+
+- Extended `.github/workflows/local-runtime-devcontainer-smoke.yml` with a Linux-only `linux-debug-build` job that runs in `ghcr.io/servo/servo/devcontainer-ubuntu:latest` only for `workflow_dispatch` and only after the existing `smoke` bootstrap/metadata/servo-net check job succeeds.
+- The exact build command is `./mach build --debug`, chosen from `./mach build --help`, where Servo documents `--dev`, `--debug`, and `-d` as development-mode build aliases.
+- This is a full Linux debug/development Servo build, not a partial crate or package check. It is kept manual-only to avoid spending push/PR CI time on documentation or small scouting commits.
+- Passing this job proves that the current checkout can bootstrap in the published Servo devcontainer image and complete a Linux debug Servo build after the smoke checks, including `cargo check -p servo-net --locked`, pass.
+- Passing this job does not prove local-runtime policy behavior, package-scoped asset loading, denied remote schemes, runtime rendering correctness, macOS/Windows support, ARM support, release/profile builds, or test-suite pass status.
+- No Servo Rust crates/modules or local-runtime Rust code were touched; no resource paths were loaded, logged, or denied by this workflow-only change.
+
+
 ## 2026-06-17 — Devcontainer CI shell selection fix
 
 - Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` to set the GitHub Actions default run shell to `bash` for the smoke workflow while leaving the job steps and Servo/local-runtime code unchanged.
