@@ -180,22 +180,9 @@ jobs:
         id: upload_zips
         uses: actions/upload-artifact@v7
         with:
-          name: servo-linux-debug-release
-          path: release/servo-linux-debug.zip
+          name: servo-linux-debug-release-zips
+          path: release/*.zip
           if-no-files-found: error
-
-      - name: Install GitHub CLI
-        run: |
-          set -Eeuo pipefail
-
-          if command -v gh >/dev/null 2>&1; then
-            gh --version
-            exit 0
-          fi
-
-          apt-get update
-          apt-get install -y gh
-          gh --version
 
       - name: Push successful builds to Releases
         env:
@@ -207,19 +194,24 @@ jobs:
 
           gh release view "$TAG" >/dev/null 2>&1 || \
             gh release create "$TAG" \
-              --title "Latest local runtime devcontainer Linux debug build" \
+              --title "Latest local runtime devcontainer Linux debug builds" \
               --notes "Automatically updated by GitHub Actions."
 
-          gh release upload "$TAG" release/servo-linux-debug.zip --clobber
+          gh release upload "$TAG" \
+            release/servo-linux-debug-stripped.zip \
+            release/servo-linux-debug-unstripped.zip \
+            --clobber
 
-      - name: Show build download link
+                  - name: Show build download link
         run: |
           TAG=latest-local-runtime-devcontainer-linux-debug
 
-          echo "### Local runtime devcontainer Linux debug build" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Local runtime devcontainer Linux debug builds" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          printf "%s\n" "- \`servo-linux-debug.zip\`" >> "$GITHUB_STEP_SUMMARY"
+          printf "%s\n" "- \`servo-linux-debug-stripped.zip\` — smaller download, debug symbols stripped from ELF files" >> "$GITHUB_STEP_SUMMARY"
+          printf "%s\n" "- \`servo-linux-debug-unstripped.zip\` — full debug package, larger but better for crash/debug work" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "[Download Release build](https://github.com/${{ github.repository }}/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Download Release builds](https://github.com/${{ github.repository }}/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
+            
