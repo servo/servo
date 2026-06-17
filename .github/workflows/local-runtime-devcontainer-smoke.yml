@@ -1,0 +1,54 @@
+name: Local Runtime Devcontainer Smoke
+
+on:
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+      - '.github/workflows/local-runtime-devcontainer-smoke.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'mach'
+      - 'python/**'
+      - 'docs/local-runtime/**'
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CC: clang
+  CXX: clang++
+  CARGO_TARGET_DIR: /var/servo-cargo-target
+  UV_PROJECT_ENVIRONMENT: .devcontainer-venv
+
+jobs:
+  smoke:
+    name: Bootstrap and metadata smoke
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/servo/servo/devcontainer-ubuntu:latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Prepare devcontainer target directory
+        run: mkdir -p "$CARGO_TARGET_DIR"
+
+      - name: Bootstrap Servo dependencies
+        run: ./mach bootstrap --yes
+
+      - name: Record toolchain versions
+        run: |
+          set -euxo pipefail
+          uname -a
+          clang --version
+          clang++ --version
+          rustc --version --verbose
+          cargo --version --verbose
+          python3 --version
+          uv --version
+
+      - name: Check Cargo workspace metadata
+        run: cargo metadata --format-version 1 --locked --no-deps
+
+      - name: Print mach build help
+        run: ./mach build --help
