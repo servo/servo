@@ -720,6 +720,23 @@ impl<'a> BidiSession<'a> {
         &self,
         command_parameters: &browser::SetClientWindowStateParameters,
     ) -> Result<browser::SetClientWindowStateResult, ErrorCode> {
+        // 1. SKIP: if the implementation does not support setting client window
+        // TODO: this should be configurable in case e.g. mobile
+        // 2.
+        let Some(client_window) = Some(todo!()) else {
+            // TODO: "no such client window" missing from CDDL
+            return Err(ErrorCode::UnknownError);
+        };
+        // 3.
+        self.set_the_client_window_state(
+            client_window,
+            command_parameters.client_window_named_state_or_client_window_rect_state,
+        )
+        .await?;
+        // 4. TODO: send to embedder and wait for callback
+        // 5.
+        let client_window_info = self.get_the_client_window_info(client_window).await?;
+        // 6.
         todo!()
     }
 
@@ -1580,6 +1597,14 @@ impl<'a> BidiSession<'a> {
     ) -> Result<browser::ClientWindowInfo, ErrorCode> {
         // 1.
         let client_window_id = client_window.id;
+        todo!()
+    }
+
+    async fn set_the_client_window_state(
+        &self,
+        client_window: ClientWindow,
+        state: browser::ClientWindowNamedStateOrClientWindowRectState,
+    ) -> Result<(), ErrorCode> {
         todo!()
     }
 

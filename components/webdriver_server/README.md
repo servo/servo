@@ -6,7 +6,6 @@ TODO: write doc for this part.
 
 ## WebDriver BiDi
 
-
 ### The `session` module
 
 | Command               | Status | Details                     |
@@ -23,7 +22,7 @@ TODO: write doc for this part.
 | ------------------------------ | ------ | ---------------------------------------- |
 | `browser.close`                | ✅     |                                          |
 | `browser.getClientWindows`     | 🚧     | Server side done, message not handled.   |
-| `browser.setClientWindowState` | ❌     |                                          |
+| `browser.setClientWindowState` | 🚧     |                                          |
 | `browser.createUserContext`    | ⛔     | Blocked by user context not implemented. |
 | `browser.getUserContexts`      | ⛔     | Blocked by user context not implemented. |
 | `browser.removeUserContext`    | ⛔     | Blocked by user context not implemented. |
@@ -41,8 +40,8 @@ TODO: write doc for this part.
 | `browsingContext.reload`            | 🚧     | Server side done, message not handled. |
 | `browsingContext.traverseHistory`   | 🚧     | Server side done, message not handled. |
 | `browsingContext.navigate`          | 🚧     | Server side done, message not handled. |
+| `browsingContext.handleUserPrompt`  | 🚧     | Server side done, message not handled  |
 | `browsingContext.locateNodes`       | ❌     |                                        |
-| `browsingContext.handleUserPrompt`  | ❌     |                                        |
 | `browsingContext.startScreencast`   | ⏳     | Unstable.                              |
 | `browsingContext.stopScreencast`    | ⏳     | Unstable.                              |
 | `browsingContext.setBypassCSP`      | ⛔     | Blocked by no CSP option.              |
