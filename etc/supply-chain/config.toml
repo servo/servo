@@ -22,9 +22,6 @@ url = "https://raw.githubusercontent.com/divviup/libprio-rs/main/supply-chain/au
 [imports.mozilla]
 url = "https://raw.githubusercontent.com/mozilla/supply-chain/main/audits.toml"
 
-[policy.blurmac]
-audit-as-crates-io = false
-
 [policy.ecolor]
 audit-as-crates-io = true
 
