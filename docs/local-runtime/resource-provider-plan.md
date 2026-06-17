@@ -69,6 +69,8 @@ Every resource request should follow the same host-controlled path:
 
 Policy denials should be first-class outcomes, not lower-level network failures.
 
+Initial instrumentation is deliberately late and non-authoritative: `components/net/resource_thread.rs` logs built Fetch requests before they enter the legacy fetch/http/protocol path. The eventual provider boundary must move the allow/deny decision ahead of legacy network dispatch for fetchable `asset://`, `bundle://`, remote, file, and store schemes.
+
 ## Error Categories
 
 The provider should distinguish at least these outcomes:

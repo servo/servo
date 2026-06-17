@@ -18,11 +18,13 @@ use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use net_traits::blob_url_store::{BlobTokenCommunicator, parse_blob_url};
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::pub_domains::public_suffix_list_size_of;
-use net_traits::request::{Destination, PreloadEntry, PreloadId, RequestBuilder, RequestId};
+use net_traits::request::{
+    Destination, PreloadEntry, PreloadId, Referrer, Request, RequestBuilder, RequestId,
+};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::{
     AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
@@ -70,6 +72,49 @@ use crate::http_loader::{HttpState, http_redirect_fetch};
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
 use crate::websocket_loader::create_handshake_request;
+
+fn local_runtime_package_for_url(url: &ServoUrl) -> Option<&str> {
+    match url.scheme() {
+        "asset" => url.host_str(),
+        "bundle" => Some("runtime"),
+        _ => None,
+    }
+}
+
+fn local_runtime_decision_for_scheme(scheme: &str) -> (&'static str, Option<&'static str>) {
+    match scheme {
+        "asset" | "bundle" => ("unrouted", Some("ResourceProviderNotInstalled")),
+        "http" | "https" | "ws" | "wss" | "ftp" | "file" => {
+            ("legacy-path", Some("RemoteOrFileSchemeNotYetDeniedHere"))
+        },
+        "store" => ("legacy-path", Some("StoreSchemeNotYetDeniedHere")),
+        _ => ("legacy-path", Some("UnsupportedSchemeNotYetClassifiedHere")),
+    }
+}
+
+fn log_local_runtime_resource_request(request: &Request) {
+    let url = request.current_url();
+    let initiator = match &request.referrer {
+        Referrer::NoReferrer => "none".to_owned(),
+        Referrer::Client(url) | Referrer::ReferrerUrl(url) => url.to_string(),
+    };
+    let package = local_runtime_package_for_url(&url).unwrap_or("unknown");
+    let (decision, reason) = local_runtime_decision_for_scheme(url.scheme());
+    let reason = reason.unwrap_or("none");
+
+    info!(
+        "[local-runtime resource-request]\n  destination: {:?}\n  requested: {}\n  base: {}\n  initiator: {}\n  origin: {:?}\n  package: {}\n  servo_module: components/net/resource_thread.rs\n  decision: {}\n  final: {}\n  mime: unknown\n  reason: {}",
+        request.destination,
+        url,
+        initiator,
+        initiator,
+        request.origin,
+        package,
+        decision,
+        url,
+        reason,
+    );
+}
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
 fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<CertificateDer<'static>>> {
@@ -678,9 +723,9 @@ impl ResourceChannelManager {
                 return false;
             },
             // Ignore these messages as they are only sent on very specific channels.
-            CoreResourceMsg::CollectMemoryReport(_) |
-            CoreResourceMsg::RevokeTokenForFile(..) |
-            CoreResourceMsg::RefreshTokenForFile(..) => {},
+            CoreResourceMsg::CollectMemoryReport(_)
+            | CoreResourceMsg::RevokeTokenForFile(..)
+            | CoreResourceMsg::RefreshTokenForFile(..) => {},
         }
         true
     }
@@ -785,6 +830,7 @@ impl CoreResourceManager {
         };
 
         let request = request_builder.build();
+        log_local_runtime_resource_request(&request);
         let url = request.current_url();
 
         // In the case of a valid blob URL, acquiring a token granting access to a file,

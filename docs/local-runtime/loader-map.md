@@ -38,3 +38,7 @@ For each row, identify:
 7. The minimal change needed to log the request before enforcing policy.
 
 The first implementation should add request logging before removing or disabling existing network code.
+
+## Current Logging Seam
+
+`components/net/resource_thread.rs` now logs every `CoreResourceManager::fetch` request after `RequestBuilder::build()` and before dispatch into the existing fetch/http/protocol machinery. This is a broad, late seam: it sees the concrete current URL, destination, referrer, origin, and credentials/cache mode, but it does not yet preserve the original unresolved attribute text or distinguish stylesheet base URLs from document base URLs for all caller categories. Treat this as request visibility before policy enforcement, not as the final `ResourceProvider` boundary.
