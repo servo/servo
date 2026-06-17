@@ -2422,17 +2422,6 @@ impl Window {
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
 
-        // If this is the currently active pipeline,
-        // nullify the window_proxy.
-        if let Some(proxy) = self.window_proxy.get() {
-            let pipeline_id = self.pipeline_id();
-            if let Some(currently_active) = proxy.currently_active() &&
-                currently_active == pipeline_id
-            {
-                self.window_proxy.set(None);
-            }
-        }
-
         if let Some(performance) = self.performance.get() {
             performance.clear_and_disable_performance_entry_buffer();
         }
