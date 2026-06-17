@@ -189,7 +189,7 @@ type ActiveSessions = HashMap<SessionId, SessionProxy>;
 
 impl RemoteEndState {
     /// <https://www.w3.org/TR/webdriver-bidi/#cleanup-remote-end-state>
-    pub(crate) fn cleanup(&self) {
+    pub(crate) fn cleanup_remote_end_state(&self) {
         // 1. TODO: blocked by network module
         // 2. TODO: blocked by network module
         // 3. TODO: blocked by network module
@@ -264,3 +264,34 @@ impl TopLevelTraversable {
 pub struct ClientWindow {
     id: PainterId,
 }
+
+// TODO: this should be flatten to be field on thread/webdriver
+struct Hierarchy {
+    client_windows: HashMap<PainterId, ()>,
+    /// The realms of a remote end.
+    realms: HashMap<RealmId, ()>,
+    /// The navigables of a remote end.
+    navigables: HashMap<BrowsingContextId, ()>,
+    /// The top level traversables of a remote end.
+    traversables: HashMap<WebViewId, ()>,
+}
+
+// like
+//
+// struct FlattenToRefactorTo {
+//     connections: HashMap<ConnectionId, RefCell<Connecition>>, // refcell because we are single threads
+//     unassociated: HashSet<ConnectionId>,
+//
+//     // here the new session keep states only, and does not hold connection
+//     active_sessions: HashMap<SessionId, Session>,
+// }
+//
+// struct Session {
+//     connections: Vec<ConnectionId>,
+//     bidi: bool,
+// }
+//
+// struct Navigable {
+//    navigable_id: BrowsingContextId,
+//    top_level_traversable: WebViewId,
+// }

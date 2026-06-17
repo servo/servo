@@ -6,14 +6,6 @@ TODO: write doc for this part.
 
 ## WebDriver BiDi
 
-### Overall
-
-| Feature                                 | Status | Details                                     |
-| --------------------------------------- | ------ | ------------------------------------------- |
-| CDDL to serde codegen                   | ✅     | Some edge cases not handled.                |
-| Custom module (`{app}:{module}.{name}`) | ❌     | Our parser cannot handle this currently.    |
-| TLS secure connection (`wss://`)        | ❌     |                                             |
-| Channel-based connection from embedder  | ❌     | Not in spec, but useful for embedded usage. |
 
 ### The `session` module
 
@@ -166,3 +158,12 @@ TODO: write doc for this part.
 | ------------------------ | ------ | ----------------------------------------- |
 | `webExtension.install`   | ⛔     | Blocked by web extension not implemented. |
 | `webExtension.uninstall` | ⛔     | Blocked by web extension not implemented. |
+
+### Misc features
+
+| Feature                                 | Status | Details                                     |
+| --------------------------------------- | ------ | ------------------------------------------- |
+| CDDL to serde codegen                   | ✅     | Some edge cases not handled.                |
+| Custom module (`{app}:{module}.{name}`) | ❌     | Our parser cannot handle this currently.    |
+| TLS secure connection (`wss://`)        | ❌     |                                             |
+| Channel-based connection from embedder  | ❌     | Not in spec, but useful for embedded usage. |

@@ -1505,7 +1505,7 @@ impl<'a> BidiSession<'a> {
         // 5. TODO: screencast not implemented
         // 6.
         if self.active_sessions().read().await.is_empty() {
-            self.common.remote_end_state.cleanup();
+            self.common.remote_end_state.cleanup_remote_end_state();
         }
         // 7. set a flag to exit loop in next tick
         self.common.running = false;
@@ -1554,7 +1554,20 @@ impl<'a> BidiSession<'a> {
         &self,
         client_window: ClientWindow,
     ) -> Result<browser::ClientWindowInfo, ErrorCode> {
-        // TODO: should send command to embedder
+        // 1.
+        let client_window_id = client_window.id;
+        // 2.
+        let state = self.get_the_client_window_state(client_window);
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#get-the-client-window-state>
+    async fn get_the_client_window_state(
+        &self,
+        client_window: ClientWindow,
+    ) -> Result<browser::ClientWindowInfo, ErrorCode> {
+        // 1.
+        let client_window_id = client_window.id;
         todo!()
     }
 
