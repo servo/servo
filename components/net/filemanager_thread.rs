@@ -14,7 +14,6 @@ use embedder_traits::{
     SelectedFile,
 };
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
-use http::header::{self, HeaderValue};
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use mime::Mime;
@@ -23,7 +22,6 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadError, FileManagerThreadMsg, FileTokenCheck,
     GetTokenForFileReply, ReadFileProgress, RelativePos,
 };
-use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -309,11 +307,10 @@ impl FileManager {
                     None
                 };
 
-                set_headers(
+                set_blob_response_headers(
                     &mut response.headers,
                     len,
                     buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
-                    buf.filename.clone(),
                     content_range,
                 );
 
@@ -355,12 +352,6 @@ impl FileManager {
                     ));
                 }
 
-                let filename = metadata
-                    .path
-                    .file_name()
-                    .and_then(|osstr| osstr.to_str())
-                    .map(|s| s.to_string());
-
                 let content_range = if is_range_requested {
                     let abs_range = range.to_abs_blob_range(metadata.size as usize);
                     ContentRange::bytes(abs_range.start as u64..abs_range.end as u64, metadata.size)
@@ -368,13 +359,12 @@ impl FileManager {
                 } else {
                     None
                 };
-                set_headers(
+                set_blob_response_headers(
                     &mut response.headers,
                     metadata.size,
                     mime_guess::from_path(metadata.path)
                         .first()
                         .unwrap_or(mime::TEXT_PLAIN),
-                    filename,
                     content_range,
                 );
 
@@ -922,11 +912,10 @@ async fn read_file_in_chunks(
     }
 }
 
-fn set_headers(
+fn set_blob_response_headers(
     headers: &mut HeaderMap,
     content_length: u64,
     mime: Mime,
-    filename: Option<String>,
     content_range: Option<ContentRange>,
 ) {
     headers.typed_insert(ContentLength(content_length));
@@ -934,21 +923,4 @@ fn set_headers(
         headers.typed_insert(content_range);
     }
     headers.typed_insert(ContentType::from(mime));
-    let name = match filename {
-        Some(name) => name,
-        None => return,
-    };
-    // TODO(eijebong): Replace this once the typed header is there
-    //                 https://github.com/hyperium/headers/issues/8
-    headers.insert(
-        header::CONTENT_DISPOSITION,
-        HeaderValue::from_bytes(
-            format!(
-                "inline; filename*=UTF-8''{}",
-                http_percent_encode(name.as_bytes())
-            )
-            .as_bytes(),
-        )
-        .unwrap(),
-    );
 }
