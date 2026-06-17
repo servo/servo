@@ -2,6 +2,8 @@ use std::borrow::Cow;
 
 use crate::util::{to_pascal_case, to_snake_case};
 
+// TODO: special name as a sperarate branch.
+
 /// To better distinguish the name (ident).
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub enum Name<'a> {
