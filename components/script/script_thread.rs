@@ -144,7 +144,7 @@ use crate::dom::types::DebuggerGlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
-use crate::dom::worklet::WorkletThreadPool;
+use crate::dom::worklet::PaintWorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
 use crate::messaging::{
@@ -343,7 +343,7 @@ pub struct ScriptThread {
     webxr_registry: Option<webxr_api::Registry>,
 
     /// The worklet thread pool
-    worklet_thread_pool: DomRefCell<Option<Rc<WorkletThreadPool>>>,
+    worklet_thread_pool: DomRefCell<Option<Rc<PaintWorkletThreadPool>>>,
 
     /// A list of pipelines containing documents that finished loading all their blocking
     /// resources during a turn of the event loop.
@@ -782,7 +782,9 @@ impl ScriptThread {
     }
 
     /// The worklet will use the given `ImageCache`.
-    pub(crate) fn worklet_thread_pool(image_cache: Arc<dyn ImageCache>) -> Rc<WorkletThreadPool> {
+    pub(crate) fn worklet_thread_pool(
+        image_cache: Arc<dyn ImageCache>,
+    ) -> Rc<PaintWorkletThreadPool> {
         with_optional_script_thread(|script_thread| {
             let script_thread = script_thread.unwrap();
             script_thread
@@ -808,7 +810,7 @@ impl ScriptThread {
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                     };
-                    Rc::new(WorkletThreadPool::spawn(init))
+                    Rc::new(PaintWorkletThreadPool::new(init))
                 })
                 .clone()
         })

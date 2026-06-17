@@ -20,7 +20,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::dom::worklet::Worklet;
+use crate::dom::worklet::{Worklet, WorkletThreadPool};
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::script_thread::ScriptThread;
 

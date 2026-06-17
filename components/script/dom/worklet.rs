@@ -74,7 +74,7 @@ struct DroppableField {
     /// The cached version of the script thread's WorkletThreadPool. We keep this cached
     /// because we may need to access it after the script thread has terminated.
     #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
-    thread_pool: OnceCell<Rc<WorkletThreadPool>>,
+    thread_pool: OnceCell<Rc<PaintWorkletThreadPool>>,
 }
 
 impl Drop for DroppableField {
@@ -215,6 +215,11 @@ impl PendingTasksStruct {
     }
 }
 
+pub trait WorkletThreadPool {
+    fn exit_worklet(&self, worklet_id: WorkletId);
+    fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String>;
+}
+
 /// Worklets execute in a dedicated thread pool.
 ///
 /// The goal is to ensure that there is a primary worklet thread,
@@ -265,7 +270,7 @@ impl PendingTasksStruct {
 /// by a backup thread, not by the primary thread.
 
 #[derive(Clone, JSTraceable)]
-pub(crate) struct WorkletThreadPool {
+pub(crate) struct PaintWorkletThreadPool {
     // Channels to send data messages to the three roles.
     #[no_trace]
     primary_sender: Sender<WorkletData>,
@@ -282,7 +287,7 @@ pub(crate) struct WorkletThreadPool {
     control_sender_2: Sender<WorkletControl>,
 }
 
-impl Drop for WorkletThreadPool {
+impl Drop for PaintWorkletThreadPool {
     fn drop(&mut self) {
         let _ = self.cold_backup_sender.send(WorkletData::Quit);
         let _ = self.hot_backup_sender.send(WorkletData::Quit);
@@ -290,10 +295,10 @@ impl Drop for WorkletThreadPool {
     }
 }
 
-impl WorkletThreadPool {
+impl PaintWorkletThreadPool {
     /// Create a new thread pool and spawn the threads.
     /// When the thread pool is dropped, the threads will be asked to quit.
-    pub(crate) fn spawn(global_init: WorkletGlobalScopeInit) -> WorkletThreadPool {
+    pub(crate) fn new(global_init: WorkletGlobalScopeInit) -> PaintWorkletThreadPool {
         let primary_role = WorkletThreadRole::new(false, false);
         let hot_backup_role = WorkletThreadRole::new(true, false);
         let cold_backup_role = WorkletThreadRole::new(false, true);
@@ -306,7 +311,7 @@ impl WorkletThreadPool {
             cold_backup_sender: cold_backup_sender.clone(),
             global_init,
         };
-        WorkletThreadPool {
+        PaintWorkletThreadPool {
             primary_sender,
             hot_backup_sender,
             cold_backup_sender,
@@ -360,7 +365,16 @@ impl WorkletThreadPool {
         self.wake_threads();
     }
 
-    pub(crate) fn exit_worklet(&self, worklet_id: WorkletId) {
+    fn wake_threads(&self) {
+        // If any of the threads are blocked waiting on data, wake them up.
+        let _ = self.cold_backup_sender.send(WorkletData::WakeUp);
+        let _ = self.hot_backup_sender.send(WorkletData::WakeUp);
+        let _ = self.primary_sender.send(WorkletData::WakeUp);
+    }
+}
+
+impl WorkletThreadPool for PaintWorkletThreadPool {
+    fn exit_worklet(&self, worklet_id: WorkletId) {
         for sender in &[
             &self.control_sender_0,
             &self.control_sender_1,
@@ -373,18 +387,11 @@ impl WorkletThreadPool {
 
     /// For testing.
     #[cfg(feature = "testbinding")]
-    pub(crate) fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
+    fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
         let (sender, receiver) = unbounded();
         let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
         let _ = self.primary_sender.send(msg);
         receiver.recv().expect("Test worklet has died?")
-    }
-
-    fn wake_threads(&self) {
-        // If any of the threads are blocked waiting on data, wake them up.
-        let _ = self.cold_backup_sender.send(WorkletData::WakeUp);
-        let _ = self.hot_backup_sender.send(WorkletData::WakeUp);
-        let _ = self.primary_sender.send(WorkletData::WakeUp);
     }
 }
 
