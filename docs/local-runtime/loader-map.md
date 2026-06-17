@@ -1,0 +1,40 @@
+# Servo Local Runtime Loader Map
+
+This map is the working surface for routing Servo resource loading through a host-owned `ResourceProvider`. Each row should eventually point to concrete Servo code paths and migration notes.
+
+| Category | Example | Current assumption to find | New behavior | Required context | First milestone |
+| --- | --- | --- | --- | --- | --- |
+| Initial document | `asset://com.example.app/index.html` | Navigation/document load asks for bytes | `ResourceProvider` request with `Document` destination | package, URL, origin | Yes |
+| Stylesheet | `<link rel="stylesheet" href="./styles.css">` | Fetch stylesheet relative to document | `ResourceProvider` request with `Style` destination | document URL, base URL, MIME expectation | Yes |
+| CSS image | `background: url("./assets/logo.png")` | Fetch CSS subresource relative to stylesheet | `ResourceProvider` request with `Image` destination | stylesheet URL as base, document origin | Yes |
+| Font | `@font-face { src: url("./fonts/app.woff2") }` | Fetch font and notify layout after load | `ResourceProvider` request with `Font` destination | stylesheet URL as base, font MIME, origin | Yes |
+| HTML image | `<img src="./assets/logo.png">` | Fetch image relative to document | `ResourceProvider` request with `Image` destination | document URL as base, image policy | Yes |
+| Classic script | `<script src="./main.js"></script>` | Fetch and execute script | `ResourceProvider` request with `Script` destination | document URL as base, script policy | Yes |
+| Module script | `<script type="module" src="./main.js"></script>` | Fetch module graph using URL identity | `ResourceProvider` request with `ModuleScript` destination | referrer URL, final URL, strict MIME | Yes/Phase 2 |
+| Dynamic import | `import("./view.js")` | Fetch module from parent module base | `ResourceProvider` request with `ModuleScript` destination | parent module URL, origin | Phase 2 |
+| Source map | `//# sourceMappingURL=main.js.map` | Fetch source map for diagnostics | Provider request with `SourceMap` destination | script URL, dev-mode policy | Later |
+| JS fetch | `fetch("./data.json")` | Network API can fetch arbitrary URLs | Disabled or local-only provider request | JS origin, capability policy | Later |
+| XHR | `new XMLHttpRequest()` | Legacy network API | Disabled or local-only provider request | JS origin, capability policy | Later |
+| Worker | `new Worker("./worker.js")` | Fetch worker script | Disabled initially or provider request with `Worker` destination | parent origin, worker capability | Later |
+| SVG external refs | SVG references external resource | May load nested resources | Provider-mediated or denied | SVG context, destination | Later |
+| Media | `<video src="./clip.mp4">` | Fetch streamable media | Provider-mediated or disabled | media destination, streaming support | Later |
+| Navigation | `<a href="./page.html">` | Navigate to URL | Host-approved navigation request | source document, user activation | Later |
+| External URL | `<a href="https://example.com">` | Browser navigation/network | Deny or open externally via host capability | user activation, capability | Later |
+| `file://` | `file:///tmp/foo` | Local filesystem access | Denied by policy | scheme policy | Yes: deny |
+| `http(s)://` | `https://example.com/app.js` | Remote network access | Denied by policy | scheme policy | Yes: deny |
+| `bundle://` | `bundle://runtime/default.css` | Runtime built-in resource | Provider loads immutable runtime asset | runtime version, destination | Yes |
+| Store persistence | `app.store.get("theme")` | Not a fetch path | Host storage API, capability-gated | package, origin, store capability | Later |
+
+## Discovery Checklist
+
+For each row, identify:
+
+1. The Servo crate/module where the request originates.
+2. The URL/base URL context available at that point.
+3. Whether the request is sync, async, or streaming.
+4. The destination type and MIME expectations.
+5. The cache identity and final URL behavior.
+6. The failure propagation path.
+7. The minimal change needed to log the request before enforcing policy.
+
+The first implementation should add request logging before removing or disabling existing network code.
