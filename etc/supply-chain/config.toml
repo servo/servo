@@ -31,7 +31,211 @@ criteria = "safe-to-run"
 [policy.selectors]
 audit-as-crates-io = false
 
+[policy.servo]
+audit-as-crates-io = false
+
 [policy.servo_arc]
+audit-as-crates-io = false
+
+[policy.servo-allocator]
+audit-as-crates-io = false
+
+[policy.servo-background-hang-monitor]
+audit-as-crates-io = false
+
+[policy.servo-background-hang-monitor-api]
+audit-as-crates-io = false
+
+[policy.servo-base]
+audit-as-crates-io = false
+
+[policy.servo-bluetooth]
+audit-as-crates-io = false
+
+[policy.servo-bluetooth-traits]
+audit-as-crates-io = false
+
+[policy.servo-canvas]
+audit-as-crates-io = false
+
+[policy.servo-canvas-traits]
+audit-as-crates-io = false
+
+[policy.servo-config]
+audit-as-crates-io = false
+
+[policy.servo-config-macro]
+audit-as-crates-io = false
+
+[policy.servo-constellation]
+audit-as-crates-io = false
+
+[policy.servo-constellation-traits]
+audit-as-crates-io = false
+
+[policy.servo-default-resources]
+audit-as-crates-io = false
+
+[policy.servo-deny-public-fields]
+audit-as-crates-io = false
+
+[policy.servo-devtools]
+audit-as-crates-io = false
+
+[policy.servo-devtools-traits]
+audit-as-crates-io = false
+
+[policy.servo-dom-struct]
+audit-as-crates-io = false
+
+[policy.servo-embedder-traits]
+audit-as-crates-io = false
+
+[policy.servo-fonts]
+audit-as-crates-io = false
+
+[policy.servo-fonts-traits]
+audit-as-crates-io = false
+
+[policy.servo-geometry]
+audit-as-crates-io = false
+
+[policy.servo-hyper-serde]
+audit-as-crates-io = false
+
+[policy.servo-jstraceable-derive]
+audit-as-crates-io = false
+
+[policy.servo-layout]
+audit-as-crates-io = false
+
+[policy.servo-layout-api]
+audit-as-crates-io = false
+
+[policy.servo-malloc-size-of]
+audit-as-crates-io = false
+
+[policy.servo-media]
+audit-as-crates-io = false
+
+[policy.servo-media-audio]
+audit-as-crates-io = false
+
+[policy.servo-media-auto]
+audit-as-crates-io = false
+
+[policy.servo-media-derive]
+audit-as-crates-io = false
+
+[policy.servo-media-dummy]
+audit-as-crates-io = false
+
+[policy.servo-media-examples]
+audit-as-crates-io = false
+
+[policy.servo-media-gstreamer]
+audit-as-crates-io = false
+
+[policy.servo-media-gstreamer-render]
+audit-as-crates-io = false
+
+[policy.servo-media-gstreamer-render-android]
+audit-as-crates-io = false
+
+[policy.servo-media-gstreamer-render-unix]
+audit-as-crates-io = false
+
+[policy.servo-media-ohos]
+audit-as-crates-io = false
+
+[policy.servo-media-player]
+audit-as-crates-io = false
+
+[policy.servo-media-streams]
+audit-as-crates-io = false
+
+[policy.servo-media-thread]
+audit-as-crates-io = false
+
+[policy.servo-media-traits]
+audit-as-crates-io = false
+
+[policy.servo-media-webrtc]
+audit-as-crates-io = false
+
+[policy.servo-metrics]
+audit-as-crates-io = false
+
+[policy.servo-net]
+audit-as-crates-io = false
+
+[policy.servo-net-traits]
+audit-as-crates-io = false
+
+[policy.servo-paint]
+audit-as-crates-io = false
+
+[policy.servo-paint-api]
+audit-as-crates-io = false
+
+[policy.servo-pixels]
+audit-as-crates-io = false
+
+[policy.servo-profile]
+audit-as-crates-io = false
+
+[policy.servo-profile-traits]
+audit-as-crates-io = false
+
+[policy.servo-script]
+audit-as-crates-io = false
+
+[policy.servo-script-bindings]
+audit-as-crates-io = false
+
+[policy.servo-script-traits]
+audit-as-crates-io = false
+
+[policy.servo-storage]
+audit-as-crates-io = false
+
+[policy.servo-storage-traits]
+audit-as-crates-io = false
+
+[policy.servo-timers]
+audit-as-crates-io = false
+
+[policy.servo-tracing]
+audit-as-crates-io = false
+
+[policy.servo-url]
+audit-as-crates-io = false
+
+[policy.servo-wakelock]
+audit-as-crates-io = false
+
+[policy.servo-webdriver-server]
+audit-as-crates-io = false
+
+[policy.servo-webgl]
+audit-as-crates-io = false
+
+[policy.servo-webgpu]
+audit-as-crates-io = false
+
+[policy.servo-webgpu-traits]
+audit-as-crates-io = false
+
+[policy.servo-webxr]
+audit-as-crates-io = false
+
+[policy.servo-webxr-api]
+audit-as-crates-io = false
+
+[policy.servo-xpath]
+audit-as-crates-io = false
+
+[policy.servoshell]
 audit-as-crates-io = false
 
 [policy.stylo]
