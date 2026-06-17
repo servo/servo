@@ -1,0 +1,108 @@
+# Local Runtime Resource Provider Plan
+
+This document sketches the first implementation path for turning Servo into a host-mediated local document/application runtime. The goal is not to delete networking first; it is to make all resource acquisition explicit and host-owned.
+
+## Core Model
+
+Servo should request resources through a contextual request object. The host resolves, authorizes, and returns bytes or a deterministic denial.
+
+```rust
+pub struct ResourceRequest {
+    pub requested_url: Url,
+    pub base_url: Option<Url>,
+    pub initiator_url: Option<Url>,
+    pub package_id: PackageId,
+    pub origin: RuntimeOrigin,
+    pub destination: ResourceDestination,
+    pub mode: LoadMode,
+    pub credentials: CredentialMode,
+    pub cache_mode: CacheMode,
+}
+
+pub struct ResourceResponse {
+    pub final_url: Url,
+    pub mime_type: Mime,
+    pub bytes: ResourceBody,
+    pub cache_policy: CachePolicy,
+    pub integrity: Option<IntegrityMetadata>,
+    pub source_metadata: SourceMetadata,
+}
+```
+
+The important inversion is: Servo may ask for resources, but only the host decides what is reachable.
+
+## Initial Scheme Policy
+
+Allowed in the first milestone:
+
+- `asset://{package_id}/...` for package-relative resources rooted inside the active package.
+- `bundle://runtime/...` for immutable runtime-owned resources.
+
+Denied in the first milestone:
+
+- `http://`
+- `https://`
+- `ws://`
+- `wss://`
+- `ftp://`
+- `file://`
+- `store://` as a fetchable resource
+- `asset://` URLs for another package
+- path traversal outside the package root
+
+Deferred until real content requires them:
+
+- `data:`
+- `blob:`
+
+## Request Flow
+
+Every resource request should follow the same host-controlled path:
+
+1. Receive a `ResourceRequest` from Servo.
+2. Resolve `requested_url` against `base_url` when necessary.
+3. Normalize and canonicalize the resolved URL.
+4. Classify scheme and destination.
+5. Check package, origin, and capability policy.
+6. Load from the package or bundle backend.
+7. Return `ResourceResponse` or a deterministic error.
+
+Policy denials should be first-class outcomes, not lower-level network failures.
+
+## Error Categories
+
+The provider should distinguish at least these outcomes:
+
+- `DeniedByPolicy` for disallowed schemes, capabilities, or cross-package access.
+- `UnsupportedScheme` for schemes the runtime does not implement.
+- `InvalidPath` for traversal or canonicalization failures.
+- `NotFound` for missing package or bundle resources.
+- `InvalidMime` for a resource that does not match the destination.
+- `DecodeError` for bytes that cannot be consumed by the destination decoder.
+- `IoError` for backend failures.
+
+Good error categories are part of the developer experience. A missing local image should not look like a denied remote URL.
+
+## First Milestone Package
+
+The first acceptance package should be deliberately small:
+
+```text
+app/
+  index.html
+  styles.css
+  main.js
+  assets/logo.png
+  fonts/app.woff2
+```
+
+The runtime should load:
+
+- `asset://com.example.app/index.html`
+- `./styles.css` from the document
+- `./assets/logo.png` from HTML
+- `./assets/logo.png` from CSS `url(...)`
+- `./fonts/app.woff2` from `@font-face`
+- `./main.js` as a classic script or module script
+
+It should deterministically reject remote URLs, `file://`, traversal attempts, and `store://` fetches.
