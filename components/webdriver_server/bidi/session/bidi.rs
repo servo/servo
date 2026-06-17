@@ -930,9 +930,21 @@ impl<'a> BidiSession<'a> {
         &self,
         command_parameters: &browsing_context::HandleUserPromptParameters,
     ) -> Result<browsing_context::HandleUserPromptResult, ErrorCode> {
-        // TODO: should be done in embedder thread
-        // TODO: should design a webdriver to embedder msg
-        todo!()
+        // 1.
+        let navigable_id = &command_parameters.context;
+        let navigable_id =
+            BrowsingContextId::from_string(navigable_id).ok_or(ErrorCode::InvalidArgument)?;
+        // 2.
+        let navigable = self.common.remote_end_state.get_a_navigable(navigable_id);
+        // 3.
+        let accept = command_parameters.accept.unwrap_or(true);
+        // 4.
+        let user_text = command_parameters.user_text.clone().unwrap_or_default();
+        // 5. TODO: create a webdriver to embedder message, and callback bool
+        // 6.
+        Ok(browsing_context::HandleUserPromptResult {
+            extensible: Default::default(),
+        })
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-locateNodes>
