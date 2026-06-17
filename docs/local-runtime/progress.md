@@ -34,3 +34,11 @@
 - The job proves that a checkout can enter the same published container family used by the devcontainer, run `./mach bootstrap --yes`, record the compiler/Rust/Python/uv toolchain versions, resolve Cargo workspace metadata with `cargo metadata --format-version 1 --locked --no-deps`, and print `./mach build --help` without attempting a full Servo build.
 - No runtime resource paths are loaded or denied by this workflow; it is intentionally only a repeatable environment and toolchain smoke check before deeper package-scoped loader work.
 - If this smoke job passes, the next build command to try in CI is `./mach build --dev` as a separate follow-up job or manually-dispatched workflow step, not as part of this first smoke gate.
+
+
+## 2026-06-17 — Devcontainer debug build release capture
+
+- Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` so the manual `linux-debug-build` job packages the completed `./mach build --debug` output, wraps the package as `release/servo-linux-debug.zip`, uploads it as an Actions artifact, and publishes/clobbers it on a stable GitHub Release tag named `latest-local-runtime-devcontainer-linux-debug`.
+- Added workflow `contents: write` permission so the existing `github.token` can create or update the Release from the successful manual build.
+- Kept the existing workflow triggers, smoke job, devcontainer image, debug build command, and build environment unchanged.
+- No Servo crates/modules or local-runtime Rust code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only release capture change.

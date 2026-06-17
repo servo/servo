@@ -23,6 +23,9 @@ on:
       - 'docs/local-runtime/**'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 defaults:
   run:
     shell: bash
@@ -90,3 +93,55 @@ jobs:
 
       - name: Build Servo Linux debug
         run: ./mach build --debug
+
+      - name: Package Linux debug build
+        run: |
+          set -Eeuo pipefail
+
+          ./mach package --debug
+
+          rm -rf release
+          mkdir -p release
+          cp "$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz" release/servo-linux-debug.tar.gz
+          python3 - <<'PYZIP'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+          with ZipFile('release/servo-linux-debug.zip', 'w', compression=ZIP_DEFLATED, compresslevel=9) as zf:
+              zf.write('release/servo-linux-debug.tar.gz', arcname='servo-linux-debug.tar.gz')
+          Path('release/servo-linux-debug.tar.gz').unlink()
+          PYZIP
+
+      - name: Upload release ZIP artifacts
+        id: upload_zips
+        uses: actions/upload-artifact@v7
+        with:
+          name: servo-linux-debug-release
+          path: release/servo-linux-debug.zip
+          if-no-files-found: error
+
+      - name: Push successful builds to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+
+          TAG=latest-local-runtime-devcontainer-linux-debug
+
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" \
+              --title "Latest local runtime devcontainer Linux debug build" \
+              --notes "Automatically updated by GitHub Actions."
+
+          gh release upload "$TAG" release/servo-linux-debug.zip --clobber
+
+      - name: Show build download link
+        run: |
+          TAG=latest-local-runtime-devcontainer-linux-debug
+
+          echo "### Local runtime devcontainer Linux debug build" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          printf "%s\n" "- \`servo-linux-debug.zip\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Download Release build](https://github.com/${{ github.repository }}/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
