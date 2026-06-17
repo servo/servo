@@ -17,7 +17,7 @@ use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt,
 use http::header::{self, HeaderValue};
 use ipc_channel::ipc::IpcSender;
 use log::warn;
-use mime::{self, Mime};
+use mime::Mime;
 use net_traits::blob_url_store::{BlobBuf, BlobTokenCommunicator, BlobURLStoreError};
 use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadError, FileManagerThreadMsg, FileTokenCheck,
@@ -313,7 +313,7 @@ impl FileManager {
                     &mut response.headers,
                     len,
                     buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
-                    /* filename */ None,
+                    buf.filename.clone(),
                     content_range,
                 );
 
@@ -933,34 +933,19 @@ fn set_headers(
     if let Some(content_range) = content_range {
         headers.typed_insert(content_range);
     }
-    headers.typed_insert(ContentType::from(mime.clone()));
+    headers.typed_insert(ContentType::from(mime));
     let name = match filename {
         Some(name) => name,
         None => return,
     };
-    let charset = mime.get_param(mime::CHARSET);
-    let charset = charset
-        .map(|c| c.as_ref().into())
-        .unwrap_or("us-ascii".to_owned());
     // TODO(eijebong): Replace this once the typed header is there
     //                 https://github.com/hyperium/headers/issues/8
     headers.insert(
         header::CONTENT_DISPOSITION,
         HeaderValue::from_bytes(
             format!(
-                "inline; {}",
-                if charset.to_lowercase() == "utf-8" {
-                    format!(
-                        "filename=\"{}\"",
-                        String::from_utf8(name.as_bytes().into()).unwrap()
-                    )
-                } else {
-                    format!(
-                        "filename*=\"{}\"''{}",
-                        charset,
-                        http_percent_encode(name.as_bytes())
-                    )
-                }
+                "inline; filename*=UTF-8''{}",
+                http_percent_encode(name.as_bytes())
             )
             .as_bytes(),
         )
