@@ -337,6 +337,13 @@ impl FetchResponseListener for ImageContext {
             .compute_source_position(elem.line_number as u32);
         global.report_csp_violations(cx, violations, None, Some(source_position));
     }
+
+    fn process_content_length(&mut self, request_id: RequestId, size: usize) {
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessContentLength(request_id, size),
+        );
+    }
 }
 
 impl ResourceTimingListener for ImageContext {

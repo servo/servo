@@ -1903,13 +1903,13 @@ async fn wait_for_inflight_requests(done_chan: &mut DoneChannel, response: &mut 
 
         loop {
             match ch.1.recv().await {
-                Some(Data::Payload(_)) => {},
+                Some(Data::ContentLength(_)) | Some(Data::Payload(_)) | Some(Data::Error(_)) => {},
                 Some(Data::Done) => break, // Return the full response as if it was initially cached as such.
                 Some(Data::Cancelled) => {
                     // The response was cancelled while the fetch was ongoing.
                     break;
                 },
-                _ => panic!("HTTP cache should always send Done or Cancelled"),
+                None => panic!("HTTP cache should always send Done or Cancelled"),
             }
         }
     }
@@ -2281,6 +2281,15 @@ async fn http_network_fetch(
     let status = response.status.clone();
     let headers = response.headers.clone();
     let devtools_chan = context.devtools_chan.clone();
+
+    if let Some(possible_length) = res
+        .headers()
+        .get(http::header::CONTENT_LENGTH)
+        .and_then(|header_value| header_value.to_str().ok())
+        .and_then(|s| s.parse().ok())
+    {
+        let _ = done_sender.send(Data::ContentLength(possible_length));
+    }
 
     spawn_task(
         res.into_body()

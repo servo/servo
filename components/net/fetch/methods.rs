@@ -64,6 +64,7 @@ pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 #[derive(Clone, Deserialize, Serialize)]
 pub enum Data {
     Payload(Vec<u8>),
+    ContentLength(usize),
     Done,
     Cancelled,
     Error(NetworkError),
@@ -900,6 +901,9 @@ async fn wait_for_response(
         let mut devtools_body = context.devtools_chan.as_ref().map(|_| Vec::new());
         loop {
             match ch.1.recv().await {
+                Some(Data::ContentLength(length)) => {
+                    target.process_length_field(request, length);
+                },
                 Some(Data::Payload(vec)) => {
                     if let Some(body) = devtools_body.as_mut() {
                         body.extend(&vec);
@@ -922,7 +926,8 @@ async fn wait_for_response(
                     response.aborted.store(true, Ordering::Release);
                     break;
                 },
-                _ => {
+
+                None => {
                     panic!("fetch worker should always send Done before terminating");
                 },
             }

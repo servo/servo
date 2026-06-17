@@ -1181,6 +1181,10 @@ impl RemoteWebFontDownloader {
                     .submit_timing(ServoUrl::from_url(self.url.as_ref().clone()), timing);
                 DownloaderResponseResult::Finished
             },
+            FetchResponseMsg::ProcessContentLength(_request_id, size) => {
+                self.response_data.reserve(size - self.response_data.len());
+                DownloaderResponseResult::InProcess
+            },
         }
     }
 }

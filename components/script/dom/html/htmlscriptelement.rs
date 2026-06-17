@@ -449,6 +449,10 @@ impl FetchResponseListener for ClassicContext {
         let elem = self.elem.root();
         global.report_csp_violations(cx, violations, Some(elem.upcast()), None);
     }
+
+    fn process_content_length(&mut self, _request_id: RequestId, size: usize) {
+        self.data.reserve(size - self.data.len());
+    }
 }
 
 impl ResourceTimingListener for ClassicContext {

@@ -251,6 +251,10 @@ impl FetchResponseListener for ScriptFetchContext {
             worker_scope.report_csp_violations(violations);
         }
     }
+
+    fn process_content_length(&mut self, _request_id: RequestId, size: usize) {
+        self.body_bytes.reserve(size - self.body_bytes.len());
+    }
 }
 
 impl ResourceTimingListener for ScriptFetchContext {
