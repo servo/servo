@@ -1,217 +1,224 @@
 name: Local Runtime Devcontainer Smoke
 
 on:
-  push:
-    paths:
-      - '.devcontainer/**'
-      - '.github/workflows/local-runtime-devcontainer-smoke.yml'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'rust-toolchain.toml'
-      - 'mach'
-      - 'python/**'
-      - 'docs/local-runtime/**'
-  pull_request:
-    paths:
-      - '.devcontainer/**'
-      - '.github/workflows/local-runtime-devcontainer-smoke.yml'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'rust-toolchain.toml'
-      - 'mach'
-      - 'python/**'
-      - 'docs/local-runtime/**'
-  workflow_dispatch:
+push:
+paths:
+- '.devcontainer/**'
+- '.github/workflows/local-runtime-devcontainer-smoke.yml'
+- 'Cargo.toml'
+- 'Cargo.lock'
+- 'rust-toolchain.toml'
+- 'mach'
+- 'python/**'
+- 'docs/local-runtime/**'
+pull_request:
+paths:
+- '.devcontainer/**'
+- '.github/workflows/local-runtime-devcontainer-smoke.yml'
+- 'Cargo.toml'
+- 'Cargo.lock'
+- 'rust-toolchain.toml'
+- 'mach'
+- 'python/**'
+- 'docs/local-runtime/**'
+workflow_dispatch:
 
 permissions:
-  contents: write
+contents: write
 
 defaults:
-  run:
-    shell: bash
+run:
+shell: bash
 
 env:
-  RUST_BACKTRACE: 1
-  SHELL: /bin/bash
-  CC: clang
-  CXX: clang++
-  CARGO_TARGET_DIR: /var/servo-cargo-target
-  UV_PROJECT_ENVIRONMENT: .devcontainer-venv
+RUST_BACKTRACE: 1
+SHELL: /bin/bash
+CC: clang
+CXX: clang++
+CARGO_TARGET_DIR: /var/servo-cargo-target
+UV_PROJECT_ENVIRONMENT: .devcontainer-venv
 
 jobs:
-  smoke:
-    name: Bootstrap and metadata smoke
-    runs-on: ubuntu-24.04
-    container:
-      image: ghcr.io/servo/servo/devcontainer-ubuntu:latest
-    steps:
-      - uses: actions/checkout@v6
+smoke:
+name: Bootstrap and metadata smoke
+runs-on: ubuntu-24.04
+container:
+image: ghcr.io/servo/servo/devcontainer-ubuntu:latest
+steps:
+- uses: actions/checkout@v6
 
-      - name: Prepare devcontainer target directory
-        run: mkdir -p "$CARGO_TARGET_DIR"
+```
+  - name: Prepare devcontainer target directory
+    run: mkdir -p "$CARGO_TARGET_DIR"
 
-      - name: Bootstrap Servo dependencies
-        run: ./mach bootstrap --yes
+  - name: Bootstrap Servo dependencies
+    run: ./mach bootstrap --yes
 
-      - name: Record toolchain versions
-        run: |
-          set -euxo pipefail
-          uname -a
-          clang --version
-          clang++ --version
-          rustc --version --verbose
-          cargo --version --verbose
-          python3 --version
-          uv --version
+  - name: Record toolchain versions
+    run: |
+      set -euxo pipefail
+      uname -a
+      clang --version
+      clang++ --version
+      rustc --version --verbose
+      cargo --version --verbose
+      python3 --version
+      uv --version
 
-      - name: Check Cargo workspace metadata
-        run: cargo metadata --format-version 1 --locked --no-deps
+  - name: Check Cargo workspace metadata
+    run: cargo metadata --format-version 1 --locked --no-deps
 
-      - name: Check servo-net crate
-        run: cargo check -p servo-net --locked
+  - name: Check servo-net crate
+    run: cargo check -p servo-net --locked
 
-      - name: Print mach build help
-        run: ./mach build --help
+  - name: Print mach build help
+    run: ./mach build --help
+```
 
+linux-debug-build:
+name: Linux debug build
+runs-on: ubuntu-24.04
+needs: smoke
+if: github.event_name == 'workflow_dispatch'
+timeout-minutes: 180
+container:
+image: ghcr.io/servo/servo/devcontainer-ubuntu:latest
+steps:
+- uses: actions/checkout@v6
 
-  linux-debug-build:
-    name: Linux debug build
-    runs-on: ubuntu-24.04
-    needs: smoke
-    if: github.event_name == 'workflow_dispatch'
-    timeout-minutes: 180
-    container:
-      image: ghcr.io/servo/servo/devcontainer-ubuntu:latest
-    steps:
-      - uses: actions/checkout@v6
+```
+  - name: Prepare devcontainer target directory
+    run: mkdir -p "$CARGO_TARGET_DIR"
 
-      - name: Prepare devcontainer target directory
-        run: mkdir -p "$CARGO_TARGET_DIR"
+  - name: Bootstrap Servo dependencies
+    run: ./mach bootstrap --yes
 
-      - name: Bootstrap Servo dependencies
-        run: ./mach bootstrap --yes
+  - name: Build Servo Linux debug
+    run: ./mach build --debug
 
-      - name: Build Servo Linux debug
-        run: ./mach build --debug
+  - name: Package Linux debug builds
+    run: |
+      set -Eeuo pipefail
 
-      - name: Package Linux debug builds
-        run: |
-          set -Eeuo pipefail
+      ./mach package --debug
 
-          ./mach package --debug
+      SRC_TAR="$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz"
 
-          SRC_TAR="$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz"
+      rm -rf release package-work
+      mkdir -p release package-work/extracted
 
-          rm -rf release package-work
-          mkdir -p release package-work/extracted
+      echo "Original packaged tarball:"
+      du -h "$SRC_TAR"
 
-          echo "Original packaged tarball:"
-          du -h "$SRC_TAR"
+      cp "$SRC_TAR" release/servo-linux-debug-unstripped.tar.gz
 
-          cp "$SRC_TAR" release/servo-linux-debug-unstripped.tar.gz
+      tar -xzf "$SRC_TAR" -C package-work/extracted
 
-          python3 - <<'PYZIP'
-          from pathlib import Path
-          from zipfile import ZIP_DEFLATED, ZipFile
+      if ! command -v file >/dev/null 2>&1 || ! command -v strip >/dev/null 2>&1; then
+        apt-get update
+        apt-get install -y file binutils
+      fi
 
-          src = Path('release/servo-linux-debug-unstripped.tar.gz')
-          dst = Path('release/servo-linux-debug-unstripped.zip')
+      echo "Largest files before stripping:"
+      find package-work/extracted -type f -printf '%s %p\n' | sort -n | tail -30
+
+      STRIPPED_COUNT=0
+
+      while IFS= read -r -d '' f; do
+        if file -b "$f" | grep -Eq 'ELF .* (executable|shared object|pie executable)'; then
+          echo "Stripping debug symbols: $f"
+          chmod u+w "$f" || true
+          strip --strip-debug "$f" || true
+          STRIPPED_COUNT=$((STRIPPED_COUNT + 1))
+        fi
+      done < <(find package-work/extracted -type f -print0)
+
+      echo "Stripped ELF files: $STRIPPED_COUNT"
+
+      echo "Largest files after stripping:"
+      find package-work/extracted -type f -printf '%s %p\n' | sort -n | tail -30
+
+      tar -czf release/servo-linux-debug-stripped.tar.gz -C package-work/extracted .
+
+      echo "Unstripped tarball:"
+      du -h release/servo-linux-debug-unstripped.tar.gz
+
+      echo "Stripped tarball:"
+      du -h release/servo-linux-debug-stripped.tar.gz
+
+      python3 - <<'PYZIP'
+      from pathlib import Path
+      from zipfile import ZIP_DEFLATED, ZipFile
+
+      pairs = [
+          ('servo-linux-debug-unstripped.tar.gz', 'servo-linux-debug-unstripped.zip'),
+          ('servo-linux-debug-stripped.tar.gz', 'servo-linux-debug-stripped.zip'),
+      ]
+
+      for tar_name, zip_name in pairs:
+          src = Path('release') / tar_name
+          dst = Path('release') / zip_name
 
           with ZipFile(dst, 'w', compression=ZIP_DEFLATED, compresslevel=9) as zf:
               zf.write(src, arcname=src.name)
 
           print(f"Created {dst}")
-          PYZIP
+      PYZIP
 
-          tar -xzf "$SRC_TAR" -C package-work/extracted
+      rm -f release/*.tar.gz
 
-          if ! command -v file >/dev/null 2>&1 || ! command -v strip >/dev/null 2>&1; then
-            apt-get update
-            apt-get install -y file binutils
-          fi
+      echo "Final release ZIPs:"
+      du -h release/*.zip
 
-          echo "Largest files before stripping:"
-          find package-work/extracted -type f -printf '%s %p\n' | sort -n | tail -30
+  - name: Upload release ZIP artifacts
+    id: upload_zips
+    uses: actions/upload-artifact@v7
+    with:
+      name: servo-linux-debug-release-zips
+      path: release/*.zip
+      if-no-files-found: error
 
-          STRIPPED_COUNT=0
+  - name: Install GitHub CLI
+    run: |
+      set -Eeuo pipefail
 
-          while IFS= read -r -d '' f; do
-            if file -b "$f" | grep -Eq 'ELF .* (executable|shared object|pie executable)'; then
-              echo "Stripping debug symbols: $f"
-              chmod u+w "$f" || true
-              strip --strip-debug "$f" || true
-              STRIPPED_COUNT=$((STRIPPED_COUNT + 1))
-            fi
-          done < <(find package-work/extracted -type f -print0)
+      if command -v gh >/dev/null 2>&1; then
+        gh --version
+        exit 0
+      fi
 
-          echo "Stripped ELF files: $STRIPPED_COUNT"
+      apt-get update
+      apt-get install -y gh
+      gh --version
 
-          echo "Largest files after stripping:"
-          find package-work/extracted -type f -printf '%s %p\n' | sort -n | tail -30
+  - name: Push successful builds to Releases
+    env:
+      GH_TOKEN: ${{ github.token }}
+    run: |
+      set -Eeuo pipefail
 
-          tar -czf release/servo-linux-debug-stripped.tar.gz -C package-work/extracted .
+      TAG=latest-local-runtime-devcontainer-linux-debug
 
-          echo "Unstripped tarball:"
-          du -h release/servo-linux-debug-unstripped.tar.gz
+      gh release view "$TAG" >/dev/null 2>&1 || \
+        gh release create "$TAG" \
+          --title "Latest local runtime devcontainer Linux debug builds" \
+          --notes "Automatically updated by GitHub Actions."
 
-          echo "Stripped tarball:"
-          du -h release/servo-linux-debug-stripped.tar.gz
+      gh release upload "$TAG" \
+        release/servo-linux-debug-stripped.zip \
+        release/servo-linux-debug-unstripped.zip \
+        --clobber
 
-          python3 - <<'PYZIP'
-          from pathlib import Path
-          from zipfile import ZIP_DEFLATED, ZipFile
+  - name: Show build download link
+    run: |
+      TAG=latest-local-runtime-devcontainer-linux-debug
 
-          for src_name, zip_name in [
-              ('servo-linux-debug-stripped.tar.gz', 'servo-linux-debug-stripped.zip'),
-          ]:
-              src = Path('release') / src_name
-              dst = Path('release') / zip_name
-              with ZipFile(dst, 'w', compression=ZIP_DEFLATED, compresslevel=9) as zf:
-                  zf.write(src, arcname=src.name)
-              print(f"Created {dst}")
-          PYZIP
-
-          rm -f release/*.tar.gz
-
-          echo "Final release ZIPs:"
-          du -h release/*.zip
-
-      - name: Upload release ZIP artifacts
-        id: upload_zips
-        uses: actions/upload-artifact@v7
-        with:
-          name: servo-linux-debug-release-zips
-          path: release/*.zip
-          if-no-files-found: error
-
-      - name: Push successful builds to Releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -Eeuo pipefail
-
-          TAG=latest-local-runtime-devcontainer-linux-debug
-
-          gh release view "$TAG" >/dev/null 2>&1 || \
-            gh release create "$TAG" \
-              --title "Latest local runtime devcontainer Linux debug builds" \
-              --notes "Automatically updated by GitHub Actions."
-
-          gh release upload "$TAG" \
-            release/servo-linux-debug-stripped.zip \
-            release/servo-linux-debug-unstripped.zip \
-            --clobber
-
-                  - name: Show build download link
-        run: |
-          TAG=latest-local-runtime-devcontainer-linux-debug
-
-          echo "### Local runtime devcontainer Linux debug builds" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          printf "%s\n" "- \`servo-linux-debug-stripped.zip\` — smaller download, debug symbols stripped from ELF files" >> "$GITHUB_STEP_SUMMARY"
-          printf "%s\n" "- \`servo-linux-debug-unstripped.zip\` — full debug package, larger but better for crash/debug work" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "[Download Release builds](https://github.com/${{ github.repository }}/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
-            
+      echo "### Local runtime devcontainer Linux debug builds" >> "$GITHUB_STEP_SUMMARY"
+      echo "" >> "$GITHUB_STEP_SUMMARY"
+      printf "%s\n" "- \`servo-linux-debug-stripped.zip\` — smaller download, debug symbols stripped from ELF files" >> "$GITHUB_STEP_SUMMARY"
+      printf "%s\n" "- \`servo-linux-debug-unstripped.zip\` — full debug package, larger but better for crash/debug work" >> "$GITHUB_STEP_SUMMARY"
+      echo "" >> "$GITHUB_STEP_SUMMARY"
+      echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
+      echo "" >> "$GITHUB_STEP_SUMMARY"
+      echo "[Download Release builds](https://github.com/${{ github.repository }}/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
+```
