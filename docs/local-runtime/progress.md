@@ -1,5 +1,14 @@
 # Local Runtime Progress
 
+## 2026-06-18 — Devcontainer debug package split and release diagnostics
+
+- Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` inside the manual-only `linux-debug-build` packaging/release path while keeping the successful `./mach build --debug` and `./mach package --debug` flow intact.
+- The debug package is now extracted into a temporary runtime tree, inspected, and split into a smaller stripped runtime ZIP plus a separate debug-symbol ZIP instead of throwing symbols away.
+- Added size diagnostics before and after stripping, including original tarball size, largest-file inventories, ELF identification, section summaries for the largest ELF files, stripped runtime tree size, debug-symbol tree size, and processed ELF count, so future runs explain what is taking space.
+- The workflow now uploads both `release/servo-linux-debug-runtime-stripped.zip` and `release/servo-linux-debug-symbols.zip` as Actions artifacts and to the stable `latest-local-runtime-devcontainer-linux-debug` release tag.
+- Added `git config --global --add safe.directory "$GITHUB_WORKSPACE"` before `gh release ...` commands to fix the GitHub Release upload safe-directory failure observed in the container job.
+- No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only packaging/release change.
+
 ## 2026-06-17 — Devcontainer release upload GitHub CLI fix
 
 - Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` to install the GitHub CLI inside the Servo devcontainer before the manual `linux-debug-build` release upload step runs.

@@ -100,23 +100,115 @@ jobs:
 
           ./mach package --debug
 
+          PACKAGE="$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz"
+          WORK_DIR="$(mktemp -d)"
+          RUNTIME_DIR="$WORK_DIR/runtime"
+          SYMBOL_DIR="$WORK_DIR/symbols"
+          export RUNTIME_DIR SYMBOL_DIR
+          BEFORE_INVENTORY="$WORK_DIR/largest-before.md"
+          AFTER_INVENTORY="$WORK_DIR/largest-after.md"
+          ELF_LIST="$WORK_DIR/elf-files.txt"
+
           rm -rf release
-          mkdir -p release
-          cp "$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz" release/servo-linux-debug.tar.gz
+          mkdir -p release "$RUNTIME_DIR" "$SYMBOL_DIR"
+
+          tar -xzf "$PACKAGE" -C "$RUNTIME_DIR"
+
+          ORIGINAL_PACKAGE_SIZE="$(du -h "$PACKAGE" | cut -f1)"
+          echo "Original package size: $ORIGINAL_PACKAGE_SIZE"
+
+          echo "Largest 50 files before stripping:"
+          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$BEFORE_INVENTORY"
+
+          : > "$ELF_LIST"
+          while IFS= read -r -d '' file_path; do
+            file_output="$(file -b "$file_path")"
+            case "$file_output" in
+              *ELF*executable*|*ELF*shared\ object*|*ELF*pie\ executable*)
+                size="$(stat -c '%s' "$file_path")"
+                printf '%s %s\n' "$size" "$file_path" >> "$ELF_LIST"
+                printf '%s: %s\n' "${file_path#$RUNTIME_DIR/}" "$file_output"
+                ;;
+            esac
+          done < <(find "$RUNTIME_DIR" -type f -print0)
+
+          echo "Section information for largest ELF files before stripping:"
+          sort -nr "$ELF_LIST" | sed -n '1,20p' | while IFS=' ' read -r _ elf_file; do
+            echo "### ${elf_file#$RUNTIME_DIR/}"
+            if command -v readelf >/dev/null 2>&1; then
+              readelf -S "$elf_file" | sed -n '1,80p'
+            elif command -v objdump >/dev/null 2>&1; then
+              objdump -h "$elf_file" | sed -n '1,80p'
+            else
+              echo "readelf and objdump are unavailable"
+            fi
+          done
+
+          OBJCOPY="$(command -v llvm-objcopy || command -v objcopy)"
+          STRIP="$(command -v llvm-strip || command -v strip)"
+          PROCESSED_ELF_COUNT=0
+
+          while IFS=' ' read -r _ elf_file; do
+            rel_path="${elf_file#$RUNTIME_DIR/}"
+            symbol_file="$SYMBOL_DIR/$rel_path.debug"
+            mkdir -p "$(dirname "$symbol_file")"
+
+            "$OBJCOPY" --only-keep-debug "$elf_file" "$symbol_file"
+            "$STRIP" --strip-debug "$elf_file"
+            if "$OBJCOPY" --add-gnu-debuglink="$symbol_file" "$elf_file"; then
+              echo "Added GNU debug link for $rel_path"
+            else
+              echo "GNU debug link unsupported for $rel_path"
+            fi
+            PROCESSED_ELF_COUNT=$((PROCESSED_ELF_COUNT + 1))
+          done < <(sort -nr "$ELF_LIST")
+
+          STRIPPED_RUNTIME_SIZE="$(du -sh "$RUNTIME_DIR" | cut -f1)"
+          DEBUG_SYMBOL_SIZE="$(du -sh "$SYMBOL_DIR" | cut -f1)"
+          echo "Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
+          echo "Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
+          echo "ELF files processed: $PROCESSED_ELF_COUNT"
+
+          echo "Largest 50 files after stripping:"
+          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$AFTER_INVENTORY"
+
           python3 - <<'PYZIP'
           from pathlib import Path
           from zipfile import ZIP_DEFLATED, ZipFile
-          with ZipFile('release/servo-linux-debug.zip', 'w', compression=ZIP_DEFLATED, compresslevel=9) as zf:
-              zf.write('release/servo-linux-debug.tar.gz', arcname='servo-linux-debug.tar.gz')
-          Path('release/servo-linux-debug.tar.gz').unlink()
+
+          archives = [
+              (Path('release/servo-linux-debug-runtime-stripped.zip'), Path(__import__('os').environ['RUNTIME_DIR'])),
+              (Path('release/servo-linux-debug-symbols.zip'), Path(__import__('os').environ['SYMBOL_DIR'])),
+          ]
+          for zip_path, source_dir in archives:
+              with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as zf:
+                  for path in sorted(source_dir.rglob('*')):
+                      if path.is_file():
+                          zf.write(path, path.relative_to(source_dir))
           PYZIP
+
+          RUNTIME_ZIP_SIZE="$(du -h release/servo-linux-debug-runtime-stripped.zip | cut -f1)"
+          SYMBOL_ZIP_SIZE="$(du -h release/servo-linux-debug-symbols.zip | cut -f1)"
+
+          {
+            echo "ORIGINAL_PACKAGE_SIZE=$ORIGINAL_PACKAGE_SIZE"
+            echo "STRIPPED_RUNTIME_SIZE=$STRIPPED_RUNTIME_SIZE"
+            echo "DEBUG_SYMBOL_SIZE=$DEBUG_SYMBOL_SIZE"
+            echo "RUNTIME_ZIP_SIZE=$RUNTIME_ZIP_SIZE"
+            echo "SYMBOL_ZIP_SIZE=$SYMBOL_ZIP_SIZE"
+            echo "PROCESSED_ELF_COUNT=$PROCESSED_ELF_COUNT"
+            echo "BEFORE_INVENTORY=$BEFORE_INVENTORY"
+            echo "AFTER_INVENTORY=$AFTER_INVENTORY"
+          } >> "$GITHUB_ENV"
 
       - name: Upload release ZIP artifacts
         id: upload_zips
         uses: actions/upload-artifact@v7
         with:
           name: servo-linux-debug-release
-          path: release/servo-linux-debug.zip
+          path: |
+            release/servo-linux-debug-runtime-stripped.zip
+            release/servo-linux-debug-symbols.zip
           if-no-files-found: error
 
       - name: Install GitHub CLI
@@ -140,21 +232,45 @@ jobs:
 
           TAG=latest-local-runtime-devcontainer-linux-debug
 
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
           gh release view "$TAG" >/dev/null 2>&1 || \
             gh release create "$TAG" \
               --title "Latest local runtime devcontainer Linux debug build" \
               --notes "Automatically updated by GitHub Actions."
 
-          gh release upload "$TAG" release/servo-linux-debug.zip --clobber
+          gh release upload "$TAG" \
+            release/servo-linux-debug-runtime-stripped.zip \
+            release/servo-linux-debug-symbols.zip \
+            --clobber
 
       - name: Show build download link
         run: |
           TAG=latest-local-runtime-devcontainer-linux-debug
 
-          echo "### Local runtime devcontainer Linux debug build" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          printf "%s\n" "- \`servo-linux-debug.zip\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "[Download Release build](https://github.com/${{ github.repository }}/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Local runtime devcontainer Linux debug build"
+            echo ""
+            echo "- Original package size: $ORIGINAL_PACKAGE_SIZE"
+            echo "- Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
+            echo "- Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
+            echo "- Stripped runtime ZIP size: $RUNTIME_ZIP_SIZE"
+            echo "- Debug-symbol ZIP size: $SYMBOL_ZIP_SIZE"
+            echo "- ELF files processed: $PROCESSED_ELF_COUNT"
+            echo ""
+            echo "#### Largest files before stripping"
+            echo '```'
+            cat "$BEFORE_INVENTORY"
+            echo '```'
+            echo ""
+            echo "#### Largest files after stripping"
+            echo '```'
+            cat "$AFTER_INVENTORY"
+            echo '```'
+            echo ""
+            if [ -n "${{ steps.upload_zips.outputs.artifact-url }}" ]; then
+              echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})"
+              echo ""
+            fi
+            echo "[Download Release build](https://github.com/${{ github.repository }}/releases/tag/$TAG)"
+          } >> "$GITHUB_STEP_SUMMARY"
