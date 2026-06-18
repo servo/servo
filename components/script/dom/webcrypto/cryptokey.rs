@@ -10,7 +10,7 @@ use js::jsapi::{Heap, JSObject, Value};
 use js::rust::MutableHandleObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::FxHashMap;
-use script_bindings::cell::DomRefCell;
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::id::{CryptoKeyId, CryptoKeyIndex};
@@ -178,8 +178,8 @@ impl CryptoKey {
         &self.algorithm
     }
 
-    pub(crate) fn usages(&self) -> Vec<KeyUsage> {
-        self.usages.borrow().clone()
+    pub(crate) fn usages(&self) -> Ref<'_, Vec<KeyUsage>> {
+        self.usages.borrow()
     }
 
     pub(crate) fn handle(&self) -> &Handle {
