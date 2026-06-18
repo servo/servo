@@ -5233,6 +5233,17 @@ impl Element {
         let document = self.owner_document();
         !document.is_fully_active() || (!self.is::<HTMLAnchorElement>() && !self.is_connected())
     }
+
+    pub(crate) fn get_computed_role(&self) -> Option<DOMString> {
+        let accesskit_node = self
+            .owner_window()
+            .accesskit_node_query(self.upcast::<Node>().to_trusted_node_address())?;
+
+        let role = accesskit_node.role();
+        // TODO: Eventually will need mapping table that maps accesskit roles to aria roles
+        Some(DOMString::from(format!("{role:?}")))
+    }
+
 }
 
 impl Element {
