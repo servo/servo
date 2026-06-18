@@ -984,7 +984,7 @@ pub(crate) fn export_key(
             }
 
             // Step 3.7. Set the key_ops attribute of jwk to the usages attribute of key.
-            jwk.set_key_ops(key.usages());
+            jwk.set_key_ops(&key.usages());
 
             // Step 3.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());

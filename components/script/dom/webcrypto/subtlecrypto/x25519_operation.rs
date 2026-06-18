@@ -624,7 +624,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             }
 
             // Step 3.6. Set the key_ops attribute of jwk to the usages attribute of key.
-            jwk.set_key_ops(key.usages());
+            jwk.set_key_ops(&key.usages());
 
             // Step 3.7. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());
