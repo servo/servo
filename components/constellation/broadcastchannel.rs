@@ -4,9 +4,9 @@
 
 use std::collections::HashMap;
 
-use ipc_channel::ipc::IpcSender;
 use log::warn;
 use rustc_hash::FxHashMap;
+use servo_base::generic_channel::GenericCallback;
 use servo_base::id::BroadcastChannelRouterId;
 use servo_constellation_traits::BroadcastChannelMsg;
 use servo_url::ImmutableOrigin;
@@ -14,7 +14,7 @@ use servo_url::ImmutableOrigin;
 #[derive(Default)]
 pub(crate) struct BroadcastChannels {
     /// A map of broadcast routers to their Generic sender.
-    routers: FxHashMap<BroadcastChannelRouterId, IpcSender<BroadcastChannelMsg>>,
+    routers: FxHashMap<BroadcastChannelRouterId, GenericCallback<BroadcastChannelMsg>>,
 
     /// A map of origin to a map of channel name to a list of relevant routers.
     channels: HashMap<ImmutableOrigin, HashMap<String, Vec<BroadcastChannelRouterId>>>,
@@ -26,13 +26,9 @@ impl BroadcastChannels {
     pub fn new_broadcast_channel_router(
         &mut self,
         router_id: BroadcastChannelRouterId,
-        broadcast_ipc_sender: IpcSender<BroadcastChannelMsg>,
+        broadcast_callback: GenericCallback<BroadcastChannelMsg>,
     ) {
-        if self
-            .routers
-            .insert(router_id, broadcast_ipc_sender)
-            .is_some()
-        {
+        if self.routers.insert(router_id, broadcast_callback).is_some() {
             warn!("Multiple attempts to add BroadcastChannel router.");
         }
     }
