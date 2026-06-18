@@ -76,7 +76,9 @@ use crate::dom::html::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::types::{Console, DedicatedWorkerGlobalScope, WorkerGlobalScope};
+use crate::dom::types::{
+    Console, DedicatedWorkerGlobalScope, SharedWorkerGlobalScope, WorkerGlobalScope,
+};
 use crate::dom::window::Window;
 use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
@@ -838,6 +840,8 @@ impl FetchResponseListener for ModuleContext {
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = self.owner.root();
         if let Some(scope) = global.downcast::<DedicatedWorkerGlobalScope>() {
+            scope.report_csp_violations(violations);
+        } else if let Some(scope) = global.downcast::<SharedWorkerGlobalScope>() {
             scope.report_csp_violations(violations);
         } else {
             global.report_csp_violations(violations, None, None);

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
+use content_security_policy::Violation;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
@@ -618,6 +619,16 @@ impl SharedWorkerGlobalScope {
                 Box::new(SimpleWorkerErrorHandler::new(worker)),
                 Some(pipeline_id),
                 TaskSourceName::DOMManipulation,
+            ))
+            .expect("Sending to parent failed");
+    }
+
+    pub(crate) fn report_csp_violations(&self, violations: Vec<Violation>) {
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
+        self.parent_event_loop_sender
+            .send(CommonScriptMsg::ReportCspViolations(
+                pipeline_id,
+                violations,
             ))
             .expect("Sending to parent failed");
     }

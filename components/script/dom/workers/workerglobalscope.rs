@@ -248,6 +248,8 @@ impl FetchResponseListener for ScriptFetchContext {
 
         if let Some(worker_scope) = scope.downcast::<DedicatedWorkerGlobalScope>() {
             worker_scope.report_csp_violations(violations);
+        } else if let Some(worker_scope) = scope.downcast::<SharedWorkerGlobalScope>() {
+            worker_scope.report_csp_violations(violations);
         }
     }
 }
