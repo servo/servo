@@ -1,6 +1,14 @@
 # Local Runtime Progress
 
 
+## 2026-06-18 — Manual build smoke de-duplication
+
+- Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` so `push` and `pull_request` events still run the existing cheap `smoke` job for bootstrap, metadata, `servo-net`, and build-help checks only.
+- Manual `workflow_dispatch` runs now skip the separate `smoke` job and run only the selected manual Linux build job, so artifact, debug, and release build attempts no longer repeat a separate queue/bootstrap cycle before building.
+- Removed the manual Linux debug build's dependency on `smoke`; the build job keeps its own checkout, target-directory preparation, bootstrap, build, package, artifact upload, release upload, size diagnostics, symbol split, and Git safe-directory handling unchanged.
+- No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only workflow scheduling change.
+
+
 ## 2026-06-18 — Devcontainer ZIP timestamp packaging fix
 
 - The latest manual Linux debug build reached the packaging/artifact stage after the existing build and package work had already progressed.
