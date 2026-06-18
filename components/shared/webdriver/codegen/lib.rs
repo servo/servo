@@ -1,9 +1,10 @@
+mod ast;
 mod common;
 mod convert;
-mod ir;
 mod parse;
 mod patterns;
 mod syntax;
+mod transforms;
 mod util;
 
 use std::{fs, path::Path};

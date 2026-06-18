@@ -10,7 +10,7 @@ use nom::{
     sequence::{delimited, preceded, separated_pair, terminated},
 };
 
-use crate::ir::{Field, Name, Primitive, Rule, Type};
+use crate::ast::{Field, Name, Primitive, Rule, Type};
 
 /// Parse a [`Rule`].
 pub fn rule<'a>(s: &'a str) -> IResult<&'a str, Rule<'a>> {
@@ -152,7 +152,7 @@ fn ty_map_fields<'a>(s: &'a str) -> IResult<&'a str, Vec<Field<'a>>> {
 
 /// Parse a [`Field`].
 fn field<'a>(s: &'a str) -> IResult<&'a str, Field<'a>> {
-    alt((field_keyed, name.map(Field::Group), ty.map(Field::Inline))).parse(s)
+    alt((field_keyed, ty.map(Field::Inline))).parse(s)
 }
 
 /// Parse a [`Field::Keyed`].
@@ -161,6 +161,7 @@ fn field_keyed<'a>(s: &'a str) -> IResult<&'a str, Field<'a>> {
         .map(
             |(question_mark, _ws1, key, _ws2, _colon, _ws3, ty, _ws4)| Field::Keyed {
                 skip: question_mark.is_some(),
+                flatten: false,
                 key: key.into(),
                 ty,
             },
@@ -319,11 +320,12 @@ mod tests {
                 ty: Type::Map(vec![
                     Field::Keyed {
                         skip: false,
+                        flatten: false,
                         key: "id".into(),
                         ty: Type::Named("js-uint".into()),
                     },
-                    Field::Group("CommandData".into()),
-                    Field::Group("Extensible".into()),
+                    Field::Inline(Type::Named("CommandData".into())),
+                    Field::Inline(Type::Named("Extensible".into())),
                 ]),
             },
         ));
@@ -341,6 +343,7 @@ mod tests {
                 name: "network.SetCacheBehaviorParameters".into(),
                 ty: Type::Map(vec![Field::Keyed {
                     skip: false,
+                    flatten: false,
                     key: "cacheBehavior".into(),
                     ty: Type::Literals(vec!["default".into(), "bypass".into()]),
                 }]),
@@ -359,6 +362,7 @@ mod tests {
                 name: "log.BaseLogEntry".into(),
                 ty: Type::Map(vec![Field::Keyed {
                     skip: false,
+                    flatten: false,
                     key: "text".into(),
                     ty: Type::Optional(Box::new(Type::Named("text".into()))),
                 }]),
@@ -424,6 +428,7 @@ mod tests {
                 ty: Type::Map(vec![
                     Field::Keyed {
                         skip: false,
+                        flatten: false,
                         key: "request".into(),
                         ty: Type::Named("network.Request".into()),
                     },
@@ -456,6 +461,7 @@ mod tests {
                     Field::Inline(Type::Choices(vec![
                         Type::Map(vec![Field::Keyed {
                             skip: false,
+                            flatten: false,
                             key: "coordinates".into(),
                             ty: Type::Optional(Box::new(Type::Named(
                                 "emulation.GeolocationCoordinates".into(),
@@ -463,12 +469,14 @@ mod tests {
                         }]),
                         Type::Map(vec![Field::Keyed {
                             skip: false,
+                            flatten: false,
                             key: "error".into(),
                             ty: Type::Named("emulation.GeolocationPositionError".into()),
                         }]),
                     ])),
                     Field::Keyed {
                         skip: true,
+                        flatten: false,
                         key: "contexts".into(),
                         ty: Type::Array(Box::new(Type::Named(
                             "browsingContext.BrowsingContext".into(),
@@ -476,6 +484,7 @@ mod tests {
                     },
                     Field::Keyed {
                         skip: true,
+                        flatten: false,
                         key: "userContexts".into(),
                         ty: Type::Array(Box::new(Type::Named("browser.UserContext".into()))),
                     },
@@ -510,59 +519,70 @@ mod tests {
                 ty: Type::Map(vec![
                     Field::Keyed {
                         skip: false,
+                        flatten: false,
                         key: "sessionId".into(),
                         ty: Type::Named("text".into()),
                     },
                     Field::Keyed {
                         skip: false,
+                        flatten: false,
                         key: "capabilities".into(),
                         ty: Type::Map(vec![
                             Field::Keyed {
                                 skip: false,
+                                flatten: false,
                                 key: "acceptInsecureCerts".into(),
                                 ty: Type::Named("bool".into()),
                             },
                             Field::Keyed {
                                 skip: false,
+                                flatten: false,
                                 key: "browserName".into(),
                                 ty: Type::Named("text".into()),
                             },
                             Field::Keyed {
                                 skip: false,
+                                flatten: false,
                                 key: "browserVersion".into(),
                                 ty: Type::Named("text".into()),
                             },
                             Field::Keyed {
                                 skip: false,
+                                flatten: false,
                                 key: "platformName".into(),
                                 ty: Type::Named("text".into()),
                             },
                             Field::Keyed {
                                 skip: false,
+                                flatten: false,
                                 key: "setWindowRect".into(),
                                 ty: Type::Named("bool".into()),
                             },
                             Field::Keyed {
                                 skip: false,
+                                flatten: false,
                                 key: "userAgent".into(),
                                 ty: Type::Named("text".into()),
                             },
                             Field::Keyed {
                                 skip: true,
+                                flatten: false,
                                 key: "proxy".into(),
                                 ty: Type::Named("session.ProxyConfiguration".into()),
                             },
                             Field::Keyed {
                                 skip: true,
+                                flatten: false,
                                 key: "unhandledPromptBehavior".into(),
                                 ty: Type::Named("session.UserPromptHandler".into()),
                             },
                             Field::Keyed {
                                 skip: true,
+                                flatten: false,
                                 key: "webSocketUrl".into(),
                                 ty: Type::Named("text".into()),
                             },
-                            Field::Group("Extensible".into()),
+                            Field::Inline(Type::Named("Extensible".into())),
                         ]),
                     },
                 ]),
@@ -585,11 +605,13 @@ mod tests {
                 ty: Type::Map(vec![
                     Field::Keyed {
                         skip: false,
+                        flatten: false,
                         key: "type".into(),
                         ty: Type::Named("text".into()),
                     },
                     Field::Keyed {
                         skip: true,
+                        flatten: false,
                         key: "quality".into(),
                         ty: Type::Named(Name::Primitive(Primitive::Float)),
                     },
@@ -643,21 +665,25 @@ mod tests {
                 ty: Type::Map(vec![
                     Field::Keyed {
                         skip: true,
+                        flatten: false,
                         key: "bottom".into(),
                         ty: Type::Named(Name::Primitive(Primitive::Float)),
                     },
                     Field::Keyed {
                         skip: true,
+                        flatten: false,
                         key: "left".into(),
                         ty: Type::Named(Name::Primitive(Primitive::Float)),
                     },
                     Field::Keyed {
                         skip: true,
+                        flatten: false,
                         key: "right".into(),
                         ty: Type::Named(Name::Primitive(Primitive::Float)),
                     },
                     Field::Keyed {
                         skip: true,
+                        flatten: false,
                         key: "top".into(),
                         ty: Type::Named(Name::Primitive(Primitive::Float)),
                     },

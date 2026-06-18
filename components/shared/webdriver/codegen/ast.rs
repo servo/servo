@@ -1,9 +1,5 @@
-//! Our own intermediate representation of CDDL.
+//! A rust friendly representation of CDDL.
 //! This can only handle a subset of CDDL which is used in WebDriver BiDi spec.
-//!
-//! Some special cases:
-//!
-//! - `script.LocalValue`: should flatten `script.DataLocalValue` if only one.
 
 use std::borrow::Cow;
 
@@ -11,7 +7,7 @@ type CowStr<'a> = Cow<'a, str>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct File<'a> {
-    rules: Vec<Rule<'a>>,
+    pub(crate) rules: Vec<Rule<'a>>,
 }
 
 /// A rule definition in CDDL, with the syntax `Name = Type`.
@@ -265,14 +261,12 @@ pub enum Field<'a> {
     Keyed {
         // The question mark.
         skip: bool,
+        /// Whether to `#[serde(flatten)]`.
+        flatten: bool,
         key: CowStr<'a>,
         ty: Type<'a>,
     },
-    /// A field of embedded group or groups.
-    ///
-    /// # Examples
-    ///
-    /// Single group name
+    /// The field can be inline multiple and nested:
     ///
     /// ```text
     /// Command = {
@@ -281,9 +275,6 @@ pub enum Field<'a> {
     ///   Extensible, ; group
     /// }
     /// ```
-    Group(Name<'a>),
-    ///
-    /// In rare cases the field can be inline multiple and nested:
     ///
     /// # Examples
     ///
@@ -381,7 +372,6 @@ pub fn walk_ty<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, ty: &mut Type<'a>) 
 pub fn walk_field<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, field: &mut Field<'a>) {
     match field {
         Field::Keyed { ty, .. } => visitor.visit_ty(ty),
-        Field::Group(name) => visitor.visit_name(name),
         Field::Inline(inner) => visitor.visit_ty(inner),
     }
 }
