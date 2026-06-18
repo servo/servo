@@ -57,7 +57,7 @@ pub(crate) fn execute_delete_command(
         // remove node's previousSibling from its parent.
         if offset == 0 &&
             let Some(sibling) = node.GetPreviousSibling() &&
-            sibling.is_editable() &&
+            sibling.is_editable(cx.no_gc()) &&
             sibling.is_invisible(cx.no_gc())
         {
             sibling.remove_self(cx);
@@ -71,7 +71,7 @@ pub(crate) fn execute_delete_command(
                 .nth(offset as usize - 1)
                 .map(|node| node.as_rooted());
             if let Some(child) = child &&
-                child.is_editable() &&
+                child.is_editable(cx.no_gc()) &&
                 child.is_invisible(cx.no_gc())
             {
                 child.remove_self(cx);
@@ -94,7 +94,7 @@ pub(crate) fn execute_delete_command(
             if let Some(child) = child {
                 // Step 4.4. Otherwise, if node has a child with index offset − 1 and that child is an editable a,
                 // remove that child from node, preserving its descendants. Then return true.
-                if child.is_editable() && child.is::<HTMLAnchorElement>() {
+                if child.is_editable(cx.no_gc()) && child.is::<HTMLAnchorElement>() {
                     child.remove_preserving_its_descendants(cx);
                     return true;
                 }
@@ -217,7 +217,7 @@ pub(crate) fn execute_delete_command(
             .nth(start_offset as usize - 1)
             .map(|node| node.as_rooted());
         if let Some(child) = child &&
-            child.is_editable() &&
+            child.is_editable(cx.no_gc()) &&
             child.is_invisible(cx.no_gc())
         {
             child.remove_self(cx);
@@ -312,7 +312,7 @@ pub(crate) fn execute_delete_command(
         };
         // Step 16.1. If start node's child with index start offset minus one
         // is editable and invisible, remove it from start node, then subtract one from start offset.
-        if child.is_editable() && child.is_invisible(cx.no_gc()) {
+        if child.is_editable(cx.no_gc()) && child.is_invisible(cx.no_gc()) {
             child.remove_self(cx);
             start_offset -= 1;
         } else {

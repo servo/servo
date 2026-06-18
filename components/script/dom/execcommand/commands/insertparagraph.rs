@@ -75,14 +75,14 @@ pub(crate) fn execute_insert_paragraph_command(
     // set container to its parent.
     while !container.is_single_line_container() &&
         let Some(parent) = container.GetParentNode() &&
-        parent.is_editable() &&
+        parent.is_editable(cx.no_gc()) &&
         parent.same_editing_host(&node)
     {
         container = parent;
     }
     // Step 10. If container is an editable single-line container in the same editing host as node,
     // and its local name is "p" or "div":
-    if container.is_editable() &&
+    if container.is_editable(cx.no_gc()) &&
         container.is_single_line_container() &&
         container.same_editing_host(&node) &&
         node_matches_local_name!(container, local_name!("p") | local_name!("div"))
@@ -95,7 +95,7 @@ pub(crate) fn execute_insert_paragraph_command(
             outer_container,
             local_name!("dd") | local_name!("dt") | local_name!("li")
         ) && let Some(parent) = outer_container.GetParentNode() &&
-            parent.is_editable()
+            parent.is_editable(cx.no_gc())
         {
             outer_container = parent;
         }
@@ -108,7 +108,7 @@ pub(crate) fn execute_insert_paragraph_command(
         }
     }
     // Step 11. If container is not editable or not in the same editing host as node or is not a single-line container:
-    if !container.is_editable() ||
+    if !container.is_editable(cx.no_gc()) ||
         !container.same_editing_host(&node) ||
         !container.is_single_line_container()
     {

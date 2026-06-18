@@ -51,7 +51,7 @@ pub(crate) fn execute_forward_delete_command(
         //           remove node's nextSibling from its parent.
         if offset == node.len() &&
             let Some(sibling) = node.GetNextSibling() &&
-            sibling.is_editable() &&
+            sibling.is_editable(cx.no_gc()) &&
             sibling.is_invisible(cx.no_gc())
         {
             sibling.remove_self(cx);
@@ -61,7 +61,7 @@ pub(crate) fn execute_forward_delete_command(
         // Step 4.2. Otherwise, if node has a child with index offset and that child is an editable invisible node,
         //           remove that child from node.
         if let Some(child) = node.children().nth(offset as usize) &&
-            child.is_editable() &&
+            child.is_editable(cx.no_gc()) &&
             child.is_invisible(cx.no_gc())
         {
             child.remove_self(cx);
@@ -191,7 +191,7 @@ pub(crate) fn execute_forward_delete_command(
 
         // Step 10.2. Otherwise, if end node has an editable invisible child with index end offset, remove it from end node.
         if let Some(child) = end_node.children().nth(end_offset as usize) &&
-            child.is_editable() &&
+            child.is_editable(cx.no_gc()) &&
             child.is_invisible(cx.no_gc())
         {
             child.remove_self(cx);
@@ -264,7 +264,7 @@ pub(crate) fn execute_forward_delete_command(
     // Step 14. While end node has a child with index end offset:
     while let Some(child) = end_node.children().nth(end_offset as usize) {
         // Step 14.1. If end node's child with index end offset is editable and invisible, remove it from end node.
-        if child.is_editable() && child.is_invisible(cx.no_gc()) {
+        if child.is_editable(cx.no_gc()) && child.is_invisible(cx.no_gc()) {
             child.remove_self(cx);
             continue;
         }
