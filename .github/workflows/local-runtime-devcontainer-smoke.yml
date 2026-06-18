@@ -291,22 +291,12 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          TAG=latest-local-runtime-devcontainer-linux-debug
-
-          cd "$GITHUB_WORKSPACE"
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Latest local runtime devcontainer Linux debug build" \
-              --notes "Automatically updated by GitHub Actions."
-
-          gh release upload "$TAG" \
+          ci/local-runtime/upload-release-assets.sh \
+            latest-local-runtime-devcontainer-linux-debug \
+            "Latest local runtime devcontainer Linux debug build" \
+            "Automatically updated by GitHub Actions." \
             release/servo-linux-debug-runtime-stripped.zip \
-            release/servo-linux-debug-symbols.zip \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber
+            release/servo-linux-debug-symbols.zip
 
       - name: Show build download link
         run: |
@@ -572,22 +562,12 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          TAG=latest-local-runtime-debian12-linux-debug
-
-          cd "$GITHUB_WORKSPACE"
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Latest local runtime Debian 12 Linux debug build" \
-              --notes "Automatically updated by GitHub Actions."
-
-          gh release upload "$TAG" \
+          ci/local-runtime/upload-release-assets.sh \
+            latest-local-runtime-debian12-linux-debug \
+            "Latest local runtime Debian 12 Linux debug build" \
+            "Automatically updated by GitHub Actions." \
             release/servo-linux-debian12-debug-runtime-stripped.zip \
-            release/servo-linux-debian12-debug-symbols.zip \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber
+            release/servo-linux-debian12-debug-symbols.zip
 
       - name: Show build download link
         run: |

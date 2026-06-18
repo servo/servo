@@ -143,3 +143,12 @@
 - The tested `servoshell` emitted `[local-runtime resource-request]` entries for Document, Image, and Script fetches.
 - This confirms the first instrumented Servo runtime seam is alive.
 - The old Debian plain-base preflight script has been retired from live CI and preserved as recovery documentation in `docs/local-runtime/debian12-plain-base-preflight-recovery.md`.
+- Next agenda: build a “reusable remote test bench” that consumes an already-built runtime arena and runs experiments without rebuilding Servo.
+
+## 2026-06-18 — Local-runtime CI release housekeeping
+
+- Audited local-runtime workflow/script references for the retired `ci/local-runtime/debian12-preflight.sh` path; no active workflow or script references remain, and the live script is absent.
+- Preserved the old plain-`debian:12` preflight knowledge as recovery-only documentation in `docs/local-runtime/debian12-plain-base-preflight-recovery.md` for use if the Debian 12 build-room image has to be reconstructed.
+- Consolidated local-runtime GitHub Release upload ceremony into `ci/local-runtime/upload-release-assets.sh`, which enters `GITHUB_WORKSPACE`, marks it as a safe Git directory, and passes `--repo "${GITHUB_REPOSITORY}"` to `gh release view`, `gh release create`, and `gh release upload`.
+- Kept artifact names, packaging behavior, Servo runtime behavior, and local-runtime resource logging behavior unchanged.
+- Next agenda remains the reusable remote test bench that consumes an already-built runtime arena and runs experiments without rebuilding Servo.
