@@ -291,13 +291,9 @@ previewers.Array = [ function ArrayPreviewer(obj, depth) {
 
     preview.items = [];
     for (let i = 0; i < arrayLength; i++) {
-        try {
-            const desc = obj.getOwnPropertyDescriptor(i);
-            if (desc && desc.value !== undefined) {
-                preview.items.push(createValueGrip(desc.value, depth + 1));
-            }
-        } catch (e) {
-            // For now skip properties that throw on access
+        const desc = obj.getOwnPropertyDescriptor(i);
+        if (desc && desc.value !== undefined) {
+            preview.items.push(createValueGrip(desc.value, depth + 1));
         }
     }
 
@@ -332,12 +328,8 @@ previewers.Map = [ function MapPreviewer(object, depth) {
     }
 
     preview.entries = [];
-    try {
-        for (const entry of enumMapEntries(object, depth)) {
-            preview.entries.push(entry);
-        }
-    } catch (e) {
-        return undefined;
+    for (const entry of enumMapEntries(object, depth)) {
+        preview.entries.push(entry);
     }
 
     return preview;
@@ -364,8 +356,12 @@ function getPreview(obj, depth) {
     // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object.js#295>
     const typePreviewers = previewers[className] || previewers.Object;
     for (const previewer of typePreviewers) {
-        const result = previewer(obj, depth);
-        if (result) return result;
+        try {
+            const result = previewer(obj, depth);
+            if (result) return result;
+        } catch (e) {
+            console.error(`[debugger] Couldn't populate ${className} preview: ${e}`);
+        }
     }
 
     return undefined;
