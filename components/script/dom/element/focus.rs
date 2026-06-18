@@ -93,12 +93,14 @@ impl Element {
             // >  - Navigable containers
             //
             // Note: the `hidden` attribute is checked above for all elements.
+            // Note: Other browsers allow dialog elements to be focused.
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement |
                 HTMLElementTypeId::HTMLButtonElement |
                 HTMLElementTypeId::HTMLSelectElement |
                 HTMLElementTypeId::HTMLTextAreaElement |
-                HTMLElementTypeId::HTMLIFrameElement,
+                HTMLElementTypeId::HTMLIFrameElement |
+                HTMLElementTypeId::HTMLDialogElement,
             )) => true,
             _ => {
                 // >  - summary elements that are the first summary element child of a details element
