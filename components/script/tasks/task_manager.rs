@@ -165,4 +165,6 @@ impl TaskManager {
     task_source_functions!(self, storage_task_source, Storage);
     #[cfg(feature = "webgpu")]
     task_source_functions!(self, webgpu_task_source, WebGPU);
+    #[cfg(feature = "webnn")]
+    task_source_functions!(self, ml_task_source, ML);
 }

@@ -7,9 +7,13 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
 use crate::dom::bindings::codegen::Bindings::WebNNBinding::{MLContextOptions, MLMethods};
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -39,21 +43,41 @@ impl MLMethods<crate::DomTypeHolder> for ML {
     fn CreateContext(&self, cx: &mut CurrentRealm, options: &MLContextOptions) -> Rc<Promise> {
         // Step 1. Let global be this's relevant global object.
         // Step 2. Let realm be this's relevant realm.
-        // TODO Step 3. If global's associated Document is not allowed to
-        //         use the webnn feature, then return a new promise in realm
-        //         rejected with a "SecurityError" DOMException.
+        let global = self.global();
+        let window = global.as_window();
+        let document = window.Document();
+        // Step 3. If global's associated Document is not allowed to
+        // use the webnn feature, then return a new promise in realm rejected
+        // with a "SecurityError" DOMException.
+        if !document.allowed_to_use_feature(PermissionName::WebNN) {
+            let promise = Promise::new(cx, &global);
+            promise.reject_error(
+                cx,
+                Error::Security(Some("WebNN permission not allowed".into())),
+            );
+            return promise;
+        }
         // Step 4. Let promise be a new promise in realm.
         let promise = Promise::new_in_realm(cx);
 
         // Step 5. Run the following steps in parallel.
-        // Step 5.1. Let context be the result of creating a context given
-        //         realm and options. If that returns failure, then queue an
-        //         ML task with global to reject promise with a
-        //         "NotSupportedError" DOMException and abort these steps.
-        let context = MLContext::new(&self.global(), cx, options);
-        // TODO: Step 5.2. Queue an ML task with global to resolve promise with
-        //         context.
-        promise.resolve_native(cx, &context);
+        // Step 5.1. Let context be the result of creating a context given realm
+        // and options. If that returns failure, then queue an ML task with
+        // global to reject promise with a "NotSupportedError" DOMException and
+        // abort these steps.
+        // Note: "Creating a context" cannot fail in this implementation, so the
+        // failure branch is unreachable.
+        let context = MLContext::new(&global, cx, options);
+        let trusted_context = Trusted::new(&*context);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let task_source = self.global().task_manager().ml_task_source().to_sendable();
+        // Step 5.2. Queue an ML task with global to resolve promise with
+        // context.
+        task_source.queue(task!(resolve_create_context: move |cx| {
+            let context = trusted_context.root();
+            let promise = trusted_promise.root();
+            promise.resolve_native(cx, &context);
+        }));
         // Step 6. Return promise.
         promise
     }
