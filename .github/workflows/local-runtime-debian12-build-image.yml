@@ -1,0 +1,86 @@
+name: Local Runtime Debian 12 Build Image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-and-push:
+    name: Build and push Debian 12 build-room image
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set image tags
+        run: |
+          set -Eeuo pipefail
+          owner_lc="$(printf '%s' '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          image_name="ghcr.io/${owner_lc}/servo-debian12-build"
+          {
+            echo "IMAGE_NAME=${image_name}"
+            echo "BOOKWORM_TAG=${image_name}:bookworm"
+            echo "LATEST_TAG=${image_name}:latest"
+          } >> "$GITHUB_ENV"
+
+      - name: Build image
+        run: |
+          set -Eeuo pipefail
+          docker build \
+            --file ci/local-runtime/debian12-build-image/Dockerfile \
+            --tag "$BOOKWORM_TAG" \
+            --tag "$LATEST_TAG" \
+            ci/local-runtime/debian12-build-image
+
+      - name: Verify build room tools
+        run: |
+          set -Eeuo pipefail
+          docker run --rm "$BOOKWORM_TAG" bash -lc '
+            set -Eeuo pipefail
+            cat /etc/os-release
+            ldd --version | sed -n "1,2p"
+            uv --version
+            python3 --version
+            git --version
+            clang --version
+            clang++ --version
+            pkg-config --version
+            cmake --version
+            ninja --version
+            readelf --version | sed -n "1p"
+            objcopy --version | sed -n "1p"
+            strip --version | sed -n "1p"
+          '
+
+      - name: Log in to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Push image
+        run: |
+          set -Eeuo pipefail
+          docker push "$BOOKWORM_TAG"
+          docker push "$LATEST_TAG"
+
+      - name: Summarize pushed image
+        run: |
+          set -Eeuo pipefail
+          {
+            echo '### Local Runtime Debian 12 Build Image'
+            echo
+            echo 'Pushed Debian 12/bookworm Servo build-room image tags:'
+            echo
+            echo "- \`$BOOKWORM_TAG\`"
+            echo "- \`$LATEST_TAG\`"
+            echo
+            echo 'The image contains reusable build prerequisites only; it does not contain Servo source, compiled output, artifact archives, debug symbols, or release-upload logic.'
+          } >> "$GITHUB_STEP_SUMMARY"
