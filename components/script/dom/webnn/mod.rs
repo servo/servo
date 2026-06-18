@@ -4,3 +4,7 @@
 
 pub(crate) mod ml;
 pub(crate) mod mlcontext;
+pub(crate) mod mlgraph;
+pub(crate) mod mlgraphbuilder;
+pub(crate) mod mloperand;
+pub(crate) mod mltensor;
