@@ -190,18 +190,20 @@ jobs:
           find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$AFTER_INVENTORY"
 
           python3 - <<'PYZIP'
+          import os
           from pathlib import Path
           from zipfile import ZIP_DEFLATED, ZipFile
 
           archives = [
-              (Path('release/servo-linux-debug-runtime-stripped.zip'), Path(__import__('os').environ['RUNTIME_DIR'])),
-              (Path('release/servo-linux-debug-symbols.zip'), Path(__import__('os').environ['SYMBOL_DIR'])),
+              (Path('release/servo-linux-debug-runtime-stripped.zip'), Path(os.environ['RUNTIME_DIR'])),
+              (Path('release/servo-linux-debug-symbols.zip'), Path(os.environ['SYMBOL_DIR'])),
           ]
           for zip_path, source_dir in archives:
-              with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED, compresslevel=9) as zf:
+              with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED, compresslevel=9, strict_timestamps=False) as zf:
                   for path in sorted(source_dir.rglob('*')):
                       if path.is_file():
-                          zf.write(path, path.relative_to(source_dir))
+                          archive_name = path.relative_to(source_dir).as_posix()
+                          zf.write(path, archive_name)
           PYZIP
 
           RUNTIME_ZIP_SIZE="$(du -h release/servo-linux-debug-runtime-stripped.zip | cut -f1)"
