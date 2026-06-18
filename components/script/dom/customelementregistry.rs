@@ -22,7 +22,9 @@ use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use script_bindings::reflector::{
+    DomObject, Reflector, reflect_dom_object, reflect_dom_object_with_proto_and_cx,
+};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
 
@@ -283,6 +285,23 @@ fn get_callback(
 }
 
 impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistry {
+    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry>
+    fn Constructor(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<CustomElementRegistry> {
+        let registry = reflect_dom_object_with_proto_and_cx(
+            Box::new(CustomElementRegistry::new_inherited(window)),
+            window,
+            proto,
+            cx,
+        );
+        // Step 1: Set this's is scoped to true.
+        registry.is_scoped.set(true);
+        registry
+    }
+
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     fn Define(
