@@ -68,7 +68,7 @@ fn html_constructor(
     let document = window.Document();
 
     // Step 1. Let registry be current global object's custom element registry.
-    let registry = window.CustomElements();
+    let registry = window.CustomElements(cx);
 
     // Step 2 https://html.spec.whatwg.org/multipage/#htmlconstructor
     // The custom element definition cannot use an element interface as its constructor

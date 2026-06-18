@@ -1432,9 +1432,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-customelements>
-    fn CustomElements(&self) -> DomRoot<CustomElementRegistry> {
+    fn CustomElements(&self, cx: &mut JSContext) -> DomRoot<CustomElementRegistry> {
         self.custom_element_registry
-            .or_init(|| CustomElementRegistry::new(self, CanGc::deprecated_note()))
+            .or_init(|| CustomElementRegistry::new(cx, self))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
