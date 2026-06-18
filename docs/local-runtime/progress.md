@@ -152,3 +152,13 @@
 - Consolidated local-runtime GitHub Release upload ceremony into `ci/local-runtime/upload-release-assets.sh`, which enters `GITHUB_WORKSPACE`, marks it as a safe Git directory, and passes `--repo "${GITHUB_REPOSITORY}"` to `gh release view`, `gh release create`, and `gh release upload`.
 - Kept artifact names, packaging behavior, Servo runtime behavior, and local-runtime resource logging behavior unchanged.
 - Next agenda remains the reusable remote test bench that consumes an already-built runtime arena and runs experiments without rebuilding Servo.
+
+## 2026-06-18 — Manual checked-release Linux probe artifact workflow
+
+- Inherited Main has been made manual-only to avoid accidental full upstream matrix runs, and local-runtime probe artifacts should not invoke that inherited Main workflow.
+- Added `.github/workflows/local-runtime-linux-probe-artifact.yml` as a manual-only workflow that calls the existing reusable Linux workflow directly with the `checked-release` profile and with WPT, Bencher, coverage, C API, libservo, unit-test, and devtools-test jobs disabled.
+- The local-runtime probe artifact path now uses the existing Linux checked-release package path directly: `./mach build --use-crown --locked --profile checked-release`, `./mach package --profile checked-release`, and the uploaded `checked-release-binary-linux` artifact from `target/checked-release/servo-tech-demo.tar.gz`, without invoking Main.
+- The publish job downloads `checked-release-binary-linux`, republishes it as `servo-linux-local-runtime-probe.tar.gz`, and uploads it through `ci/local-runtime/upload-release-assets.sh` to the stable `latest-local-runtime-probe-linux` Release for explicit Codex/runtime arena probe tasks.
+- Debug Debian symbol-split artifacts remain manual rescue/debug/ABI artifacts, not the default Codex arena runtime.
+- This is a CI/workflow-only change: no Servo runtime code, network/resource loader code, or `components/net/resource_thread.rs` was touched; no local package resource paths were loaded, logged, or denied.
+- Next agenda remains Codex-friendly runtime probing using the probe artifact on explicit request.

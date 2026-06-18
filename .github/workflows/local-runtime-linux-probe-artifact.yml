@@ -1,0 +1,63 @@
+name: Local Runtime Linux Probe Artifact
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  linux-probe-build:
+    name: Linux checked-release probe build
+    uses: ./.github/workflows/linux.yml
+    with:
+      profile: checked-release
+      build-args: ""
+      wpt: false
+      number-of-wpt-chunks: 0
+      unit-tests: false
+      devtools-tests: false
+      build-libservo: false
+      bencher: false
+      coverage: false
+      capi: false
+    secrets: inherit
+
+  publish-probe-release:
+    name: Publish Linux probe release
+    needs: linux-probe-build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout helper scripts
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Download checked-release Linux package
+        uses: actions/download-artifact@v8
+        with:
+          name: checked-release-binary-linux
+          path: release-input
+
+      - name: Rename probe runtime package
+        shell: bash
+        run: |
+          set -o errexit
+          set -o nounset
+          set -o pipefail
+
+          mkdir -p release
+          cp release-input/servo-tech-demo.tar.gz release/servo-linux-local-runtime-probe.tar.gz
+          test -s release/servo-linux-local-runtime-probe.tar.gz
+          ls -lh release/servo-linux-local-runtime-probe.tar.gz
+
+      - name: Upload probe runtime to stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ci/local-runtime/upload-release-assets.sh \
+            latest-local-runtime-probe-linux \
+            "Latest local-runtime Linux probe build" \
+            "Checked-release Linux runtime package for explicit local-runtime/Codex arena probes. Does not include debug symbols." \
+            release/servo-linux-local-runtime-probe.tar.gz
