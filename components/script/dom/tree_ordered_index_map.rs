@@ -209,12 +209,8 @@ impl TreeOrderedIndexMap {
         }
 
         Self::resolve_one(no_gc, scope, key, occupied_entry.get_mut(), self.index_type);
-        if let Some(element) = occupied_entry.get().element.get() {
-            return Some(element);
-        }
 
-        occupied_entry.remove();
-        None
+        occupied_entry.get().element.get()
     }
 
     /// Get all of the entries in the map, in DOM order that share a particular `key`. If the
@@ -231,13 +227,10 @@ impl TreeOrderedIndexMap {
 
         {
             let mut map = self.map.borrow_mut();
-            if let Entry::Occupied(mut occupied_entry) = map.entry(key.clone()) {
-                if occupied_entry.get().needs_resolution() {
-                    Self::resolve_one(no_gc, scope, key, occupied_entry.get_mut(), self.index_type);
-                }
-                if occupied_entry.get().elements.is_empty() {
-                    occupied_entry.remove();
-                }
+            if let Entry::Occupied(mut occupied_entry) = map.entry(key.clone()) &&
+                occupied_entry.get().needs_resolution()
+            {
+                Self::resolve_one(no_gc, scope, key, occupied_entry.get_mut(), self.index_type);
             }
         }
         Ref::map(self.map.borrow(), |map| {
@@ -303,8 +296,6 @@ impl TreeOrderedIndexMap {
                 _ => {},
             }
         }
-
-        entry.count = entry.elements.len();
     }
 
     /// Resolve all entries in the map, meaning the next access will not need any resolution.
@@ -345,22 +336,6 @@ impl TreeOrderedIndexMap {
                     return;
                 }
             }
-        }
-
-        // If no elements were found for any of the entries needing resolution,
-        // remove them from the map mirroring what `resolve_one` does. For all
-        // other entries, update their final `count`.
-        let mut keys_needing_removal = Vec::new();
-        for (key, entry) in entries_needing_rebuild {
-            if entry.elements.is_empty() {
-                keys_needing_removal.push(key.clone());
-            } else {
-                entry.count = entry.elements.len();
-            }
-        }
-
-        for key in keys_needing_removal {
-            map.remove(&key);
         }
     }
 }
