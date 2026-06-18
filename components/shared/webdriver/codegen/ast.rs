@@ -1,13 +1,14 @@
 //! A rust friendly representation of CDDL.
 //! This can only handle a subset of CDDL which is used in WebDriver BiDi spec.
 
-use std::borrow::Cow;
+// TODO: literals should not be separate varaint.
+// they should be choices of literal instead.
 
-type CowStr<'a> = Cow<'a, str>;
+use std::{borrow::Cow, collections::HashMap};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct File<'a> {
-    pub(crate) rules: Vec<Rule<'a>>,
+    pub(crate) rules: HashMap<Name<'a>, Rule<'a>>,
 }
 
 /// A rule definition in CDDL, with the syntax `Name = Type`.
@@ -21,7 +22,7 @@ pub struct Rule<'a> {
 }
 
 /// A parsed representation of a name, categorized by its source.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Name<'a> {
     /// A primitive type name.
     ///
@@ -33,22 +34,22 @@ pub enum Name<'a> {
     /// root module of a file. Examples include `Command` and `CommandData`.
     ///
     /// This field preserves the original case.
-    Global(CowStr<'a>),
+    Global(Cow<'a, str>),
     /// A qualified name prefixed by its module name.
     ///
     /// Example include `session.End` and `input.Origin`.
     Prefixed {
         /// The full, original name str.
-        raw: CowStr<'a>,
+        raw: Cow<'a, str>,
         /// The module prefix.
-        prefix: CowStr<'a>,
+        prefix: Cow<'a, str>,
         /// The stem name without prefix.
-        name: CowStr<'a>,
+        name: Cow<'a, str>,
     },
 }
 
 /// Primitive types defined in CDDL.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Primitive {
     /// The `any` type, mapped to [`serde_json::Value`].
     Any,
@@ -188,7 +189,7 @@ pub enum Type<'a> {
     /// `Literals` is actually a special case of `Choices`,
     /// but we want to handle it separately as they can be
     /// field for enum.
-    Literals(Vec<CowStr<'a>>),
+    Literals(Vec<Cow<'a, str>>),
     /// A choice with a `null` variant. e.g.
     ///
     /// ```text
@@ -230,7 +231,7 @@ pub enum Type<'a> {
     ///   browser.SetDownloadBehaviorResult
     /// )
     /// ```
-    Choices(Vec<Type<'a>>),
+    Choices(Vec<Choice<'a>>),
     /// A mapping defined by the `=>` operator.
     ///
     /// This typically mapped to Rust [`HashMap`].
@@ -241,6 +242,8 @@ pub enum Type<'a> {
     /// Extensible = (*text => any)
     /// ```
     Arrow(Box<Type<'a>>, Box<Type<'a>>),
+    /// This is used in AST transform.
+    Box(Box<Type<'a>>),
 }
 
 /// Represent a map's field in CDDL definition.
@@ -259,11 +262,8 @@ pub enum Field<'a> {
     /// }
     /// ```
     Keyed {
-        // The question mark.
-        skip: bool,
-        /// Whether to `#[serde(flatten)]`.
-        flatten: bool,
-        key: CowStr<'a>,
+        attrs: Vec<Attr<'a>>,
+        key: Cow<'a, str>,
         ty: Type<'a>,
     },
     /// The field can be inline multiple and nested:
@@ -319,8 +319,30 @@ pub enum Field<'a> {
     Inline(Type<'a>),
 }
 
+/// A single choice in the choices.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Choice<'a> {
+    pub(crate) attrs: Vec<Attr<'a>>,
+    pub(crate) ty: Type<'a>,
+}
+
+/// Attributes attached to field or variant.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Attr<'a> {
+    /// `#[serde(skip_serializing_if = "Option::is_none")]`
+    Skip,
+    /// `#[serde(flatten)]`
+    Flatten,
+    /// `#[serde(untagged)]`
+    Untagged,
+    /// `#[serde(tag = "{0}")]`
+    Tag(Cow<'a, str>),
+    /// `#[serde(rename = "{0}")]`
+    Reanme(Cow<'a, str>),
+}
+
 /// The trait to visit [`File`].
-pub trait Visitor<'a> {
+pub trait VisitorMut<'a> {
     fn visit_file(&mut self, file: &mut File<'a>) {
         walk_file(self, file);
     }
@@ -334,26 +356,34 @@ pub trait Visitor<'a> {
     fn visit_field(&mut self, field: &mut Field<'a>) {
         walk_field(self, field);
     }
+    fn visit_choice(&mut self, choice: &mut Choice<'a>) {
+        walk_choice(self, choice);
+    }
 }
 
-pub fn walk_file<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, file: &mut File<'a>) {
-    for rule in &mut file.rules {
+pub fn walk_file<'a, V: VisitorMut<'a> + ?Sized>(visitor: &mut V, file: &mut File<'a>) {
+    for rule in file.rules.values_mut() {
         visitor.visit_rule(rule);
     }
 }
 
-pub fn walk_rule<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, rule: &mut Rule<'a>) {
+pub fn walk_rule<'a, V: VisitorMut<'a> + ?Sized>(visitor: &mut V, rule: &mut Rule<'a>) {
     visitor.visit_name(&mut rule.name);
     visitor.visit_ty(&mut rule.ty);
 }
 
-pub fn walk_ty<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, ty: &mut Type<'a>) {
+pub fn walk_ty<'a, V: VisitorMut<'a> + ?Sized>(visitor: &mut V, ty: &mut Type<'a>) {
     match ty {
         Type::Named(name) => visitor.visit_name(name),
         Type::Array(inner) | Type::Optional(inner) => visitor.visit_ty(inner),
-        Type::Tuple(tys) | Type::Choices(tys) => {
+        Type::Tuple(tys) => {
             for ty in tys {
                 visitor.visit_ty(ty);
+            }
+        },
+        Type::Choices(choices) => {
+            for choice in choices {
+                visitor.visit_choice(choice);
             }
         },
         Type::Map(fields) => {
@@ -366,12 +396,17 @@ pub fn walk_ty<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, ty: &mut Type<'a>) 
             visitor.visit_ty(value);
         },
         Type::Literals(_) => {},
+        Type::Box(_) => {},
     }
 }
 
-pub fn walk_field<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, field: &mut Field<'a>) {
+pub fn walk_field<'a, V: VisitorMut<'a> + ?Sized>(visitor: &mut V, field: &mut Field<'a>) {
     match field {
         Field::Keyed { ty, .. } => visitor.visit_ty(ty),
         Field::Inline(inner) => visitor.visit_ty(inner),
     }
+}
+
+pub fn walk_choice<'a, V: VisitorMut<'a> + ?Sized>(visitor: &mut V, choice: &mut Choice<'a>) {
+    visitor.visit_ty(&mut choice.ty)
 }

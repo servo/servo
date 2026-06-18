@@ -1,26 +1,33 @@
 use std::borrow::Cow;
 
 use crate::{
-    ast::{Field, File, Name, Rule, Type, Visitor, walk_field, walk_rule, walk_ty},
+    ast::{Attr, Field, File, Name, Rule, Type, VisitorMut, walk_field, walk_rule, walk_ty},
     util::to_pascal_case,
 };
 
-const FLATTEN_RECURSION_LIMIT: usize = 255;
-
-pub fn flatten_recursively(file: &mut File) {
+/// Flatten all inline types in the CDDL file.
+pub fn flatten_inline_tys(file: &mut File) {
     for _ in 0..FLATTEN_RECURSION_LIMIT {
         let mut visitor = FlattenVisitor::default();
         visitor.visit_file(file);
         if visitor.new_rules.is_empty() {
             return;
         }
-        file.rules.extend(visitor.new_rules);
+        file.rules.extend(
+            visitor
+                .new_rules
+                .drain(..)
+                .map(|rule| (rule.name.clone(), rule)),
+        );
     }
     panic!("flatten recursion limit reached")
 }
+
+const FLATTEN_RECURSION_LIMIT: usize = 255;
+
 /// This visitor flattens all nested type into rules.
 ///
-/// The overall naming rules (for inline only):
+/// The overall naming rules for inline maps or choices:
 ///
 /// - `Array(_ty)` => `${Parent}Item`
 /// - `Tuple([_ty1, _ty2])` => `${Parent}0`, `${Parent}1`
@@ -67,7 +74,7 @@ impl<'a> FlattenVisitor<'a> {
     }
 }
 
-impl<'a> Visitor<'a> for FlattenVisitor<'a> {
+impl<'a> VisitorMut<'a> for FlattenVisitor<'a> {
     fn visit_rule(&mut self, rule: &mut Rule<'a>) {
         self.rule_name = Some(rule.name.clone());
         walk_rule(self, rule);
@@ -93,10 +100,9 @@ impl<'a> Visitor<'a> for FlattenVisitor<'a> {
                 // we need to turn it into ordinary field.
                 if let Field::Inline(Type::Named(name)) = field {
                     *field = Field::Keyed {
-                        skip: false,
-                        flatten: true,
                         key: key,
                         ty: Type::Named(name.clone()),
+                        attrs: vec![Attr::Flatten],
                     };
                 }
                 self.path_stack.pop();
@@ -139,7 +145,6 @@ impl<'a> Visitor<'a> for FlattenVisitor<'a> {
                             ty: ty.clone(),
                         });
                         // replace current ty node with named
-                        // TODO: here inline named is not allowed, should change to field
                         *ty = Type::Named(derived_name);
                     },
                     None => walk_ty(self, ty),
@@ -173,7 +178,15 @@ fn derive_key_name(ty: &Type) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use crate::ast::Choice;
+
     use super::*;
+
+    fn hashmap_rule<'a>(rules: impl IntoIterator<Item = Rule<'a>>) -> HashMap<Name<'a>, Rule<'a>> {
+        HashMap::from_iter(rules.into_iter().map(|rule| (rule.name.clone(), rule)))
+    }
 
     #[test]
     fn test_flatten_recursively() {
@@ -185,46 +198,64 @@ mod tests {
         // }
         // ```
         let mut input = File {
-            rules: vec![Rule {
+            rules: hashmap_rule([Rule {
                 name: "Foo".into(),
                 ty: Type::Map(vec![Field::Keyed {
-                    skip: false,
-                    flatten: false,
                     key: "bar".into(),
                     ty: Type::Map(vec![Field::Inline(Type::Choices(vec![
-                        Type::Named("Blah".into()),
-                        Type::Named("Bob".into()),
+                        Choice {
+                            ty: Type::Named("Blah".into()),
+                            attrs: vec![],
+                        },
+                        Choice {
+                            ty: Type::Named("Bob".into()),
+                            attrs: vec![],
+                        },
                     ]))]),
+                    attrs: vec![],
                 }]),
-            }],
+            }]),
         };
-        flatten_recursively(&mut input);
+        flatten_inline_tys(&mut input);
+        // Should be transformed to
+        // ```text
+        // Foo = { bar: FooBar }
+        // FooBar = { inline: FooBarInline } (flatten)
+        // FooBarInline = Blah // Bob
+        // ```
         assert_eq!(
             input.rules,
-            vec![
+            hashmap_rule([
                 Rule {
                     name: "Foo".into(),
                     ty: Type::Map(vec![Field::Keyed {
-                        skip: false,
-                        flatten: false,
                         key: "bar".into(),
-                        ty: Type::Named("FooBar".into())
+                        ty: Type::Named("FooBar".into()),
+                        attrs: vec![],
                     }])
                 },
                 Rule {
                     name: "FooBar".into(),
                     ty: Type::Map(vec![Field::Keyed {
-                        skip: false,
-                        flatten: true,
                         key: "inline".into(),
-                        ty: Type::Named("FooBarInline".into())
+                        ty: Type::Named("FooBarInline".into()),
+                        attrs: vec![Attr::Flatten]
                     }])
                 },
                 Rule {
                     name: "FooBarInline".into(),
-                    ty: Type::Choices(vec![Type::Named("Blah".into()), Type::Named("Bob".into()),])
+                    ty: Type::Choices(vec![
+                        Choice {
+                            ty: Type::Named("Blah".into()),
+                            attrs: vec![]
+                        },
+                        Choice {
+                            ty: Type::Named("Bob".into()),
+                            attrs: vec![]
+                        },
+                    ])
                 },
-            ]
+            ])
         );
     }
 }
