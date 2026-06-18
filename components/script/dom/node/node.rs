@@ -240,7 +240,7 @@ bitflags! {
 /// <https://dom.spec.whatwg.org/#concept-node-insert>
 /// <https://dom.spec.whatwg.org/#concept-node-remove>
 #[derive(Clone, Copy, MallocSizeOf)]
-pub(super) enum SuppressObserver {
+pub(crate) enum SuppressObserver {
     Suppressed,
     Unsuppressed,
 }
@@ -2487,7 +2487,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-insert>
-    pub(super) fn insert(
+    pub(crate) fn insert(
         cx: &mut JSContext,
         node: &Node,
         parent: &Node,
