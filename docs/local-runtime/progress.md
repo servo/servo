@@ -122,3 +122,17 @@
 - Added a new manual-only `Local Runtime Debian 12 Build Image` workflow that builds, verifies, and pushes `ghcr.io/${{ github.repository_owner }}/servo-debian12-build:bookworm` and `:latest` without building Servo.
 - Future work can switch the Debian 12 artifact build job to use this image after the image workflow is proven, keeping this change as an amputation/separation step rather than a behavior change to current artifact builds.
 - No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI/image-only separation.
+
+## 2026-06-18 — Debian 12 build-room image as default artifact path
+
+- Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` so the manual Debian 12 debug symbol-split artifact job now runs in `ghcr.io/thesepeoplearenotyourfriends/servo-debian12-build:bookworm` instead of starting from plain `debian:12`.
+- Removed the Debian-only preflight/package-install bootstrap step from the artifact job because the reusable build-room image now carries the Debian/Servo build prerequisites; the job keeps a small image verification step that prints `/etc/os-release`, glibc, `uv`, Clang, Python, Rust, GitHub CLI, and ELF tooling versions before any full build begins.
+- Made `debian12-debug-symbol-split` the default `workflow_dispatch` build kind because the proven Debian 12 path produced a `GLIBC_2.35` Servo debug artifact that is compatible with Debian 12/bookworm glibc 2.36 and newer glibc systems.
+- Kept the Ubuntu/devcontainer debug symbol-split path as an explicit fallback/proof/comparison option rather than the default artifact path.
+- Confirmed the workflow shape keeps push and pull_request on the cheap smoke job only, while manual full build jobs are selected independently and do not repeat or depend on the smoke job first.
+- Kept the Debian 12 runtime and debug-symbol ZIP outputs named separately as `servo-linux-debian12-debug-runtime-stripped.zip` and `servo-linux-debian12-debug-symbols.zip`, with GNU debug link handling, compressed size reporting, tree size reporting, and largest-file inventories.
+- Extended Debian 12 ABI reporting to include highest required `GLIBC_*`, `GLIBCXX_*`, and `CXXABI_*` symbols where present, plus `ldd` missing-library reporting; the Debian path fails clearly if `servoshell` requires newer than `GLIBC_2.36` or if `ldd` reports `not found`.
+- Made Release upload more robust by changing release steps to `cd "$GITHUB_WORKSPACE"`, mark the workspace as a safe Git directory, and pass `--repo "$GITHUB_REPOSITORY"` to `gh release` commands before uploading to the Debian-specific `latest-local-runtime-debian12-linux-debug` tag.
+- Uploading GitHub Actions artifacts still happens before Release upload, so a Release ceremony failure should not hide a successful build/package result.
+- The Debian 12 artifact path remains full-build manual-only and does not bake Servo source, compiled output, release archives, debug symbols, or upload logic into the build-room image.
+- No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only artifact workflow update.
