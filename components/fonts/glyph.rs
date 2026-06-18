@@ -464,6 +464,19 @@ impl ShapedText {
             }
         })
     }
+
+    /// Creates a `ShapedTextSlice` for the entire `ShapedText`, for `text-wrap-mode: nowrap`
+    pub fn slice_full_nowrap(self: &Arc<Self>, is_whitespace: bool) -> Arc<ShapedTextSlice> {
+        Arc::new(ShapedTextSlice {
+            shaped_text: self.clone(),
+            glyph_range: 0..self.glyph_count(),
+            total_advance: self.total_advance,
+            character_count: self.character_count,
+            is_whitespace,
+            ends_with_whitespace: false, // unused with TextWrapMode::Nowrap
+            total_word_separators: self.total_word_separators,
+        })
+    }
 }
 
 impl ShapedGlyph {
