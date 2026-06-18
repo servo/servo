@@ -777,11 +777,14 @@ impl GlobalScope {
         if let Some(window) = self.downcast::<Window>() {
             return Some(window.webview_id());
         }
-        // If this is a worker only DedicatedWorkerGlobalScope will have a WebViewId, the other are
-        // ServiceWorkerGlobalScope, PaintWorklet, or DissimilarOriginWindow.
+        if let Some(worker) = self.downcast::<DedicatedWorkerGlobalScope>() {
+            return Some(worker.webview_id());
+        }
+        if let Some(worker) = self.downcast::<SharedWorkerGlobalScope>() {
+            return Some(worker.webview_id());
+        }
         // TODO: This should only return None for ServiceWorkerGlobalScope.
-        self.downcast::<DedicatedWorkerGlobalScope>()
-            .map(DedicatedWorkerGlobalScope::webview_id)
+        None
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -2583,6 +2586,9 @@ impl GlobalScope {
             return window.image_cache();
         }
         if let Some(worker) = self.downcast::<DedicatedWorkerGlobalScope>() {
+            return worker.image_cache();
+        }
+        if let Some(worker) = self.downcast::<SharedWorkerGlobalScope>() {
             return worker.image_cache();
         }
         if let Some(worker) = self.downcast::<PaintWorkletGlobalScope>() {
