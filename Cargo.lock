@@ -8258,6 +8258,7 @@ dependencies = [
 name = "servo-media"
 version = "0.3.0"
 dependencies = [
+ "servo-base",
  "servo-media-audio",
  "servo-media-player",
  "servo-media-streams",
@@ -8307,7 +8308,7 @@ dependencies = [
 name = "servo-media-dummy"
 version = "0.3.0"
 dependencies = [
- "ipc-channel",
+ "servo-base",
  "servo-media",
  "servo-media-audio",
  "servo-media-player",
@@ -8344,9 +8345,9 @@ dependencies = [
  "gstreamer-sys",
  "gstreamer-video",
  "gstreamer-webrtc",
- "ipc-channel",
  "log",
  "mime",
+ "servo-base",
  "servo-media",
  "servo-media-audio",
  "servo-media-gstreamer-render",
@@ -8421,9 +8422,9 @@ dependencies = [
 name = "servo-media-player"
 version = "0.3.0"
 dependencies = [
- "ipc-channel",
  "malloc_size_of_derive",
  "serde",
+ "servo-base",
  "servo-malloc-size-of",
  "servo-media-streams",
  "servo-media-traits",
@@ -8448,6 +8449,7 @@ dependencies = [
  "malloc_size_of_derive",
  "rustc-hash 2.1.2",
  "serde",
+ "servo-base",
  "servo-config",
  "servo-malloc-size-of",
  "servo-media",

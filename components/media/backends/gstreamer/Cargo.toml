@@ -31,9 +31,9 @@ gstreamer-sdp = { workspace = true }
 gstreamer-sys = { workspace = true }
 gstreamer-video = { workspace = true }
 gstreamer-webrtc = { workspace = true }
-ipc-channel = { workspace = true }
 log = { workspace = true }
 mime = { workspace = true }
+servo-base = { workspace = true }
 servo-media = { workspace = true }
 servo-media-audio = { workspace = true }
 servo-media-gstreamer-render = { workspace = true }

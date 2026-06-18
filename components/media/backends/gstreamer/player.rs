@@ -16,7 +16,7 @@ use gstreamer;
 use gstreamer_app;
 use gstreamer_play;
 use gstreamer_play::prelude::*;
-use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
+use servo_base::generic_channel::{self, GenericCallback, GenericReceiver};
 use servo_media::MediaInstanceError;
 use servo_media_player::audio::AudioRenderer;
 use servo_media_player::context::PlayerGLContext;
@@ -409,12 +409,13 @@ macro_rules! notify(
 
 struct SeekChannel {
     sender: SeekLock,
-    recv: IpcReceiver<SeekLockMsg>,
+    recv: GenericReceiver<SeekLockMsg>,
 }
 
 impl SeekChannel {
     fn new() -> Self {
-        let (sender, recv) = channel::<SeekLockMsg>().expect("Couldn't create IPC channel");
+        let (sender, recv) =
+            generic_channel::channel::<SeekLockMsg>().expect("Couldn't create IPC channel");
         Self {
             sender: SeekLock {
                 lock_channel: sender,
@@ -440,7 +441,7 @@ pub struct GStreamerPlayer {
     /// Channel to communicate with the owner GStreamerBackend instance.
     backend_chan: Arc<Mutex<Sender<BackendMsg>>>,
     inner: RefCell<Option<Arc<Mutex<PlayerInner>>>>,
-    observer: Arc<Mutex<IpcSender<PlayerEvent>>>,
+    observer: Arc<Mutex<GenericCallback<PlayerEvent>>>,
     audio_renderer: Option<Arc<Mutex<dyn AudioRenderer>>>,
     video_renderer: Option<Arc<Mutex<dyn VideoFrameRenderer>>>,
     /// Indicates whether the setup was succesfully performed and
@@ -459,7 +460,7 @@ impl GStreamerPlayer {
         context_id: &ClientContextId,
         backend_chan: Arc<Mutex<Sender<BackendMsg>>>,
         stream_type: StreamType,
-        observer: IpcSender<PlayerEvent>,
+        observer: GenericCallback<PlayerEvent>,
         video_renderer: Option<Arc<Mutex<dyn VideoFrameRenderer>>>,
         audio_renderer: Option<Arc<Mutex<dyn AudioRenderer>>>,
         gl_context: Box<dyn PlayerGLContext>,
