@@ -396,7 +396,6 @@ addEventListener("eval", event => {
     let resultValue;
     if (completionValue === null) {
         resultValue = {
-            completionType: "terminated",
             value: createValueGrip(undefined, 0),
             hasException: false,
         };
@@ -407,21 +406,18 @@ addEventListener("eval", event => {
         // let value = dbg.adoptDebuggeeValue(completionValue.throw);
         let realError = completionValue.throw.unsafeDereference();
         resultValue = {
-            completionType: "throw",
             value: createValueGrip(completionValue.throw, 0),
             exceptionMessage: realError.message,
             hasException: true,
         };
     } else if ("return" in completionValue) {
         resultValue = {
-            completionType: "return",
             value: createValueGrip(completionValue.return, 0),
             hasException: false,
         };
     }
 
     evalResult(event, {
-        completionType: resultValue.completionType,
         serializedValue: JSON.stringify(resultValue.value),
         exceptionMessage: resultValue.hasException ? resultValue.exceptionMessage : null,
         hasException: resultValue.hasException,
