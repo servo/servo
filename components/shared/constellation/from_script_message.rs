@@ -634,7 +634,7 @@ pub enum ScriptToConstellationMessage {
     /// A global has started managing broadcast-channels.
     NewBroadcastChannelRouter(
         BroadcastChannelRouterId,
-        IpcSender<BroadcastChannelMsg>,
+        GenericCallback<BroadcastChannelMsg>,
         ImmutableOrigin,
     ),
     /// A global has stopped managing broadcast-channels.

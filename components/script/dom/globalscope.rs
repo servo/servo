@@ -25,7 +25,6 @@ use embedder_traits::{
 };
 use fonts::FontContext;
 use indexmap::IndexSet;
-use ipc_channel::ipc::{self};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{
     CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap, JSContext, JSObject, JSScript,
@@ -1712,27 +1711,22 @@ impl GlobalScope {
         let mut current_state = self.broadcast_channel_state.borrow_mut();
 
         if let BroadcastChannelState::UnManaged = &*current_state {
-            // Setup a route for IPC, for broadcasts from the constellation to our channels.
-            let (broadcast_control_sender, broadcast_control_receiver) =
-                ipc::channel().expect("ipc channel failure");
             let context = Trusted::new(self);
             let listener = BroadcastListener {
                 task_source: self.task_manager().dom_manipulation_task_source().into(),
                 context,
             };
-            ROUTER.add_typed_route(
-                broadcast_control_receiver,
-                Box::new(move |message| match message {
-                    Ok(msg) => listener.handle(msg),
-                    Err(err) => warn!("Error receiving a BroadcastChannelMsg: {:?}", err),
-                }),
-            );
+            let broadcast_control_callback = GenericCallback::new(move |message| match message {
+                Ok(msg) => listener.handle(msg),
+                Err(err) => warn!("Error receiving a BroadcastChannelMsg: {:?}", err),
+            })
+            .expect("Could not generate callback");
             let router_id = BroadcastChannelRouterId::new();
             *current_state = BroadcastChannelState::Managed(router_id, HashMap::new());
             let _ = self.script_to_constellation_chan().send(
                 ScriptToConstellationMessage::NewBroadcastChannelRouter(
                     router_id,
-                    broadcast_control_sender,
+                    broadcast_control_callback,
                     self.origin().immutable().clone(),
                 ),
             );
