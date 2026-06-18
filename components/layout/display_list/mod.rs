@@ -60,9 +60,9 @@ use crate::display_list::conversions::FilterToWebRender;
 pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::paint_traversal::{PaintTraversal, PaintTraversalHandler, TraversalState};
 use crate::fragment_tree::{
-    BackgroundMode, BaseFragment, BoxFragment, ContainingBlockCalculation, Fragment, FragmentFlags,
-    FragmentStatus, FragmentTree, IFrameFragment, ImageFragment, PositioningFragment,
-    SpecificLayoutInfo, Tag, TextFragment,
+    BackgroundMode, BaseFragment, BoxFragment, BoxFragmentWithStyle, ContainingBlockCalculation,
+    Fragment, FragmentFlags, FragmentStatus, FragmentTree, IFrameFragment, ImageFragment,
+    PositioningFragment, SpecificLayoutInfo, Tag, TextFragment,
 };
 use crate::geom::{
     LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
@@ -679,7 +679,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         }
     }
 
-    fn visit_box(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>) {
+    fn visit_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>) {
         fragment.base.visit_fragment(self);
 
         if let Some(mut inspector_highlight) = self.inspector_highlight.take() &&
@@ -813,6 +813,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         let Some(fragment) = self.fragment_tree.root_box_fragment() else {
             return;
         };
+        let fragment = fragment.with_style();
 
         let source_style = {
             // > For documents whose root element is an HTML HTML element or an XHTML html element
@@ -887,16 +888,17 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     }
 
     fn visit_box_for_outline(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>) {
+        let fragment = fragment.with_style();
         if fragment.style().get_inherited_box().visibility != Visibility::Visible {
             return;
         };
-        BuilderForBoxFragment::new(fragment, state.origin).build_outline(self, state)
+        BuilderForBoxFragment::new(&fragment, state.origin).build_outline(self, state)
     }
 
     fn visit_box_for_collapsed_table_borders(
         &mut self,
         state: &TraversalState,
-        fragment: &Arc<BoxFragment>,
+        fragment: &BoxFragmentWithStyle<'_>,
     ) {
         if fragment.style().get_inherited_box().visibility != Visibility::Visible {
             return;
@@ -1324,7 +1326,7 @@ impl Fragment {
 }
 
 struct BuilderForBoxFragment<'a> {
-    fragment: &'a BoxFragment,
+    fragment: &'a BoxFragmentWithStyle<'a>,
     containing_block_origin: PhysicalPoint<Au>,
     border_rect: units::LayoutRect,
     margin_rect: OnceCell<units::LayoutRect>,
@@ -1337,7 +1339,10 @@ struct BuilderForBoxFragment<'a> {
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
-    fn new(fragment: &'a BoxFragment, containing_block_origin: PhysicalPoint<Au>) -> Self {
+    fn new(
+        fragment: &'a BoxFragmentWithStyle<'a>,
+        containing_block_origin: PhysicalPoint<Au>,
+    ) -> Self {
         let border_rect = fragment
             .border_rect()
             .translate(containing_block_origin.to_vector());
@@ -1499,7 +1504,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             .paint_info
             .external_scroll_id_for_scroll_tree_node(state.spatial_id);
 
-        let mut common = builder.common_properties(state, rect, &self.fragment.style());
+        let mut common = builder.common_properties(state, rect, self.fragment.style());
         if let Some(clip_chain_id) = self.border_edge_clip(builder, state, false) {
             common.clip_chain_id = clip_chain_id;
         }
@@ -1591,7 +1596,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         let painter = BackgroundPainter {
-            style: &self.fragment.style(),
+            style: self.fragment.style(),
             painting_area_override: None,
             positioning_area_override: None,
         };
@@ -1849,7 +1854,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         };
         let mut common =
-            builder.common_properties(state, units::LayoutRect::default(), &self.fragment.style());
+            builder.common_properties(state, units::LayoutRect::default(), self.fragment.style());
         let radius = wr::BorderRadius::default();
         let mut column_sum = Au::zero();
         for (x, column_size) in table_info.track_sizes.x.iter().enumerate() {
@@ -1936,7 +1941,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             radius: self.border_radius(),
             do_aa: true,
         });
-        let common = builder.common_properties(state, self.border_rect, &style);
+        let common = builder.common_properties(state, self.border_rect, style);
         builder
             .wr()
             .push_border(&common, self.border_rect, border_widths, details)
@@ -1964,7 +1969,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let border_image_repeat = &border_style_struct.border_image_repeat;
         let border_image_fill = border_style_struct.border_image_slice.fill;
         let border_image_slice = &border_style_struct.border_image_slice.offsets;
-        let common = builder.common_properties(state, border_image_area.to_box2d(), &style);
+        let common = builder.common_properties(state, border_image_area.to_box2d(), style);
 
         let stops = Vec::new();
         let mut width = border_image_size.width;
@@ -2015,7 +2020,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 NinePatchBorderSource::Image(key, image_rendering)
             },
             Ok(ResolvedImage::Gradient(gradient)) => {
-                match gradient::build(&style, gradient, border_image_size, builder) {
+                match gradient::build(style, gradient, border_image_size, builder) {
                     WebRenderGradient::Linear(gradient) => {
                         NinePatchBorderSource::Gradient(gradient)
                     },
@@ -2094,7 +2099,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             offset.max(-self.border_rect.width() / 2.0 + width),
             offset.max(-self.border_rect.height() / 2.0 + width),
         );
-        let common = builder.common_properties(state, outline_rect, &style);
+        let common = builder.common_properties(state, outline_rect, style);
         let widths = SideOffsets2D::new_all_same(width);
         let border_style = match outline.outline_style {
             // TODO: treating 'auto' as 'solid' is allowed by the spec,
@@ -2168,7 +2173,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     BoxShadowClipMode::Outset => spread,
                 }),
             );
-            let common = builder.common_properties(state, clip_rect, &style);
+            let common = builder.common_properties(state, clip_rect, style);
             builder.wr().push_box_shadow(
                 &common,
                 rect,

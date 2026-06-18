@@ -16,7 +16,7 @@ use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSideOffsets, LayoutSize};
 
 use super::{BuilderForBoxFragment, compute_margin_box_radius};
-use crate::fragment_tree::BoxFragment;
+use crate::fragment_tree::BoxFragmentWithStyle;
 use crate::geom::PhysicalPoint;
 
 /// An identifier for a clip used during StackingContextTree construction. This is a simple index in
@@ -81,7 +81,7 @@ impl StackingContextTreeClipStore {
         clip_path: &ClipPath,
         parent_scroll_node_id: ScrollTreeNodeId,
         parent_clip_chain_id: ClipId,
-        box_fragment: &BoxFragment,
+        box_fragment: &BoxFragmentWithStyle<'_>,
         containing_block_origin: PhysicalPoint<Au>,
     ) -> Option<ClipId> {
         let geometry_box = match clip_path {

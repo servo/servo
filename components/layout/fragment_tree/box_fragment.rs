@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::LazyCell;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::{Au, MAX_AU, MIN_AU};
@@ -191,6 +192,13 @@ impl BoxFragment {
         self.base.style()
     }
 
+    pub(crate) fn with_style(self: &Arc<Self>) -> BoxFragmentWithStyle<'_> {
+        BoxFragmentWithStyle {
+            box_fragment: self,
+            style: self.style(),
+        }
+    }
+
     /// Get the baselines for this [`BoxFragment`] if they are compatible with the given [`WritingMode`].
     /// If they are not compatible, [`Baselines::default()`] is returned.
     pub(crate) fn baselines(&self, writing_mode: WritingMode) -> Baselines {
@@ -292,6 +300,342 @@ impl BoxFragment {
         self
     }
 
+    /// Clear the scrollable overflow on this [`BoxFragment`]. This is called
+    /// during damage propagation when a fragment is preserved, itself or one of its
+    /// descendants has scrollable overflow damage.
+    pub(crate) fn clear_scrollable_overflow(&self) {
+        self.scrollable_overflow_is_up_to_date
+            .store(false, Ordering::Release);
+    }
+
+    #[inline]
+    pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
+        self.cumulative_containing_block_rect.set(*containing_block);
+    }
+
+    pub(crate) fn offset_by_containing_block(
+        &self,
+        rect: &PhysicalRect<Au>,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalRect<Au> {
+        containing_block_computation.ensure();
+        rect.translate(self.cumulative_containing_block_rect.origin().to_vector())
+    }
+
+    pub(crate) fn cumulative_content_box_rect(
+        &self,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalRect<Au> {
+        self.offset_by_containing_block(&self.base.rect(), containing_block_computation)
+    }
+
+    pub(crate) fn cumulative_padding_box_rect(
+        &self,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalRect<Au> {
+        self.offset_by_containing_block(&self.padding_rect(), containing_block_computation)
+    }
+
+    pub(crate) fn cumulative_border_box_rect(
+        &self,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalRect<Au> {
+        self.offset_by_containing_block(&self.border_rect(), containing_block_computation)
+    }
+
+    pub(crate) fn content_rect(&self) -> PhysicalRect<Au> {
+        self.base.rect()
+    }
+
+    pub(crate) fn padding_rect(&self) -> PhysicalRect<Au> {
+        self.content_rect().outer_rect(self.padding)
+    }
+
+    pub(crate) fn border_rect(&self) -> PhysicalRect<Au> {
+        self.padding_rect().outer_rect(self.border)
+    }
+
+    pub(crate) fn margin_rect(&self) -> PhysicalRect<Au> {
+        self.border_rect().outer_rect(self.margin)
+    }
+
+    pub(crate) fn padding_border_margin(&self) -> PhysicalSides<Au> {
+        self.margin + self.border + self.padding
+    }
+
+    pub(crate) fn is_root_element(&self) -> bool {
+        self.base.flags.intersects(FragmentFlags::IS_ROOT_ELEMENT)
+    }
+
+    pub(crate) fn is_body_element_of_html_element_root(&self) -> bool {
+        self.base
+            .flags
+            .intersects(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
+    }
+
+    pub(crate) fn print(self: &Arc<Self>, tree: &mut PrintTree) {
+        let with_style = self.with_style();
+        tree.new_level(format!(
+            "Box\
+                \nbase={:?}\
+                \ncontent={:?}\
+                \npadding rect={:?}\
+                \nborder rect={:?}\
+                \nmargin={:?}\
+                \nscrollable_overflow={:?}\
+                \nbaselines={:?}\
+                \noverflow={:?}",
+            self.base,
+            self.content_rect(),
+            self.padding_rect(),
+            self.border_rect(),
+            self.margin,
+            with_style.scrollable_overflow(),
+            self.baselines,
+            with_style.style().effective_overflow(self.base.flags),
+        ));
+
+        for child in &self.children {
+            child.print(tree);
+        }
+        tree.end_level();
+    }
+
+    pub(crate) fn calculate_resolved_insets_if_positioned(
+        &self,
+        containing_block_computation: ContainingBlockCalculation<'_>,
+    ) -> PhysicalSides<AuOrAuto> {
+        let style = self.style();
+        let position = style.get_box().position;
+        debug_assert_ne!(
+            position,
+            ComputedPosition::Static,
+            "Should not call this method on statically positioned box."
+        );
+
+        if let Some(resolved_sticky_insets) = self.resolved_sticky_insets() {
+            return **resolved_sticky_insets;
+        }
+
+        let convert_to_au_or_auto = |sides: PhysicalSides<Au>| {
+            PhysicalSides::new(
+                AuOrAuto::LengthPercentage(sides.top),
+                AuOrAuto::LengthPercentage(sides.right),
+                AuOrAuto::LengthPercentage(sides.bottom),
+                AuOrAuto::LengthPercentage(sides.left),
+            )
+        };
+
+        let containing_block_size = LazyCell::new(|| {
+            containing_block_computation.ensure();
+            self.cumulative_containing_block_rect.size()
+        });
+
+        // "A resolved value special case property like top defined in another
+        // specification If the property applies to a positioned element and the
+        // resolved value of the display property is not none or contents, and
+        // the property is not over-constrained, then the resolved value is the
+        // used value. Otherwise the resolved value is the computed value."
+        // https://drafts.csswg.org/cssom/#resolved-values
+        let insets = style.physical_box_offsets();
+        if position == ComputedPosition::Relative {
+            let get_resolved_axis = |start: &LengthPercentageOrAuto,
+                                     end: &LengthPercentageOrAuto,
+                                     container_length: Au| {
+                let start = start.map(|value| value.to_used_value(container_length));
+                let end = end.map(|value| value.to_used_value(container_length));
+                match (start.non_auto(), end.non_auto()) {
+                    (None, None) => (Au::zero(), Au::zero()),
+                    (None, Some(end)) => (-end, end),
+                    (Some(start), None) => (start, -start),
+                    // This is the overconstrained case, for which the resolved insets will
+                    // simply be the computed insets.
+                    (Some(start), Some(end)) => (start, end),
+                }
+            };
+
+            let (left, right) =
+                get_resolved_axis(&insets.left, &insets.right, containing_block_size.width);
+            let (top, bottom) =
+                get_resolved_axis(&insets.top, &insets.bottom, containing_block_size.height);
+            return convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left));
+        }
+
+        debug_assert!(position.is_absolutely_positioned());
+
+        let margin_rect = self.margin_rect();
+        let (top, bottom) = match (&insets.top, &insets.bottom) {
+            (
+                LengthPercentageOrAuto::LengthPercentage(top),
+                LengthPercentageOrAuto::LengthPercentage(bottom),
+            ) => (
+                top.to_used_value(containing_block_size.height),
+                bottom.to_used_value(containing_block_size.height),
+            ),
+            _ => (
+                margin_rect.origin.y,
+                containing_block_size.height - margin_rect.max_y(),
+            ),
+        };
+        let (left, right) = match (&insets.left, &insets.right) {
+            (
+                LengthPercentageOrAuto::LengthPercentage(left),
+                LengthPercentageOrAuto::LengthPercentage(right),
+            ) => (
+                left.to_used_value(containing_block_size.width),
+                right.to_used_value(containing_block_size.width),
+            ),
+            _ => (
+                margin_rect.origin.x,
+                containing_block_size.width - margin_rect.max_x(),
+            ),
+        };
+
+        convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left))
+    }
+
+    /// Whether or this is a flex or grid item.
+    pub(crate) fn is_flex_or_grid_item(&self) -> bool {
+        self.base
+            .flags
+            .contains(FragmentFlags::IS_FLEX_OR_GRID_ITEM)
+    }
+
+    /// Whether or this box is for replaced content.
+    pub(crate) fn is_replaced(&self) -> bool {
+        self.base.flags.contains(FragmentFlags::IS_REPLACED)
+    }
+
+    /// Whether this is a table wrapper box.
+    /// <https://www.w3.org/TR/css-tables-3/#table-wrapper-box>
+    pub(crate) fn is_table_wrapper(&self) -> bool {
+        matches!(
+            self.specific_layout_info().as_deref(),
+            Some(SpecificLayoutInfo::TableWrapper)
+        )
+    }
+
+    /// Whether or not this is the [`BoxFragment`] for a table grid with collapsed borders.
+    pub(crate) fn is_table_grid_with_collapsed_borders(&self) -> bool {
+        matches!(
+            self.specific_layout_info().as_deref(),
+            Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
+        )
+    }
+
+    pub(crate) fn spatial_tree_node(&self) -> Option<ScrollTreeNodeId> {
+        self.spatial_tree_node.get()
+    }
+}
+
+/// Contains `&Arc<BoxFragment>` and dereferences to it so it can mostly
+/// be used in the same ways, except the `.style()` method is shadowed to use an existing
+/// `atomic_refcell::AtomicRef` that lives as long as `BoxFragmentWithStyle`.
+///
+/// Compared to calling `BoxFragment::style()` repeatedly, this reduce the number of atomic
+/// increments and decrements on `ArcRefCell`’s borrow counter.
+pub(crate) struct BoxFragmentWithStyle<'a> {
+    pub(crate) box_fragment: &'a Arc<BoxFragment>,
+    pub(crate) style: AtomicRef<'a, ServoArc<ComputedValues>>,
+}
+
+impl std::ops::Deref for BoxFragmentWithStyle<'_> {
+    type Target = Arc<BoxFragment>;
+
+    fn deref(&self) -> &Self::Target {
+        self.box_fragment
+    }
+}
+
+impl<'a> BoxFragmentWithStyle<'a> {
+    pub(crate) fn style(&self) -> &ServoArc<ComputedValues> {
+        &self.style
+    }
+
+    /// Return the clipped scrollable overflow based on its scroll origin, determined by
+    /// overflow direction. Return [`None`] if the scrollable overflow from child is wholly
+    /// unreachable. For an element, the clip rect is the padding rect and for viewport,
+    /// it is the initial containing block.
+    pub(crate) fn clip_wholly_unreachable_scrollable_overflow(
+        &self,
+        scrollable_overflow_from_child: PhysicalRect<Au>,
+        clipping_rect: PhysicalRect<Au>,
+    ) -> PhysicalRect<Au> {
+        // From <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>:
+        // > Unless otherwise adjusted (e.g. by content alignment [css-align-3]), the area
+        // > beyond the scroll origin in either axis is considered the unreachable scrollable
+        // > overflow region: content rendered here is not accessible to the reader, see § 2.2
+        // > Scrollable Overflow. A scroll container is said to be scrolled to its scroll
+        // > origin when its scroll origin coincides with the corresponding corner of its
+        // > scrollport. This scroll position, the scroll origin position, usually, but not
+        // > always, coincides with the initial scroll position.
+        let scrolling_direction = self.style().overflow_direction();
+        let mut clipping_box = clipping_rect.to_box2d();
+        if scrolling_direction.rightward {
+            clipping_box.max.x = MAX_AU;
+        } else {
+            clipping_box.min.x = MIN_AU;
+        }
+
+        if scrolling_direction.downward {
+            clipping_box.max.y = MAX_AU;
+        } else {
+            clipping_box.min.y = MIN_AU;
+        }
+
+        let scrollable_overflow_box = scrollable_overflow_from_child
+            .to_box2d()
+            .intersection_unchecked(&clipping_box);
+
+        match scrollable_overflow_box.is_negative() {
+            false => scrollable_overflow_box.to_rect(),
+            true => Rect::zero(),
+        }
+    }
+
+    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+        let style = self.style();
+        let mut overflow = self.border_rect();
+        if !style.establishes_scroll_container(self.base.flags) {
+            // https://www.w3.org/TR/css-overflow-3/#scrollable
+            // Only include the scrollable overflow of a child box if it has overflow: visible.
+            let scrollable_overflow = self.scrollable_overflow();
+            let bottom_right = PhysicalPoint::new(
+                overflow.max_x().max(scrollable_overflow.max_x()),
+                overflow.max_y().max(scrollable_overflow.max_y()),
+            );
+
+            let overflow_style = style.effective_overflow(self.base.flags);
+            if overflow_style.y == ComputedOverflow::Visible {
+                overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
+                overflow.size.height = bottom_right.y - overflow.origin.y;
+            }
+
+            if overflow_style.x == ComputedOverflow::Visible {
+                overflow.origin.x = overflow.origin.x.min(scrollable_overflow.origin.x);
+                overflow.size.width = bottom_right.x - overflow.origin.x;
+            }
+        }
+
+        if !style.has_effective_transform_or_perspective(self.base.flags) {
+            return overflow;
+        }
+
+        // <https://drafts.csswg.org/css-overflow-3/#scrollable-overflow-region>
+        // > ...accounting for transforms by projecting each box onto the plane of
+        // > the element that establishes its 3D rendering context. [CSS3-TRANSFORMS]
+        // Both boxes and its scrollable overflow (if it is included) should be transformed accordingly.
+        //
+        // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d
+        // contexts, but it is yet to happen.
+        self.calculate_transform_matrix(&self.border_rect())
+            .and_then(|transform| {
+                transform.outer_transformed_rect(&overflow.to_webrender().to_rect())
+            })
+            .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
+            .unwrap_or(overflow)
+    }
+
     /// Get the scrollable overflow for this [`BoxFragment`] relative to its containing
     /// block, recalculating scrollable overflow when necessary, for instance after a
     /// style change.
@@ -309,15 +653,6 @@ impl BoxFragment {
             rect
         }
     }
-
-    /// Clear the scrollable overflow on this [`BoxFragment`]. This is called
-    /// during damage propagation when a fragment is preserved, itself or one of its
-    /// descendants has scrollable overflow damage.
-    pub(crate) fn clear_scrollable_overflow(&self) {
-        self.scrollable_overflow_is_up_to_date
-            .store(false, Ordering::Release);
-    }
-
     /// This is an implementation of:
     /// - <https://drafts.csswg.org/css-overflow-3/#scrollable>.
     /// - <https://drafts.csswg.org/cssom-view/#scrolling-area>
@@ -422,275 +757,6 @@ impl BoxFragment {
         scrollable_overflow
     }
 
-    #[inline]
-    pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
-        self.cumulative_containing_block_rect.set(*containing_block);
-    }
-
-    pub(crate) fn offset_by_containing_block(
-        &self,
-        rect: &PhysicalRect<Au>,
-        containing_block_computation: ContainingBlockCalculation<'_>,
-    ) -> PhysicalRect<Au> {
-        containing_block_computation.ensure();
-        rect.translate(self.cumulative_containing_block_rect.origin().to_vector())
-    }
-
-    pub(crate) fn cumulative_content_box_rect(
-        &self,
-        containing_block_computation: ContainingBlockCalculation<'_>,
-    ) -> PhysicalRect<Au> {
-        self.offset_by_containing_block(&self.base.rect(), containing_block_computation)
-    }
-
-    pub(crate) fn cumulative_padding_box_rect(
-        &self,
-        containing_block_computation: ContainingBlockCalculation<'_>,
-    ) -> PhysicalRect<Au> {
-        self.offset_by_containing_block(&self.padding_rect(), containing_block_computation)
-    }
-
-    pub(crate) fn cumulative_border_box_rect(
-        &self,
-        containing_block_computation: ContainingBlockCalculation<'_>,
-    ) -> PhysicalRect<Au> {
-        self.offset_by_containing_block(&self.border_rect(), containing_block_computation)
-    }
-
-    pub(crate) fn content_rect(&self) -> PhysicalRect<Au> {
-        self.base.rect()
-    }
-
-    pub(crate) fn padding_rect(&self) -> PhysicalRect<Au> {
-        self.content_rect().outer_rect(self.padding)
-    }
-
-    pub(crate) fn border_rect(&self) -> PhysicalRect<Au> {
-        self.padding_rect().outer_rect(self.border)
-    }
-
-    pub(crate) fn margin_rect(&self) -> PhysicalRect<Au> {
-        self.border_rect().outer_rect(self.margin)
-    }
-
-    pub(crate) fn padding_border_margin(&self) -> PhysicalSides<Au> {
-        self.margin + self.border + self.padding
-    }
-
-    pub(crate) fn is_root_element(&self) -> bool {
-        self.base.flags.intersects(FragmentFlags::IS_ROOT_ELEMENT)
-    }
-
-    pub(crate) fn is_body_element_of_html_element_root(&self) -> bool {
-        self.base
-            .flags
-            .intersects(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
-    }
-
-    pub(crate) fn print(&self, tree: &mut PrintTree) {
-        tree.new_level(format!(
-            "Box\
-                \nbase={:?}\
-                \ncontent={:?}\
-                \npadding rect={:?}\
-                \nborder rect={:?}\
-                \nmargin={:?}\
-                \nscrollable_overflow={:?}\
-                \nbaselines={:?}\
-                \noverflow={:?}",
-            self.base,
-            self.content_rect(),
-            self.padding_rect(),
-            self.border_rect(),
-            self.margin,
-            self.scrollable_overflow(),
-            self.baselines,
-            self.style().effective_overflow(self.base.flags),
-        ));
-
-        for child in &self.children {
-            child.print(tree);
-        }
-        tree.end_level();
-    }
-
-    pub(crate) fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
-        let style = self.style();
-        let mut overflow = self.border_rect();
-        if !style.establishes_scroll_container(self.base.flags) {
-            // https://www.w3.org/TR/css-overflow-3/#scrollable
-            // Only include the scrollable overflow of a child box if it has overflow: visible.
-            let scrollable_overflow = self.scrollable_overflow();
-            let bottom_right = PhysicalPoint::new(
-                overflow.max_x().max(scrollable_overflow.max_x()),
-                overflow.max_y().max(scrollable_overflow.max_y()),
-            );
-
-            let overflow_style = style.effective_overflow(self.base.flags);
-            if overflow_style.y == ComputedOverflow::Visible {
-                overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
-                overflow.size.height = bottom_right.y - overflow.origin.y;
-            }
-
-            if overflow_style.x == ComputedOverflow::Visible {
-                overflow.origin.x = overflow.origin.x.min(scrollable_overflow.origin.x);
-                overflow.size.width = bottom_right.x - overflow.origin.x;
-            }
-        }
-
-        if !style.has_effective_transform_or_perspective(self.base.flags) {
-            return overflow;
-        }
-
-        // <https://drafts.csswg.org/css-overflow-3/#scrollable-overflow-region>
-        // > ...accounting for transforms by projecting each box onto the plane of
-        // > the element that establishes its 3D rendering context. [CSS3-TRANSFORMS]
-        // Both boxes and its scrollable overflow (if it is included) should be transformed accordingly.
-        //
-        // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d
-        // contexts, but it is yet to happen.
-        self.calculate_transform_matrix(&self.border_rect())
-            .and_then(|transform| {
-                transform.outer_transformed_rect(&overflow.to_webrender().to_rect())
-            })
-            .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
-            .unwrap_or(overflow)
-    }
-
-    /// Return the clipped scrollable overflow based on its scroll origin, determined by
-    /// overflow direction. Return [`None`] if the scrollable overflow from child is wholly
-    /// unreachable. For an element, the clip rect is the padding rect and for viewport,
-    /// it is the initial containing block.
-    pub(crate) fn clip_wholly_unreachable_scrollable_overflow(
-        &self,
-        scrollable_overflow_from_child: PhysicalRect<Au>,
-        clipping_rect: PhysicalRect<Au>,
-    ) -> PhysicalRect<Au> {
-        // From <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>:
-        // > Unless otherwise adjusted (e.g. by content alignment [css-align-3]), the area
-        // > beyond the scroll origin in either axis is considered the unreachable scrollable
-        // > overflow region: content rendered here is not accessible to the reader, see § 2.2
-        // > Scrollable Overflow. A scroll container is said to be scrolled to its scroll
-        // > origin when its scroll origin coincides with the corresponding corner of its
-        // > scrollport. This scroll position, the scroll origin position, usually, but not
-        // > always, coincides with the initial scroll position.
-        let scrolling_direction = self.style().overflow_direction();
-        let mut clipping_box = clipping_rect.to_box2d();
-        if scrolling_direction.rightward {
-            clipping_box.max.x = MAX_AU;
-        } else {
-            clipping_box.min.x = MIN_AU;
-        }
-
-        if scrolling_direction.downward {
-            clipping_box.max.y = MAX_AU;
-        } else {
-            clipping_box.min.y = MIN_AU;
-        }
-
-        let scrollable_overflow_box = scrollable_overflow_from_child
-            .to_box2d()
-            .intersection_unchecked(&clipping_box);
-
-        match scrollable_overflow_box.is_negative() {
-            false => scrollable_overflow_box.to_rect(),
-            true => Rect::zero(),
-        }
-    }
-
-    pub(crate) fn calculate_resolved_insets_if_positioned(
-        &self,
-        containing_block_computation: ContainingBlockCalculation<'_>,
-    ) -> PhysicalSides<AuOrAuto> {
-        let style = self.style();
-        let position = style.get_box().position;
-        debug_assert_ne!(
-            position,
-            ComputedPosition::Static,
-            "Should not call this method on statically positioned box."
-        );
-
-        if let Some(resolved_sticky_insets) = self.resolved_sticky_insets() {
-            return **resolved_sticky_insets;
-        }
-
-        let convert_to_au_or_auto = |sides: PhysicalSides<Au>| {
-            PhysicalSides::new(
-                AuOrAuto::LengthPercentage(sides.top),
-                AuOrAuto::LengthPercentage(sides.right),
-                AuOrAuto::LengthPercentage(sides.bottom),
-                AuOrAuto::LengthPercentage(sides.left),
-            )
-        };
-
-        let containing_block_size = LazyCell::new(|| {
-            containing_block_computation.ensure();
-            self.cumulative_containing_block_rect.size()
-        });
-
-        // "A resolved value special case property like top defined in another
-        // specification If the property applies to a positioned element and the
-        // resolved value of the display property is not none or contents, and
-        // the property is not over-constrained, then the resolved value is the
-        // used value. Otherwise the resolved value is the computed value."
-        // https://drafts.csswg.org/cssom/#resolved-values
-        let insets = style.physical_box_offsets();
-        if position == ComputedPosition::Relative {
-            let get_resolved_axis = |start: &LengthPercentageOrAuto,
-                                     end: &LengthPercentageOrAuto,
-                                     container_length: Au| {
-                let start = start.map(|value| value.to_used_value(container_length));
-                let end = end.map(|value| value.to_used_value(container_length));
-                match (start.non_auto(), end.non_auto()) {
-                    (None, None) => (Au::zero(), Au::zero()),
-                    (None, Some(end)) => (-end, end),
-                    (Some(start), None) => (start, -start),
-                    // This is the overconstrained case, for which the resolved insets will
-                    // simply be the computed insets.
-                    (Some(start), Some(end)) => (start, end),
-                }
-            };
-
-            let (left, right) =
-                get_resolved_axis(&insets.left, &insets.right, containing_block_size.width);
-            let (top, bottom) =
-                get_resolved_axis(&insets.top, &insets.bottom, containing_block_size.height);
-            return convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left));
-        }
-
-        debug_assert!(position.is_absolutely_positioned());
-
-        let margin_rect = self.margin_rect();
-        let (top, bottom) = match (&insets.top, &insets.bottom) {
-            (
-                LengthPercentageOrAuto::LengthPercentage(top),
-                LengthPercentageOrAuto::LengthPercentage(bottom),
-            ) => (
-                top.to_used_value(containing_block_size.height),
-                bottom.to_used_value(containing_block_size.height),
-            ),
-            _ => (
-                margin_rect.origin.y,
-                containing_block_size.height - margin_rect.max_y(),
-            ),
-        };
-        let (left, right) = match (&insets.left, &insets.right) {
-            (
-                LengthPercentageOrAuto::LengthPercentage(left),
-                LengthPercentageOrAuto::LengthPercentage(right),
-            ) => (
-                left.to_used_value(containing_block_size.width),
-                right.to_used_value(containing_block_size.width),
-            ),
-            _ => (
-                margin_rect.origin.x,
-                containing_block_size.width - margin_rect.max_x(),
-            ),
-        };
-
-        convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left))
-    }
-
     /// Whether this is a non-replaced inline-level box whose inner display type is `flow`.
     /// <https://drafts.csswg.org/css-display-3/#inline-box>
     pub(crate) fn is_inline_box(&self) -> bool {
@@ -701,27 +767,6 @@ impl BoxFragment {
     /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
     pub(crate) fn is_atomic_inline_level(&self) -> bool {
         self.style().is_atomic_inline_level(self.base.flags)
-    }
-
-    /// Whether or this is a flex or grid item.
-    pub(crate) fn is_flex_or_grid_item(&self) -> bool {
-        self.base
-            .flags
-            .contains(FragmentFlags::IS_FLEX_OR_GRID_ITEM)
-    }
-
-    /// Whether or this box is for replaced content.
-    pub(crate) fn is_replaced(&self) -> bool {
-        self.base.flags.contains(FragmentFlags::IS_REPLACED)
-    }
-
-    /// Whether this is a table wrapper box.
-    /// <https://www.w3.org/TR/css-tables-3/#table-wrapper-box>
-    pub(crate) fn is_table_wrapper(&self) -> bool {
-        matches!(
-            self.specific_layout_info().as_deref(),
-            Some(SpecificLayoutInfo::TableWrapper)
-        )
     }
 
     pub(crate) fn has_collapsed_borders(&self) -> bool {
@@ -735,22 +780,10 @@ impl BoxFragment {
         }
     }
 
-    /// Whether or not this is the [`BoxFragment`] for a table grid with collapsed borders.
-    pub(crate) fn is_table_grid_with_collapsed_borders(&self) -> bool {
-        matches!(
-            self.specific_layout_info().as_deref(),
-            Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
-        )
-    }
-
     /// Whether or not this [`BoxFragment`] has outlines.
     pub(crate) fn has_outline(&self) -> bool {
         let style = self.style();
         let outline = style.get_outline();
         !outline.outline_style.none_or_hidden() && !outline.outline_width.0.is_zero()
-    }
-
-    pub(crate) fn spatial_tree_node(&self) -> Option<ScrollTreeNodeId> {
-        self.spatial_tree_node.get()
     }
 }

@@ -23,7 +23,7 @@ use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, RectExt};
 use crate::display_list::clip::{Clip, ClipId};
 use crate::display_list::paint_traversal::{PaintTraversal, PaintTraversalHandler};
 use crate::display_list::{StackingContext, StackingContextTree, ToWebRender, TraversalState};
-use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, TextFragment};
+use crate::fragment_tree::{BoxFragmentWithStyle, Fragment, FragmentFlags, TextFragment};
 use crate::geom::PhysicalRect;
 
 pub(crate) struct HitTest<'a> {
@@ -121,8 +121,8 @@ impl PaintTraversalHandler for HitTest<'_> {
 
     fn visit_stacking_context(&mut self, _: &StackingContext) -> Self::StackingContextState {}
     fn leave_stacking_context(&mut self, _: &TraversalState, _: Self::StackingContextState) {}
-    fn visit_box(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>) {
-        Fragment::Box(fragment.clone()).hit_test(state, self);
+    fn visit_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>) {
+        Fragment::Box(fragment.box_fragment.clone()).hit_test(state, self);
     }
     fn visit_text(
         &mut self,

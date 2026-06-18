@@ -13,8 +13,8 @@ use crate::display_list::{
     ClipId, FragmentTextDecoration, StackingContext, StackingContextFragments,
 };
 use crate::fragment_tree::{
-    BoxFragment, Fragment, FragmentFlags, IFrameFragment, ImageFragment, PositioningFragment,
-    TextFragment,
+    BoxFragment, BoxFragmentWithStyle, Fragment, FragmentFlags, IFrameFragment, ImageFragment,
+    PositioningFragment, TextFragment,
 };
 use crate::geom::{PhysicalPoint, PhysicalRect};
 
@@ -60,7 +60,10 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // > Step 4: If root is a block-level box, paint a block’s decorations given root
         // > and canvas.
         let root_fragment = stacking_context.fragment();
-        if let Some(root_fragment) = root_fragment &&
+        let root_fragment = root_fragment
+            .as_ref()
+            .map(|root_fragment| root_fragment.with_style());
+        if let Some(root_fragment) = &root_fragment &&
             !root_fragment.is_inline_box()
         {
             self.handle_box(&state, root_fragment);
@@ -77,7 +80,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             );
         }
 
-        if let Some(root_fragment) = root_fragment {
+        if let Some(root_fragment) = &root_fragment {
             self.traverse_stacking_context_inner(&state, root_fragment);
         }
 
@@ -109,7 +112,11 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             .leave_stacking_context(&state, stacking_context_state);
     }
 
-    fn traverse_stacking_context_inner(&mut self, state: &TraversalState, root: &Arc<BoxFragment>) {
+    fn traverse_stacking_context_inner(
+        &mut self,
+        state: &TraversalState,
+        root: &BoxFragmentWithStyle<'_>,
+    ) {
         let old_float_length = self.floats.len();
         let mut saw_inline_level_or_replaced = root.is_replaced();
 
@@ -132,6 +139,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // > paint a stacking container given the descendant and canvas.
         if old_float_length < self.floats.len() {
             for (state, float_fragment) in &self.floats.split_off(old_float_length) {
+                let float_fragment = &float_fragment.with_style();
                 self.handle_box(state, float_fragment);
                 self.traverse_stacking_context_inner(state, float_fragment);
             }
@@ -166,7 +174,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
     fn traverse_stacking_container(
         &mut self,
         state: &TraversalState,
-        root: &Arc<BoxFragment>,
+        root: &BoxFragmentWithStyle<'_>,
         is_block_level: bool,
     ) {
         let old_outlines_length = self.outlines.len();
@@ -205,6 +213,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 );
             },
             Fragment::Box(box_fragment) => {
+                let box_fragment = &box_fragment.with_style();
                 // If this box establishes a stacking context or stacking container, do not paint
                 // it during this phase. Instead it is painted when the stacking context or container
                 // is processed.
@@ -274,7 +283,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
     fn traverse_line_boxes_and_replaced_for_box(
         &mut self,
         state: &TraversalState,
-        fragment: &Arc<BoxFragment>,
+        fragment: &BoxFragmentWithStyle<'_>,
         at_root_of_stacking_context: bool,
     ) {
         let is_flex_or_grid = fragment.is_flex_or_grid_item();
@@ -324,7 +333,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 }
                 self.traverse_line_boxes_and_replaced_for_box(
                     state,
-                    box_fragment,
+                    &box_fragment.with_style(),
                     at_root_of_stacking_context,
                 );
             },
@@ -359,7 +368,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             },
             Fragment::Box(box_fragment) => self.traverse_box_in_a_line_box(
                 state,
-                box_fragment,
+                &box_fragment.with_style(),
                 false, /* at_stacking_context_root */
             ),
             Fragment::Text(text_fragment) => {
@@ -384,7 +393,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
     fn traverse_box_in_a_line_box(
         &mut self,
         state: &TraversalState,
-        box_fragment: &Arc<BoxFragment>,
+        box_fragment: &BoxFragmentWithStyle<'_>,
         at_stacking_context_root: bool,
     ) {
         // If this box establishes a stacking context or stacking container, do not paint
@@ -445,7 +454,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 Fragment::LayoutRoot(layout_root_fragment) => {
                     self.traverse_stacking_container(
                         &state.without_text_decorations(),
-                        &layout_root_fragment.inner_box_fragment(),
+                        &layout_root_fragment.inner_box_fragment().with_style(),
                         true, /* is_block_level */
                     );
                 },
@@ -461,7 +470,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 Fragment::Box(box_fragment) => {
                     self.traverse_stacking_container(
                         &state.without_text_decorations(),
-                        box_fragment,
+                        &box_fragment.with_style(),
                         true, /* is_block_level */
                     );
                 },
@@ -470,9 +479,10 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         }
     }
 
-    fn handle_box(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>) {
+    fn handle_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>) {
         if fragment.has_outline() {
-            self.outlines.push((state.clone(), fragment.clone()));
+            self.outlines
+                .push((state.clone(), fragment.box_fragment.clone()));
         }
         self.handler.visit_box(state, fragment);
     }
@@ -491,7 +501,7 @@ pub(crate) trait PaintTraversalHandler {
         stacking_context_state: Self::StackingContextState,
     );
 
-    fn visit_box(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>);
+    fn visit_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>);
     fn visit_iframe(&mut self, _state: &TraversalState, _fragment: &Arc<IFrameFragment>) {}
     fn visit_image(
         &mut self,
@@ -514,7 +524,7 @@ pub(crate) trait PaintTraversalHandler {
     fn visit_box_for_collapsed_table_borders(
         &mut self,
         _state: &TraversalState,
-        _fragment: &Arc<BoxFragment>,
+        _fragment: &BoxFragmentWithStyle<'_>,
     ) {
     }
 }
@@ -528,8 +538,7 @@ pub(crate) struct TraversalState {
 }
 
 impl TraversalState {
-    #[inline]
-    pub(crate) fn push_box_fragment(&self, box_fragment: &BoxFragment) -> Self {
+    pub(crate) fn push_box_fragment(&self, box_fragment: &BoxFragmentWithStyle<'_>) -> Self {
         let style = box_fragment.style();
 
         // Text decorations are not propagated to atomic inline-level descendants.

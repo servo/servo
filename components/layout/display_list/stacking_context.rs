@@ -40,8 +40,8 @@ use super::clip::StackingContextTreeClipStore;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::{BuilderForBoxFragment, offset_radii};
 use crate::fragment_tree::{
-    BoxFragment, ContainingBlockCalculation, ContainingBlockManager, Fragment, FragmentFlags,
-    FragmentTree, PositioningFragment,
+    BoxFragment, BoxFragmentWithStyle, ContainingBlockCalculation, ContainingBlockManager,
+    Fragment, FragmentFlags, FragmentTree, PositioningFragment,
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalVec,
@@ -556,7 +556,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree(
-        &self,
+        self: &Arc<Self>,
         fragment: Fragment,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
@@ -575,7 +575,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_maybe_creating_reference_frame(
-        &self,
+        self: &Arc<Self>,
         fragment: Fragment,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
@@ -654,7 +654,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_maybe_creating_stacking_context(
-        &self,
+        self: &Arc<Self>,
         fragment: Fragment,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
@@ -662,8 +662,10 @@ impl BoxFragment {
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
     ) {
+        let with_style = &self.with_style();
+        let style = with_style.style();
         let Some(stacking_context_type) = self.stacking_context_type() else {
-            self.build_stacking_context_tree_for_children(
+            with_style.build_stacking_context_tree_for_children(
                 stacking_context_tree,
                 containing_block,
                 containing_block_info,
@@ -683,21 +685,20 @@ impl BoxFragment {
             &new_scroll_frame_size,
         );
 
-        let clip_id = self.build_clip_frame_if_necessary(
+        let clip_id = with_style.build_clip_frame_if_necessary(
             stacking_context_tree,
             spatial_id.unwrap_or(containing_block.scroll_node_id),
             containing_block.clip_id,
             &containing_block.rect,
         );
 
-        let style = self.style();
         let clip_id = stacking_context_tree
             .clip_store
             .add_for_clip_path(
                 &style.get_svg().clip_path,
                 spatial_id.unwrap_or(containing_block.scroll_node_id),
                 clip_id.unwrap_or(containing_block.clip_id),
-                self,
+                with_style,
                 containing_block.rect.origin,
             )
             .or(clip_id);
@@ -730,7 +731,7 @@ impl BoxFragment {
             box_fragment,
             text_decorations.clone(),
         );
-        self.build_stacking_context_tree_for_children(
+        with_style.build_stacking_context_tree_for_children(
             stacking_context_tree,
             containing_block,
             containing_block_info,
@@ -753,7 +754,9 @@ impl BoxFragment {
             .children
             .append(&mut stolen_children);
     }
+}
 
+impl BoxFragmentWithStyle<'_> {
     fn build_stacking_context_tree_for_children(
         &self,
         stacking_context_tree: &mut StackingContextTree,
@@ -1019,7 +1022,9 @@ impl BoxFragment {
             }),
         })
     }
+}
 
+impl BoxFragment {
     fn build_sticky_frame_if_necessary(
         &self,
         stacking_context_tree: &mut StackingContextTree,
