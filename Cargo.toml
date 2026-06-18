@@ -228,7 +228,7 @@ sha1 = "0.11"
 sha2 = "0.11"
 sha3 = "0.12"
 signal-hook-registry = "1.4.8"
-skrifa = "0.42.1"
+skrifa = "0.43.2"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 speexdsp-resampler = "0.1.0"
 string_cache = "0.9"
