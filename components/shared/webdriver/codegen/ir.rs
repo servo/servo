@@ -9,6 +9,11 @@ use std::borrow::Cow;
 
 type CowStr<'a> = Cow<'a, str>;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct File<'a> {
+    rules: Vec<Rule<'a>>,
+}
+
 /// A rule definition in CDDL, with the syntax `Name = Type`.
 ///
 /// We do not distinguish between type rule and group rule, because
@@ -321,4 +326,62 @@ pub enum Field<'a> {
     /// }
     /// ```
     Inline(Type<'a>),
+}
+
+/// The trait to visit [`File`].
+pub trait Visitor<'a> {
+    fn visit_file(&mut self, file: &mut File<'a>) {
+        walk_file(self, file);
+    }
+    fn visit_rule(&mut self, rule: &mut Rule<'a>) {
+        walk_rule(self, rule);
+    }
+    fn visit_name(&mut self, _name: &mut Name<'a>) {}
+    fn visit_ty(&mut self, ty: &mut Type<'a>) {
+        walk_ty(self, ty);
+    }
+    fn visit_field(&mut self, field: &mut Field<'a>) {
+        walk_field(self, field);
+    }
+}
+
+pub fn walk_file<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, file: &mut File<'a>) {
+    for rule in &mut file.rules {
+        visitor.visit_rule(rule);
+    }
+}
+
+pub fn walk_rule<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, rule: &mut Rule<'a>) {
+    visitor.visit_name(&mut rule.name);
+    visitor.visit_ty(&mut rule.ty);
+}
+
+pub fn walk_ty<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, ty: &mut Type<'a>) {
+    match ty {
+        Type::Named(name) => visitor.visit_name(name),
+        Type::Array(inner) | Type::Optional(inner) => visitor.visit_ty(inner),
+        Type::Tuple(tys) | Type::Choices(tys) => {
+            for ty in tys {
+                visitor.visit_ty(ty);
+            }
+        },
+        Type::Map(fields) => {
+            for field in fields {
+                visitor.visit_field(field);
+            }
+        },
+        Type::Arrow(key, value) => {
+            visitor.visit_ty(key);
+            visitor.visit_ty(value);
+        },
+        Type::Literals(_) => {},
+    }
+}
+
+pub fn walk_field<'a, V: Visitor<'a> + ?Sized>(visitor: &mut V, field: &mut Field<'a>) {
+    match field {
+        Field::Keyed { ty, .. } => visitor.visit_ty(ty),
+        Field::Group(name) => visitor.visit_name(name),
+        Field::Inline(inner) => visitor.visit_ty(inner),
+    }
 }
