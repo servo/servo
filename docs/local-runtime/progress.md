@@ -97,3 +97,12 @@
 - The workflow now reports the highest required `GLIBC_X.Y` symbol version found in the packaged `servoshell` and summarizes whether that floor should run on Debian 12/glibc 2.36.
 - The Ubuntu/devcontainer build only reports a too-new GLIBC floor, while the Debian 12 build fails clearly if its produced artifact still requires newer than `GLIBC_2.36`.
 - No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only artifact compatibility change.
+
+## 2026-06-18 — Debian 12 pre-bootstrap uv preflight
+
+- The manual Debian 12 debug symbol-split build failed before Servo bootstrap because `./mach` re-execs through `uv run --frozen ...`, and the plain `debian:12` container did not provide `uv`.
+- Inspected Servo's actual prerequisites before changing the Debian path: `.devcontainer/devcontainer.json`, `.devcontainer/Ubuntu.Dockerfile`, `./mach`, `python/servo/platform/linux.py`, `python/servo/platform/linux_packages/apt/*.txt`, and the existing Linux/local-runtime workflows.
+- Added `ci/local-runtime/debian12-preflight.sh` for the Debian 12 manual build only. The script prints OS/kernel/user/glibc context, provides `uv` before any `./mach ...` command, and verifies the pre-mach commands plus local-runtime packaging/ABI/release tooling before long build steps begin.
+- Replaced the Debian job's broad hand-written bootstrap package block with the focused preflight script. Servo's full Linux build dependency set remains owned by `./mach bootstrap` and `python/servo/platform/linux_packages/apt/*.txt`, rather than being duplicated as a guessed Debian package list in the workflow.
+- Future missing-tool failures for this Debian manual build should now happen in preflight with a clear missing-command message before bootstrap, build, package, or artifact-splitting work runs.
+- No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only preflight fix.
