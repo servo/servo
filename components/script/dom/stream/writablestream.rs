@@ -47,7 +47,7 @@ use crate::dom::stream::writablestreamdefaultcontroller::{
     UnderlyingSinkType, WritableStreamDefaultController,
 };
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
@@ -1110,14 +1110,12 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
     /// <https://streams.spec.whatwg.org/#ws-get-writer>
     fn GetWriter(
         &self,
-        realm: InRealm,
-        can_gc: CanGc,
+        realm: &mut CurrentRealm,
     ) -> Result<DomRoot<WritableStreamDefaultWriter>, Error> {
-        let cx = GlobalScope::get_cx();
-        let global = GlobalScope::from_safe_context(cx, realm);
+        let global = GlobalScope::from_current_realm(realm);
 
         // Return ? AcquireWritableStreamDefaultWriter(this).
-        self.aquire_default_writer(cx, &global, can_gc)
+        self.aquire_default_writer(realm.into(), &global, CanGc::from_cx(realm))
     }
 }
 

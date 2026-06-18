@@ -11,7 +11,8 @@ use crossbeam_channel::{Receiver, Sender, after};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
-use js::jsapi::{JS_AddInterruptCallback, JSContext};
+use js::context::{JSContext, RawJSContext};
+use js::jsapi::JS_AddInterruptCallback;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use net_traits::CustomResponseMediator;
@@ -57,11 +58,9 @@ use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::{
-    CanGc, IntroductionType, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext,
-};
+use crate::script_runtime::{CanGc, IntroductionType, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -199,7 +198,7 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         &self.task_queue
     }
 
-    fn handle_event(&self, event: MixedMessage, cx: &mut js::context::JSContext) -> bool {
+    fn handle_event(&self, event: MixedMessage, cx: &mut JSContext) -> bool {
         self.handle_mixed_message(event, cx)
     }
 
@@ -289,7 +288,7 @@ impl ServiceWorkerGlobalScope {
         font_context: Arc<FontContext>,
         debugger_global: &DebuggerGlobalScope,
         worker_id: ServiceWorkerId,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
             init,
@@ -498,7 +497,7 @@ impl ServiceWorkerGlobalScope {
             .expect("Thread spawning failed")
     }
 
-    fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut js::context::JSContext) -> bool {
+    fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut JSContext) -> bool {
         match msg {
             MixedMessage::Devtools(msg) => self
                 .upcast::<WorkerGlobalScope>()
@@ -519,7 +518,7 @@ impl ServiceWorkerGlobalScope {
         false
     }
 
-    fn handle_script_event(&self, msg: ServiceWorkerScriptMsg, cx: &mut js::context::JSContext) {
+    fn handle_script_event(&self, msg: ServiceWorkerScriptMsg, cx: &mut JSContext) {
         use self::ServiceWorkerScriptMsg::*;
 
         match msg {
@@ -580,9 +579,12 @@ impl ServiceWorkerGlobalScope {
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(unsafe { SafeJSContext::from_ptr(cx) });
-    let global = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
+unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(std::ptr::NonNull::new(cx).unwrap()) };
+    let realm = CurrentRealm::assert(&mut cx);
+
+    let global = GlobalScope::from_current_realm(&realm);
     let worker =
         DomRoot::downcast::<WorkerGlobalScope>(global).expect("global is not a worker scope");
     assert!(worker.is::<ServiceWorkerGlobalScope>());

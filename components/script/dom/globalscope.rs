@@ -2366,14 +2366,6 @@ impl GlobalScope {
         unsafe { global_scope_from_global_static(global) }
     }
 
-    /// Returns the global scope for the given JSContext
-    #[expect(unsafe_code)]
-    pub(crate) unsafe fn from_context(cx: *mut JSContext, _realm: InRealm) -> DomRoot<Self> {
-        let global = unsafe { CurrentGlobalOrNull(cx) };
-        assert!(!global.is_null());
-        unsafe { global_scope_from_global(global, cx) }
-    }
-
     /// Return global scope asociated with current realm
     ///
     /// Eventually we could return Handle here as global is already rooted by realm.
@@ -2381,12 +2373,6 @@ impl GlobalScope {
     pub(crate) fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
         let global = realm.global();
         unsafe { global_scope_from_global(global.get(), realm.raw_cx_no_gc()) }
-    }
-
-    /// Returns the global scope for the given SafeJSContext
-    #[expect(unsafe_code)]
-    pub(crate) fn from_safe_context(cx: SafeJSContext, realm: InRealm) -> DomRoot<Self> {
-        unsafe { Self::from_context(*cx, realm) }
     }
 
     pub(crate) fn add_uncaught_rejection(&self, rejection: HandleObject) {
@@ -3594,10 +3580,6 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
 
 #[expect(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
-    unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<Self> {
-        unsafe { GlobalScope::from_context(cx, realm) }
-    }
-
     fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
         GlobalScope::from_current_realm(realm)
     }
