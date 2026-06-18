@@ -136,3 +136,10 @@
 - Uploading GitHub Actions artifacts still happens before Release upload, so a Release ceremony failure should not hide a successful build/package result.
 - The Debian 12 artifact path remains full-build manual-only and does not bake Servo source, compiled output, release archives, debug symbols, or upload logic into the build-room image.
 - No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only artifact workflow update.
+
+## 2026-06-18 — Retire plain Debian 12 preflight from live CI
+
+- PR #18 produced an inherited Servo Linux artifact that was locally tested.
+- The tested `servoshell` emitted `[local-runtime resource-request]` entries for Document, Image, and Script fetches.
+- This confirms the first instrumented Servo runtime seam is alive.
+- The old Debian plain-base preflight script has been retired from live CI and preserved as recovery documentation in `docs/local-runtime/debian12-plain-base-preflight-recovery.md`.
