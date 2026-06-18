@@ -1,6 +1,15 @@
 # Local Runtime Progress
 
 
+## 2026-06-18 — Devcontainer ZIP timestamp packaging fix
+
+- The latest manual Linux debug build reached the packaging/artifact stage after the existing build and package work had already progressed.
+- The failure was caused by Python `zipfile` refusing extracted package entries with timestamps before 1980 (`ValueError: ZIP does not support timestamps before 1980`), not by Servo compilation or Rust code.
+- Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` so both stripped-runtime and debug-symbol ZIP writers use `strict_timestamps=False`, allowing Python to clamp ZIP metadata safely for pre-1980 extracted files while preserving the two intended downloadable ZIP outputs.
+- The ZIP archive names are now generated as sorted, package-relative POSIX paths, keeping archive entries simple and deterministic across the extracted runtime and symbol trees.
+- No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only packaging fix.
+
+
 ## 2026-06-18 — Devcontainer debug package ELF-tool fallback
 
 - The manual Linux debug build itself succeeded with the existing `./mach build --debug` command, and the follow-up package diagnostics showed the original debug package was about 530M.
