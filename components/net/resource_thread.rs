@@ -723,9 +723,9 @@ impl ResourceChannelManager {
                 return false;
             },
             // Ignore these messages as they are only sent on very specific channels.
-            CoreResourceMsg::CollectMemoryReport(_)
-            | CoreResourceMsg::RevokeTokenForFile(..)
-            | CoreResourceMsg::RefreshTokenForFile(..) => {},
+            CoreResourceMsg::CollectMemoryReport(_) |
+            CoreResourceMsg::RevokeTokenForFile(..) |
+            CoreResourceMsg::RefreshTokenForFile(..) => {},
         }
         true
     }
