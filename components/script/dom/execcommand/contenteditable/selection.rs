@@ -308,7 +308,7 @@ impl Selection {
 
         // Step 21. If start node and end node are the same, and start node is an editable Text node:
         if start_node == end_node &&
-            start_node.is_editable() &&
+            start_node.is_editable(cx.no_gc()) &&
             let Some(start_text) = start_node.downcast::<Text>()
         {
             // Step 21.1. Call deleteData(start offset, end offset − start offset) on start node.
@@ -342,7 +342,7 @@ impl Selection {
 
         // Step 22. If start node is an editable Text node, call deleteData() on it, with start offset as
         // the first argument and (length of start node − start offset) as the second argument.
-        if start_node.is_editable() &&
+        if start_node.is_editable(cx.no_gc()) &&
             let Some(start_text) = start_node.downcast::<Text>() &&
             start_text
                 .upcast::<CharacterData>()
@@ -368,7 +368,7 @@ impl Selection {
             // `RootedVec<DomRoot<Node>>`. The type alias here doesn't upset test-tidy,
             // while also providing the necessary information to the compiler to work.
             type DomRootNode = DomRoot<Node>;
-            if node.is_editable() &&
+            if node.is_editable(cx.no_gc()) &&
                 !(node.is::<HTMLTableSectionElement>() ||
                     node.is::<HTMLTableRowElement>() ||
                     node.is::<HTMLTableCellElement>()) &&
@@ -408,7 +408,10 @@ impl Selection {
             {
                 let mut parent = parent;
                 loop {
-                    if parent.is_editable() && parent.is_inline_node() && parent.is_empty() {
+                    if parent.is_editable(cx.no_gc()) &&
+                        parent.is_inline_node() &&
+                        parent.is_empty()
+                    {
                         let grand_parent =
                             parent.GetParentNode().expect("Must always have a parent");
                         assert!(parent.has_parent());
@@ -422,7 +425,7 @@ impl Selection {
         }
 
         // Step 26. If end node is an editable Text node, call deleteData(0, end offset) on it.
-        if end_node.is_editable() &&
+        if end_node.is_editable(cx.no_gc()) &&
             let Some(end_text) = end_node.downcast::<Text>() &&
             end_text
                 .upcast::<CharacterData>()
@@ -511,7 +514,7 @@ impl Selection {
                 // Step 32.4.1. While end block is editable and is the only child of its parent and is not a child of start block,
                 // let parent equal end block, then remove end block from parent, then set end block to parent.
                 loop {
-                    if end_block.is_editable() &&
+                    if end_block.is_editable(cx.no_gc()) &&
                         start_block.children().all(|child| child != end_block) &&
                         let Some(parent) = end_block.GetParentNode() &&
                         parent.children_count() == 1
@@ -526,7 +529,7 @@ impl Selection {
                 // Step 32.4.2. If end block is editable and is not an inline node,
                 // and its previousSibling and nextSibling are both inline nodes,
                 // call createElement("br") on the context object and insert it into end block's parent immediately after end block.
-                if end_block.is_editable() &&
+                if end_block.is_editable(cx.no_gc()) &&
                     !end_block.is_inline_node() &&
                     end_block
                         .GetPreviousSibling()
@@ -546,7 +549,7 @@ impl Selection {
                     }
                 }
                 // Step 32.4.3. If end block is editable, remove it from its parent.
-                if end_block.is_editable() {
+                if end_block.is_editable(cx.no_gc()) {
                     assert!(end_block.has_parent());
                     end_block.remove_self(cx);
                 }
@@ -616,7 +619,7 @@ impl Selection {
             // remove that br from its parent.
             if let Some(first) = children.first() &&
                 let Some(previous_of_first) = first.GetPreviousSibling() &&
-                previous_of_first.is_editable() &&
+                previous_of_first.is_editable(cx.no_gc()) &&
                 previous_of_first.is::<HTMLBRElement>()
             {
                 assert!(previous_of_first.has_parent());
@@ -815,7 +818,7 @@ impl Selection {
         // with argument equal to the active range's start offset.
         // Then set the active range's start node to the result, and its start offset to zero.
         let (start_node, start_offset) = self.start_boundary(cx);
-        if start_node.is_editable() &&
+        if start_node.is_editable(cx.no_gc()) &&
             start_offset != 0 &&
             start_offset != start_node.len() &&
             let Some(start_text) = start_node.downcast::<Text>()
@@ -832,7 +835,7 @@ impl Selection {
         // call splitText() on the active range's end node,
         // with argument equal to the active range's end offset.
         let (end_node, end_offset) = self.end_boundary(cx);
-        if end_node.is_editable() &&
+        if end_node.is_editable(cx.no_gc()) &&
             end_offset != 0 &&
             end_offset != end_node.len() &&
             let Some(end_text) = end_node.downcast::<Text>() &&
@@ -844,7 +847,7 @@ impl Selection {
         // Step 6. For each element in element list, clear the value of element.
         self.expect_active_range(cx)
             .for_each_effectively_contained_child(cx, |cx, child| {
-                if child.is_editable() &&
+                if child.is_editable(cx.no_gc()) &&
                     let Some(element_child) = child.downcast::<HTMLElement>()
                 {
                     element_child.clear_the_value(cx, &command);
@@ -854,7 +857,7 @@ impl Selection {
         // Step 8. For each node in node list:
         self.expect_active_range(cx)
             .for_each_effectively_contained_child(cx, |cx, child| {
-                if child.is_editable() {
+                if child.is_editable(cx.no_gc()) {
                     // Step 8.1. Push down values on node.
                     child.push_down_values(cx, &command, new_value.clone());
                     // Step 8.2. If node is an allowed child of "span", force the value of node.
