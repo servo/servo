@@ -1,5 +1,14 @@
 # Local Runtime Progress
 
+
+## 2026-06-18 — Devcontainer debug package ELF-tool fallback
+
+- The manual Linux debug build itself succeeded with the existing `./mach build --debug` command, and the follow-up package diagnostics showed the original debug package was about 530M.
+- The largest-file inventory showed the package is dominated by the debug `runtime/servo/servoshell` binary, reported at 2038099592 bytes before stripping.
+- The previous diagnostic/package-splitting run failed after the successful build only because the Servo devcontainer did not have the `file` command installed, so ELF detection stopped at `file: command not found`.
+- Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` so ELF detection uses `readelf -h` or `llvm-readelf -h`, and debug extraction/stripping uses whichever of `objcopy`/`llvm-objcopy` and `strip`/`llvm-strip` is available at runtime. The workflow now prints the selected tools and avoids depending on `file` while keeping the stripped runtime ZIP, debug-symbol ZIP, size diagnostics, and GitHub Release safe-directory fix.
+- No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only packaging fix.
+
 ## 2026-06-18 — Devcontainer debug package split and release diagnostics
 
 - Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` inside the manual-only `linux-debug-build` packaging/release path while keeping the successful `./mach build --debug` and `./mach package --debug` flow intact.

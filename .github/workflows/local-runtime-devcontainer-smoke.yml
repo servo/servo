@@ -120,32 +120,49 @@ jobs:
           echo "Largest 50 files before stripping:"
           find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$BEFORE_INVENTORY"
 
+          select_tool() {
+            local tool
+            for tool in "$@"; do
+              if command -v "$tool" >/dev/null 2>&1; then
+                command -v "$tool"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          READELF="$(select_tool readelf llvm-readelf)" || {
+            echo "No usable ELF header reader found; expected readelf or llvm-readelf." >&2
+            exit 1
+          }
+          OBJCOPY="$(select_tool objcopy llvm-objcopy)" || {
+            echo "No usable debug objcopy tool found; expected objcopy or llvm-objcopy." >&2
+            exit 1
+          }
+          STRIP="$(select_tool strip llvm-strip)" || {
+            echo "No usable strip tool found; expected strip or llvm-strip." >&2
+            exit 1
+          }
+
+          echo "Selected ELF header reader: $READELF"
+          echo "Selected debug objcopy tool: $OBJCOPY"
+          echo "Selected strip tool: $STRIP"
+
           : > "$ELF_LIST"
           while IFS= read -r -d '' file_path; do
-            file_output="$(file -b "$file_path")"
-            case "$file_output" in
-              *ELF*executable*|*ELF*shared\ object*|*ELF*pie\ executable*)
-                size="$(stat -c '%s' "$file_path")"
-                printf '%s %s\n' "$size" "$file_path" >> "$ELF_LIST"
-                printf '%s: %s\n' "${file_path#$RUNTIME_DIR/}" "$file_output"
-                ;;
-            esac
+            if "$READELF" -h "$file_path" >/dev/null 2>&1; then
+              size="$(stat -c '%s' "$file_path")"
+              printf '%s %s\n' "$size" "$file_path" >> "$ELF_LIST"
+              printf '%s: ELF file detected by %s\n' "${file_path#$RUNTIME_DIR/}" "$(basename "$READELF")"
+            fi
           done < <(find "$RUNTIME_DIR" -type f -print0)
 
           echo "Section information for largest ELF files before stripping:"
           sort -nr "$ELF_LIST" | sed -n '1,20p' | while IFS=' ' read -r _ elf_file; do
             echo "### ${elf_file#$RUNTIME_DIR/}"
-            if command -v readelf >/dev/null 2>&1; then
-              readelf -S "$elf_file" | sed -n '1,80p'
-            elif command -v objdump >/dev/null 2>&1; then
-              objdump -h "$elf_file" | sed -n '1,80p'
-            else
-              echo "readelf and objdump are unavailable"
-            fi
+            "$READELF" -S "$elf_file" | sed -n '1,80p'
           done
 
-          OBJCOPY="$(command -v llvm-objcopy || command -v objcopy)"
-          STRIP="$(command -v llvm-strip || command -v strip)"
           PROCESSED_ELF_COUNT=0
 
           while IFS=' ' read -r _ elf_file; do
