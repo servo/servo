@@ -1197,9 +1197,11 @@ impl LayoutThread {
             ),
             font_context: self.font_context.clone(),
             iframe_sizes: Mutex::default(),
-            use_rayon: rayon_pool.is_some(),
+            allow_parallel_layout: rayon_pool.is_some(),
             image_resolver: image_resolver.clone(),
             painter_id: self.webview_id.into(),
+            parallelism_job_count_minimum: pref!(layout_parallelism_job_count_minimum) as usize,
+            parallelism_job_size_minimum: pref!(layout_parallelism_job_size_minimum) as usize,
         };
 
         let restyle = reflow_request
