@@ -106,3 +106,9 @@
 - Replaced the Debian job's broad hand-written bootstrap package block with the focused preflight script. Servo's full Linux build dependency set remains owned by `./mach bootstrap` and `python/servo/platform/linux_packages/apt/*.txt`, rather than being duplicated as a guessed Debian package list in the workflow.
 - Future missing-tool failures for this Debian manual build should now happen in preflight with a clear missing-command message before bootstrap, build, package, or artifact-splitting work runs.
 - No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only preflight fix.
+
+## 2026-06-18 — Debian 12 Rust toolchain preflight
+
+- The Debian 12 manual build advanced past the missing-`uv` failure, then Servo bootstrap failed while installing `cargo-nextest` because `rustup`, `rustc`, and `cargo` were not available in the plain `debian:12` container.
+- Updated the Debian 12 preflight to provide the Rust toolchain from Servo's own sources of truth: `.devcontainer/Ubuntu.Dockerfile` installs rustup under `/usr/local` with the pinned `rust-toolchain.toml` channel and components, and `python/servo/platform/base.py` expects `rustup`/`cargo` before it can install `cargo-nextest`, `taplo-cli`, `cargo-deny`, and `support/crown` during `./mach bootstrap --yes`.
+- The preflight now verifies `rustup`, `rustc`, and `cargo` before returning success, and writes `/usr/local/cargo/bin` to `GITHUB_PATH` so subsequent Debian workflow steps can find the toolchain before long build/package steps begin.
