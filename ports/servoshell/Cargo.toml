@@ -59,6 +59,7 @@ tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
 vello = ["servo/vello"]
 webgl_backtrace = ["servo/webgl_backtrace"]
 webgpu = ["servo/webgpu"]
+webnn = ["servo/webnn"]
 webxr = ["servo/webxr"]
 
 [dependencies]

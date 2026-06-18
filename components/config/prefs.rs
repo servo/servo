@@ -114,6 +114,8 @@ pub struct Preferences {
     pub devtools_server_listen_address: String,
     // feature: WebGPU | #24706 | Web/API/WebGPU_API
     pub dom_webgpu_enabled: bool,
+    // feature: WebNN | #45452 | Web/API/WebNN_API
+    pub dom_webnn_enabled: bool,
     /// List of comma-separated backends to be used by wgpu.
     pub dom_webgpu_wgpu_backend: String,
     // feature: AbortController | #34866 | Web/API/AbortController
@@ -466,6 +468,7 @@ impl Preferences {
             dom_web_animations_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
+            dom_webnn_enabled: true,
             dom_webgpu_wgpu_backend: String::new(),
             dom_webrtc_enabled: false,
             dom_webrtc_transceiver_enabled: false,

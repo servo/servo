@@ -1744,6 +1744,10 @@ impl ScriptThread {
                 ScriptThreadEventCategory::WebGPUMsg => {
                     time_profile!(ProfilerCategory::ScriptWebGPUMsg, None, profiler_chan, f)
                 },
+                #[cfg(feature = "webnn")]
+                ScriptThreadEventCategory::WebNNMsg => {
+                    time_profile!(ProfilerCategory::ScriptEvent, None, profiler_chan, f)
+                },
             }
         } else {
             f()

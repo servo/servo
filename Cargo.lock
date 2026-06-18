@@ -8877,6 +8877,7 @@ dependencies = [
  "servo-tracing",
  "servo-url",
  "servo-webgpu-traits",
+ "servo-webnn",
  "servo-webxr-api",
  "servo-xpath",
  "servo_arc",
@@ -9153,6 +9154,15 @@ dependencies = [
  "webrender_api",
  "wgpu-core",
  "wgpu-types",
+]
+
+[[package]]
+name = "servo-webnn"
+version = "0.3.0"
+dependencies = [
+ "log",
+ "serde",
+ "servo-base",
 ]
 
 [[package]]

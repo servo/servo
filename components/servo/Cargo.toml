@@ -72,6 +72,9 @@ webgpu = [
     "servo-constellation/webgpu",
     "servo-constellation-traits/webgpu",
 ]
+webnn = [
+    "script/webnn",
+]
 webxr = [
     "dep:webxr",
     "dep:webxr-api",
