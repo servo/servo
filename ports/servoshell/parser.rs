@@ -42,6 +42,9 @@ pub fn get_default_url(
             ("file", None, Ok(ref path)) if exists(path) => {
                 new_url = cmdline_url;
             },
+            (scheme, None, Err(_)) if !is_normal_scheme(scheme) => {
+                new_url = ServoUrl::parse(&format!("http://{}:{}", scheme, &url.path())).ok();
+            },
             _ => {},
         }
     }
@@ -68,11 +71,19 @@ pub fn get_default_url(
 /// interpret the string as a search term.
 pub(crate) fn location_bar_input_to_url(request: &str, searchpage: &str) -> Option<ServoUrl> {
     let request = request.trim();
-    ServoUrl::parse(request)
-        .ok()
-        .or_else(|| try_as_file(request))
-        .or_else(|| try_as_domain(request))
-        .or_else(|| try_as_search_page(request, searchpage))
+    let input_url = ServoUrl::parse(request).ok();
+    if let Some(url) = input_url {
+        match (url.scheme(), url.host(), url.to_file_path()) {
+            (scheme, None, Err(_)) if !is_normal_scheme(scheme) => {
+                ServoUrl::parse(&format!("http://{}:{}", scheme, &url.path())).ok()
+            },
+            _ => Some(url),
+        }
+    } else {
+        try_as_file(request)
+            .or_else(|| try_as_domain(request))
+            .or_else(|| try_as_search_page(request, searchpage))
+    }
 }
 
 fn try_as_file(request: &str) -> Option<ServoUrl> {
@@ -99,4 +110,14 @@ fn try_as_search_page(request: &str, searchpage: &str) -> Option<ServoUrl> {
         return None;
     }
     ServoUrl::parse(&searchpage.replace("%s", request)).ok()
+}
+
+fn is_normal_scheme(s: &str) -> bool {
+    s == "file" ||
+        s == "http" ||
+        s == "https" ||
+        s == "ws" ||
+        s == "wss" ||
+        s == "ftp" ||
+        s == "data"
 }
