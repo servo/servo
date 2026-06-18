@@ -321,10 +321,12 @@ impl AccessibilityTree {
 
         (id, node_ref)
     }
-    pub(crate) fn accesskit_node_for_dom_node(self, dom_node: &ServoLayoutNode) -> Option<accesskit::Node> {
-        let node = dom_node.node_for_dom_node(dom_node)?;
-        node.accesskit_node.clone()
+    
+    pub(crate) fn accesskit_node_for_dom_node(&mut self, dom_node: &ServoLayoutNode) -> Option<accesskit::Node> {
+        let node = self.node_for_dom_node(dom_node)?;
+        Some(node.borrow().accesskit_node.clone())
     }
+    
     fn get_or_create_node_with_id(
         &mut self,
         id: NodeId,

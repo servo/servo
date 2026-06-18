@@ -3146,6 +3146,14 @@ impl Window {
         ))
     }
 
+    pub(crate) fn accesskit_node_query(
+        &self,
+        element: TrustedNodeAddress,
+    )-> Option<accesskit::Node> {
+        self.layout_reflow(QueryMsg::AccessKitNodeQuery);
+        self.layout.borrow().query_accesskit_node(element)
+    }
+
     /// If the given |browsing_context_id| refers to an `<iframe>` that is an element
     /// in this [`Window`] and that `<iframe>` has been laid out, return its size.
     /// Otherwise, return `None`.

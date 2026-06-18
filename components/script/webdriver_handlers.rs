@@ -1355,7 +1355,7 @@ pub(crate) fn handle_get_computed_role(
                 // FIXME: Actually compute the role instead of using WAI-ARIA role.
                 // <https://github.com/servo/servo/issues/43734>
                 // The logic can then be shared with devtools accessibility inspector.
-                .map(|element| element.GetRole().map(String::from)),
+                .map(|element| element.get_computed_role().map(String::from)),
         )
         .unwrap();
 }
