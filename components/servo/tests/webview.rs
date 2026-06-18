@@ -1096,8 +1096,8 @@ fn test_preferences_change() {
 
     assert_eq!(
         // The backdrop-filter style is feature flagged by the layout.unimplemented feature,
-        // so when layout.unimplemented feature is disabled, the zoom style specified in
-        // the stylesheet won't parse and the computed value undefined
+        // so when layout.unimplemented feature is disabled, the backdrop-filter style specified
+        /// in the stylesheet won't parse and the computed value undefined
         Ok(JSValue::Array(vec![
             JSValue::String("".to_string()),
             JSValue::String("".to_string())
