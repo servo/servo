@@ -83,4 +83,5 @@ def test_computed_roles(session, inline, html, tag, expected):
     session.url = inline(html)
     element = session.find.css(tag, all=False)
     result = get_computed_role(session, element.id)
+#     print("RESULT:", result)
     assert_success(result, expected)
