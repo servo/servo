@@ -112,3 +112,13 @@
 - The Debian 12 manual build advanced past the missing-`uv` failure, then Servo bootstrap failed while installing `cargo-nextest` because `rustup`, `rustc`, and `cargo` were not available in the plain `debian:12` container.
 - Updated the Debian 12 preflight to provide the Rust toolchain from Servo's own sources of truth: `.devcontainer/Ubuntu.Dockerfile` installs rustup under `/usr/local` with the pinned `rust-toolchain.toml` channel and components, and `python/servo/platform/base.py` expects `rustup`/`cargo` before it can install `cargo-nextest`, `taplo-cli`, `cargo-deny`, and `support/crown` during `./mach bootstrap --yes`.
 - The preflight now verifies `rustup`, `rustc`, and `cargo` before returning success, and writes `/usr/local/cargo/bin` to `GITHUB_PATH` so subsequent Debian workflow steps can find the toolchain before long build/package steps begin.
+
+## 2026-06-18 — Separate Debian 12 build-room image workflow
+
+- The manual Debian 12 debug symbol-split path successfully produced a Debian-compatible Servo artifact: highest required GLIBC symbol reported as `GLIBC_2.35`, which is compatible with Debian 12/bookworm's glibc 2.36.
+- That successful run reported a stripped runtime tree of about 458M, a debug-symbol tree of about 1.6G, and 1 processed ELF file.
+- The current artifact workflow still has separate Release-upload ceremony problems; this change deliberately does not modify that artifact workflow or its manual build menu behavior.
+- Added a separate reusable Debian 12/bookworm build-room image definition under `ci/local-runtime/debian12-build-image/` for GHCR publishing. The image contains Debian/Servo build prerequisites, `uv`, Rust bootstrap tooling, and packaging/ELF inspection tools, but not Servo source, `/var/servo-cargo-target` output, compiled Servo artifacts, artifact archives, debug symbols, or release-upload logic.
+- Added a new manual-only `Local Runtime Debian 12 Build Image` workflow that builds, verifies, and pushes `ghcr.io/${{ github.repository_owner }}/servo-debian12-build:bookworm` and `:latest` without building Servo.
+- Future work can switch the Debian 12 artifact build job to use this image after the image workflow is proven, keeping this change as an amputation/separation step rather than a behavior change to current artifact builds.
+- No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI/image-only separation.
