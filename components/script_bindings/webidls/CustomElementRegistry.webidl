@@ -5,6 +5,8 @@
 // https://html.spec.whatwg.org/multipage/#customelementregistry
 [Exposed=Window]
 interface CustomElementRegistry {
+  constructor();
+
   [Throws, CEReactions]
   undefined define(
     DOMString name,
