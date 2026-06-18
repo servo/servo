@@ -10,11 +10,13 @@ use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use malloc_size_of_derive::MallocSizeOf;
+use net_traits::pub_domains::reg_suffix;
 use net_traits::request::{CredentialsMode, Referrer};
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_base::generic_channel;
 use servo_constellation_traits::{MessagePortImpl, WorkerScriptLoadOrigin};
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
 use crate::conversions::Convert;
@@ -59,7 +61,7 @@ pub(crate) type TrustedSharedWorkerAddress = Trusted<SharedWorker>;
 /// Key used by the script-side SharedWorker registry.
 #[derive(Clone)]
 struct SharedWorkerKey {
-    storage_key: ImmutableOrigin,
+    storage_key: SharedWorkerStorageKey,
     constructor_origin: ImmutableOrigin,
     constructor_url: ServoUrl,
     name: String,
@@ -68,7 +70,7 @@ struct SharedWorkerKey {
 impl SharedWorkerKey {
     fn matches(
         &self,
-        storage_key: &ImmutableOrigin,
+        storage_key: &SharedWorkerStorageKey,
         constructor_origin: &ImmutableOrigin,
         constructor_url: &ServoUrl,
         name: &str,
@@ -77,6 +79,54 @@ impl SharedWorkerKey {
             self.constructor_origin == *constructor_origin &&
             self.constructor_url == *constructor_url &&
             self.name == name
+    }
+}
+
+#[derive(Clone, Eq, MallocSizeOf, PartialEq)]
+enum SharedWorkerSite {
+    Opaque(ImmutableOrigin),
+    Tuple { scheme: String, host: Host },
+}
+
+impl SharedWorkerSite {
+    /// <https://html.spec.whatwg.org/multipage/#obtain-a-site>
+    fn from_origin(origin: ImmutableOrigin) -> Self {
+        match origin {
+            // 1. If origin is an opaque origin, then return origin.
+            ImmutableOrigin::Opaque(_) => SharedWorkerSite::Opaque(origin),
+            // 3. Return (origin's scheme, origin's host's registrable domain).
+            ImmutableOrigin::Tuple(scheme, Host::Domain(domain), _) => SharedWorkerSite::Tuple {
+                scheme,
+                host: Host::Domain(reg_suffix(&domain).to_owned()),
+            },
+            // 2. If origin's host's registrable domain is null, then return
+            // (origin's scheme, origin's host).
+            ImmutableOrigin::Tuple(scheme, host, _) => SharedWorkerSite::Tuple { scheme, host },
+        }
+    }
+}
+
+#[derive(Clone, Eq, MallocSizeOf, PartialEq)]
+pub(crate) struct SharedWorkerStorageKey {
+    origin: ImmutableOrigin,
+    top_level_site: Option<SharedWorkerSite>,
+}
+
+impl SharedWorkerStorageKey {
+    /// <https://storage.spec.whatwg.org/#storage-key>
+    fn for_window(global: &GlobalScope, window: &Window) -> Self {
+        // A storage key is a tuple consisting of an origin (an origin).
+        // This is expected to change; see Client-Side Storage Partitioning.
+        let origin = global.obtain_storage_key_for_non_storage_purposes();
+
+        let top_level_site = window
+            .top_level_document_if_local()
+            .map(|document| SharedWorkerSite::from_origin(document.origin().immutable().clone()));
+
+        SharedWorkerStorageKey {
+            origin,
+            top_level_site,
+        }
     }
 }
 
@@ -404,7 +454,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         let caller_is_secure_context = global.is_secure_context();
         // Step 9. Let outsideStorageKey be the result of running obtain a storage
         // key for non-storage purposes given outsideSettings.
-        let outside_storage_key = global.obtain_storage_key_for_non_storage_purposes();
+        let outside_storage_key = SharedWorkerStorageKey::for_window(global, window);
 
         let worker_name_string = worker_name.to_string();
         let (control_sender, control_receiver) = unbounded();

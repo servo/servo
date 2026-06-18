@@ -48,7 +48,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::Script;
 use crate::dom::messageport::MessagePort;
-use crate::dom::sharedworker::{SharedWorker, TrustedSharedWorkerAddress};
+use crate::dom::sharedworker::{SharedWorker, SharedWorkerStorageKey, TrustedSharedWorkerAddress};
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -62,7 +62,6 @@ use crate::task_source::TaskSourceName;
 
 pub(crate) enum SharedWorkerScriptMsg {
     CommonWorker(WorkerScriptMsg),
-    #[allow(dead_code)]
     Connect(MessagePortImpl),
     WakeUp,
 }
@@ -168,7 +167,7 @@ pub(crate) struct SharedWorkerGlobalScope {
     debugger_global: Dom<DebuggerGlobalScope>,
     // A `SharedWorkerGlobalScope` object has associated constructor origin (an origin), constructor URL (a URL record), and credentials (a credentials mode), and extended lifetime (a boolean).
     #[no_trace]
-    storage_key: ImmutableOrigin,
+    storage_key: SharedWorkerStorageKey,
     #[no_trace]
     constructor_origin: ImmutableOrigin,
     #[no_trace]
@@ -223,7 +222,6 @@ impl WorkerEventLoopMethods for SharedWorkerGlobalScope {
 
 impl SharedWorkerGlobalScope {
     #[allow(clippy::too_many_arguments)]
-    #[allow(dead_code)]
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,
@@ -241,7 +239,7 @@ impl SharedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
         debugger_global: &DebuggerGlobalScope,
-        storage_key: ImmutableOrigin,
+        storage_key: SharedWorkerStorageKey,
         constructor_origin: ImmutableOrigin,
         constructor_url: ServoUrl,
         credentials: CredentialsMode,
@@ -279,7 +277,6 @@ impl SharedWorkerGlobalScope {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[allow(dead_code)]
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,
@@ -297,7 +294,7 @@ impl SharedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
         debugger_global: &DebuggerGlobalScope,
-        storage_key: ImmutableOrigin,
+        storage_key: SharedWorkerStorageKey,
         constructor_origin: ImmutableOrigin,
         constructor_url: ServoUrl,
         credentials: CredentialsMode,
@@ -335,7 +332,6 @@ impl SharedWorkerGlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[expect(unsafe_code)]
-    #[allow(dead_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn run_shared_worker_scope(
         mut init: WorkerGlobalScopeInit,
@@ -358,7 +354,7 @@ impl SharedWorkerGlobalScope {
         extended_lifetime: bool,
         constructor_origin: ImmutableOrigin,
         constructor_url: ServoUrl,
-        storage_key: ImmutableOrigin,
+        storage_key: SharedWorkerStorageKey,
         insecure_requests_policy: InsecureRequestsPolicy,
         policy_container: PolicyContainer,
         font_context: Option<Arc<FontContext>>,
