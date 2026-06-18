@@ -85,3 +85,15 @@
 - Added workflow `contents: write` permission so the existing `github.token` can create or update the Release from the successful manual build.
 - Kept the existing workflow triggers, smoke job, devcontainer image, debug build command, and build environment unchanged.
 - No Servo crates/modules or local-runtime Rust code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only release capture change.
+
+## 2026-06-18 — Debian 12 manual Linux artifact target and GLIBC floor reporting
+
+- The known-good Ubuntu/devcontainer manual debug-symbol-split build is size-successful: it produces the stripped runtime ZIP and debug-symbol ZIP, with `servo-linux-debug-runtime-stripped.zip` observed at about 109 MB compressed and about 454 MB unpacked.
+- That Ubuntu/devcontainer artifact is not a Debian 12/bookworm keeper artifact because its packaged `servoshell` requires `GLIBC_2.38`, while Debian 12/bookworm provides glibc 2.36.
+- Debian 12/bookworm is now the compatibility target for keeper Linux artifacts so the Linux runtime can be built against the Debian 12 glibc floor instead of inheriting Ubuntu 24.04's newer floor.
+- Linux artifacts inherit the glibc floor of the build container; building in `debian:12` is therefore the manual path for artifacts intended to run on Debian 12/glibc 2.36 systems.
+- Updated `.github/workflows/local-runtime-devcontainer-smoke.yml` so `workflow_dispatch` exposes a `build_kind` choice and only the selected full build runs; push and pull_request still run only the cheap smoke job.
+- Manual artifact builds no longer repeat or wait on the smoke job before building; each manual build path performs its own checkout, bootstrap, build, package, artifact upload, and release upload.
+- The workflow now reports the highest required `GLIBC_X.Y` symbol version found in the packaged `servoshell` and summarizes whether that floor should run on Debian 12/glibc 2.36.
+- The Ubuntu/devcontainer build only reports a too-new GLIBC floor, while the Debian 12 build fails clearly if its produced artifact still requires newer than `GLIBC_2.36`.
+- No Servo Rust crates/modules or local-runtime runtime code were touched; no runtime resource paths were loaded, logged, or denied by this CI-only artifact compatibility change.
