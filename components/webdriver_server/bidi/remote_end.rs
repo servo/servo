@@ -1,10 +1,14 @@
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
+    net::SocketAddr,
     rc::Rc,
 };
 
-use async_tungstenite::tungstenite::{Error as WsError, Message as WsMessage, Utf8Bytes};
+use async_tungstenite::{
+    tokio::accept_async,
+    tungstenite::{Error as WsError, Message as WsMessage, Utf8Bytes},
+};
 use crossbeam_channel::Sender;
 use devtools_traits::WorkerId;
 use embedder_traits::EmbedderProxy;
@@ -17,6 +21,7 @@ use servo_base::{
     id::{BrowsingContextId, PainterId, PipelineId, WebViewId},
 };
 use tokio::{
+    net::{TcpListener, TcpStream},
     sync::{Mutex, mpsc::UnboundedReceiver},
     task,
 };
@@ -77,12 +82,13 @@ impl RemoteEnd {
     pub(crate) async fn run(
         self: Rc<Self>,
         mut servo_receiver: UnboundedReceiver<WebDriverMsg>,
+        listener: TcpListener,
         mut connection_receivers: HashMap<ConnectionId, ConnectionReceiver>,
     ) {
-        // TODO: should also listener, accept connection
         loop {
             {
                 let servo_next = servo_receiver.recv();
+                let listener_next = listener.accept();
                 let connections_next = future::select_all(
                     connection_receivers
                         .iter_mut()
@@ -92,6 +98,7 @@ impl RemoteEnd {
 
                 tokio::select! {
                     msg = servo_next => self.handle_servo(msg),
+                    stream = listener_next => self.handle_accept(stream, &mut connection_receivers).await,
                     (conn_id, msg) = connections_next => self.clone().handle_connection(*conn_id, msg),
                 }
             }
@@ -108,6 +115,34 @@ impl RemoteEnd {
         match msg {
             WebDriverMsg::FromConstellation(msg) => self.handle_constellation(msg),
             WebDriverMsg::FromScript(msg) => self.handle_script(msg),
+        }
+    }
+
+    async fn handle_accept(
+        &self,
+        stream: Result<(TcpStream, SocketAddr), tokio::io::Error>,
+        connection_receivers: &mut HashMap<ConnectionId, ConnectionReceiver>,
+    ) {
+        match stream {
+            Ok((tcp_stream, _)) => {
+                // TODO: check header
+                match accept_async(tcp_stream).await {
+                    Ok(ws_stream) => {
+                        let conn_id = ConnectionId::next();
+                        let (sender, receiver) = ws_stream.split();
+                        self.connection_senders
+                            .borrow_mut()
+                            .insert(conn_id, sender.into());
+                        connection_receivers.insert(conn_id, receiver);
+                    },
+                    Err(err) => {
+                        warn!("Accepting websocket connection failed (err: {err:?})");
+                    },
+                }
+            },
+            Err(err) => {
+                warn!("Accepting new connection failed (err: {:?})", err);
+            },
         }
     }
 
