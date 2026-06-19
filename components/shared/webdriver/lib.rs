@@ -27,6 +27,18 @@ pub mod bidi {
             }
         }
     }
+
+    impl CommandData {
+        pub fn is_static(&self) -> bool {
+            if let CommandData::SessionCommand(cmd) = self
+                && let SessionCommand::New(_) | SessionCommand::Status(_) = cmd
+            {
+                true
+            } else {
+                false
+            }
+        }
+    }
 }
 
 use devtools_traits::WorkerId;

@@ -12,7 +12,10 @@ pub(crate) mod common;
 pub(crate) mod proxy;
 pub(crate) mod r#static;
 
-use std::rc::Rc;
+use std::{
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 use async_tungstenite::tungstenite;
 use crossbeam_channel::Sender;
@@ -30,7 +33,7 @@ use webdriver_traits::{
 
 use crate::bidi::{
     RemoteEndState,
-    connection::Connection,
+    connection::{Connection, ConnectionId},
     session::{
         bidi::{BidiPart, BidiSession},
         common::{CommonPart, SessionId, SessionMessage},
@@ -39,7 +42,24 @@ use crate::bidi::{
     },
 };
 
-pub enum Session {
+pub(crate) struct Session {
+    pub(crate) id: SessionId,
+    /// A BiDi session has the BiDi flag set to true.
+    pub(crate) bidi: bool,
+    /// The session's associated connections.
+    pub(crate) connections: HashSet<ConnectionId>,
+}
+
+impl Session {
+    /// <https://www.w3.org/TR/webdriver-bidi/#associated-with-connection>
+    pub(crate) fn is_associated_with_connection(&self, connection_id: &ConnectionId) -> bool {
+        self.connections.contains(connection_id)
+    }
+}
+
+// ==== The old session impl ====
+
+pub enum SessionOldOwning {
     Static {
         common: CommonPart,
         connections: Vec<Connection>,
@@ -51,7 +71,7 @@ pub enum Session {
     },
 }
 
-impl Session {
+impl SessionOldOwning {
     /// Start static session as a tokio local task.
     pub(crate) fn start_static(
         remote_end_state: Rc<RemoteEndState>,
@@ -99,12 +119,12 @@ impl Session {
     async fn run(mut self) {
         while self.running {
             match &mut self {
-                Session::Static {
+                SessionOldOwning::Static {
                     common,
                     connections,
                     ..
                 }
-                | Session::BidiOnly {
+                | SessionOldOwning::BidiOnly {
                     common,
                     bidi: BidiPart { connections, .. },
                     ..
@@ -127,20 +147,22 @@ impl Session {
     /// Return `None` when session is classic only otherwise.
     fn as_bidi_or_static<'a>(&'a mut self) -> Option<Result<BidiSession<'a>, StaticSession<'a>>> {
         match self {
-            Session::Static {
+            SessionOldOwning::Static {
                 common,
                 connections,
             } => Some(Err(StaticSession {
                 common,
                 connections,
             })),
-            Session::BidiOnly { id, common, bidi } => Some(Ok(BidiSession { id, common, bidi })),
+            SessionOldOwning::BidiOnly { id, common, bidi } => {
+                Some(Ok(BidiSession { id, common, bidi }))
+            },
         }
     }
 
     /// Create a proxy to self, so that self can receive message from `active_sessions`.
     fn to_proxy(&self) -> SessionProxy {
-        let bidi_flag = matches!(self, Session::BidiOnly { .. });
+        let bidi_flag = matches!(self, SessionOldOwning::BidiOnly { .. });
         let sender = self.session_sender.clone();
         SessionProxy { bidi_flag, sender }
     }
@@ -216,8 +238,8 @@ impl Session {
 
     fn connections_mut(&mut self) -> Option<&mut Vec<Connection>> {
         match self {
-            Session::Static { connections, .. } => Some(connections),
-            Session::BidiOnly { bidi, .. } => Some(&mut bidi.connections),
+            SessionOldOwning::Static { connections, .. } => Some(connections),
+            SessionOldOwning::BidiOnly { bidi, .. } => Some(&mut bidi.connections),
         }
     }
 

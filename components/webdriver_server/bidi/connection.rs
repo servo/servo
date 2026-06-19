@@ -4,6 +4,9 @@ use async_tungstenite::{WebSocketStream, tokio::TokioAdapter};
 use tokio::net::TcpStream;
 use webdriver_traits::bidi::{ErrorCode, ErrorResponse, Message as BidiMessage};
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct ConnectionId(pub(crate) u64);
+
 // TODO: support wss in the future. at that time a enum should be used.
 
 /// A WebSocket connection.

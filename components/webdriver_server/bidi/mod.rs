@@ -2,40 +2,50 @@ mod callback;
 mod connection;
 mod error;
 mod listener;
+mod modules;
+mod remote_end;
 mod session;
 
 use std::{
-    collections::HashMap,
+    cell::RefCell,
+    collections::{HashMap, HashSet},
     net::{SocketAddr, SocketAddrV4},
     rc::Rc,
     thread::{self},
 };
 
+use async_tungstenite::tungstenite;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::WorkerId;
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
+use futures_util::StreamExt;
 use net_traits::ResourceThreads;
 use servo_base::{
     generic_channel::GenericSender,
     id::{BrowsingContextId, PainterId, PipelineId, WebViewId},
 };
-use tokio::sync::{
-    RwLock,
-    mpsc::{self, UnboundedReceiver, UnboundedSender},
+use tokio::{
+    sync::{
+        RwLock,
+        mpsc::{self, UnboundedReceiver, UnboundedSender},
+    },
+    task,
 };
 use webdriver_traits::{
     ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
     WebDriverToScriptMessage,
     bidi::{
-        ErrorCode, browsing_context,
+        CommandData, ErrorCode, browser, browsing_context,
         script::{BaseRealmInfo, RealmInfo, WindowRealmInfo, WindowRealmInfoType},
     },
 };
 
 use crate::bidi::{
+    connection::Connection,
     listener::Listener,
+    remote_end::RemoteEnd,
     session::{
-        Session,
+        SessionOldOwning,
         common::{SessionId, SessionMessage},
         proxy::SessionProxy,
     },
@@ -100,7 +110,7 @@ impl WebDriverBidiThread {
                 let resource_threads = &self.resource_threads;
                 let constellation_sender = &self.constellation_sender;
 
-                let (_, sender) = Session::start_static(
+                let (_, sender) = SessionOldOwning::start_static(
                     remote_end_state.clone(),
                     embedder_proxy.clone(),
                     resource_threads.clone(),
@@ -297,3 +307,7 @@ struct Hierarchy {
 //    navigable_id: BrowsingContextId,
 //    top_level_traversable: WebViewId,
 // }
+
+pub struct WebDriverThread {
+    remote_end: Rc<RemoteEnd>,
+}

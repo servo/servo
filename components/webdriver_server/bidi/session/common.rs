@@ -16,9 +16,9 @@ use webdriver_traits::{
     ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
 };
 
-use crate::bidi::{RemoteEndState, connection::Connection, session::Session};
+use crate::bidi::{RemoteEndState, connection::Connection, session::SessionOldOwning};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct SessionId(pub Uuid);
 
 /// The messages sent to a session.
@@ -46,11 +46,13 @@ pub struct CommonPart {
     pub(crate) session_receiver: UnboundedReceiver<SessionMessage>,
 }
 
-impl Deref for Session {
+impl Deref for SessionOldOwning {
     type Target = CommonPart;
     fn deref(&self) -> &Self::Target {
         match self {
-            Session::Static { common, .. } | Session::BidiOnly { common, .. } => common,
+            SessionOldOwning::Static { common, .. } | SessionOldOwning::BidiOnly { common, .. } => {
+                common
+            },
         }
     }
 }

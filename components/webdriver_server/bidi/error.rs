@@ -5,6 +5,35 @@ use std::io;
 use async_tungstenite::tungstenite;
 use webdriver_traits::bidi::{ErrorCode, ErrorResponse};
 
+pub(crate) type BidiResult<T> = Result<T, BidiError>;
+
+pub(crate) struct BidiError {
+    pub(crate) code: ErrorCode,
+    pub(crate) message: String,
+    pub(crate) stacktrace: Option<String>,
+}
+
+impl Default for BidiError {
+    fn default() -> Self {
+        Self {
+            code: ErrorCode::UnknownError,
+            message: Default::default(),
+            stacktrace: Default::default(),
+        }
+    }
+}
+
+impl From<ErrorCode> for BidiError {
+    fn from(error: ErrorCode) -> Self {
+        Self {
+            code: error,
+            ..Default::default()
+        }
+    }
+}
+
+// === Error Old ===
+
 /// This is basically a mirror of ruustenium `ErrorResponse` except `id`.
 #[derive(Debug)]
 pub struct WebDriverBidiError {

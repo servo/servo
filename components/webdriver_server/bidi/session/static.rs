@@ -9,7 +9,7 @@ use crate::bidi::{
     ActiveSessions,
     connection::Connection,
     session::{
-        Session,
+        SessionOldOwning,
         bidi::BidiPart,
         common::{CommonPart, SessionId},
     },
@@ -129,7 +129,7 @@ impl<'a> StaticSession<'a> {
         todo!()
     }
 
-    fn new_bidi_session(&self, session_id: SessionId) -> Session {
+    fn new_bidi_session(&self, session_id: SessionId) -> SessionOldOwning {
         let (session_sender, session_receiver) = mpsc::unbounded_channel();
         let common = CommonPart {
             running: true,
@@ -141,7 +141,7 @@ impl<'a> StaticSession<'a> {
             session_receiver,
         };
         let bidi = BidiPart::default();
-        Session::BidiOnly {
+        SessionOldOwning::BidiOnly {
             id: session_id,
             common,
             bidi,
