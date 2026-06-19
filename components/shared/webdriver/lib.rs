@@ -28,6 +28,14 @@ pub mod bidi {
         }
     }
 
+    impl Default for EmptyResult {
+        fn default() -> Self {
+            Self {
+                extensible: Default::default(),
+            }
+        }
+    }
+
     impl CommandData {
         pub fn is_static(&self) -> bool {
             if let CommandData::SessionCommand(cmd) = self

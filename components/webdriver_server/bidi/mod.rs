@@ -5,50 +5,40 @@ mod listener;
 mod modules;
 mod remote_end;
 mod session;
+mod wait_queue;
 
 use std::{
-    cell::RefCell,
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     net::{SocketAddr, SocketAddrV4},
     rc::Rc,
     thread::{self},
 };
 
-use async_tungstenite::tungstenite;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::WorkerId;
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
-use futures_util::StreamExt;
 use net_traits::ResourceThreads;
 use servo_base::{
     generic_channel::GenericSender,
     id::{BrowsingContextId, PainterId, PipelineId, WebViewId},
 };
-use tokio::{
-    sync::{
-        RwLock,
-        mpsc::{self, UnboundedReceiver, UnboundedSender},
-    },
-    task,
+use tokio::sync::{
+    RwLock,
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 use webdriver_traits::{
     ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
     WebDriverToScriptMessage,
     bidi::{
-        CommandData, ErrorCode, browser, browsing_context,
+        ErrorCode, browsing_context,
         script::{BaseRealmInfo, RealmInfo, WindowRealmInfo, WindowRealmInfoType},
     },
 };
 
 use crate::bidi::{
-    connection::Connection,
     listener::Listener,
     remote_end::RemoteEnd,
-    session::{
-        SessionOldOwning,
-        common::{SessionId, SessionMessage},
-        proxy::SessionProxy,
-    },
+    session::{SessionOldOwning, common::SessionId, proxy::SessionProxy},
 };
 
 // TODO: this should later be renamed to `WebDriverServer`

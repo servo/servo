@@ -33,11 +33,11 @@ impl RemoteEnd {
     ) -> BidiResult<ResultData> {
         match command {
             CommandData::BrowserCommand(cmd) => self
-                .handle_browser_command(cmd)
+                .handle_browser_command(session_id.unwrap(), cmd)
                 .await
                 .map(ResultData::BrowserResult),
             CommandData::BrowsingContextCommand(cmd) => self
-                .handle_browsing_context_command(cmd)
+                .handle_browsing_context_command(session_id.unwrap(), cmd)
                 .await
                 .map(ResultData::BrowsingContextResult),
             CommandData::EmulationCommand(cmd) => self
@@ -57,7 +57,7 @@ impl RemoteEnd {
                 .await
                 .map(|r| ResultData::ScriptResult(Box::new(r))),
             CommandData::SessionCommand(cmd) => self
-                .handle_session_command(cmd)
+                .handle_session_command(session_id, cmd)
                 .await
                 .map(ResultData::SessionResult),
             CommandData::StorageCommand(cmd) => self

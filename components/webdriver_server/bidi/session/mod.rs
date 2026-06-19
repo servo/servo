@@ -44,8 +44,12 @@ use crate::bidi::{
 
 pub(crate) struct Session {
     pub(crate) id: SessionId,
-    /// A BiDi session has the BiDi flag set to true.
+    /// The BiDi flag.
     pub(crate) bidi: bool,
+    /// The http flag.
+    pub(crate) http: bool,
+    // TODO: re-model flags as bitflag
+    pub(crate) flags: HashSet<&'static str>,
     /// The session's associated connections.
     pub(crate) connections: HashSet<ConnectionId>,
 }

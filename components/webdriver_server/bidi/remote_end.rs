@@ -9,19 +9,25 @@ use futures_util::StreamExt;
 use log::warn;
 use serde::Deserialize;
 use serde_json::Value;
+use servo_base::id::BrowsingContextId;
 use tokio::task;
 use webdriver_traits::bidi::{
-    Command, CommandData, CommandResponse, ErrorCode, ErrorResponse, Message, ResultData,
-    SessionCommand, SessionResult, session::NewResult,
+    Command, CommandData, CommandResponse, EmptyResult, ErrorCode, ErrorResponse, Message,
+    ResultData, SessionCommand, SessionResult,
+    session::{NewParameters, NewResultCapabilities},
 };
 
 use crate::bidi::{
     connection::{Connection, ConnectionId},
-    error::BidiError,
+    error::{BidiError, BidiResult},
     session::{Session, common::SessionId},
+    wait_queue::WaitQueue,
 };
 
+use super::wait_queue::ResumeEvent;
+
 pub(crate) struct RemoteEnd {
+    pub(crate) wait_queue: WaitQueue,
     /// All the
     pub(crate) connections: RefCell<HashMap<ConnectionId, Connection>>,
 
@@ -148,7 +154,7 @@ impl RemoteEnd {
                     && let Some(session) = self
                         .active_sessions
                         .borrow_mut()
-                        // TODO: codegen should gen session id
+                        // TODO: codegen should gen uuid
                         .get_mut(&SessionId(session_id.parse().unwrap()))
                 {
                     session.connections.insert(connection_id);
@@ -183,6 +189,13 @@ impl RemoteEnd {
                             connection_id
                         );
                     },
+                }
+
+                // In addition, notify wait queue that response is done,
+                // so that commands like `session.end` can resume.
+                if let Some(session_id) = session_id {
+                    self.wait_queue
+                        .resume(ResumeEvent::SessionResponded(session_id));
                 }
             },
             // Step 7.
@@ -253,10 +266,8 @@ impl RemoteEnd {
         }
     }
 
-    /// Cleanup steps when a bidi connection is closing or closed.
-    ///
     /// <https://www.w3.org/TR/webdriver-bidi/#handle-a-connection-closing>
-    fn handle_a_connection_closing(self: Rc<Self>, connection_id: ConnectionId) {
+    fn handle_a_connection_closing(&self, connection_id: ConnectionId) {
         // Step 1. remove conn from associated session
         for Session { connections, .. } in self.active_sessions.borrow_mut().values_mut() {
             if connections.remove(&connection_id) {
@@ -268,4 +279,63 @@ impl RemoteEnd {
             .borrow_mut()
             .remove(&connection_id);
     }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#end-the-session>
+    pub(crate) fn end_the_session(&self, session_id: SessionId) {
+        // Step 1. remove from active sessions
+        self.active_sessions.borrow_mut().remove(&session_id);
+        // Step 2. set active flag
+        // TODO: send a message
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#cleanup-the-session>
+    pub(crate) async fn cleanup_the_session(self: Rc<Self>, session_id: SessionId) {
+        // Step 1. close ws connections
+        // TODO:
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-capabilities-processing>
+    pub(crate) fn process_capabilities(
+        &self,
+        parameters: NewParameters,
+        flags: &HashSet<&'static str>,
+    ) -> BidiResult<NewResultCapabilities> {
+        todo!()
+    }
+
+    /// <https://w3c.github.io/webdriver/#dfn-create-a-session>
+    pub(crate) fn create_a_session(
+        &self,
+        capabilities: &NewResultCapabilities,
+        flags: &HashSet<&'static str>,
+    ) -> BidiResult<Session> {
+        todo!()
+    }
+
+    pub(crate) async fn close_all_traversables(&self, prompting_to_unload: bool) {
+        // TODO: for each webview received before,
+        // send close message to constellation and wait for response.
+    }
+
+    /// Implementation defined steps to close the browser process.
+    pub(crate) fn close_browser(&self) {
+        // TODO: send to embedder
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#get-a-navigable>
+    pub(crate) fn get_a_navigable(&self, navigable_id: BrowsingContextId) -> BidiResult<Navigable> {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#activate-a-navigable>
+    pub(crate) async fn activate_a_navigable(
+        self: Rc<Self>,
+        navigable_id: BrowsingContextId,
+    ) -> BidiResult<EmptyResult> {
+        todo!()
+    }
+}
+
+pub struct Navigable {
+    pub(crate) is_top_level_traversable: bool,
 }
