@@ -821,9 +821,7 @@ fn resolve_result_promise(
                 FetchedData::FormData(f) => promise.resolve_native_with_cx(cx, &f),
                 FetchedData::Bytes(b) => promise.resolve_native_with_cx(cx, &b),
                 FetchedData::ArrayBuffer(a) => promise.resolve_native_with_cx(cx, &a),
-                FetchedData::JSException(e) => {
-                    promise.reject_native(&e.handle(), CanGc::from_cx(cx))
-                },
+                FetchedData::JSException(e) => promise.reject_native(cx, &e.handle()),
             };
         },
         Err(err) => promise.reject_error_with_cx(cx, err),

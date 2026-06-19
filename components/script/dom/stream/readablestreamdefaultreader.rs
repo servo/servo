@@ -35,7 +35,6 @@ use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::types::ReadableStreamDefaultController;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 type ReadAllBytesSuccessSteps = dyn Fn(&mut js::context::JSContext, &[u8]);
 type ReadAllBytesFailureSteps = dyn Fn(&mut js::context::JSContext, SafeHandleValue);
@@ -122,12 +121,12 @@ impl ReadRequest {
             ReadRequest::Read(promise) => {
                 // chunk steps, given chunk
                 // Resolve promise with «[ "value" → chunk, "done" → false ]».
-                promise.resolve_native(
+                promise.resolve_native_with_cx(
+                    cx,
                     &ReadableStreamReadResult {
                         done: Some(false),
                         value: chunk,
                     },
-                    CanGc::from_cx(cx),
                 );
             },
             ReadRequest::DefaultTee { tee_read_request } => {
@@ -191,12 +190,12 @@ impl ReadRequest {
                 // Resolve promise with «[ "value" → undefined, "done" → true ]».
                 let result = RootedTraceableBox::new(Heap::default());
                 result.set(UndefinedValue());
-                promise.resolve_native(
+                promise.resolve_native_with_cx(
+                    cx,
                     &ReadableStreamReadResult {
                         done: Some(true),
                         value: result,
                     },
-                    CanGc::from_cx(cx),
                 );
             },
             ReadRequest::DefaultTee { tee_read_request } => {
@@ -231,7 +230,7 @@ impl ReadRequest {
             ReadRequest::Read(promise) => {
                 // error steps, given e
                 // Reject promise with e.
-                promise.reject_native(&e, CanGc::from_cx(cx))
+                promise.reject_native(cx, &e)
             },
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.error_steps();

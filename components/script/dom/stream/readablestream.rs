@@ -1918,7 +1918,7 @@ impl ReadableStream {
 
         // Let writer be ! AcquireWritableStreamDefaultWriter(dest).
         let writer = dest
-            .aquire_default_writer(cx.into(), global, CanGc::from_cx(cx))
+            .aquire_default_writer(cx, global)
             .expect("Acquiring a default writer for pipe_to cannot fail");
 
         // Set source.[[disturbed]] to true.

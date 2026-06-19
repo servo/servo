@@ -6913,7 +6913,7 @@ let global = D::GlobalScope::from_object(JS_CALLEE(cx.raw_cx(), vp).to_object())
                     "Some(desired_proto)",
                 ]
 
-            if nativeName not in self.descriptor.cxMethods:
+            if nativeName not in self.descriptor.cxMethods and nativeName not in self.descriptor.realmMethods:
                 args += ['CanGc::from_cx(cx)']
 
             constructor = CGMethodCall(args, nativeName, True, self.descriptor, self.constructor)
@@ -7141,14 +7141,15 @@ class CGInterfaceTrait(CGThing):
             for (i, (rettype, arguments)) in enumerate(ctor.signatures()):
                 name = (baseName or ctor.identifier.name) + ('_' * i)
                 cx = name in descriptor.cxMethods
-                args = list(method_arguments(descriptor, rettype, arguments, cx=cx))
+                realm = name in descriptor.realmMethods
+                args = list(method_arguments(descriptor, rettype, arguments, cx=cx, realm=realm))
                 extra = [
                     ("global", f"&D::{exposedGlobal}"),
                     ("proto", "Option<HandleObject>"),
                 ]
-                if not cx:
+                if not cx and not realm:
                     extra += [("can_gc", "CanGc")]
-                if args and args[0][0] == "cx":
+                if args and (args[0][0] == "cx" or args[0][0] == "realm"):
                     args = [args[0]] + extra + args[1:]
                 else:
                     args = extra + args

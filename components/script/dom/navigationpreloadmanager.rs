@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::{
@@ -18,7 +19,6 @@ use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
-use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -48,74 +48,80 @@ impl NavigationPreloadManager {
 
 impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreloadManager {
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable>
-    fn Enable(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+    fn Enable(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_realm(cx);
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            promise.reject_native(
-                &DOMException::new(&self.global(), DOMErrorName::InvalidStateError, can_gc),
-                can_gc,
+            let exception = DOMException::new(
+                &self.global(),
+                DOMErrorName::InvalidStateError,
+                CanGc::from_cx(cx),
             );
+            promise.reject_native(cx, &exception);
         } else {
             // 3.
             self.serviceworker_registration
                 .set_navigation_preload_enabled(true);
 
             // 4.
-            promise.resolve_native(&UndefinedValue(), can_gc);
+            promise.resolve_native_with_cx(cx, &UndefinedValue());
         }
 
         promise
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable>
-    fn Disable(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+    fn Disable(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_realm(cx);
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            promise.reject_native(
-                &DOMException::new(&self.global(), DOMErrorName::InvalidStateError, can_gc),
-                can_gc,
+            let exception = DOMException::new(
+                &self.global(),
+                DOMErrorName::InvalidStateError,
+                CanGc::from_cx(cx),
             );
+            promise.reject_native(cx, &exception);
         } else {
             // 3.
             self.serviceworker_registration
                 .set_navigation_preload_enabled(false);
 
             // 4.
-            promise.resolve_native(&UndefinedValue(), can_gc);
+            promise.resolve_native_with_cx(cx, &UndefinedValue());
         }
 
         promise
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-setheadervalue>
-    fn SetHeaderValue(&self, value: ByteString, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+    fn SetHeaderValue(&self, cx: &mut CurrentRealm, value: ByteString) -> Rc<Promise> {
+        let promise = Promise::new_in_realm(cx);
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            promise.reject_native(
-                &DOMException::new(&self.global(), DOMErrorName::InvalidStateError, can_gc),
-                can_gc,
+            let exception = DOMException::new(
+                &self.global(),
+                DOMErrorName::InvalidStateError,
+                CanGc::from_cx(cx),
             );
+            promise.reject_native(cx, &exception);
         } else {
             // 3.
             self.serviceworker_registration
                 .set_navigation_preload_header_value(value);
 
             // 4.
-            promise.resolve_native(&UndefinedValue(), can_gc);
+            promise.resolve_native_with_cx(cx, &UndefinedValue());
         }
 
         promise
     }
 
     /// <https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate>
-    fn GetState(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+    fn GetState(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_realm(cx);
         // 2.
         let mut state = NavigationPreloadState::empty();
 
@@ -133,7 +139,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
             .get_navigation_preload_header_value();
 
         // 5.
-        promise.resolve_native(&state, can_gc);
+        promise.resolve_native_with_cx(cx, &state);
 
         promise
     }
