@@ -69,7 +69,7 @@ Every resource request should follow the same host-controlled path:
 
 Policy denials should be first-class outcomes, not lower-level network failures.
 
-Initial instrumentation is deliberately late and non-authoritative: `components/net/resource_thread.rs` logs built Fetch requests before they enter the legacy fetch/http/protocol path. The eventual provider boundary must move the allow/deny decision ahead of legacy network dispatch for fetchable `asset://`, `bundle://`, remote, file, and store schemes.
+Initial instrumentation is deliberately late: `components/net/resource_thread.rs` logs built Fetch requests before they enter the legacy fetch/http/protocol path. The first v0 package implementation also lives at this seam. With `SERVORENA_PACKAGE_ID` and `SERVORENA_PACKAGE_ROOT` set, it authorizes `asset://{active_package_id}/...`, maps the normalized path to a canonical file under the package root, returns bytes with simple extension-derived MIME, and denies package-mode remote HTTP(S), WebSocket, file, store, cross-package asset, missing file, I/O, and traversal/root-escape failures before legacy dispatch. This is intentionally not a package manager and not the final `ResourceProvider` boundary; later work should move request construction earlier so original requested text, base URL, initiator URL, and destination-specific MIME errors are preserved more precisely.
 
 ## Error Categories
 

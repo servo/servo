@@ -172,3 +172,13 @@
 - Left `file://` behavior unchanged in this pass, including legacy-path logging and existing local file document/resource handling.
 - Still reaches old network/resource assumptions: `file://`, `ws://`, `wss://`, `ftp://`, `store://`, `asset://`, and `bundle://` are not yet enforced by this gate.
 - Open question: whether a dedicated local-runtime `NetworkError`/denial kind should replace the temporary `ResourceLoadError("RemoteSchemeDeniedByLocalRuntime")` representation once error taxonomy is formalized across callers.
+
+## 2026-06-19 — `asset://` package loading v0
+
+- Inspected and touched `components/net/resource_thread.rs`, the current late Fetch request seam immediately after `RequestBuilder::build()` and before legacy protocol/http dispatch.
+- Added environment-gated package mode using `SERVORENA_PACKAGE_ID` and `SERVORENA_PACKAGE_ROOT`; when both are present, resolved `asset://` URLs are treated as first-milestone package assets.
+- Implemented `asset://{package}/...` host checks, path segment normalization, traversal/root escape denial, filesystem mapping under the configured package root, extension-based MIME assignment for `.html`, `.css`, `.js`, `.png`, and `.woff2`, and byte delivery through Servo's existing `FetchTaskTarget` response/chunk/eof path.
+- Logged allowed package assets with `decision: package-asset`, `reason: PackageAssetAllowed`, MIME, and the canonical `local_path` used for the package file.
+- Denied, in package mode, remote `http://`, `https://`, `ws://`, and `wss://`, `file://`, `store://`, wrong-package `asset://`, missing package files, package root canonicalization failures, I/O failures, and traversal/root escape attempts before legacy fetch/protocol handling.
+- Existing `file://` local development behavior remains outside package mode because the new `file://` denial only applies when both package environment variables are present.
+- Still reaches old assumptions: the provider boundary is still late in `components/net/resource_thread.rs`, does not yet preserve original unresolved attribute text, and `ftp://`, `bundle://`, `data:`, and `blob:` need follow-up classification at this seam or earlier provider seams.

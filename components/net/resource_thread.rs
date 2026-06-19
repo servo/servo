@@ -6,7 +6,8 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::fs::File;
+use std::env;
+use std::fs::{self, File};
 use std::io::{self, BufReader};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
@@ -16,6 +17,7 @@ use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::GenericEmbedderProxy;
+use headers::{ContentLength, ContentType, HeaderMapExt};
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, info, trace, warn};
@@ -25,7 +27,7 @@ use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{
     Destination, PreloadEntry, PreloadId, Referrer, Request, RequestBuilder, RequestId,
 };
-use net_traits::response::{Response, ResponseInit};
+use net_traits::response::{Response, ResponseBody, ResponseInit};
 use net_traits::{
     AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
     CoreResourceThread, CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget,
@@ -105,7 +107,116 @@ fn local_runtime_decision_for_scheme(
     }
 }
 
-fn log_local_runtime_resource_request(request: &Request) {
+#[derive(Clone)]
+struct LocalRuntimePackageMode {
+    package_id: String,
+    package_root: PathBuf,
+}
+
+impl LocalRuntimePackageMode {
+    fn from_env() -> Option<Self> {
+        let package_id = env::var("SERVORENA_PACKAGE_ID").ok()?;
+        let package_root = env::var_os("SERVORENA_PACKAGE_ROOT").map(PathBuf::from)?;
+        Some(Self {
+            package_id,
+            package_root,
+        })
+    }
+}
+
+struct LocalRuntimeAsset {
+    local_path: PathBuf,
+    mime: &'static str,
+    bytes: Vec<u8>,
+}
+
+enum LocalRuntimePackageDecision {
+    Allow(LocalRuntimeAsset),
+    Deny(&'static str),
+    NotHandled,
+}
+
+fn local_runtime_mime_for_path(path: &Path) -> &'static str {
+    match path.extension().and_then(|extension| extension.to_str()) {
+        Some("html") | Some("htm") => "text/html",
+        Some("css") => "text/css",
+        Some("js") => "text/javascript",
+        Some("png") => "image/png",
+        Some("woff2") => "font/woff2",
+        _ => "application/octet-stream",
+    }
+}
+
+fn local_runtime_package_decision(
+    url: &ServoUrl,
+    package_mode: Option<&LocalRuntimePackageMode>,
+) -> LocalRuntimePackageDecision {
+    let Some(package_mode) = package_mode else {
+        return LocalRuntimePackageDecision::NotHandled;
+    };
+
+    match url.scheme() {
+        "http" | "https" => {
+            return LocalRuntimePackageDecision::Deny("RemoteSchemeDeniedByLocalRuntime");
+        },
+        "ws" | "wss" => {
+            return LocalRuntimePackageDecision::Deny("RemoteSchemeDeniedByLocalRuntime");
+        },
+        "file" => return LocalRuntimePackageDecision::Deny("FileSchemeDeniedByLocalRuntime"),
+        "store" => return LocalRuntimePackageDecision::Deny("StoreSchemeDeniedByLocalRuntime"),
+        "asset" => {},
+        _ => return LocalRuntimePackageDecision::NotHandled,
+    }
+
+    if url.host_str() != Some(package_mode.package_id.as_str()) {
+        return LocalRuntimePackageDecision::Deny("PackageIdMismatch");
+    }
+
+    let mut relative_path = PathBuf::new();
+    let Some(segments) = url.path_segments() else {
+        return LocalRuntimePackageDecision::Deny("PackagePathTraversalDenied");
+    };
+    for segment in segments {
+        if segment.is_empty() || segment == "." {
+            continue;
+        }
+        if segment == ".." || segment.contains('\0') {
+            return LocalRuntimePackageDecision::Deny("PackagePathTraversalDenied");
+        }
+        relative_path.push(segment);
+    }
+
+    let root = match package_mode.package_root.canonicalize() {
+        Ok(root) => root,
+        Err(_) => return LocalRuntimePackageDecision::Deny("PackagePathTraversalDenied"),
+    };
+    let local_path = root.join(relative_path);
+    let canonical_path = match local_path.canonicalize() {
+        Ok(path) => path,
+        Err(_) => return LocalRuntimePackageDecision::Deny("NotFound"),
+    };
+    if !canonical_path.starts_with(&root) {
+        return LocalRuntimePackageDecision::Deny("PackagePathTraversalDenied");
+    }
+
+    let bytes = match fs::read(&canonical_path) {
+        Ok(bytes) => bytes,
+        Err(_) => return LocalRuntimePackageDecision::Deny("IoError"),
+    };
+    LocalRuntimePackageDecision::Allow(LocalRuntimeAsset {
+        local_path: canonical_path,
+        mime: local_runtime_mime_for_path(&local_path),
+        bytes,
+    })
+}
+
+fn log_local_runtime_resource_request(
+    request: &Request,
+    decision_override: Option<&str>,
+    reason_override: Option<&str>,
+    mime_override: Option<&str>,
+    local_path: Option<&Path>,
+) {
     let url = request.current_url();
     let initiator = match &request.referrer {
         Referrer::NoReferrer => "none".to_owned(),
@@ -113,11 +224,16 @@ fn log_local_runtime_resource_request(request: &Request) {
     };
     let package = local_runtime_package_for_url(&url).unwrap_or("unknown");
     let (decision, reason, deny_kind) = local_runtime_decision_for_scheme(url.scheme());
-    let reason = reason.unwrap_or("none");
+    let decision = decision_override.unwrap_or(decision);
+    let reason = reason_override.or(reason).unwrap_or("none");
     let deny_kind = deny_kind.unwrap_or("none");
+    let mime = mime_override.unwrap_or("unknown");
+    let local_path = local_path
+        .map(|path| path.display().to_string())
+        .unwrap_or_else(|| "none".to_owned());
 
     info!(
-        "[local-runtime resource-request]\n  destination: {:?}\n  requested: {}\n  base: {}\n  initiator: {}\n  origin: {:?}\n  package: {}\n  servo_module: components/net/resource_thread.rs\n  decision: {}\n  final: {}\n  mime: unknown\n  reason: {}\n  deny_kind: {}",
+        "[local-runtime resource-request]\n  destination: {:?}\n  requested: {}\n  base: {}\n  initiator: {}\n  origin: {:?}\n  package: {}\n  servo_module: components/net/resource_thread.rs\n  decision: {}\n  final: {}\n  mime: {}\n  reason: {}\n  deny_kind: {}\n  local_path: {}",
         request.destination,
         url,
         initiator,
@@ -126,15 +242,34 @@ fn log_local_runtime_resource_request(request: &Request) {
         package,
         decision,
         url,
+        mime,
         reason,
         deny_kind,
+        local_path,
     );
 }
 
-fn local_runtime_denial_response() -> Response {
-    Response::network_error(NetworkError::ResourceLoadError(
-        "RemoteSchemeDeniedByLocalRuntime".to_owned(),
-    ))
+fn local_runtime_denial_response(reason: &str) -> Response {
+    Response::network_error(NetworkError::ResourceLoadError(reason.to_owned()))
+}
+
+fn local_runtime_asset_response(
+    request: &Request,
+    asset: LocalRuntimeAsset,
+    timing_type: ResourceTimingType,
+    sender: &mut (impl FetchTaskTarget + Send),
+) {
+    let mut response = Response::new(request.current_url(), ResourceFetchTiming::new(timing_type));
+    response
+        .headers
+        .typed_insert(ContentType::from(asset.mime.parse::<mime::Mime>().unwrap()));
+    response
+        .headers
+        .typed_insert(ContentLength(asset.bytes.len() as u64));
+    *response.body.lock() = ResponseBody::Done(asset.bytes.clone());
+    sender.process_response(request, &response);
+    sender.process_response_chunk(request, asset.bytes);
+    sender.process_response_eof(request, &response);
 }
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
@@ -851,11 +986,40 @@ impl CoreResourceManager {
         };
 
         let request = request_builder.build();
-        log_local_runtime_resource_request(&request);
         let url = request.current_url();
+        let package_mode = LocalRuntimePackageMode::from_env();
+        match local_runtime_package_decision(&url, package_mode.as_ref()) {
+            LocalRuntimePackageDecision::Allow(asset) => {
+                log_local_runtime_resource_request(
+                    &request,
+                    Some("package-asset"),
+                    Some("PackageAssetAllowed"),
+                    Some(asset.mime),
+                    Some(&asset.local_path),
+                );
+                local_runtime_asset_response(&request, asset, timing_type, &mut sender);
+                return;
+            },
+            LocalRuntimePackageDecision::Deny(reason) => {
+                log_local_runtime_resource_request(
+                    &request,
+                    Some("denied"),
+                    Some(reason),
+                    None,
+                    None,
+                );
+                let response = local_runtime_denial_response(reason);
+                sender.process_response(&request, &response);
+                sender.process_response_eof(&request, &response);
+                return;
+            },
+            LocalRuntimePackageDecision::NotHandled => {
+                log_local_runtime_resource_request(&request, None, None, None, None);
+            },
+        }
 
         if matches!(url.scheme(), "http" | "https") {
-            let response = local_runtime_denial_response();
+            let response = local_runtime_denial_response("RemoteSchemeDeniedByLocalRuntime");
             sender.process_response(&request, &response);
             sender.process_response_eof(&request, &response);
             return;
@@ -975,6 +1139,17 @@ impl CoreResourceManager {
 
         spawn_task(async move {
             let mut event_sender = event_sender;
+
+            if LocalRuntimePackageMode::from_env().is_some()
+                && matches!(request.url.scheme(), "ws" | "wss")
+            {
+                info!(
+                    "[local-runtime resource-request]\n  destination: WebSocket\n  requested: {:?}\n  base: none\n  initiator: none\n  origin: unknown\n  package: unknown\n  servo_module: components/net/resource_thread.rs\n  decision: denied\n  final: {:?}\n  mime: unknown\n  reason: RemoteSchemeDeniedByLocalRuntime\n  deny_kind: RequestDenied\n  local_path: none",
+                    request.url, request.url,
+                );
+                let _ = event_sender.send(WebSocketNetworkEvent::Fail);
+                return;
+            }
 
             // Let requestURL be a copy of url, with its scheme set to "http", if url’s scheme is
             // "ws"; otherwise to "https"
