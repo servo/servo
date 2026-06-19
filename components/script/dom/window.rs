@@ -1371,7 +1371,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-close>
-    fn Close(&self) {
+    fn Close(&self, cx: &mut JSContext) {
         // Step 1. Let thisTraversable be this's navigable.
         let window_proxy = match self.window_proxy.get() {
             Some(proxy) => proxy,
@@ -1384,7 +1384,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
         // Note: check the length of the "session history", as opposed to the joint session history?
         // see https://github.com/whatwg/html/issues/3734
-        if let Ok(history_length) = self.History().GetLength() {
+        if let Ok(history_length) = self.History(cx).GetLength() {
             let is_auxiliary = window_proxy.is_auxiliary();
 
             // https://html.spec.whatwg.org/multipage/#script-closable
@@ -1421,9 +1421,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history>
-    fn History(&self) -> DomRoot<History> {
-        self.history
-            .or_init(|| History::new(self, CanGc::deprecated_note()))
+    fn History(&self, cx: &mut JSContext) -> DomRoot<History> {
+        self.history.or_init(|| History::new(cx, self))
     }
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
@@ -1460,7 +1459,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
 
         // Step 4. Let storage be a new Storage object whose map is map.
-        let storage = Storage::new(self, WebStorageType::Session, CanGc::from_cx(cx));
+        let storage = Storage::new(cx, self, WebStorageType::Session);
 
         // Step 5. Set this's associated Document's session storage holder to storage.
         self.session_storage.set(Some(&storage));
@@ -1487,7 +1486,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
 
         // Step 4. Let storage be a new Storage object whose map is map.
-        let storage = Storage::new(self, WebStorageType::Local, CanGc::from_cx(cx));
+        let storage = Storage::new(cx, self, WebStorageType::Local);
 
         // Step 5. Set this's associated Document's local storage holder to storage.
         self.local_storage.set(Some(&storage));

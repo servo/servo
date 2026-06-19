@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -16,7 +17,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::Event;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
 #[dom_struct]
@@ -35,39 +35,43 @@ impl HashChangeEvent {
         }
     }
 
-    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<HashChangeEvent> {
-        Self::new_uninitialized_with_proto(window, None, can_gc)
+    pub(crate) fn new_uninitialized(
+        cx: &mut JSContext,
+        window: &Window,
+    ) -> DomRoot<HashChangeEvent> {
+        Self::new_uninitialized_with_proto(cx, window, None)
     }
 
     fn new_uninitialized_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HashChangeEvent> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         old_url: String,
         new_url: String,
-        can_gc: CanGc,
     ) -> DomRoot<HashChangeEvent> {
         Self::new_with_proto(
-            window, None, type_, bubbles, cancelable, old_url, new_url, can_gc,
+            cx, window, None, type_, bubbles, cancelable, old_url, new_url,
         )
     }
 
     #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -75,13 +79,12 @@ impl HashChangeEvent {
         cancelable: bool,
         old_url: String,
         new_url: String,
-        can_gc: CanGc,
     ) -> DomRoot<HashChangeEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = ev.upcast::<Event>();
@@ -94,13 +97,14 @@ impl HashChangeEvent {
 impl HashChangeEventMethods<crate::DomTypeHolder> for HashChangeEvent {
     /// <https://html.spec.whatwg.org/multipage/#hashchangeevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &HashChangeEventBinding::HashChangeEventInit,
     ) -> Fallible<DomRoot<HashChangeEvent>> {
         Ok(HashChangeEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
@@ -108,7 +112,6 @@ impl HashChangeEventMethods<crate::DomTypeHolder> for HashChangeEvent {
             init.parent.cancelable,
             init.oldURL.0.clone(),
             init.newURL.0.clone(),
-            can_gc,
         ))
     }
 

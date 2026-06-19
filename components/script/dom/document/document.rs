@@ -930,13 +930,12 @@ impl Document {
                 document.update_visibility_state(cx, DocumentVisibilityState::Visible);
                 // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
                 // global object with true.
-                let event = PageTransitionEvent::new(
+                let event = PageTransitionEvent::new(cx,
                     window,
                     atom!("pageshow"),
                     false, // bubbles
                     false, // cancelable
                     true, // persisted
-                    CanGc::from_cx(cx),
                 );
                 let event = event.upcast::<Event>();
                 event.set_trusted(true);
@@ -1928,14 +1927,13 @@ impl Document {
                 .dom_manipulation_task_source()
                 .queue(task!(hashchange_event: move |cx| {
                         let window = window.root();
-                        HashChangeEvent::new(
+                        HashChangeEvent::new(cx,
                             &window,
                             atom!("hashchange"),
                             false,
                             false,
                             old_url,
                             new_url,
-                            CanGc::from_cx(cx),
                         )
                         .upcast::<Event>()
                         .fire(cx, window.upcast());
@@ -2023,11 +2021,11 @@ impl Document {
         self.incr_ignore_opens_during_unload_counter();
         // Step 3-5.
         let beforeunload_event = BeforeUnloadEvent::new(
+            cx,
             &self.window,
             atom!("beforeunload"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            CanGc::from_cx(cx),
         );
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
@@ -2087,12 +2085,12 @@ impl Document {
             // Fire a page transition event named pagehide at oldDocument's relevant global object with oldDocument's
             // salvageable state.
             let event = PageTransitionEvent::new(
+                cx,
                 &self.window,
                 atom!("pagehide"),
                 false,                  // bubbles
                 false,                  // cancelable
                 self.salvageable.get(), // persisted
-                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
@@ -2275,13 +2273,12 @@ impl Document {
                 document.page_showing.set(true);
 
                 // Step 9.11. Fire a page transition event named pageshow at window with false.
-                let page_show_event = PageTransitionEvent::new(
+                let page_show_event = PageTransitionEvent::new(cx,
                     window,
                     atom!("pageshow"),
                     false, // bubbles
                     false, // cancelable
                     false, // persisted
-                    CanGc::from_cx(cx),
                 );
                 let page_show_event = page_show_event.upcast::<Event>();
                 page_show_event.set_trusted(true);
@@ -5441,8 +5438,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         interface.make_ascii_lowercase();
         match &*interface.str() {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
+                cx,
                 &self.window,
-                CanGc::from_cx(cx),
             ))),
             "compositionevent" | "textevent" => Ok(DomRoot::upcast(
                 CompositionEvent::new_uninitialized(cx, &self.window),
@@ -5458,12 +5455,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 CanGc::from_cx(cx),
             )),
             "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(
+                cx,
                 &self.window,
-                CanGc::from_cx(cx),
             ))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
+                cx,
                 &self.window,
-                CanGc::from_cx(cx),
             ))),
             "keyboardevent" => Ok(DomRoot::upcast(KeyboardEvent::new_uninitialized(
                 cx,
@@ -5478,9 +5475,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 &self.window,
             ))),
             "storageevent" => Ok(DomRoot::upcast(StorageEvent::new_uninitialized(
+                cx,
                 &self.window,
                 "".into(),
-                CanGc::from_cx(cx),
             ))),
             "touchevent" => {
                 let touches = TouchList::new(cx, &self.window, &[]);

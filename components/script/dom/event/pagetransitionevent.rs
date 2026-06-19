@@ -5,8 +5,9 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -18,7 +19,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#pagetransitionevent
 #[dom_struct]
@@ -36,39 +36,39 @@ impl PageTransitionEvent {
     }
 
     fn new_uninitialized(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<PageTransitionEvent> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(PageTransitionEvent::new_inherited()),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         persisted: bool,
-        can_gc: CanGc,
     ) -> DomRoot<PageTransitionEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, persisted, can_gc)
+        Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, persisted)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         persisted: bool,
-        can_gc: CanGc,
     ) -> DomRoot<PageTransitionEvent> {
-        let ev = PageTransitionEvent::new_uninitialized(window, proto, can_gc);
+        let ev = PageTransitionEvent::new_uninitialized(cx, window, proto);
         ev.persisted.set(persisted);
         {
             let event = ev.upcast::<Event>();
@@ -81,20 +81,20 @@ impl PageTransitionEvent {
 impl PageTransitionEventMethods<crate::DomTypeHolder> for PageTransitionEvent {
     /// <https://html.spec.whatwg.org/multipage/#pagetransitionevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &PageTransitionEventBinding::PageTransitionEventInit,
     ) -> Fallible<DomRoot<PageTransitionEvent>> {
         Ok(PageTransitionEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
             init.persisted,
-            can_gc,
         ))
     }
 
