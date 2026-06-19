@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use async_tungstenite::tungstenite::{Error as WsError, Message as WsMessage};
+use async_tungstenite::tungstenite::{Error as WsError, Message as WsMessage, Utf8Bytes};
 use crossbeam_channel::Sender;
 use devtools_traits::WorkerId;
 use embedder_traits::EmbedderProxy;
@@ -23,8 +23,8 @@ use tokio::{
 use webdriver_traits::{
     WebDriverMsg, WebDriverToConstellationMsg, WebDriverToScriptMsg,
     bidi::{
-        Command, CommandData, CommandResponse, EmptyResult, ErrorCode, ErrorResponse, Message,
-        ResultData, SessionCommand, SessionResult,
+        Command, CommandData, CommandResponse, EmptyResult, ErrorCode, ErrorResponse, Event,
+        LogEvent, Message, ResultData, SessionCommand, SessionResult,
         script::Realm as RealmId,
         session::{NewParameters, NewResultCapabilities},
     },
@@ -79,6 +79,7 @@ impl RemoteEnd {
         mut servo_receiver: UnboundedReceiver<WebDriverMsg>,
         mut connection_receivers: HashMap<ConnectionId, ConnectionReceiver>,
     ) {
+        // TODO: should also listener, accept connection
         loop {
             {
                 let servo_next = servo_receiver.recv();
@@ -421,11 +422,6 @@ impl RemoteEnd {
         // TODO: send to embedder
     }
 
-    /// <https://www.w3.org/TR/webdriver-bidi/#get-a-navigable>
-    pub(crate) fn get_a_navigable(&self, navigable_id: BrowsingContextId) -> BidiResult<Navigable> {
-        todo!()
-    }
-
     /// <https://www.w3.org/TR/webdriver-bidi/#activate-a-navigable>
     pub(crate) async fn activate_a_navigable(
         self: Rc<Self>,
@@ -433,9 +429,101 @@ impl RemoteEnd {
     ) -> BidiResult<EmptyResult> {
         todo!()
     }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#buffer-a-log-event>
+    fn buffer_a_log_event(
+        &self,
+        session_id: SessionId,
+        navigable_ids: &[BrowsingContextId],
+        event: LogEvent,
+    ) {
+        // Step 1. get the session's buffer
+        let active_sessions = self.active_sessions.borrow();
+        let Some(buffer) = active_sessions
+            .get(&session_id)
+            .map(|s| &s.log_event_buffer)
+        else {
+            warn!(
+                "The session to buffer event is not active (id: {:?})",
+                session_id
+            );
+            return;
+        };
+        // Step 2-3. skip as we use id directly
+        // Step 4.
+        for navigable_id in navigable_ids {
+            // Step 4.1. record other navigables
+            let mut other_navigables = vec![];
+            // Step 4.2.
+            for other_id in navigable_ids {
+                // Step 4.3.
+                if other_id != navigable_id {
+                    other_navigables.push(*other_id);
+                }
+            }
+            buffer
+                .borrow_mut()
+                .entry(*navigable_id)
+                // Step 4.4. new list if not contained
+                .or_default()
+                .borrow_mut()
+                // Step 4.5.
+                .push((event.clone(), other_navigables));
+        }
+    }
+
+    /// <https://w3c.org/TR/webdriver-bidi/#emit-an-event>
+    pub(crate) async fn emit_an_event(self: Rc<Self>, session_id: SessionId, body: Event) {
+        // Step 1. skip assert
+        // Step 2. serialize
+        let serialized = serde_json::to_string(&body).expect("Event serialization is infallable");
+        let bytes: Utf8Bytes = serialized.into();
+        // Step 3. send to each connection
+        let session_connections = self
+            .active_sessions
+            .borrow()
+            .get(&session_id)
+            .iter()
+            .flat_map(|s| s.connections.iter().copied())
+            .collect::<Vec<_>>();
+        for connection_id in session_connections {
+            if let Some(connection) = self.connection_senders.borrow().get(&connection_id) {
+                if let Err(err) = connection
+                    .lock()
+                    .await
+                    .send(WsMessage::Text(bytes.clone()))
+                    .await
+                {
+                    warn!(
+                        "Sending event to connection failed (id: {:?}, err: {:?})",
+                        connection_id, err
+                    );
+                }
+            }
+        }
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#get-a-navigable>
+    pub(crate) fn get_a_navigable<'a>(
+        &'a self,
+        navigable_id: BrowsingContextId,
+    ) -> BidiResult<Navigable> {
+        // Step 1. skip as we do not allow null
+        match self.navigables.borrow().get(&navigable_id) {
+            // Step 2.
+            None => Err(ErrorCode::NoSuchFrame.into()),
+            // Step 3.
+            Some(navigable) =>
+            // Step 4.
+            {
+                Ok(navigable.clone())
+            },
+        }
+    }
 }
 
 /// The OS client window.
+#[derive(Clone, Debug)]
 pub struct ClientWindow {
     /// ID of client window itself.
     pub(crate) id: PainterId,
@@ -444,6 +532,7 @@ pub struct ClientWindow {
 }
 
 /// A traversables, which visually corresponds to a tab in OS client window.
+#[derive(Clone, Debug)]
 pub struct Traversable {
     /// ID of traversable itself.
     pub(crate) id: WebViewId,
@@ -455,6 +544,7 @@ pub struct Traversable {
 }
 
 /// A navigable, which visually corresponds to a tab or iframe.
+#[derive(Clone, Debug)]
 pub struct Navigable {
     /// ID of navigable it self.
     pub(crate) id: BrowsingContextId,
@@ -469,12 +559,14 @@ pub struct Navigable {
     pub(crate) is_top_level_traversable: bool,
 }
 
+#[derive(Clone, Debug)]
 pub struct Document {
     pub(crate) id: PipelineId,
     pub(crate) navigable_id: BrowsingContextId,
     pub(crate) realms: Vec<RealmId>,
 }
 
+#[derive(Clone, Debug)]
 pub struct Realm {
     /// Opaque ID of the realm.
     /// Realm is intead indexed by `(PipelineId, Option<WorkerId>)`.

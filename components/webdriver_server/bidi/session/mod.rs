@@ -13,6 +13,7 @@ pub(crate) mod proxy;
 pub(crate) mod r#static;
 
 use std::{
+    cell::RefCell,
     collections::{HashMap, HashSet},
     rc::Rc,
 };
@@ -22,18 +23,21 @@ use crossbeam_channel::Sender;
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
 use futures_util::stream::StreamExt;
 use net_traits::ResourceThreads;
+use servo_base::id::BrowsingContextId;
 use tokio::{
     sync::mpsc::{self, UnboundedSender},
     task,
 };
 use webdriver_traits::{
     WebDriverToConstellationMsg,
-    bidi::{CommandData, CommandResponse, ErrorCode, Message as BidiMessage, SessionCommand},
+    bidi::{
+        CommandData, CommandResponse, ErrorCode, LogEvent, Message as BidiMessage, SessionCommand,
+    },
 };
 
 use crate::bidi::{
     RemoteEndState,
-    connection::{ConnectionOld, ConnectionId},
+    connection::{ConnectionId, ConnectionOld},
     session::{
         bidi::{BidiPart, BidiSession},
         common::{CommonPart, SessionId, SessionMessage},
@@ -52,6 +56,9 @@ pub(crate) struct Session {
     pub(crate) flags: HashSet<&'static str>,
     /// The session's associated connections.
     pub(crate) connections: HashSet<ConnectionId>,
+
+    pub(crate) log_event_buffer:
+        RefCell<HashMap<BrowsingContextId, RefCell<Vec<(LogEvent, Vec<BrowsingContextId>)>>>>,
 }
 
 impl Session {

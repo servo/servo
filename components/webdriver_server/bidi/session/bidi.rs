@@ -1661,7 +1661,7 @@ impl<'a> BidiSession<'a> {
         for navigable_id in navigable_ids {
             // NOTE: the spec self-contradicts here,
             // we choose to follow the `log_event_buffer` type rather than the steps.
-            buffer.entry(*navigable_id).or_default().push(event.clone());
+            // buffer.entry(*navigable_id).or_default().push(event.clone());
         }
     }
 
@@ -1701,10 +1701,7 @@ impl<'a> BidiSession<'a> {
         &self.common.remote_end_state.active_sessions
     }
 
-    fn send_to_constellation(
-        &self,
-        message: WebDriverToConstellationMsg,
-    ) -> Result<(), ErrorCode> {
+    fn send_to_constellation(&self, message: WebDriverToConstellationMsg) -> Result<(), ErrorCode> {
         if let Err(e) = self.common.constellation_sender.send(message) {
             log::warn!("Sending message to constellation failed: {e:?}");
             return Err(ErrorCode::UnknownError);
