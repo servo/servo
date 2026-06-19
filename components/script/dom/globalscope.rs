@@ -2766,10 +2766,6 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn report_an_exception(&self, cx: &mut js::context::JSContext, error: HandleValue) {
-        // Step 1. Let notHandled be true.
-        //
-        // Handled in `report_an_error`
-
         // Step 2. Let errorInfo be the result of extracting error information from exception.
         let error_info = ErrorInfo::from_value(cx, error);
 
@@ -2814,37 +2810,37 @@ impl GlobalScope {
             }
         });
 
-        // Step 6. Early return if global is in error reporting mode,
-        if self.in_error_reporting_mode.get() {
-            return;
+        // Step 1. Let notHandled be true.
+        let mut not_handled = true;
+
+        // Step 6. If global is not in error reporting mode:
+        if !self.in_error_reporting_mode.get() {
+            // Step 6.1. Set global's in error reporting mode to true.
+            self.in_error_reporting_mode.set(true);
+
+            // Step 6.2 If global implements EventTarget, then set notHandled to the result of
+            // firing an event named error at global, using ErrorEvent, with the cancelable
+            // attribute initialized to true, and additional attributes initialized according to
+            // errorInfo.
+            let event = ErrorEvent::new(
+                cx,
+                self,
+                atom!("error"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::Cancelable,
+                error_info.message.as_str().into(),
+                error_info.filename.as_str().into(),
+                error_info.lineno,
+                error_info.column,
+                value,
+            );
+            not_handled = event
+                .upcast::<Event>()
+                .fire(cx, self.upcast::<EventTarget>());
+
+            // Step 6.3. Set global's in error reporting mode to false.
+            self.in_error_reporting_mode.set(false);
         }
-
-        // Step 6.1. Set global's in error reporting mode to true.
-        self.in_error_reporting_mode.set(true);
-
-        // Step 6.2. Set notHandled to the result of firing an event named error at global,
-        // using ErrorEvent, with the cancelable attribute initialized to true,
-        // and additional attributes initialized according to errorInfo.
-
-        let event = ErrorEvent::new(
-            cx,
-            self,
-            atom!("error"),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::Cancelable,
-            error_info.message.as_str().into(),
-            error_info.filename.as_str().into(),
-            error_info.lineno,
-            error_info.column,
-            value,
-        );
-
-        let not_handled = event
-            .upcast::<Event>()
-            .fire(cx, self.upcast::<EventTarget>());
-
-        // Step 6.3. Set global's in error reporting mode to false.
-        self.in_error_reporting_mode.set(false);
 
         // Step 7. If notHandled is true, then:
         if not_handled {
