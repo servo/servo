@@ -23,6 +23,7 @@ use servo_config::pref;
 use style::attr::AttrValue;
 use style::stylesheets::Origin;
 
+use crate::conversions::Convert;
 use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use crate::dom::bindings::codegen::Bindings::CSSLayerBlockRuleBinding::CSSLayerBlockRuleMethods;
@@ -46,7 +47,9 @@ use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::types::{CSSGroupingRule, CSSLayerBlockRule, EventTarget, HTMLElement};
+use crate::dom::types::{
+    CSSGroupingRule, CSSLayerBlockRule, EventTarget, HTMLElement, TrustedHTML,
+};
 use crate::realms::enter_realm;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -676,6 +679,80 @@ pub(crate) fn handle_get_xpath(
         .rev()
         .collect::<Vec<_>>()
         .join("");
+
+    reply.send(selector).unwrap();
+}
+
+pub(crate) fn handle_get_outer_html(
+    cx: &mut JSContext,
+    state: &DevtoolsState,
+    pipeline_id: PipelineId,
+    node_id: &str,
+    reply: GenericSender<Option<String>>,
+) {
+    let node = state.find_node_by_unique_id(pipeline_id, node_id);
+
+    let selector = node.and_then(|node| {
+        let element = node.downcast::<Element>()?;
+
+        let outer_html = element.GetOuterHTML(cx);
+
+        if let Ok(trusted_html) = outer_html {
+            let trusted_html_or_string = trusted_html.convert();
+
+            let Ok(html_dom_string) = TrustedHTML::get_trusted_type_compliant_string(
+                cx,
+                &element.owner_global(),
+                trusted_html_or_string,
+                "Devtools OuterHTML",
+            ) else {
+                return None;
+            };
+
+            return Some(html_dom_string.to_string());
+        };
+
+        let text_content = node.GetTextContent();
+
+        Some(text_content.map_or("".to_owned(), String::from))
+    });
+
+    reply.send(selector).unwrap();
+}
+
+pub(crate) fn handle_get_inner_html(
+    cx: &mut JSContext,
+    state: &DevtoolsState,
+    pipeline_id: PipelineId,
+    node_id: &str,
+    reply: GenericSender<Option<String>>,
+) {
+    let node = state.find_node_by_unique_id(pipeline_id, node_id);
+
+    let selector = node.and_then(|node| {
+        let element = node.downcast::<Element>()?;
+
+        let outer_html = element.GetInnerHTML(cx);
+
+        if let Ok(trusted_html) = outer_html {
+            let trusted_html_or_string = trusted_html.convert();
+
+            let Ok(html_dom_string) = TrustedHTML::get_trusted_type_compliant_string(
+                cx,
+                &element.owner_global(),
+                trusted_html_or_string,
+                "Devtools InnerHTML",
+            ) else {
+                return None;
+            };
+
+            return Some(html_dom_string.to_string());
+        };
+
+        let text_content = node.GetTextContent();
+
+        Some(text_content.map_or("".to_owned(), String::from))
+    });
 
     reply.send(selector).unwrap();
 }

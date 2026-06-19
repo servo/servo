@@ -425,6 +425,10 @@ pub enum DevtoolScriptControlMsg {
     ),
     /// Get a unique XPath selector for the node.
     GetXPath(PipelineId, String, GenericSender<String>),
+    /// Get outer HTML on a node.
+    GetOuterHTML(PipelineId, String, GenericSender<Option<String>>),
+    /// Get inner HTML on a node.
+    GetInnerHTML(PipelineId, String, GenericSender<Option<String>>),
     /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<AttrModification>),
     /// Update a given node's style rules with a list of modifications.

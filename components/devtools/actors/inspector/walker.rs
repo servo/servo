@@ -7,7 +7,9 @@
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
+use devtools_traits::DevtoolScriptControlMsg::{
+    GetChildren, GetDocumentElement, GetInnerHTML, GetOuterHTML, GetRootNode,
+};
 use devtools_traits::DomMutation;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
@@ -20,6 +22,7 @@ use crate::actor::{
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::layout::LayoutInspectorActor;
 use crate::actors::inspector::node::{NodeActor, NodeActorMsg};
+use crate::actors::long_string::{LongStringActor, LongStringObj};
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
@@ -114,6 +117,12 @@ struct NewMutationsNotification {
     type_: String,
 }
 
+#[derive(Serialize)]
+struct GetInnerOrOuterHTMLReply {
+    from: String,
+    value: LongStringObj,
+}
+
 impl Actor for WalkerActor {
     fn name(&self) -> &str {
         &self.name
@@ -135,6 +144,10 @@ impl Actor for WalkerActor {
     ///
     /// - `querySelector`: Recursively looks for the specified selector in the tree, reutrning the
     ///   node and its ascendents
+    ///
+    /// - `outerHTML`: Return outer html element or text from specified node
+    ///
+    /// - `innerHTML`: Return inner html element or text from specified node
     fn handle_message(
         &self,
         mut request: ClientRequest,
@@ -263,6 +276,70 @@ impl Actor for WalkerActor {
                     from: self.name().into(),
                 };
                 request.reply_final(&msg)?
+            },
+            "outerHTML" => {
+                let target = msg
+                    .get("node")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
+
+                let Some((tx, rx)) = generic_channel::channel() else {
+                    return Err(ActorError::Internal);
+                };
+                browsing_context_actor
+                    .script_chan()
+                    .send(GetOuterHTML(
+                        browsing_context_actor.pipeline_id(),
+                        registry.actor_to_script(target.into()),
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+
+                let html_text = rx
+                    .recv()
+                    .map_err(|_| ActorError::Internal)?
+                    .ok_or(ActorError::Internal)?;
+
+                let long_string_actor = LongStringActor::register(registry, html_text);
+
+                let msg = GetInnerOrOuterHTMLReply {
+                    from: self.name().into(),
+                    value: long_string_actor.long_string_obj(),
+                };
+                request.reply_final(&msg)?;
+            },
+            "innerHTML" => {
+                let target = msg
+                    .get("node")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
+
+                let Some((tx, rx)) = generic_channel::channel() else {
+                    return Err(ActorError::Internal);
+                };
+                browsing_context_actor
+                    .script_chan()
+                    .send(GetInnerHTML(
+                        browsing_context_actor.pipeline_id(),
+                        registry.actor_to_script(target.into()),
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+
+                let html_text = rx
+                    .recv()
+                    .map_err(|_| ActorError::Internal)?
+                    .ok_or(ActorError::Internal)?;
+
+                let long_string_actor = LongStringActor::register(registry, html_text);
+
+                let msg = GetInnerOrOuterHTMLReply {
+                    from: self.name().into(),
+                    value: long_string_actor.long_string_obj(),
+                };
+                request.reply_final(&msg)?;
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
