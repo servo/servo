@@ -6,11 +6,12 @@ use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
 use net_traits::image_cache::Image;
 use script_bindings::cell::DomRefCell;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -64,27 +65,27 @@ impl DataTransfer {
     }
 
     pub(crate) fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         data_store: Rc<RefCell<Option<DragDataStore>>>,
     ) -> DomRoot<DataTransfer> {
-        let item_list = DataTransferItemList::new(window, Rc::clone(&data_store), can_gc);
+        let item_list = DataTransferItemList::new(cx, window, Rc::clone(&data_store));
 
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(DataTransfer::new_inherited(data_store, &item_list)),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         data_store: Rc<RefCell<Option<DragDataStore>>>,
-        can_gc: CanGc,
     ) -> DomRoot<DataTransfer> {
-        Self::new_with_proto(window, None, can_gc, data_store)
+        Self::new_with_proto(cx, window, None, data_store)
     }
 
     pub(crate) fn data_store(&self) -> Option<Ref<'_, DragDataStore>> {
@@ -95,16 +96,16 @@ impl DataTransfer {
 impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<DataTransfer> {
         let mut drag_data_store = DragDataStore::new();
         drag_data_store.set_mode(Mode::ReadWrite);
 
         let data_store = Rc::new(RefCell::new(Some(drag_data_store)));
 
-        DataTransfer::new_with_proto(window, proto, can_gc, data_store)
+        DataTransfer::new_with_proto(cx, window, proto, data_store)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
