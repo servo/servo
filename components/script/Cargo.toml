@@ -126,7 +126,6 @@ rsa = { workspace = true }
 rustc-hash = { workspace = true }
 script_bindings = { workspace = true }
 script_traits = { workspace = true }
-sec1 = { workspace = true }
 selectors = { workspace = true }
 seq-macro = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
