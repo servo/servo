@@ -301,7 +301,7 @@ pub(crate) use self::mutationobserver::*;
 pub(crate) mod namednodemap;
 pub(crate) mod navigationpreloadmanager;
 pub(crate) mod navigator;
-pub(crate) mod navigatorinfo;
+pub(crate) use self::navigator::*;
 #[expect(dead_code)]
 pub(crate) mod node;
 pub(crate) use self::node::*;
@@ -314,8 +314,6 @@ pub(crate) use self::performance::*;
 pub(crate) mod permissions;
 pub(crate) mod permissionstatus;
 pub(crate) mod pipelineid;
-pub(crate) mod plugin;
-pub(crate) mod pluginarray;
 pub(crate) mod processinginstruction;
 pub(crate) mod processingoptions;
 #[expect(dead_code)]
