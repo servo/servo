@@ -39,7 +39,6 @@ use js::rust::{
     CompileOptionsWrapper, Handle, HandleValue, ToString, transform_str_to_source_text,
 };
 use mime::Mime;
-use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
@@ -87,6 +86,7 @@ use crate::network_listener::{self, FetchResponseListener, ResourceTimingListene
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::task::NonSendTaskBox;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) fn gen_type_error(
     cx: &mut JSContext,
@@ -1583,7 +1583,7 @@ pub(crate) fn fetch_a_single_module_script(
         // Step 12. Set up the module script request given request and options.
         let request = RequestBuilder::new(
             webview_id,
-            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            ensure_blob_referenced_by_url_is_kept_alive(global, url.clone()),
             referrer,
         )
         .destination(destination)
