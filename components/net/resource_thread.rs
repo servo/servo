@@ -205,7 +205,9 @@ fn local_runtime_package_decision(
         "file" => return LocalRuntimePackageDecision::Deny("FileSchemeDeniedByLocalRuntime"),
         "store" => return LocalRuntimePackageDecision::Deny("StoreSchemeDeniedByLocalRuntime"),
         "asset" => {},
-        _ => return LocalRuntimePackageDecision::NotHandled,
+        _ => {
+            return LocalRuntimePackageDecision::Deny("UnsupportedSchemeDeniedByLocalRuntime");
+        },
     }
 
     if url.host_str() != Some(package_mode.package_id.as_str()) {
