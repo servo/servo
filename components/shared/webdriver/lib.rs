@@ -63,37 +63,37 @@ use crate::bidi::{
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum WebDriverMessage {
-    FromConstellation(ConstellationToWebDriverMessage),
-    FromScript(ScriptToWebDriverMessage),
+pub enum WebDriverMsg {
+    FromConstellation(ConstellationToWebDriverMsg),
+    FromScript(ScriptToWebDriverMsg),
 }
 
-impl From<ConstellationToWebDriverMessage> for WebDriverMessage {
-    fn from(value: ConstellationToWebDriverMessage) -> Self {
+impl From<ConstellationToWebDriverMsg> for WebDriverMsg {
+    fn from(value: ConstellationToWebDriverMsg) -> Self {
         Self::FromConstellation(value)
     }
 }
 
-impl From<ScriptToWebDriverMessage> for WebDriverMessage {
-    fn from(value: ScriptToWebDriverMessage) -> Self {
+impl From<ScriptToWebDriverMsg> for WebDriverMsg {
+    fn from(value: ScriptToWebDriverMsg) -> Self {
         Self::FromScript(value)
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ConstellationToWebDriverMessage {
+pub enum ConstellationToWebDriverMsg {
     BrowsingContextCreated(browsing_context::Info),
 }
 
 // TODO: command responses need session id
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ScriptToWebDriverMessage {
+pub enum ScriptToWebDriverMsg {
     LogEntryAdded(Vec<BrowsingContextId>, log::EntryAdded),
     RealmCreated(
         (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
         GenericSender<WebDriverToScriptMessage>,
     ),
-    Message {
+    ScriptMessage {
         // TODO: channel should have more speicific id type
         channel: String,
         data: script::RemoteValue, // TODO: source with realm id & context id
@@ -102,7 +102,7 @@ pub enum ScriptToWebDriverMessage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum WebDriverToConstellationMessage {
+pub enum WebDriverToConstellationMsg {
     Activate(BrowsingContextId, GenericCallback<bool>),
     CloseWebView {
         webview_id: WebViewId,

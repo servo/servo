@@ -12,7 +12,7 @@ use tokio::{
 };
 use uuid::Uuid;
 use webdriver_traits::{
-    WebDriverToConstellationMessage, WebDriverToScriptMessage,
+    WebDriverToConstellationMsg, WebDriverToScriptMessage,
     bidi::{
         BrowserCommand, BrowserResult, BrowsingContextCommand, BrowsingContextResult, CommandData,
         EmptyParams, EmptyResult, EmulationCommand, EmulationResult, ErrorCode, Event,
@@ -29,7 +29,7 @@ use webdriver_traits::{
 use crate::bidi::{
     ActiveSessions, ClientWindow,
     callback::new_oneshot_callback,
-    connection::Connection,
+    connection::ConnectionOld,
     session::common::{CommonPart, SessionId, SessionMessage},
 };
 
@@ -39,7 +39,7 @@ pub struct BidiPart {
     /// A set of session WebSocket connections associated with this session.
     /// Deviation: we cannot use (ordered) set as we need `iter_mut`.
     /// <https://www.w3.org/TR/webdriver-bidi/#session-websocket-connections>
-    pub(crate) connections: Vec<Connection>,
+    pub(crate) connections: Vec<ConnectionOld>,
 
     /// A list of subscriptions for the session.
     /// Deviation: use map so that item removal is more efficient.
@@ -633,7 +633,7 @@ impl<'a> BidiSession<'a> {
         // 4.3.
         for traversable in self.common.remote_end_state.top_level_traversables() {
             let (callback, receiver) = new_oneshot_callback();
-            self.send_to_constellation(WebDriverToConstellationMessage::CloseWebView {
+            self.send_to_constellation(WebDriverToConstellationMsg::CloseWebView {
                 webview_id: traversable.webview_id,
                 prompt_unload: false,
                 callback,
@@ -779,7 +779,7 @@ impl<'a> BidiSession<'a> {
         // TODO:
         // 1-2. continue in constellation
         let (callback, receiver) = new_oneshot_callback();
-        self.send_to_constellation(WebDriverToConstellationMessage::Activate(
+        self.send_to_constellation(WebDriverToConstellationMsg::Activate(
             navigable_id,
             callback,
         ));
@@ -1010,7 +1010,7 @@ impl<'a> BidiSession<'a> {
         }
         // 11. TODO: id
         let request_id = 0;
-        self.send_to_constellation(WebDriverToConstellationMessage::Request("".to_string()));
+        self.send_to_constellation(WebDriverToConstellationMsg::Request("".to_string()));
         // 12.
         self.await_a_navigation().await
     }
@@ -1051,7 +1051,7 @@ impl<'a> BidiSession<'a> {
         // TODO: this is different from classic, in classic it is top level, but in bidi it seems to be arbitary.
         // instead, we should send it to navigable (script thread).
         // TODO: should allow empty or use seperate variant?
-        self.send_to_constellation(WebDriverToConstellationMessage::Request("".to_string()));
+        self.send_to_constellation(WebDriverToConstellationMsg::Request("".to_string()));
         // 10.
         todo!()
     }
@@ -1613,7 +1613,7 @@ impl<'a> BidiSession<'a> {
         navigable: BrowsingContextId,
     ) -> Result<(), ErrorCode> {
         let (callback, receiver) = new_oneshot_callback();
-        let msg = WebDriverToConstellationMessage::TraverseHistory(navigable, delta, callback);
+        let msg = WebDriverToConstellationMsg::TraverseHistory(navigable, delta, callback);
         self.send_to_constellation(msg)?;
         if let Err(e) = receiver.await {
             log::warn!("Receiving callback from constellation failed: {e:?}");
@@ -1689,11 +1689,11 @@ impl<'a> BidiSession<'a> {
         }
     }
 
-    fn connections_mut(&mut self) -> &mut Vec<Connection> {
+    fn connections_mut(&mut self) -> &mut Vec<ConnectionOld> {
         &mut self.bidi.connections
     }
 
-    fn connection_mut(&mut self, conn_idx: usize) -> Option<&mut Connection> {
+    fn connection_mut(&mut self, conn_idx: usize) -> Option<&mut ConnectionOld> {
         self.connections_mut().get_mut(conn_idx)
     }
 
@@ -1703,7 +1703,7 @@ impl<'a> BidiSession<'a> {
 
     fn send_to_constellation(
         &self,
-        message: WebDriverToConstellationMessage,
+        message: WebDriverToConstellationMsg,
     ) -> Result<(), ErrorCode> {
         if let Err(e) = self.common.constellation_sender.send(message) {
             log::warn!("Sending message to constellation failed: {e:?}");

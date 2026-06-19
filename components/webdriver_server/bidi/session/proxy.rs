@@ -1,7 +1,7 @@
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 use webdriver_traits::bidi::ErrorCode;
 
-use crate::bidi::{connection::Connection, session::common::SessionMessage};
+use crate::bidi::{connection::ConnectionOld, session::common::SessionMessage};
 
 /// In rust we have single ownership rule.
 /// So only session itself owns the data, while others only channel to it.
@@ -12,7 +12,7 @@ pub struct SessionProxy {
 }
 
 impl SessionProxy {
-    pub(crate) async fn associate(&self, connection: Connection) {
+    pub(crate) async fn associate(&self, connection: ConnectionOld) {
         self.sender.send(SessionMessage::Associate(connection));
     }
 

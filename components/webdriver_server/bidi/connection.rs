@@ -1,37 +1,42 @@
 use std::ops::{Deref, DerefMut};
 
-use async_tungstenite::{WebSocketStream, tokio::TokioAdapter};
+use async_tungstenite::{WebSocketReceiver, WebSocketSender, WebSocketStream, tokio::TokioAdapter};
 use tokio::net::TcpStream;
 use webdriver_traits::bidi::{ErrorCode, ErrorResponse, Message as BidiMessage};
+
+// TODO: support wss in the future. at that time a enum should be used.
+
+pub(crate) type Connection = (ConnectionId, ConnectionSender, ConnectionReceiver);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct ConnectionId(pub(crate) u64);
 
-// TODO: support wss in the future. at that time a enum should be used.
+pub(crate) type ConnectionSender = WebSocketSender<TokioAdapter<TcpStream>>;
+pub(crate) type ConnectionReceiver = WebSocketReceiver<TokioAdapter<TcpStream>>;
 
 /// A WebSocket connection.
-pub(crate) struct Connection(pub(crate) WebSocketStream<TokioAdapter<TcpStream>>);
+pub(crate) struct ConnectionOld(pub(crate) WebSocketStream<TokioAdapter<TcpStream>>);
 
-impl From<WebSocketStream<TokioAdapter<TcpStream>>> for Connection {
+impl From<WebSocketStream<TokioAdapter<TcpStream>>> for ConnectionOld {
     fn from(value: WebSocketStream<TokioAdapter<TcpStream>>) -> Self {
         Self(value)
     }
 }
 
-impl Deref for Connection {
+impl Deref for ConnectionOld {
     type Target = WebSocketStream<TokioAdapter<TcpStream>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for Connection {
+impl DerefMut for ConnectionOld {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl Connection {
+impl ConnectionOld {
     /// Send an error response to the WebSocket connection.
     ///
     /// <https://www.w3.org/TR/webdriver-bidi/#send-an-error-response>

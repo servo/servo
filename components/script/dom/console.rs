@@ -30,7 +30,7 @@ use js::rust::{
     describe_scripted_caller,
 };
 use script_bindings::conversions::get_dom_class;
-use webdriver_traits::ScriptToWebDriverMessage;
+use webdriver_traits::ScriptToWebDriverMsg;
 use webdriver_traits::bidi::log::{BaseLogEntry, ConsoleLogEntry};
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
@@ -232,7 +232,7 @@ impl Console {
             // 1.15. TODO
             let related_navigables = vec![];
             // 1.16: continue in webdriver thread callback
-            if let Err(err) = chan.send(ScriptToWebDriverMessage::LogEntryAdded(
+            if let Err(err) = chan.send(ScriptToWebDriverMsg::LogEntryAdded(
                 related_navigables,
                 body,
             )) {

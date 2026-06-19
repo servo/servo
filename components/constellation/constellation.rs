@@ -176,8 +176,7 @@ use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use style::global_style_data::StyleThreadPool;
 use tokio::sync::mpsc::UnboundedSender;
 use webdriver_traits::{
-    ConstellationToWebDriverMessage, ScriptToWebDriverMessage, WebDriverMessage,
-    WebDriverToConstellationMessage,
+    ConstellationToWebDriverMsg, ScriptToWebDriverMsg, WebDriverMsg, WebDriverToConstellationMsg,
 };
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
@@ -382,15 +381,15 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the constellation to send messages to the
     /// webdriver thread.
-    pub(crate) webdriver_sender: Option<UnboundedSender<WebDriverMessage>>,
+    pub(crate) webdriver_sender: Option<UnboundedSender<WebDriverMsg>>,
 
     /// A channel for the constellation to receive messages from webdriver thread.
     /// This is the constellation's view of `webdriver_sender`.
-    pub webdriver_receiver: Option<Receiver<WebDriverToConstellationMessage>>,
+    pub webdriver_receiver: Option<Receiver<WebDriverToConstellationMsg>>,
 
     /// A (potentially) IPC-based channel to the webdriver, if enabled. This allows
     /// `EventLoop`s to send messages to then. Shared with all `EventLoop`s.
-    pub script_to_webdriver_callback: OnceCell<Option<GenericCallback<ScriptToWebDriverMessage>>>,
+    pub script_to_webdriver_callback: OnceCell<Option<GenericCallback<ScriptToWebDriverMsg>>>,
 
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
@@ -558,10 +557,10 @@ pub struct InitialConstellationState {
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the webdriver server, if applicable.
-    pub webdriver_sender: Option<UnboundedSender<WebDriverMessage>>,
+    pub webdriver_sender: Option<UnboundedSender<WebDriverMsg>>,
 
     // TODO: comment
-    pub webdriver_receiver: Option<Receiver<WebDriverToConstellationMessage>>,
+    pub webdriver_receiver: Option<Receiver<WebDriverToConstellationMsg>>,
 
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
@@ -1257,7 +1256,7 @@ where
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangMonitorAlert),
             Embedder(EmbedderToConstellationMessage),
-            WebDriver(WebDriverToConstellationMessage),
+            WebDriver(WebDriverToConstellationMsg),
             RemoveProcess(usize),
         }
         // Get one incoming request.
@@ -1606,11 +1605,11 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_request_from_webdriver(&mut self, message: WebDriverToConstellationMessage) {
+    fn handle_request_from_webdriver(&mut self, message: WebDriverToConstellationMsg) {
         match message {
-            WebDriverToConstellationMessage::Activate(namespace_index, generic_callback) => todo!(),
+            WebDriverToConstellationMsg::Activate(namespace_index, generic_callback) => todo!(),
             // Close a top-level traversable.
-            WebDriverToConstellationMessage::CloseWebView {
+            WebDriverToConstellationMsg::CloseWebView {
                 webview_id,
                 callback,
                 // TODO: prompt_iunload is ignored temporily
@@ -1621,12 +1620,10 @@ where
                     warn!("Error replying to webdriver close webview ({})", e);
                 };
             },
-            WebDriverToConstellationMessage::Request(_) => todo!(),
-            WebDriverToConstellationMessage::TraverseHistory(
-                namespace_index,
-                _,
-                generic_callback,
-            ) => todo!(),
+            WebDriverToConstellationMsg::Request(_) => todo!(),
+            WebDriverToConstellationMsg::TraverseHistory(namespace_index, _, generic_callback) => {
+                todo!()
+            },
         }
     }
 
@@ -6070,7 +6067,7 @@ where
 
     pub(crate) fn script_to_webdriver_callback(
         &self,
-    ) -> Option<GenericCallback<ScriptToWebDriverMessage>> {
+    ) -> Option<GenericCallback<ScriptToWebDriverMsg>> {
         self.script_to_webdriver_callback
             .get_or_init(|| {
                 self.webdriver_sender.as_ref().and_then(|webdriver_sender| {
@@ -6081,7 +6078,7 @@ where
                         },
                         Ok(message) => {
                             if let Err(error) =
-                                webdriver_sender.send(WebDriverMessage::FromScript(message))
+                                webdriver_sender.send(WebDriverMsg::FromScript(message))
                             {
                                 warn!("Sending to webdriver failed ({error:?})")
                             }
@@ -6111,7 +6108,7 @@ where
         // 4. continue in WebDriver thread
         if let Some(ref chan) = self.webdriver_sender {
             // TODO: fields
-            let msg = ConstellationToWebDriverMessage::BrowsingContextCreated(Info {
+            let msg = ConstellationToWebDriverMsg::BrowsingContextCreated(Info {
                 children: None,
                 client_window: "".to_string(),
                 context: navigable.to_string(),

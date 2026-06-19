@@ -27,13 +27,13 @@ use tokio::{
     task,
 };
 use webdriver_traits::{
-    WebDriverToConstellationMessage,
+    WebDriverToConstellationMsg,
     bidi::{CommandData, CommandResponse, ErrorCode, Message as BidiMessage, SessionCommand},
 };
 
 use crate::bidi::{
     RemoteEndState,
-    connection::{Connection, ConnectionId},
+    connection::{ConnectionOld, ConnectionId},
     session::{
         bidi::{BidiPart, BidiSession},
         common::{CommonPart, SessionId, SessionMessage},
@@ -66,7 +66,7 @@ impl Session {
 pub enum SessionOldOwning {
     Static {
         common: CommonPart,
-        connections: Vec<Connection>,
+        connections: Vec<ConnectionOld>,
     },
     BidiOnly {
         id: SessionId,
@@ -81,7 +81,7 @@ impl SessionOldOwning {
         remote_end_state: Rc<RemoteEndState>,
         embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
         resource_threads: ResourceThreads,
-        constellation_sender: Sender<WebDriverToConstellationMessage>,
+        constellation_sender: Sender<WebDriverToConstellationMsg>,
     ) -> (task::JoinHandle<()>, UnboundedSender<SessionMessage>) {
         let session = Self::new_static(
             remote_end_state,
@@ -101,7 +101,7 @@ impl SessionOldOwning {
         remote_end_state: Rc<RemoteEndState>,
         embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
         resource_threads: ResourceThreads,
-        constellation_sender: Sender<WebDriverToConstellationMessage>,
+        constellation_sender: Sender<WebDriverToConstellationMsg>,
     ) -> Self {
         let (sender, receiver) = mpsc::unbounded_channel();
         let common = CommonPart {
@@ -227,7 +227,7 @@ impl SessionOldOwning {
     }
 
     /// Append a connection to a session's connection set.
-    fn associate_connection(&mut self, connection: Connection) {
+    fn associate_connection(&mut self, connection: ConnectionOld) {
         if let Some(connections) = self.connections_mut() {
             connections.push(connection);
         } else {
@@ -240,14 +240,14 @@ impl SessionOldOwning {
         self.connections_mut().unwrap().remove(conn_idx);
     }
 
-    fn connections_mut(&mut self) -> Option<&mut Vec<Connection>> {
+    fn connections_mut(&mut self) -> Option<&mut Vec<ConnectionOld>> {
         match self {
             SessionOldOwning::Static { connections, .. } => Some(connections),
             SessionOldOwning::BidiOnly { bidi, .. } => Some(&mut bidi.connections),
         }
     }
 
-    fn connection_mut(&mut self, conn_idx: usize) -> Option<&mut Connection> {
+    fn connection_mut(&mut self, conn_idx: usize) -> Option<&mut ConnectionOld> {
         self.connections_mut()?.get_mut(conn_idx)
     }
 

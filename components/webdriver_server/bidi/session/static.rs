@@ -7,7 +7,7 @@ use webdriver_traits::bidi::{
 
 use crate::bidi::{
     ActiveSessions,
-    connection::Connection,
+    connection::ConnectionOld,
     session::{
         SessionOldOwning,
         bidi::BidiPart,
@@ -17,7 +17,7 @@ use crate::bidi::{
 
 pub(crate) struct StaticSession<'a> {
     pub(crate) common: &'a mut CommonPart,
-    pub(crate) connections: &'a mut Vec<Connection>,
+    pub(crate) connections: &'a mut Vec<ConnectionOld>,
 }
 
 impl<'a> StaticSession<'a> {

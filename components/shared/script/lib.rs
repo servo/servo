@@ -52,7 +52,7 @@ use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
-use webdriver_traits::ScriptToWebDriverMessage;
+use webdriver_traits::ScriptToWebDriverMsg;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
 use webrender_api::ImageKey;
@@ -398,7 +398,7 @@ pub struct InitialScriptState {
     /// A channel to the developer tools, if applicable.
     pub devtools_server_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// A channel to the webdriver, if applicable.
-    pub webdriver_server_sender: Option<GenericCallback<ScriptToWebDriverMessage>>,
+    pub webdriver_server_sender: Option<GenericCallback<ScriptToWebDriverMsg>>,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A channel to the WebGL thread used in this pipeline.

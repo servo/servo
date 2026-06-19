@@ -4,22 +4,30 @@ use std::{
     rc::Rc,
 };
 
-use async_tungstenite::tungstenite::Message as WsMessage;
+use async_tungstenite::tungstenite::{Error as WsError, Message as WsMessage};
+use crossbeam_channel::Sender;
 use devtools_traits::WorkerId;
-use futures_util::StreamExt;
+use embedder_traits::EmbedderProxy;
+use futures_util::{FutureExt, StreamExt, future};
 use log::warn;
 use serde::Deserialize;
 use serde_json::Value;
 use servo_base::id::{BrowsingContextId, PainterId, WebViewId};
-use tokio::task;
-use webdriver_traits::bidi::{
-    Command, CommandData, CommandResponse, EmptyResult, ErrorCode, ErrorResponse, Message,
-    ResultData, SessionCommand, SessionResult,
-    session::{NewParameters, NewResultCapabilities},
+use tokio::{
+    sync::{Mutex, mpsc::UnboundedReceiver},
+    task,
+};
+use webdriver_traits::{
+    ConstellationToWebDriverMsg, ScriptToWebDriverMsg, WebDriverMsg, WebDriverToConstellationMsg,
+    bidi::{
+        Command, CommandData, CommandResponse, EmptyResult, ErrorCode, ErrorResponse, Message,
+        ResultData, SessionCommand, SessionResult,
+        session::{NewParameters, NewResultCapabilities},
+    },
 };
 
 use crate::bidi::{
-    connection::{Connection, ConnectionId},
+    connection::{ConnectionId, ConnectionReceiver, ConnectionSender},
     error::{BidiError, BidiResult},
     session::{Session, common::SessionId},
     wait_queue::WaitQueue,
@@ -27,10 +35,11 @@ use crate::bidi::{
 
 use super::wait_queue::ResumeEvent;
 
+// Since we use single-threaded `LocalRutime`, `RefCell` can be used.
 pub(crate) struct RemoteEnd {
+    /// We use wait queue to defer steps to the time certain resume events happen.
+    /// The model is slightly different from spec, see [`WaitQueue`] for details.
     pub(crate) wait_queue: WaitQueue,
-    /// All the
-    pub(crate) connections: RefCell<HashMap<ConnectionId, Connection>>,
 
     /// An associated list of all sessions that are currently started.
     pub(crate) active_sessions: RefCell<HashMap<SessionId, Session>>,
@@ -39,31 +48,101 @@ pub(crate) struct RemoteEnd {
     pub(crate) unassociated_connections: RefCell<HashSet<ConnectionId>>,
 
     // the following is the hierarchy of browser.
-    pub(crate) windows: HashMap<PainterId, ClientWindow>,
-    pub(crate) traversables: HashMap<WebViewId, Traversable>,
-    pub(crate) navigables: HashMap<BrowsingContextId, Navigable>,
-    pub(crate) realms: HashMap<RealmId, Realm>,
+    pub(crate) windows: RefCell<HashMap<PainterId, ClientWindow>>,
+    pub(crate) traversables: RefCell<HashMap<WebViewId, Traversable>>,
+    pub(crate) navigables: RefCell<HashMap<BrowsingContextId, Navigable>>,
+    pub(crate) realms: RefCell<HashMap<RealmId, Realm>>,
+
+    /// All the
+    pub(crate) connection_senders: RefCell<HashMap<ConnectionId, Mutex<ConnectionSender>>>,
+
+    /// Send message to constellation.
+    pub(crate) constellation_sender: Sender<WebDriverToConstellationMsg>,
+
+    /// Receive messages from other components of servo (constellation and script thread).
+
+    /// Send messages and wake embedder.
+    pub(crate) embedder_proxy: EmbedderProxy,
+    // TODO: should we receive event from embedder `embedder_receiver`?
 }
 
 impl RemoteEnd {
     /// The main loop of a remote end.
-    pub(crate) async fn run(self: Rc<Self>) {
+    pub(crate) async fn run(
+        self: Rc<Self>,
+        mut servo_receiver: UnboundedReceiver<WebDriverMsg>,
+        mut connection_receivers: HashMap<ConnectionId, ConnectionReceiver>,
+    ) {
         loop {
-            // 1. when receive message
-            let (message, idx, _) = futures_util::future::select_all(
-                self.connections
-                    .borrow_mut()
-                    .values_mut()
-                    .map(|c| c.0.next()),
-            )
-            .await;
-            // TODO: bad
-            let connection_id = ConnectionId(idx as u64);
-            task::spawn_local({
-                let this = self.clone();
-                async move { this.handle_an_incoming_message(connection_id, message.unwrap().unwrap()) }
-            });
+            {
+                let servo_next = servo_receiver.recv();
+                let connections_next = future::select_all(
+                    connection_receivers
+                        .iter_mut()
+                        .map(|(conn_id, conn)| conn.next().map(move |msg| (conn_id, msg))),
+                )
+                .map(|(id_msg, _, _)| id_msg);
+
+                tokio::select! {
+                    msg = servo_next => self.handle_servo(msg),
+                    (conn_id, msg) = connections_next => self.clone().handle_connection(*conn_id, msg),
+                }
+            }
+
+            // TODO: extra step to remove closed connection.
         }
+    }
+
+    fn handle_servo(&self, msg: Option<WebDriverMsg>) {
+        let Some(msg) = msg else {
+            warn!("Connection from servo closed");
+            return;
+        };
+        match msg {
+            WebDriverMsg::FromConstellation(msg) => match msg {
+                ConstellationToWebDriverMsg::BrowsingContextCreated(info) => todo!(),
+            },
+            WebDriverMsg::FromScript(msg) => match msg {
+                ScriptToWebDriverMsg::LogEntryAdded(items, entry_added) => todo!(),
+                ScriptToWebDriverMsg::RealmCreated(_, generic_sender) => todo!(),
+                ScriptToWebDriverMsg::ScriptMessage { channel, data } => todo!(),
+                ScriptToWebDriverMsg::FileDialogOpened(file_dialog_opened) => todo!(),
+            },
+        }
+    }
+
+    fn handle_connection(
+        self: Rc<Self>,
+        connection_id: ConnectionId,
+        msg: Option<Result<WsMessage, WsError>>,
+    ) {
+        match msg {
+            Some(msg) => match msg {
+                Ok(msg) => {
+                    if let WsMessage::Close(_) = msg {
+                        self.handle_a_connection_closing(connection_id);
+                    }
+                    task::spawn_local({
+                        let this = self.clone();
+                        async move { this.handle_an_incoming_message(connection_id, msg) }
+                    });
+                },
+                Err(err) => {
+                    warn!(
+                        "Receiving message from connection failed (id: {:?}, err: {:?})",
+                        connection_id, err
+                    );
+                },
+            },
+            None => {
+                warn!(
+                    "Connection closed without a closing handshake (id: {:?})",
+                    connection_id
+                );
+                self.handle_a_connection_closing(connection_id);
+            },
+        }
+        todo!()
     }
 
     /// Handle an incoming message from specific bidi connection.
@@ -180,9 +259,13 @@ impl RemoteEnd {
                 let serialized = serde_json::to_string(&response)
                     .expect("CommandResponse serialization is infallible");
                 // Step 6.7.8. send response message
-                match self.connections.borrow_mut().get_mut(&connection_id) {
+                match self.connection_senders.borrow().get(&connection_id) {
                     Some(connection) => {
-                        if let Err(err) = connection.send(WsMessage::Text(serialized.into())).await
+                        if let Err(err) = connection
+                            .lock()
+                            .await
+                            .send(WsMessage::Text(serialized.into()))
+                            .await
                         {
                             warn!(
                                 "Sending message to connection failde (id: {:?}, err: {:?})",
@@ -258,9 +341,14 @@ impl RemoteEnd {
         let response =
             serde_json::to_string(&error_data).expect("ErrorResponse serialization is infallible");
         // Step 3. Send websocket message
-        match self.connections.borrow_mut().get_mut(&connection_id) {
+        match self.connection_senders.borrow().get(&connection_id) {
             Some(connection) => {
-                if let Err(err) = connection.send(WsMessage::Text(response.into())).await {
+                if let Err(err) = connection
+                    .lock()
+                    .await
+                    .send(WsMessage::Text(response.into()))
+                    .await
+                {
                     warn!("Sending error response to ws connection failed: {err:?}");
                 }
             },
@@ -298,6 +386,11 @@ impl RemoteEnd {
     /// <https://www.w3.org/TR/webdriver-bidi/#cleanup-the-session>
     pub(crate) async fn cleanup_the_session(self: Rc<Self>, session_id: SessionId) {
         // Step 1. close ws connections
+        // TODO:
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#close-the-websocket-connections>
+    fn close_the_websocket_connections(&self, session_id: SessionId) {
         // TODO:
     }
 

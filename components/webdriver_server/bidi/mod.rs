@@ -27,8 +27,7 @@ use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 use webdriver_traits::{
-    ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
-    WebDriverToScriptMessage,
+    ScriptToWebDriverMsg, WebDriverMsg, WebDriverToConstellationMsg, WebDriverToScriptMessage,
     bidi::{
         ErrorCode, browsing_context,
         script::{BaseRealmInfo, RealmInfo, WindowRealmInfo, WindowRealmInfoType},
@@ -46,7 +45,7 @@ use crate::bidi::{
 pub struct WebDriverBidiThread {
     port: u16,
     embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
-    constellation_sender: Sender<WebDriverToConstellationMessage>,
+    constellation_sender: Sender<WebDriverToConstellationMsg>,
     resource_threads: ResourceThreads,
     // Remote end states are shared across all sessions.
     // Though this is a single threaded
@@ -58,8 +57,8 @@ impl WebDriverBidiThread {
         embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
         resource_threads: ResourceThreads,
     ) -> (
-        UnboundedSender<WebDriverMessage>,
-        Receiver<WebDriverToConstellationMessage>,
+        UnboundedSender<WebDriverMsg>,
+        Receiver<WebDriverToConstellationMsg>,
     ) {
         let (c2w_sender, c2w_receiver) = mpsc::unbounded_channel();
         let (w2c_sender, w2c_receiver) = unbounded();
@@ -79,7 +78,7 @@ impl WebDriverBidiThread {
         port: u16,
         embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
         resource_threads: ResourceThreads,
-        constellation_sender: Sender<WebDriverToConstellationMessage>,
+        constellation_sender: Sender<WebDriverToConstellationMsg>,
     ) -> Self {
         Self {
             port,
@@ -90,7 +89,7 @@ impl WebDriverBidiThread {
         }
     }
 
-    fn run(&self, receiver: UnboundedReceiver<WebDriverMessage>) {
+    fn run(&self, receiver: UnboundedReceiver<WebDriverMsg>) {
         let address = SocketAddr::V4(SocketAddrV4::new("0.0.0.0".parse().unwrap(), self.port));
         tokio::runtime::LocalRuntime::new()
             .expect("Runtime creation failed")
@@ -117,14 +116,14 @@ impl WebDriverBidiThread {
     /// Handle thread messages from constellation/script/...
     async fn handle_thread_message(
         remote_end_state: Rc<RemoteEndState>,
-        mut receiver: UnboundedReceiver<WebDriverMessage>,
+        mut receiver: UnboundedReceiver<WebDriverMsg>,
     ) {
         while let Some(msg) = receiver.recv().await {
             match msg {
-                WebDriverMessage::FromConstellation(constellation_to_web_driver_message) => todo!(),
-                WebDriverMessage::FromScript(msg) => match msg {
-                    ScriptToWebDriverMessage::LogEntryAdded(items, entry_added) => todo!(),
-                    ScriptToWebDriverMessage::RealmCreated(
+                WebDriverMsg::FromConstellation(constellation_to_web_driver_message) => todo!(),
+                WebDriverMsg::FromScript(msg) => match msg {
+                    ScriptToWebDriverMsg::LogEntryAdded(items, entry_added) => todo!(),
+                    ScriptToWebDriverMsg::RealmCreated(
                         (browsing_context_id, pipeline_id, worker_id, webview_id),
                         generic_sender,
                     ) => {
@@ -156,8 +155,8 @@ impl WebDriverBidiThread {
                             },
                         );
                     },
-                    ScriptToWebDriverMessage::Message { channel, data } => todo!(),
-                    ScriptToWebDriverMessage::FileDialogOpened(file_dialog_opened) => todo!(),
+                    ScriptToWebDriverMsg::ScriptMessage { channel, data } => todo!(),
+                    ScriptToWebDriverMsg::FileDialogOpened(file_dialog_opened) => todo!(),
                 },
             }
 

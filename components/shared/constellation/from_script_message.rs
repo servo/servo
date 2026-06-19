@@ -41,7 +41,7 @@ use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
-use webdriver_traits::ScriptToWebDriverMessage;
+use webdriver_traits::ScriptToWebDriverMsg;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 
@@ -519,7 +519,7 @@ pub struct WorkerGlobalScopeInit {
     /// From devtools sender
     pub from_devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     /// To devtools sender
-    pub to_webdriver_sender: Option<GenericCallback<ScriptToWebDriverMessage>>,
+    pub to_webdriver_sender: Option<GenericCallback<ScriptToWebDriverMsg>>,
     /// Messages to send to constellation
     pub script_to_constellation_chan: ScriptToConstellationChan,
     /// Messages to send to the Embedder

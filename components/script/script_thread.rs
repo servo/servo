@@ -108,7 +108,7 @@ use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
-use webdriver_traits::ScriptToWebDriverMessage;
+use webdriver_traits::ScriptToWebDriverMsg;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 
@@ -3744,7 +3744,7 @@ impl ScriptThread {
         ),
     ) {
         if let Some(ref chan) = self.senders.webdriver_server_sender {
-            chan.send(ScriptToWebDriverMessage::RealmCreated(
+            chan.send(ScriptToWebDriverMsg::RealmCreated(
                 (browsing_context_id, pipeline_id, None, webview_id),
                 self.senders
                     .webdriver_client_to_script_thread_sender

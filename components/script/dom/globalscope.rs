@@ -75,7 +75,7 @@ use storage_traits::StorageThreads;
 use strum::VariantArray;
 use timers::{TimerEventRequest, TimerId};
 use uuid::Uuid;
-use webdriver_traits::ScriptToWebDriverMessage;
+use webdriver_traits::ScriptToWebDriverMsg;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{DeviceLostReason, WebGPUDevice};
 
@@ -263,7 +263,7 @@ pub(crate) struct GlobalScope {
 
     /// For sending messages to the WebDriver sessions.
     #[no_trace]
-    webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
+    webdriver_chan: Option<GenericCallback<ScriptToWebDriverMsg>>,
 
     /// For sending messages to the memory profiler.
     #[no_trace]
@@ -791,7 +791,7 @@ impl GlobalScope {
     pub(crate) fn new_inherited(
         pipeline_id: PipelineId,
         devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
-        webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
+        webdriver_chan: Option<GenericCallback<ScriptToWebDriverMsg>>,
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
@@ -2493,7 +2493,7 @@ impl GlobalScope {
 
     /// Get an `&IpcSender<ScriptToWebDriverMessage>` to send messages
     /// to the webdriver thread when available.
-    pub(crate) fn webdriver_chan(&self) -> Option<&GenericCallback<ScriptToWebDriverMessage>> {
+    pub(crate) fn webdriver_chan(&self) -> Option<&GenericCallback<ScriptToWebDriverMsg>> {
         self.webdriver_chan.as_ref()
     }
 

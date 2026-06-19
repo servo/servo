@@ -12,11 +12,9 @@ use tokio::sync::{
     oneshot,
 };
 use uuid::Uuid;
-use webdriver_traits::{
-    ScriptToWebDriverMessage, WebDriverMessage, WebDriverToConstellationMessage,
-};
+use webdriver_traits::{ScriptToWebDriverMsg, WebDriverMsg, WebDriverToConstellationMsg};
 
-use crate::bidi::{RemoteEndState, connection::Connection, session::SessionOldOwning};
+use crate::bidi::{RemoteEndState, connection::ConnectionOld, session::SessionOldOwning};
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct SessionId(pub Uuid);
@@ -24,15 +22,15 @@ pub struct SessionId(pub Uuid);
 /// The messages sent to a session.
 pub enum SessionMessage {
     /// Append connection to session's connection set.
-    Associate(Connection),
+    Associate(ConnectionOld),
     /// The session should do run "cleanup the session" when
     /// receiving this in next tick. This is used to defer
     /// actual cleanup to after sending resposne to connection.
     CleanupSession(Option<oneshot::Sender<bool>>),
     // Constellation messages are forwarded to all session, we use Rc to avoid cloning.
-    WebDriver(Rc<WebDriverMessage>),
+    WebDriver(Rc<WebDriverMsg>),
     // Script messages are forwarded to all session, we use Rc to avoid cloning.
-    Script(Rc<ScriptToWebDriverMessage>),
+    Script(Rc<ScriptToWebDriverMsg>),
 }
 
 /// The common components of a session, regardless of static, http or bidi.
@@ -41,7 +39,7 @@ pub struct CommonPart {
     pub(crate) remote_end_state: Rc<RemoteEndState>,
     pub(crate) embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
     pub(crate) resource_threads: ResourceThreads,
-    pub(crate) constellation_sender: Sender<WebDriverToConstellationMessage>,
+    pub(crate) constellation_sender: Sender<WebDriverToConstellationMsg>,
     pub(crate) session_sender: UnboundedSender<SessionMessage>,
     pub(crate) session_receiver: UnboundedReceiver<SessionMessage>,
 }

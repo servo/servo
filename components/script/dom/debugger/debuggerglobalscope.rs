@@ -21,7 +21,7 @@ use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
 use servo_constellation_traits::ScriptToConstellationChan;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
-use webdriver_traits::ScriptToWebDriverMessage;
+use webdriver_traits::ScriptToWebDriverMsg;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerValue;
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::GenericBindings::ObjectPreview;
@@ -93,7 +93,7 @@ impl DebuggerGlobalScope {
         debugger_pipeline_id: PipelineId,
         script_to_devtools_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
         devtools_to_script_sender: GenericSender<DevtoolScriptControlMsg>,
-        script_to_webdriver_sender: Option<GenericCallback<ScriptToWebDriverMessage>>,
+        script_to_webdriver_sender: Option<GenericCallback<ScriptToWebDriverMsg>>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,

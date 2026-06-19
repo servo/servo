@@ -96,7 +96,7 @@ use style::stylesheets::UrlExtraData;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use time::Duration as TimeDuration;
-use webdriver_traits::ScriptToWebDriverMessage;
+use webdriver_traits::ScriptToWebDriverMsg;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
@@ -3695,7 +3695,7 @@ impl Window {
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
-        webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
+        webdriver_chan: Option<GenericCallback<ScriptToWebDriverMsg>>,
         constellation_chan: ScriptToConstellationChan,
         embedder_chan: ScriptToEmbedderChan,
         control_chan: GenericSender<ScriptThreadMessage>,
