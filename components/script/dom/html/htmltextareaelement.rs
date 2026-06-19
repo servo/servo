@@ -42,6 +42,7 @@ use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::input_element::HTMLInputElement;
 use crate::dom::htmlinputelement::text_input_widget::TextInputWidget;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
@@ -50,7 +51,6 @@ use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::types::{FocusEvent, MouseEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{ClipboardEventFlags, IsComposing, KeyReaction, Lines, TextInput};
 

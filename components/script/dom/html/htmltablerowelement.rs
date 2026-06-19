@@ -25,8 +25,8 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltablecellelement::HTMLTableCellElement;
 use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLTableRowElement {

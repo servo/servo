@@ -31,6 +31,7 @@ use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, MoveContext, Node, NodeTraits, UnbindContext,
 };
@@ -38,7 +39,6 @@ use crate::dom::text::Text;
 use crate::dom::types::DocumentFragment;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 
 #[dom_struct]

@@ -38,11 +38,11 @@ use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormEleme
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
+use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{
     ElementAttribute, ParsingAlgorithm, attach_declarative_shadow_inner, create_element_for_token,
 };
-use crate::dom::virtualmethods::vtable_for;
 
 type ParseNodeId = usize;
 

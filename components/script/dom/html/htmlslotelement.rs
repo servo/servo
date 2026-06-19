@@ -29,11 +29,11 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, ForceSlottableNodeReconciliation, IsShadowTree, Node, NodeDamage, NodeTraits,
     UnbindContext,
 };
-use crate::dom::virtualmethods::VirtualMethods;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]

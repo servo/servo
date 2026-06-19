@@ -23,10 +23,10 @@ use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
+use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::node::{ChildrenMutation, Node, NodeDamage};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
-use crate::dom::virtualmethods::vtable_for;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]

@@ -31,12 +31,12 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, ChildrenMutation, IsShadowTree, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::text::Text;
 use crate::dom::toggleevent::ToggleEvent;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 /// The summary that should be presented if no `<summary>` element is present

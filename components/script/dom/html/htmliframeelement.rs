@@ -44,10 +44,10 @@ use crate::dom::element::{AttributeMutation, Element, reflect_referrer_policy_at
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::navigation::{
     determine_creation_sandboxing_flags, determine_iframe_element_referrer_policy,

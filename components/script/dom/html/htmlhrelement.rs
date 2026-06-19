@@ -23,7 +23,7 @@ use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
-use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::node::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLHRElement {
