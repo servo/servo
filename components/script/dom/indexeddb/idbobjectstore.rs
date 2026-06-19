@@ -318,12 +318,17 @@ impl IDBObjectStore {
         Some(next as i64)
     }
 
+    /// <https://www.w3.org/TR/IndexedDB-3/#object-store-key-path>
+    pub(crate) fn key_path(&self) -> Option<&KeyPath> {
+        self.key_path.as_ref()
+    }
+
     /// <https://www.w3.org/TR/IndexedDB-3/#object-store-in-line-keys>
-    fn uses_inline_keys(&self) -> bool {
+    pub(crate) fn uses_inline_keys(&self) -> bool {
         self.key_path.is_some()
     }
 
-    fn verify_not_deleted(&self) -> ErrorResult {
+    pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
         let db = self.transaction.Db();
         if !db.object_store_exists(&self.name.borrow()) {
             return Err(Error::InvalidState(None));
