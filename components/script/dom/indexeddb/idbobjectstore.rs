@@ -14,7 +14,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::IDBObjectStoreBinding::IDBIndexParameters;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use script_bindings::error::ErrorResult;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{
     self, AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
@@ -46,7 +46,6 @@ use crate::indexeddb::{
     ExtractionResult, can_inject_key_into_value, convert_value_to_key, convert_value_to_key_range,
     extract_key, inject_key_into_value, is_valid_key_path,
 };
-use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum KeyPath {
@@ -164,15 +163,15 @@ impl IDBObjectStore {
     }
 
     pub fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
         abort_state: IDBObjectStoreAbortState,
-        can_gc: CanGc,
         transaction: &IDBTransaction,
     ) -> DomRoot<IDBObjectStore> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(IDBObjectStore::new_inherited(
                 db_name,
                 name,
@@ -181,7 +180,7 @@ impl IDBObjectStore {
                 transaction,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -190,7 +189,7 @@ impl IDBObjectStore {
     }
 
     /// <https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction>
-    pub(crate) fn restore_metadata_after_abort(&self, can_gc: CanGc) {
+    pub(crate) fn restore_metadata_after_abort(&self, cx: &mut JSContext) {
         let Some(abort_state) = self.abort_state_on_abort.borrow().as_ref().cloned() else {
             return;
         };
@@ -208,13 +207,13 @@ impl IDBObjectStore {
         self.index_set.borrow_mut().clear();
         for index in abort_state.rollback_indexes {
             self.add_index(
+                cx,
                 index.name.clone().into(),
                 &IDBIndexParameters {
                     multiEntry: index.multi_entry,
                     unique: index.unique,
                 },
                 index.key_path.clone().into(),
-                can_gc,
             );
         }
 
@@ -470,6 +469,7 @@ impl IDBObjectStore {
         // Step 12. Let operation be an algorithm to run store a record into an object store with
         // store, clone, key, and no-overwrite flag.
         let request = IDBRequest::execute_async(
+            cx,
             self,
             |callback| {
                 AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
@@ -482,7 +482,6 @@ impl IDBObjectStore {
             },
             None,
             None,
-            CanGc::from_cx(cx),
         )?;
         // Keep the in-memory key generator in sync with the queued put request.
         if let Some(next_key_generator_current_number) = key_generator_current_number_for_put {
@@ -527,6 +526,7 @@ impl IDBObjectStore {
         // interface as well.
         let cursor = if key_only {
             IDBCursor::new(
+                cx,
                 &self.global(),
                 &self.transaction,
                 direction,
@@ -534,10 +534,10 @@ impl IDBObjectStore {
                 ObjectStoreOrIndex::ObjectStore(Dom::from_ref(self)),
                 range.clone(),
                 key_only,
-                CanGc::from_cx(cx),
             )
         } else {
             DomRoot::upcast(IDBCursorWithValue::new(
+                cx,
                 &self.global(),
                 &self.transaction,
                 direction,
@@ -545,7 +545,6 @@ impl IDBObjectStore {
                 ObjectStoreOrIndex::ObjectStore(Dom::from_ref(self)),
                 range.clone(),
                 key_only,
-                CanGc::from_cx(cx),
             ))
         };
 
@@ -561,6 +560,7 @@ impl IDBObjectStore {
         };
 
         IDBRequest::execute_async(
+            cx,
             self,
             |callback| {
                 AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Iterate {
@@ -570,26 +570,25 @@ impl IDBObjectStore {
             },
             None,
             Some(iteration_param),
-            CanGc::from_cx(cx),
         )
         .inspect(|request| cursor.set_request(request))
     }
 
     pub(crate) fn add_index(
         &self,
+        cx: &mut JSContext,
         name: DOMString,
         options: &IDBIndexParameters,
         key_path: KeyPath,
-        can_gc: CanGc,
     ) -> DomRoot<IDBIndex> {
         let index = IDBIndex::new(
+            cx,
             &self.global(),
             DomRoot::from_ref(self),
             name.clone(),
             options.multiEntry,
             options.unique,
             key_path,
-            can_gc,
         );
         self.index_set
             .borrow_mut()
@@ -640,6 +639,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 8. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         serialized_query.and_then(|key_range| {
             IDBRequest::execute_async(
+                cx,
                 self,
                 |callback| {
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
@@ -649,7 +649,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -668,11 +667,11 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 6. Let operation be an algorithm to run clear an object store with store.
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         IDBRequest::execute_async(
+            cx,
             self,
             |callback| AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(callback)),
             None,
             None,
-            CanGc::from_cx(cx),
         )
     }
 
@@ -693,6 +692,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
+                cx,
                 self,
                 |callback| {
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
@@ -702,7 +702,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -725,6 +724,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // store as operation, using store and range.
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
+                cx,
                 self,
                 |callback| {
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetKey {
@@ -734,7 +734,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -762,6 +761,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // store as operation, using store and range.
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
+                cx,
                 self,
                 |callback| {
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
@@ -772,7 +772,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -800,6 +799,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // store as operation, using store and range.
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
+                cx,
                 self,
                 |callback| {
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllKeys {
@@ -810,7 +810,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -832,6 +831,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
         serialized_query.and_then(|q| {
             IDBRequest::execute_async(
+                cx,
                 self,
                 |callback| {
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
@@ -841,7 +841,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                 },
                 None,
                 None,
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -928,8 +927,8 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-indexnames>
-    fn IndexNames(&self, can_gc: CanGc) -> DomRoot<DOMStringList> {
-        DOMStringList::new_sorted(&self.global(), self.index_set.borrow().keys(), can_gc)
+    fn IndexNames(&self, cx: &mut JSContext) -> DomRoot<DOMStringList> {
+        DOMStringList::new_sorted(cx, &self.global(), self.index_set.borrow().keys())
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-transaction>
@@ -1003,7 +1002,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         }
 
         // Step 12. Add index to this object store handle's index set.
-        let index = self.add_index(name, options, key_path, CanGc::from_cx(cx));
+        let index = self.add_index(cx, name, options, key_path);
 
         // Step 13. Return a new index handle associated with index and this object store handle.
         Ok(index)

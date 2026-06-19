@@ -70,7 +70,7 @@ pub(crate) fn throw_dom_exception(cx: &mut JSContext, global: &GlobalScope, resu
         });
     }
 
-    match create_dom_exception(global, result, CanGc::from_cx(cx)) {
+    match create_dom_exception(cx, global, result) {
         Ok(exception) => unsafe {
             assert!(!JS_IsExceptionPending(cx));
             rooted!(&in(cx) let mut thrown = UndefinedValue());
@@ -98,13 +98,16 @@ pub(crate) fn throw_dom_exception(cx: &mut JSContext, global: &GlobalScope, resu
 /// If no such DOMException exists, return a subset of the original error values
 /// that may need additional handling.
 pub(crate) fn create_dom_exception(
+    cx: &mut JSContext,
     global: &GlobalScope,
     result: Error,
-    can_gc: CanGc,
 ) -> Result<DomRoot<DOMException>, JsEngineError> {
-    let new_custom_exception = |error_name, message| {
+    let mut new_custom_exception = |error_name, message| {
         Ok(DOMException::new_with_custom_message(
-            global, error_name, message, can_gc,
+            global,
+            error_name,
+            message,
+            CanGc::from_cx(cx),
         ))
     };
 
@@ -203,7 +206,7 @@ pub(crate) fn create_dom_exception(
                 DOMString::new(),
                 quota,
                 requested,
-                can_gc,
+                CanGc::from_cx(cx),
             )));
         },
         Error::TypeMismatch(Some(custom_message)) => {
@@ -238,7 +241,7 @@ pub(crate) fn create_dom_exception(
         Error::Range(message) => return Err(JsEngineError::Range(message)),
         Error::JSFailed => return Err(JsEngineError::JSFailed),
     };
-    Ok(DOMException::new(global, code, can_gc))
+    Ok(DOMException::new(global, code, CanGc::from_cx(cx)))
 }
 
 /// A struct encapsulating information about a runtime script error.

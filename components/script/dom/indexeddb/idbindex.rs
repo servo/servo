@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::MutableHandleValue;
 use script_bindings::codegen::GenericBindings::IDBIndexBinding::IDBIndexMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 
-use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::KeyPath;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct IDBIndex {
@@ -44,15 +44,15 @@ impl IDBIndex {
     }
 
     pub fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         object_store: DomRoot<IDBObjectStore>,
         name: DOMString,
         multi_entry: bool,
         unique: bool,
         key_path: KeyPath,
-        can_gc: CanGc,
     ) -> DomRoot<IDBIndex> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(IDBIndex::new_inherited(
                 object_store,
                 name,
@@ -61,7 +61,7 @@ impl IDBIndex {
                 key_path,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 }
@@ -83,13 +83,13 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
     }
 
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-keypath>
-    fn KeyPath(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn KeyPath(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         match &self.key_path {
             KeyPath::String(string) => {
-                string.safe_to_jsval(cx, retval, can_gc);
+                string.safe_to_jsval(cx.into(), retval, CanGc::from_cx(cx));
             },
             KeyPath::StringSequence(sequence) => {
-                sequence.safe_to_jsval(cx, retval, can_gc);
+                sequence.safe_to_jsval(cx.into(), retval, CanGc::from_cx(cx));
             },
         }
     }

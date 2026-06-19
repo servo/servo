@@ -667,8 +667,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
-    fn IndexedDB(&self) -> DomRoot<IDBFactory> {
-        self.upcast::<GlobalScope>().get_indexeddb()
+    fn IndexedDB(&self, cx: &mut JSContext) -> DomRoot<IDBFactory> {
+        self.upcast::<GlobalScope>().get_indexeddb(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location>

@@ -11,7 +11,7 @@ use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSend;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::{StorageIdentifier, StorageProxyMap, StorageType};
@@ -36,7 +36,6 @@ use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::dom::promise::Promise;
 use crate::dom::types::IDBTransaction;
 use crate::indexeddb::{convert_value_to_key, map_backend_error_to_dom_error};
-use crate::script_runtime::CanGc;
 
 /// A non-jstraceable string wrapper for use in `HashMapTracedValues`.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
@@ -92,7 +91,7 @@ impl IDBFactory {
         txn.clear_registered_in_global();
     }
 
-    pub(crate) fn cleanup_indexeddb_transactions(&self) -> bool {
+    pub(crate) fn cleanup_indexeddb_transactions(&self, cx: &mut JSContext) -> bool {
         // We implement the HTML-triggered deactivation effect by tracking script-created
         // transactions on the global and deactivating them at the microtask checkpoint.
         let snapshot: Vec<DomRoot<IDBTransaction>> = {
@@ -138,7 +137,7 @@ impl IDBFactory {
                 txn.set_active_flag(false);
                 txn.clear_cleanup_event_loop();
                 if txn.is_usable() {
-                    txn.maybe_commit();
+                    txn.maybe_commit(cx);
                 }
             }
         }
@@ -158,7 +157,7 @@ impl IDBFactory {
         true
     }
 
-    pub(crate) fn maybe_commit_txn(&self, db_name: &str, txn_serial: u64) {
+    pub(crate) fn maybe_commit_txn(&self, cx: &mut JSContext, db_name: &str, txn_serial: u64) {
         let key = DBName(db_name.to_string());
         let snapshot: Vec<DomRoot<IDBTransaction>> = {
             let map = self.indexeddb_transactions.borrow();
@@ -170,7 +169,7 @@ impl IDBFactory {
 
         for txn in snapshot {
             if txn.get_serial_number() == txn_serial {
-                txn.maybe_commit();
+                txn.maybe_commit(cx);
                 break;
             }
         }
@@ -198,8 +197,8 @@ impl IDBFactory {
         );
     }
 
-    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBFactory> {
-        reflect_dom_object(Box::new(IDBFactory::new_inherited()), global, can_gc)
+    pub fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<IDBFactory> {
+        reflect_dom_object_with_cx(Box::new(IDBFactory::new_inherited()), global, cx)
     }
 
     /// Setup the callback to the backend service, if this hasn't been done already.
@@ -385,9 +384,9 @@ impl IDBFactory {
                 self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task!(indexeddb_maybe_commit_txn: move || {
+                    .queue(task!(indexeddb_maybe_commit_txn: move |cx| {
                         let factory = factory.root();
-                        factory.maybe_commit_txn(&db_name, txn);
+                        factory.maybe_commit_txn(cx, &db_name, txn);
                     }));
             },
         }
@@ -425,7 +424,7 @@ impl IDBFactory {
         request.set_result(HandleValue::undefined());
 
         // Step 5.3.1.2: Set request’s error to result.
-        request.set_error(Some(dom_exception), CanGc::from_cx(cx));
+        request.set_error(cx, Some(dom_exception));
         // Open requests expose a transaction only while `upgradeneeded` is being dispatched;
         // otherwise `IDBOpenDBRequest.transaction` must be null.
         // https://w3c.github.io/IndexedDB/#dom-idbrequest-transaction
@@ -550,7 +549,12 @@ impl IDBFactory {
 
 impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
     /// <https://w3c.github.io/IndexedDB/#dom-idbfactory-open>
-    fn Open(&self, name: DOMString, version: Option<u64>) -> Fallible<DomRoot<IDBOpenDBRequest>> {
+    fn Open(
+        &self,
+        cx: &mut JSContext,
+        name: DOMString,
+        version: Option<u64>,
+    ) -> Fallible<DomRoot<IDBOpenDBRequest>> {
         // Step 1: If version is 0 (zero), throw a TypeError.
         if version == Some(0) {
             return Err(Error::Type(
@@ -573,7 +577,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             self.obtain_a_local_storage_bottle_map(&global, global.origin().immutable().clone())?;
 
         // Step 4: Let request be a new open request.
-        let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
+        let request = IDBOpenDBRequest::new(cx, &self.global());
 
         // Step 5: Runs in parallel
         if self
@@ -588,7 +592,11 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
     }
 
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase>
-    fn DeleteDatabase(&self, name: DOMString) -> Fallible<DomRoot<IDBOpenDBRequest>> {
+    fn DeleteDatabase(
+        &self,
+        cx: &mut JSContext,
+        name: DOMString,
+    ) -> Fallible<DomRoot<IDBOpenDBRequest>> {
         // Step 1: Let environment be this’s relevant settings object.
         let global = self.global();
 
@@ -604,7 +612,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             self.obtain_a_local_storage_bottle_map(&global, global.origin().immutable().clone())?;
 
         // Step 3: Let request be a new open request
-        let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
+        let request = IDBOpenDBRequest::new(cx, &self.global());
 
         // Step 4: Runs in parallel
         if request
