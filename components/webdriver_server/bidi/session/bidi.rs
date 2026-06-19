@@ -12,7 +12,7 @@ use tokio::{
 };
 use uuid::Uuid;
 use webdriver_traits::{
-    WebDriverToConstellationMsg, WebDriverToScriptMessage,
+    WebDriverToConstellationMsg, WebDriverToScriptMsg,
     bidi::{
         BrowserCommand, BrowserResult, BrowsingContextCommand, BrowsingContextResult, CommandData,
         EmptyParams, EmptyResult, EmulationCommand, EmulationResult, ErrorCode, Event,
@@ -828,7 +828,7 @@ impl<'a> BidiSession<'a> {
         }
         // 6. & 7.
         let (callback, receiver) = new_oneshot_callback();
-        navigable.send_to_script(WebDriverToScriptMessage::CloseNavigable(
+        navigable.send_to_script(WebDriverToScriptMsg::CloseNavigable(
             prompt_unload,
             callback,
         ));

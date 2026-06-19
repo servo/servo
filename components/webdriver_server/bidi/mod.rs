@@ -1,9 +1,11 @@
 mod callback;
 mod connection;
+mod constellation;
 mod error;
 mod listener;
 mod modules;
 mod remote_end;
+mod script;
 mod session;
 mod wait_queue;
 
@@ -27,7 +29,7 @@ use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 use webdriver_traits::{
-    ScriptToWebDriverMsg, WebDriverMsg, WebDriverToConstellationMsg, WebDriverToScriptMessage,
+    ScriptToWebDriverMsg, WebDriverMsg, WebDriverToConstellationMsg, WebDriverToScriptMsg,
     bidi::{
         ErrorCode, browsing_context,
         script::{BaseRealmInfo, RealmInfo, WindowRealmInfo, WindowRealmInfoType},
@@ -155,7 +157,7 @@ impl WebDriverBidiThread {
                             },
                         );
                     },
-                    ScriptToWebDriverMsg::ScriptMessage { channel, data } => todo!(),
+                    ScriptToWebDriverMsg::ChannelMessage { channel, data } => todo!(),
                     ScriptToWebDriverMsg::FileDialogOpened(file_dialog_opened) => todo!(),
                 },
             }
@@ -225,7 +227,7 @@ impl RemoteEndState {
 pub(crate) struct Navigable {
     pub(crate) id: BrowsingContextId,
     pub(crate) original_opener: Option<BrowsingContextId>,
-    pub(crate) sender: GenericSender<WebDriverToScriptMessage>,
+    pub(crate) sender: GenericSender<WebDriverToScriptMsg>,
     pub(crate) webview_id: Option<WebViewId>,
     pub(crate) active_document: PipelineId,
 }
@@ -237,7 +239,7 @@ impl Navigable {
         todo!()
     }
 
-    pub(crate) fn send_to_script(&self, message: WebDriverToScriptMessage) {
+    pub(crate) fn send_to_script(&self, message: WebDriverToScriptMsg) {
         if let Err(e) = self.sender.send(message) {
             log::warn!("WebDriver to script channel closed: {e:?}");
         };

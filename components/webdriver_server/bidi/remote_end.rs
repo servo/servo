@@ -12,16 +12,20 @@ use futures_util::{FutureExt, StreamExt, future};
 use log::warn;
 use serde::Deserialize;
 use serde_json::Value;
-use servo_base::id::{BrowsingContextId, PainterId, WebViewId};
+use servo_base::{
+    generic_channel::GenericSender,
+    id::{BrowsingContextId, PainterId, PipelineId, WebViewId},
+};
 use tokio::{
     sync::{Mutex, mpsc::UnboundedReceiver},
     task,
 };
 use webdriver_traits::{
-    ConstellationToWebDriverMsg, ScriptToWebDriverMsg, WebDriverMsg, WebDriverToConstellationMsg,
+    WebDriverMsg, WebDriverToConstellationMsg, WebDriverToScriptMsg,
     bidi::{
         Command, CommandData, CommandResponse, EmptyResult, ErrorCode, ErrorResponse, Message,
         ResultData, SessionCommand, SessionResult,
+        script::Realm as RealmId,
         session::{NewParameters, NewResultCapabilities},
     },
 };
@@ -48,9 +52,10 @@ pub(crate) struct RemoteEnd {
     pub(crate) unassociated_connections: RefCell<HashSet<ConnectionId>>,
 
     // the following is the hierarchy of browser.
-    pub(crate) windows: RefCell<HashMap<PainterId, ClientWindow>>,
+    pub(crate) client_windows: RefCell<HashMap<PainterId, ClientWindow>>,
     pub(crate) traversables: RefCell<HashMap<WebViewId, Traversable>>,
     pub(crate) navigables: RefCell<HashMap<BrowsingContextId, Navigable>>,
+    pub(crate) documents: RefCell<HashMap<PipelineId, Document>>,
     pub(crate) realms: RefCell<HashMap<RealmId, Realm>>,
 
     /// All the
@@ -58,6 +63,7 @@ pub(crate) struct RemoteEnd {
 
     /// Send message to constellation.
     pub(crate) constellation_sender: Sender<WebDriverToConstellationMsg>,
+    pub(crate) script_senders: RefCell<HashMap<PipelineId, GenericSender<WebDriverToScriptMsg>>>,
 
     /// Receive messages from other components of servo (constellation and script thread).
 
@@ -99,15 +105,8 @@ impl RemoteEnd {
             return;
         };
         match msg {
-            WebDriverMsg::FromConstellation(msg) => match msg {
-                ConstellationToWebDriverMsg::BrowsingContextCreated(info) => todo!(),
-            },
-            WebDriverMsg::FromScript(msg) => match msg {
-                ScriptToWebDriverMsg::LogEntryAdded(items, entry_added) => todo!(),
-                ScriptToWebDriverMsg::RealmCreated(_, generic_sender) => todo!(),
-                ScriptToWebDriverMsg::ScriptMessage { channel, data } => todo!(),
-                ScriptToWebDriverMsg::FileDialogOpened(file_dialog_opened) => todo!(),
-            },
+            WebDriverMsg::FromConstellation(msg) => self.handle_constellation(msg),
+            WebDriverMsg::FromScript(msg) => self.handle_script(msg),
         }
     }
 
@@ -441,7 +440,7 @@ pub struct ClientWindow {
     /// ID of client window itself.
     pub(crate) id: PainterId,
     /// All traversables (tabs) that belongs to this window.
-    pub(crate) traversables: Vec<BrowsingContextId>,
+    pub(crate) traversables: Vec<WebViewId>,
 }
 
 /// A traversables, which visually corresponds to a tab in OS client window.
@@ -461,18 +460,26 @@ pub struct Navigable {
     pub(crate) id: BrowsingContextId,
     /// The traversable (tab) that contains this.
     pub(crate) traversable_id: WebViewId,
-    /// All realms that belongs to this navigable.
-    pub(crate) realms: Vec<Option<WorkerId>>,
+    /// All documents (pipelines) that belongs to this navigable.
+    pub(crate) documents: Vec<PipelineId>,
+    pub(crate) active_index: usize,
 
     // TODO: should remove this field
     // and query in traversables instead.
     pub(crate) is_top_level_traversable: bool,
 }
 
-pub struct Realm {
-    pub(crate) id: RealmId,
+pub struct Document {
+    pub(crate) id: PipelineId,
+    pub(crate) navigable_id: BrowsingContextId,
+    pub(crate) realms: Vec<RealmId>,
 }
 
-/// A JavaScript execution realm.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct RealmId(BrowsingContextId, Option<WorkerId>);
+pub struct Realm {
+    /// Opaque ID of the realm.
+    /// Realm is intead indexed by `(PipelineId, Option<WorkerId>)`.
+    pub(crate) id: RealmId,
+    // TODO: shared worker?
+    pub(crate) document_id: PipelineId,
+    pub(crate) worker_id: Option<WorkerId>,
+}

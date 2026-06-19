@@ -91,9 +91,9 @@ pub enum ScriptToWebDriverMsg {
     LogEntryAdded(Vec<BrowsingContextId>, log::EntryAdded),
     RealmCreated(
         (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
-        GenericSender<WebDriverToScriptMessage>,
+        GenericSender<WebDriverToScriptMsg>,
     ),
-    ScriptMessage {
+    ChannelMessage {
         // TODO: channel should have more speicific id type
         channel: String,
         data: script::RemoteValue, // TODO: source with realm id & context id
@@ -114,7 +114,7 @@ pub enum WebDriverToConstellationMsg {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum WebDriverToScriptMessage {
+pub enum WebDriverToScriptMsg {
     Reload,
     // bool is prompt unload
     CloseNavigable(bool, GenericCallback<()>),
