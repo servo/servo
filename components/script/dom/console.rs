@@ -775,7 +775,7 @@ fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMS
 fn stringify_debugger_value(value: &DebuggerValue) -> String {
     match value {
         DebuggerValue::VoidValue => "undefined".into(),
-        DebuggerValue::NullValue => "null".into(),
+        DebuggerValue::NullValue(_) => "null".into(),
         DebuggerValue::BooleanValue(value) => value.to_string(),
         DebuggerValue::NumberValue(value) => value.to_string(),
         DebuggerValue::StringValue(value) => value.clone(),
