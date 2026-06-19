@@ -553,6 +553,7 @@ impl Activatable for HTMLButtonElement {
             // TODO source attribute
             // Step 5.4 If continue is false, then return.
             let event = CommandEvent::new(
+                cx,
                 &self.owner_window(),
                 atom!("command"),
                 EventBubbles::DoesNotBubble,
@@ -560,7 +561,6 @@ impl Activatable for HTMLButtonElement {
                 Some(DomRoot::from_ref(self.upcast())),
                 self.upcast::<Element>()
                     .get_string_attribute(&local_name!("command")),
-                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
             if !event.fire(cx, target.upcast::<EventTarget>()) {

@@ -8,7 +8,7 @@ use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -27,7 +27,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::windowproxy::WindowProxy;
-use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -91,16 +90,20 @@ impl MessageEvent {
         }
     }
 
-    pub(crate) fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MessageEvent> {
-        Self::new_uninitialized_with_proto(global, None, can_gc)
+    pub(crate) fn new_uninitialized(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> DomRoot<MessageEvent> {
+        Self::new_uninitialized_with_proto(cx, global, None)
     }
 
     fn new_uninitialized_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<MessageEvent> {
         MessageEvent::new_initialized(
+            cx,
             global,
             proto,
             HandleValue::undefined(),
@@ -108,12 +111,12 @@ impl MessageEvent {
             None,
             DOMString::new(),
             vec![],
-            can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_initialized(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         data: HandleValue,
@@ -121,7 +124,6 @@ impl MessageEvent {
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
-        can_gc: CanGc,
     ) -> DomRoot<MessageEvent> {
         let ev = Box::new(MessageEvent::new_inherited(
             origin,
@@ -129,7 +131,7 @@ impl MessageEvent {
             lastEventId,
             ports,
         ));
-        let ev = reflect_dom_object_with_proto(ev, global, proto, can_gc);
+        let ev = reflect_dom_object_with_proto_and_cx(ev, global, proto, cx);
         ev.data.set(data.get());
 
         ev
@@ -137,6 +139,7 @@ impl MessageEvent {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,
@@ -146,9 +149,9 @@ impl MessageEvent {
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
-        can_gc: CanGc,
     ) -> DomRoot<MessageEvent> {
         Self::new_with_proto(
+            cx,
             global,
             None,
             type_,
@@ -159,12 +162,12 @@ impl MessageEvent {
             source,
             lastEventId,
             ports,
-            can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -175,9 +178,9 @@ impl MessageEvent {
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
-        can_gc: CanGc,
     ) -> DomRoot<MessageEvent> {
         let ev = MessageEvent::new_initialized(
+            cx,
             global,
             proto,
             data,
@@ -185,7 +188,6 @@ impl MessageEvent {
             source,
             lastEventId,
             ports,
-            can_gc,
         );
         {
             let event = ev.upcast::<Event>();
@@ -204,6 +206,7 @@ impl MessageEvent {
         ports: Vec<DomRoot<MessagePort>>,
     ) {
         let messageevent = MessageEvent::new(
+            cx,
             scope,
             atom!("message"),
             false,
@@ -217,7 +220,6 @@ impl MessageEvent {
                 .as_ref(),
             DOMString::new(),
             ports,
-            CanGc::from_cx(cx),
         );
         messageevent.upcast::<Event>().fire(cx, target);
     }
@@ -225,6 +227,7 @@ impl MessageEvent {
     pub(crate) fn dispatch_error(cx: &mut JSContext, target: &EventTarget, scope: &GlobalScope) {
         let init = MessageEventBinding::MessageEventInit::empty();
         let messageevent = MessageEvent::new(
+            cx,
             scope,
             atom!("messageerror"),
             init.parent.bubbles,
@@ -234,7 +237,6 @@ impl MessageEvent {
             init.source.as_ref(),
             init.lastEventId.clone(),
             init.ports.clone(),
-            CanGc::from_cx(cx),
         );
         messageevent.upcast::<Event>().fire(cx, target);
     }
@@ -243,13 +245,15 @@ impl MessageEvent {
 impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     /// <https://html.spec.whatwg.org/multipage/#messageevent>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
+
         type_: DOMString,
         init: RootedTraceableBox<MessageEventBinding::MessageEventInit>,
     ) -> Fallible<DomRoot<MessageEvent>> {
         let ev = MessageEvent::new_with_proto(
+            cx,
             global,
             proto,
             Atom::from(type_),
@@ -260,7 +264,6 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
             init.source.as_ref(),
             init.lastEventId.clone(),
             init.ports.clone(),
-            can_gc,
         );
         Ok(ev)
     }

@@ -576,6 +576,7 @@ impl TaskOnce for CloseTask {
         let code = self.code.unwrap_or(close_code::NO_STATUS);
         let reason = DOMString::from(self.reason.unwrap_or("".to_owned()));
         let close_event = CloseEvent::new(
+            cx,
             &ws.global(),
             atom!("close"),
             EventBubbles::DoesNotBubble,
@@ -583,7 +584,6 @@ impl TaskOnce for CloseTask {
             clean_close,
             code,
             reason,
-            CanGc::from_cx(cx),
         );
         close_event.upcast::<Event>().fire(cx, ws.upcast());
     }

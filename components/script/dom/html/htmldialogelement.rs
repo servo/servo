@@ -26,7 +26,6 @@ use crate::dom::htmlbuttonelement::{CommandState, HTMLButtonElement};
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::toggleevent::ToggleEvent;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLDialogElement {
@@ -102,6 +101,7 @@ impl HTMLDialogElement {
 
         // Step 6. If the result of firing an event named beforetoggle, using ToggleEvent, with the cancelable attribute initialized to true, the oldState attribute initialized to "closed", the newState attribute initialized to "open", and the source attribute initialized to source at subject is false, then return.
         let event = ToggleEvent::new(
+            cx,
             &self.owner_window(),
             atom!("beforetoggle"),
             EventBubbles::DoesNotBubble,
@@ -109,7 +109,6 @@ impl HTMLDialogElement {
             DOMString::from("closed"),
             DOMString::from("open"),
             source.borrow().clone(),
-            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
         if !event.fire(cx, self.upcast::<EventTarget>()) {
@@ -176,6 +175,7 @@ impl HTMLDialogElement {
 
         // Step 2. Fire an event named beforetoggle, using ToggleEvent, with the oldState attribute initialized to "open", the newState attribute initialized to "closed", and the source attribute initialized to source at subject.
         let event = ToggleEvent::new(
+            cx,
             &self.owner_window(),
             atom!("beforetoggle"),
             EventBubbles::DoesNotBubble,
@@ -183,7 +183,6 @@ impl HTMLDialogElement {
             DOMString::from("open"),
             DOMString::from("closed"),
             source.borrow().clone(),
-            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
         event.fire(cx, self.upcast::<EventTarget>());
@@ -261,6 +260,7 @@ impl HTMLDialogElement {
 
                 // Step 2.1. Fire an event named toggle at element, using ToggleEvent, with the oldState attribute initialized to oldState, the newState attribute initialized to newState, and the source attribute initialized to source.
                 let event = ToggleEvent::new(
+                    cx,
                     &this.owner_window(),
                     atom!("toggle"),
                     EventBubbles::DoesNotBubble,
@@ -268,7 +268,6 @@ impl HTMLDialogElement {
                     DOMString::from(old_state),
                     DOMString::from(new_state),
                     source,
-                    CanGc::from_cx(cx),
                 );
                 let event = event.upcast::<Event>();
                 event.fire(cx, this.upcast::<EventTarget>());
@@ -351,6 +350,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // Step 3. If the result of firing an event named beforetoggle, using ToggleEvent, with the cancelable attribute initialized to true, the oldState attribute initialized to "closed", and the newState attribute initialized to "open" at this is false, then return.
         let event = ToggleEvent::new(
+            cx,
             &self.owner_window(),
             atom!("beforetoggle"),
             EventBubbles::DoesNotBubble,
@@ -358,7 +358,6 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
             DOMString::from("closed"),
             DOMString::from("open"),
             None,
-            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
         if !event.fire(cx, self.upcast::<EventTarget>()) {

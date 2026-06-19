@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -17,7 +18,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ProgressEvent {
@@ -43,6 +43,7 @@ impl ProgressEvent {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         type_: Atom,
         can_bubble: EventBubbles,
@@ -50,9 +51,9 @@ impl ProgressEvent {
         length_computable: bool,
         loaded: Finite<f64>,
         total: Finite<f64>,
-        can_gc: CanGc,
     ) -> DomRoot<ProgressEvent> {
         Self::new_with_proto(
+            cx,
             global,
             None,
             type_,
@@ -61,12 +62,12 @@ impl ProgressEvent {
             length_computable,
             loaded,
             total,
-            can_gc,
         )
     }
 
     #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -75,9 +76,8 @@ impl ProgressEvent {
         length_computable: bool,
         loaded: Finite<f64>,
         total: Finite<f64>,
-        can_gc: CanGc,
     ) -> DomRoot<ProgressEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(ProgressEvent::new_inherited(
                 length_computable,
                 loaded,
@@ -85,7 +85,7 @@ impl ProgressEvent {
             )),
             global,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = ev.upcast::<Event>();
@@ -98,15 +98,17 @@ impl ProgressEvent {
 impl ProgressEventMethods<crate::DomTypeHolder> for ProgressEvent {
     /// <https://xhr.spec.whatwg.org/#dom-progressevent-progressevent>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
+
         type_: DOMString,
         init: &ProgressEventBinding::ProgressEventInit,
     ) -> Fallible<DomRoot<ProgressEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         let ev = ProgressEvent::new_with_proto(
+            cx,
             global,
             proto,
             Atom::from(type_),
@@ -115,7 +117,6 @@ impl ProgressEventMethods<crate::DomTypeHolder> for ProgressEvent {
             init.lengthComputable,
             init.loaded,
             init.total,
-            can_gc,
         );
         Ok(ev)
     }

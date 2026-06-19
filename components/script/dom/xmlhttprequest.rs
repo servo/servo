@@ -1034,11 +1034,11 @@ impl XMLHttpRequest {
         self.ready_state.set(rs);
         if rs != XMLHttpRequestState::Unsent {
             let event = Event::new(
+                cx,
                 &self.global(),
                 atom!("readystatechange"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::Cancelable,
-                CanGc::from_cx(cx),
             );
             event.fire(cx, self.upcast());
         }
@@ -1194,11 +1194,11 @@ impl XMLHttpRequest {
                         self.ready_state.set(XMLHttpRequestState::Loading);
                     }
                     let event = Event::new(
+                        cx,
                         &self.global(),
                         atom!("readystatechange"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable,
-                        CanGc::from_cx(cx),
                     );
                     event.fire(cx, self.upcast());
                     return_if_fetch_was_terminated!();
@@ -1288,6 +1288,7 @@ impl XMLHttpRequest {
             (total.unwrap_or(0), total.is_some())
         };
         let progressevent = ProgressEvent::new(
+            cx,
             &self.global(),
             type_,
             EventBubbles::DoesNotBubble,
@@ -1295,7 +1296,6 @@ impl XMLHttpRequest {
             length_computable,
             Finite::wrap(loaded as f64),
             Finite::wrap(total_length as f64),
-            CanGc::from_cx(cx),
         );
         let target = if upload {
             self.upload.upcast()

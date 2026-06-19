@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::AnimationEventBinding::{
@@ -17,7 +18,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct AnimationEvent {
@@ -39,26 +39,26 @@ impl AnimationEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         init: &AnimationEventInit,
-        can_gc: CanGc,
     ) -> DomRoot<AnimationEvent> {
-        Self::new_with_proto(window, None, type_, init, can_gc)
+        Self::new_with_proto(cx, window, None, type_, init)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         init: &AnimationEventInit,
-        can_gc: CanGc,
     ) -> DomRoot<AnimationEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(AnimationEvent::new_inherited(init)),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = ev.upcast::<Event>();
@@ -71,13 +71,13 @@ impl AnimationEvent {
 impl AnimationEventMethods<crate::DomTypeHolder> for AnimationEvent {
     /// <https://drafts.csswg.org/css-animations/#dom-animationevent-animationevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &AnimationEventInit,
     ) -> DomRoot<AnimationEvent> {
-        AnimationEvent::new_with_proto(window, proto, Atom::from(type_), init, can_gc)
+        AnimationEvent::new_with_proto(cx, window, proto, Atom::from(type_), init)
     }
 
     /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>

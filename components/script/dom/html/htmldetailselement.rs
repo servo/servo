@@ -37,7 +37,6 @@ use crate::dom::node::{
 };
 use crate::dom::text::Text;
 use crate::dom::toggleevent::ToggleEvent;
-use crate::script_runtime::CanGc;
 
 /// The summary that should be presented if no `<summary>` element is present
 const DEFAULT_SUMMARY: &str = "Details";
@@ -466,6 +465,7 @@ impl VirtualMethods for HTMLDetailsElement {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {
                         let event = ToggleEvent::new(
+                            cx,
                             this.global().as_window(),
                             atom!("toggle"),
                             EventBubbles::DoesNotBubble,
@@ -473,7 +473,6 @@ impl VirtualMethods for HTMLDetailsElement {
                             DOMString::from(old_state),
                             DOMString::from(new_state),
                             None,
-                            CanGc::from_cx(cx),
                         );
                         let event = event.upcast::<Event>();
                         event.fire(cx, this.upcast::<EventTarget>());

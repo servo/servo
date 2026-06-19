@@ -23,7 +23,7 @@ use libc::c_char;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_constellation_traits::ConstellationInterest;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
@@ -73,7 +73,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::{enter_auto_realm, enter_realm};
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::IntroductionType;
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
 /// Generated from WebIDL definitions of EventHandler attributes on interfaces
@@ -421,15 +421,15 @@ impl EventTarget {
     }
 
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<EventTarget> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(EventTarget::new_inherited()),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -869,13 +869,7 @@ impl EventTarget {
         cancelable: EventCancelable,
         composed: EventComposed,
     ) -> bool {
-        let event = Event::new(
-            &self.global(),
-            name,
-            bubbles,
-            cancelable,
-            CanGc::from_cx(cx),
-        );
+        let event = Event::new(cx, &self.global(), name, bubbles, cancelable);
         event.set_composed(composed.into());
         event.fire(cx, self)
     }
@@ -1081,11 +1075,11 @@ impl EventTarget {
 impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-eventtarget>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<EventTarget>> {
-        Ok(EventTarget::new(global, proto, can_gc))
+        Ok(EventTarget::new(cx, global, proto))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>

@@ -572,7 +572,7 @@ impl ServiceWorkerGlobalScope {
     }
 
     fn dispatch_activate(&self, cx: &mut CurrentRealm) {
-        let event = ExtendableEvent::new(self, atom!("activate"), false, false, CanGc::from_cx(cx));
+        let event = ExtendableEvent::new(cx, self, atom!("activate"), false, false);
         let event = (*event).upcast::<Event>();
         event.dispatch(cx, self.upcast(), false);
     }

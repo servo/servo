@@ -578,11 +578,11 @@ impl IDBTransaction {
                 }
                 let global = this.global();
                 let event = Event::new(
+                    cx,
                     &global,
                     Atom::from("abort"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::from_cx(cx),
                 );
                 event.fire(cx, this.upcast());
                 if this.mode == IDBTransactionMode::Versionchange {
@@ -643,11 +643,11 @@ impl IDBTransaction {
                 this.finished.set(true);
                 let global = this.global();
                 let event = Event::new(
+                    cx,
                     &global,
                     Atom::from("complete"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::from_cx(cx)
                 );
                 // https://w3c.github.io/IndexedDB/#commit-transaction
                 // Step 5.3: Fire an event named complete at transaction.

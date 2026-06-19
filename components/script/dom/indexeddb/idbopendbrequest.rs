@@ -89,11 +89,11 @@ impl OpenRequestListener {
                 let error = map_backend_error_to_dom_error(err);
                 open_request.set_error(Some(error), CanGc::from_cx(cx));
                 let event = Event::new(
+                    cx,
                     &global,
                     Atom::from("error"),
                     EventBubbles::Bubbles,
                     EventCancelable::Cancelable,
-                    CanGc::from_cx(cx),
                 );
                 event.fire(cx, open_request.upcast());
             },
@@ -300,11 +300,11 @@ impl IDBOpenDBRequest {
         self.set_result(result_val.handle());
 
         let event = Event::new(
+            cx,
             &global,
             Atom::from("success"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.fire(cx, self.upcast());
     }

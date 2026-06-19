@@ -440,11 +440,11 @@ impl IDBFactory {
         // with its bubbles
         // and cancelable attributes initialized to true.
         let event = Event::new(
+            cx,
             &global,
             Atom::from("error"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            CanGc::from_cx(cx),
         );
         event.fire(cx, request.upcast());
     }

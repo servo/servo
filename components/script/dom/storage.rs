@@ -245,7 +245,8 @@ impl Storage {
             task!(send_storage_notification: move |cx| {
                 let this = this.root();
                 let global = this.global();
-                let event = StorageEvent::new(cx,
+                let event = StorageEvent::new(
+                    cx,
                     global.as_window(),
                     atom!("storage"),
                     EventBubbles::DoesNotBubble,

@@ -640,6 +640,7 @@ impl SharedWorkerGlobalScope {
                     inside_port.clone(),
                 );
                 let event = MessageEvent::new(
+                    cx,
                     worker_global.upcast::<GlobalScope>(),
                     Atom::from("connect"),
                     false,
@@ -649,7 +650,6 @@ impl SharedWorkerGlobalScope {
                     Some(&source),
                     DOMString::new(),
                     vec![inside_port],
-                    CanGc::from_cx(cx),
                 );
 
                 event
