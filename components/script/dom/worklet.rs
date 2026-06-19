@@ -10,13 +10,12 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
-use std::cell::OnceCell;
 use std::cmp::max;
 use std::collections::hash_map;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, Ordering};
-use std::thread;
+use std::{cell, thread};
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
@@ -68,13 +67,15 @@ use crate::task_source::TaskSourceName;
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;
 const MIN_GC_THRESHOLD: u32 = 1_000_000;
 
+type LazyCell<T> = cell::LazyCell<T, Box<dyn FnOnce() -> T>>;
+
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     worklet_id: WorkletId,
     /// The cached version of the script thread's WorkletThreadPool. We keep this cached
     /// because we may need to access it after the script thread has terminated.
     #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
-    thread_pool: OnceCell<Rc<PaintWorkletThreadPool>>,
+    thread_pool: Rc<LazyCell<Rc<PaintWorkletThreadPool>>>,
 }
 
 impl Drop for DroppableField {
@@ -96,14 +97,18 @@ pub(crate) struct Worklet {
 }
 
 impl Worklet {
-    fn new_inherited(window: &Window, global_type: WorkletGlobalScopeType) -> Worklet {
+    fn new_inherited(
+        window: &Window,
+        global_type: WorkletGlobalScopeType,
+        thread_pool: Rc<LazyCell<Rc<PaintWorkletThreadPool>>>,
+    ) -> Worklet {
         Worklet {
             reflector: Reflector::new(),
             window: Dom::from_ref(window),
             global_type,
             droppable_field: DroppableField {
                 worklet_id: WorkletId::new(),
-                thread_pool: OnceCell::new(),
+                thread_pool,
             },
         }
     }
@@ -112,10 +117,11 @@ impl Worklet {
         cx: &mut JSContext,
         window: &Window,
         global_type: WorkletGlobalScopeType,
+        thread_pool: Rc<LazyCell<Rc<PaintWorkletThreadPool>>>,
     ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object_with_cx(
-            Box::new(Worklet::new_inherited(window, global_type)),
+            Box::new(Worklet::new_inherited(window, global_type, thread_pool)),
             window,
             cx,
         )

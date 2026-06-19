@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::{Cell, LazyCell, RefCell, RefMut};
 use std::collections::HashSet;
 use std::collections::hash_map::Entry;
 use std::default::Default;
@@ -182,7 +182,7 @@ use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
-use crate::dom::worklet::Worklet;
+use crate::dom::worklet::{PaintWorkletThreadPool, Worklet};
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
@@ -687,7 +687,14 @@ impl Window {
 
     fn new_paint_worklet(&self, cx: &mut JSContext) -> DomRoot<Worklet> {
         debug!("Creating new paint worklet.");
-        Worklet::new(cx, self, WorkletGlobalScopeType::Paint)
+
+        let worklet_thread =
+            Rc::new(LazyCell::new(
+                Box::new(|| ScriptThread::worklet_thread_pool(self.image_cache))
+                    as Box<dyn std::ops::FnOnce() -> std::rc::Rc<PaintWorkletThreadPool>>,
+            ));
+
+        Worklet::new(cx, self, WorkletGlobalScopeType::Paint, worklet_thread)
     }
 
     pub(crate) fn register_image_cache_listener(
