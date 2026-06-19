@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 
 use crate::dom::abstractrange::AbstractRange;
 use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::{
@@ -17,7 +18,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct StaticRange {
@@ -41,21 +41,21 @@ impl StaticRange {
         }
     }
     pub(crate) fn new_with_doc(
+        cx: &mut JSContext,
         document: &Document,
         proto: Option<HandleObject>,
         init: &StaticRangeInit,
-        can_gc: CanGc,
     ) -> DomRoot<StaticRange> {
-        StaticRange::new_with_proto(document, proto, init, can_gc)
+        StaticRange::new_with_proto(cx, document, proto, init)
     }
 
     pub(crate) fn new_with_proto(
+        cx: &mut JSContext,
         document: &Document,
         proto: Option<HandleObject>,
         init: &StaticRangeInit,
-        can_gc: CanGc,
     ) -> DomRoot<StaticRange> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(StaticRange::new_inherited(
                 &init.startContainer,
                 init.startOffset,
@@ -64,7 +64,7 @@ impl StaticRange {
             )),
             document.window(),
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -72,9 +72,9 @@ impl StaticRange {
 impl StaticRangeMethods<crate::DomTypeHolder> for StaticRange {
     /// <https://dom.spec.whatwg.org/#dom-staticrange-staticrange>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         init: &StaticRangeInit,
     ) -> Fallible<DomRoot<StaticRange>> {
         match init.startContainer.type_id() {
@@ -94,6 +94,6 @@ impl StaticRangeMethods<crate::DomTypeHolder> for StaticRange {
             _ => (),
         }
         let document = window.Document();
-        Ok(StaticRange::new_with_doc(&document, proto, init, can_gc))
+        Ok(StaticRange::new_with_doc(cx, &document, proto, init))
     }
 }

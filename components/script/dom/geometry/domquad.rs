@@ -21,7 +21,6 @@ use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 /// <https://drafts.fxtf.org/geometry/#DOMQuad>
 #[dom_struct]
@@ -192,14 +191,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
         // Step 6. Set x coordinate of bounds to left, y coordinate of bounds to top,
         // width dimension of bounds to right - left and height dimension of bounds to bottom - top.
         // NOTE: Combined with Step 1.
-        DOMRect::new(
-            &self.global(),
-            left,
-            top,
-            right - left,
-            bottom - top,
-            CanGc::from_cx(cx),
-        )
+        DOMRect::new(cx, &self.global(), left, top, right - left, bottom - top)
     }
 }
 

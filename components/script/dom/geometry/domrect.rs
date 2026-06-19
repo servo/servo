@@ -6,7 +6,9 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
+use script_bindings::reflector::{
+    reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+};
 use servo_base::id::{DomRectId, DomRectIndex};
 use servo_constellation_traits::DomRect;
 
@@ -20,7 +22,6 @@ use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::domrectreadonly::{DOMRectReadOnly, create_a_domrectreadonly_from_the_dictionary};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DOMRect {
@@ -35,30 +36,30 @@ impl DOMRect {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
-        can_gc: CanGc,
     ) -> DomRoot<DOMRect> {
-        Self::new_with_proto(global, None, x, y, width, height, can_gc)
+        Self::new_with_proto(cx, global, None, x, y, width, height)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
-        can_gc: CanGc,
     ) -> DomRoot<DOMRect> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(DOMRect::new_inherited(x, y, width, height)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -66,16 +67,16 @@ impl DOMRect {
 impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
     /// <https://drafts.fxtf.org/geometry/#dom-domrect-domrect>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
     ) -> Fallible<DomRoot<DOMRect>> {
         Ok(DOMRect::new_with_proto(
-            global, proto, x, y, width, height, can_gc,
+            cx, global, proto, x, y, width, height,
         ))
     }
 
@@ -151,12 +152,12 @@ impl Serializable for DOMRect {
         Self: Sized,
     {
         Ok(Self::new(
+            cx,
             owner,
             serialized.x,
             serialized.y,
             serialized.width,
             serialized.height,
-            CanGc::from_cx(cx),
         ))
     }
 

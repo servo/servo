@@ -5517,7 +5517,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://dom.spec.whatwg.org/#dom-document-createrange>
     fn CreateRange(&self, cx: &mut JSContext) -> DomRoot<Range> {
-        Range::new_with_doc(self, None, CanGc::from_cx(cx))
+        Range::new_with_doc(cx, self, None)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter>

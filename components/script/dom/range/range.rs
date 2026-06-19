@@ -13,7 +13,7 @@ use js::context::JSContext;
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use style_traits::CSSPixel;
 
 use crate::dom::abstractrange::{AbstractRange, BoundaryPoint, bp_position};
@@ -44,7 +44,6 @@ use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct Range {
@@ -88,43 +87,43 @@ impl Range {
     }
 
     pub(crate) fn new_with_doc(
+        cx: &mut JSContext,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Range> {
         let root = document.upcast();
-        Range::new_with_proto(document, proto, root, 0, root, 0, can_gc)
+        Range::new_with_proto(cx, document, proto, root, 0, root, 0)
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         document: &Document,
         start_container: &Node,
         start_offset: u32,
         end_container: &Node,
         end_offset: u32,
-        can_gc: CanGc,
     ) -> DomRoot<Range> {
         Self::new_with_proto(
+            cx,
             document,
             None,
             start_container,
             start_offset,
             end_container,
             end_offset,
-            can_gc,
         )
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         document: &Document,
         proto: Option<HandleObject>,
         start_container: &Node,
         start_offset: u32,
         end_container: &Node,
         end_offset: u32,
-        can_gc: CanGc,
     ) -> DomRoot<Range> {
-        let range = reflect_dom_object_with_proto(
+        let range = reflect_dom_object_with_proto_and_cx(
             Box::new(Range::new_inherited(
                 start_container,
                 start_offset,
@@ -133,7 +132,7 @@ impl Range {
             )),
             document.window(),
             proto,
-            can_gc,
+            cx,
         );
         start_container.ranges().push(WeakRef::new(&range));
         if start_container != end_container {
@@ -421,12 +420,12 @@ enum StartOrEnd {
 impl RangeMethods<crate::DomTypeHolder> for Range {
     /// <https://dom.spec.whatwg.org/#dom-range>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Range>> {
         let document = window.Document();
-        Ok(Range::new_with_doc(&document, proto, can_gc))
+        Ok(Range::new_with_doc(cx, &document, proto))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-commonancestorcontainer>
@@ -548,12 +547,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let start_node = self.start_container();
         let owner_doc = start_node.owner_doc();
         Range::new(
+            cx,
             &owner_doc,
             &start_node,
             self.start_offset(),
             &self.end_container(),
             self.end_offset(),
-            CanGc::from_cx(cx),
         )
     }
 
@@ -669,12 +668,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 14.3.
                 let subrange = Range::new(
+                    cx,
                     &clone.owner_doc(),
                     &start_node,
                     start_offset,
                     &child,
                     child.len(),
-                    CanGc::from_cx(cx),
                 );
                 // Step 14.4.
                 let subfragment = subrange.CloneContents(cx)?;
@@ -706,14 +705,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 17.2.
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 17.3.
-                let subrange = Range::new(
-                    &clone.owner_doc(),
-                    &child,
-                    0,
-                    &end_node,
-                    end_offset,
-                    CanGc::from_cx(cx),
-                );
+                let subrange = Range::new(cx, &clone.owner_doc(), &child, 0, &end_node, end_offset);
                 // Step 17.4.
                 let subfragment = subrange.CloneContents(cx)?;
                 // Step 17.5.
@@ -817,12 +809,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 16.3.
                 let subrange = Range::new(
+                    cx,
                     &clone.owner_doc(),
                     &start_node,
                     start_offset,
                     &child,
                     child.len(),
-                    CanGc::from_cx(cx),
                 );
                 // Step 16.4.
                 let subfragment = subrange.ExtractContents(cx)?;
@@ -857,14 +849,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 19.2.
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 19.3.
-                let subrange = Range::new(
-                    &clone.owner_doc(),
-                    &child,
-                    0,
-                    &end_node,
-                    end_offset,
-                    CanGc::from_cx(cx),
-                );
+                let subrange = Range::new(cx, &clone.owner_doc(), &child, 0, &end_node, end_offset);
                 // Step 19.4.
                 let subfragment = subrange.ExtractContents(cx)?;
                 // Step 19.5.
@@ -1241,17 +1226,17 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             .client_rects()
             .map(|rect| {
                 DOMRect::new(
+                    cx,
                     window.upcast(),
                     rect.origin.x.to_f64_px(),
                     rect.origin.y.to_f64_px(),
                     rect.size.width.to_f64_px(),
                     rect.size.height.to_f64_px(),
-                    CanGc::from_cx(cx),
                 )
             })
             .collect();
 
-        DOMRectList::new(&window, client_rects, CanGc::from_cx(cx))
+        DOMRectList::new(cx, &window, client_rects)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect>
@@ -1268,12 +1253,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let bounding_rect = list.fold(euclid::Rect::zero(), |acc, rect| acc.union(&rect));
 
         DOMRect::new(
+            cx,
             window.upcast(),
             bounding_rect.origin.x.to_f64_px(),
             bounding_rect.origin.y.to_f64_px(),
             bounding_rect.size.width.to_f64_px(),
             bounding_rect.size.height.to_f64_px(),
-            CanGc::from_cx(cx),
         )
     }
 }
