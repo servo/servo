@@ -68,7 +68,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::global_scope_script_execution::fill_compile_options;
+use crate::dom::global_scope_script_execution::{ErrorReporting, fill_compile_options};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local_script};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -314,8 +314,8 @@ impl ModuleTree {
             cx,
             url.as_str(),
             introduction_type,
-            false, // mutedErrors_
-            true,  // noScriptRval
+            ErrorReporting::Unmuted,
+            true, // noScriptRval
             line_number,
         );
 
@@ -400,9 +400,9 @@ impl ModuleTree {
             cx,
             url.as_str(),
             introduction_type,
-            false, // mutedErrors_
-            true,  // noScriptRval
-            1,     // lineno
+            ErrorReporting::Unmuted,
+            true, // noScriptRval
+            1,    // lineno
         );
 
         rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());

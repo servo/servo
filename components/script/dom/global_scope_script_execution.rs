@@ -69,15 +69,6 @@ impl From<bool> for ErrorReporting {
     }
 }
 
-impl From<ErrorReporting> for bool {
-    fn from(error_reporting: ErrorReporting) -> Self {
-        match error_reporting {
-            ErrorReporting::Muted => true,
-            ErrorReporting::Unmuted => false,
-        }
-    }
-}
-
 pub(crate) enum RethrowErrors {
     Yes,
     No,
@@ -118,7 +109,7 @@ impl GlobalScope {
             cx,
             url.as_str(),
             introduction_type,
-            muted_errors.into(),
+            muted_errors,
             true, // noScriptRval
             line_number,
         );
@@ -339,10 +330,15 @@ pub(crate) fn fill_compile_options(
     cx: &mut JSContext,
     filename: &str,
     introduction_type: Option<&'static CStr>,
-    muted_errors: bool,
+    muted_errors: ErrorReporting,
     no_script_rval: bool,
     line_number: u32,
 ) -> CompileOptionsWrapper {
+    let muted_errors = match muted_errors {
+        ErrorReporting::Muted => true,
+        ErrorReporting::Unmuted => false,
+    };
+
     // TODO: pass filename as CString to avoid allocation
     // See https://github.com/servo/servo/issues/42126
     let mut options = CompileOptionsWrapper::new(cx, cformat!("{filename}"), line_number);

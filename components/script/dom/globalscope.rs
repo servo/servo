@@ -120,7 +120,9 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::global_scope_script_execution::{evaluate_script, fill_compile_options};
+use crate::dom::global_scope_script_execution::{
+    ErrorReporting, evaluate_script, fill_compile_options,
+};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -2952,7 +2954,7 @@ impl GlobalScope {
                 cx,
                 filename,
                 introduction_type,
-                false,          // mutedErrors_
+                ErrorReporting::Unmuted,
                 rval.is_none(), // noScriptRval
                 1,              // lineno
             );
