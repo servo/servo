@@ -2,11 +2,12 @@ use std::rc::Rc;
 
 use log::warn;
 use servo_base::id::BrowsingContextId;
+use webdriver_traits::bidi::{Event, EventData};
 
 use crate::bidi::{remote_end::RemoteEnd, session::common::SessionId};
 
 impl RemoteEnd {
-    pub(crate) fn subscribe_log_entry_added(
+    pub(crate) async fn subscribe_log_entry_added(
         self: Rc<Self>,
         session_id: SessionId,
         navigable_ids: &[BrowsingContextId],
@@ -52,11 +53,26 @@ impl RemoteEnd {
                 (include_global, navigable_ids.contains(&top_level_navigable))
             {
                 // Step 1.5.1.
-                // for (event, other_navigables) in events {
-                //     // TODO: be careful, borrow across await here
-                // // Step 1.5.1.1.
-                // TODO: crazy mut in iteration, rc needed
-                // }
+                for (event, other_navigables) in events.borrow().iter() {
+                    // TODO: be careful, borrow across await here
+                    // Step 1.5.1.1.
+                    self.clone()
+                        .emit_an_event(
+                            session_id,
+                            Event {
+                                event_data: EventData::LogEvent(event.clone()),
+                                extensible: Default::default(),
+                            },
+                        )
+                        .await;
+                    // Step 1.5.1.2. remove event from other navigable
+                    for other_context_id in other_navigables {
+                        if let Some(v) = log_event_buffer.borrow().get(other_context_id) {
+                            // TODO: check eq.
+                            v.borrow_mut().retain(|(e, _)| event != e);
+                        }
+                    }
+                }
             }
         }
     }

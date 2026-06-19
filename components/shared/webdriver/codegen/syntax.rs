@@ -243,7 +243,7 @@ impl Display for ItemEnum {
         let indent_mod = if self.indent { INDENT } else { "" };
         writeln!(
             f,
-            "{indent_mod}#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]"
+            "{indent_mod}#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]"
         )?;
         for attr in &self.attrs {
             writeln!(f, "{indent_mod}{attr}")?;
@@ -285,7 +285,7 @@ impl Display for ItemStruct {
         let indent_mod = if self.indent { INDENT } else { "" };
         writeln!(
             f,
-            "{indent_mod}#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]"
+            "{indent_mod}#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]"
         )?;
         writeln!(f, "{indent_mod}pub struct {} {{", self.name)?;
         for field in &self.fields {
