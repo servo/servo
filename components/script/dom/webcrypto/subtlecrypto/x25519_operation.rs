@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use elliptic_curve::rand_core::OsRng;
 use js::context::JSContext;
-use pkcs8::der::asn1::{OctetString, OctetStringRef};
+use pkcs8::der::asn1::OctetStringRef;
 use pkcs8::der::{Decode, Encode};
 use pkcs8::{AlgorithmIdentifierRef, ObjectIdentifier, PrivateKeyInfoRef, SubjectPublicKeyInfoRef};
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -125,7 +124,7 @@ pub(crate) fn generate_key(
 
     // Step 2. Generate an X25519 key pair, with the private key being 32 random bytes, and the
     // public key being X25519(a, 9), as defined in [RFC7748], section 6.1.
-    let private_key = StaticSecret::random_from_rng(OsRng);
+    let private_key = StaticSecret::random();
     let public_key = PublicKey::from(&private_key);
 
     // Step 3. Let algorithm be a new KeyAlgorithm object.
@@ -292,7 +291,7 @@ pub(crate) fn import_key(
             // Step 2.7. If an error occurred while parsing, then throw a DataError.
             let curve_private_key = private_key_info
                 .private_key
-                .decode_into::<OctetString>()
+                .decode_into::<&OctetStringRef>()
                 .map_err(|_| {
                     Error::Data(Some(
                         "Failed to decode the privateKey field of PrivateKeyInfo ASN.1 structure"
