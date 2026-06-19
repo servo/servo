@@ -1,0 +1,26 @@
+/* 4. CSS background-image request */
+body {
+  margin: 2rem;
+  font-family: ButtUglyProbeFont, sans-serif;
+  background-image: url("./bg.png");
+  background-repeat: no-repeat;
+  background-position: right top;
+  background-size: 96px 96px;
+}
+
+/* 5. font request */
+@font-face {
+  font-family: "ButtUglyProbeFont";
+  src: url("./font.woff2") format("woff2");
+}
+
+h1 {
+  border: 3px solid black;
+  padding: 1rem;
+}
+
+img {
+  display: block;
+  margin: 1rem 0;
+  border: 2px dashed red;
+}

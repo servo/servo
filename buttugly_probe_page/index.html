@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Servo loader buttugly probe</title>
+
+  <!-- 3. stylesheet request -->
+  <link rel="stylesheet" href="./style.css">
+
+  <!-- 2. local script request -->
+  <script src="./main.js" defer></script>
+
+  <!-- 7. remote script request: should become denied/policy/no-network later -->
+  <script src="http://example.com/remote.js" defer></script>
+
+  <!-- 8. file URL request: should be denied hard -->
+  <script src="file:///etc/passwd" defer></script>
+</head>
+
+<body>
+  <h1>Servo loader buttugly probe</h1>
+
+  <p>
+    If this page loads, the initial document worked.
+  </p>
+
+  <p id="script-status">
+    main.js has not run yet.
+  </p>
+
+  <!-- 6. HTML image request -->
+  <img
+    src="./logo.png"
+    alt="local logo probe"
+    width="128"
+    height="128"
+  >
+
+  <!-- Also poke file:// as an image destination, not just script destination -->
+  <img
+    src="file:///etc/passwd"
+    alt="file passwd image probe"
+    width="128"
+    height="128"
+  >
+
+  <pre id="probe-log">page parsed</pre>
+</body>
+</html>
