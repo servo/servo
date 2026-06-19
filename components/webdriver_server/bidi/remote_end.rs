@@ -5,11 +5,12 @@ use std::{
 };
 
 use async_tungstenite::tungstenite::Message as WsMessage;
+use devtools_traits::WorkerId;
 use futures_util::StreamExt;
 use log::warn;
 use serde::Deserialize;
 use serde_json::Value;
-use servo_base::id::BrowsingContextId;
+use servo_base::id::{BrowsingContextId, PainterId, WebViewId};
 use tokio::task;
 use webdriver_traits::bidi::{
     Command, CommandData, CommandResponse, EmptyResult, ErrorCode, ErrorResponse, Message,
@@ -36,6 +37,12 @@ pub(crate) struct RemoteEnd {
 
     /// A set of WebSocket connections not associated with a session.
     pub(crate) unassociated_connections: RefCell<HashSet<ConnectionId>>,
+
+    // the following is the hierarchy of browser.
+    pub(crate) windows: HashMap<PainterId, ClientWindow>,
+    pub(crate) traversables: HashMap<WebViewId, Traversable>,
+    pub(crate) navigables: HashMap<BrowsingContextId, Navigable>,
+    pub(crate) realms: HashMap<RealmId, Realm>,
 }
 
 impl RemoteEnd {
@@ -336,6 +343,43 @@ impl RemoteEnd {
     }
 }
 
+/// The OS client window.
+pub struct ClientWindow {
+    /// ID of client window itself.
+    pub(crate) id: PainterId,
+    /// All traversables (tabs) that belongs to this window.
+    pub(crate) traversables: Vec<BrowsingContextId>,
+}
+
+/// A traversables, which visually corresponds to a tab in OS client window.
+pub struct Traversable {
+    /// ID of traversable itself.
+    pub(crate) id: WebViewId,
+    /// The OS client window that contains this.
+    pub(crate) window_id: PainterId,
+    /// All navigables (tab/iframes) that belongs to this traversable.
+    /// The first item represents the top-level navigable (tab).
+    pub(crate) navigables: Vec<BrowsingContextId>,
+}
+
+/// A navigable, which visually corresponds to a tab or iframe.
 pub struct Navigable {
+    /// ID of navigable it self.
+    pub(crate) id: BrowsingContextId,
+    /// The traversable (tab) that contains this.
+    pub(crate) traversable_id: WebViewId,
+    /// All realms that belongs to this navigable.
+    pub(crate) realms: Vec<Option<WorkerId>>,
+
+    // TODO: should remove this field
+    // and query in traversables instead.
     pub(crate) is_top_level_traversable: bool,
 }
+
+pub struct Realm {
+    pub(crate) id: RealmId,
+}
+
+/// A JavaScript execution realm.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct RealmId(BrowsingContextId, Option<WorkerId>);
