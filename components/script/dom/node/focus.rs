@@ -213,7 +213,7 @@ impl Node {
     ///
     /// In addition to returning the focus delegate for this [`Node`], this method also returns
     /// the [`FocusableAreaKind`] for efficiency reasons.
-    fn focus_delegate(&self) -> Option<FocusableArea> {
+    pub(crate) fn focus_delegate(&self) -> Option<FocusableArea> {
         // > 1. If focusTarget is a shadow host and its shadow root's delegates focus is false, then
         // >    return null.
         let shadow_root = self.downcast::<Element>().and_then(Element::shadow_root);
