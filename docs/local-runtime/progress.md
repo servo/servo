@@ -162,3 +162,13 @@
 - Debug Debian symbol-split artifacts remain manual rescue/debug/ABI artifacts, not the default Codex arena runtime.
 - This is a CI/workflow-only change: no Servo runtime code, network/resource loader code, or `components/net/resource_thread.rs` was touched; no local package resource paths were loaded, logged, or denied.
 - Next agenda remains Codex-friendly runtime probing using the probe artifact on explicit request.
+
+## 2026-06-19 — Remote HTTP(S) request denial gate
+
+- Inspected `components/net/resource_thread.rs` at the existing `CoreResourceManager::fetch` local-runtime logging seam before the request enters the legacy fetch/http/protocol machinery.
+- Touched `components/net/resource_thread.rs` to add the first real local-runtime policy gate for resolved `http://` and `https://` final URLs only.
+- Remote HTTP(S) fetches now still emit the existing `[local-runtime resource-request]` block, but the decision is `denied`, the reason is `RemoteSchemeDeniedByLocalRuntime`, and `deny_kind` is `RequestDenied`.
+- Denied HTTP(S) requests are completed through Servo's existing network-error response callbacks instead of panicking, crashing the page, or attempting the actual network load.
+- Left `file://` behavior unchanged in this pass, including legacy-path logging and existing local file document/resource handling.
+- Still reaches old network/resource assumptions: `file://`, `ws://`, `wss://`, `ftp://`, `store://`, `asset://`, and `bundle://` are not yet enforced by this gate.
+- Open question: whether a dedicated local-runtime `NetworkError`/denial kind should replace the temporary `ResourceLoadError("RemoteSchemeDeniedByLocalRuntime")` representation once error taxonomy is formalized across callers.

@@ -29,7 +29,7 @@ use net_traits::response::{Response, ResponseInit};
 use net_traits::{
     AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
     CoreResourceThread, CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget,
-    ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
+    NetworkError, ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
     WebSocketNetworkEvent,
 };
 use parking_lot::{Mutex, RwLock};
@@ -81,14 +81,27 @@ fn local_runtime_package_for_url(url: &ServoUrl) -> Option<&str> {
     }
 }
 
-fn local_runtime_decision_for_scheme(scheme: &str) -> (&'static str, Option<&'static str>) {
+fn local_runtime_decision_for_scheme(
+    scheme: &str,
+) -> (&'static str, Option<&'static str>, Option<&'static str>) {
     match scheme {
-        "asset" | "bundle" => ("unrouted", Some("ResourceProviderNotInstalled")),
-        "http" | "https" | "ws" | "wss" | "ftp" | "file" => {
-            ("legacy-path", Some("RemoteOrFileSchemeNotYetDeniedHere"))
-        },
-        "store" => ("legacy-path", Some("StoreSchemeNotYetDeniedHere")),
-        _ => ("legacy-path", Some("UnsupportedSchemeNotYetClassifiedHere")),
+        "asset" | "bundle" => ("unrouted", Some("ResourceProviderNotInstalled"), None),
+        "http" | "https" => (
+            "denied",
+            Some("RemoteSchemeDeniedByLocalRuntime"),
+            Some("RequestDenied"),
+        ),
+        "ws" | "wss" | "ftp" | "file" => (
+            "legacy-path",
+            Some("RemoteOrFileSchemeNotYetDeniedHere"),
+            None,
+        ),
+        "store" => ("legacy-path", Some("StoreSchemeNotYetDeniedHere"), None),
+        _ => (
+            "legacy-path",
+            Some("UnsupportedSchemeNotYetClassifiedHere"),
+            None,
+        ),
     }
 }
 
@@ -99,11 +112,12 @@ fn log_local_runtime_resource_request(request: &Request) {
         Referrer::Client(url) | Referrer::ReferrerUrl(url) => url.to_string(),
     };
     let package = local_runtime_package_for_url(&url).unwrap_or("unknown");
-    let (decision, reason) = local_runtime_decision_for_scheme(url.scheme());
+    let (decision, reason, deny_kind) = local_runtime_decision_for_scheme(url.scheme());
     let reason = reason.unwrap_or("none");
+    let deny_kind = deny_kind.unwrap_or("none");
 
     info!(
-        "[local-runtime resource-request]\n  destination: {:?}\n  requested: {}\n  base: {}\n  initiator: {}\n  origin: {:?}\n  package: {}\n  servo_module: components/net/resource_thread.rs\n  decision: {}\n  final: {}\n  mime: unknown\n  reason: {}",
+        "[local-runtime resource-request]\n  destination: {:?}\n  requested: {}\n  base: {}\n  initiator: {}\n  origin: {:?}\n  package: {}\n  servo_module: components/net/resource_thread.rs\n  decision: {}\n  final: {}\n  mime: unknown\n  reason: {}\n  deny_kind: {}",
         request.destination,
         url,
         initiator,
@@ -113,7 +127,14 @@ fn log_local_runtime_resource_request(request: &Request) {
         decision,
         url,
         reason,
+        deny_kind,
     );
+}
+
+fn local_runtime_denial_response() -> Response {
+    Response::network_error(NetworkError::ResourceLoadError(
+        "RemoteSchemeDeniedByLocalRuntime".to_owned(),
+    ))
 }
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
@@ -723,9 +744,9 @@ impl ResourceChannelManager {
                 return false;
             },
             // Ignore these messages as they are only sent on very specific channels.
-            CoreResourceMsg::CollectMemoryReport(_) |
-            CoreResourceMsg::RevokeTokenForFile(..) |
-            CoreResourceMsg::RefreshTokenForFile(..) => {},
+            CoreResourceMsg::CollectMemoryReport(_)
+            | CoreResourceMsg::RevokeTokenForFile(..)
+            | CoreResourceMsg::RefreshTokenForFile(..) => {},
         }
         true
     }
@@ -832,6 +853,13 @@ impl CoreResourceManager {
         let request = request_builder.build();
         log_local_runtime_resource_request(&request);
         let url = request.current_url();
+
+        if matches!(url.scheme(), "http" | "https") {
+            let response = local_runtime_denial_response();
+            sender.process_response(&request, &response);
+            sender.process_response_eof(&request, &response);
+            return;
+        }
 
         // In the case of a valid blob URL, acquiring a token granting access to a file,
         // regardless if the URL is revoked after token acquisition.

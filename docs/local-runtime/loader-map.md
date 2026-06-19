@@ -39,6 +39,8 @@ For each row, identify:
 
 The first implementation should add request logging before removing or disabling existing network code.
 
-## Current Logging Seam
+## Current Logging and Policy Seam
 
-`components/net/resource_thread.rs` now logs every `CoreResourceManager::fetch` request after `RequestBuilder::build()` and before dispatch into the existing fetch/http/protocol machinery. This is a broad, late seam: it sees the concrete current URL, destination, referrer, origin, and credentials/cache mode, but it does not yet preserve the original unresolved attribute text or distinguish stylesheet base URLs from document base URLs for all caller categories. Treat this as request visibility before policy enforcement, not as the final `ResourceProvider` boundary.
+`components/net/resource_thread.rs` now logs every `CoreResourceManager::fetch` request after `RequestBuilder::build()` and before dispatch into the existing fetch/http/protocol machinery. This is a broad, late seam: it sees the concrete current URL, destination, referrer, origin, and credentials/cache mode, but it does not yet preserve the original unresolved attribute text or distinguish stylesheet base URLs from document base URLs for all caller categories. Treat this as request visibility and the first narrow policy enforcement point, not as the final `ResourceProvider` boundary.
+
+At this seam, resolved `http://` and `https://` URLs are now denied before entering the legacy HTTP loader. The denial still logs a `[local-runtime resource-request]` block with `decision: denied`, `reason: RemoteSchemeDeniedByLocalRuntime`, and `deny_kind: RequestDenied`, then completes the request through Servo's existing network-error response callbacks. `file://` and other schemes continue to take their previous legacy paths until later policy passes.
