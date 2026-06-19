@@ -633,6 +633,71 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             }
         });
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-initialize>
+    fn Initialize(&self, root: &Node) -> ErrorResult {
+        // Step 1. If this's is scoped is false and either root is a Document node
+        // or root's node document's custom element registry is not this, then
+        // throw a "NotSupportedError" DOMException.
+        if !self.is_scoped.get() {
+            let is_document = root.is::<Document>();
+            let registry_mismatch = root
+                .owner_doc()
+                .custom_element_registry()
+                .is_some_and(|registry| *registry != *self);
+            if is_document || registry_mismatch {
+                return Err(Error::NotSupported(Some(
+                    "Initialize is not allowed on a non-scoped registry for this root".to_owned(),
+                )));
+            }
+        }
+
+        // Step 2. If root is a Document node whose custom element registry is null,
+        // then set root's custom element registry to this.
+        if let Some(document) = root.downcast::<Document>() {
+            if document.custom_element_registry().is_none() {
+                document.set_custom_element_registry(DomRoot::from_ref(self));
+            }
+        }
+        // Step 3. Otherwise, if root is a ShadowRoot node whose custom element registry
+        // is null, then set root's custom element registry to this.
+        else if let Some(shadow_root) = root.downcast::<ShadowRoot>() &&
+            shadow_root.custom_element_registry().is_none()
+        {
+            shadow_root.set_custom_element_registry(DomRoot::from_ref(self));
+        }
+
+        // Step 4. For each inclusive descendant inclusiveDescendant of root, in tree order:
+        for node in root.traverse_preorder(ShadowIncluding::No) {
+            // Step 4.1. If inclusiveDescendant is not an Element node, then continue.
+            let Some(element) = node.downcast::<Element>() else {
+                continue;
+            };
+
+            // Step 4.2. If inclusiveDescendant's custom element registry is null:
+            if element.custom_element_registry().is_none() {
+                // Step 4.2.1. Set inclusiveDescendant's custom element registry to this.
+                element.set_custom_element_registry(Some(DomRoot::from_ref(self)));
+
+                // Step 4.2.2. If this's is scoped is true, then append
+                // inclusiveDescendant's node document to this's scoped document set.
+                // TODO: scoped_document_set needs to be added to CustomElementRegistry.
+                if self.is_scoped.get() {
+                    // TODO: self.scoped_document_set.borrow_mut().push(...)
+                }
+            // Step 4.3. If inclusiveDescendant's custom element registry is not this, then continue.
+            } else if element
+                .custom_element_registry()
+                .is_none_or(|registry| *registry != *self)
+            {
+                continue;
+            }
+
+            // Step 4.4. Try to upgrade inclusiveDescendant.
+            try_upgrade_element(element);
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]

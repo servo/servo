@@ -377,6 +377,11 @@ impl ShadowRoot {
     pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
         self.document_or_shadow_root.custom_element_registry()
     }
+
+    pub(crate) fn set_custom_element_registry(&self, registry: DomRoot<CustomElementRegistry>) {
+        self.document_or_shadow_root
+            .set_custom_element_registry(Some(registry));
+    }
 }
 
 impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
