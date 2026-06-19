@@ -5485,6 +5485,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 let touches = TouchList::new(cx, &self.window, &[]);
                 let changed_touches = TouchList::new(cx, &self.window, &[]);
                 let target_touches = TouchList::new(cx, &self.window, &[]);
+
                 Ok(DomRoot::upcast(DomTouchEvent::new_uninitialized(
                     cx,
                     &self.window,

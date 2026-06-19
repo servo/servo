@@ -101,7 +101,6 @@ impl ProgressEventMethods<crate::DomTypeHolder> for ProgressEvent {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-
         type_: DOMString,
         init: &ProgressEventBinding::ProgressEventInit,
     ) -> Fallible<DomRoot<ProgressEvent>> {

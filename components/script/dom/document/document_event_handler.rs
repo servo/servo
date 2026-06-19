@@ -1458,6 +1458,7 @@ impl DocumentEventHandler {
         let touches = TouchList::new(cx, window, self.active_touch_points.borrow().r());
         let changed_touches = TouchList::new(cx, window, from_ref(&&*changed_touch));
         let target_touches = TouchList::new(cx, window, target_touches.r());
+
         let touch_event = TouchEvent::new(
             cx,
             window,

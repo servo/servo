@@ -248,7 +248,6 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-
         type_: DOMString,
         init: RootedTraceableBox<MessageEventBinding::MessageEventInit>,
     ) -> Fallible<DomRoot<MessageEvent>> {

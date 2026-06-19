@@ -75,7 +75,6 @@ impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-
         type_: DOMString,
         init: &TransitionEventInit,
     ) -> Fallible<DomRoot<TransitionEvent>> {
