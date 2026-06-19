@@ -974,7 +974,7 @@ impl Element {
     ) -> DomRoot<Range> {
         self.ensure_rare_data()
             .contenteditable_selection_range
-            .or_init(|| Range::new_with_doc(document, None, CanGc::from_cx(cx)))
+            .or_init(|| Range::new_with_doc(cx, document, None))
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
@@ -3192,16 +3192,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             .into_iter()
             .map(|rect| {
                 DOMRect::new(
+                    cx,
                     win.upcast(),
                     rect.origin.x.to_f64_px(),
                     rect.origin.y.to_f64_px(),
                     rect.size.width.to_f64_px(),
                     rect.size.height.to_f64_px(),
-                    CanGc::from_cx(cx),
                 )
             })
             .collect();
-        DOMRectList::new(&win, rects, CanGc::from_cx(cx))
+        DOMRectList::new(cx, &win, rects)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect>
@@ -3210,12 +3210,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let rect = self.upcast::<Node>().border_box().unwrap_or_default();
         debug_assert!(rect.size.width.to_f64_px() >= 0.0 && rect.size.height.to_f64_px() >= 0.0);
         DOMRect::new(
+            cx,
             win.upcast(),
             rect.origin.x.to_f64_px(),
             rect.origin.y.to_f64_px(),
             rect.size.width.to_f64_px(),
             rect.size.height.to_f64_px(),
-            CanGc::from_cx(cx),
         )
     }
 
