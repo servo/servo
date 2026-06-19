@@ -1875,7 +1875,7 @@ impl HTMLMediaElement {
         for promise in &*promises {
             match result {
                 Ok(ref value) => promise.resolve_native_with_cx(cx, value),
-                Err(ref error) => promise.reject_error_with_cx(cx, error.clone()),
+                Err(ref error) => promise.reject_error(cx, error.clone()),
             }
         }
     }
@@ -3122,7 +3122,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             .get()
             .is_some_and(|e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
         {
-            promise.reject_error_with_cx(cx, Error::NotSupported(None));
+            promise.reject_error(cx, Error::NotSupported(None));
             return promise;
         }
 

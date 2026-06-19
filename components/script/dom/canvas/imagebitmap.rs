@@ -290,7 +290,7 @@ impl ImageBitmap {
 
         // Step 1. If either sw or sh is given and is 0, then return a promise rejected with a RangeError.
         if sw.is_some_and(|w| w == 0) {
-            p.reject_error_with_cx(
+            p.reject_error(
                 realm,
                 Error::Range(c"'sw' must be a non-zero value".to_owned()),
             );
@@ -298,7 +298,7 @@ impl ImageBitmap {
         }
 
         if sh.is_some_and(|h| h == 0) {
-            p.reject_error_with_cx(
+            p.reject_error(
                 realm,
                 Error::Range(c"'sh' must be a non-zero value".to_owned()),
             );
@@ -308,12 +308,12 @@ impl ImageBitmap {
         // Step 2. If either options's resizeWidth or options's resizeHeight is present and is 0,
         // then return a promise rejected with an "InvalidStateError" DOMException.
         if options.resizeWidth.is_some_and(|w| w == 0) {
-            p.reject_error_with_cx(realm, Error::InvalidState(None));
+            p.reject_error(realm, Error::InvalidState(None));
             return p;
         }
 
         if options.resizeHeight.is_some_and(|h| h == 0) {
-            p.reject_error_with_cx(realm, Error::InvalidState(None));
+            p.reject_error(realm, Error::InvalidState(None));
             return p;
         }
 
@@ -342,7 +342,7 @@ impl ImageBitmap {
                 task!(reject_promise: move |cx| {
                     let promise = trusted_promise.root();
 
-                    promise.reject_error_with_cx(cx, Error::InvalidState(None));
+                    promise.reject_error(cx, Error::InvalidState(None));
                 }),
             );
         };
@@ -354,14 +354,14 @@ impl ImageBitmap {
             ImageBitmapSource::HTMLImageElement(ref image) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if !image.is_usable().is_ok_and(|u| u) {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise
                 // is rejected instead.
                 let Some(snapshot) = image.get_raster_image_data() else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -370,7 +370,7 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -386,20 +386,20 @@ impl ImageBitmap {
             ImageBitmapSource::HTMLVideoElement(ref video) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if !video.is_usable() {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // Step 6.1. If image's networkState attribute is NETWORK_EMPTY, then return
                 // a promise rejected with an "InvalidStateError" DOMException.
                 if video.is_network_state_empty() {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise is rejected instead.
                 let Some(snapshot) = video.get_current_frame_data() else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -410,7 +410,7 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -426,13 +426,13 @@ impl ImageBitmap {
             ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if canvas.get_size().is_empty() {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise is rejected instead.
                 let Some(snapshot) = canvas.get_image_data() else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -441,7 +441,7 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -457,13 +457,13 @@ impl ImageBitmap {
             ImageBitmapSource::ImageBitmap(ref bitmap) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if bitmap.is_detached() {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise is rejected instead.
                 let Some(snapshot) = bitmap.bitmap_data().clone() else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -472,7 +472,7 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -488,13 +488,13 @@ impl ImageBitmap {
             ImageBitmapSource::OffscreenCanvas(ref canvas) => {
                 // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
                 if canvas.get_size().is_empty() {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 }
 
                 // If no ImageBitmap object can be constructed, then the promise is rejected instead.
                 let Some(snapshot) = canvas.get_image_data() else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -503,7 +503,7 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -561,7 +561,7 @@ impl ImageBitmap {
                 // Step 6.2. If IsDetachedBuffer(buffer) is true, then return a promise rejected
                 // with an "InvalidStateError" DOMException.
                 if image_data.is_detached() {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 }
 
@@ -581,7 +581,7 @@ impl ImageBitmap {
                 let Some(bitmap_data) =
                     ImageBitmap::crop_and_transform_bitmap_data(snapshot, sx, sy, sw, sh, options)
                 else {
-                    p.reject_error_with_cx(realm, Error::InvalidState(None));
+                    p.reject_error(realm, Error::InvalidState(None));
                     return p;
                 };
 
@@ -594,7 +594,7 @@ impl ImageBitmap {
             ImageBitmapSource::CSSStyleValue(_) => {
                 // TODO: CSSStyleValue is not part of ImageBitmapSource
                 // <https://html.spec.whatwg.org/multipage/#imagebitmapsource>
-                p.reject_error_with_cx(realm, Error::NotSupported(None));
+                p.reject_error(realm, Error::NotSupported(None));
             },
         }
 

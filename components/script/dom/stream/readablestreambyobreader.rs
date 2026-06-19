@@ -126,7 +126,7 @@ impl ReadIntoRequest {
             ReadIntoRequest::Read(promise) => {
                 // error steps, given e
                 // Reject promise with e.
-                promise.reject_native_with_cx(cx, &e)
+                promise.reject_native(cx, &e)
             },
             ReadIntoRequest::ByteTee {
                 byte_tee_read_into_request,
@@ -270,7 +270,7 @@ impl ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreadererrorreadintorequests>
     pub(crate) fn error_read_into_requests(&self, cx: &mut JSContext, e: SafeHandleValue) {
         // Reject reader.[[closedPromise]] with e.
-        self.closed_promise.borrow().reject_native_with_cx(cx, &e);
+        self.closed_promise.borrow().reject_native(cx, &e);
 
         // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
         self.closed_promise.borrow().set_promise_is_handled();
@@ -426,13 +426,13 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
         if view.byte_length() == 0 {
-            promise.reject_error_with_cx(cx, Error::Type(c"view byte length is 0".to_owned()));
+            promise.reject_error(cx, Error::Type(c"view byte length is 0".to_owned()));
             return promise;
         }
         // If view.[[ViewedArrayBuffer]].[[ArrayBufferByteLength]] is 0,
         // return a promise rejected with a TypeError exception.
         if view.viewed_buffer_array_byte_length(cx.into()) == 0 {
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 cx,
                 Error::Type(c"viewed buffer byte length is 0".to_owned()),
             );
@@ -442,13 +442,13 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
         // return a promise rejected with a TypeError exception.
         if view.is_detached_buffer(cx.into()) {
-            promise.reject_error_with_cx(cx, Error::Type(c"view is detached".to_owned()));
+            promise.reject_error(cx, Error::Type(c"view is detached".to_owned()));
             return promise;
         }
 
         // If options["min"] is 0, return a promise rejected with a TypeError exception.
         if min == 0 {
-            promise.reject_error_with_cx(cx, Error::Type(c"min is 0".to_owned()));
+            promise.reject_error(cx, Error::Type(c"min is 0".to_owned()));
             return promise;
         }
 
@@ -456,7 +456,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         if view.has_typed_array_name() {
             // If options["min"] > view.[[ArrayLength]], return a promise rejected with a RangeError exception.
             if min > (view.get_typed_array_length() as u64) {
-                promise.reject_error_with_cx(
+                promise.reject_error(
                     cx,
                     Error::Range(c"min is greater than array length".to_owned()),
                 );
@@ -466,7 +466,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
             // Otherwise (i.e., it is a DataView),
             // If options["min"] > view.[[ByteLength]], return a promise rejected with a RangeError exception.
             if min > (view.byte_length() as u64) {
-                promise.reject_error_with_cx(
+                promise.reject_error(
                     cx,
                     Error::Range(c"min is greater than byte length".to_owned()),
                 );
@@ -476,7 +476,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 cx,
                 Error::Type(c"min is greater than byte length".to_owned()),
             );

@@ -186,7 +186,7 @@ impl Callback for CancelPromiseFulfillment {
             self.controller
                 .get_finish_promise()
                 .expect("finish promise is not set")
-                .reject_native_with_cx(cx, &error.handle());
+                .reject_native(cx, &error.handle());
         } else {
             // Otherwise:
             // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], reason).

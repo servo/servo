@@ -259,25 +259,12 @@ impl Promise {
         self.reject_with_cx(cx, v.handle());
     }
 
-    /// Deprecated: use [`Self::reject_native`] instead
-    pub(crate) fn reject_native_with_cx<T>(&self, cx: &mut JSContext, val: &T)
-    where
-        T: SafeToJSValConvertible,
-    {
-        self.reject_native(cx, val);
-    }
-
     pub(crate) fn reject_error(&self, cx: &mut JSContext, error: Error) {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut v = UndefinedValue());
         error.to_jsval(cx, &self.global(), v.handle_mut());
         self.reject_with_cx(cx, v.handle());
-    }
-
-    /// Deprecated: use [`Self::reject_error`] instead
-    pub(crate) fn reject_error_with_cx(&self, cx: &mut JSContext, error: Error) {
-        self.reject_error(cx, error);
     }
 
     #[expect(unsafe_code)]
@@ -688,7 +675,7 @@ pub(crate) fn wait_for_all_promise(
     // Let failureSteps be the following steps, given reason:
     let failure_steps = Rc::new(move |cx: &mut JSContext, reason: HandleValue| {
         // Reject promise with reason.
-        failure_promise.reject_native_with_cx(cx, &reason);
+        failure_promise.reject_native(cx, &reason);
     });
 
     // Wait for all with promises, given successSteps and failureSteps.

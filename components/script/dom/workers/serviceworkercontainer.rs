@@ -83,13 +83,13 @@ impl ServiceWorkerContainer {
             // Note: we are in the task already.
             JobResult::RejectPromise(error) => match error {
                 JobError::TypeError => {
-                    promise.reject_error_with_cx(
+                    promise.reject_error(
                         cx,
                         Error::Type(c"Failed to register a ServiceWorker".to_owned()),
                     );
                 },
                 JobError::SecurityError => {
-                    promise.reject_error_with_cx(cx, Error::Security(None));
+                    promise.reject_error(cx, Error::Security(None));
                 },
             },
             // <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
@@ -342,7 +342,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             Ok(url) => url,
             Err(_) => {
                 // B: Step 1
-                promise.reject_error_with_cx(realm, Error::Type(c"Invalid script URL".to_owned()));
+                promise.reject_error(realm, Error::Type(c"Invalid script URL".to_owned()));
                 return promise;
             },
         };
@@ -354,10 +354,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
                 match api_base_url.join(inner_scope) {
                     Ok(url) => url,
                     Err(_) => {
-                        promise.reject_error_with_cx(
-                            realm,
-                            Error::Type(c"Invalid scope URL".to_owned()),
-                        );
+                        promise.reject_error(realm, Error::Type(c"Invalid scope URL".to_owned()));
                         return promise;
                     },
                 }
@@ -371,7 +368,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         match script_url.scheme() {
             "https" | "http" => {},
             _ => {
-                promise.reject_error_with_cx(
+                promise.reject_error(
                     realm,
                     Error::Type(c"Only secure origins are allowed".to_owned()),
                 );
@@ -382,7 +379,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         if script_url.path().to_ascii_lowercase().contains("%2f") ||
             script_url.path().to_ascii_lowercase().contains("%5c")
         {
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 realm,
                 Error::Type(c"Script URL contains forbidden characters".to_owned()),
             );
@@ -393,7 +390,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         match scope.scheme() {
             "https" | "http" => {},
             _ => {
-                promise.reject_error_with_cx(
+                promise.reject_error(
                     realm,
                     Error::Type(c"Only secure origins are allowed".to_owned()),
                 );
@@ -404,7 +401,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         if scope.path().to_ascii_lowercase().contains("%2f") ||
             scope.path().to_ascii_lowercase().contains("%5c")
         {
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 realm,
                 Error::Type(c"Scope URL contains forbidden characters".to_owned()),
             );
@@ -420,7 +417,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
 
         // Step 10: Let storage key be the result of running obtain a storage key given client.
         let Some(storage_key) = global.obtain_storage_key() else {
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 realm,
                 Error::Type(c"Failed to obtain a storage key".to_owned()),
             );
@@ -453,7 +450,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
                 false,
                 "Failed to send StartRegister algorithm message to the constellation."
             );
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 realm,
                 Error::Type(c"Failed to register a ServiceWorker".to_owned()),
             );
@@ -474,7 +471,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
 
         // Step 2: Let client storage key be the result of running obtain a storage key given client.
         let Some(storage_key) = global.obtain_storage_key() else {
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 realm,
                 Error::Type(c"Failed to obtain a storage key".to_owned()),
             );
@@ -486,10 +483,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             Ok(url) => url,
             Err(_) => {
                 // Step 4: If clientURL is failure, return a promise rejected with a TypeError.
-                promise.reject_error_with_cx(
-                    realm,
-                    Error::Type(c"Failed to parse clientURL".to_owned()),
-                );
+                promise.reject_error(realm, Error::Type(c"Failed to parse clientURL".to_owned()));
                 return promise;
             },
         };
@@ -499,7 +493,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
 
         // Step 6: If the origin of clientURL is not client’s origin, return a promise rejected with a "SecurityError" DOMException.
         if &client_url.origin() != global.origin().immutable() {
-            promise.reject_error_with_cx(realm, Error::Security(None));
+            promise.reject_error(realm, Error::Security(None));
             return promise;
         }
 
@@ -521,7 +515,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
         {
             // Note: pop the promise we just pushed, since we will not get a result back to handle it.
             self.pending_algorithm_results.borrow_mut().pop_back();
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 realm,
                 Error::Type(c"Failed to send MatchServiceWorkerRegistration algorithm".to_owned()),
             );

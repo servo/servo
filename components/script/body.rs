@@ -717,7 +717,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
 
     // If object is unusable, then return a promise rejected with a TypeError.
     if object.is_unusable() {
-        promise.reject_error_with_cx(
+        promise.reject_error(
             cx,
             Error::Type(c"The body's stream is disturbed or locked".to_owned()),
         );
@@ -764,7 +764,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     let reader = match stream.acquire_default_reader(cx) {
         Ok(r) => r,
         Err(e) => {
-            promise.reject_error_with_cx(cx, e);
+            promise.reject_error(cx, e);
             return promise;
         },
     };
@@ -824,7 +824,7 @@ fn resolve_result_promise(
                 FetchedData::JSException(e) => promise.reject_native(cx, &e.handle()),
             };
         },
-        Err(err) => promise.reject_error_with_cx(cx, err),
+        Err(err) => promise.reject_error(cx, err),
     }
 }
 

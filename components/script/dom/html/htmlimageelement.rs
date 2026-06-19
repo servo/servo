@@ -1347,7 +1347,7 @@ impl HTMLImageElement {
         if !self.owner_document().is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
-            promise.reject_error_with_cx(cx, Error::Encoding(None));
+            promise.reject_error(cx, Error::Encoding(None));
         } else if matches!(
             self.current_request.borrow().state,
             State::CompletelyAvailable
@@ -1361,7 +1361,7 @@ impl HTMLImageElement {
             // request's state is unavailable and current URL is empty string (<img> without "src"
             // and "srcset" attributes) then reject promise with an "EncodingError" DOMException.
             // <https://github.com/whatwg/html/issues/11769>
-            promise.reject_error_with_cx(cx, Error::Encoding(None));
+            promise.reject_error(cx, Error::Encoding(None));
         } else {
             self.image_decode_promises.borrow_mut().push(promise);
         }
@@ -1416,7 +1416,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error_with_cx(cx, Error::Encoding(None));
+                    trusted_promise.root().reject_error(cx, Error::Encoding(None));
                 }
             }));
     }

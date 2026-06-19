@@ -201,7 +201,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
                 required_features.insert(feature);
             } else {
-                promise.reject_error_with_cx(
+                promise.reject_error(
                     cx,
                     Error::Type(cformat!("{} is not supported feature", ext.as_str())),
                 );
@@ -214,7 +214,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, &limit.str(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
-                    promise.reject_error_with_cx(cx, Error::Operation(None));
+                    promise.reject_error(cx, Error::Operation(None));
                     return promise;
                 }
             }
@@ -245,7 +245,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             })
             .is_err()
         {
-            promise.reject_error_with_cx(cx, Error::Operation(None));
+            promise.reject_error(cx, Error::Operation(None));
         }
         // Step 5
         promise
@@ -294,7 +294,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                 promise.resolve_native_with_cx(cx, &device);
             },
             // 1. If features are not supported reject promise with a TypeError.
-            (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error_with_cx(
+            (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
                 cx,
                 Error::Type(cformat!(
                     "{}",
@@ -307,7 +307,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     "{}",
                     wgpu_core::instance::RequestDeviceError::LimitsExceeded(l)
                 );
-                promise.reject_error_with_cx(cx, Error::Operation(None))
+                promise.reject_error(cx, Error::Operation(None))
             },
             // 3. user agent otherwise cannot fulfill the request
             (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {

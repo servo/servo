@@ -89,8 +89,7 @@ struct AbortAlgorithmRejectionHandler {
 impl Callback for AbortAlgorithmRejectionHandler {
     fn callback(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) {
         // Reject abortRequest’s promise with reason.
-        self.abort_request_promise
-            .reject_native_with_cx(cx, &reason);
+        self.abort_request_promise.reject_native(cx, &reason);
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
@@ -557,7 +556,7 @@ impl WritableStream {
         };
 
         // Reject stream.[[inFlightCloseRequest]] with error.
-        in_flight_close_request.reject_native_with_cx(cx, &error);
+        in_flight_close_request.reject_native(cx, &error);
 
         // Set stream.[[inFlightCloseRequest]] to undefined.
         // Done above with `take`.
@@ -569,9 +568,7 @@ impl WritableStream {
         rooted!(&in(cx) let pending_abort_request = self.pending_abort_request.borrow_mut().take());
         if let Some(pending_abort_request) = &*pending_abort_request {
             // Reject stream.[[pendingAbortRequest]]'s promise with error.
-            pending_abort_request
-                .promise
-                .reject_native_with_cx(cx, &error);
+            pending_abort_request.promise.reject_native(cx, &error);
 
             // Set stream.[[pendingAbortRequest]] to undefined.
             // Done above with `take`.
@@ -594,7 +591,7 @@ impl WritableStream {
         };
 
         // Reject stream.[[inFlightWriteRequest]] with error.
-        in_flight_write_request.reject_native_with_cx(cx, &error);
+        in_flight_write_request.reject_native(cx, &error);
 
         // Set stream.[[inFlightWriteRequest]] to undefined.
         // Done above with `take`.
@@ -742,8 +739,7 @@ impl WritableStream {
         if self.is_closed() || self.is_errored() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, global);
-            promise
-                .reject_error_with_cx(cx, Error::Type(c"Stream is closed or errored.".to_owned()));
+            promise.reject_error(cx, Error::Type(c"Stream is closed or errored.".to_owned()));
             return promise;
         }
 
@@ -1071,7 +1067,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error_with_cx(cx, Error::Type(c"Stream is locked.".to_owned()));
+            promise.reject_error(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
 
@@ -1087,7 +1083,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error_with_cx(cx, Error::Type(c"Stream is locked.".to_owned()));
+            promise.reject_error(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
 
@@ -1095,7 +1091,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         if self.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 cx,
                 Error::Type(c"Stream has closed queued or in-flight".to_owned()),
             );

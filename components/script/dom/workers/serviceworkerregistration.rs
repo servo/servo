@@ -223,7 +223,7 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
         // Step 4: Invoke Schedule Job with job.
         // Note: done in the container.
         let Some(storage_key) = global.obtain_storage_key() else {
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 cx,
                 Error::Type(c"Failed to obtain a storage key".to_owned()),
             );

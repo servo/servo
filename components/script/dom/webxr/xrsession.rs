@@ -843,14 +843,14 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         if !self.is_immersive() &&
             (ty == XRReferenceSpaceType::Bounded_floor || ty == XRReferenceSpaceType::Unbounded)
         {
-            p.reject_error_with_cx(cx, Error::NotSupported(None));
+            p.reject_error(cx, Error::NotSupported(None));
             return p;
         }
 
         match ty {
             XRReferenceSpaceType::Unbounded => {
                 // XXXmsub2 figure out how to support this
-                p.reject_error_with_cx(cx, Error::NotSupported(None))
+                p.reject_error(cx, Error::NotSupported(None))
             },
             ty => {
                 if ty != XRReferenceSpaceType::Viewer &&
@@ -864,7 +864,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                         .iter()
                         .any(|f| *f == s)
                     {
-                        p.reject_error_with_cx(cx, Error::NotSupported(None));
+                        p.reject_error(cx, Error::NotSupported(None));
                         return p;
                     }
                 }
@@ -941,7 +941,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             .iter()
             .any(|f| f == "hit-test")
         {
-            p.reject_error_with_cx(cx, Error::NotSupported(None));
+            p.reject_error(cx, Error::NotSupported(None));
             return p;
         }
 
@@ -1052,15 +1052,12 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                 supported_frame_rates.is_empty() ||
                 self.ended.get()
             {
-                promise.reject_error_with_cx(cx, Error::InvalidState(None));
+                promise.reject_error(cx, Error::InvalidState(None));
                 return promise;
             }
 
             if !supported_frame_rates.contains(&*rate) {
-                promise.reject_error_with_cx(
-                    cx,
-                    Error::Type(c"Provided framerate not supported".into()),
-                );
+                promise.reject_error(cx, Error::Type(c"Provided framerate not supported".into()));
                 return promise;
             }
         }

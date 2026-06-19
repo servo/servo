@@ -85,7 +85,7 @@ impl Callback for RepresentationDataPromiseRejectionHandler {
     /// Substeps of 8.1.2.2 If representationDataPromise was rejected, then:
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // 1. Reject p with "NotFoundError" DOMException in realm.
-        self.promise.reject_error_with_cx(cx, Error::NotFound(None));
+        self.promise.reject_error(cx, Error::NotFound(None));
     }
 }
 
@@ -304,7 +304,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         }
 
         // Step 9 Reject p with "NotFoundError" DOMException in realm.
-        p.reject_error_with_cx(realm, Error::NotFound(None));
+        p.reject_error(realm, Error::NotFound(None));
 
         // Step 10 Return p.
         Ok(p)

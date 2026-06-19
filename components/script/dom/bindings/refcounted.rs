@@ -138,7 +138,7 @@ impl TrustedPromise {
         let this = self;
         task!(reject_promise: move |cx| {
             debug!("Rejecting promise.");
-            this.root().reject_error_with_cx(cx, error);
+            this.root().reject_error(cx, error);
         })
     }
 

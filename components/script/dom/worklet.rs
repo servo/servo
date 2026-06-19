@@ -149,7 +149,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
             Err(err) => {
                 // Step 4.
                 debug!("URL {:?} parse error {:?}.", module_url.0, err);
-                promise.reject_error_with_cx(realm, Error::Syntax(None));
+                promise.reject_error(realm, Error::Syntax(None));
                 return promise;
             },
         };
