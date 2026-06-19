@@ -4578,6 +4578,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7581,7 +7590,7 @@ dependencies = [
  "hyper",
  "image",
  "ipc-channel",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "keyboard-types",
  "log",
  "mozangle",
@@ -8019,7 +8028,7 @@ dependencies = [
  "harfbuzz-sys",
  "icu_locid",
  "icu_properties",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "libc",
  "log",
  "malloc_size_of_derive",
@@ -8135,7 +8144,7 @@ dependencies = [
  "icu_locid",
  "icu_properties",
  "icu_segmenter",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "kurbo",
  "log",
  "malloc_size_of_derive",
@@ -8513,7 +8522,7 @@ dependencies = [
  "hyper-util",
  "imsz",
  "ipc-channel",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "log",
  "malloc_size_of_derive",
  "mime",
@@ -8768,7 +8777,7 @@ dependencies = [
  "icu_locid",
  "indexmap",
  "ipc-channel",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "k12",
  "keyboard-types",
  "libc",
@@ -9063,7 +9072,7 @@ dependencies = [
  "euclid",
  "glow",
  "half",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "log",
  "num-traits",
  "parking_lot",
