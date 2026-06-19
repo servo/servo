@@ -22,9 +22,9 @@ use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

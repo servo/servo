@@ -17,10 +17,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::html::htmlcollection::HTMLCollection;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::dom::tree_ordered_index_map::TreeOrderedIndexMap;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 
 /// <https://dom.spec.whatwg.org/#documentfragment>

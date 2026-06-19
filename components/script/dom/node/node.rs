@@ -110,6 +110,7 @@ use crate::dom::node::iterators::{
     UnrootedSimpleNodeIterator, UnrootedTreeIterator,
 };
 use crate::dom::node::nodelist::NodeList;
+use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
@@ -118,7 +119,6 @@ use crate::dom::servoparser::serialize_html_fragment;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent, ProcessingInstruction};
-use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode};
 use crate::script_runtime::CanGc;

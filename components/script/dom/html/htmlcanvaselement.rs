@@ -54,10 +54,10 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::imagebitmaprenderingcontext::ImageBitmapRenderingContext;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::values::UNSIGNED_LONG_MAX;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 #[cfg(feature = "webgpu")]

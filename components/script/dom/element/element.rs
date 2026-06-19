@@ -156,6 +156,7 @@ use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserve
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
+use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, IsShadowTree, Node, NodeDamage, NodeFlags,
     NodeTraits, UnbindContext,
@@ -174,7 +175,6 @@ use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
-use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::layout_dom::ServoDangerousStyleElement;
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;

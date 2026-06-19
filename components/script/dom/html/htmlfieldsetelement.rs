@@ -23,10 +23,10 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]

@@ -50,6 +50,7 @@ use crate::dom::element::Element;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
 use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::node::{
     BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, UnbindContext,
     VecPreOrderInsertionHelper,
@@ -57,7 +58,6 @@ use crate::dom::node::{
 use crate::dom::sanitizer::Sanitizer;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
-use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;

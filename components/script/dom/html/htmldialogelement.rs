@@ -23,9 +23,9 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::htmlbuttonelement::{CommandState, HTMLButtonElement};
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::toggleevent::ToggleEvent;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

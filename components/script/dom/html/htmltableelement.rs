@@ -27,8 +27,8 @@ use crate::dom::html::htmltablecaptionelement::HTMLTableCaptionElement;
 use crate::dom::html::htmltablecolelement::HTMLTableColElement;
 use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLTableElement {

@@ -77,6 +77,7 @@ use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::Node;
+use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::performance::performanceentry::PerformanceEntry;
 use crate::dom::performance::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -89,7 +90,6 @@ use crate::dom::security::xframeoptions::check_a_navigation_response_adherence_t
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
-use crate::dom::virtualmethods::vtable_for;
 use crate::navigation::determine_the_origin;
 use crate::network_listener::FetchResponseListener;
 use crate::realms::{enter_auto_realm, enter_realm};
