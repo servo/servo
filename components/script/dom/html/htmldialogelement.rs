@@ -246,7 +246,9 @@ impl HTMLDialogElement {
                 .any(|node| &*node == subject_node) ||
                 was_modal
             {
-                element.upcast::<Node>().run_the_focusing_steps(cx, None);
+                element
+                    .upcast::<Node>()
+                    .run_the_focusing_steps(cx, None, None);
             }
         }
 
@@ -312,17 +314,17 @@ impl HTMLDialogElement {
 
         // Step 3. If subject has the autofocus attribute, then set control to subject.
         if self.upcast::<HTMLElement>().Autofocus() {
-            control.set(self.upcast::<Node>().get_the_focusable_area(cx));
+            control.set(self.upcast::<Node>().get_the_focusable_area(cx, None));
         }
 
         // Step 4. If control is null, then set control to the focus delegate of subject.
         if control.is_none() {
-            control.set(self.upcast::<Node>().focus_delegate(cx));
+            control.set(self.upcast::<Node>().focus_delegate(cx, None));
         }
 
         // Step 5. If control is null, then set control to subject.
         if control.is_none() {
-            control.set(self.upcast::<Node>().get_the_focusable_area(cx));
+            control.set(self.upcast::<Node>().get_the_focusable_area(cx, None));
         }
 
         // Step 6. Run the focusing steps for control.
