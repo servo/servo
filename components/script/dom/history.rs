@@ -12,7 +12,7 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::CoreResourceMsg;
 use profile_traits::generic_channel;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::HistoryStateId;
 use servo_constellation_traits::{
@@ -34,7 +34,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 enum PushOrReplace {
     Push,
@@ -62,8 +61,9 @@ impl History {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<History> {
-        let dom_root = reflect_dom_object(Box::new(History::new_inherited(window)), window, can_gc);
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<History> {
+        let dom_root =
+            reflect_dom_object_with_cx(Box::new(History::new_inherited(window)), window, cx);
         dom_root.state.set(NullValue());
         dom_root
     }
@@ -159,13 +159,13 @@ impl History {
         // Step 16.3
         if hash_changed {
             let event = HashChangeEvent::new(
+                cx,
                 &self.window,
                 atom!("hashchange"),
                 false,
                 false,
                 old_url.into_string(),
                 url.into_string(),
-                CanGc::from_cx(cx),
             );
             event
                 .upcast::<Event>()

@@ -1871,7 +1871,7 @@ impl ScriptThread {
                 self.handle_update_history_state_msg(cx, pipeline_id, history_state_id, url)
             },
             ScriptThreadMessage::RemoveHistoryStates(pipeline_id, history_states) => {
-                self.handle_remove_history_states(pipeline_id, history_states)
+                self.handle_remove_history_states(cx, pipeline_id, history_states)
             },
             ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(
                 pipeline_id,
@@ -3101,18 +3101,19 @@ impl ScriptThread {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             return warn!("update history state after pipeline {pipeline_id} closed.",);
         };
-        window.History().activate_state(cx, history_state_id, url);
+        window.History(cx).activate_state(cx, history_state_id, url);
     }
 
     fn handle_remove_history_states(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         history_states: Vec<HistoryStateId>,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             return warn!("update history state after pipeline {pipeline_id} closed.",);
         };
-        window.History().remove_states(history_states);
+        window.History(cx).remove_states(history_states);
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet

@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -18,7 +19,6 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storage::Storage;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct StorageEvent {
@@ -50,29 +50,30 @@ impl StorageEvent {
     }
 
     pub(crate) fn new_uninitialized(
+        cx: &mut JSContext,
         window: &Window,
         url: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<StorageEvent> {
-        Self::new_uninitialized_with_proto(window, None, url, can_gc)
+        Self::new_uninitialized_with_proto(cx, window, None, url)
     }
 
     fn new_uninitialized_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         url: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<StorageEvent> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &Window,
         type_: Atom,
         bubbles: EventBubbles,
@@ -82,9 +83,9 @@ impl StorageEvent {
         newValue: Option<DOMString>,
         url: DOMString,
         storageArea: Option<&Storage>,
-        can_gc: CanGc,
     ) -> DomRoot<StorageEvent> {
         Self::new_with_proto(
+            cx,
             global,
             None,
             type_,
@@ -95,12 +96,12 @@ impl StorageEvent {
             newValue,
             url,
             storageArea,
-            can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -111,9 +112,8 @@ impl StorageEvent {
         newValue: Option<DOMString>,
         url: DOMString,
         storageArea: Option<&Storage>,
-        can_gc: CanGc,
     ) -> DomRoot<StorageEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(StorageEvent::new_inherited(
                 key,
                 oldValue,
@@ -123,7 +123,7 @@ impl StorageEvent {
             )),
             global,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = ev.upcast::<Event>();
@@ -137,9 +137,9 @@ impl StorageEvent {
 impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
     /// <https://html.spec.whatwg.org/multipage/#storageevent>
     fn Constructor(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &StorageEventBinding::StorageEventInit,
     ) -> Fallible<DomRoot<StorageEvent>> {
@@ -151,6 +151,7 @@ impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         let event = StorageEvent::new_with_proto(
+            cx,
             global,
             proto,
             Atom::from(type_),
@@ -161,7 +162,6 @@ impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
             newValue,
             url,
             storageArea,
-            can_gc,
         );
         Ok(event)
     }

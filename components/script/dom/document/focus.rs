@@ -15,7 +15,6 @@ use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMeth
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
 use servo_base::id::BrowsingContextId;
 use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, SequentialFocusDirection,
@@ -494,6 +493,7 @@ impl DocumentFocusHandler {
         };
 
         let event = FocusEvent::new(
+            cx,
             &self.window,
             event_name,
             EventBubbles::DoesNotBubble,
@@ -501,7 +501,6 @@ impl DocumentFocusHandler {
             Some(&self.window),
             0i32,
             related_target,
-            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);

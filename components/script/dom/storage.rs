@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::NoGC;
+use js::context::{JSContext, NoGC};
 use profile_traits::generic_channel;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::{GenericSend, SendResult};
 use servo_base::id::WebViewId;
 use servo_constellation_traits::ScriptToConstellationMessage;
@@ -22,7 +22,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct Storage {
@@ -40,15 +39,11 @@ impl Storage {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &Window,
         storage_type: WebStorageType,
-        can_gc: CanGc,
     ) -> DomRoot<Storage> {
-        reflect_dom_object(
-            Box::new(Storage::new_inherited(storage_type)),
-            global,
-            can_gc,
-        )
+        reflect_dom_object_with_cx(Box::new(Storage::new_inherited(storage_type)), global, cx)
     }
 
     fn webview_id(&self) -> WebViewId {
@@ -250,7 +245,7 @@ impl Storage {
             task!(send_storage_notification: move |cx| {
                 let this = this.root();
                 let global = this.global();
-                let event = StorageEvent::new(
+                let event = StorageEvent::new(cx,
                     global.as_window(),
                     atom!("storage"),
                     EventBubbles::DoesNotBubble,
@@ -260,7 +255,6 @@ impl Storage {
                     new_value.map(DOMString::from),
                     DOMString::from(url.into_string()),
                     Some(&this),
-                    CanGc::from_cx(cx)
                 );
                 event.upcast::<Event>().fire(cx, global.upcast());
             }),
