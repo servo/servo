@@ -5,6 +5,7 @@
 use std::collections::VecDeque;
 
 use js::context::{JSContext, NoGC};
+use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
@@ -13,7 +14,7 @@ use crate::dom::document::focus::{FocusableArea, FocusableAreaKind};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::iterators::TreeIterator;
 use crate::dom::types::{
-    Element, HTMLDialogElement, HTMLIFrameElement, HTMLSlotElement, ShadowRoot,
+    Element, HTMLDialogElement, HTMLElement, HTMLIFrameElement, HTMLSlotElement, ShadowRoot,
 };
 use crate::dom::{Document, Node, NodeTraits};
 
@@ -236,10 +237,12 @@ impl Node {
         }
 
         // > 4. Let autofocusDelegate be the autofocus delegate for whereToLook given focusTrigger.
-        // TODO: Implement this.
+        let autofocus_delegate = self.autofocus_delegate(no_gc);
 
         // > 5. If autofocusDelegate is not null, then return autofocusDelegate.
-        // TODO: Implement this.
+        if autofocus_delegate.is_some() {
+            return autofocus_delegate;
+        }
 
         // > 6. For each descendant of whereToLook's descendants, in tree order:
         let is_dialog_element = self.is::<HTMLDialogElement>();
@@ -280,6 +283,50 @@ impl Node {
         }
 
         // > 7. Return null.
+        None
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#autofocus-delegate>
+    pub(crate) fn autofocus_delegate(&self, no_gc: &NoGC) -> Option<FocusableArea> {
+        // > 1. For each descendant descendant of focus target, in tree order:
+        for descendant in self.traverse_preorder(ShadowIncluding::No).skip(1) {
+            // > 1.1. If descendant does not have an autofocus content attribute, then continue.
+            if !descendant
+                .downcast::<HTMLElement>()
+                .is_some_and(HTMLElement::Autofocus)
+            {
+                continue;
+            }
+
+            // > 6.2. Let focusable area be descendant, if descendant is a focusable area; otherwise
+            // >      let focusable area be the result of getting the focusable area for descendant
+            // >      given focus trigger.
+            let kind = descendant
+                .downcast::<Element>()
+                .map(|e| e.focusable_area_kind(no_gc))
+                .unwrap_or_default();
+            let focusable_area = if !kind.is_empty() {
+                return Some(FocusableArea::Node {
+                    node: descendant,
+                    kind,
+                });
+            } else {
+                descendant.get_the_focusable_area(no_gc)
+            };
+
+            // > 6.3. If focusable area is null, then continue.
+            if focusable_area.is_none() {
+                continue;
+            }
+
+            // > 6.4. If focusable area is not click focusable and focus trigger is "click", then continue.
+            // TODO
+
+            // > 6.5. Return focusable area.
+            return focusable_area;
+        }
+
+        // > 2. Return null.
         None
     }
 
