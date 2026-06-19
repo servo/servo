@@ -83,12 +83,6 @@ impl ServiceWorker {
         service_worker.upcast().fire_event(cx, atom!("error"));
     }
 
-    pub(crate) fn set_transition_state(&self, cx: &mut JSContext, state: ServiceWorkerState) {
-        self.state.set(state);
-        self.upcast::<EventTarget>()
-            .fire_event(cx, atom!("statechange"));
-    }
-
     pub(crate) fn get_script_url(&self) -> ServoUrl {
         ServoUrl::parse(&self.script_url.borrow().clone()).unwrap()
     }

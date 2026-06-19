@@ -114,14 +114,6 @@ impl ServiceWorkerRegistration {
         self.navigation_preload_enabled.set(flag)
     }
 
-    pub(crate) fn get_uninstalling(&self) -> bool {
-        self.uninstalling.get()
-    }
-
-    pub(crate) fn set_uninstalling(&self, flag: bool) {
-        self.uninstalling.set(flag)
-    }
-
     pub(crate) fn create_scope_things(global: &GlobalScope, script_url: ServoUrl) -> ScopeThings {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: match global.get_referrer() {
