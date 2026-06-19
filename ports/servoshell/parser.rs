@@ -95,8 +95,8 @@ fn try_as_file(request: &str) -> Option<ServoUrl> {
 
 fn try_as_domain(request: &str) -> Option<ServoUrl> {
     fn is_domain_like(s: &str) -> bool {
-        !s.starts_with('/') && s.contains('/')
-            || (!s.contains(' ') && !s.starts_with('.') && s.split('.').count() > 1)
+        !s.starts_with('/') && s.contains('/') ||
+            (!s.contains(' ') && !s.starts_with('.') && s.split('.').count() > 1)
     }
 
     if !request.contains(' ') && is_reg_domain(request) || is_domain_like(request) {
@@ -113,14 +113,14 @@ fn try_as_search_page(request: &str, searchpage: &str) -> Option<ServoUrl> {
 }
 
 fn is_normal_scheme(s: &str) -> bool {
-    s == "file"
-        || s == "http"
-        || s == "https"
-        || s == "ws"
-        || s == "wss"
-        || s == "ftp"
-        || s == "about"
-        || s == "blob"
-        || s == "data"
-        || s == "servo"
+    s == "file" ||
+        s == "http" ||
+        s == "https" ||
+        s == "ws" ||
+        s == "wss" ||
+        s == "ftp" ||
+        s == "about" ||
+        s == "blob" ||
+        s == "data" ||
+        s == "servo"
 }
