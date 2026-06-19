@@ -223,7 +223,7 @@ impl SubtleCrypto {
                     CanGc::from_cx(cx),
                 ) {
                     Ok(_) => promise.resolve_native_with_cx(cx, &*array_buffer_ptr),
-                    Err(_) => promise.reject_error_with_cx(cx, Error::JSFailed),
+                    Err(_) => promise.reject_error(cx, Error::JSFailed),
                 }
             }));
     }
@@ -327,7 +327,7 @@ impl SubtleCrypto {
             .crypto_task_source()
             .queue(task!(reject_error: move |cx| {
                 let promise = trusted_promise.root();
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
             }));
     }
 
@@ -386,7 +386,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -473,7 +473,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -560,7 +560,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -647,7 +647,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -737,7 +737,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -806,7 +806,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -913,7 +913,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -926,7 +926,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<ImportKeyOperation>(cx, &derived_key_type) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -939,7 +939,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<GetKeyLengthOperation>(cx, &derived_key_type) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1060,7 +1060,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -1140,7 +1140,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -1155,7 +1155,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         // Step 4.1. If the keyData parameter passed to the importKey() method is
                         // not a JsonWebKey dictionary, throw a TypeError.
                         let promise = Promise::new_in_realm(cx);
-                        promise.reject_error_with_cx(
+                        promise.reject_error(
                             cx,
                             Error::Type(c"The keyData type does not match the format".to_owned()),
                         );
@@ -1174,7 +1174,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                             Ok(stringified) => Zeroizing::new(stringified.as_bytes().to_vec()),
                             Err(error) => {
                                 let promise = Promise::new_in_realm(cx);
-                                promise.reject_error_with_cx(cx, error);
+                                promise.reject_error(cx, error);
                                 return promise;
                             },
                         }
@@ -1188,7 +1188,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     // JsonWebKey dictionary, throw a TypeError.
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(_) => {
                         let promise = Promise::new_in_realm(cx);
-                        promise.reject_error_with_cx(
+                        promise.reject_error(
                             cx,
                             Error::Type(c"The keyData type does not match the format".to_owned()),
                         );
@@ -1382,7 +1382,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => WrapKeyAlgorithmOrEncryptAlgorithm::EncryptAlgorithm(algorithm),
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             }
@@ -1560,7 +1560,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => UnwrapKeyAlgorithmOrDecryptAlgorithm::DecryptAlgorithm(algorithm),
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             }
@@ -1574,7 +1574,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1736,7 +1736,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1749,7 +1749,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<ImportKeyOperation>(cx, &shared_key_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1877,7 +1877,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1971,7 +1971,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1985,7 +1985,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -2108,7 +2108,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -2212,7 +2212,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };

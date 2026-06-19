@@ -423,7 +423,7 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub(crate) fn error(&self, cx: &mut js::context::JSContext, e: SafeHandleValue) {
         // Reject reader.[[closedPromise]] with e.
-        self.closed_promise.borrow().reject_native_with_cx(cx, &e);
+        self.closed_promise.borrow().reject_native(cx, &e);
 
         // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
         self.closed_promise.borrow().set_promise_is_handled();

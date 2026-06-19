@@ -585,7 +585,7 @@ impl ReadableStreamDefaultController {
 
             error.to_jsval(cx, global, rval.handle_mut());
             let promise = Promise::new2(cx, global);
-            promise.reject_native_with_cx(cx, &rval.handle());
+            promise.reject_native(cx, &rval.handle());
             promise
         });
 

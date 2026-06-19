@@ -637,7 +637,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             Some(storage_key) => storage_key,
             None => {
                 let p = Promise::new2(cx, &global);
-                p.reject_error_with_cx(cx, Error::Security(None));
+                p.reject_error(cx, Error::Security(None));
                 return p;
             },
         };
@@ -670,7 +670,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                         rooted!(&in(cx) let mut rval = UndefinedValue());
                         error
                             .to_jsval(cx, &promise.global(), rval.handle_mut());
-                        promise.reject_native_with_cx(cx, &rval.handle());
+                        promise.reject_native(cx, &rval.handle());
                     },
                     Ok(info_list) => {
                         let info_list: Vec<IDBDatabaseInfo> = info_list

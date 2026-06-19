@@ -72,7 +72,7 @@ impl Callback for RepresentationDataPromiseRejectionHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // Reject p with "NotFoundError" DOMException in realm.
         // Return p.
-        self.promise.reject_error_with_cx(cx, Error::NotFound(None));
+        self.promise.reject_error(cx, Error::NotFound(None));
     }
 }
 

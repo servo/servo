@@ -668,7 +668,7 @@ impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
             Ok(None) | Err(PopError::Lost) => {
                 promise.resolve_native_with_cx(cx, &None::<Option<GPUError>>)
             },
-            Err(PopError::Empty) => promise.reject_error_with_cx(cx, Error::Operation(None)),
+            Err(PopError::Empty) => promise.reject_error(cx, Error::Operation(None)),
             Ok(Some(error)) => {
                 let error = GPUError::from_error(cx, &self.global(), error);
                 promise.resolve_native_with_cx(cx, &error);
@@ -702,7 +702,7 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                     msg.into(),
                     GPUPipelineErrorReason::Validation,
                 );
-                promise.reject_native_with_cx(cx, &gpu_pipeline_error)
+                promise.reject_native(cx, &gpu_pipeline_error)
             },
             Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
                 let gpu_pipeline_error = GPUPipelineError::new(
@@ -711,7 +711,7 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                     msg.into(),
                     GPUPipelineErrorReason::Internal,
                 );
-                promise.reject_native_with_cx(cx, &gpu_pipeline_error)
+                promise.reject_native(cx, &gpu_pipeline_error)
             },
         }
     }
@@ -743,7 +743,7 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                     GPUPipelineErrorReason::Validation,
                 );
 
-                promise.reject_native_with_cx(cx, &pipeline_error)
+                promise.reject_native(cx, &pipeline_error)
             },
             Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
                 let pipeline_error = GPUPipelineError::new(
@@ -752,7 +752,7 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                     msg.into(),
                     GPUPipelineErrorReason::Internal,
                 );
-                promise.reject_native_with_cx(cx, &pipeline_error)
+                promise.reject_native(cx, &pipeline_error)
             },
         }
     }

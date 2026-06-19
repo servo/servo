@@ -215,9 +215,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                 }
                 promise.resolve_native_with_cx(cx, &services);
             },
-            _ => {
-                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
-            },
+            _ => promise.reject_error(cx, Error::Type(c"Something went wrong...".to_owned())),
         }
     }
 }

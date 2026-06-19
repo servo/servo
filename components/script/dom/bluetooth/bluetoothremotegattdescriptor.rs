@@ -103,7 +103,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Reads) {
-            p.reject_error_with_cx(cx, Security(None));
+            p.reject_error(cx, Security(None));
             return p;
         }
 
@@ -115,7 +115,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             .get_gatt(cx)
             .Connected()
         {
-            p.reject_error_with_cx(cx, Network(None));
+            p.reject_error(cx, Network(None));
             return p;
         }
 
@@ -139,7 +139,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
 
         // Step 1.
         if uuid_is_blocklisted(&self.uuid.str(), Blocklist::Writes) {
-            p.reject_error_with_cx(cx, Security(None));
+            p.reject_error(cx, Security(None));
             return p;
         }
 
@@ -149,7 +149,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(ab) => ab.to_vec(),
         };
         if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
-            p.reject_error_with_cx(cx, InvalidModification(None));
+            p.reject_error(cx, InvalidModification(None));
             return p;
         }
 
@@ -161,7 +161,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
             .get_gatt(cx)
             .Connected()
         {
-            p.reject_error_with_cx(cx, Network(None));
+            p.reject_error(cx, Network(None));
             return p;
         }
 
@@ -212,9 +212,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
                 // TODO: Resolve promise with undefined instead of a value.
                 promise.resolve_native_with_cx(cx, &());
             },
-            _ => {
-                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
-            },
+            _ => promise.reject_error(cx, Error::Type(c"Something went wrong...".to_owned())),
         }
     }
 }

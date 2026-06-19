@@ -736,8 +736,7 @@ impl PipeTo {
             rooted!(&in(cx) let mut error = UndefinedValue());
             error.set(shutdown_error.get());
             // If error was given, reject promise with error.
-            self.result_promise
-                .reject_native_with_cx(cx, &error.handle());
+            self.result_promise.reject_native(cx, &error.handle());
         } else {
             // Otherwise, resolve promise with undefined.
             self.result_promise.resolve_native_with_cx(cx, &());
@@ -775,7 +774,7 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        self.result.reject_native_with_cx(cx, &v);
+        self.result.reject_native(cx, &v);
     }
 }
 
@@ -1614,7 +1613,7 @@ impl ReadableStream {
             let promise = Promise::new2(cx, global);
             rooted!(&in(cx) let mut rval = UndefinedValue());
             self.stored_error.safe_to_jsval(cx, rval.handle_mut());
-            promise.reject_native_with_cx(cx, &rval.handle());
+            promise.reject_native(cx, &rval.handle());
             return promise;
         }
         // Perform ! ReadableStreamClose(stream).
@@ -2183,7 +2182,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error_with_cx(cx, Error::Type(c"stream is locked".to_owned()));
+            promise.reject_error(cx, Error::Type(c"stream is locked".to_owned()));
             promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).
@@ -2231,7 +2230,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise.reject_error_with_cx(cx, Error::Type(c"Source stream is locked".to_owned()));
+            promise.reject_error(cx, Error::Type(c"Source stream is locked".to_owned()));
             return promise;
         }
 
@@ -2239,8 +2238,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if destination.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new2(cx, &global);
-            promise
-                .reject_error_with_cx(cx, Error::Type(c"Destination stream is locked".to_owned()));
+            promise.reject_error(cx, Error::Type(c"Destination stream is locked".to_owned()));
             return promise;
         }
 

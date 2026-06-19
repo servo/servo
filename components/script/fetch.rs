@@ -226,7 +226,7 @@ pub(crate) fn Fetch(
     let request_object = match Request::Constructor(cx, global, None, input, init) {
         Err(e) => {
             response.error_stream(cx, e.clone());
-            promise.reject_error_with_cx(cx, e);
+            promise.reject_error(cx, e);
             return promise;
         },
         Ok(r) => r,
@@ -563,8 +563,7 @@ impl FetchResponseListener for FetchContext {
             // Step 12.3. If response is a network error, then reject
             // p with a TypeError and abort these steps.
             Err(error) => {
-                promise
-                    .reject_error_with_cx(cx, Error::Type(cformat!("Network error: {:?}", error)));
+                promise.reject_error(cx, Error::Type(cformat!("Network error: {:?}", error)));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(cx, DOMResponseType::Error);

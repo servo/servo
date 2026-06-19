@@ -603,7 +603,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 DOMErrorName::SyntaxError,
                 CanGc::from_cx(realm),
             );
-            promise.reject_native_with_cx(realm, &error);
+            promise.reject_native(realm, &error);
             return promise;
         }
 

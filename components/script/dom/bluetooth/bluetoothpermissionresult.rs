@@ -143,9 +143,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 // Step 8.
                 promise.resolve_native_with_cx(cx, self);
             },
-            _ => {
-                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
-            },
+            _ => promise.reject_error(cx, Error::Type(c"Something went wrong...".to_owned())),
         }
     }
 }

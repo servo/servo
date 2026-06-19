@@ -76,7 +76,7 @@ impl StorageManagerBooleanResponseHandler {
                 let promise = trusted_promise.root();
                 match result {
                     Ok(value) => promise.resolve_native_with_cx(cx, &value),
-                    Err(message) => promise.reject_error_with_cx(cx, StorageManager::type_error_from_string(message)),
+                    Err(message) => promise.reject_error(cx, StorageManager::type_error_from_string(message)),
                 }
             }));
     }
@@ -112,7 +112,7 @@ impl StorageManagerEstimateResponseHandler {
                         promise.resolve_native_with_cx(cx, &estimate);
                     },
                     Err(message) => {
-                        promise.reject_error_with_cx(cx, StorageManager::type_error_from_string(message));
+                        promise.reject_error(cx, StorageManager::type_error_from_string(message));
                     },
                 }
             }));

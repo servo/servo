@@ -186,7 +186,7 @@ impl Callback for TransferBackPressurePromiseReaction {
             global.disentangle_port(cx, &self.port);
 
             // Return a promise rejected with result.[[Value]].
-            self.result_promise.reject_error_with_cx(cx, error);
+            self.result_promise.reject_error(cx, error);
         } else {
             // Otherwise, return a promise resolved with undefined.
             self.result_promise.resolve_native(&(), can_gc);
@@ -614,7 +614,7 @@ impl WritableStreamDefaultController {
                 };
                 result.unwrap_or_else(|e| {
                     let promise = Promise::new2(cx, global);
-                    promise.reject_error_with_cx(cx, e);
+                    promise.reject_error(cx, e);
                     promise
                 })
             },
@@ -632,7 +632,7 @@ impl WritableStreamDefaultController {
 
                 // If result is an abrupt completion, return a promise rejected with result.[[Value]]
                 if let Err(error) = result {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                 } else {
                     // Otherwise, return a promise resolved with undefined.
                     promise.resolve_native_with_cx(cx, &());
@@ -687,7 +687,7 @@ impl WritableStreamDefaultController {
                 };
                 result.unwrap_or_else(|e| {
                     let promise = Promise::new2(cx, global);
-                    promise.reject_error_with_cx(cx, e);
+                    promise.reject_error(cx, e);
                     promise
                 })
             },
@@ -761,7 +761,7 @@ impl WritableStreamDefaultController {
                 };
                 result.unwrap_or_else(|e| {
                     let promise = Promise::new2(cx, global);
-                    promise.reject_error_with_cx(cx, e);
+                    promise.reject_error(cx, e);
                     promise
                 })
             },

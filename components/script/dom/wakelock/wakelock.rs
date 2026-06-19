@@ -58,7 +58,7 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
 
         // Step 2. If document is not fully active, reject with NotAllowedError.
         if !document.is_fully_active() {
-            promise.reject_error_with_cx(cx, Error::NotAllowed(Some(
+            promise.reject_error(cx, Error::NotAllowed(Some(
                         "Failed to execute 'request' on 'WakeLock': The requesting page is not fully active."
                         .to_string())));
             return promise;
@@ -66,7 +66,7 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
 
         // Step 3. If document's visibility state is "hidden", reject with NotAllowedError.
         if document.VisibilityState() == DocumentVisibilityState::Hidden {
-            promise.reject_error_with_cx(cx, Error::NotAllowed(Some(
+            promise.reject_error(cx, Error::NotAllowed(Some(
                         "Failed to execute 'request' on 'WakeLock': The requesting page is not visible."
                         .to_string()
                         )));
@@ -76,7 +76,7 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
         // Step 4. Obtain permission for "screen-wake-lock".
         // <https://w3c.github.io/screen-wake-lock/#dfn-obtain-permission>
         let Some(webview_id) = global.webview_id() else {
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 cx,
                 Error::NotAllowed(Some("Unable to obtain WakeLock permission.".to_string())),
             );
@@ -104,7 +104,7 @@ impl RoutedPromiseListener<AllowOrDeny> for WakeLock {
         match response {
             // Step 7a. If permission is denied, reject with NotAllowedError.
             AllowOrDeny::Deny => {
-                promise.reject_error_with_cx(
+                promise.reject_error(
                     cx,
                     Error::NotAllowed(Some(
                         "Failed to execute 'request' on 'WakeLock': Permission denied.".to_string(),
