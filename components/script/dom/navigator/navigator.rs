@@ -71,7 +71,7 @@ use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 
-pub(super) fn hardware_concurrency() -> u64 {
+pub(crate) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
 
     *CPUS
