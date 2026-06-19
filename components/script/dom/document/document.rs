@@ -2767,6 +2767,7 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
     pub(crate) fn lookup_custom_element_definition(
         &self,
+        cx: &mut JSContext,
         namespace: &Namespace,
         local_name: &LocalName,
         is: Option<&LocalName>,
@@ -2782,14 +2783,17 @@ impl Document {
         }
 
         // Step 3
-        let registry = self.window.CustomElements();
+        let registry = self.window.CustomElements(cx);
 
         registry.lookup_definition(local_name, is)
     }
 
     /// <https://dom.spec.whatwg.org/#document-custom-element-registry>
-    pub(crate) fn custom_element_registry(&self) -> DomRoot<CustomElementRegistry> {
-        self.window.CustomElements()
+    pub(crate) fn custom_element_registry(
+        &self,
+        cx: &mut JSContext,
+    ) -> DomRoot<CustomElementRegistry> {
+        self.window.CustomElements(cx)
     }
 
     pub(crate) fn increment_throw_on_dynamic_markup_insertion_counter(&self) {
@@ -5386,7 +5390,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 let registry = if let Some(registry) = options.customElementRegistry {
                     // Step 5.3. If registry's is scoped is false and registry
                     // is not this's custom element registry, then throw a "NotSupportedError" DOMException.
-                    let this_registry = self.custom_element_registry();
+                    let this_registry = self.custom_element_registry(cx);
                     if !registry.is_scoped() && registry != this_registry {
                         return Err(Error::NotSupported(Some(
                             "Imported customElementRegistry is not scoped and does not match existing registry.".into()
@@ -5402,7 +5406,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 6. If registry is null, then set registry to the
         // result of looking up a custom element registry given this.
         let registry = registry
-            .or_else(|| CustomElementRegistry::lookup_a_custom_element_registry(self.upcast()));
+            .or_else(|| CustomElementRegistry::lookup_a_custom_element_registry(cx, self.upcast()));
 
         // Step 7. Return the result of cloning a node given node with
         // document set to this, subtree set to subtree, and fallbackRegistry set to registry.

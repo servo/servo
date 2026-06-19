@@ -22,9 +22,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{
-    DomObject, Reflector, reflect_dom_object, reflect_dom_object_with_proto_and_cx,
-};
+use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto_and_cx};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
 
@@ -108,11 +106,20 @@ impl CustomElementRegistry {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<CustomElementRegistry> {
-        reflect_dom_object(
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<CustomElementRegistry> {
+        CustomElementRegistry::new_with_proto(cx, window, None)
+    }
+
+    fn new_with_proto(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<CustomElementRegistry> {
+        reflect_dom_object_with_proto_and_cx(
             Box::new(CustomElementRegistry::new_inherited(window)),
             window,
-            can_gc,
+            proto,
+            cx,
         )
     }
 
@@ -159,6 +166,7 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-registry>
     pub(crate) fn lookup_a_custom_element_registry(
+        cx: &mut JSContext,
         node: &Node,
     ) -> Option<DomRoot<CustomElementRegistry>> {
         match node.type_id() {
@@ -173,7 +181,7 @@ impl CustomElementRegistry {
             NodeTypeId::Document(_) => Some(
                 node.downcast::<Document>()
                     .expect("Nodes with document type must be a document")
-                    .custom_element_registry(),
+                    .custom_element_registry(cx),
             ),
             // Step 4. Return null.
             _ => None,
@@ -291,12 +299,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<CustomElementRegistry> {
-        let registry = reflect_dom_object_with_proto_and_cx(
-            Box::new(CustomElementRegistry::new_inherited(window)),
-            window,
-            proto,
-            cx,
-        );
+        let registry = CustomElementRegistry::new_with_proto(cx, window, proto);
+
         // Step 1: Set this's is scoped to true.
         registry.is_scoped.set(true);
         registry
@@ -626,13 +630,13 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade>
-    fn Upgrade(&self, node: &Node) {
+    fn Upgrade(&self, cx: &mut JSContext, node: &Node) {
         // Spec says to make a list first and then iterate the list, but
         // try-to-upgrade only queues upgrade reactions and doesn't itself
         // modify the tree, so that's not an observable distinction.
         node.traverse_preorder(ShadowIncluding::Yes).for_each(|n| {
             if let Some(element) = n.downcast::<Element>() {
-                try_upgrade_element(element);
+                try_upgrade_element(cx, element);
             }
         });
     }
@@ -1011,7 +1015,7 @@ fn run_upgrade_constructor(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-try-upgrade>
-pub(crate) fn try_upgrade_element(element: &Element) {
+pub(crate) fn try_upgrade_element(cx: &mut JSContext, element: &Element) {
     // Step 1. Let definition be the result of looking up a custom element definition given element's node document,
     // element's namespace, element's local name, and element's is value.
     let document = element.owner_document();
@@ -1019,7 +1023,7 @@ pub(crate) fn try_upgrade_element(element: &Element) {
     let local_name = element.local_name();
     let is = element.get_is();
     if let Some(definition) =
-        document.lookup_custom_element_definition(namespace, local_name, is.as_ref())
+        document.lookup_custom_element_definition(cx, namespace, local_name, is.as_ref())
     {
         // Step 2. If definition is not null, then enqueue a custom element upgrade reaction given
         // element and definition.
