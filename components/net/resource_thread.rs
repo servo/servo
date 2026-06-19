@@ -147,6 +147,46 @@ fn local_runtime_mime_for_path(path: &Path) -> &'static str {
     }
 }
 
+fn local_runtime_path_has_traversal(path: &str) -> bool {
+    fn percent_decode_once(input: &str) -> Option<String> {
+        let bytes = input.as_bytes();
+        let mut output = Vec::with_capacity(bytes.len());
+        let mut changed = false;
+        let mut index = 0;
+        while index < bytes.len() {
+            if bytes[index] == b'%' && index + 2 < bytes.len() {
+                let high = bytes[index + 1];
+                let low = bytes[index + 2];
+                let hex = |byte: u8| match byte {
+                    b'0'..=b'9' => Some(byte - b'0'),
+                    b'a'..=b'f' => Some(byte - b'a' + 10),
+                    b'A'..=b'F' => Some(byte - b'A' + 10),
+                    _ => None,
+                };
+                if let (Some(high), Some(low)) = (hex(high), hex(low)) {
+                    output.push((high << 4) | low);
+                    changed = true;
+                    index += 3;
+                    continue;
+                }
+            }
+            output.push(bytes[index]);
+            index += 1;
+        }
+        changed.then(|| String::from_utf8_lossy(&output).into_owned())
+    }
+
+    fn has_dot_dot_segment(path: &str) -> bool {
+        path.split(['/', '\\']).any(|segment| segment == "..")
+    }
+
+    path.contains('\0')
+        || has_dot_dot_segment(path)
+        || percent_decode_once(path)
+            .as_deref()
+            .is_some_and(|decoded| decoded.contains('\0') || has_dot_dot_segment(decoded))
+}
+
 fn local_runtime_package_decision(
     url: &ServoUrl,
     package_mode: Option<&LocalRuntimePackageMode>,
@@ -170,6 +210,10 @@ fn local_runtime_package_decision(
 
     if url.host_str() != Some(package_mode.package_id.as_str()) {
         return LocalRuntimePackageDecision::Deny("PackageIdMismatch");
+    }
+
+    if local_runtime_path_has_traversal(url.path()) {
+        return LocalRuntimePackageDecision::Deny("PackagePathTraversalDenied");
     }
 
     let mut relative_path = PathBuf::new();
@@ -226,7 +270,11 @@ fn log_local_runtime_resource_request(
     let (decision, reason, deny_kind) = local_runtime_decision_for_scheme(url.scheme());
     let decision = decision_override.unwrap_or(decision);
     let reason = reason_override.or(reason).unwrap_or("none");
-    let deny_kind = deny_kind.unwrap_or("none");
+    let deny_kind = if decision == "denied" && reason != "none" {
+        "RequestDenied"
+    } else {
+        deny_kind.unwrap_or("none")
+    };
     let mime = mime_override.unwrap_or("unknown");
     let local_path = local_path
         .map(|path| path.display().to_string())

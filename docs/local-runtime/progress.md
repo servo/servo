@@ -182,3 +182,11 @@
 - Denied, in package mode, remote `http://`, `https://`, `ws://`, and `wss://`, `file://`, `store://`, wrong-package `asset://`, missing package files, package root canonicalization failures, I/O failures, and traversal/root escape attempts before legacy fetch/protocol handling.
 - Existing `file://` local development behavior remains outside package mode because the new `file://` denial only applies when both package environment variables are present.
 - Still reaches old assumptions: the provider boundary is still late in `components/net/resource_thread.rs`, does not yet preserve original unresolved attribute text, and `ftp://`, `bundle://`, `data:`, and `blob:` need follow-up classification at this seam or earlier provider seams.
+
+## 2026-06-19 — encoded `asset://` traversal denial
+
+- Inspected `components/net/resource_thread.rs` package-mode `asset://` authorization after encoded traversal-shaped URLs were observed reaching the loader as normalized package-local assets.
+- Added a pre-segment raw-path traversal guard that rejects raw `..` segments, percent-encoded dot-dot segments, and single-percent-decoded paths that introduce separators plus `..` before filesystem mapping.
+- Preserved the existing canonical package-root containment check so allowed assets still resolve through the configured `SERVORENA_PACKAGE_ROOT` and symlink/root escapes remain denied.
+- Denied encoded traversal attempts now log `decision: denied`, `reason: PackagePathTraversalDenied`, `deny_kind: RequestDenied`, and `local_path: none` from the package-mode seam.
+- Open question: this seam can inspect `ServoUrl::path()` after Servo URL parsing, but a future earlier ResourceProvider boundary should carry the exact author-supplied request string so pre-parser policy checks do not rely on URL crate serialization behavior.
