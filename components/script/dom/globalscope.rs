@@ -3050,9 +3050,8 @@ impl GlobalScope {
     }
 
     /// Returns the idb factory for this global.
-    pub(crate) fn get_indexeddb(&self) -> DomRoot<IDBFactory> {
-        self.indexeddb
-            .or_init(|| IDBFactory::new(self, CanGc::deprecated_note()))
+    pub(crate) fn get_indexeddb(&self, cx: &mut js::context::JSContext) -> DomRoot<IDBFactory> {
+        self.indexeddb.or_init(|| IDBFactory::new(cx, self))
     }
 
     pub(crate) fn get_existing_indexeddb(&self) -> Option<DomRoot<IDBFactory>> {
