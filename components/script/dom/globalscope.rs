@@ -27,14 +27,15 @@ use fonts::FontContext;
 use indexmap::IndexSet;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{
-    CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap, JSContext, JSObject, JSScript,
+    CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap, JSContext, JSObject,
 };
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::realm::CurrentRealm;
+use js::rust::wrappers2::Compile1;
 use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue, ParentRuntime,
-    Runtime, get_object_class,
+    Runtime, get_object_class, transform_str_to_source_text,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use net_traits::blob_url_store::BlobBuf;
@@ -119,7 +120,9 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::global_scope_script_execution::{ErrorReporting, compile_script, evaluate_script};
+use crate::dom::global_scope_script_execution::{
+    ErrorReporting, evaluate_script, fill_compile_options,
+};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -2920,6 +2923,7 @@ impl GlobalScope {
     }
 
     /// Evaluate JS code on this global scope.
+    #[expect(unsafe_code)]
     pub(crate) fn evaluate_js_on_global(
         &self,
         cx: &mut CurrentRealm,
@@ -2932,18 +2936,17 @@ impl GlobalScope {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script();
 
-            let no_script_rval = rval.is_none();
-
-            rooted!(&in(cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
-            compiled_script.set(compile_script(
+            let options = fill_compile_options(
                 cx,
-                &code,
                 filename,
-                1,
                 introduction_type,
                 ErrorReporting::Unmuted,
-                no_script_rval,
-            ));
+                rval.is_none(), // noScriptRval
+                1,              // lineno
+            );
+
+            let mut source = transform_str_to_source_text(&code);
+            rooted!(&in(cx) let compiled_script = unsafe { Compile1(cx, options.ptr, &mut source) });
 
             let Some(script) = NonNull::new(*compiled_script) else {
                 debug!("error compiling Dom string");

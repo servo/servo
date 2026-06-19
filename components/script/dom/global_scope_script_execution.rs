@@ -77,6 +77,7 @@ pub(crate) enum RethrowErrors {
 impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#creating-a-classic-script>
     #[expect(clippy::too_many_arguments)]
+    #[expect(unsafe_code)]
     pub(crate) fn create_a_classic_script(
         &self,
         cx: &mut JSContext,
@@ -96,8 +97,6 @@ impl GlobalScope {
         };
         unminify_js(&mut script_source);
 
-        rooted!(&in(cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
-
         // TODO Step 1. If mutedErrors is true, then set baseURL to about:blank.
 
         // TODO Step 2. If scripting is disabled for settings, then set source to the empty string.
@@ -106,16 +105,18 @@ impl GlobalScope {
 
         // TODO Step 9. Record classic script creation time given script and sourceURLForWindowScripts.
 
-        // Step 10. Let result be ParseScript(source, settings's realm, script).
-        compiled_script.set(compile_script(
+        let options = fill_compile_options(
             cx,
-            &script_source.source.str(),
             url.as_str(),
-            line_number,
             introduction_type,
             muted_errors,
-            true,
-        ));
+            true, // noScriptRval
+            line_number,
+        );
+        let mut source = transform_str_to_source_text(&script_source.source.str());
+
+        // Step 10. Let result be ParseScript(source, settings's realm, script).
+        rooted!(&in(cx) let compiled_script = unsafe { Compile1(cx, options.ptr, &mut source) });
 
         // Step 11. If result is a list of errors, then:
         let record = if compiled_script.get().is_null() {
@@ -325,16 +326,14 @@ impl GlobalScope {
     }
 }
 
-#[expect(unsafe_code)]
-pub(crate) fn compile_script(
+pub(crate) fn fill_compile_options(
     cx: &mut JSContext,
-    text: &str,
     filename: &str,
-    line_number: u32,
     introduction_type: Option<&'static CStr>,
     muted_errors: ErrorReporting,
     no_script_rval: bool,
-) -> *mut JSScript {
+    line_number: u32,
+) -> CompileOptionsWrapper {
     let muted_errors = match muted_errors {
         ErrorReporting::Muted => true,
         ErrorReporting::Unmuted => false,
@@ -342,8 +341,7 @@ pub(crate) fn compile_script(
 
     // TODO: pass filename as CString to avoid allocation
     // See https://github.com/servo/servo/issues/42126
-    let filename = cformat!("{filename}");
-    let mut options = CompileOptionsWrapper::new(cx, filename, line_number);
+    let mut options = CompileOptionsWrapper::new(cx, cformat!("{filename}"), line_number);
     if let Some(introduction_type) = introduction_type {
         options.set_introduction_type(introduction_type);
     }
@@ -355,8 +353,7 @@ pub(crate) fn compile_script(
     options.set_is_run_once(true);
     options.set_no_script_rval(no_script_rval);
 
-    debug!("Compiling script");
-    unsafe { Compile1(cx, options.ptr, &mut transform_str_to_source_text(text)) }
+    options
 }
 
 /// <https://tc39.es/ecma262/#sec-runtime-semantics-scriptevaluation>
