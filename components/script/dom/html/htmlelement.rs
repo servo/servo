@@ -77,6 +77,8 @@ pub(crate) struct HTMLElement {
     element: Element,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
     dataset: MutNullableDom<DOMStringMap>,
+    /// <https://html.spec.whatwg.org/multipage/#previously-focused-element>
+    previously_focused_element: MutNullableDom<Element>,
 }
 
 impl HTMLElement {
@@ -104,6 +106,7 @@ impl HTMLElement {
             ),
             style_decl: Default::default(),
             dataset: Default::default(),
+            previously_focused_element: Default::default(),
         }
     }
 
@@ -177,6 +180,14 @@ impl HTMLElement {
         matches!(&*self.ContentEditable().str(), "true" | "plaintext-only")
         // > or a child HTML element of a Document whose design mode enabled is true.
         // TODO
+    }
+
+    pub(crate) fn previously_focused_element(&self) -> Option<DomRoot<Element>> {
+        self.previously_focused_element.get()
+    }
+
+    pub(crate) fn set_previously_focused_element(&self, element: Option<&Element>) {
+        self.previously_focused_element.set(element);
     }
 }
 
