@@ -102,10 +102,13 @@ function createValueGrip(value, depth) {
         case "object":
             // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#153>
             if (value === null) {
-                return "NullValue";
+                return { NullValue: false };
             }
-            if (value.optimizedOut || value.uninitialized || value.missingArguments) {
-                return "NullValue";
+            if (value.uninitialized) {
+                return { NullValue: true };
+            }
+            if (value.optimizedOut || value.missingArguments) {
+                return { NullValue: false };
             }
             // TODO: handle typed arrays and storage independently
             const ownPropertyLength = value.getOwnPropertyNamesLength();

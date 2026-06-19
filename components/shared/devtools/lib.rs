@@ -230,7 +230,7 @@ where
 #[serde(rename_all_fields = "camelCase")]
 pub enum DebuggerValue {
     VoidValue,
-    NullValue,
+    NullValue(bool),
     BooleanValue(bool),
     NumberValue(#[serde(deserialize_with = "deserialize_debugger_number")] f64),
     StringValue(String),
