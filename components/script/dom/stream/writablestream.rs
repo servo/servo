@@ -355,7 +355,7 @@ impl WritableStream {
             assert!(self.in_flight_close_request.borrow().is_none());
 
             // Reject stream.[[closeRequest]] with stream.[[storedError]].
-            close_request.reject_native(&stored_error.handle(), CanGc::from_cx(cx))
+            close_request.reject_native(cx, &stored_error.handle())
 
             // Set stream.[[closeRequest]] to undefined.
             // Done with `take` above.
@@ -806,15 +806,14 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#acquire-writable-stream-default-writer>
     pub(crate) fn aquire_default_writer(
         &self,
-        cx: SafeJSContext,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> Result<DomRoot<WritableStreamDefaultWriter>, Error> {
         // Let writer be a new WritableStreamDefaultWriter object.
-        let writer = WritableStreamDefaultWriter::new(global, None, can_gc);
+        let writer = WritableStreamDefaultWriter::new(cx, global, None);
 
         // Perform ? SetUpWritableStreamDefaultWriter(writer, stream).
-        writer.setup(cx, self, can_gc)?;
+        writer.setup(cx, self)?;
 
         // Return writer.
         Ok(writer)
@@ -1115,7 +1114,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         let global = GlobalScope::from_current_realm(realm);
 
         // Return ? AcquireWritableStreamDefaultWriter(this).
-        self.aquire_default_writer(realm.into(), &global, CanGc::from_cx(realm))
+        self.aquire_default_writer(realm, &global)
     }
 }
 

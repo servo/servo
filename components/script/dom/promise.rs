@@ -248,18 +248,7 @@ impl Promise {
         }
     }
 
-    pub(crate) fn reject_native<T>(&self, val: &T, can_gc: CanGc)
-    where
-        T: SafeToJSValConvertible,
-    {
-        let cx = GlobalScope::get_cx();
-        let _ac = enter_realm(self);
-        rooted!(in(*cx) let mut v = UndefinedValue());
-        val.safe_to_jsval(cx, v.handle_mut(), can_gc);
-        self.reject(cx, v.handle(), can_gc);
-    }
-
-    pub(crate) fn reject_native_with_cx<T>(&self, cx: &mut JSContext, val: &T)
+    pub(crate) fn reject_native<T>(&self, cx: &mut JSContext, val: &T)
     where
         T: SafeToJSValConvertible,
     {
@@ -268,6 +257,14 @@ impl Promise {
         rooted!(&in(cx) let mut v = UndefinedValue());
         val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
         self.reject_with_cx(cx, v.handle());
+    }
+
+    /// Deprecated: use [`Self::reject_native`] instead
+    pub(crate) fn reject_native_with_cx<T>(&self, cx: &mut JSContext, val: &T)
+    where
+        T: SafeToJSValConvertible,
+    {
+        self.reject_native(cx, val);
     }
 
     pub(crate) fn reject_error(&self, cx: &mut JSContext, error: Error) {

@@ -10,7 +10,7 @@ use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriterMethods;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
@@ -19,7 +19,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::writablestream::WritableStream;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter>
 #[dom_struct]
@@ -40,36 +40,31 @@ pub struct WritableStreamDefaultWriter {
 impl WritableStreamDefaultWriter {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
     /// The parts that create a new promise.
-    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> WritableStreamDefaultWriter {
+    fn new_inherited(cx: &mut CurrentRealm) -> WritableStreamDefaultWriter {
         WritableStreamDefaultWriter {
             reflector_: Reflector::new(),
             stream: Default::default(),
-            closed_promise: RefCell::new(Promise::new(global, can_gc)),
-            ready_promise: RefCell::new(Promise::new(global, can_gc)),
+            closed_promise: RefCell::new(Promise::new_in_realm(cx)),
+            ready_promise: RefCell::new(Promise::new_in_realm(cx)),
         }
     }
 
     pub(crate) fn new(
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<WritableStreamDefaultWriter> {
-        reflect_dom_object_with_proto(
-            Box::new(WritableStreamDefaultWriter::new_inherited(global, can_gc)),
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(WritableStreamDefaultWriter::new_inherited(cx)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
     /// Continuing from `new_inherited`, the rest.
-    pub(crate) fn setup(
-        &self,
-        cx: SafeJSContext,
-        stream: &WritableStream,
-        can_gc: CanGc,
-    ) -> Result<(), Error> {
+    pub(crate) fn setup(&self, cx: &mut JSContext, stream: &WritableStream) -> Result<(), Error> {
         // If ! IsWritableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
             return Err(Error::Type(c"Stream is locked".to_owned()));
@@ -93,7 +88,7 @@ impl WritableStreamDefaultWriter {
             } else {
                 // Otherwise, set writer.[[readyPromise]] to a promise resolved with undefined.
                 // Note: new promise created in `new_inherited`.
-                self.ready_promise.borrow().resolve_native(&(), can_gc);
+                self.ready_promise.borrow().resolve_native_with_cx(cx, &());
             }
 
             // Set writer.[[closedPromise]] to a new promise.
@@ -103,14 +98,14 @@ impl WritableStreamDefaultWriter {
 
         // Otherwise, if state is "erroring",
         if stream.is_erroring() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
+            rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
 
             // Set writer.[[readyPromise]] to a promise rejected with stream.[[storedError]].
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
             // Note: new promise created in `new_inherited`.
             let ready_promise = self.ready_promise.borrow();
-            ready_promise.reject_native(&error.handle(), can_gc);
+            ready_promise.reject_native(cx, &error.handle());
             ready_promise.set_promise_is_handled();
 
             // Set writer.[[closedPromise]] to a new promise.
@@ -122,11 +117,11 @@ impl WritableStreamDefaultWriter {
         if stream.is_closed() {
             // Set writer.[[readyPromise]] to a promise resolved with undefined.
             // Note: new promise created in `new_inherited`.
-            self.ready_promise.borrow().resolve_native(&(), can_gc);
+            self.ready_promise.borrow().resolve_native_with_cx(cx, &());
 
             // Set writer.[[closedPromise]] to a promise resolved with undefined.
             // Note: new promise created in `new_inherited`.
-            self.closed_promise.borrow().resolve_native(&(), can_gc);
+            self.closed_promise.borrow().resolve_native_with_cx(cx, &());
             return Ok(());
         }
 
@@ -135,21 +130,21 @@ impl WritableStreamDefaultWriter {
         assert!(stream.is_errored());
 
         // Let storedError be stream.[[storedError]].
-        rooted!(in(*cx) let mut error = UndefinedValue());
+        rooted!(&in(cx) let mut error = UndefinedValue());
         stream.get_stored_error(error.handle_mut());
 
         // Set writer.[[readyPromise]] to a promise rejected with stream.[[storedError]].
         // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
         // Note: new promise created in `new_inherited`.
         let ready_promise = self.ready_promise.borrow();
-        ready_promise.reject_native(&error.handle(), can_gc);
+        ready_promise.reject_native(cx, &error.handle());
         ready_promise.set_promise_is_handled();
 
         // Set writer.[[closedPromise]] to a promise rejected with storedError.
         // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
         // Note: new promise created in `new_inherited`.
         let ready_promise = self.closed_promise.borrow();
-        ready_promise.reject_native(&error.handle(), can_gc);
+        ready_promise.reject_native(cx, &error.handle());
         ready_promise.set_promise_is_handled();
 
         Ok(())
@@ -524,17 +519,15 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
 
     /// <https://streams.spec.whatwg.org/#default-writer-constructor>
     fn Constructor(
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         stream: &WritableStream,
     ) -> Result<DomRoot<WritableStreamDefaultWriter>, Error> {
-        let writer = WritableStreamDefaultWriter::new(global, proto, can_gc);
-
-        let cx = GlobalScope::get_cx();
+        let writer = WritableStreamDefaultWriter::new(cx, global, proto);
 
         // Perform ? SetUpWritableStreamDefaultWriter(this, stream).
-        writer.setup(cx, stream, can_gc)?;
+        writer.setup(cx, stream)?;
 
         Ok(writer)
     }
