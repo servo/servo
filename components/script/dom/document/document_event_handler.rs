@@ -39,7 +39,6 @@ use script_bindings::inheritance::Castable;
 use script_bindings::match_domstring_ascii;
 use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
-use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use script_traits::ConstellationInputEvent;
 use servo_base::generic_channel::GenericCallback;
@@ -1456,7 +1455,12 @@ impl DocumentEventHandler {
             TouchEventType::Cancel => "touchcancel",
         };
 
+        let touches = TouchList::new(cx, window, self.active_touch_points.borrow().r());
+        let changed_touches = TouchList::new(cx, window, from_ref(&&*changed_touch));
+        let target_touches = TouchList::new(cx, window, target_touches.r());
+
         let touch_event = TouchEvent::new(
+            cx,
             window,
             event_name.into(),
             EventBubbles::Bubbles,
@@ -1464,19 +1468,14 @@ impl DocumentEventHandler {
             EventComposed::Composed,
             Some(window),
             0i32,
-            &TouchList::new(
-                window,
-                self.active_touch_points.borrow().r(),
-                CanGc::from_cx(cx),
-            ),
-            &TouchList::new(window, from_ref(&&*changed_touch), CanGc::from_cx(cx)),
-            &TouchList::new(window, target_touches.r(), CanGc::from_cx(cx)),
+            &touches,
+            &changed_touches,
+            &target_touches,
             // FIXME: modifier keys
             false,
             false,
             false,
             false,
-            CanGc::from_cx(cx),
         );
         let event = touch_event.upcast::<Event>();
         event.fire(cx, &touch_dispatch_target);
@@ -1588,6 +1587,7 @@ impl DocumentEventHandler {
 
         let cancelable = composition_event.state == keyboard_types::CompositionState::Start;
         let event = CompositionEvent::new(
+            cx,
             &self.window,
             composition_event.state.event_type().into(),
             true,
@@ -1595,7 +1595,6 @@ impl DocumentEventHandler {
             Some(&self.window),
             0,
             DOMString::from(composition_event.data),
-            CanGc::from_cx(cx),
         );
 
         let event = event.upcast::<Event>();
@@ -1644,6 +1643,7 @@ impl DocumentEventHandler {
         );
         // https://w3c.github.io/uievents/#event-wheelevents
         let dom_event = WheelEvent::new(
+            cx,
             &self.window,
             event_type,
             EventBubbles::Bubbles,
@@ -1668,7 +1668,6 @@ impl DocumentEventHandler {
             Finite::wrap(-event.delta.y),
             Finite::wrap(-event.delta.z),
             event.delta.mode as u32,
-            CanGc::from_cx(cx),
         );
 
         let dom_event = dom_event.upcast::<Event>();
@@ -1973,13 +1972,13 @@ impl DocumentEventHandler {
         clipboard_event_type: ClipboardEventType,
     ) -> DomRoot<ClipboardEvent> {
         let clipboard_event = ClipboardEvent::new(
+            cx,
             &self.window,
             None,
             clipboard_event_type.as_str().into(),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             None,
-            CanGc::from_cx(cx),
         );
 
         // Step 1 Let clear_was_called be false
@@ -2038,9 +2037,9 @@ impl DocumentEventHandler {
 
         // Step 3
         let clipboard_event_data = DataTransfer::new(
+            cx,
             &self.window,
             Rc::new(RefCell::new(Some(drag_data_store))),
-            CanGc::from_cx(cx),
         );
 
         // Step 8

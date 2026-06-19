@@ -6,8 +6,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::DataTransferItemListBinding::DataTransferItemListMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -19,7 +20,6 @@ use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
 use crate::dom::window::Window;
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DataTransferItemList {
@@ -41,14 +41,14 @@ impl DataTransferItemList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         data_store: Rc<RefCell<Option<DragDataStore>>>,
-        can_gc: CanGc,
     ) -> DomRoot<DataTransferItemList> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(DataTransferItemList::new_inherited(data_store)),
             window,
-            can_gc,
+            cx,
         )
     }
 

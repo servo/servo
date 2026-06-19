@@ -5445,7 +5445,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 CanGc::from_cx(cx),
             ))),
             "compositionevent" | "textevent" => Ok(DomRoot::upcast(
-                CompositionEvent::new_uninitialized(&self.window, CanGc::from_cx(cx)),
+                CompositionEvent::new_uninitialized(cx, &self.window),
             )),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
                 self.window.upcast(),
@@ -5482,13 +5482,19 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 "".into(),
                 CanGc::from_cx(cx),
             ))),
-            "touchevent" => Ok(DomRoot::upcast(DomTouchEvent::new_uninitialized(
-                &self.window,
-                &TouchList::new(&self.window, &[], CanGc::from_cx(cx)),
-                &TouchList::new(&self.window, &[], CanGc::from_cx(cx)),
-                &TouchList::new(&self.window, &[], CanGc::from_cx(cx)),
-                CanGc::from_cx(cx),
-            ))),
+            "touchevent" => {
+                let touches = TouchList::new(cx, &self.window, &[]);
+                let changed_touches = TouchList::new(cx, &self.window, &[]);
+                let target_touches = TouchList::new(cx, &self.window, &[]);
+
+                Ok(DomRoot::upcast(DomTouchEvent::new_uninitialized(
+                    cx,
+                    &self.window,
+                    &touches,
+                    &changed_touches,
+                    &target_touches,
+                )))
+            },
             "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(
                 &self.window,
                 CanGc::from_cx(cx),
