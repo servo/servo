@@ -253,7 +253,8 @@ impl HTMLTextAreaElement {
                     // Step 1. Set target's has scheduled selectionchange event to false.
                     this.has_scheduled_selectionchange_event.set(false);
                     // Step 2. If target is an element, fire an event named selectionchange, which bubbles and not cancelable, at target.
-                    this.upcast::<EventTarget>().fire_event_with_params(cx,
+                    this.upcast::<EventTarget>().fire_event_with_params(
+                        cx,
                         atom!("selectionchange"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,

@@ -517,6 +517,7 @@ impl FileReader {
         total: Option<u64>,
     ) {
         let progressevent = ProgressEvent::new(
+            cx,
             &self.global(),
             type_,
             EventBubbles::DoesNotBubble,
@@ -524,7 +525,6 @@ impl FileReader {
             total.is_some(),
             Finite::wrap(loaded as f64),
             Finite::wrap(total.unwrap_or(0) as f64),
-            CanGc::from_cx(cx),
         );
         progressevent.upcast::<Event>().fire(cx, self.upcast());
     }

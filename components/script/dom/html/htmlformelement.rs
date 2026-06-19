@@ -771,12 +771,12 @@ impl HTMLFormElement {
 
             // Step 6.5
             let event = SubmitEvent::new(
+                cx,
                 self.global().as_window(),
                 atom!("submit"),
                 true,
                 true,
                 submitter_button.map(DomRoot::from_ref),
-                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
             event.fire(cx, self.upcast::<EventTarget>());
@@ -1350,12 +1350,12 @@ impl HTMLFormElement {
 
         // Step 7
         let event = FormDataEvent::new(
+            cx,
             &window,
             atom!("formdata"),
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             &form_data,
-            CanGc::from_cx(cx),
         );
 
         event

@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::ExtendableEvent_Binding::ExtendableEventMethods;
@@ -28,7 +28,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -126,6 +125,7 @@ impl ExtendableMessageEvent {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,
@@ -135,9 +135,9 @@ impl ExtendableMessageEvent {
         lastEventId: DOMString,
         source: Option<MessageSource>,
         ports: Vec<DomRoot<MessagePort>>,
-        can_gc: CanGc,
     ) -> DomRoot<ExtendableMessageEvent> {
         Self::new_with_proto(
+            cx,
             global,
             None,
             type_,
@@ -148,12 +148,12 @@ impl ExtendableMessageEvent {
             lastEventId,
             source,
             ports,
-            can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -164,7 +164,6 @@ impl ExtendableMessageEvent {
         lastEventId: DOMString,
         source: Option<MessageSource>,
         ports: Vec<DomRoot<MessagePort>>,
-        can_gc: CanGc,
     ) -> DomRoot<ExtendableMessageEvent> {
         let ev = Box::new(ExtendableMessageEvent::new_inherited(
             origin,
@@ -172,7 +171,7 @@ impl ExtendableMessageEvent {
             source,
             ports,
         ));
-        let ev = reflect_dom_object_with_proto(ev, global, proto, can_gc);
+        let ev = reflect_dom_object_with_proto_and_cx(ev, global, proto, cx);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -194,6 +193,7 @@ impl ExtendableMessageEvent {
         ports: Vec<DomRoot<MessagePort>>,
     ) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
+            cx,
             scope,
             atom!("message"),
             false,
@@ -203,7 +203,6 @@ impl ExtendableMessageEvent {
             DOMString::new(),
             source,
             ports,
-            CanGc::from_cx(cx),
         );
         Extendablemessageevent.upcast::<Event>().fire(cx, target);
     }
@@ -211,6 +210,7 @@ impl ExtendableMessageEvent {
     pub(crate) fn dispatch_error(cx: &mut JSContext, target: &EventTarget, scope: &GlobalScope) {
         let init = ExtendableMessageEventBinding::ExtendableMessageEventInit::empty();
         let ExtendableMsgEvent = ExtendableMessageEvent::new(
+            cx,
             scope,
             atom!("messageerror"),
             init.parent.parent.bubbles,
@@ -222,7 +222,6 @@ impl ExtendableMessageEvent {
                 .as_ref()
                 .and_then(|s| s.as_ref().map(|s| s.into())),
             init.ports.clone(),
-            CanGc::from_cx(cx),
         );
         ExtendableMsgEvent.upcast::<Event>().fire(cx, target);
     }
@@ -231,14 +230,15 @@ impl ExtendableMessageEvent {
 impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEvent {
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-extendablemessageevent>
     fn Constructor(
+        cx: &mut JSContext,
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>,
     ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
         let global = worker.upcast::<GlobalScope>();
         let ev = ExtendableMessageEvent::new_with_proto(
+            cx,
             global,
             proto,
             Atom::from(type_),
@@ -251,7 +251,6 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
                 .as_ref()
                 .and_then(|s| s.as_ref().map(|s| s.into())),
             vec![],
-            can_gc,
         );
         Ok(ev)
     }

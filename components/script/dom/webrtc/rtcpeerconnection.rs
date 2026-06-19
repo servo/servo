@@ -255,11 +255,11 @@ impl RTCPeerConnection {
             return;
         }
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("negotiationneeded"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
     }
@@ -370,11 +370,11 @@ impl RTCPeerConnection {
 
         // step 5
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("icegatheringstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
 
@@ -412,11 +412,11 @@ impl RTCPeerConnection {
 
         // step 5
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("iceconnectionstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
     }
@@ -435,11 +435,11 @@ impl RTCPeerConnection {
         self.signaling_state.set(state);
 
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("signalingstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
     }

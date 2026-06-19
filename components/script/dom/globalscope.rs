@@ -2824,6 +2824,7 @@ impl GlobalScope {
         // and additional attributes initialized according to errorInfo.
 
         let event = ErrorEvent::new(
+            cx,
             self,
             atom!("error"),
             EventBubbles::DoesNotBubble,
@@ -2833,7 +2834,6 @@ impl GlobalScope {
             error_info.lineno,
             error_info.column,
             value,
-            CanGc::from_cx(cx),
         );
 
         let not_handled = event

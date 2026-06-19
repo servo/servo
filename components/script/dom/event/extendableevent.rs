@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::{HandleObject, HandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -17,7 +18,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 #[dom_struct]
@@ -35,28 +36,28 @@ impl ExtendableEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         worker: &ServiceWorkerGlobalScope,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-        can_gc: CanGc,
     ) -> DomRoot<ExtendableEvent> {
-        Self::new_with_proto(worker, None, type_, bubbles, cancelable, can_gc)
+        Self::new_with_proto(cx, worker, None, type_, bubbles, cancelable)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-        can_gc: CanGc,
     ) -> DomRoot<ExtendableEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(ExtendableEvent::new_inherited()),
             worker,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = ev.upcast::<Event>();
@@ -69,24 +70,24 @@ impl ExtendableEvent {
 impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
     /// <https://w3c.github.io/ServiceWorker/#dom-extendableevent-extendableevent>
     fn Constructor(
+        cx: &mut JSContext,
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &ExtendableEventInit,
     ) -> Fallible<DomRoot<ExtendableEvent>> {
         Ok(ExtendableEvent::new_with_proto(
+            cx,
             worker,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
-            can_gc,
         ))
     }
 
     /// <https://w3c.github.io/ServiceWorker/#wait-until-method>
-    fn WaitUntil(&self, _cx: JSContext, _val: HandleValue) -> ErrorResult {
+    fn WaitUntil(&self, _cx: SafeJSContext, _val: HandleValue) -> ErrorResult {
         // Step 1
         if !self.extensions_allowed {
             return Err(Error::InvalidState(None));

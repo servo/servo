@@ -59,7 +59,7 @@ use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoop
 use crate::realms::enter_auto_realm;
 use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{CanGc, Runtime, ThreadSafeJSContext};
+use crate::script_runtime::{Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -702,6 +702,7 @@ impl DedicatedWorkerGlobalScope {
             // Step 7.2.2. Set notHandled to the result of firing an event named error at workerObject, using ErrorEvent,
             // with the cancelable attribute initialized to true, and additional attributes initialized according to errorInfo.
             let event = ErrorEvent::new(
+                cx,
                 &global,
                 atom!("error"),
                 EventBubbles::DoesNotBubble,
@@ -711,7 +712,6 @@ impl DedicatedWorkerGlobalScope {
                 error_info.lineno,
                 error_info.column,
                 HandleValue::null(),
-                CanGc::from_cx(cx),
             );
 
             // Step 7.2.3. If notHandled is true, then report exception for workerObject's relevant global object with omitError set to true.

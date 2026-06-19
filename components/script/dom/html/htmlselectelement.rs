@@ -547,7 +547,8 @@ impl HTMLSelectElement {
                 // Step 2. Fire an event named input at the select element, with the bubbles and composed
                 // attributes initialized to true.
                 this.upcast::<EventTarget>()
-                    .fire_event_with_params(cx,
+                    .fire_event_with_params(
+                        cx,
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,

@@ -3386,6 +3386,7 @@ impl Window {
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
             let uievent = UIEvent::new(
+                cx,
                 self,
                 atom!("resize"),
                 EventBubbles::DoesNotBubble,
@@ -3393,7 +3394,6 @@ impl Window {
                 Some(self),
                 0i32,
                 0u32,
-                CanGc::from_cx(cx),
             );
             uievent.upcast::<Event>().fire(cx, self.upcast());
         }
@@ -3412,6 +3412,7 @@ impl Window {
             let visual_viewport = self.get_or_init_visual_viewport(CanGc::from_cx(cx));
 
             let uievent = UIEvent::new(
+                cx,
                 self,
                 atom!("resize"),
                 EventBubbles::DoesNotBubble,
@@ -3419,7 +3420,6 @@ impl Window {
                 Some(self),
                 0i32,
                 0u32,
-                CanGc::from_cx(cx),
             );
             uievent.upcast::<Event>().fire(cx, visual_viewport.upcast());
 

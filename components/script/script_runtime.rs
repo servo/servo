@@ -494,13 +494,13 @@ unsafe extern "C" fn promise_rejection_tracker(
                     unsafe{JS_GetPromiseResult(root_promise.reflector().get_jsobject(), reason.handle_mut())};
 
                     let event = PromiseRejectionEvent::new(
+                        cx,
                         &target.global(),
                         atom!("rejectionhandled"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable,
                         root_promise,
                         reason.handle(),
-                        CanGc::from_cx(cx),
                     );
 
                     event.upcast::<Event>().fire(cx, &target);
@@ -681,13 +681,13 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
                 );
 
                 let event = PromiseRejectionEvent::new(
+                    cx,
                     &target.global(),
                     atom!("unhandledrejection"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
                     promise.clone(),
                     reason.handle(),
-                    CanGc::from_cx(cx)
                 );
                 event.upcast::<Event>().fire(cx, &target);
 

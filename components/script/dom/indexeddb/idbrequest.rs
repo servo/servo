@@ -266,11 +266,11 @@ impl RequestListener {
             // Step 2: Set event’s type attribute to "success".
             // Step 3: Set event’s bubbles and cancelable attributes to false.
             let event = Event::new(
+                cx,
                 &global,
                 Atom::from("success"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
-                CanGc::from_cx(cx),
             );
 
             // Step 5: Let legacyOutputDidListenersThrowFlag be initially false.
@@ -339,11 +339,11 @@ impl RequestListener {
         // Step 2: Set event’s type attribute to "error".
         // Step 3: Set event’s bubbles and cancelable attributes to true.
         let event = Event::new(
+            cx,
             global,
             Atom::from("error"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            CanGc::from_cx(cx),
         );
 
         // If result is an error and transaction’s state is committing, then run abort a

@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CommandEventBinding;
@@ -20,7 +21,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::Node;
 use crate::dom::types::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CommandEvent {
@@ -45,6 +45,7 @@ impl CommandEvent {
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -52,10 +53,9 @@ impl CommandEvent {
         cancelable: EventCancelable,
         source: Option<DomRoot<Element>>,
         command: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<CommandEvent> {
         let event = Box::new(CommandEvent::new_inherited(source, command));
-        let event = reflect_dom_object_with_proto(event, window, proto, can_gc);
+        let event = reflect_dom_object_with_proto_and_cx(event, window, proto, cx);
         {
             let event = event.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -65,16 +65,16 @@ impl CommandEvent {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         source: Option<DomRoot<Element>>,
         command: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<CommandEvent> {
         Self::new_with_proto(
-            window, None, type_, bubbles, cancelable, source, command, can_gc,
+            cx, window, None, type_, bubbles, cancelable, source, command,
         )
     }
 }
@@ -82,15 +82,16 @@ impl CommandEvent {
 impl CommandEventMethods<crate::DomTypeHolder> for CommandEvent {
     /// <https://html.spec.whatwg.org/multipage/#commandevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &CommandEventBinding::CommandEventInit,
     ) -> Fallible<DomRoot<CommandEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(CommandEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
@@ -98,7 +99,6 @@ impl CommandEventMethods<crate::DomTypeHolder> for CommandEvent {
             cancelable,
             init.source.as_ref().map(|s| DomRoot::from_ref(&**s)),
             init.command.clone(),
-            can_gc,
         ))
     }
 

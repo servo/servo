@@ -221,7 +221,8 @@ impl GPUDevice {
                 let this = this.root();
                 let error = GPUError::from_error(cx, &this.global(), error);
 
-                let event = GPUUncapturedErrorEvent::new(cx,
+                let event = GPUUncapturedErrorEvent::new(
+                    cx,
                     &this.global(),
                     atom!("uncapturederror"),
                     &GPUUncapturedErrorEventInit {

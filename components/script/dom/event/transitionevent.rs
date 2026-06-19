@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -18,7 +19,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct TransitionEvent {
@@ -40,26 +40,26 @@ impl TransitionEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         init: &TransitionEventInit,
-        can_gc: CanGc,
     ) -> DomRoot<TransitionEvent> {
-        Self::new_with_proto(window, None, type_, init, can_gc)
+        Self::new_with_proto(cx, window, None, type_, init)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         init: &TransitionEventInit,
-        can_gc: CanGc,
     ) -> DomRoot<TransitionEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(TransitionEvent::new_inherited(init)),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = ev.upcast::<Event>();
@@ -72,18 +72,18 @@ impl TransitionEvent {
 impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
     /// <https://drafts.csswg.org/css-transitions/#dom-transitionevent-transitionevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &TransitionEventInit,
     ) -> Fallible<DomRoot<TransitionEvent>> {
         Ok(TransitionEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
             init,
-            can_gc,
         ))
     }
 

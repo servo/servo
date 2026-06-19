@@ -930,7 +930,8 @@ impl Document {
                 document.update_visibility_state(cx, DocumentVisibilityState::Visible);
                 // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
                 // global object with true.
-                let event = PageTransitionEvent::new(cx,
+                let event = PageTransitionEvent::new(
+                    cx,
                     window,
                     atom!("pageshow"),
                     false, // bubbles
@@ -1927,7 +1928,8 @@ impl Document {
                 .dom_manipulation_task_source()
                 .queue(task!(hashchange_event: move |cx| {
                         let window = window.root();
-                        HashChangeEvent::new(cx,
+                        HashChangeEvent::new(
+                            cx,
                             &window,
                             atom!("hashchange"),
                             false,
@@ -2101,11 +2103,11 @@ impl Document {
         // Step 7
         if !self.fired_unload.get() {
             let event = Event::new(
+                cx,
                 self.window.upcast(),
                 atom!("unload"),
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
-                CanGc::from_cx(cx),
             );
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
@@ -2245,11 +2247,11 @@ impl Document {
 
                 // Step 9.5. Fire an event named load at window, with legacy target override flag set.
                 let load_event = Event::new(
+                    cx,
                     window.upcast(),
                     atom!("load"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::from_cx(cx),
                 );
                 load_event.set_trusted(true);
                 debug!("About to dispatch load for {:?}", document.url());
@@ -2273,7 +2275,8 @@ impl Document {
                 document.page_showing.set(true);
 
                 // Step 9.11. Fire a page transition event named pageshow at window with false.
-                let page_show_event = PageTransitionEvent::new(cx,
+                let page_show_event = PageTransitionEvent::new(
+                    cx,
                     window,
                     atom!("pageshow"),
                     false, // bubbles
@@ -5445,15 +5448,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 CompositionEvent::new_uninitialized(cx, &self.window),
             )),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
+                cx,
                 self.window.upcast(),
-                CanGc::from_cx(cx),
             ))),
             // FIXME(#25136): devicemotionevent, deviceorientationevent
             // FIXME(#7529): dragevent
-            "events" | "event" | "htmlevents" | "svgevents" => Ok(Event::new_uninitialized(
-                self.window.upcast(),
-                CanGc::from_cx(cx),
-            )),
+            "events" | "event" | "htmlevents" | "svgevents" => {
+                Ok(Event::new_uninitialized(cx, self.window.upcast()))
+            },
             "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(
                 cx,
                 &self.window,
@@ -5467,8 +5469,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 &self.window,
             ))),
             "messageevent" => Ok(DomRoot::upcast(MessageEvent::new_uninitialized(
+                cx,
                 self.window.upcast(),
-                CanGc::from_cx(cx),
             ))),
             "mouseevent" | "mouseevents" => Ok(DomRoot::upcast(MouseEvent::new_uninitialized(
                 cx,
@@ -5493,8 +5495,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 )))
             },
             "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(
+                cx,
                 &self.window,
-                CanGc::from_cx(cx),
             ))),
             _ => Err(Error::NotSupported(None)),
         }

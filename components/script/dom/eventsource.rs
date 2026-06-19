@@ -280,6 +280,7 @@ impl EventSourceContext {
             self.data
                 .safe_to_jsval(cx.into(), data.handle_mut(), CanGc::from_cx(cx));
             MessageEvent::new(
+                cx,
                 &event_source.global(),
                 type_,
                 false,
@@ -289,7 +290,6 @@ impl EventSourceContext {
                 None,
                 event_source.last_event_id.borrow().clone(),
                 Vec::with_capacity(0),
-                CanGc::from_cx(cx),
             )
         };
         // Step 7
