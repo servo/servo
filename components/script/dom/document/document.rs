@@ -60,7 +60,9 @@ use servo_base::{Epoch, generic_channel};
 use servo_config::pref;
 use servo_constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use servo_media::{ClientContextId, ServoMedia};
-use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use servo_url::{
+    ImmutableOrigin, MutableOrigin, ServoUrl, local_runtime_raw_url_obfuscation_reason,
+};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
@@ -3097,6 +3099,21 @@ impl Document {
         // Step 4. Let baseURL be environment's base URL, if environment is a Document object;
         // otherwise environment's API base URL.
         let base_url = self.base_url();
+
+        if let Some(reason) = local_runtime_raw_url_obfuscation_reason(url) {
+            let package_mode = std::env::var_os("SERVORENA_PACKAGE_ID").is_some() &&
+                std::env::var_os("SERVORENA_PACKAGE_ROOT").is_some();
+            log::warn!(
+                "[local-runtime raw-url-request]\n  requested: {}\n  base: {}\n  servo_module: components/script/dom/document/document.rs::Document::encoding_parse_a_url\n  decision: {}\n  reason: {}",
+                url,
+                base_url.as_str(),
+                if package_mode { "deny" } else { "log-only" },
+                reason,
+            );
+            if package_mode {
+                return Err(url::ParseError::RelativeUrlWithoutBase);
+            }
+        }
 
         // Step 5. Return the result of applying the URL parser to url, with baseURL and encoding.
         url::Url::options()
