@@ -37,7 +37,6 @@ use js::rust::wrappers2::{
 };
 use js::rust::{Handle, HandleValue, ToString, transform_str_to_source_text};
 use mime::Mime;
-use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
@@ -74,7 +73,9 @@ use crate::dom::html::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::types::{Console, DedicatedWorkerGlobalScope, WorkerGlobalScope};
+use crate::dom::types::{
+    Console, DedicatedWorkerGlobalScope, SharedWorkerGlobalScope, WorkerGlobalScope,
+};
 use crate::dom::window::Window;
 use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
@@ -83,6 +84,7 @@ use crate::network_listener::{self, FetchResponseListener, ResourceTimingListene
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::task::NonSendTaskBox;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) fn gen_type_error(
     cx: &mut JSContext,
@@ -851,6 +853,8 @@ impl FetchResponseListener for ModuleContext {
         let global = self.owner.root();
         if let Some(scope) = global.downcast::<DedicatedWorkerGlobalScope>() {
             scope.report_csp_violations(violations);
+        } else if let Some(scope) = global.downcast::<SharedWorkerGlobalScope>() {
+            scope.report_csp_violations(violations);
         } else {
             global.report_csp_violations(violations, None, None);
         }
@@ -1591,7 +1595,7 @@ pub(crate) fn fetch_a_single_module_script(
         // Step 12. Set up the module script request given request and options.
         let request = RequestBuilder::new(
             webview_id,
-            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            ensure_blob_referenced_by_url_is_kept_alive(global, url.clone()),
             referrer,
         )
         .destination(destination)

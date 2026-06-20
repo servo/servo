@@ -442,7 +442,7 @@ impl Preferences {
             dom_storage_manager_api_enabled: false,
             dom_serviceworker_enabled: false,
             dom_serviceworker_timeout_seconds: 60,
-            dom_sharedworker_enabled: false,
+            dom_sharedworker_enabled: true,
             dom_servo_helpers_enabled: false,
             dom_servoparser_async_html_tokenizer_enabled: false,
             dom_testbinding_enabled: false,

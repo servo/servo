@@ -37,6 +37,7 @@ use crate::dom::dedicatedworkerglobalscope::{
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
+use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
@@ -218,6 +219,11 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                 global
                     .downcast::<DedicatedWorkerGlobalScope>()
                     .and_then(|w| w.browsing_context())
+                    .or_else(|| {
+                        global
+                            .downcast::<SharedWorkerGlobalScope>()
+                            .and_then(|w| w.browsing_context())
+                    })
             });
 
         let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();

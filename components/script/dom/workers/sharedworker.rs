@@ -598,6 +598,8 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         // Step 11.6. Otherwise, in parallel, run a worker given worker, urlRecord, outsideSettings, outsidePort, and options.
         let _join_handle = match SharedWorkerGlobalScope::run_shared_worker_scope(
             init,
+            window.webview_id(),
+            Some(window.window_proxy().browsing_context_id()),
             worker_name,
             worker_type,
             worker_url,
@@ -608,6 +610,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             receiver,
             worker_load_origin,
             closing.clone(),
+            global.image_cache(),
             #[cfg(feature = "webgpu")]
             global.wgpu_id_hub(),
             control_receiver,
