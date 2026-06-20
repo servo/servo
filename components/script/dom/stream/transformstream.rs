@@ -75,7 +75,7 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
         if self.writable.is_erroring() {
             rooted!(&in(cx) let mut error = UndefinedValue());
             self.writable.get_stored_error(error.handle_mut());
-            self.result_promise.reject_with_cx(cx, error.handle());
+            self.result_promise.reject(cx, error.handle());
             return;
         }
 
@@ -141,9 +141,8 @@ struct PerformTransformRejection {
 
 impl Callback for PerformTransformRejection {
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         // Stream already errored in perform_transform, just reject result_promise
-        self.result_promise.reject(cx.into(), v, can_gc);
+        self.result_promise.reject(cx, v);
     }
 }
 
@@ -158,8 +157,7 @@ struct BackpressureChangeRejection {
 
 impl Callback for BackpressureChangeRejection {
     fn callback(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        self.result_promise.reject(cx.into(), reason, can_gc);
+        self.result_promise.reject(cx, reason);
     }
 }
 
@@ -226,7 +224,7 @@ impl Callback for CancelPromiseRejection {
         self.controller
             .get_finish_promise()
             .expect("finish promise is not set")
-            .reject_with_cx(cx, v);
+            .reject(cx, v);
     }
 }
 
@@ -258,7 +256,7 @@ impl Callback for SourceCancelPromiseFulfillment {
         if self.writeable.is_errored() {
             rooted!(&in(cx) let mut error = UndefinedValue());
             self.writeable.get_stored_error(error.handle_mut());
-            finish_promise.reject_with_cx(cx, error.handle());
+            finish_promise.reject(cx, error.handle());
         } else {
             // Otherwise:
             // Perform ! WritableStreamDefaultControllerErrorIfNeeded(writable.[[controller]], reason).
@@ -306,7 +304,7 @@ impl Callback for SourceCancelPromiseRejection {
         self.controller
             .get_finish_promise()
             .expect("finish promise is not set")
-            .reject_with_cx(cx, v);
+            .reject(cx, v);
     }
 }
 
@@ -334,7 +332,7 @@ impl Callback for FlushPromiseFulfillment {
         if self.readable.is_errored() {
             rooted!(&in(cx) let mut error = UndefinedValue());
             self.readable.get_stored_error(error.handle_mut());
-            finish_promise.reject_with_cx(cx, error.handle());
+            finish_promise.reject(cx, error.handle());
         } else {
             // Otherwise:
             // Perform ! ReadableStreamDefaultControllerClose(readable.[[controller]]).
@@ -368,7 +366,7 @@ impl Callback for FlushPromiseRejection {
         self.controller
             .get_finish_promise()
             .expect("finish promise is not set")
-            .reject_with_cx(cx, v);
+            .reject(cx, v);
     }
 }
 

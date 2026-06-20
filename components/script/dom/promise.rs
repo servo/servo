@@ -256,7 +256,7 @@ impl Promise {
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut v = UndefinedValue());
         val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
-        self.reject_with_cx(cx, v.handle());
+        self.reject(cx, v.handle());
     }
 
     pub(crate) fn reject_error(&self, cx: &mut JSContext, error: Error) {
@@ -264,20 +264,11 @@ impl Promise {
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut v = UndefinedValue());
         error.to_jsval(cx, &self.global(), v.handle_mut());
-        self.reject_with_cx(cx, v.handle());
+        self.reject(cx, v.handle());
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn reject(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
-        unsafe {
-            if !js::rust::wrappers::RejectPromise(*cx, self.promise_obj(), value) {
-                js::jsapi::JS_ClearPendingException(*cx);
-            }
-        }
-    }
-
-    #[expect(unsafe_code)]
-    pub(crate) fn reject_with_cx(&self, cx: &mut JSContext, value: HandleValue) {
+    pub(crate) fn reject(&self, cx: &mut JSContext, value: HandleValue) {
         unsafe {
             if !RejectPromise(cx, self.promise_obj(), value) {
                 JS_ClearPendingException(cx);

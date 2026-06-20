@@ -753,7 +753,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     if stream.is_errored() {
         rooted!(&in(cx) let mut stored_error = UndefinedValue());
         stream.get_stored_error(stored_error.handle_mut());
-        promise.reject_with_cx(cx, stored_error.handle());
+        promise.reject(cx, stored_error.handle());
         return promise;
     }
 
@@ -794,7 +794,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
             );
         }),
         Rc::new(move |cx, v| {
-            error_promise.reject_with_cx(cx, v);
+            error_promise.reject(cx, v);
         }),
     );
 

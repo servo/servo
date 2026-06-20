@@ -1038,8 +1038,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         p.resolve(cx, v, can_gc);
     }
 
-    fn PromiseRejectNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
-        p.reject(cx, v, can_gc);
+    fn PromiseRejectNative(&self, cx: &mut JSContext, p: &Promise, v: HandleValue) {
+        p.reject(cx, v);
     }
 
     fn PromiseRejectWithTypeError(&self, cx: &mut JSContext, p: &Promise, s: USVString) {

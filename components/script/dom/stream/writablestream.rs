@@ -276,7 +276,7 @@ impl WritableStream {
         let write_requests = mem::take(&mut *self.write_requests.borrow_mut());
         for request in write_requests {
             // Reject writeRequest with storedError.
-            request.reject_with_cx(cx, stored_error.handle());
+            request.reject(cx, stored_error.handle());
         }
 
         // Set stream.[[writeRequests]] to an empty list.
@@ -300,7 +300,7 @@ impl WritableStream {
                 // Reject abortRequest’s promise with storedError.
                 pending_abort_request
                     .promise
-                    .reject_with_cx(cx, stored_error.handle());
+                    .reject(cx, stored_error.handle());
 
                 // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
                 self.reject_close_and_closed_promise_if_needed(cx);
