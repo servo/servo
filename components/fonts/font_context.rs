@@ -437,10 +437,10 @@ impl FontContext {
         if matches!(
             format_hint,
             FontFaceSourceFormat::Keyword(
-                FontFaceSourceFormatKeyword::Truetype |
-                    FontFaceSourceFormatKeyword::Opentype |
-                    FontFaceSourceFormatKeyword::Woff |
-                    FontFaceSourceFormatKeyword::Woff2
+                FontFaceSourceFormatKeyword::Truetype
+                    | FontFaceSourceFormatKeyword::Opentype
+                    | FontFaceSourceFormatKeyword::Woff
+                    | FontFaceSourceFormatKeyword::Woff2
             )
         ) {
             return true;
@@ -452,11 +452,11 @@ impl FontContext {
                 return true;
             }
 
-            return pref!(layout_variable_fonts_enabled) &&
-                (string == "truetype-variations" ||
-                    string == "opentype-variations" ||
-                    string == "woff-variations" ||
-                    string == "woff2-variations");
+            return pref!(layout_variable_fonts_enabled)
+                && (string == "truetype-variations"
+                    || string == "opentype-variations"
+                    || string == "woff-variations"
+                    || string == "woff2-variations");
         }
 
         false
@@ -977,11 +977,26 @@ impl RemoteWebFontDownloader {
         };
 
         let document_context = &state.document_context;
+        let referrer_url = state
+            .initiator
+            .stylesheet()
+            .map(|stylesheet| {
+                let guard = stylesheet.0.shared_lock.read();
+                ServoUrl::from_url(stylesheet.contents(&guard).url_data.0.as_ref().clone())
+            })
+            .unwrap_or_else(|| document_context.document_url.clone());
+
+        log::info!(
+            "[local-runtime resource-request]\n  destination: Font\n  requested: {}\n  base: {}\n  initiator: {}\n  Servo crate/module: components/fonts/font_context.rs\n  decision: route-through-fetch",
+            url.as_str(),
+            referrer_url.as_str(),
+            document_context.document_url.as_str(),
+        );
 
         let request = RequestBuilder::new(
             state.webview_id,
             UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone().into()),
-            Referrer::ReferrerUrl(document_context.document_url.clone()),
+            Referrer::ReferrerUrl(referrer_url),
         )
         .destination(Destination::Font)
         .mode(RequestMode::CorsMode)

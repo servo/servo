@@ -110,8 +110,8 @@ impl StylesheetContext {
         };
 
         let mut style_content = std::mem::take(&mut self.data);
-        if let Some((input, mut output)) = create_temp_files() &&
-            execute_js_beautify(
+        if let Some((input, mut output)) = create_temp_files()
+            && execute_js_beautify(
                 input.path(),
                 output.try_clone().unwrap(),
                 BeautifyFileType::Css,
@@ -388,8 +388,8 @@ impl FetchResponseListener for StylesheetContext {
                 // > the URL of the external resource, and the Content-Type metadata of the
                 // > external resource is not a supported style sheet type, the user agent must
                 // > instead assume it to be text/css.
-                document.quirks_mode() == QuirksMode::Quirks &&
-                    document.origin().immutable().clone() == metadata.final_url.origin()
+                document.quirks_mode() == QuirksMode::Quirks
+                    && document.origin().immutable().clone() == metadata.final_url.origin()
             );
 
             if !is_css {
@@ -509,9 +509,9 @@ impl ElementStylesheetLoader<'_> {
 
         // If element's media attribute's value matches the environment and
         // element is potentially render-blocking, then block rendering on element.
-        context.is_render_blocking = element.media_attribute_matches_media_environment() &&
-            owner.potentially_render_blocking() &&
-            document.allows_adding_render_blocking_elements();
+        context.is_render_blocking = element.media_attribute_matches_media_environment()
+            && owner.potentially_render_blocking()
+            && document.allows_adding_render_blocking_elements();
         if context.is_render_blocking {
             document.increment_render_blocking_element_count();
         }
@@ -610,6 +610,9 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
         let resolved_url = match url.url().cloned() {
             Some(url) => url,
             None => {
+                log::info!(
+                    "[local-runtime resource-request]\n  destination: Style\n  requested: <unresolved @import>\n  base: <stylesheet parser context>\n  initiator: <css @import>\n  Servo crate/module: components/script/stylesheet_loader.rs\n  decision: deny\n  reason: InvalidPath",
+                );
                 return Arc::new(lock.wrap(ImportRule {
                     url,
                     stylesheet: ImportSheet::new_refused(),
@@ -619,6 +622,12 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
                 }));
             },
         };
+
+        log::info!(
+            "[local-runtime resource-request]\n  destination: Style\n  requested: {}\n  base: <stylesheet parser context>\n  initiator: <css @import>\n  Servo crate/module: components/script/stylesheet_loader.rs\n  decision: route-through-fetch\n  final: {}",
+            resolved_url.as_str(),
+            resolved_url.as_str(),
+        );
 
         let import_rule = Arc::new(lock.wrap(ImportRule {
             url,
