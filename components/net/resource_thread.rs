@@ -133,6 +133,7 @@ struct LocalRuntimeAsset {
 enum LocalRuntimePackageDecision {
     Allow(LocalRuntimeAsset),
     Deny(&'static str),
+    Unsupported(&'static str),
     NotHandled,
 }
 
@@ -206,7 +207,7 @@ fn local_runtime_package_decision(
         "store" => return LocalRuntimePackageDecision::Deny("StoreSchemeDeniedByLocalRuntime"),
         "asset" => {},
         _ => {
-            return LocalRuntimePackageDecision::Deny("UnsupportedSchemeDeniedByLocalRuntime");
+            return LocalRuntimePackageDecision::Unsupported("UnsupportedSchemeInPackageMode");
         },
     }
 
@@ -1063,6 +1064,19 @@ impl CoreResourceManager {
                 sender.process_response_eof(&request, &response);
                 return;
             },
+            LocalRuntimePackageDecision::Unsupported(reason) => {
+                log_local_runtime_resource_request(
+                    &request,
+                    Some("unsupported-unrouted"),
+                    Some(reason),
+                    None,
+                    None,
+                );
+                let response = local_runtime_denial_response(reason);
+                sender.process_response(&request, &response);
+                sender.process_response_eof(&request, &response);
+                return;
+            },
             LocalRuntimePackageDecision::NotHandled => {
                 log_local_runtime_resource_request(&request, None, None, None, None);
             },
@@ -1242,5 +1256,172 @@ impl CoreResourceManager {
                 },
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod local_runtime_package_wall_tests {
+    use super::{
+        LocalRuntimePackageDecision, LocalRuntimePackageMode, local_runtime_package_decision,
+    };
+    use servo_url::ServoUrl;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn fixture_root() -> PathBuf {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("servo-local-runtime-wall-{suffix}"));
+        fs::create_dir_all(root.join("assets")).unwrap();
+        fs::create_dir_all(root.join("fonts")).unwrap();
+        fs::write(root.join("index.html"), b"<!doctype html>").unwrap();
+        fs::write(root.join("styles.css"), b"body { color: black; }").unwrap();
+        fs::write(
+            root.join("main.js"),
+            b"globalThis.localRuntimeProbe = true;",
+        )
+        .unwrap();
+        fs::write(root.join("assets").join("logo.png"), b"png").unwrap();
+        fs::write(root.join("fonts").join("app.woff2"), b"font").unwrap();
+        root
+    }
+
+    fn package_mode(root: PathBuf) -> LocalRuntimePackageMode {
+        LocalRuntimePackageMode {
+            package_id: "com.example.app".to_owned(),
+            package_root: root,
+        }
+    }
+
+    #[test]
+    fn package_mode_serves_first_milestone_assets() {
+        let root = fixture_root();
+        let mode = package_mode(root.clone());
+        let probes = [
+            (
+                "document",
+                "asset://com.example.app/index.html",
+                "text/html",
+            ),
+            (
+                "stylesheet",
+                "asset://com.example.app/styles.css",
+                "text/css",
+            ),
+            (
+                "html image",
+                "asset://com.example.app/assets/logo.png",
+                "image/png",
+            ),
+            (
+                "css image",
+                "asset://com.example.app/assets/logo.png",
+                "image/png",
+            ),
+            (
+                "font",
+                "asset://com.example.app/fonts/app.woff2",
+                "font/woff2",
+            ),
+            (
+                "classic script",
+                "asset://com.example.app/main.js",
+                "text/javascript",
+            ),
+        ];
+
+        for (label, url, expected_mime) in probes {
+            match local_runtime_package_decision(&ServoUrl::parse(url).unwrap(), Some(&mode)) {
+                LocalRuntimePackageDecision::Allow(asset) => {
+                    assert_eq!(asset.mime, expected_mime, "{label}");
+                    assert!(
+                        asset.local_path.starts_with(root.canonicalize().unwrap()),
+                        "{label}"
+                    );
+                    assert!(!asset.bytes.is_empty(), "{label}");
+                },
+                _ => panic!("{label} was not served as a package asset"),
+            }
+        }
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn package_mode_denies_known_forbidden_schemes_before_legacy_fetch() {
+        let root = fixture_root();
+        let mode = package_mode(root.clone());
+        let denied = [
+            (
+                "http://example.test/logo.png",
+                "RemoteSchemeDeniedByLocalRuntime",
+            ),
+            (
+                "https://example.test/logo.png",
+                "RemoteSchemeDeniedByLocalRuntime",
+            ),
+            (
+                "ws://example.test/socket",
+                "RemoteSchemeDeniedByLocalRuntime",
+            ),
+            (
+                "wss://example.test/socket",
+                "RemoteSchemeDeniedByLocalRuntime",
+            ),
+            ("file:///tmp/logo.png", "FileSchemeDeniedByLocalRuntime"),
+            (
+                "store://com.example.app/state",
+                "StoreSchemeDeniedByLocalRuntime",
+            ),
+            (
+                "ftp://example.test/logo.png",
+                "UnsupportedSchemeInPackageMode",
+            ),
+        ];
+
+        for (url, expected_reason) in denied {
+            match local_runtime_package_decision(&ServoUrl::parse(url).unwrap(), Some(&mode)) {
+                LocalRuntimePackageDecision::Deny(reason)
+                | LocalRuntimePackageDecision::Unsupported(reason) => {
+                    assert_eq!(reason, expected_reason, "{url}");
+                },
+                LocalRuntimePackageDecision::Allow(_) => panic!("{url} unexpectedly allowed"),
+                LocalRuntimePackageDecision::NotHandled => {
+                    panic!("{url} would fall through to legacy fetch in package mode")
+                },
+            }
+        }
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn package_mode_classifies_all_non_asset_fallthroughs() {
+        let root = fixture_root();
+        let mode = package_mode(root.clone());
+        let probes = [
+            "asset://other.example.app/index.html",
+            "asset://com.example.app/../secret.txt",
+            "asset://com.example.app/%2e%2e/secret.txt",
+            "bundle://runtime/default.css",
+            "data:text/plain,hello",
+            "blob:https://example.test/id",
+        ];
+
+        for url in probes {
+            match local_runtime_package_decision(&ServoUrl::parse(url).unwrap(), Some(&mode)) {
+                LocalRuntimePackageDecision::Deny(_)
+                | LocalRuntimePackageDecision::Unsupported(_) => {},
+                LocalRuntimePackageDecision::Allow(_) => panic!("{url} unexpectedly allowed"),
+                LocalRuntimePackageDecision::NotHandled => {
+                    panic!("{url} would fall through to legacy fetch in package mode")
+                },
+            }
+        }
+
+        fs::remove_dir_all(root).unwrap();
     }
 }
