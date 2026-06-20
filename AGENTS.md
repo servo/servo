@@ -305,3 +305,12 @@ package-scoped, host-mediated offline document runtime
 If a change supports that, it is probably aligned.
 
 If a change turns the project back into a normal browser, Electron clone, localhost app server, or network-capable product shell, it is probably not aligned.
+
+## Testing
+
+Run focused tests or cargo checks only when they are expected
+to complete in the agent environment.
+
+Do not run broad Cargo checks for servo-script, servoshell,
+or workspace-sized targets from a cold checkout. Record them
+as deferred to the GitHub full-build receipt instead.
