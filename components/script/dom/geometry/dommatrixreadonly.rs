@@ -45,7 +45,7 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::{CanGc};
 
 #[dom_struct]
 #[expect(non_snake_case)]
