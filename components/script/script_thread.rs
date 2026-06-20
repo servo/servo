@@ -1258,21 +1258,24 @@ impl ScriptThread {
             let mut realm = enter_auto_realm(cx, &*document);
             let cx = &mut realm.current_realm();
 
-            // > 11. For each doc of docs, update animations and send events for doc, passing
-            // > in relative high resolution time given frameTimestamp and doc's relevant
-            // > global object as the timestamp [WEBANIMATIONS]
-            document.update_animations_and_send_events(cx);
+            // Do not update animations or run rAFs if a Document is throttled.
+            if !document.window().throttled() {
+                // > 11. For each doc of docs, update animations and send events for doc, passing
+                // > in relative high resolution time given frameTimestamp and doc's relevant
+                // > global object as the timestamp [WEBANIMATIONS]
+                document.update_animations_and_send_events(cx);
 
-            // TODO(#31866): Implement "run the fullscreen steps" from
-            // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
+                // TODO(#31866): Implement "run the fullscreen steps" from
+                // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
 
-            // TODO(#31868): Implement the "context lost steps" from
-            // https://html.spec.whatwg.org/multipage/#context-lost-steps.
+                // TODO(#31868): Implement the "context lost steps" from
+                // https://html.spec.whatwg.org/multipage/#context-lost-steps.
 
-            // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
-            // > in the relative high resolution time given frameTimestamp and doc's
-            // > relevant global object as the timestamp.
-            document.run_the_animation_frame_callbacks(cx);
+                // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
+                // > in the relative high resolution time given frameTimestamp and doc's
+                // > relevant global object as the timestamp.
+                document.run_the_animation_frame_callbacks(cx);
+            }
 
             // Run the resize observer steps.
             let mut depth = Default::default();
