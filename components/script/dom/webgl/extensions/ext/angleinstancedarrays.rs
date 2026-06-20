@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_canvas_traits::webgl::WebGLVersion;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
@@ -13,7 +14,6 @@ use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::{
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ANGLEInstancedArrays {
@@ -33,11 +33,11 @@ impl ANGLEInstancedArrays {
 impl WebGLExtension for ANGLEInstancedArrays {
     type Extension = Self;
 
-    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(
+    fn new(cx: &mut JSContext, ctx: &WebGLRenderingContext) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(
             Box::new(ANGLEInstancedArrays::new_inherited(ctx)),
             &*ctx.global(),
-            can_gc,
+            cx,
         )
     }
 

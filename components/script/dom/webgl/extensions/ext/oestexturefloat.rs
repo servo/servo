@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_canvas_traits::webgl::{TexFormat, WebGLVersion};
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions, constants as webgl};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct OESTextureFloat {
@@ -27,12 +27,8 @@ impl OESTextureFloat {
 
 impl WebGLExtension for OESTextureFloat {
     type Extension = OESTextureFloat;
-    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<OESTextureFloat> {
-        reflect_dom_object(
-            Box::new(OESTextureFloat::new_inherited()),
-            &*ctx.global(),
-            can_gc,
-        )
+    fn new(cx: &mut JSContext, ctx: &WebGLRenderingContext) -> DomRoot<OESTextureFloat> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), &*ctx.global(), cx)
     }
 
     fn spec() -> WebGLExtensionSpec {

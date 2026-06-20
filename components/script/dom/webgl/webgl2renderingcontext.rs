@@ -1275,7 +1275,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14>
-    fn GetExtension(&self, cx: JSContext, name: DOMString, return_value: MutableHandleObject) {
+    fn GetExtension(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: DOMString,
+        return_value: MutableHandleObject,
+    ) {
         self.base.GetExtension(cx, name, return_value)
     }
 
