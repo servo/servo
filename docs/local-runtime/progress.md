@@ -247,3 +247,14 @@ Open questions:
 - No Servo runtime crates were touched in this pass.
 - No new resource paths were loaded, logged, or denied; this is a planning/documentation pass to convert the remaining target matrix into focused probes, hardening, or explicit deferral.
 - Open question for the next pass: choose the first Milestone 2 probe family, preferably one that is small, reproducible, and validates an existing package-wall assumption before changing behavior.
+
+## 2026-06-20 — Milestone 2 phase 1 central package wall hardening
+
+- Inspected `components/net/resource_thread.rs::CoreResourceManager::fetch` from `RequestBuilder::build()` through `local_runtime_package_decision(...)`, package-asset serving, deterministic denial response completion, and fallthrough into blob/file-token setup plus legacy async `fetch(...)` dispatch.
+- Touched `components/net/resource_thread.rs` only for runtime code in this pass.
+- Added an explicit `Unsupported` package-wall outcome for package mode schemes that are not first-milestone package assets or known deny schemes. Unsupported/unrouted package-mode requests now log `decision: unsupported-unrouted`, return a deterministic network-error response, and do not enter legacy fetch/protocol handling.
+- Added focused package-wall probes for first-milestone assets: document, stylesheet, HTML image, CSS image, font, and classic script. These prove the central wall serves the expected package files and MIME labels from `asset://com.example.app/...`.
+- Added deny/fallthrough probes for `http://`, `https://`, `ws://`, `wss://`, `file://`, `store://`, `ftp://`, wrong-package `asset://`, traversal-shaped `asset://`, `bundle://`, `data:`, and `blob:` so package mode never returns `NotHandled` for those sample URLs.
+- Denied successfully in package mode: the explicit remote/file/store cases still return their existing denial reasons; `ftp://`, `bundle://`, `data:`, and `blob:` are now classified as unsupported/unrouted at the central wall instead of being allowed to fall into legacy protocol handling.
+- Still reaches old assumptions outside package mode by design: normal Servo network/protocol behavior is preserved unless both `SERVORENA_PACKAGE_ID` and `SERVORENA_PACKAGE_ROOT` enable package mode.
+- Open question: `bundle://runtime/...` remains policy-allowed in the design docs but has no provider backend at this seam yet, so it is intentionally logged and denied as unsupported/unrouted until a host-owned bundle provider exists.
