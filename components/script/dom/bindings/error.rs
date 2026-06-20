@@ -104,10 +104,7 @@ pub(crate) fn create_dom_exception(
 ) -> Result<DomRoot<DOMException>, JsEngineError> {
     let mut new_custom_exception = |error_name, message| {
         Ok(DOMException::new_with_custom_message(
-            global,
-            error_name,
-            message,
-            CanGc::from_cx(cx),
+            cx, global, error_name, message,
         ))
     };
 
@@ -241,7 +238,7 @@ pub(crate) fn create_dom_exception(
         Error::Range(message) => return Err(JsEngineError::Range(message)),
         Error::JSFailed => return Err(JsEngineError::JSFailed),
     };
-    Ok(DOMException::new(global, code, CanGc::from_cx(cx)))
+    Ok(DOMException::new(cx, global, code))
 }
 
 /// A struct encapsulating information about a runtime script error.

@@ -234,7 +234,7 @@ impl FileReader {
         fr.change_ready_state(FileReaderReadyState::Done);
         *fr.result.borrow_mut() = None;
 
-        let exception = DOMException::new(&fr.global(), error, CanGc::from_cx(cx));
+        let exception = DOMException::new(cx, &fr.global(), error);
         fr.error.set(Some(&exception));
 
         fr.dispatch_progress_event(cx, atom!("error"), 0, None);
@@ -472,8 +472,7 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         // Steps 1 & 3
         *self.result.borrow_mut() = None;
 
-        let exception =
-            DOMException::new(&self.global(), DOMErrorName::AbortError, CanGc::from_cx(cx));
+        let exception = DOMException::new(cx, &self.global(), DOMErrorName::AbortError);
         self.error.set(Some(&exception));
 
         self.terminate_ongoing_reading();

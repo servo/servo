@@ -2394,7 +2394,7 @@ impl CrossRealmTransformReadable {
         port: &MessagePort,
     ) {
         // Let error be a new "DataCloneError" DOMException.
-        let error = DOMException::new(global, DOMErrorName::DataCloneError, CanGc::from_cx(cx));
+        let error = DOMException::new(cx, global, DOMErrorName::DataCloneError);
         rooted!(&in(cx) let mut rooted_error = UndefinedValue());
         error.safe_to_jsval(cx, rooted_error.handle_mut());
 

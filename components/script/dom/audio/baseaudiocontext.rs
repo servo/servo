@@ -68,7 +68,6 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 
 pub(crate) enum BaseAudioContextOptions {
     AudioContext(RealTimeAudioContextOptions),
@@ -550,10 +549,9 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         assert!(resolvers.contains_key(&uuid));
                         let resolver = resolvers.remove(&uuid).unwrap();
                         if let Some(callback) = resolver.error_callback {
-                            let exception = DOMException::new(
+                            let exception = DOMException::new(cx,
                                 &this.global(),
                                 DOMErrorName::DataCloneError,
-                                CanGc::from_cx(cx)
                             );
                             let _ = callback.Call__(cx, &exception, ExceptionHandling::Report);
                         }
