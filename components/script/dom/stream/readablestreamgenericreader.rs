@@ -17,7 +17,6 @@ use crate::dom::promise::Promise;
 use crate::dom::stream::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::stream::readablestreamdefaultreader::ReadableStreamDefaultReader;
 use crate::dom::types::ReadableStream;
-use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#readablestreamgenericreader>
 pub(crate) trait ReadableStreamGenericReader {
@@ -49,12 +48,7 @@ pub(crate) trait ReadableStreamGenericReader {
         } else if stream.is_closed() {
             // Otherwise, if stream.[[state]] is "closed",
             // Set reader.[[closedPromise]] to a promise resolved with undefined.
-            self.set_closed_promise(Promise::new_resolved(
-                global,
-                cx.into(),
-                (),
-                CanGc::from_cx(cx),
-            ));
+            self.set_closed_promise(Promise::new_resolved(cx, global, ()));
         } else {
             // Assert: stream.[[state]] is "errored"
             assert!(stream.is_errored());

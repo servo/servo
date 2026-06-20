@@ -463,7 +463,7 @@ impl TransformStream {
         // NOTE: These steps are implemented in `TransformStreamDefaultController::new`
 
         // Step 8. Let startPromise be a promise resolved with undefined.
-        let start_promise = Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
+        let start_promise = Promise::new_resolved(cx, global, ());
 
         // Step 9. Perform ! InitializeTransformStream(stream, startPromise,
         // writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark,
@@ -1036,7 +1036,7 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
             let promise = if is_promise {
                 Promise::new_with_js_promise(result_object.handle(), cx.into())
             } else {
-                Promise::new_resolved(global, cx.into(), result.get(), CanGc::from_cx(cx))
+                Promise::new_resolved(cx, global, result.get())
             };
             start_promise.resolve_native_with_cx(cx, &promise);
         } else {

@@ -21,18 +21,18 @@ use js::context::JSContext;
 use js::conversions::{ConversionResult, FromJSValConvertibleRc};
 use js::jsapi::{
     AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject,
-    JS_NewFunction, JSAutoRealm, JSContext as RawJSContext, JSObject, PromiseState,
+    JS_NewFunction, JSContext as RawJSContext, JSObject, PromiseState,
     PromiseUserInputEventHandlingState, RemoveRawValueRoot, SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
-    CallOriginalPromiseResolve, GetPromiseIsHandled, GetPromiseState, IsPromiseObject,
-    NewPromiseObject, SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
+    GetPromiseIsHandled, GetPromiseState, IsPromiseObject, NewPromiseObject,
+    SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::wrappers2::{
-    AddPromiseReactions, CallOriginalPromiseReject, JS_ClearPendingException,
-    NewFunctionWithReserved, RejectPromise, ResolvePromise,
+    AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
+    JS_ClearPendingException, NewFunctionWithReserved, RejectPromise, ResolvePromise,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -178,19 +178,17 @@ impl Promise {
 
     #[expect(unsafe_code)]
     pub(crate) fn new_resolved(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
-        cx: SafeJSContext,
         value: impl SafeToJSValConvertible,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        value.safe_to_jsval(cx, rval.handle_mut(), can_gc);
-        unsafe {
-            rooted!(in(*cx) let p = CallOriginalPromiseResolve(*cx, rval.handle()));
-            assert!(!p.handle().is_null());
-            Promise::new_with_js_promise(p.handle(), cx)
-        }
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm.current_realm();
+        rooted!(&in(cx) let mut rval = UndefinedValue());
+        value.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+        rooted!(&in(cx) let p = unsafe { CallOriginalPromiseResolve(cx, rval.handle()) });
+        assert!(!p.handle().is_null());
+        Promise::new_with_js_promise(p.handle(), cx.into())
     }
 
     #[expect(unsafe_code)]
@@ -449,7 +447,7 @@ impl FromJSValConvertibleRc for Promise {
         let realm = CurrentRealm::assert(cx);
         let global_scope = GlobalScope::from_current_realm(&realm);
 
-        let promise = Promise::new_resolved(&global_scope, cx.into(), value, CanGc::from_cx(cx));
+        let promise = Promise::new_resolved(cx, &global_scope, value);
         Ok(ConversionResult::Success(promise))
     }
 }

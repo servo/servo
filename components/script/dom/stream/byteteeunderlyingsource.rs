@@ -338,12 +338,7 @@ impl ByteTeeUnderlyingSource {
                     // Set readAgainForBranch1 to true.
                     self.read_again_for_branch_1.set(true);
                     // Return a promise resolved with undefined.
-                    return Promise::new_resolved(
-                        &self.stream.global(),
-                        cx.into(),
-                        (),
-                        CanGc::from_cx(cx),
-                    );
+                    return Promise::new_resolved(cx, &self.stream.global(), ());
                 }
 
                 // Set reading to true.
@@ -374,7 +369,7 @@ impl ByteTeeUnderlyingSource {
                 }
 
                 // Return a promise resolved with undefined.
-                Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx))
+                Promise::new_resolved(cx, &self.stream.global(), ())
             },
             ByteTeePullAlgorithm::Pull2Algorithm => {
                 // If reading is true,
@@ -383,12 +378,7 @@ impl ByteTeeUnderlyingSource {
                     self.read_again_for_branch_2.set(true);
 
                     // Return a promise resolved with undefined.
-                    return Promise::new_resolved(
-                        &self.stream.global(),
-                        cx.into(),
-                        (),
-                        CanGc::from_cx(cx),
-                    );
+                    return Promise::new_resolved(cx, &self.stream.global(), ());
                 }
 
                 // Set reading to true.
@@ -418,7 +408,7 @@ impl ByteTeeUnderlyingSource {
                 }
 
                 // Return a promise resolved with undefined.
-                Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx))
+                Promise::new_resolved(cx, &self.stream.global(), ())
             },
         }
     }

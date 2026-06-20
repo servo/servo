@@ -659,7 +659,7 @@ impl WritableStream {
         // If stream.[[state]] is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise resolved with undefined.
-            return Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
+            return Promise::new_resolved(cx, global, ());
         }
 
         // Signal abort on stream.[[controller]].[[abortController]] with reason.
@@ -675,7 +675,7 @@ impl WritableStream {
             state,
             WritableStreamState::Closed | WritableStreamState::Errored
         ) {
-            return Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
+            return Promise::new_resolved(cx, global, ());
         }
 
         // If stream.[[pendingAbortRequest]] is not undefined,

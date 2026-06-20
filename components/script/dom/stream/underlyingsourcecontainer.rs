@@ -245,8 +245,7 @@ impl UnderlyingSourceContainer {
                     .expect("Sending pull should not fail.");
 
                 // Return a promise resolved with undefined.
-                let promise =
-                    Promise::new_resolved(&self.global(), cx.into(), (), CanGc::from_cx(cx));
+                let promise = Promise::new_resolved(cx, &self.global(), ());
                 Some(Ok(promise))
             },
             UnderlyingSource::TeeByte(tee_underlyin_source) => {
@@ -304,12 +303,7 @@ impl UnderlyingSourceContainer {
                     let promise = if is_promise {
                         Promise::new_with_js_promise(result_object.handle(), cx.into())
                     } else {
-                        Promise::new_resolved(
-                            &self.global(),
-                            cx.into(),
-                            result.get(),
-                            CanGc::from_cx(cx),
-                        )
+                        Promise::new_resolved(cx, &self.global(), result.get())
                     };
                     return Some(Ok(promise));
                 }

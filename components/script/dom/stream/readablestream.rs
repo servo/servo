@@ -672,7 +672,7 @@ impl PipeTo {
                         dest.abort(cx, global, error.handle())
                     } else {
                         // Otherwise, return a promise resolved with undefined.
-                        Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
+                        Promise::new_resolved(cx, global, ())
                     };
                     actions.push(promise);
                 }
@@ -687,7 +687,7 @@ impl PipeTo {
                         source.cancel(cx, global, error.handle())
                     } else {
                         // Otherwise, return a promise resolved with undefined.
-                        Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
+                        Promise::new_resolved(cx, global, ())
                     };
                     actions.push(promise);
                 }
@@ -1606,7 +1606,7 @@ impl ReadableStream {
 
         // If stream.[[state]] is "closed", return a promise resolved with undefined.
         if self.is_closed() {
-            return Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
+            return Promise::new_resolved(cx, global, ());
         }
         // If stream.[[state]] is "errored", return a promise rejected with stream.[[storedError]].
         if self.is_errored() {
