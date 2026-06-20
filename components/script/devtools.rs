@@ -683,65 +683,37 @@ pub(crate) fn handle_get_xpath(
     reply.send(selector).unwrap();
 }
 
-pub(crate) fn handle_get_outer_html(
-    cx: &mut JSContext,
-    state: &DevtoolsState,
-    pipeline_id: PipelineId,
-    node_id: &str,
-    reply: GenericSender<Option<String>>,
-) {
-    let node = state.find_node_by_unique_id(pipeline_id, node_id);
-
-    let selector = node.and_then(|node| {
-        let element = node.downcast::<Element>()?;
-
-        let outer_html = element.GetOuterHTML(cx);
-
-        if let Ok(trusted_html) = outer_html {
-            let trusted_html_or_string = trusted_html.convert();
-
-            let Ok(html_dom_string) = TrustedHTML::get_trusted_type_compliant_string(
-                cx,
-                &element.owner_global(),
-                trusted_html_or_string,
-                "Devtools OuterHTML",
-            ) else {
-                return None;
-            };
-
-            return Some(html_dom_string.to_string());
-        };
-
-        let text_content = node.GetTextContent();
-
-        Some(text_content.map_or("".to_owned(), String::from))
-    });
-
-    reply.send(selector).unwrap();
+pub(crate) enum GetHTML {
+    OuterHTML,
+    InnerHTML,
 }
 
-pub(crate) fn handle_get_inner_html(
+pub(crate) fn handle_get_inner_or_outer_html(
     cx: &mut JSContext,
     state: &DevtoolsState,
     pipeline_id: PipelineId,
     node_id: &str,
     reply: GenericSender<Option<String>>,
+    html_type: GetHTML,
 ) {
     let node = state.find_node_by_unique_id(pipeline_id, node_id);
 
     let selector = node.and_then(|node| {
         let element = node.downcast::<Element>()?;
 
-        let outer_html = element.GetInnerHTML(cx);
+        let inner_or_outer_html = match html_type {
+            GetHTML::InnerHTML => element.GetInnerHTML(cx),
+            GetHTML::OuterHTML => element.GetOuterHTML(cx),
+        };
 
-        if let Ok(trusted_html) = outer_html {
+        if let Ok(trusted_html) = inner_or_outer_html {
             let trusted_html_or_string = trusted_html.convert();
 
             let Ok(html_dom_string) = TrustedHTML::get_trusted_type_compliant_string(
                 cx,
                 &element.owner_global(),
                 trusted_html_or_string,
-                "Devtools InnerHTML",
+                "Devtools GetInnerOrOuterHTML",
             ) else {
                 return None;
             };

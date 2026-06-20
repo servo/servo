@@ -123,6 +123,11 @@ struct GetInnerOrOuterHTMLReply {
     value: LongStringObj,
 }
 
+enum GetHTML {
+    OuterHTML,
+    InnerHTML,
+}
+
 impl Actor for WalkerActor {
     fn name(&self) -> &str {
         &self.name
@@ -278,68 +283,10 @@ impl Actor for WalkerActor {
                 request.reply_final(&msg)?
             },
             "outerHTML" => {
-                let target = msg
-                    .get("node")
-                    .ok_or(ActorError::MissingParameter)?
-                    .as_str()
-                    .ok_or(ActorError::BadParameterType)?;
-
-                let Some((tx, rx)) = generic_channel::channel() else {
-                    return Err(ActorError::Internal);
-                };
-                browsing_context_actor
-                    .script_chan()
-                    .send(GetOuterHTML(
-                        browsing_context_actor.pipeline_id(),
-                        registry.actor_to_script(target.into()),
-                        tx,
-                    ))
-                    .map_err(|_| ActorError::Internal)?;
-
-                let html_text = rx
-                    .recv()
-                    .map_err(|_| ActorError::Internal)?
-                    .ok_or(ActorError::Internal)?;
-
-                let long_string_actor = LongStringActor::register(registry, html_text);
-
-                let msg = GetInnerOrOuterHTMLReply {
-                    from: self.name().into(),
-                    value: long_string_actor.long_string_obj(),
-                };
-                request.reply_final(&msg)?;
+                self.handle_get_inner_or_outer_html(request, registry, msg, GetHTML::OuterHTML)?
             },
             "innerHTML" => {
-                let target = msg
-                    .get("node")
-                    .ok_or(ActorError::MissingParameter)?
-                    .as_str()
-                    .ok_or(ActorError::BadParameterType)?;
-
-                let Some((tx, rx)) = generic_channel::channel() else {
-                    return Err(ActorError::Internal);
-                };
-                browsing_context_actor
-                    .script_chan()
-                    .send(GetInnerHTML(
-                        browsing_context_actor.pipeline_id(),
-                        registry.actor_to_script(target.into()),
-                        tx,
-                    ))
-                    .map_err(|_| ActorError::Internal)?;
-
-                let html_text = rx
-                    .recv()
-                    .map_err(|_| ActorError::Internal)?
-                    .ok_or(ActorError::Internal)?;
-
-                let long_string_actor = LongStringActor::register(registry, html_text);
-
-                let msg = GetInnerOrOuterHTMLReply {
-                    from: self.name().into(),
-                    value: long_string_actor.long_string_obj(),
-                };
-                request.reply_final(&msg)?;
+                self.handle_get_inner_or_outer_html(request, registry, msg, GetHTML::InnerHTML)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
@@ -439,6 +386,58 @@ impl WalkerActor {
                     },
                 })
                 .collect(),
+        };
+
+        request.reply_final(&msg)
+    }
+
+    fn handle_get_inner_or_outer_html(
+        &self,
+        request: ClientRequest,
+        registry: &ActorRegistry,
+        msg: &Map<String, Value>,
+        html_type: GetHTML,
+    ) -> Result<(), ActorError> {
+        let target = msg
+            .get("node")
+            .ok_or(ActorError::MissingParameter)?
+            .as_str()
+            .ok_or(ActorError::BadParameterType)?;
+
+        let Some((tx, rx)) = generic_channel::channel() else {
+            return Err(ActorError::Internal);
+        };
+
+        let browsing_context_actor = self.browsing_context_actor(registry);
+
+        let handle_get_html = match html_type {
+            GetHTML::InnerHTML => GetInnerHTML(
+                browsing_context_actor.pipeline_id(),
+                registry.actor_to_script(target.into()),
+                tx,
+            ),
+            GetHTML::OuterHTML => GetOuterHTML(
+                browsing_context_actor.pipeline_id(),
+                registry.actor_to_script(target.into()),
+                tx,
+            ),
+        };
+
+        browsing_context_actor
+            .script_chan()
+            .send(handle_get_html)
+            .map_err(|_| ActorError::Internal)?;
+
+        let html_text = rx
+            .recv()
+            .map_err(|_| ActorError::Internal)?
+            .ok_or(ActorError::Internal)?;
+
+        let long_string_actor = LongStringActor::register(registry, html_text);
+
+        let msg = GetInnerOrOuterHTMLReply {
+            from: self.name().into(),
+            value: long_string_actor.long_string_obj(),
         };
 
         request.reply_final(&msg)
