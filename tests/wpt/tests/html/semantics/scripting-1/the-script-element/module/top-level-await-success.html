@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Top-level await module success</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({allow_uncaught_exception: true});
+
+window.log = [];
+window.addEventListener("error", ev => log.push(`error:${ev.message}`));
+window.addEventListener("unhandledrejection", ev => log.push(`unhandled:${ev.reason}`));
+
+const test_load = async_test("Top-level await resolves without a false evaluation error");
+window.addEventListener("load", test_load.step_func_done(() => {
+  assert_array_equals(log, ["module-start", "module-complete", "load"]);
+}));
+
+function logLoad() { log.push("load"); }
+function logError() { log.push("script-error"); }
+</script>
+<script type="module" src="top-level-await-success.js" onload="logLoad()" onerror="logError()"></script>

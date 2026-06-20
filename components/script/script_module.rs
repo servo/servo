@@ -24,15 +24,16 @@ use js::jsapi::{
     CallArgs, ExceptionStackBehavior, GetFunctionNativeReserved, GetModuleResolveHook,
     Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_GetFunctionObject,
     JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime, JS_IsExceptionPending,
-    ModuleErrorBehaviour, ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook, SetModuleMetadataHook,
-    SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks, Value,
+    ModuleErrorBehaviour, ModuleType, PromiseState, SetFunctionNativeReserved,
+    SetModuleDynamicImportHook, SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook,
+    SetScriptPrivateReferenceHooks, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
     CompileJsonModule1, CompileModule1, DefineFunctionWithReserved, GetModuleRequestSpecifier,
-    GetModuleRequestType, JS_ClearPendingException, JS_DefineProperty4, JS_GetPendingException,
-    JS_NewStringCopyN, JS_SetPendingException, ModuleEvaluate, ModuleLink,
+    GetModuleRequestType, GetPromiseState, JS_ClearPendingException, JS_DefineProperty4,
+    JS_GetPendingException, JS_NewStringCopyN, JS_SetPendingException, ModuleEvaluate, ModuleLink,
     ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{
@@ -465,18 +466,31 @@ impl ModuleTree {
                 evaluation_promise.set(eval_result.to_object());
             }
 
+            let evaluation_promise_is_pending = !evaluation_promise.get().is_null() &&
+                GetPromiseState(evaluation_promise.handle()) == PromiseState::Pending;
+            let module_error_behaviour = if evaluation_promise_is_pending {
+                ModuleErrorBehaviour::ReportModuleErrorsAsync
+            } else {
+                ModuleErrorBehaviour::ThrowModuleErrorsSync
+            };
+            let module_error_behaviour_label = match module_error_behaviour {
+                ModuleErrorBehaviour::ReportModuleErrorsAsync => "ReportModuleErrorsAsync",
+                ModuleErrorBehaviour::ThrowModuleErrorsSync => "ThrowModuleErrorsSync",
+            };
+
             if is_local_runtime_module_url(&self.url) {
                 info!(
-                    "[local-runtime module-evaluation] phase: top-level-module-script module_url: {} module_type: javascript action: ModuleEvaluate evaluation_result: ok evaluation_promise: {} throw_on_evaluation_failure: true",
+                    "[local-runtime module-evaluation] phase: top-level-module-script module_url: {} module_type: javascript module_evaluate_call_ok: true evaluation_promise: {} throw_on_module_evaluation_failure_called: true module_error_behaviour: {}",
                     self.url,
-                    if evaluation_promise.get().is_null() { "absent" } else { "present" }
+                    if evaluation_promise.get().is_null() { "absent" } else { "present" },
+                    module_error_behaviour_label
                 );
             }
 
             let throw_result = ThrowOnModuleEvaluationFailure(
                 cx,
                 evaluation_promise.handle(),
-                ModuleErrorBehaviour::ThrowModuleErrorsSync,
+                module_error_behaviour,
             );
             if !throw_result {
                 let exception_state = 
@@ -490,9 +504,10 @@ impl ModuleTree {
             } else {
                 if is_local_runtime_module_url(&self.url) {
                     info!(
-                        "[local-runtime module-evaluation] phase: top-level-module-script module_url: {} module_type: javascript action: ThrowOnModuleEvaluationFailure evaluation_result: ok evaluation_promise: {} throw_on_evaluation_failure: true",
+                        "[local-runtime module-evaluation] phase: top-level-module-script module_url: {} module_type: javascript module_evaluate_call_ok: true evaluation_promise: {} throw_on_module_evaluation_failure_called: true module_error_behaviour: {} throw_on_module_evaluation_failure_result: true",
                         self.url,
-                        if evaluation_promise.get().is_null() { "absent" } else { "present" }
+                        if evaluation_promise.get().is_null() { "absent" } else { "present" },
+                        module_error_behaviour_label
                     );
                 }
                 debug!("module evaluated successfully");
