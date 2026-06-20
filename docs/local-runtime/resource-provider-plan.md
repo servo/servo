@@ -110,3 +110,17 @@ The runtime should load:
 - `./main.js` as a classic script or module script
 
 It should deterministically reject remote URLs, `file://`, traversal attempts, and `store://` fetches.
+
+## CSS Subresource Context
+
+CSS subresources must preserve two related but distinct URLs: the active document initiator and the stylesheet base that resolved the nested CSS reference. `@import` currently enters Servo through `components/script/stylesheet_loader.rs`, after Stylo resolves the imported URL against the parent stylesheet `UrlExtraData`; it is then fetched as `Destination::Style` and reaches the existing package wall. `@font-face src: url(...)` enters through `components/fonts/font_context.rs`; stylesheet-initiated font fetches now use the parsed stylesheet URL as the fetch referrer/base context while retaining the document URL as initiator context in local-runtime logging.
+
+The final provider request shape should make this explicit instead of overloading referrer:
+
+- `destination`: `Style`, `Font`, or `Image`
+- `requested_url`: original CSS token text when available
+- `base_url`: stylesheet URL for `@import`, `@font-face`, and CSS image `url(...)`
+- `initiator_url`: active document URL
+- `final_url`: resolved URL after stylesheet-relative resolution
+
+CSS image `url(...)` remains an open mapping item.

@@ -230,3 +230,12 @@ Open questions:
 
 - Whether CSS URL parsing has any direct `url` crate paths that bypass `ServoUrl` and need equivalent raw-text fixtures.
 - Whether package-mode parse denial should return a more specific local-runtime error once URL parsing is moved behind a real host `ResourceProvider` boundary.
+
+## 2026-06-20 — CSS @import and nested CSS URL base handling
+
+- Inspected `components/script/stylesheet_loader.rs` for linked stylesheet parsing and Stylo `StylesheetLoader::request_stylesheet` handling of CSS `@import` rules.
+- Inspected `components/fonts/font_context.rs` for `@font-face` `src: url(...)` loads started from parsed stylesheets.
+- Discovered that CSS `@import` URLs are already resolved by Stylo against the stylesheet parser `UrlExtraData`, then Servo calls `ElementStylesheetLoader::load_with_element` with `Destination::Style`, which reaches the existing net package wall in `components/net/resource_thread.rs`.
+- Added local-runtime request logging at the `@import` loader handoff so nested stylesheet loads are visible before they enter fetch.
+- Discovered that web-font URL values are resolved from stylesheet data, but the fetch request referrer/base context used the document URL. Updated stylesheet-initiated web-font fetches to use the parsed stylesheet URL as the request referrer/base context and added a local-runtime log entry with `destination: Font`, stylesheet base, and document initiator.
+- CSS image `url(...)` loads still need a separate pass through the style/layout image-request path; this pass did not identify or modify that caller.
