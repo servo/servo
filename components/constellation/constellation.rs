@@ -4889,6 +4889,10 @@ where
                         Some(previous_url.clone())
                     }
                 },
+                SessionHistoryDiff::Hash { ref new_url, .. } => {
+                    *previous_url = new_url.clone();
+                    Some(new_url.clone())
+                },
                 _ => Some(previous_url.clone()),
             };
 
@@ -4912,6 +4916,10 @@ where
                 } else {
                     Some(previous_url.clone())
                 }
+            },
+            SessionHistoryDiff::Hash { ref old_url, .. } => {
+                *previous_url = old_url.clone();
+                Some(old_url.clone())
             },
             _ => Some(previous_url.clone()),
         };
