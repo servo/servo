@@ -283,3 +283,17 @@ Failed approaches and why they failed:
 Open questions for the next pass:
 - Which exact module URL is associated with the observed `fail to evaluate module` warning when the updated runtime is run against Servorena's `module-dynamic-relative` fixture?
 - Do duplicate `entry.js` resource-thread lines correspond to a true second start-fetch action, an attach-waiter state, a reuse-loaded state, or a subtly different `(URL, ModuleType)` key?
+
+## 2026-06-20 — top-level-await module evaluation semantics
+
+* Inspected the pinned SpiderMonkey dependency used by this checkout: `mozjs = 0.16.3` and `mozjs_sys = 140.11.0-1` from `Cargo.lock`.
+* Verified the exact pinned header at `~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mozjs_sys-140.11.0-1/mozjs/js/public/Modules.h`:
+  * `ModuleEvaluate` returns a bool for API-call success and writes either `undefined` or an evaluation Promise to `rval`; if already evaluated, it returns the evaluation Promise.
+  * `ReportModuleErrorsAsync` reports module evaluation errors asynchronously when the evaluation Promise is rejected and is used for web content.
+  * `ThrowModuleErrorsSync` throws by setting a pending exception and explicitly does not support modules that use top-level await.
+  * `ThrowOnModuleEvaluationFailure` requires module evaluation to have completed before synchronous rethrow semantics are used.
+* Inspected implementation in the same pinned source at `mozjs/js/src/builtin/ModuleObject.cpp`: `ThrowModuleErrorsSync` assumes the evaluation Promise is already fulfilled or rejected, while `ReportModuleErrorsAsync` attaches an async rejection handler.
+* Touched `components/script/script_module.rs` only for runtime behavior: top-level external module execution now chooses `ReportModuleErrorsAsync` when SpiderMonkey returns a pending evaluation Promise, preserving `ThrowModuleErrorsSync` for settled ordinary module evaluation.
+* Cleaned local-runtime module-evaluation instrumentation labels so `ModuleEvaluate`'s bool is logged as API-call success rather than semantic fulfillment.
+* Added focused WPT coverage for an external module whose top-level await resolves and one whose top-level await rejects with an attributable `Error`.
+* No package policy, URL routing, relative module resolution, dynamic import behavior, networking behavior, or duplicate-request behavior was intentionally changed.

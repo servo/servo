@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Top-level await module rejection</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({allow_uncaught_exception: true});
+
+window.log = [];
+window.addEventListener("error", ev => log.push(ev.error));
+window.addEventListener("unhandledrejection", ev => log.push(`unhandled:${ev.reason}`));
+
+const test_load = async_test("Top-level await rejection is reported as the real evaluation error");
+window.addEventListener("load", test_load.step_func_done(() => {
+  assert_equals(log.length, 2);
+  assert_equals(log[0], "module-start");
+  assert_true(log[1] instanceof Error);
+  assert_equals(log[1].message, "tla rejection sentinel");
+}));
+
+function logLoad() { log.push("load"); }
+function logError() { log.push("script-error"); }
+</script>
+<script type="module" src="top-level-await-rejection.js" onload="logLoad()" onerror="logError()"></script>
