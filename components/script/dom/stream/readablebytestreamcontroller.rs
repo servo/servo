@@ -1819,7 +1819,7 @@ impl ReadableByteStreamController {
         let result = underlying_source
             .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
-                let promise = Promise::new2(cx, global);
+                let promise = Promise::new(cx, global);
                 promise.resolve_native_with_cx(cx, &());
                 Ok(promise)
             });
@@ -1827,7 +1827,7 @@ impl ReadableByteStreamController {
         let promise = result.unwrap_or_else(|error| {
             rooted!(&in(cx) let mut rval = UndefinedValue());
             error.to_jsval(cx, global, rval.handle_mut());
-            let promise = Promise::new2(cx, global);
+            let promise = Promise::new(cx, global);
             promise.reject_native(cx, &rval.handle());
             promise
         });

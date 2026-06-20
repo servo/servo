@@ -170,7 +170,7 @@ impl Callback for TransferBackPressurePromiseReaction {
         let can_gc = CanGc::from_cx(cx);
         let global = self.result_promise.global();
         // Set backpressurePromise to a new promise.
-        let promise = Promise::new2(cx, &global);
+        let promise = Promise::new(cx, &global);
         *self.backpressure_promise.borrow_mut() = Some(promise);
 
         // Let result be PackAndPostMessageHandlingError(port, "chunk", chunk).
@@ -234,7 +234,7 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
             let backpressure = controller.get_backpressure();
 
             // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-            stream.update_backpressure(backpressure, &global, can_gc);
+            stream.update_backpressure(cx, backpressure, &global);
         }
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).
@@ -482,7 +482,7 @@ impl WritableStreamDefaultController {
         let backpressure = self.get_backpressure();
 
         // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-        stream.update_backpressure(backpressure, global, CanGc::from_cx(cx));
+        stream.update_backpressure(cx, backpressure, global);
 
         // Let startResult be the result of performing startAlgorithm. (This may throw an exception.)
         // Let startPromise be a promise resolved with startResult.
@@ -603,7 +603,7 @@ impl WritableStreamDefaultController {
                     Ok(Promise::new_resolved(cx, global, ()))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new2(cx, global);
+                    let promise = Promise::new(cx, global);
                     promise.reject_error(cx, e);
                     promise
                 })
@@ -618,7 +618,7 @@ impl WritableStreamDefaultController {
                 // Disentangle port.
                 global.disentangle_port(cx, port);
 
-                let promise = Promise::new2(cx, global);
+                let promise = Promise::new(cx, global);
 
                 // If result is an abrupt completion, return a promise rejected with result.[[Value]]
                 if let Err(error) = result {
@@ -671,7 +671,7 @@ impl WritableStreamDefaultController {
                     Ok(Promise::new_resolved(cx, global, ()))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new2(cx, global);
+                    let promise = Promise::new(cx, global);
                     promise.reject_error(cx, e);
                     promise
                 })
@@ -691,7 +691,7 @@ impl WritableStreamDefaultController {
                 }
 
                 // Return the result of reacting to backpressurePromise with the following fulfillment steps:
-                let result_promise = Promise::new2(cx, global);
+                let result_promise = Promise::new(cx, global);
                 rooted!(&in(cx) let mut fulfillment_handler = Some(TransferBackPressurePromiseReaction {
                     port: port.clone(),
                     backpressure_promise: backpressure_promise.clone(),
@@ -740,7 +740,7 @@ impl WritableStreamDefaultController {
                     Ok(Promise::new_resolved(cx, global, ()))
                 };
                 result.unwrap_or_else(|e| {
-                    let promise = Promise::new2(cx, global);
+                    let promise = Promise::new(cx, global);
                     promise.reject_error(cx, e);
                     promise
                 })
@@ -1002,7 +1002,7 @@ impl WritableStreamDefaultController {
             let backpressure = self.get_backpressure();
 
             // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-            stream.update_backpressure(backpressure, global, CanGc::from_cx(cx));
+            stream.update_backpressure(cx, backpressure, global);
         }
 
         // Perform ! WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller).

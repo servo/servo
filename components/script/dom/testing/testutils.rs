@@ -5,9 +5,9 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{GCReason, JS_GC};
 use script_bindings::reflector::Reflector;
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::codegen::Bindings::TestUtilsBinding::TestUtilsMethods;
 use crate::dom::globalscope::GlobalScope;
@@ -22,21 +22,21 @@ pub(crate) struct TestUtils {
 impl TestUtilsMethods<crate::DomTypeHolder> for TestUtils {
     /// <https://testutils.spec.whatwg.org/#dom-testutils-gc>
     #[expect(unsafe_code)]
-    fn Gc(global: &GlobalScope) -> Rc<Promise> {
+    fn Gc(cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
         // 1. Let p be a new promise.
-        let promise = Promise::new(global, CanGc::deprecated_note());
+        let promise = Promise::new(cx, global);
         let trusted = TrustedPromise::new(promise.clone());
         // 2. Run the following in parallel:
         // 2.1 Run implementation-defined steps to perform a garbage collection covering at least the entry Realm.
         // 2.2 Resolve p.
         // We need to spin the event-loop in order get the GC to actually run.
         // We do this by queuing a task that calls the GC and then resolves the promise.
-        let task = task!(testutils_gc: move || {
+        let task = task!(testutils_gc: move |cx| {
             unsafe {
-                JS_GC(*GlobalScope::get_cx(), GCReason::DOM_TESTUTILS);
+                JS_GC(cx.raw_cx(), GCReason::DOM_TESTUTILS);
             }
             let promise = trusted.root();
-            promise.resolve_native(&(), CanGc::deprecated_note());
+            promise.resolve_native_with_cx(cx, &());
         });
 
         global

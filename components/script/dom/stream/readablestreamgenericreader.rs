@@ -44,7 +44,7 @@ pub(crate) trait ReadableStreamGenericReader {
         if stream.is_readable() {
             // If stream.[[state]] is "readable
             // Set reader.[[closedPromise]] to a new promise.
-            self.set_closed_promise(Promise::new2(cx, global));
+            self.set_closed_promise(Promise::new(cx, global));
         } else if stream.is_closed() {
             // Otherwise, if stream.[[state]] is "closed",
             // Set reader.[[closedPromise]] to a promise resolved with undefined.
@@ -146,7 +146,7 @@ pub(crate) trait ReadableStreamGenericReader {
         if self.get_stream().is_none() {
             // If this.[[stream]] is undefined,
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new2(cx, global);
+            let promise = Promise::new(cx, global);
             promise.reject_error(cx, Error::Type(c"stream is undefined".to_owned()));
             promise
         } else {

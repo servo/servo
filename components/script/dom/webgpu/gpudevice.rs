@@ -166,7 +166,7 @@ impl GPUDevice {
         let limits = GPUSupportedLimits::new(cx, global, limits);
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
         let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.Info());
-        let lost_promise = Promise::new2(cx, global);
+        let lost_promise = Promise::new(cx, global);
         let device = reflect_dom_object_with_cx(
             Box::new(GPUDevice::new_inherited(
                 channel,

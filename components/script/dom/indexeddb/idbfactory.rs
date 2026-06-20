@@ -636,14 +636,14 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         let storage_key = match global.obtain_storage_key() {
             Some(storage_key) => storage_key,
             None => {
-                let p = Promise::new2(cx, &global);
+                let p = Promise::new(cx, &global);
                 p.reject_error(cx, Error::Security(None));
                 return p;
             },
         };
 
         // Step 3: Let p be a new promise.
-        let p = Promise::new2(cx, &global);
+        let p = Promise::new(cx, &global);
 
         // Note: the option is required to pass the promise to a task from within the generic callback,
         // see #41356

@@ -154,7 +154,7 @@ impl ReadRequest {
                         // Step 3. Read-loop given reader, bytes, successSteps, and failureSteps.
                         // Spec note: Avoid direct recursion; queue into a microtask.
                         // Resolving the promise will queue a microtask to call into the native handler.
-                        let tick = Promise::new2(cx, &global);
+                        let tick = Promise::new(cx, &global);
                         tick.resolve_native_with_cx(cx, &());
 
                         let handler = PromiseNativeHandler::new(
@@ -361,7 +361,7 @@ impl ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_requests: DomRefCell::new(Default::default()),
-            closed_promise: DomRefCell::new(Promise::new2(cx, global)),
+            closed_promise: DomRefCell::new(Promise::new(cx, global)),
         }
     }
 
@@ -648,7 +648,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
             return Promise::new_rejected(cx, &self.global(), error.handle());
         }
         // Let promise be a new promise.
-        let promise = Promise::new2(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
 
         // Let readRequest be a new read request with the following items:
         // chunk steps, given chunk

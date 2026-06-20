@@ -191,7 +191,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let origin = global.origin();
 
         // 5. Let p be a new promise.
-        let p = Promise::new2(cx, &global);
+        let p = Promise::new(cx, &global);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
         if !origin.is_tuple() {
@@ -232,7 +232,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let origin = global.origin();
 
         // 7. Let p be a new promise.
-        let p = Promise::new2(cx, &global);
+        let p = Promise::new(cx, &global);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
         if !origin.is_tuple() {
@@ -311,7 +311,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let origin = global.origin();
 
         // 5. Let p be a new promise.
-        let p = Promise::new2(cx, &global);
+        let p = Promise::new(cx, &global);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
         if !origin.is_tuple() {
@@ -352,7 +352,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let origin = global.origin();
 
         // 6. Let p be a new promise.
-        let p = Promise::new2(cx, &global);
+        let p = Promise::new(cx, &global);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
         if !origin.is_tuple() {
@@ -425,7 +425,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let origin = global.origin();
 
         // 9. Let p be a new promise.
-        let p = Promise::new2(cx, &global);
+        let p = Promise::new(cx, &global);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
         if !origin.is_tuple() {
@@ -479,7 +479,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let origin = global.origin();
 
         // 5. Let p be a new promise.
-        let p = Promise::new2(cx, &global);
+        let p = Promise::new(cx, &global);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
         if !origin.is_tuple() {
@@ -526,7 +526,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let origin = global.origin();
 
         // 5. Let p be a new promise.
-        let p = Promise::new2(cx, &global);
+        let p = Promise::new(cx, &global);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
         if !origin.is_tuple() {
@@ -562,7 +562,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let origin = global.origin();
 
         // 5. Let p be a new promise.
-        let p = Promise::new2(cx, &global);
+        let p = Promise::new(cx, &global);
 
         // 3. If origin is an opaque origin, then return a promise rejected with a "SecurityError" DOMException.
         if !origin.is_tuple() {

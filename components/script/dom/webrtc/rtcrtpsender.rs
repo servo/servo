@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::RTCRtpSenderBinding::{
@@ -52,9 +53,7 @@ impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-setparameters>
-    fn SetParameters(&self, _parameters: &RTCRtpSendParameters, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new(&self.global(), can_gc);
-        promise.resolve_native(&(), can_gc);
-        promise
+    fn SetParameters(&self, cx: &mut JSContext, _parameters: &RTCRtpSendParameters) -> Rc<Promise> {
+        Promise::new_resolved(cx, &self.global(), ())
     }
 }

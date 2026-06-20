@@ -267,7 +267,7 @@ impl Callback for SourceCancelPromiseFulfillment {
                 .error_if_needed(cx, reason.handle(), global);
 
             // Perform ! TransformStreamUnblockWrite(stream).
-            self.stream.unblock_write(global, CanGc::from_cx(cx));
+            self.stream.unblock_write(cx, global);
 
             // Resolve controller.[[finishPromise]] with undefined.
             finish_promise.resolve_native_with_cx(cx, &());
@@ -298,7 +298,7 @@ impl Callback for SourceCancelPromiseRejection {
             .error_if_needed(cx, v, global);
 
         // Perform ! TransformStreamUnblockWrite(stream).
-        self.stream.unblock_write(global, CanGc::from_cx(cx));
+        self.stream.unblock_write(cx, global);
 
         // Reject controller.[[finishPromise]] with r.
         self.controller
@@ -562,7 +562,7 @@ impl TransformStream {
         // Note: This is done in the constructor.
 
         // Perform ! TransformStreamSetBackpressure(stream, true).
-        self.set_backpressure(global, true, CanGc::from_cx(cx));
+        self.set_backpressure(cx, global, true);
 
         // Set stream.[[controller]] to undefined.
         self.controller.set(None);
@@ -571,18 +571,23 @@ impl TransformStream {
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-set-backpressure>
-    pub(crate) fn set_backpressure(&self, global: &GlobalScope, backpressure: bool, can_gc: CanGc) {
+    pub(crate) fn set_backpressure(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        backpressure: bool,
+    ) {
         // Assert: stream.[[backpressure]] is not backpressure.
         assert!(self.backpressure.get() != backpressure);
 
         // If stream.[[backpressureChangePromise]] is not undefined, resolve
         // stream.[[backpressureChangePromise]] with undefined.
         if let Some(promise) = self.backpressure_change_promise.borrow_mut().take() {
-            promise.resolve_native(&(), can_gc);
+            promise.resolve_native_with_cx(cx, &());
         }
 
         // Set stream.[[backpressureChangePromise]] to a new promise.;
-        *self.backpressure_change_promise.borrow_mut() = Some(Promise::new(global, can_gc));
+        *self.backpressure_change_promise.borrow_mut() = Some(Promise::new(cx, global));
 
         // Set stream.[[backpressure]] to backpressure.
         self.backpressure.set(backpressure);
@@ -674,7 +679,7 @@ impl TransformStream {
             assert!(backpressure_change_promise.is_some());
 
             // Return the result of reacting to backpressureChangePromise with the following fulfillment steps:
-            let result_promise = Promise::new2(cx, global);
+            let result_promise = Promise::new(cx, global);
             rooted!(&in(cx) let mut fulfillment_handler = Some(TransformBackPressureChangePromiseFulfillment {
                 controller: Dom::from_ref(&controller),
                 writable: Dom::from_ref(&self.writable.get().expect("writable stream")),
@@ -723,7 +728,7 @@ impl TransformStream {
         let readable = self.readable.get().expect("readable stream is not set");
 
         // Let controller.[[finishPromise]] be a new promise.
-        controller.set_finish_promise(Promise::new2(cx, global));
+        controller.set_finish_promise(Promise::new(cx, global));
 
         // Let cancelPromise be the result of performing controller.[[cancelAlgorithm]], passing reason.
         let cancel_promise = controller.perform_cancel(cx, global, reason)?;
@@ -780,7 +785,7 @@ impl TransformStream {
             .ok_or(Error::Type(c"readable stream is not set".to_owned()))?;
 
         // Let controller.[[finishPromise]] be a new promise.
-        controller.set_finish_promise(Promise::new2(cx, global));
+        controller.set_finish_promise(Promise::new(cx, global));
 
         // Let flushPromise be the result of performing controller.[[flushAlgorithm]].
         let flush_promise = controller.perform_flush(cx, global)?;
@@ -837,7 +842,7 @@ impl TransformStream {
             .ok_or(Error::Type(c"writable stream is not set".to_owned()))?;
 
         // Let controller.[[finishPromise]] be a new promise.
-        controller.set_finish_promise(Promise::new2(cx, global));
+        controller.set_finish_promise(Promise::new(cx, global));
 
         // Let cancelPromise be the result of performing controller.[[cancelAlgorithm]], passing reason.
         let cancel_promise = controller.perform_cancel(cx, global, reason)?;
@@ -875,8 +880,8 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-source-pull>
     pub(crate) fn transform_stream_default_source_pull(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
         // Assert: stream.[[backpressure]] is true.
         assert!(self.backpressure.get());
@@ -885,7 +890,7 @@ impl TransformStream {
         assert!(self.backpressure_change_promise.borrow().is_some());
 
         // Perform ! TransformStreamSetBackpressure(stream, false).
-        self.set_backpressure(global, false, can_gc);
+        self.set_backpressure(cx, global, false);
 
         // Return stream.[[backpressureChangePromise]].
         Ok(self
@@ -911,14 +916,14 @@ impl TransformStream {
             .error_if_needed(cx, error, global);
 
         // Perform ! TransformStreamUnblockWrite(stream).
-        self.unblock_write(global, CanGc::from_cx(cx))
+        self.unblock_write(cx, global)
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-unblock-write>
-    pub(crate) fn unblock_write(&self, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn unblock_write(&self, cx: &mut JSContext, global: &GlobalScope) {
         // If stream.[[backpressure]] is true, perform ! TransformStreamSetBackpressure(stream, false).
         if self.backpressure.get() {
-            self.set_backpressure(global, false, can_gc);
+            self.set_backpressure(cx, global, false);
         }
     }
 
@@ -988,7 +993,7 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
         let writable_size_algorithm = extract_size_algorithm(writable_strategy, CanGc::from_cx(cx));
 
         // Let startPromise be a new promise.
-        let start_promise = Promise::new2(cx, global);
+        let start_promise = Promise::new(cx, global);
 
         // Perform ! InitializeTransformStream(this, startPromise, writableHighWaterMark,
         // writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm).

@@ -49,7 +49,7 @@ impl FontFaceSet {
     fn new_inherited(cx: &mut JSContext, global: &GlobalScope) -> Self {
         FontFaceSet {
             target: EventTarget::new_inherited(),
-            promise: Promise::new2(cx, global).into(),
+            promise: Promise::new(cx, global).into(),
             set_entries: Default::default(),
         }
     }
@@ -131,7 +131,7 @@ impl FontFaceSet {
         // Step 3. If font face set’s [[ReadyPromise]] slot currently holds a fulfilled
         // promise, replace it with a fresh pending promise.
         if self.promise.borrow().is_fulfilled() {
-            *self.promise.borrow_mut() = Promise::new2(cx, &self.global());
+            *self.promise.borrow_mut() = Promise::new(cx, &self.global());
         }
 
         // Step 4. Queue a task to fire a font load event named loading at font face set.
@@ -195,7 +195,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     fn Load(&self, cx: &mut JSContext, _font: DOMString, _text: DOMString) -> Rc<Promise> {
         // Step 1. Let font face set be the FontFaceSet object this method was called on. Let
         // promise be a newly-created promise object.
-        let load_promise = Promise::new2(cx, &self.global());
+        let load_promise = Promise::new(cx, &self.global());
 
         // Step 3. Find the matching font faces from font face set using the font and text
         // arguments passed to the function, and let font face list be the return value (ignoring
