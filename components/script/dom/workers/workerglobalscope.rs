@@ -1059,7 +1059,7 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub(super) fn init_debugger_global(
+    pub(crate) fn init_debugger_global(
         &self,
         debugger_global: &DebuggerGlobalScope,
         cx: &mut JSContext,
@@ -1078,7 +1078,7 @@ impl WorkerGlobalScope {
         self.debugger_global.set(*wrapped_global);
     }
 
-    pub(super) fn handle_devtools_message(&self, msg: DevtoolScriptControlMsg, cx: &mut JSContext) {
+    pub(crate) fn handle_devtools_message(&self, msg: DevtoolScriptControlMsg, cx: &mut JSContext) {
         match msg {
             DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _wants_updates) => {},
             DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {

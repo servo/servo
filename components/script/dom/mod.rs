@@ -226,10 +226,8 @@ pub(crate) use self::bluetooth::*;
 pub(crate) mod broadcastchannel;
 mod canvas;
 pub(crate) use self::canvas::*;
-
 pub(crate) mod cdatasection;
 pub(crate) mod characterdata;
-pub(crate) mod client;
 pub(crate) mod clipboard;
 pub(crate) use self::clipboard::*;
 pub(crate) mod comment;
@@ -299,7 +297,6 @@ pub(crate) mod mimetypearray;
 pub(crate) mod mutationobserver;
 pub(crate) use self::mutationobserver::*;
 pub(crate) mod namednodemap;
-pub(crate) mod navigationpreloadmanager;
 pub(crate) mod navigator;
 pub(crate) use self::navigator::*;
 #[expect(dead_code)]
@@ -333,6 +330,8 @@ mod scrolling_box;
 pub(crate) mod security;
 pub(crate) use self::security::*;
 pub(crate) mod selection;
+pub(crate) mod serviceworker;
+pub(crate) use self::serviceworker::*;
 pub(crate) mod servointernals;
 #[expect(dead_code)]
 pub(crate) mod servoparser;
