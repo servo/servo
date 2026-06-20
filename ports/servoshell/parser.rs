@@ -42,7 +42,7 @@ pub fn get_default_url(
             ("file", None, Ok(ref path)) if exists(path) => {
                 new_url = cmdline_url;
             },
-            (scheme, None, Err(_)) if !is_normal_scheme(scheme) => {
+            (scheme, None, Err(_)) if is_localhost(scheme) || is_domain_like(scheme) => {
                 new_url = ServoUrl::parse(&format!("http://{}:{}", scheme, &url.path())).ok();
             },
             _ => {},
@@ -74,7 +74,7 @@ pub(crate) fn location_bar_input_to_url(request: &str, searchpage: &str) -> Opti
     let input_url = ServoUrl::parse(request).ok();
     if let Some(url) = input_url {
         match (url.scheme(), url.host(), url.to_file_path()) {
-            (scheme, None, Err(_)) if !is_normal_scheme(scheme) => {
+            (scheme, None, Err(_)) if is_localhost(scheme) || is_domain_like(scheme) => {
                 ServoUrl::parse(&format!("http://{}:{}", scheme, &url.path())).ok()
             },
             _ => Some(url),
@@ -94,11 +94,6 @@ fn try_as_file(request: &str) -> Option<ServoUrl> {
 }
 
 fn try_as_domain(request: &str) -> Option<ServoUrl> {
-    fn is_domain_like(s: &str) -> bool {
-        !s.starts_with('/') && s.contains('/') ||
-            (!s.contains(' ') && !s.starts_with('.') && s.split('.').count() > 1)
-    }
-
     if !request.contains(' ') && is_reg_domain(request) || is_domain_like(request) {
         return ServoUrl::parse(&format!("https://{}", request)).ok();
     }
@@ -112,15 +107,11 @@ fn try_as_search_page(request: &str, searchpage: &str) -> Option<ServoUrl> {
     ServoUrl::parse(&searchpage.replace("%s", request)).ok()
 }
 
-fn is_normal_scheme(s: &str) -> bool {
-    s == "file" ||
-        s == "http" ||
-        s == "https" ||
-        s == "ws" ||
-        s == "wss" ||
-        s == "ftp" ||
-        s == "about" ||
-        s == "blob" ||
-        s == "data" ||
-        s == "servo"
+fn is_domain_like(s: &str) -> bool {
+    !s.starts_with('/') && s.contains('/') ||
+        (!s.contains(' ') && !s.starts_with('.') && s.split('.').count() > 1)
+}
+
+fn is_localhost(s: &str) -> bool {
+    s == "localhost"
 }
