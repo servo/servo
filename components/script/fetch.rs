@@ -185,7 +185,7 @@ fn abort_fetch_call(
     cx: &mut js::context::JSContext,
 ) {
     // Step 1. Reject promise with error.
-    promise.reject_with_cx(cx, abort_reason);
+    promise.reject(cx, abort_reason);
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
     if let Some(body) = request.body() &&
         body.is_readable()
