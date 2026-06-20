@@ -186,7 +186,7 @@
 //!   `dom::bindings::codegen::Bindings::FooBinding::FooMethods` trait for
 //!   `Foo`;
 //! * adding/updating the match arm in create_element in
-//!   `components/script/dom/create.rs` (only applicable to new types inheriting
+//!   `components/script/dom/element/create.rs` (only applicable to new types inheriting
 //!   from `HTMLElement`)
 //!
 //! More information is available in the [bindings module](bindings/index.html).
@@ -214,7 +214,6 @@ pub(crate) mod abortsignal;
 pub(crate) mod activation;
 pub(crate) mod animations;
 pub(crate) use self::animations::*;
-pub(crate) mod attr;
 pub(crate) mod audio;
 pub(crate) use self::audio::*;
 pub(crate) mod bindings;
@@ -233,7 +232,6 @@ pub(crate) use self::clipboard::*;
 pub(crate) mod comment;
 pub(crate) mod console;
 pub(crate) mod cookiestore;
-mod create;
 pub(crate) mod credentialmanagement;
 pub(crate) use self::credentialmanagement::*;
 pub(crate) mod css;
@@ -256,6 +254,7 @@ pub(crate) mod domstringlist;
 pub(crate) mod domstringmap;
 pub(crate) mod domtokenlist;
 pub(crate) mod element;
+pub(crate) use self::element::*;
 pub(crate) mod elementinternals;
 pub(crate) mod encoding;
 pub(crate) use self::encoding::*;
@@ -296,7 +295,6 @@ pub(crate) mod mimetype;
 pub(crate) mod mimetypearray;
 pub(crate) mod mutationobserver;
 pub(crate) use self::mutationobserver::*;
-pub(crate) mod namednodemap;
 pub(crate) mod navigator;
 pub(crate) use self::navigator::*;
 #[expect(dead_code)]
@@ -310,7 +308,6 @@ pub(crate) mod performance;
 pub(crate) use self::performance::*;
 pub(crate) mod permissions;
 pub(crate) mod permissionstatus;
-pub(crate) mod pipelineid;
 pub(crate) mod processinginstruction;
 pub(crate) mod processingoptions;
 #[expect(dead_code)]
@@ -351,7 +348,6 @@ pub(crate) mod textcontrol;
 pub(crate) mod timeranges;
 pub(crate) mod touch;
 pub(crate) mod touchlist;
-pub(crate) mod tree_ordered_index_map;
 pub(crate) mod trustedtypes;
 pub(crate) use self::trustedtypes::*;
 pub(crate) mod url;
@@ -361,7 +357,6 @@ pub(crate) mod userscripts;
 pub(crate) mod validation;
 pub(crate) mod validitystate;
 pub(crate) mod values;
-pub(crate) mod visibilitystateentry;
 pub(crate) mod visualviewport;
 pub(crate) mod wakelock;
 pub(crate) use self::wakelock::*;
@@ -386,7 +381,6 @@ pub(crate) use self::webrtc::*;
 pub(crate) mod webvtt;
 pub(crate) use self::webvtt::*;
 pub(crate) mod window;
-pub(crate) mod windowclient;
 pub(crate) mod windowproxy;
 pub(crate) mod workers;
 pub(crate) use self::workers::*;

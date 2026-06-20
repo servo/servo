@@ -15,3 +15,4 @@ pub(crate) mod serviceworker;
 pub(crate) mod serviceworkercontainer;
 pub(crate) mod serviceworkerglobalscope;
 pub(crate) mod serviceworkerregistration;
+pub(crate) mod windowclient;

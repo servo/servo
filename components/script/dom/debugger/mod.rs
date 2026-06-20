@@ -14,3 +14,4 @@ pub(crate) mod debuggerinterruptevent;
 pub(crate) mod debuggerresumeevent;
 pub(crate) mod debuggersetbreakpointevent;
 pub(crate) mod debuggerunblackboxevent;
+pub(crate) mod pipelineid;
