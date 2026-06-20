@@ -31,7 +31,6 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
@@ -204,12 +203,7 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
         let representation = Representation {
             mime_type,
             is_custom: false,
-            data: Promise::new_resolved(
-                &global,
-                GlobalScope::get_cx(),
-                DOMString::from(text),
-                CanGc::from_cx(cx),
-            ),
+            data: Promise::new_resolved(cx, &global, DOMString::from(text)),
         };
 
         // Step 3.4.1.1.4 If representation’s MIME type essence is "text/plain", then:

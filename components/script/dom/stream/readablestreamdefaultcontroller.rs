@@ -425,7 +425,7 @@ impl ReadableStreamDefaultController {
                     Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
                 )
                 .unwrap_or_else(|| {
-                    let promise = Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
+                    let promise = Promise::new_resolved(cx, global, ());
                     Ok(promise)
                 });
 
@@ -546,7 +546,7 @@ impl ReadableStreamDefaultController {
         let result = underlying_source
             .call_pull_algorithm(cx, controller)
             .unwrap_or_else(|| {
-                let promise = Promise::new_resolved(&global, cx.into(), (), CanGc::from_cx(cx));
+                let promise = Promise::new_resolved(cx, &global, ());
                 Ok(promise)
             });
         let promise = result.unwrap_or_else(|error| {

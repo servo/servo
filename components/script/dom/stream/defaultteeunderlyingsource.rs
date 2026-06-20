@@ -109,7 +109,7 @@ impl DefaultTeeUnderlyingSource {
             // Set readAgain to true.
             self.read_again.set(true);
             // Return a promise resolved with undefined.
-            return Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx));
+            return Promise::new_resolved(cx, &self.stream.global(), ());
         }
 
         // Set reading to true.
@@ -139,7 +139,7 @@ impl DefaultTeeUnderlyingSource {
         self.reader.read(cx, &read_request);
 
         // Return a promise resolved with undefined.
-        Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx))
+        Promise::new_resolved(cx, &self.stream.global(), ())
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
