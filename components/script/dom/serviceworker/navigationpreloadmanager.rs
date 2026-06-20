@@ -5,9 +5,10 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::{
     NavigationPreloadManagerMethods, NavigationPreloadState,
@@ -19,7 +20,6 @@ use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct NavigationPreloadManager {
@@ -37,12 +37,12 @@ impl NavigationPreloadManager {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         registration: &ServiceWorkerRegistration,
-        can_gc: CanGc,
     ) -> DomRoot<NavigationPreloadManager> {
         let manager = NavigationPreloadManager::new_inherited(registration);
-        reflect_dom_object(Box::new(manager), global, can_gc)
+        reflect_dom_object_with_cx(Box::new(manager), global, cx)
     }
 }
 
@@ -53,11 +53,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            let exception = DOMException::new(
-                &self.global(),
-                DOMErrorName::InvalidStateError,
-                CanGc::from_cx(cx),
-            );
+            let exception = DOMException::new(cx, &self.global(), DOMErrorName::InvalidStateError);
             promise.reject_native(cx, &exception);
         } else {
             // 3.
@@ -77,11 +73,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            let exception = DOMException::new(
-                &self.global(),
-                DOMErrorName::InvalidStateError,
-                CanGc::from_cx(cx),
-            );
+            let exception = DOMException::new(cx, &self.global(), DOMErrorName::InvalidStateError);
             promise.reject_native(cx, &exception);
         } else {
             // 3.
@@ -101,11 +93,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            let exception = DOMException::new(
-                &self.global(),
-                DOMErrorName::InvalidStateError,
-                CanGc::from_cx(cx),
-            );
+            let exception = DOMException::new(cx, &self.global(), DOMErrorName::InvalidStateError);
             promise.reject_native(cx, &exception);
         } else {
             // 3.

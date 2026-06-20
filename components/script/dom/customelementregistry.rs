@@ -599,9 +599,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new_in_realm(realm);
             let error = DOMException::new(
+                realm,
                 self.window.as_global_scope(),
                 DOMErrorName::SyntaxError,
-                CanGc::from_cx(realm),
             );
             promise.reject_native(realm, &error);
             return promise;
