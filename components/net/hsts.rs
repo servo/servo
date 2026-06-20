@@ -199,7 +199,7 @@ impl HstsList {
         entries.retain(|e| !e.is_expired());
     }
 
-    /// Step 2.9 of <https://fetch.spec.whatwg.org/#concept-main-fetch>.
+    /// Step 10 of <https://fetch.spec.whatwg.org/#concept-main-fetch>.
     pub fn apply_hsts_rules(&self, url: &mut ServoUrl) {
         if url.scheme() != "http" && url.scheme() != "ws" {
             return;
