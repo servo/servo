@@ -161,6 +161,16 @@ Why it matters: modules are the next real app-making capability after `main.js`.
 
 Remedy: treat module entry scripts, static imports, and dynamic `import()` as one probe unit. Prove package-local module entry, relative static import, nested relative static import, and dynamic import all resolve against the expected module/document base and hit the package wall. In the same fixture family, prove remote specifiers, wrong-package `asset://` specifiers, `file://`, bare specifiers, literal traversal, encoded dot traversal, encoded slash/backslash traversal, and double-encoded traversal fail deterministically with useful logs.
 
+Current Slice A Scoreboard:
+* same-package dynamic import:      PASS
+* top-level await success:          PASS
+* top-level await expected reject:  PASS
+* cross-package asset import:     DENIED: PackageIdMismatch
+* remote module import:             DENIED: RemoteSchemeDeniedByLocalRuntime
+* bare specifier:                  rejected before fetch
+* encoded traversal:                rejected before normalization
+* literal ../:                      normalized within package, then NotFound
+
 ### Immediate slice B: Raw author-text, base URL, and resolved-URL logging at module/document seams
 
 Inspect `ServoUrl::join`, `ServoUrl::parse_with_base`, `ServoUrl::parse`, `Document::encoding_parse_a_url`, `components/script/dom/html/htmlscriptelement.rs`, and `components/script/script_module.rs::ModuleTree::resolve_url_like_module_specifier`.
