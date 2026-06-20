@@ -240,21 +240,11 @@ Open questions:
 - Discovered that web-font URL values are resolved from stylesheet data, but the fetch request referrer/base context used the document URL. Updated stylesheet-initiated web-font fetches to use the parsed stylesheet URL as the request referrer/base context and added a local-runtime log entry with `destination: Font`, stylesheet base, and document initiator.
 - CSS image `url(...)` loads still need a separate pass through the style/layout image-request path; this pass did not identify or modify that caller.
 
-## 2026-06-20 — Milestone 2 target matrix planning
+## 2026-06-20 — Milestone 2 execution-shape planning
 
 - Inspected `docs/local-runtime/usual_suspects.md`, `docs/local-runtime/loader-map.md`, and `docs/local-runtime/resource-provider-plan.md` against the achieved first-milestone status and the 16-target classification table.
-- Added a complete Milestone 2 list to `docs/local-runtime/usual_suspects.md` that covers the central package wall, scheme classification, raw traversal and URL laundering, document/script/module/CSS/font paths, media, WebSocket, EventSource/sendBeacon, XHR, workers/service workers, backend unreachability, and Android authority posture.
+- Rewrote the Milestone 2 addendum in `docs/local-runtime/usual_suspects.md` so the target matrix is not treated as a strict top-to-bottom execution order.
+- Identified the next useful slice as external modules/static imports/dynamic `import()` plus raw author-text/base/resolved-URL logging at module and document seams, with WebSocket handled separately and early because it has a distinct resource-thread path.
+- Split follow-up work into package machinery to preserve/prove (`modules`, CSS graph, fonts, and maybe dedicated workers later) and browser machinery to gut/defer (`WebSocket`, EventSource, beacon, XHR, service workers, and URL media).
 - No Servo runtime crates were touched in this pass.
-- No new resource paths were loaded, logged, or denied; this is a planning/documentation pass to convert the remaining target matrix into focused probes, hardening, or explicit deferral.
-- Open question for the next pass: choose the first Milestone 2 probe family, preferably one that is small, reproducible, and validates an existing package-wall assumption before changing behavior.
-
-## 2026-06-20 — Milestone 2 phase 1 central package wall hardening
-
-- Inspected `components/net/resource_thread.rs::CoreResourceManager::fetch` from `RequestBuilder::build()` through `local_runtime_package_decision(...)`, package-asset serving, deterministic denial response completion, and fallthrough into blob/file-token setup plus legacy async `fetch(...)` dispatch.
-- Touched `components/net/resource_thread.rs` only for runtime code in this pass.
-- Added an explicit `Unsupported` package-wall outcome for package mode schemes that are not first-milestone package assets or known deny schemes. Unsupported/unrouted package-mode requests now log `decision: unsupported-unrouted`, return a deterministic network-error response, and do not enter legacy fetch/protocol handling.
-- Added focused package-wall probes for first-milestone assets: document, stylesheet, HTML image, CSS image, font, and classic script. These prove the central wall serves the expected package files and MIME labels from `asset://com.example.app/...`.
-- Added deny/fallthrough probes for `http://`, `https://`, `ws://`, `wss://`, `file://`, `store://`, `ftp://`, wrong-package `asset://`, traversal-shaped `asset://`, `bundle://`, `data:`, and `blob:` so package mode never returns `NotHandled` for those sample URLs.
-- Denied successfully in package mode: the explicit remote/file/store cases still return their existing denial reasons; `ftp://`, `bundle://`, `data:`, and `blob:` are now classified as unsupported/unrouted at the central wall instead of being allowed to fall into legacy protocol handling.
-- Still reaches old assumptions outside package mode by design: normal Servo network/protocol behavior is preserved unless both `SERVORENA_PACKAGE_ID` and `SERVORENA_PACKAGE_ROOT` enable package mode.
-- Open question: `bundle://runtime/...` remains policy-allowed in the design docs but has no provider backend at this seam yet, so it is intentionally logged and denied as unsupported/unrouted until a host-owned bundle provider exists.
+- No new resource paths were loaded, logged, or denied; this remains a planning/documentation pass to choose the next focused probe family before changing behavior.

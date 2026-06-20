@@ -147,134 +147,140 @@ These modules still look capable of network or external-resource work:
     - Why: Android grants `INTERNET`, storage permissions, and browser-like external intent ingress.
     - Remedy: for local-runtime Android builds, remove `INTERNET`, remove broad storage permissions, and remove `http`/`https`/`file` browser intent filters.
 
-## 7. Milestone 2 list — complete the target matrix
+## 7. Milestone 2 execution shape — module graph first, browserland contained
 
-Milestone 2 starts from the achieved first milestone: package document, image, stylesheet, CSS import, nested font, nested CSS image, and `main.js` execution work; `http`, `https`, `ftp`, `ws`, `wss`, `file`, `store`, cross-package `asset`, and traversal-shaped package escapes are denied. The goal of this milestone is to turn the remaining target matrix into proof: every keep/routable path should have a probe or hardening note, every deny/gut path should have an explicit package-mode denial story, and every present backend should be proven unreachable from package-authored content.
+Milestone 2 should not execute this report's complete target matrix strictly top-to-bottom. The matrix is useful as coverage, but the next engineering slice should be opinionated: preserve and prove the package machinery that makes local apps pleasant to write, while explicitly gutting or deferring browser machinery that would drag the fork back toward general web compatibility.
 
-### 1. Central package wall hardening
+The first-milestone baseline is already strong: package document, HTML image, stylesheet, CSS `@import`, nested font, nested CSS image, and `main.js` execution work; `http`, `https`, `ftp`, `ws`, `wss`, `file`, `store`, cross-package `asset`, and traversal-shaped package escapes are denied. Milestone 2 should now convert the most important remaining assumptions into evidence.
 
-Inspect `components/net/resource_thread.rs::CoreResourceManager::fetch` and every branch after `local_runtime_package_decision(...)`, including fallthrough into legacy fetch/protocol handling.
+### Immediate slice A: External modules, static imports, and dynamic `import()`
 
-Why it matters: the first milestone depends on this late seam as the current choke point, so any unclassified fallthrough can quietly re-enter normal browser resource loading.
+Inspect `components/script/dom/html/htmlscriptelement.rs` external module script resolution, `components/script/script_module.rs::ModuleTree::resolve_url_like_module_specifier`, and the module fetch path that calls `global.fetch(...)`.
 
-Remedy: add probes for every first-mile destination and harden fallthroughs so package mode either serves package assets, returns deterministic denial, or logs an explicitly unsupported/unrouted decision.
+Why it matters: modules are the next real app-making capability after `main.js`. A local runtime that can execute one package script but has a porous, inconsistently based, or broken module graph is not yet a comfortable programming substrate.
 
-### 2. Strict package-mode scheme classification
+Remedy: treat module entry scripts, static imports, and dynamic `import()` as one probe unit. Prove package-local module entry, relative static import, nested relative static import, and dynamic import all resolve against the expected module/document base and hit the package wall. In the same fixture family, prove remote specifiers, wrong-package `asset://` specifiers, `file://`, bare specifiers, literal traversal, encoded dot traversal, encoded slash/backslash traversal, and double-encoded traversal fail deterministically with useful logs.
 
-Inspect `components/net/resource_thread.rs::local_runtime_package_decision` for allowed `asset://{active-package}/...`, denied known schemes, cross-package assets, and currently unknown schemes.
+### Immediate slice B: Raw author-text, base URL, and resolved-URL logging at module/document seams
 
-Why it matters: first-milestone denials prove the major forbidden schemes, but package mode should not preserve browser compatibility by treating unknown schemes as ordinary legacy fetch candidates.
+Inspect `ServoUrl::join`, `ServoUrl::parse_with_base`, `ServoUrl::parse`, `Document::encoding_parse_a_url`, `components/script/dom/html/htmlscriptelement.rs`, and `components/script/script_module.rs::ModuleTree::resolve_url_like_module_specifier`.
 
-Remedy: add an unknown-scheme probe and classify unrecognized fetchable schemes as `UnsupportedScheme` in package mode unless a documented `ResourceProvider` rule explicitly allows them.
+Why it matters: `%2e%2e`, encoded slashes, and odd bases can be normalized before `components/net/resource_thread.rs::local_runtime_path_has_traversal(...)` sees the request. Without raw author-text/base/resolved-URL evidence at the module and document seams, “the late traversal check is enough” remains an assumption.
 
-### 3. Raw path traversal before filesystem mapping
+Remedy: do not start with a giant early rewrite. First add or tighten logging/probes that show the raw author text, the base URL used for resolution, the resolved `ServoUrl`, the destination/module context, and the final package-wall decision. Use those fixtures to decide where raw requested text must be carried forward into the eventual host-owned `ResourceProvider` request shape.
 
-Inspect `components/net/resource_thread.rs::local_runtime_path_has_traversal` and the `RequestBuilder::build()` / `current_url()` call site in `CoreResourceManager::fetch`.
-
-Why it matters: the first milestone denies literal, encoded, encoded-slash, and double-encoded traversal, but this gate still sees URL text after parser/join normalization.
-
-Remedy: keep the late canonical package-root containment check, keep raw/single-decoded path checks, and add fixtures for raw, encoded, and normalized-looking traversal so any remaining laundering gap is pinned before moving the check earlier.
-
-### 4. Raw URL laundering before the gate
-
-Inspect `ServoUrl::join`, `ServoUrl::parse_with_base`, `ServoUrl::parse`, `ServoUrl::path_segments`, `Document::encoding_parse_a_url`, script URL resolution, and module specifier resolution.
-
-Why it matters: `%2e%2e` can be normalized before `local_runtime_path_has_traversal(...)` sees the path, making a suspicious author request look like an ordinary package-local URL.
-
-Remedy: preserve and log raw requested text earlier, keep the existing raw URL obfuscation fixtures, and only add broader denial behavior after fixtures pin down exact laundering behavior for each caller family.
-
-### 5. Document-relative URL parsing probes
-
-Inspect `components/script/dom/document/document.rs::Document::encoding_parse_a_url` and document/iframe/navigation-ish callers that resolve author text against a document base URL.
-
-Why it matters: document-facing URL parsing may use encoding-aware direct parser paths, so raw author text can bypass wrapper-level logging if not explicitly covered.
-
-Remedy: add probe fixtures for document subresources, iframe/navigation-like URLs, and encoded traversal; ensure logs include raw requested text, base URL, resolved URL, and the package-mode decision.
-
-### 6. External classic and module script source loading
-
-Inspect `components/script/dom/html/htmlscriptelement.rs` external script URL resolution for classic scripts and `<script type="module" src="...">`.
-
-Why it matters: local scripts are core package app machinery, but remote, wrong-package, `file`, and traversal script sources must die before execution and should report a script-specific resource destination.
-
-Remedy: add probes for package-local classic script allow, package-local module entry allow, and remote/wrong-package/traversal script denial; preserve raw `src`, document base, resolved URL, and destination in local-runtime logs.
-
-### 7. Module graph and dynamic import containment
-
-Inspect `components/script/script_module.rs::ModuleTree::resolve_url_like_module_specifier` and the module fetch path that calls `global.fetch(...)`.
-
-Why it matters: static imports and dynamic `import()` create a second script graph after the entry script, and each edge must remain package-scoped instead of inheriting browser module-loader assumptions.
-
-Remedy: add probes for relative static import, dynamic import, bare specifier failure, remote specifier denial, wrong-package denial, and encoded traversal denial; harden only if a module edge bypasses the package wall.
-
-### 8. Stylesheet graph completion
-
-Inspect `components/script/stylesheet_loader.rs` and the CSS parser/resource-loader path for linked stylesheets, CSS `@import`, CSS `url(...)` images, and stylesheet-relative base URLs.
-
-Why it matters: first milestone proves stylesheet, `@import`, nested font, and nested CSS image behavior, but Milestone 2 should document the exact request path and base URL for every CSS edge.
-
-Remedy: add focused probes that assert `@import`, CSS image `url(...)`, and nested relative paths use the stylesheet URL as base and reach the package wall with the expected `Style` or `Image` destination.
-
-### 9. Web font downloader proof
-
-Inspect `components/fonts/font_context.rs::RemoteWebFontDownloader::download` and any platform font backend handoff after bytes are fetched.
-
-Why it matters: fonts are first-milestone package assets, but a platform font path must not independently open remote or filesystem URLs outside the provider wall.
-
-Remedy: add probes for package font allow, remote font denial, wrong-package font denial, and traversal font denial; document that only bytes returned from the core resource fetch are handed to font consumers.
-
-### 10. Media loading containment or explicit deferral
-
-Inspect `components/script/dom/html/htmlmediaelement.rs::resource_fetch_algorithm`, `fetch_request`, and platform media backend URL handoff points.
-
-Why it matters: media is outside the first milestone and may involve streaming code or platform backends that can open URLs/files without the normal fetch gate.
-
-Remedy: manually inspect first, then either deny/no-op URL media in package mode or prove package-only media uses `CoreResourceManager::fetch`; document media as build-out-later unless a minimal provider-mediated path is implemented.
-
-### 11. WebSocket disablement proof
+### Immediate slice C: WebSocket as the separate early denial proof
 
 Inspect `components/script/dom/websocket.rs` and `components/net/resource_thread.rs::websocket_connect`.
 
-Why it matters: WebSocket is a network-shaped transport with a separate resource-thread path and handshake scheme conversion from `ws`/`wss` to `http`/`https`.
+Why it matters: WebSocket has a distinct resource-thread path and converts `ws`/`wss` into `http`/`https` for the handshake. It is the obvious case where “normal fetch reaches the wall” may not prove the whole wall.
 
-Remedy: keep package-mode denial before scheme conversion, add `new WebSocket(...)` probes for `ws`, `wss`, and misleading package-like inputs, and consider making WebSocket construction fail deterministically for all package-mode content.
+Remedy: add focused `new WebSocket(...)` probes for `ws://`, `wss://`, package-looking inputs, wrong-package inputs, and odd encoded inputs. Keep denial before scheme conversion and make package-mode WebSocket failure explicit, deterministic, and separately logged from ordinary fetch denials.
 
-### 12. EventSource and sendBeacon denial proof
+## 8. Milestone 2 preserve/prove bucket
+
+These are the package-runtime capabilities worth preserving because they make sealed local documents feel like usable applications rather than single-file demos. They should be routed through the package wall and proved with focused fixtures before broadening scope.
+
+### Modules and dynamic imports
+
+Inspect `components/script/dom/html/htmlscriptelement.rs` and `components/script/script_module.rs` as the first preserve/prove priority.
+
+Why it matters: modules define the practical programming model for non-trivial local package apps.
+
+Remedy: execute the Immediate slice A and B work before spending comparable effort on legacy network-shaped APIs.
+
+### CSS graph
+
+Inspect `components/script/stylesheet_loader.rs` and the style/layout image-request path for linked stylesheets, CSS `@import`, CSS `url(...)` images, and stylesheet-relative bases.
+
+Why it matters: the first milestone proves CSS works, but the runtime still needs exact evidence that every nested CSS edge carries the right stylesheet base and destination into the package wall.
+
+Remedy: keep CSS graph work as preserve/prove work: add fixtures for nested `@import`, CSS image `url(...)`, and stylesheet-relative paths, with logs that show document initiator, stylesheet base, resolved URL, destination, and final decision.
+
+### Fonts
+
+Inspect `components/fonts/font_context.rs::RemoteWebFontDownloader::download` and platform font handoff points.
+
+Why it matters: package-local fonts are part of authoring a polished offline document/app, but platform font consumers must not independently open URLs or files outside the provider boundary.
+
+Remedy: prove package font allow and remote/wrong-package/traversal denial, then document that only bytes returned through the core resource fetch are handed to font consumers.
+
+### Dedicated workers, later and only if useful
+
+Inspect `components/script/dom/workers/*` for dedicated worker constructors, worker-global fetch, module workers, and `importScripts`.
+
+Why it matters: dedicated workers may buy something for local apps, but they also create new globals, new bases, and another place to accidentally reintroduce ambient fetch authority.
+
+Remedy: defer until modules/CSS/fonts are boring. If preserved, prove worker script loading, worker-global fetch, and `importScripts` use the same package identity and package wall; otherwise make package-mode unsupported behavior explicit.
+
+## 9. Milestone 2 gut/defer bucket
+
+These APIs are browser machinery, not necessary package machinery. The goal is not to sanctify all of browserland; it is to keep the local-runtime authority story small and inspectable.
+
+### WebSocket
+
+Inspect `components/script/dom/websocket.rs` and `components/net/resource_thread.rs::websocket_connect` early despite being in the gut/defer bucket.
+
+Why it matters: it is both browser transport machinery and a separate path, so it deserves early proof that it cannot escape package-mode policy.
+
+Remedy: execute Immediate slice C, then keep WebSocket disabled or deterministically denied in package mode unless a future host-mediated, non-network-shaped local capability is explicitly designed.
+
+### EventSource and sendBeacon
 
 Inspect `components/script/dom/eventsource.rs` and `components/script/dom/navigator.rs::SendBeacon`.
 
-Why it matters: both APIs create network-shaped fetches, including retry or keepalive behavior, and should not preserve web semantics inside the local package runtime.
+Why it matters: both are network-shaped APIs with retry or keepalive semantics that do not help the sealed package runtime enough to justify preserving web behavior.
 
-Remedy: add probes showing remote, file, store, wrong-package, and unsupported package-mode requests hit ordinary local-runtime denial; change code only if retries or keepalive records bypass `CoreResourceManager::fetch`.
+Remedy: defer broad compatibility work. Add denial probes only to prove package-mode requests hit ordinary local-runtime denial and that retries/keepalive behavior cannot bypass `CoreResourceManager::fetch`.
 
-### 13. XMLHttpRequest gate proof
+### XMLHttpRequest
 
-Inspect `components/script/dom/xmlhttprequest.rs` for async XHR, sync XHR, redirects, upload/body handling, and any `load_whole_resource(...)` paths.
+Inspect `components/script/dom/xmlhttprequest.rs` only after the module/fetch package story is stable.
 
-Why it matters: XHR is a legacy arbitrary URL fetch surface; if local apps need data files, that support should be package-scoped and not silently revive browser networking.
+Why it matters: XHR is legacy arbitrary URL fetch. If local apps need package data, modern `fetch()` or an explicit host data API is enough; XHR should not drive the architecture.
 
-Remedy: add probes for package-local data behavior if supported, plus remote, `file`, `store`, wrong-package, and traversal denial; keep or deny XHR only to the extent it reaches the same package wall as `fetch()`.
+Remedy: defer preservation. Later, either deny XHR in package mode or allow only the subset that demonstrably reaches the same package wall with package-local URLs and deterministic denials.
 
-### 14. Worker and service-worker boundary decision
+### Service workers
 
-Inspect `components/script/dom/workers/*` and `components/script/dom/workers/serviceworkerglobalscope.rs`, including worker constructors, worker-global fetch, module workers, and `importScripts`.
+Inspect `components/script/dom/workers/serviceworkerglobalscope.rs` and service-worker registration paths only to identify disable points.
 
-Why it matters: dedicated workers may be useful local app machinery, but service workers are browser mediation machinery and can obscure where package policy actually lives.
+Why it matters: service workers are browser empire machinery and can become a second policy plane, which is the opposite of a host-owned package boundary.
 
-Remedy: add worker probes for package-local constructor allow or explicit unsupported denial, `importScripts` remote/traversal denial, and worker-global fetch denial; document service workers as disable/gut/build-out-later unless a narrow package-local story is intentionally designed.
+Remedy: gut or defer service workers for package mode. Do not let them mediate local-runtime fetch policy unless a future design deliberately assigns them a narrow, host-controlled role.
 
-### 15. Backend unreachability proof
+### URL media
 
-Inspect `components/net/http_loader.rs`, `components/net/fetch/methods.rs`, `components/net/protocols`, and `components/net/websocket_loader.rs` from the perspective of package-authored entry points.
+Inspect `components/script/dom/html/htmlmediaelement.rs::resource_fetch_algorithm`, `fetch_request`, and platform media backend URL handoff points.
 
-Why it matters: these backend modules may remain in the source tree, but package content must not reach HTTP, DNS/socket, protocol fallback, custom protocol, or WebSocket transport behavior.
+Why it matters: media often involves streaming and platform backends that may open URLs/files outside the normal gate, and media is not necessary for the first comfortable programming substrate.
 
-Remedy: add trace/log proof that package-mode denied schemes stop before backend dispatch; prefer entry-gate hardening over broad backend deletion so remaining Servo browser behavior outside package mode is not accidentally broken.
+Remedy: likely deny/no-op URL media in package mode until there is a provider-mediated local-media story. If local media is later needed, prove bytes or streams come only from package-authorized provider responses.
 
-### 16. Android authority posture
+## 10. Milestone 2 cross-cutting gate and platform checks
+
+These checks support both buckets, but they should serve the chosen slices rather than becoming an exhaustive browser audit by themselves.
+
+### Central package wall and scheme classification
+
+Inspect `components/net/resource_thread.rs::CoreResourceManager::fetch`, `local_runtime_package_decision(...)`, and every package-mode fallthrough after the decision.
+
+Why it matters: the central wall remains the current choke point for package assets and denials, so unknown schemes or unclassified fallthroughs can quietly preserve browser behavior.
+
+Remedy: as module/WebSocket/CSS/font probes are added, harden any discovered fallthrough so package mode serves package assets, returns deterministic denial, or logs an explicit unsupported/unrouted decision. Classify unrecognized fetchable schemes as `UnsupportedScheme` in package mode unless documented otherwise.
+
+### Backend unreachability
+
+Inspect `components/net/http_loader.rs`, `components/net/fetch/methods.rs`, `components/net/protocols`, and `components/net/websocket_loader.rs` from package-authored entry points.
+
+Why it matters: these backend modules may remain present, but package content must not reach HTTP, DNS/socket, protocol fallback, custom protocol, or WebSocket transport behavior.
+
+Remedy: collect trace/log proof from the chosen probes that denied package-mode requests stop before backend dispatch. Prefer entry-gate hardening over deleting backend machinery that may still serve non-package Servo use cases.
+
+### Android authority posture
 
 Inspect `support/android/apk/servoapp/src/main/AndroidManifest.xml` for `INTERNET`, storage permissions, exported activities, and browser-like intent filters.
 
 Why it matters: runtime denial logs cannot prove a local-runtime Android build has no OS-level network or broad filesystem authority if the manifest still grants those permissions.
 
-Remedy: design a local-runtime Android flavor or manifest variant that removes `INTERNET`, removes broad external storage access, and drops `http`/`https`/`file` browser intent ingress; treat this as a code-change-later item because probes alone cannot establish OS-level absence of authority.
+Remedy: design a local-runtime Android flavor or manifest variant that removes `INTERNET`, removes broad external storage access, and drops `http`/`https`/`file` browser intent ingress. Treat this as a code-change-later item because probes alone cannot establish OS-level absence of authority.
