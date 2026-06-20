@@ -33,7 +33,6 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use webrender_api::units::DevicePixel;
 
-use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::callback::CallbackContainer;
 use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding::PaintWorkletGlobalScopeMethods;
@@ -43,6 +42,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::css::cssstylevalue::CSSStyleValue;
 use crate::dom::css::stylepropertymapreadonly::StylePropertyMapReadOnly;
 use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
