@@ -239,3 +239,12 @@ Open questions:
 - Added local-runtime request logging at the `@import` loader handoff so nested stylesheet loads are visible before they enter fetch.
 - Discovered that web-font URL values are resolved from stylesheet data, but the fetch request referrer/base context used the document URL. Updated stylesheet-initiated web-font fetches to use the parsed stylesheet URL as the request referrer/base context and added a local-runtime log entry with `destination: Font`, stylesheet base, and document initiator.
 - CSS image `url(...)` loads still need a separate pass through the style/layout image-request path; this pass did not identify or modify that caller.
+
+## 2026-06-20 — Milestone 2 execution-shape planning
+
+- Inspected `docs/local-runtime/usual_suspects.md`, `docs/local-runtime/loader-map.md`, and `docs/local-runtime/resource-provider-plan.md` against the achieved first-milestone status and the 16-target classification table.
+- Rewrote the Milestone 2 addendum in `docs/local-runtime/usual_suspects.md` so the target matrix is not treated as a strict top-to-bottom execution order.
+- Identified the next useful slice as external modules/static imports/dynamic `import()` plus raw author-text/base/resolved-URL logging at module and document seams, with WebSocket handled separately and early because it has a distinct resource-thread path.
+- Split follow-up work into package machinery to preserve/prove (`modules`, CSS graph, fonts, and maybe dedicated workers later) and browser machinery to gut/defer (`WebSocket`, EventSource, beacon, XHR, service workers, and URL media).
+- No Servo runtime crates were touched in this pass.
+- No new resource paths were loaded, logged, or denied; this remains a planning/documentation pass to choose the next focused probe family before changing behavior.
