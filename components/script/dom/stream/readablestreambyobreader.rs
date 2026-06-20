@@ -211,7 +211,7 @@ impl ReadableStreamBYOBReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_into_requests: DomRefCell::new(Default::default()),
-            closed_promise: DomRefCell::new(Promise::new2(cx, global)),
+            closed_promise: DomRefCell::new(Promise::new(cx, global)),
         }
     }
 
@@ -422,7 +422,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(view);
         let min = options.min;
         // Let promise be a new promise.
-        let promise = Promise::new2(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
 
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
         if view.byte_length() == 0 {

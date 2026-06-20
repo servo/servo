@@ -627,7 +627,11 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-add-write-request>
-    pub(crate) fn add_write_request(&self, global: &GlobalScope, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn add_write_request(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> Rc<Promise> {
         // Assert: ! IsWritableStreamLocked(stream) is true.
         assert!(self.is_locked());
 
@@ -635,7 +639,7 @@ impl WritableStream {
         assert!(self.is_writable());
 
         // Let promise be a new promise.
-        let promise = Promise::new(global, can_gc);
+        let promise = Promise::new(cx, global);
 
         // Append promise to stream.[[writeRequests]].
         self.write_requests.borrow_mut().push_back(promise.clone());
@@ -710,7 +714,7 @@ impl WritableStream {
         };
 
         // Let promise be a new promise.
-        let promise = Promise::new2(cx, global);
+        let promise = Promise::new(cx, global);
 
         // Set stream.[[pendingAbortRequest]] to a new pending abort request
         // whose promise is promise,
@@ -738,7 +742,7 @@ impl WritableStream {
         // If state is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new2(cx, global);
+            let promise = Promise::new(cx, global);
             promise.reject_error(cx, Error::Type(c"Stream is closed or errored.".to_owned()));
             return promise;
         }
@@ -750,7 +754,7 @@ impl WritableStream {
         assert!(!self.close_queued_or_in_flight());
 
         // Let promise be a new promise.
-        let promise = Promise::new2(cx, global);
+        let promise = Promise::new(cx, global);
 
         // Set stream.[[closeRequest]] to promise.
         *self.close_request.borrow_mut() = Some(promise.clone());
@@ -762,7 +766,7 @@ impl WritableStream {
             // and state is "writable",
             if self.get_backpressure() && self.is_writable() {
                 // resolve writer.[[readyPromise]] with undefined.
-                writer.resolve_ready_promise_with_undefined(CanGc::from_cx(cx));
+                writer.resolve_ready_promise_with_undefined(cx);
             }
         }
 
@@ -818,9 +822,9 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#writable-stream-update-backpressure>
     pub(crate) fn update_backpressure(
         &self,
+        cx: &mut JSContext,
         backpressure: bool,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) {
         // Assert: stream.[[state]] is "writable".
         self.is_writable();
@@ -837,14 +841,14 @@ impl WritableStream {
                 // and backpressure is not stream.[[backpressure]],
                 if backpressure {
                     // If backpressure is true, set writer.[[readyPromise]] to a new promise.
-                    let promise = Promise::new(global, can_gc);
+                    let promise = Promise::new(cx, global);
                     writer.set_ready_promise(promise);
                 } else {
                     // Otherwise,
                     // Assert: backpressure is false.
                     assert!(!backpressure);
                     // Resolve writer.[[readyPromise]] with undefined.
-                    writer.resolve_ready_promise_with_undefined(can_gc);
+                    writer.resolve_ready_promise_with_undefined(cx);
                 }
             }
         }
@@ -873,7 +877,7 @@ impl WritableStream {
         // Note: other algorithms defined in the controller at call site.
 
         // Let backpressurePromise be a new promise.
-        let backpressure_promise = Rc::new(RefCell::new(Some(Promise::new2(cx, &global))));
+        let backpressure_promise = Rc::new(RefCell::new(Some(Promise::new(cx, &global))));
 
         // Let controller be a new WritableStreamDefaultController.
         let controller = WritableStreamDefaultController::new(
@@ -1066,7 +1070,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // If ! IsWritableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new2(cx, &global);
+            let promise = Promise::new(cx, &global);
             promise.reject_error(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
@@ -1082,7 +1086,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // If ! IsWritableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new2(cx, &global);
+            let promise = Promise::new(cx, &global);
             promise.reject_error(cx, Error::Type(c"Stream is locked.".to_owned()));
             return promise;
         }
@@ -1090,7 +1094,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // If ! WritableStreamCloseQueuedOrInFlight(this) is true
         if self.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new2(cx, &global);
+            let promise = Promise::new(cx, &global);
             promise.reject_error(
                 cx,
                 Error::Type(c"Stream has closed queued or in-flight".to_owned()),

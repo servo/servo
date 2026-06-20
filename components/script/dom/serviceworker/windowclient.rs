@@ -22,12 +22,12 @@ impl WindowClientMethods<crate::DomTypeHolder> for WindowClient {
     /// <https://w3c.github.io/ServiceWorker/#dom-windowclient-focus>
     fn Focus(&self, cx: &mut JSContext) -> Rc<Promise> {
         // TODO: Implement
-        Promise::new2(cx, &self.global())
+        Promise::new(cx, &self.global())
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-windowclient-navigate>
     fn Navigate(&self, cx: &mut JSContext, _url: USVString) -> Rc<Promise> {
         // TODO: Implement
-        Promise::new2(cx, &self.global())
+        Promise::new(cx, &self.global())
     }
 }

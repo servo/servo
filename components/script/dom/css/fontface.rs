@@ -187,7 +187,7 @@ impl FontFace {
     /// Construct a [`FontFace`] to be used in the case of failure in parsing the
     /// font face descriptors.
     fn new_failed_font_face(cx: &mut JSContext, global: &GlobalScope) -> Self {
-        let font_status_promise = Promise::new2(cx, global);
+        let font_status_promise = Promise::new(cx, global);
         // If any of them fail to parse correctly, reject font face’s [[FontStatusPromise]] with a
         // DOMException named "SyntaxError"
         font_status_promise.reject_error(cx, Error::Syntax(None));
@@ -243,7 +243,7 @@ impl FontFace {
         };
 
         // Set its internal [[FontStatusPromise]] slot to a fresh pending Promise object.
-        let font_status_promise = Promise::new2(cx, global);
+        let font_status_promise = Promise::new(cx, global);
 
         let sources = parsed_font_face_rule.descriptors.src.clone();
 

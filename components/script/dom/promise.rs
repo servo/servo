@@ -100,10 +100,10 @@ impl Drop for Promise {
 }
 
 impl Promise {
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> Rc<Promise> {
-        let realm = enter_realm(global);
-        let comp = InRealm::Entered(&realm);
-        Promise::new_in_current_realm(comp, can_gc)
+    pub(crate) fn new(cx: &mut js::context::JSContext, global: &GlobalScope) -> Rc<Promise> {
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm.current_realm();
+        Promise::new_in_realm(cx)
     }
 
     pub(crate) fn new_in_current_realm(_comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
@@ -111,15 +111,6 @@ impl Promise {
         rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
         Promise::create_js_promise(cx, obj.handle_mut(), can_gc);
         Promise::new_with_js_promise(obj.handle(), cx)
-    }
-
-    pub(crate) fn new2(cx: &mut js::context::JSContext, global: &GlobalScope) -> Rc<Promise> {
-        let mut realm = AutoRealm::new(
-            cx,
-            std::ptr::NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
-        );
-        let mut current_realm = realm.current_realm();
-        Promise::new_in_realm(&mut current_realm)
     }
 
     pub(crate) fn new_in_realm(current_realm: &mut CurrentRealm) -> Rc<Promise> {
@@ -651,7 +642,7 @@ pub(crate) fn wait_for_all_promise(
     promises: Vec<Rc<Promise>>,
 ) -> Rc<Promise> {
     // Let promise be a new promise of type Promise<sequence<T>> in realm.
-    let promise = Promise::new2(cx, global);
+    let promise = Promise::new(cx, global);
     let success_promise = promise.clone();
     let failure_promise = promise.clone();
 

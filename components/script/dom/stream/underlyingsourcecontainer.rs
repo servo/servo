@@ -189,7 +189,7 @@ impl UnderlyingSourceContainer {
                 // Disentangle port.
                 self.global().disentangle_port(cx, port);
 
-                let promise = Promise::new2(cx, &self.global());
+                let promise = Promise::new(cx, &self.global());
 
                 // If result is an abrupt completion,
                 if let Err(error) = result {
@@ -255,9 +255,7 @@ impl UnderlyingSourceContainer {
             // Note: other source type have no pull steps for now.
             UnderlyingSource::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSourcePullAlgorithm(stream).
-                Some(
-                    stream.transform_stream_default_source_pull(&self.global(), CanGc::from_cx(cx)),
-                )
+                Some(stream.transform_stream_default_source_pull(cx, &self.global()))
             },
             _ => None,
         }

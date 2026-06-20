@@ -232,7 +232,7 @@ impl TransformStreamDefaultController {
                             ExceptionHandling::Rethrow,
                         )
                         .unwrap_or_else(|e| {
-                            let p = Promise::new2(cx, global);
+                            let p = Promise::new(cx, global);
                             p.reject_error(cx, e);
                             p
                         })
@@ -374,7 +374,7 @@ impl TransformStreamDefaultController {
                     cancel
                         .Call_(cx, &this_object.handle(), chunk, ExceptionHandling::Rethrow)
                         .unwrap_or_else(|e| {
-                            let p = Promise::new2(cx, global);
+                            let p = Promise::new(cx, global);
                             p.reject_error(cx, e);
                             p
                         })
@@ -454,7 +454,7 @@ impl TransformStreamDefaultController {
                     flush
                         .Call_(cx, &this_object.handle(), self, ExceptionHandling::Rethrow)
                         .unwrap_or_else(|e| {
-                            let p = Promise::new2(cx, global);
+                            let p = Promise::new(cx, global);
                             p.reject_error(cx, e);
                             p
                         })
@@ -623,7 +623,7 @@ impl TransformStreamDefaultController {
             assert!(backpressure);
 
             // Perform ! TransformStreamSetBackpressure(stream, true).
-            stream.set_backpressure(global, true, CanGc::from_cx(cx));
+            stream.set_backpressure(cx, global, true);
         }
         Ok(())
     }
