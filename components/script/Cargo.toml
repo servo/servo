@@ -67,7 +67,6 @@ ctr = { workspace = true }
 data-url = { workspace = true }
 deny_public_fields = { workspace = true }
 devtools_traits = { workspace = true }
-digest = { workspace = true }
 dom_struct = { workspace = true }
 ecdsa = { workspace = true }
 elliptic-curve = { workspace = true }

@@ -2,15 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use digest::Digest;
 use ecdsa::signature::hazmat::{PrehashVerifier, RandomizedPrehashSigner};
 use ecdsa::{Signature, SigningKey, VerifyingKey};
 use js::context::JSContext;
 use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
-use sha1::Sha1;
-use sha2::{Sha256, Sha384, Sha512};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
@@ -22,9 +19,8 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::ec_common::EcAlgorithm;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384,
-    NAMED_CURVE_P521, NormalizedAlgorithm, SubtleEcKeyGenParams, SubtleEcKeyImportParams,
-    SubtleEcdsaParams, ec_common,
+    ExportedKey, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521,
+    SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdsaParams, ec_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-sign>
@@ -44,18 +40,7 @@ pub(crate) fn sign(
 
     // Step 3. Let M be the result of performing the digest operation specified by hashAlgorithm
     // using message.
-    let m = match hash_algorithm.name() {
-        CryptoAlgorithm::Sha1 => Sha1::digest(message).to_vec(),
-        CryptoAlgorithm::Sha256 => Sha256::digest(message).to_vec(),
-        CryptoAlgorithm::Sha384 => Sha384::digest(message).to_vec(),
-        CryptoAlgorithm::Sha512 => Sha512::digest(message).to_vec(),
-        hash_algorithm_name => {
-            return Err(Error::NotSupported(Some(format!(
-                "Unsupported hash algorithm for ECDSA: {}",
-                hash_algorithm_name.as_str()
-            ))));
-        },
-    };
+    let m = hash_algorithm.digest(message)?;
 
     // Step 4. Let d be the ECDSA private key associated with key.
     // Step 5. Let params be the EC domain parameters associated with key.
@@ -137,13 +122,7 @@ pub(crate) fn verify(
 
     // Step 3. Let M be the result of performing the digest operation specified by hashAlgorithm
     // using message.
-    let m = match hash_algorithm.name() {
-        CryptoAlgorithm::Sha1 => Sha1::new_with_prefix(message).finalize().to_vec(),
-        CryptoAlgorithm::Sha256 => Sha256::new_with_prefix(message).finalize().to_vec(),
-        CryptoAlgorithm::Sha384 => Sha384::new_with_prefix(message).finalize().to_vec(),
-        CryptoAlgorithm::Sha512 => Sha512::new_with_prefix(message).finalize().to_vec(),
-        _ => return Err(Error::NotSupported(None)),
-    };
+    let m = hash_algorithm.digest(message)?;
 
     // Step 4. Let Q be the ECDSA public key associated with key.
     // Step 5. Let params be the EC domain parameters associated with key.
