@@ -8714,7 +8714,6 @@ dependencies = [
  "cssparser",
  "ctr",
  "data-url",
- "digest 0.11.3",
  "ecdsa",
  "elliptic-curve",
  "encoding_rs",

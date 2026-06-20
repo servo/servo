@@ -72,7 +72,6 @@ cshake = "0.2"
 cssparser = { version = "0.37", features = ["serde"] }
 ctr = { version = "0.10", features = ["zeroize"] }
 data-url = "0.3"
-digest = "0.11"
 dirs = "6.0"
 dpi = "0.1"
 dwrote = "0.11.5"
