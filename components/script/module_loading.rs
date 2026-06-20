@@ -504,11 +504,6 @@ pub(crate) fn host_load_imported_module(
         importer.starts_with("asset://") ||
         importer.starts_with("bundle://")
     {
-        let phase = if load_state.is_some() {
-            "static-import"
-        } else {
-            "dynamic-import"
-        };
         info!(
             target: "script::script_module",
             "[local-runtime url-resolution]\n  resolution_context: {}\n  source_seam: components/script/module_loading.rs::host_load_imported_module\n  author_text: {}\n  base_url: {}\n  resolved_url: {}\n  resolution_result: resolved\n  destination: Script\n  module_context: importer={} module_type={} phase=host-load",
