@@ -17,9 +17,14 @@ doctest = false
 
 [dependencies]
 encoding_rs = { workspace = true }
+log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 servo_arc = { workspace = true }
 url = { workspace = true, features = ["serde"] }
 uuid = { workspace = true, features = ["serde"] }
+
+[[test]]
+name = "local_runtime_raw_url"
+path = "tests/local_runtime_raw_url.rs"

@@ -9006,6 +9006,7 @@ name = "servo-url"
 version = "0.3.0"
 dependencies = [
  "encoding_rs",
+ "log",
  "malloc_size_of_derive",
  "serde",
  "servo-malloc-size-of",

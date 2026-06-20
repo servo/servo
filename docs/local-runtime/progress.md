@@ -190,3 +190,43 @@
 - Preserved the existing canonical package-root containment check so allowed assets still resolve through the configured `SERVORENA_PACKAGE_ROOT` and symlink/root escapes remain denied.
 - Denied encoded traversal attempts now log `decision: denied`, `reason: PackagePathTraversalDenied`, `deny_kind: RequestDenied`, and `local_path: none` from the package-mode seam.
 - Open question: this seam can inspect `ServoUrl::path()` after Servo URL parsing, but a future earlier ResourceProvider boundary should carry the exact author-supplied request string so pre-parser policy checks do not rely on URL crate serialization behavior.
+
+## 2026-06-19 — Raw URL laundering fixture and early parse/join logging
+
+Commit range: pending.
+
+Inspected:
+
+- `components/url/lib.rs::ServoUrl::parse_with_base`, `ServoUrl::parse`, and `ServoUrl::join`.
+- `components/script/dom/document/document.rs::Document::encoding_parse_a_url`, which calls the URL parser directly with document base URL and encoding override.
+- `components/script/script_module.rs::ModuleTree::resolve_url_like_module_specifier`, which routes URL-like static and dynamic module specifiers through `ServoUrl::parse_with_base` or `ServoUrl::parse`.
+- The existing late package gate in `components/net/resource_thread.rs::local_runtime_path_has_traversal`.
+
+Findings:
+
+- A fixture now pins the laundering concern: joining `./%2e%2e/secret.txt` against `asset://com.example.app/app/index.html` serializes as `asset://com.example.app/secret.txt`, so a late gate that only sees `url.path()` no longer sees a `..` segment.
+- Normal percent encoding remains allowed by the raw-text classifier, e.g. `%20` for spaces and `%7B...%7D` in a filename.
+- Suspicious raw path-boundary encodings are classified before URL normalization: encoded dot, slash, backslash, NUL, and a second percent layer immediately before those bytes.
+
+Touched crates/modules:
+
+- `components/url`: added raw URL obfuscation classification, early log entries in `ServoUrl::parse`, `ServoUrl::parse_with_base`, and `ServoUrl::join`, and package-mode denial before URL normalization.
+- `components/url/tests`: added fixtures for ordinary percent encoding, suspicious raw path-boundary encodings, the exact join normalization behavior, and package-mode denial.
+
+Logged successfully:
+
+- Raw suspicious input passing through `ServoUrl::parse`, `ServoUrl::parse_with_base`, or `ServoUrl::join` emits `[local-runtime raw-url-request]` with requested text, base URL, module, decision, and reason.
+
+Denied successfully:
+
+- In package mode (`SERVORENA_PACKAGE_ID` and `SERVORENA_PACKAGE_ROOT` set), suspicious raw URL text is denied at parse/join time before the normalized URL can hide the original text.
+
+Still reaches old assumptions:
+
+- `Document::encoding_parse_a_url` still calls `url::Url::options().parse(...)` directly rather than `ServoUrl::parse_with_base`, but now uses the shared raw obfuscation classifier immediately before the encoding-aware parse.
+- Some non-script resource callers use direct base `join(...)` and are covered by `ServoUrl::join`, but their higher-level destination labels are not yet represented in the raw log.
+
+Open questions:
+
+- Whether CSS URL parsing has any direct `url` crate paths that bypass `ServoUrl` and need equivalent raw-text fixtures.
+- Whether package-mode parse denial should return a more specific local-runtime error once URL parsing is moved behind a real host `ResourceProvider` boundary.

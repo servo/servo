@@ -23,6 +23,85 @@ use servo_arc::Arc;
 pub use url::Host;
 use url::{Position, Url};
 
+fn local_runtime_package_mode_enabled() -> bool {
+    std::env::var_os("SERVORENA_PACKAGE_ID").is_some()
+        && std::env::var_os("SERVORENA_PACKAGE_ROOT").is_some()
+}
+
+/// Returns the denial/logging reason for raw URL text that can hide traversal
+/// or path-boundary characters before Servo's later package-resource gate sees
+/// the normalized URL path. Normal percent-encoding such as `%20` remains
+/// allowed; this focuses on encoded `.`, slash, backslash, NUL, and a second
+/// percent layer immediately before those bytes.
+pub fn local_runtime_raw_url_obfuscation_reason(input: &str) -> Option<&'static str> {
+    let bytes = input.as_bytes();
+    let hex = |byte: u8| match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    };
+
+    let mut index = 0;
+    while index + 2 < bytes.len() {
+        if bytes[index] != b'%' {
+            index += 1;
+            continue;
+        }
+
+        let Some(high) = hex(bytes[index + 1]) else {
+            index += 1;
+            continue;
+        };
+        let Some(low) = hex(bytes[index + 2]) else {
+            index += 1;
+            continue;
+        };
+        let decoded = (high << 4) | low;
+        match decoded {
+            b'.' => return Some("RawPercentEncodedDotDenied"),
+            b'/' => return Some("RawPercentEncodedSlashDenied"),
+            b'\\' => return Some("RawPercentEncodedBackslashDenied"),
+            b'\0' => return Some("RawPercentEncodedNulDenied"),
+            b'%' if index + 4 < bytes.len() => {
+                if let (Some(next_high), Some(next_low)) =
+                    (hex(bytes[index + 3]), hex(bytes[index + 4]))
+                {
+                    match (next_high << 4) | next_low {
+                        b'.' | b'/' | b'\\' | b'\0' => {
+                            return Some("RawDoubleEncodedPathObfuscationDenied");
+                        },
+                        _ => {},
+                    }
+                }
+            },
+            _ => {},
+        }
+        index += 3;
+    }
+
+    None
+}
+
+fn local_runtime_log_raw_url_obfuscation(input: &str, base: Option<&ServoUrl>, module: &str) {
+    let Some(reason) = local_runtime_raw_url_obfuscation_reason(input) else {
+        return;
+    };
+
+    log::warn!(
+        "[local-runtime raw-url-request]\n  requested: {}\n  base: {}\n  servo_module: {}\n  decision: {}\n  reason: {}",
+        input,
+        base.map(ServoUrl::as_str).unwrap_or("none"),
+        module,
+        if local_runtime_package_mode_enabled() {
+            "deny"
+        } else {
+            "log-only"
+        },
+        reason,
+    );
+}
+
 pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin, OriginSnapshot};
 
 const DATA_URL_DISPLAY_LENGTH: usize = 40;
@@ -45,6 +124,16 @@ impl ServoUrl {
     }
 
     pub fn parse_with_base(base: Option<&Self>, input: &str) -> Result<Self, url::ParseError> {
+        local_runtime_log_raw_url_obfuscation(
+            input,
+            base,
+            "components/url/lib.rs::ServoUrl::parse_with_base",
+        );
+        if local_runtime_package_mode_enabled()
+            && local_runtime_raw_url_obfuscation_reason(input).is_some()
+        {
+            return Err(url::ParseError::RelativeUrlWithoutBase);
+        }
         Url::options()
             .base_url(base.map(|b| &*b.0))
             .parse(input)
@@ -68,6 +157,16 @@ impl ServoUrl {
     }
 
     pub fn parse(input: &str) -> Result<Self, url::ParseError> {
+        local_runtime_log_raw_url_obfuscation(
+            input,
+            None,
+            "components/url/lib.rs::ServoUrl::parse",
+        );
+        if local_runtime_package_mode_enabled()
+            && local_runtime_raw_url_obfuscation_reason(input).is_some()
+        {
+            return Err(url::ParseError::RelativeUrlWithoutBase);
+        }
         Url::parse(input).map(Self::from_url)
     }
 
@@ -183,6 +282,16 @@ impl ServoUrl {
     }
 
     pub fn join(&self, input: &str) -> Result<ServoUrl, url::ParseError> {
+        local_runtime_log_raw_url_obfuscation(
+            input,
+            Some(self),
+            "components/url/lib.rs::ServoUrl::join",
+        );
+        if local_runtime_package_mode_enabled()
+            && local_runtime_raw_url_obfuscation_reason(input).is_some()
+        {
+            return Err(url::ParseError::RelativeUrlWithoutBase);
+        }
         self.0.join(input).map(Self::from_url)
     }
 

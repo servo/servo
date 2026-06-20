@@ -71,6 +71,8 @@ Policy denials should be first-class outcomes, not lower-level network failures.
 
 Initial instrumentation is deliberately late: `components/net/resource_thread.rs` logs built Fetch requests before they enter the legacy fetch/http/protocol path. The first v0 package implementation also lives at this seam. With `SERVORENA_PACKAGE_ID` and `SERVORENA_PACKAGE_ROOT` set, it authorizes `asset://{active_package_id}/...`, rejects raw and single-percent-decoded `..` traversal before mapping the path to a canonical file under the package root, returns bytes with simple extension-derived MIME, and denies package-mode remote HTTP(S), WebSocket, file, store, cross-package asset, missing file, I/O, and traversal/root-escape failures before legacy dispatch. This is intentionally not a package manager and not the final `ResourceProvider` boundary; later work should move request construction earlier so original requested text, base URL, initiator URL, and destination-specific MIME errors are preserved more precisely.
 
+A first earlier guard now exists in `ServoUrl` parsing/joining: raw requested text is inspected for path-boundary obfuscation before normalization. Ordinary percent encoding is still accepted, while encoded `.`, slash, backslash, NUL, and double-encoded forms of those bytes are logged and denied when package mode is enabled. This is a stopgap visibility/policy seam; the final provider request should carry both raw requested text and normalized final URL so denial reasons do not depend on URL parser error variants.
+
 ## Error Categories
 
 The provider should distinguish at least these outcomes:
