@@ -78,20 +78,17 @@ use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{DeviceLostReason, WebGPUDevice};
 
-use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
-#[cfg(feature = "webgpu")]
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
-use super::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
-use super::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use super::transformstream::CrossRealmTransform;
 use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::NotificationPermissionCallback;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
 };
+#[cfg(feature = "webgpu")]
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
@@ -108,7 +105,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::CustomTraceable;
+use crate::dom::bindings::trace::{CustomTraceable, HashMapTracedValues, RootedTraceableBox};
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
@@ -120,7 +117,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::global_scope_script_execution::{
+use crate::dom::globalscope::script_execution::{
     ErrorReporting, evaluate_script, fill_compile_options,
 };
 use crate::dom::idbfactory::IDBFactory;
@@ -131,10 +128,12 @@ use crate::dom::performance::performanceentry::EntryType;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::serviceworker::ServiceWorker;
+use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
+use crate::dom::transformstream::CrossRealmTransform;
 use crate::dom::types::{AbortSignal, DebuggerGlobalScope, MessageEvent};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;

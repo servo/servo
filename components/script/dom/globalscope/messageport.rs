@@ -104,10 +104,6 @@ impl MessagePort {
         &self.message_port_id
     }
 
-    pub(crate) fn detached(&self) -> bool {
-        self.detached.get()
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
     fn set_onmessage(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
         let eventtarget = self.upcast::<EventTarget>();
