@@ -630,7 +630,9 @@ impl SharedWorkerGlobalScope {
                 pipeline_id,
                 violations,
             ))
-            .expect("Sending to parent failed");
+            .unwrap_or_else(|error| {
+                log::warn!("Failed to send CSP violations to parent event loop: {error}");
+            });
     }
 
     /// Step 11 of onComplete of <https://html.spec.whatwg.org/multipage/#run-a-worker>

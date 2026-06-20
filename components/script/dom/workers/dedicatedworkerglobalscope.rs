@@ -765,7 +765,9 @@ impl DedicatedWorkerGlobalScope {
                 pipeline_id,
                 violations,
             ))
-            .expect("Sending to parent failed");
+            .unwrap_or_else(|error| {
+                log::warn!("Failed to send CSP violations to parent event loop: {error}");
+            });
     }
 
     pub(crate) fn forward_simple_error_at_worker(&self) {
