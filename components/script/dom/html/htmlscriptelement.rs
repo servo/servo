@@ -21,7 +21,9 @@ use net_traits::request::{
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use servo_base::id::WebViewId;
-use servo_url::ServoUrl;
+use servo_url::{
+    ServoUrl, local_runtime_package_mode_enabled, local_runtime_raw_url_obfuscation_reason,
+};
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
@@ -782,7 +784,37 @@ impl HTMLScriptElement {
             self.from_an_external_file.set(true);
 
             // Step 31.5-31.6. Parse URL.
-            let url = match base_url.join(&src) {
+            let parsed_url = base_url.join(&src);
+            let should_log = local_runtime_raw_url_obfuscation_reason(&src).is_some() ||
+                src.contains("..") ||
+                src.contains('%') ||
+                src.starts_with("asset:") ||
+                src.starts_with("bundle:") ||
+                matches!(base_url.scheme(), "asset" | "bundle") ||
+                parsed_url
+                    .as_ref()
+                    .is_ok_and(|resolved| matches!(resolved.scheme(), "asset" | "bundle"));
+            if should_log {
+                match &parsed_url {
+                    Ok(resolved) => log::info!(
+                        "[local-runtime url-resolution]\n  resolution_context: external-script-src\n  source_seam: components/script/dom/html/htmlscriptelement.rs::HTMLScriptElement::prepare\n  author_text: {}\n  base_url: {}\n  resolved_url: {}\n  resolution_result: resolved\n  destination: Script",
+                        src,
+                        base_url.as_str(),
+                        resolved.as_str(),
+                    ),
+                    Err(error) => {
+                        let raw_reason = local_runtime_raw_url_obfuscation_reason(&src);
+                        log::warn!(
+                            "[local-runtime url-resolution]\n  resolution_context: external-script-src\n  source_seam: components/script/dom/html/htmlscriptelement.rs::HTMLScriptElement::prepare\n  author_text: {}\n  base_url: {}\n  resolution_result: {}\n  reason: {}\n  destination: Script",
+                            src,
+                            base_url.as_str(),
+                            if raw_reason.is_some() && local_runtime_package_mode_enabled() { "rejected-before-normalization" } else { "parse-failed" },
+                            raw_reason.unwrap_or_else(|| match error { _ => "UrlParseError" }),
+                        )
+                    },
+                }
+            }
+            let url = match parsed_url {
                 Ok(url) => url,
                 Err(_) => {
                     warn!("error parsing URL for script {}", src);

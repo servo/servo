@@ -297,3 +297,44 @@ Open questions for the next pass:
 * Cleaned local-runtime module-evaluation instrumentation labels so `ModuleEvaluate`'s bool is logged as API-call success rather than semantic fulfillment.
 * Added focused WPT coverage for an external module whose top-level await resolves and one whose top-level await rejects with an attributable `Error`.
 * No package policy, URL routing, relative module resolution, dynamic import behavior, networking behavior, or duplicate-request behavior was intentionally changed.
+
+## 2026-06-20 — Slice B URL provenance instrumentation
+
+Commit range: pending local instrumentation change.
+
+Inspected:
+- `components/url/lib.rs` for `ServoUrl::parse`, `ServoUrl::parse_with_base`, and `ServoUrl::join` before URL normalization removes raw spelling.
+- `components/script/dom/document/document.rs` for `Document::encoding_parse_a_url`, including its direct `url::Url::options().parse(...)` encoding-aware path.
+- `components/script/dom/html/htmlscriptelement.rs` for external script `src` resolution against the active document base URL.
+- `components/script/script_module.rs` and `components/script/module_loading.rs` for URL-like module specifier resolution and host static/dynamic module import loading.
+- `components/net/resource_thread.rs` only as the existing late resource-policy logging correlation endpoint; no policy was moved into URL resolution in this pass.
+
+Touched crates/modules:
+- `components/url/lib.rs`
+- `components/script/dom/document/document.rs`
+- `components/script/dom/html/htmlscriptelement.rs`
+- `components/script/script_module.rs`
+- `components/script/module_loading.rs`
+
+Logged successfully by this source pass:
+- Added `[local-runtime url-resolution]` records at low-level Servo URL parse/join seams with `resolver_input`, base used by that parser call, resolved URL or parse failure, and source seam.
+- Added owning document URL-resolution records at `Document::encoding_parse_a_url` with `author_text`, document base URL, resolved URL or early raw-obfuscation rejection, and `destination: Document`.
+- Added owning external script `src` records in `HTMLScriptElement::prepare` with raw `src` attribute text as `author_text`, the document base URL used by `base_url.join`, resolved URL or parse failure, and `destination: Script`.
+- Tightened module-resolution records to the shared `[local-runtime url-resolution]` vocabulary for static URL-like module imports and host-loaded static/dynamic module imports, preserving raw specifier text where SpiderMonkey still exposes it and logging the importer/module base used for resolution.
+
+Denied successfully:
+- No new allow/deny policy was added. Existing package-mode raw-obfuscation denial remains unchanged; this pass only adds source-level provenance around it.
+
+Still reaches old network/resource assumptions:
+- Final fetch authorization still happens at the existing resource-thread package wall after requests have already been resolved to `ServoUrl`.
+- Import-map helper paths can still operate on normalized URL strings; preserving every raw import-map mapping token would require a future import-map/request provenance shape rather than only resolver logging.
+
+Normalization/raw-text findings:
+- `ServoUrl::parse`, `ServoUrl::parse_with_base`, and `ServoUrl::join` are the earliest shared Rust seams before the `url` crate parses and serializes URL text.
+- `Document::encoding_parse_a_url` bypasses `ServoUrl::parse_with_base` for encoding-aware parsing, so it must log at the owning document seam before its direct `url::Url::options().parse(...)` call.
+- External script `src` raw author text is still available in `HTMLScriptElement::prepare` before `base_url.join(&src)`.
+- Static and dynamic module raw specifier text is still available at `resolve_module_specifier` / `host_load_imported_module`; after `resolve_url_like_module_specifier` and import-map matching, later module-map/fetch layers mostly see normalized `ServoUrl` identity.
+
+Open questions:
+- Whether CSS image `url(...)` resolution has a comparable owning seam that can preserve raw token spelling before Stylo hands Servo an already-resolved URL.
+- Whether a future host request type should carry both `author_text` and `resolver_input` through module-map/fetch boundaries so final policy logs can correlate without relying on adjacent log timing.
