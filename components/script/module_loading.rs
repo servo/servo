@@ -36,7 +36,8 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::realms::enter_auto_realm;
 use crate::script_module::{
     ModuleFetchClient, ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
-    fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
+    fetch_a_single_module_script, gen_type_error, is_local_runtime_module_url,
+    local_runtime_module_type_label, module_script_from_reference_private,
 };
 use crate::script_runtime::IntroductionType;
 
@@ -294,8 +295,19 @@ fn continue_dynamic_import(
     promise: Rc<Promise>,
     module_completion: Result<Rc<ModuleTree>, RethrowError>,
 ) {
+    if let Ok(module) = &module_completion {
+        if is_local_runtime_module_url(&module.get_url()) {
+            info!(
+                target: "script::script_module",
+                "[local-runtime module-evaluation] phase: dynamic-import stage: host-load resolved_module_url: {}",
+                module.get_url()
+            );
+        }
+    }
+
     // Step 1. If moduleCompletion is an abrupt completion, then
     if let Err(exception) = module_completion {
+        info!(target: "script::script_module", "[local-runtime module-evaluation] phase: dynamic-import stage: rejected rejection_state: exception-record");
         // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « moduleCompletion.[[Value]] »).
         promise.reject_with_cx(cx, exception.handle());
 
@@ -332,6 +344,7 @@ fn continue_dynamic_import(
                 std::ptr::NonNull::new(global_scope.reflector().get_jsobject().get()).unwrap(),
             );
             let cx = &mut realm.current_realm();
+            info!(target: "script::script_module", "[local-runtime module-evaluation] phase: dynamic-import stage: link");
             // a. Let link be Completion(module.Link()).
             let link = unsafe { ModuleLink(cx, record.handle()) };
 
@@ -347,6 +360,7 @@ fn continue_dynamic_import(
 
             rooted!(&in(cx) let mut rval = UndefinedValue());
 
+            info!(target: "script::script_module", "[local-runtime module-evaluation] phase: dynamic-import stage: evaluate");
             // c. Let evaluatePromise be module.Evaluate().
             assert!(unsafe { ModuleEvaluate(cx, record.handle(), rval.handle_mut()) });
 
@@ -368,6 +382,7 @@ fn continue_dynamic_import(
                     rooted!(&in(cx) let rval = unsafe { GetModuleNamespace(cx, record.handle()) });
                     rooted!(&in(cx) let namespace = ObjectValue(rval.get()));
 
+                    info!(target: "script::script_module", "[local-runtime module-evaluation] phase: dynamic-import stage: fulfilled");
                     // ii. Perform ! Call(promiseCapability.[[Resolve]], undefined, « namespace »).
                     fulfilled_promise.resolve_with_cx(cx, namespace.handle());
 
@@ -481,6 +496,36 @@ pub(crate) fn host_load_imported_module(
     };
 
     let url = url.unwrap();
+
+    let importer = referencing_script
+        .map(|script| script.base_url.as_str().to_owned())
+        .unwrap_or_else(|| "client".to_owned());
+    if is_local_runtime_module_url(&url) ||
+        importer.starts_with("asset://") ||
+        importer.starts_with("bundle://")
+    {
+        let phase = if load_state.is_some() {
+            "static-import"
+        } else {
+            "dynamic-import"
+        };
+        info!(
+            target: "script::script_module",
+            "[local-runtime module-resolution] phase: {} specifier: {} specifier_kind: raw-author-text importer/base: {} resolved: {} module_type: {}",
+            phase,
+            specifier,
+            importer,
+            url,
+            local_runtime_module_type_label(module_type)
+        );
+        if load_state.is_none() {
+            info!(
+                target: "script::script_module",
+                "[local-runtime module-evaluation] phase: dynamic-import specifier: {} importer: {} resolved_module_url: {} stage: host-load",
+                specifier, importer, url
+            );
+        }
+    }
 
     // Step 10. Let fetchOptions be the result of getting the descendant script fetch options given
     // originalFetchOptions, url, and settingsObject.

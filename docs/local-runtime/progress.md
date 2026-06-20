@@ -248,3 +248,38 @@ Open questions:
 - Split follow-up work into package machinery to preserve/prove (`modules`, CSS graph, fonts, and maybe dedicated workers later) and browser machinery to gut/defer (`WebSocket`, EventSource, beacon, XHR, service workers, and URL media).
 - No Servo runtime crates were touched in this pass.
 - No new resource paths were loaded, logged, or denied; this remains a planning/documentation pass to choose the next focused probe family before changing behavior.
+
+## 2026-06-20 — Slice A addendum 1 module evaluation provenance
+
+Commit range: pending local instrumentation change.
+
+Inspected:
+- `components/script/script_module.rs` top-level module execution, URL-like module specifier resolution, dynamic-import hook entry, and `fetch_a_single_module_script` module-map lookup/start-fetch path.
+- `components/script/module_loading.rs` dynamic import continuation, host imported-module loading, link, evaluate, fulfill, and reject paths.
+
+Touched crates/modules:
+- `components/script/script_module.rs`
+- `components/script/module_loading.rs`
+
+Resource/module paths discovered or clarified:
+- Dynamic import enters SpiderMonkey's host hook in `host_import_module_dynamically`, then uses `host_load_imported_module` to resolve the author specifier against the referencing module's `ModuleScript::base_url`.
+- Imported module fetches still converge on `fetch_a_single_module_script`, whose module map is keyed by `(ServoUrl, ModuleType)` and distinguishes absent, fetching, and loaded entries before either starting a fetch, attaching a waiter, or reusing a loaded module.
+- Top-level external module execution warning provenance is available in `ModuleTree::execute_module`, immediately around `ModuleEvaluate` and `ThrowOnModuleEvaluationFailure(..., ThrowModuleErrorsSync)`.
+
+Logged successfully by this source pass:
+- `[local-runtime module-resolution]` for local-runtime-relevant specifier edges, preserving raw-author-text at `resolve_module_specifier` / `host_load_imported_module` and resolver-input at `resolve_url_like_module_specifier`.
+- `[local-runtime module-map]` for `asset://` and `bundle://` module map state/action before fetch/reuse/waiter behavior.
+- `[local-runtime module-evaluation]` for top-level module `ModuleEvaluate`, `ThrowOnModuleEvaluationFailure`, dynamic import host-load/link/evaluate/fulfilled/rejected stages.
+
+Denied successfully:
+- No policy changes in this pass. Existing package-wall denial behavior is intentionally unchanged.
+
+Still reaches old network/resource assumptions:
+- This pass only logs script-module provenance. Actual module bytes still flow through the existing fetch/resource-thread wall and package-mode policy seam.
+
+Failed approaches and why they failed:
+- Did not inspect or stringify pending JS exceptions for richer messages because that risks clearing, consuming, or otherwise changing exception behavior before Servo's normal reporting path.
+
+Open questions for the next pass:
+- Which exact module URL is associated with the observed `fail to evaluate module` warning when the updated runtime is run against Servorena's `module-dynamic-relative` fixture?
+- Do duplicate `entry.js` resource-thread lines correspond to a true second start-fetch action, an attach-waiter state, a reuse-loaded state, or a subtly different `(URL, ModuleType)` key?

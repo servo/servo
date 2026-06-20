@@ -23,8 +23,8 @@ use js::gc::{HandleObject, MutableHandleValue};
 use js::jsapi::{
     CallArgs, ExceptionStackBehavior, GetFunctionNativeReserved, GetModuleResolveHook,
     Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_GetFunctionObject,
-    JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime, ModuleErrorBehaviour,
-    ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook, SetModuleMetadataHook,
+    JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime, JS_IsExceptionPending,
+    ModuleErrorBehaviour, ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook, SetModuleMetadataHook,
     SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
@@ -59,6 +59,18 @@ use serde_json::{Map as JsonMap, Value as JsonValue};
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
+
+pub(crate) fn is_local_runtime_module_url(url: &ServoUrl) -> bool {
+    matches!(url.scheme(), "asset" | "bundle")
+}
+
+pub(crate) fn local_runtime_module_type_label(module_type: ModuleType) -> &'static str {
+    match module_type {
+        ModuleType::JavaScript => "javascript",
+        ModuleType::JSON => "json",
+        ModuleType::Unknown => "unknown",
+    }
+}
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
@@ -438,6 +450,13 @@ impl ModuleTree {
         let cx = &mut *realm;
 
         unsafe {
+            if is_local_runtime_module_url(&self.url) {
+                info!(
+                    "[local-runtime module-evaluation] phase: top-level-module-script module_url: {} module_type: javascript action: ModuleEvaluate",
+                    self.url
+                );
+            }
+
             let ok = ModuleEvaluate(cx, module_record, eval_result.reborrow());
             assert!(ok, "module evaluation failed");
 
@@ -446,16 +465,35 @@ impl ModuleTree {
                 evaluation_promise.set(eval_result.to_object());
             }
 
+            if is_local_runtime_module_url(&self.url) {
+                info!(
+                    "[local-runtime module-evaluation] phase: top-level-module-script module_url: {} module_type: javascript action: ModuleEvaluate evaluation_result: ok evaluation_promise: {} throw_on_evaluation_failure: true",
+                    self.url,
+                    if evaluation_promise.get().is_null() { "absent" } else { "present" }
+                );
+            }
+
             let throw_result = ThrowOnModuleEvaluationFailure(
                 cx,
                 evaluation_promise.handle(),
                 ModuleErrorBehaviour::ThrowModuleErrorsSync,
             );
             if !throw_result {
-                warn!("fail to evaluate module");
+                let exception_state = if JS_IsExceptionPending(cx) { "pending" } else { "absent" };
+                warn!(
+                    "fail to evaluate module [local-runtime module-evaluation] module_url: {} phase: top-level-module-script exception_state: {}",
+                    self.url, exception_state
+                );
 
                 Err(RethrowError::from_pending_exception(cx))
             } else {
+                if is_local_runtime_module_url(&self.url) {
+                    info!(
+                        "[local-runtime module-evaluation] phase: top-level-module-script module_url: {} module_type: javascript action: ThrowOnModuleEvaluationFailure evaluation_result: ok evaluation_promise: {} throw_on_evaluation_failure: true",
+                        self.url,
+                        if evaluation_promise.get().is_null() { "absent" } else { "present" }
+                    );
+                }
                 debug!("module evaluated successfully");
                 Ok(())
             }
@@ -559,6 +597,12 @@ impl ModuleTree {
         // Step 13. If result is not null, then:
         match result {
             Some(result) => {
+                if is_local_runtime_module_url(&result) || is_local_runtime_module_url(base_url) {
+                    info!(
+                        "[local-runtime module-resolution] phase: unknown specifier: {} specifier_kind: raw-author-text importer/base: {} resolved: {} module_type: unknown",
+                        specifier, serialized_base_url, result
+                    );
+                }
                 // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
                 // normalizedSpecifier, and asURL.
                 global.add_module_to_resolved_module_set(
@@ -584,10 +628,28 @@ impl ModuleTree {
         if specifier.starts_with('/') || specifier.starts_with("./") || specifier.starts_with("../")
         {
             // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
-            return ServoUrl::parse_with_base(Some(base_url), specifier).ok();
+            let resolved = ServoUrl::parse_with_base(Some(base_url), specifier).ok();
+            if let Some(url) = &resolved {
+                if is_local_runtime_module_url(url) || is_local_runtime_module_url(base_url) {
+                    info!(
+                        "[local-runtime module-resolution] phase: unknown specifier: {} specifier_kind: resolver-input importer/base: {} resolved: {} module_type: unknown",
+                        specifier, base_url, url
+                    );
+                }
+            }
+            return resolved;
         }
         // Step 2. Let url be the result of URL parsing specifier (with no base URL).
-        ServoUrl::parse(specifier).ok()
+        let resolved = ServoUrl::parse(specifier).ok();
+        if let Some(url) = &resolved {
+            if is_local_runtime_module_url(url) || is_local_runtime_module_url(base_url) {
+                info!(
+                    "[local-runtime module-resolution] phase: unknown specifier: {} specifier_kind: resolver-input importer/base: {} resolved: {} module_type: unknown",
+                    specifier, base_url, url
+                );
+            }
+        }
+        resolved
     }
 }
 
@@ -1486,6 +1548,21 @@ pub(crate) fn fetch_a_single_module_script(
     // Step 4. Let moduleMap be settingsObject's module map.
     let module_request = (url.clone(), module_type);
     let entry = global.get_module_map_entry(&module_request);
+
+    if is_local_runtime_module_url(&url) {
+        let (module_map_state, action) = match &entry {
+            Some(ModuleStatus::Fetching(_)) => ("fetching", "attach-waiter"),
+            Some(ModuleStatus::Loaded(_)) => ("loaded", "reuse-loaded"),
+            None => ("absent", "start-fetch"),
+        };
+        info!(
+            "[local-runtime module-map] url: {} module_type: {} module_map_state: {} action: {}",
+            url,
+            local_runtime_module_type_label(module_type),
+            module_map_state,
+            action
+        );
+    }
 
     let pending = match entry {
         Some(ModuleStatus::Fetching(pending)) => pending,
