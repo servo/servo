@@ -479,7 +479,8 @@ impl ModuleTree {
                 ModuleErrorBehaviour::ThrowModuleErrorsSync,
             );
             if !throw_result {
-                let exception_state = if JS_IsExceptionPending(cx) { "pending" } else { "absent" };
+                let exception_state = 
+                    if unsafe { JS_IsExceptionPending(cx.raw_cx_no_gc()) } { "pending" } else { "absent" };
                 warn!(
                     "fail to evaluate module [local-runtime module-evaluation] module_url: {} phase: top-level-module-script exception_state: {}",
                     self.url, exception_state
@@ -600,7 +601,7 @@ impl ModuleTree {
                 if is_local_runtime_module_url(&result) || is_local_runtime_module_url(base_url) {
                     info!(
                         "[local-runtime module-resolution] phase: unknown specifier: {} specifier_kind: raw-author-text importer/base: {} resolved: {} module_type: unknown",
-                        specifier, serialized_base_url, result
+                        &*specifier, serialized_base_url, result
                     );
                 }
                 // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
