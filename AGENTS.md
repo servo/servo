@@ -176,6 +176,31 @@ Required behavior:
 
 This milestone is more meaningful than a screenshot. The success condition is: local package resources work, forbidden outside resources fail predictably, and the log explains why.
 
+## FIRST MILESTONE ACHIEVED 🎉🥳🎉🥳🎉🥳🎉🥳
+
+LOCAL PACKAGE:
+  document                  ✓
+  HTML image                ✓
+  stylesheet                ✓
+  CSS @import               ✓
+  nested font               ✓
+  nested CSS image          ✓
+  main.js execution         ✓
+
+DENIED:
+  http                      ✓
+  https                     ✓
+  ftp                       ✓
+  ws                        ✓
+  wss                       ✓
+  file                      ✓
+  store                     ✓
+  other asset package       ✓
+  literal .. root escape    ✓
+  encoded dot traversal     ✓
+  encoded slash traversal   ✓
+  double-encoded traversal  ✓
+
 ## Error Quality Matters
 
 Do not collapse all failures into generic load failure.
