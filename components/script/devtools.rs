@@ -699,30 +699,31 @@ pub(crate) fn handle_get_inner_or_outer_html(
     let node = state.find_node_by_unique_id(pipeline_id, node_id);
 
     let selector = node.and_then(|node| {
-        let element = node.downcast::<Element>()?;
+        let element = node.downcast::<Element>();
 
-        let inner_or_outer_html = match html_type {
-            GetHTML::InnerHTML => element.GetInnerHTML(cx),
-            GetHTML::OuterHTML => element.GetOuterHTML(cx),
-        };
-
-        if let Ok(trusted_html) = inner_or_outer_html {
-            let trusted_html_or_string = trusted_html.convert();
-
-            let Ok(html_dom_string) = TrustedHTML::get_trusted_type_compliant_string(
-                cx,
-                &element.owner_global(),
-                trusted_html_or_string,
-                "Devtools GetInnerOrOuterHTML",
-            ) else {
-                return None;
+        if let Some(element) = element {
+            let inner_or_outer_html = match html_type {
+                GetHTML::InnerHTML => element.GetInnerHTML(cx),
+                GetHTML::OuterHTML => element.GetOuterHTML(cx),
             };
 
-            return Some(html_dom_string.to_string());
-        };
+            if let Ok(trusted_html) = inner_or_outer_html {
+                let trusted_html_or_string = trusted_html.convert();
+
+                let Ok(html_dom_string) = TrustedHTML::get_trusted_type_compliant_string(
+                    cx,
+                    &element.owner_global(),
+                    trusted_html_or_string,
+                    "Devtools GetInnerOrOuterHTML",
+                ) else {
+                    return None;
+                };
+
+                return Some(html_dom_string.to_string());
+            };
+        }
 
         let text_content = node.GetTextContent();
-
         Some(text_content.map_or("".to_owned(), String::from))
     });
 
