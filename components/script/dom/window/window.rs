@@ -98,10 +98,6 @@ use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
-use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
-use super::bindings::trace::HashMapTracedValues;
-use super::performanceresourcetiming::InitiatorType;
-use super::types::SVGSVGElement;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
 };
@@ -111,6 +107,7 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryList_Binding::MediaQueryListMethods;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{RequestInfo, RequestInit};
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
@@ -131,7 +128,9 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
+use crate::dom::bindings::trace::{
+    CustomTraceable, HashMapTracedValues, JSTraceable, RootedTraceableBox,
+};
 use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
@@ -165,6 +164,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::navigator::Navigator;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::performance::performance::Performance;
+use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
@@ -176,7 +176,7 @@ use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::{ImageBitmap, MouseEvent, UIEvent};
+use crate::dom::types::{ImageBitmap, MouseEvent, SVGSVGElement, UIEvent};
 use crate::dom::useractivation::UserActivationTimestamp;
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
 #[cfg(feature = "webgpu")]
