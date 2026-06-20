@@ -112,39 +112,40 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-frommatrix>
     fn FromMatrix(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         other: &DOMMatrixInit,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
-        dommatrixinit_to_matrix(other).map(|(is2D, matrix)| Self::new(global, is2D, matrix, can_gc))
+        dommatrixinit_to_matrix(other)
+            .map(|(is2D, matrix)| Self::new(global, is2D, matrix, CanGc::from_cx(cx)))
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat32array>
     fn FromFloat32Array(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float32Array>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
         DOMMatrix::Constructor(
             global,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat64array>
     fn FromFloat64Array(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float64Array>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec();
         DOMMatrix::Constructor(
             global,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }

@@ -513,39 +513,40 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-frommatrix>
     fn FromMatrix(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         other: &DOMMatrixInit,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
-        dommatrixinit_to_matrix(other).map(|(is2D, matrix)| Self::new(global, is2D, matrix, can_gc))
+        dommatrixinit_to_matrix(other)
+            .map(|(is2D, matrix)| Self::new(global, is2D, matrix, CanGc::from_cx(cx)))
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat32array>
     fn FromFloat32Array(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float32Array>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
         DOMMatrixReadOnly::Constructor(
             global,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat64array>
     fn FromFloat64Array(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float64Array>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
         let vec: Vec<f64> = array.to_vec();
         DOMMatrixReadOnly::Constructor(
             global,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -687,28 +688,28 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-translate>
-    fn Translate(&self, tx: f64, ty: f64, tz: f64, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc).TranslateSelf(tx, ty, tz)
+    fn Translate(&self, cx: &mut js::context::JSContext, tx: f64, ty: f64, tz: f64) -> DomRoot<DOMMatrix> {
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).TranslateSelf(tx, ty, tz)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale>
     fn Scale(
         &self,
+        cx: &mut js::context::JSContext,
         scaleX: f64,
         scaleY: Option<f64>,
         scaleZ: f64,
         originX: f64,
         originY: f64,
         originZ: f64,
-        can_gc: CanGc,
     ) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc)
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx))
             .ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ)
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-dommatrixreadonly-scalenonuniform>
-    fn ScaleNonUniform(&self, scaleX: f64, scaleY: f64, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc).ScaleSelf(
+    fn ScaleNonUniform(&self, cx: &mut js::context::JSContext, scaleX: f64, scaleY: f64) -> DomRoot<DOMMatrix> {
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).ScaleSelf(
             scaleX,
             Some(scaleY),
             1.0,
@@ -721,82 +722,83 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale3d>
     fn Scale3d(
         &self,
+        cx: &mut js::context::JSContext,
         scale: f64,
         originX: f64,
         originY: f64,
         originZ: f64,
-        can_gc: CanGc,
     ) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc)
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx))
             .Scale3dSelf(scale, originX, originY, originZ)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotate>
     fn Rotate(
         &self,
+        cx: &mut js::context::JSContext,
         rotX: f64,
         rotY: Option<f64>,
         rotZ: Option<f64>,
-        can_gc: CanGc,
     ) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc).RotateSelf(rotX, rotY, rotZ)
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).RotateSelf(rotX, rotY, rotZ)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotatefromvector>
-    fn RotateFromVector(&self, x: f64, y: f64, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc).RotateFromVectorSelf(x, y)
+    fn RotateFromVector(&self, cx: &mut js::context::JSContext, x: f64, y: f64) -> DomRoot<DOMMatrix> {
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).RotateFromVectorSelf(x, y)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotateaxisangle>
     fn RotateAxisAngle(
         &self,
+        cx: &mut js::context::JSContext,
         x: f64,
         y: f64,
         z: f64,
         angle: f64,
-        can_gc: CanGc,
     ) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc).RotateAxisAngleSelf(x, y, z, angle)
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx))
+            .RotateAxisAngleSelf(x, y, z, angle)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewx>
-    fn SkewX(&self, sx: f64, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc).SkewXSelf(sx)
+    fn SkewX(&self, cx: &mut js::context::JSContext, sx: f64) -> DomRoot<DOMMatrix> {
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).SkewXSelf(sx)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewy>
-    fn SkewY(&self, sy: f64, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc).SkewYSelf(sy)
+    fn SkewY(&self, cx: &mut js::context::JSContext, sy: f64) -> DomRoot<DOMMatrix> {
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).SkewYSelf(sy)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-multiply>
-    fn Multiply(&self, other: &DOMMatrixInit, can_gc: CanGc) -> Fallible<DomRoot<DOMMatrix>> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc).MultiplySelf(other)
+    fn Multiply(&self, cx: &mut js::context::JSContext, other: &DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).MultiplySelf(other)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipx>
-    fn FlipX(&self, can_gc: CanGc) -> DomRoot<DOMMatrix> {
+    fn FlipX(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMMatrix> {
         let is2D = self.is2D.get();
         let flip = Transform3D::new(
             -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         );
         let matrix = flip.then(&self.matrix.borrow());
-        DOMMatrix::new(&self.global(), is2D, matrix, can_gc)
+        DOMMatrix::new(&self.global(), is2D, matrix, CanGc::from_cx(cx))
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipy>
-    fn FlipY(&self, can_gc: CanGc) -> DomRoot<DOMMatrix> {
+    fn FlipY(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMMatrix> {
         let is2D = self.is2D.get();
         let flip = Transform3D::new(
             1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         );
         let matrix = flip.then(&self.matrix.borrow());
-        DOMMatrix::new(&self.global(), is2D, matrix, can_gc)
+        DOMMatrix::new(&self.global(), is2D, matrix, CanGc::from_cx(cx))
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-inverse>
-    fn Inverse(&self, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, can_gc).InvertSelf()
+    fn Inverse(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMMatrix> {
+        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).InvertSelf()
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-transformpoint>
@@ -821,7 +823,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat32array>
-    fn ToFloat32Array(&self, cx: JSContext, can_gc: CanGc) -> RootedTraceableBox<HeapFloat32Array> {
+    fn ToFloat32Array(&self, cx: &mut js::context::JSContext) -> RootedTraceableBox<HeapFloat32Array> {
         let vec: Vec<f32> = self
             .matrix
             .borrow()
@@ -829,19 +831,19 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             .iter()
             .map(|&x| x as f32)
             .collect();
-        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, &vec, array.handle_mut(), can_gc)
+        rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
+        create_buffer_source(cx.into(), &vec, array.handle_mut(), CanGc::from_cx(cx))
             .expect("Converting matrix to float32 array should never fail")
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat64array>
-    fn ToFloat64Array(&self, cx: JSContext, can_gc: CanGc) -> RootedTraceableBox<HeapFloat64Array> {
-        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+    fn ToFloat64Array(&self, cx: &mut js::context::JSContext) -> RootedTraceableBox<HeapFloat64Array> {
+        rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
         create_buffer_source(
-            cx,
+            cx.into(),
             &self.matrix.borrow().to_array(),
             array.handle_mut(),
-            can_gc,
+            CanGc::from_cx(cx),
         )
         .expect("Converting matrix to float64 array should never fail")
     }
