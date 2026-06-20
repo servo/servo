@@ -61,7 +61,8 @@ use servo_config::pref;
 use servo_constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{
-    ImmutableOrigin, MutableOrigin, ServoUrl, local_runtime_raw_url_obfuscation_reason,
+    ImmutableOrigin, MutableOrigin, ServoUrl, local_runtime_package_mode_enabled,
+    local_runtime_raw_url_obfuscation_reason,
 };
 use style::attr::AttrValue;
 use style::context::QuirksMode;
@@ -3101,8 +3102,7 @@ impl Document {
         let base_url = self.base_url();
 
         if let Some(reason) = local_runtime_raw_url_obfuscation_reason(url) {
-            let package_mode = std::env::var_os("SERVORENA_PACKAGE_ID").is_some() &&
-                std::env::var_os("SERVORENA_PACKAGE_ROOT").is_some();
+            let package_mode = local_runtime_package_mode_enabled();
             log::warn!(
                 "[local-runtime raw-url-request]\n  requested: {}\n  base: {}\n  servo_module: components/script/dom/document/document.rs::Document::encoding_parse_a_url\n  decision: {}\n  reason: {}",
                 url,
@@ -3111,18 +3111,52 @@ impl Document {
                 reason,
             );
             if package_mode {
+                log::warn!(
+                    "[local-runtime url-resolution]\n  resolution_context: document-url\n  source_seam: components/script/dom/document/document.rs::Document::encoding_parse_a_url\n  author_text: {}\n  base_url: {}\n  resolution_result: rejected-before-normalization\n  reason: {}\n  destination: Document",
+                    url,
+                    base_url.as_str(),
+                    reason,
+                );
                 return Err(url::ParseError::RelativeUrlWithoutBase);
             }
         }
 
         // Step 5. Return the result of applying the URL parser to url, with baseURL and encoding.
-        url::Url::options()
+        let result = url::Url::options()
             .base_url(Some(base_url.as_url()))
             .encoding_override(Some(&|input| {
                 servo_url::encoding::encode_as_url_query_string(input, encoding)
             }))
             .parse(url)
-            .map(ServoUrl::from)
+            .map(ServoUrl::from);
+
+        let should_log = local_runtime_raw_url_obfuscation_reason(url).is_some() ||
+            url.contains("..") ||
+            url.contains('%') ||
+            url.starts_with("asset:") ||
+            url.starts_with("bundle:") ||
+            matches!(base_url.scheme(), "asset" | "bundle") ||
+            result
+                .as_ref()
+                .is_ok_and(|resolved| matches!(resolved.scheme(), "asset" | "bundle"));
+        if should_log {
+            match &result {
+                Ok(resolved) => log::info!(
+                    "[local-runtime url-resolution]\n  resolution_context: document-url\n  source_seam: components/script/dom/document/document.rs::Document::encoding_parse_a_url\n  author_text: {}\n  base_url: {}\n  resolved_url: {}\n  resolution_result: resolved\n  destination: Document",
+                    url,
+                    base_url.as_str(),
+                    resolved.as_str(),
+                ),
+                Err(error) => log::warn!(
+                    "[local-runtime url-resolution]\n  resolution_context: document-url\n  source_seam: components/script/dom/document/document.rs::Document::encoding_parse_a_url\n  author_text: {}\n  base_url: {}\n  resolution_result: parse-failed\n  reason: {:?}\n  destination: Document",
+                    url,
+                    base_url.as_str(),
+                    error,
+                ),
+            }
+        }
+
+        result
     }
 
     /// <https://html.spec.whatwg.org/multipage/#allowed-to-use>

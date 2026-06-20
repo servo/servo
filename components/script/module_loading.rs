@@ -511,12 +511,13 @@ pub(crate) fn host_load_imported_module(
         };
         info!(
             target: "script::script_module",
-            "[local-runtime module-resolution] phase: {} specifier: {} specifier_kind: raw-author-text importer/base: {} resolved: {} module_type: {}",
-            phase,
+            "[local-runtime url-resolution]\n  resolution_context: {}\n  source_seam: components/script/module_loading.rs::host_load_imported_module\n  author_text: {}\n  base_url: {}\n  resolved_url: {}\n  resolution_result: resolved\n  destination: Script\n  module_context: importer={} module_type={} phase=host-load",
+            if load_state.is_some() { "static-module-import" } else { "dynamic-module-import" },
             specifier,
             importer,
             url,
-            local_runtime_module_type_label(module_type)
+            importer,
+            local_runtime_module_type_label(module_type),
         );
         if load_state.is_none() {
             info!(
