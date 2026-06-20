@@ -239,3 +239,11 @@ Open questions:
 - Added local-runtime request logging at the `@import` loader handoff so nested stylesheet loads are visible before they enter fetch.
 - Discovered that web-font URL values are resolved from stylesheet data, but the fetch request referrer/base context used the document URL. Updated stylesheet-initiated web-font fetches to use the parsed stylesheet URL as the request referrer/base context and added a local-runtime log entry with `destination: Font`, stylesheet base, and document initiator.
 - CSS image `url(...)` loads still need a separate pass through the style/layout image-request path; this pass did not identify or modify that caller.
+
+## 2026-06-20 — Milestone 2 target matrix planning
+
+- Inspected `docs/local-runtime/usual_suspects.md`, `docs/local-runtime/loader-map.md`, and `docs/local-runtime/resource-provider-plan.md` against the achieved first-milestone status and the 16-target classification table.
+- Added a complete Milestone 2 list to `docs/local-runtime/usual_suspects.md` that covers the central package wall, scheme classification, raw traversal and URL laundering, document/script/module/CSS/font paths, media, WebSocket, EventSource/sendBeacon, XHR, workers/service workers, backend unreachability, and Android authority posture.
+- No Servo runtime crates were touched in this pass.
+- No new resource paths were loaded, logged, or denied; this is a planning/documentation pass to convert the remaining target matrix into focused probes, hardening, or explicit deferral.
+- Open question for the next pass: choose the first Milestone 2 probe family, preferably one that is small, reproducible, and validates an existing package-wall assumption before changing behavior.
