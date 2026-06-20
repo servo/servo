@@ -114,6 +114,12 @@ fn test_cmdline_and_location_bar_url() {
         "data:text/html,a",
     );
     test_url(
+        "servo:config",
+        "servo:config",
+        "servo:config",
+        "servo:config",
+    );
+    test_url(
         "README.md",
         "https://readme.md/",
         "file:///fake/cwd/README.md",
@@ -171,6 +177,12 @@ fn test_cmdline_and_location_bar_url() {
         "data:text/html,a",
         "data:text/html,a",
         "data:text/html,a",
+    );
+    test_url(
+        "servo:config",
+        "servo:config",
+        "servo:config",
+        "servo:config",
     );
     test_url(
         "README.md",
