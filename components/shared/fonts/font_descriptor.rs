@@ -73,7 +73,7 @@ impl FontDescriptor {
 /// from the given font data used as the source of the `@font-face` rule. If values
 /// like weight, stretch, and style are not specified they are initialized based
 /// on the contents of the font itself.
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct CSSFontFaceDescriptors {
     pub family_name: LowercaseFontFamilyName,
     pub weight: Option<ComputedFontWeightRange>,

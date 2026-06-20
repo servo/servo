@@ -948,7 +948,7 @@ impl Window {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 struct FontCspHandler {
     global: Trusted<GlobalScope>,
     task_source: SendableTaskSource,
@@ -970,7 +970,7 @@ impl CspViolationHandler for FontCspHandler {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 struct FontNetworkTimingHandler {
     global: Trusted<GlobalScope>,
     task_source: SendableTaskSource,

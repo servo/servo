@@ -200,7 +200,6 @@ mod font_context {
                 FontIdentifier::Local(local_font_identifier),
                 handle.descriptor(),
                 None,
-                None,
             ));
         }
     }
