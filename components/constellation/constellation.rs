@@ -4312,6 +4312,9 @@ where
         history_state_id: Option<HistoryStateId>,
         url: ServoUrl,
     ) {
+        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            pipeline.url = url.clone();
+        }
         let msg = ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url);
         self.send_message_to_pipeline(pipeline_id, msg, "History state updated after closure");
     }
