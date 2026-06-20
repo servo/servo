@@ -56,3 +56,13 @@ Raw URL laundering note: `components/url/lib.rs` now logs suspicious raw URL tex
 ## Module provenance logging notes
 
 `components/script/script_module.rs` and `components/script/module_loading.rs` now add focused local-runtime module provenance logs under `script::script_module` / script module logging. The searchable prefixes are `[local-runtime module-resolution]`, `[local-runtime module-map]`, and `[local-runtime module-evaluation]`. These logs are restricted where practical to `asset://` and `bundle://` module URLs or edges whose importer/base is a local-runtime URL. They are intended to correlate module specifier resolution, module-map state, and top-level/dynamic module evaluation without changing package policy, resolution semantics, dynamic import behavior, or exception reporting.
+
+## URL provenance instrumentation notes
+
+`components/url/lib.rs` now emits `[local-runtime url-resolution]` records from `ServoUrl::parse`, `ServoUrl::parse_with_base`, and `ServoUrl::join` for local-runtime-relevant URLs and suspicious spellings. These records use `resolver_input` because the shared URL layer cannot know whether the string is raw author input or has already been transformed by a caller. They are useful for identifying where normalization happens, but an owning document/module seam should be preferred for base and author-text interpretation.
+
+`components/script/dom/document/document.rs::Document::encoding_parse_a_url` logs the document-owned parsing context before its direct encoding-aware `url` crate parse. This seam can label the visible string as `author_text`, logs the document base URL actually used for parsing, and can report `rejected-before-normalization` for package-mode raw-obfuscation denials before parsing.
+
+`components/script/dom/html/htmlscriptelement.rs::HTMLScriptElement::prepare` logs external script `src` resolution with the raw `src` attribute value as `author_text`, the document base URL used by `base_url.join(&src)`, and `destination: Script`.
+
+`components/script/script_module.rs` and `components/script/module_loading.rs` now use the same `[local-runtime url-resolution]` vocabulary for static URL-like module specifier resolution and host-loaded static/dynamic module imports. `host_load_imported_module` is the clearest dynamic-import correlation point because it still has the author specifier string, importer/module base, resolved module URL, and module type before the request reaches the module fetch path.

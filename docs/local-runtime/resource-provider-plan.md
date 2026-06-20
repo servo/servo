@@ -124,3 +124,12 @@ The final provider request shape should make this explicit instead of overloadin
 - `final_url`: resolved URL after stylesheet-relative resolution
 
 CSS image `url(...)` remains an open mapping item.
+
+## URL Resolution Provenance
+
+Source-level provenance logging now exists before the final resource-thread policy wall for package-relevant document, external script, and module URL resolution. The important distinction is:
+
+- `author_text` means the string is still visible at an owning document/module seam and is believed to be raw author input, such as a script `src` attribute or module specifier string.
+- `resolver_input` means the shared URL parser/join layer sees a string, but the caller may already have decoded, rewritten, normalized, or otherwise transformed it.
+
+Future `ResourceRequest` work should carry both the raw author spelling, when available, and the resolved `ServoUrl`. Without that request-shape change, final resource-policy logs can correlate by adjacent source-seam logs but cannot always prove which raw spelling produced a later normalized URL.

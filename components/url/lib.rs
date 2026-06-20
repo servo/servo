@@ -23,7 +23,7 @@ use servo_arc::Arc;
 pub use url::Host;
 use url::{Position, Url};
 
-fn local_runtime_package_mode_enabled() -> bool {
+pub fn local_runtime_package_mode_enabled() -> bool {
     std::env::var_os("SERVORENA_PACKAGE_ID").is_some()
         && std::env::var_os("SERVORENA_PACKAGE_ROOT").is_some()
 }
@@ -83,6 +83,52 @@ pub fn local_runtime_raw_url_obfuscation_reason(input: &str) -> Option<&'static 
     None
 }
 
+fn local_runtime_url_is_package_relevant(
+    input: &str,
+    base: Option<&ServoUrl>,
+    resolved: Option<&ServoUrl>,
+) -> bool {
+    local_runtime_raw_url_obfuscation_reason(input).is_some()
+        || input.contains("..")
+        || input.contains('%')
+        || input.starts_with("asset:")
+        || input.starts_with("bundle:")
+        || base.is_some_and(|url| matches!(url.scheme(), "asset" | "bundle"))
+        || resolved.is_some_and(|url| matches!(url.scheme(), "asset" | "bundle"))
+}
+
+fn local_runtime_log_url_resolution(
+    resolution_context: &str,
+    source_seam: &str,
+    resolver_input: &str,
+    base: Option<&ServoUrl>,
+    result: &Result<ServoUrl, url::ParseError>,
+) {
+    let resolved = result.as_ref().ok();
+    if !local_runtime_url_is_package_relevant(resolver_input, base, resolved) {
+        return;
+    }
+
+    match result {
+        Ok(url) => log::info!(
+            "[local-runtime url-resolution]\n  resolution_context: {}\n  source_seam: {}\n  resolver_input: {}\n  base_url: {}\n  resolved_url: {}\n  resolution_result: resolved",
+            resolution_context,
+            source_seam,
+            resolver_input,
+            base.map(ServoUrl::as_str).unwrap_or("none"),
+            url.as_str(),
+        ),
+        Err(error) => log::warn!(
+            "[local-runtime url-resolution]\n  resolution_context: {}\n  source_seam: {}\n  resolver_input: {}\n  base_url: {}\n  resolution_result: parse-failed\n  reason: {:?}",
+            resolution_context,
+            source_seam,
+            resolver_input,
+            base.map(ServoUrl::as_str).unwrap_or("none"),
+            error,
+        ),
+    }
+}
+
 fn local_runtime_log_raw_url_obfuscation(input: &str, base: Option<&ServoUrl>, module: &str) {
     let Some(reason) = local_runtime_raw_url_obfuscation_reason(input) else {
         return;
@@ -134,10 +180,18 @@ impl ServoUrl {
         {
             return Err(url::ParseError::RelativeUrlWithoutBase);
         }
-        Url::options()
+        let result = Url::options()
             .base_url(base.map(|b| &*b.0))
             .parse(input)
-            .map(Self::from_url)
+            .map(Self::from_url);
+        local_runtime_log_url_resolution(
+            "servo-url-parse-with-base",
+            "components/url/lib.rs::ServoUrl::parse_with_base",
+            input,
+            base,
+            &result,
+        );
+        result
     }
 
     pub fn into_string(self) -> String {
@@ -167,7 +221,15 @@ impl ServoUrl {
         {
             return Err(url::ParseError::RelativeUrlWithoutBase);
         }
-        Url::parse(input).map(Self::from_url)
+        let result = Url::parse(input).map(Self::from_url);
+        local_runtime_log_url_resolution(
+            "servo-url-parse",
+            "components/url/lib.rs::ServoUrl::parse",
+            input,
+            None,
+            &result,
+        );
+        result
     }
 
     pub fn cannot_be_a_base(&self) -> bool {
@@ -292,7 +354,15 @@ impl ServoUrl {
         {
             return Err(url::ParseError::RelativeUrlWithoutBase);
         }
-        self.0.join(input).map(Self::from_url)
+        let result = self.0.join(input).map(Self::from_url);
+        local_runtime_log_url_resolution(
+            "servo-url-join",
+            "components/url/lib.rs::ServoUrl::join",
+            input,
+            Some(self),
+            &result,
+        );
+        result
     }
 
     pub fn path_segments(&self) -> Option<::std::str::Split<'_, char>> {

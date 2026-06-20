@@ -59,7 +59,10 @@ use script_bindings::trace::CustomTraceable;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use servo_base::id::PipelineId;
 use servo_config::pref;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{
+    ImmutableOrigin, ServoUrl, local_runtime_package_mode_enabled,
+    local_runtime_raw_url_obfuscation_reason,
+};
 
 pub(crate) fn is_local_runtime_module_url(url: &ServoUrl) -> bool {
     matches!(url.scheme(), "asset" | "bundle")
@@ -615,8 +618,8 @@ impl ModuleTree {
             Some(result) => {
                 if is_local_runtime_module_url(&result) || is_local_runtime_module_url(base_url) {
                     info!(
-                        "[local-runtime module-resolution] phase: unknown specifier: {} specifier_kind: raw-author-text importer/base: {} resolved: {} module_type: unknown",
-                        &**specifier, serialized_base_url, result
+                        "[local-runtime url-resolution]\n  resolution_context: static-module-import\n  source_seam: components/script/script_module.rs::ModuleTree::resolve_module_specifier\n  author_text: {}\n  base_url: {}\n  resolved_url: {}\n  resolution_result: resolved\n  destination: Script\n  module_context: importer_base={} module_type=unknown phase=import-map-or-url-resolution",
+                        &**specifier, serialized_base_url, result, serialized_base_url
                     );
                 }
                 // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
@@ -644,25 +647,63 @@ impl ModuleTree {
         if specifier.starts_with('/') || specifier.starts_with("./") || specifier.starts_with("../")
         {
             // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
-            let resolved = ServoUrl::parse_with_base(Some(base_url), specifier).ok();
-            if let Some(url) = &resolved {
-                if is_local_runtime_module_url(url) || is_local_runtime_module_url(base_url) {
-                    info!(
-                        "[local-runtime module-resolution] phase: unknown specifier: {} specifier_kind: resolver-input importer/base: {} resolved: {} module_type: unknown",
-                        specifier, base_url, url
-                    );
+            let resolved_result = ServoUrl::parse_with_base(Some(base_url), specifier);
+            let resolved = resolved_result.ok();
+            if local_runtime_raw_url_obfuscation_reason(specifier).is_some() ||
+                specifier.contains("..") ||
+                specifier.contains('%') ||
+                resolved
+                    .as_ref()
+                    .is_some_and(|url| is_local_runtime_module_url(url)) ||
+                is_local_runtime_module_url(base_url)
+            {
+                match &resolved {
+                    Some(url) => info!(
+                        "[local-runtime url-resolution]\n  resolution_context: static-module-import\n  source_seam: components/script/script_module.rs::ModuleTree::resolve_url_like_module_specifier\n  resolver_input: {}\n  base_url: {}\n  resolved_url: {}\n  resolution_result: resolved\n  destination: Script\n  module_context: importer_base={} module_type=unknown phase=url-like-relative",
+                        specifier, base_url, url, base_url
+                    ),
+                    None => {
+                        let raw_reason = local_runtime_raw_url_obfuscation_reason(specifier);
+                        warn!(
+                            "[local-runtime url-resolution]\n  resolution_context: static-module-import\n  source_seam: components/script/script_module.rs::ModuleTree::resolve_url_like_module_specifier\n  resolver_input: {}\n  base_url: {}\n  resolution_result: {}\n  reason: {}\n  destination: Script\n  module_context: importer_base={} module_type=unknown phase=url-like-relative",
+                            specifier,
+                            base_url,
+                            if raw_reason.is_some() && local_runtime_package_mode_enabled() { "rejected-before-normalization" } else { "parse-failed" },
+                            raw_reason.unwrap_or("UrlParseError"),
+                            base_url,
+                        )
+                    },
                 }
             }
             return resolved;
         }
         // Step 2. Let url be the result of URL parsing specifier (with no base URL).
-        let resolved = ServoUrl::parse(specifier).ok();
-        if let Some(url) = &resolved {
-            if is_local_runtime_module_url(url) || is_local_runtime_module_url(base_url) {
-                info!(
-                    "[local-runtime module-resolution] phase: unknown specifier: {} specifier_kind: resolver-input importer/base: {} resolved: {} module_type: unknown",
-                    specifier, base_url, url
-                );
+        let resolved_result = ServoUrl::parse(specifier);
+        let resolved = resolved_result.ok();
+        if local_runtime_raw_url_obfuscation_reason(specifier).is_some() ||
+            specifier.contains("..") ||
+            specifier.contains('%') ||
+            resolved
+                .as_ref()
+                .is_some_and(|url| is_local_runtime_module_url(url)) ||
+            is_local_runtime_module_url(base_url)
+        {
+            match &resolved {
+                Some(url) => info!(
+                    "[local-runtime url-resolution]\n  resolution_context: static-module-import\n  source_seam: components/script/script_module.rs::ModuleTree::resolve_url_like_module_specifier\n  resolver_input: {}\n  base_url: none-low-level; owning_base_url={}\n  resolved_url: {}\n  resolution_result: resolved\n  destination: Script\n  module_context: importer_base={} module_type=unknown phase=url-like-absolute",
+                    specifier, base_url, url, base_url
+                ),
+                None => {
+                    let raw_reason = local_runtime_raw_url_obfuscation_reason(specifier);
+                    warn!(
+                        "[local-runtime url-resolution]\n  resolution_context: static-module-import\n  source_seam: components/script/script_module.rs::ModuleTree::resolve_url_like_module_specifier\n  resolver_input: {}\n  base_url: none-low-level; owning_base_url={}\n  resolution_result: {}\n  reason: {}\n  destination: Script\n  module_context: importer_base={} module_type=unknown phase=url-like-absolute",
+                        specifier,
+                        base_url,
+                        if raw_reason.is_some() && local_runtime_package_mode_enabled() { "rejected-before-normalization" } else { "parse-failed" },
+                        raw_reason.unwrap_or("UrlParseError"),
+                        base_url,
+                    )
+                },
             }
         }
         resolved
