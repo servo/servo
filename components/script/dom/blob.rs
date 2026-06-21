@@ -14,6 +14,7 @@ use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
 use rustc_hash::FxHashMap;
+use script_bindings::codegen::GenericBindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_base::id::{BlobId, BlobIndex};
 use servo_constellation_traits::{BlobData, BlobImpl};
@@ -22,6 +23,9 @@ use uuid::Uuid;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
+    ReadableStreamMethods, ReadableWritablePair, StreamPipeOptions,
+};
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
@@ -29,6 +33,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredData;
+use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
@@ -282,6 +287,35 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     // <https://w3c.github.io/FileAPI/#blob-get-stream>
     fn Stream(&self, cx: &mut JSContext) -> Fallible<DomRoot<ReadableStream>> {
         self.get_stream(cx)
+    }
+
+    /// <https://w3c.github.io/FileAPI/#text-stream-method-algo>
+    fn TextStream(&self, cx: &mut JSContext) -> Fallible<DomRoot<ReadableStream>> {
+        // Step 1: Let stream be the result of calling get stream on this.
+        let stream = self.get_stream(cx)?;
+        // Step 2: Let decoder be a new TextDecoderStream in this's relevant realm.
+        // Step 3: Set up decoder with UTF-8.
+        let decoder = TextDecoderStream::new_with_proto(
+            cx,
+            &self.global(),
+            None,
+            UTF_8,
+            false, // fatal
+            false, // ignoreBOM
+        )?;
+        // Step 4: Return the result of calling stream, piped through decoder.
+        let pair = ReadableWritablePair {
+            readable: decoder.Readable(),
+            writable: decoder.Writable(),
+        };
+        let options = StreamPipeOptions {
+            preventClose: false,
+            preventAbort: false,
+            preventCancel: false,
+            signal: None,
+        };
+        let mut realm = CurrentRealm::assert(cx);
+        stream.PipeThrough(&mut realm, &pair, &options)
     }
 
     /// <https://w3c.github.io/FileAPI/#slice-method-algo>
