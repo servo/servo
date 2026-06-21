@@ -18,7 +18,8 @@ use servo_url::ServoUrl;
 use url::Position;
 
 use crate::body::{
-    BodyMixin, BodyType, Extractable, ExtractedBody, clone_body_stream_for_dom_body, consume_body,
+    BodyMixin, BodyType, Extractable, ExtractedBody, body_text_stream,
+    clone_body_stream_for_dom_body, consume_body,
 };
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
@@ -398,6 +399,11 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
     fn Bytes(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         consume_body(cx, self, BodyType::Bytes)
+    }
+
+    /// <https://fetch.spec.whatwg.org/#dom-body-textstream>
+    fn TextStream(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<ReadableStream>> {
+        body_text_stream(cx, self)
     }
 }
 
