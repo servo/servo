@@ -14,7 +14,7 @@ use html5ever::{LocalName, Namespace, Prefix, ns};
 use js::context::JSContext;
 use js::conversions::FromJSValConvertible;
 use js::glue::UnwrapObjectStatic;
-use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
+use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSObject};
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{Construct1, JS_GetProperty, SameValue};
@@ -853,6 +853,7 @@ pub(crate) fn upgrade_element(
         let local_name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
         custom_element_reaction_stack.enqueue_callback_reaction(
+            cx,
             element,
             CallbackReaction::AttributeChanged(local_name, None, Some(&*attr.value()), namespace),
             Some(definition.clone()),
@@ -862,7 +863,8 @@ pub(crate) fn upgrade_element(
     // Step 5. If element is connected, then enqueue a custom element callback reaction with element,
     // callback name "connectedCallback", and « ».
     if element.is_connected() {
-        ScriptThread::enqueue_callback_reaction(
+        custom_element_reaction_stack.enqueue_callback_reaction(
+            cx,
             element,
             CallbackReaction::Connected,
             Some(definition.clone()),
@@ -931,7 +933,8 @@ pub(crate) fn upgrade_element(
         // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
         // with element.
         if element.disabled_state() {
-            ScriptThread::enqueue_callback_reaction(
+            custom_element_reaction_stack.enqueue_callback_reaction(
+                cx,
                 element,
                 CallbackReaction::FormDisabled(true),
                 Some(definition),
@@ -1165,6 +1168,7 @@ impl CustomElementReactionStack {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn enqueue_callback_reaction(
         &self,
+        cx: &mut JSContext,
         element: &Element,
         reaction: CallbackReaction,
         definition: Option<Rc<CustomElementDefinition>>,
@@ -1201,33 +1205,33 @@ impl CustomElementReactionStack {
                     return;
                 }
 
-                let cx = GlobalScope::get_cx();
                 // We might be here during HTML parsing, rather than
                 // during Javscript execution, and so we typically aren't
                 // already in a realm here.
-                let _ac = JSAutoRealm::new(*cx, element.global().reflector().get_jsobject().get());
+                let mut realm = enter_auto_realm(cx, &*element.global());
+                let cx = &mut realm;
 
                 let local_name = DOMString::from(&*local_name);
-                rooted!(in(*cx) let mut name_value = UndefinedValue());
-                local_name.safe_to_jsval(cx, name_value.handle_mut(), CanGc::deprecated_note());
+                rooted!(&in(cx) let mut name_value = UndefinedValue());
+                local_name.safe_to_jsval(cx.into(), name_value.handle_mut(), CanGc::from_cx(cx));
 
-                rooted!(in(*cx) let mut old_value = NullValue());
+                rooted!(&in(cx) let mut old_value = NullValue());
                 if let Some(old_val) = old_val {
-                    old_val.safe_to_jsval(cx, old_value.handle_mut(), CanGc::deprecated_note());
+                    old_val.safe_to_jsval(cx.into(), old_value.handle_mut(), CanGc::from_cx(cx));
                 }
 
-                rooted!(in(*cx) let mut value = NullValue());
+                rooted!(&in(cx) let mut value = NullValue());
                 if let Some(val) = val {
-                    val.safe_to_jsval(cx, value.handle_mut(), CanGc::deprecated_note());
+                    val.safe_to_jsval(cx.into(), value.handle_mut(), CanGc::from_cx(cx));
                 }
 
-                rooted!(in(*cx) let mut namespace_value = NullValue());
+                rooted!(&in(cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
                     let namespace = DOMString::from(&*namespace);
                     namespace.safe_to_jsval(
-                        cx,
+                        cx.into(),
                         namespace_value.handle_mut(),
-                        CanGc::deprecated_note(),
+                        CanGc::from_cx(cx),
                     );
                 }
 
@@ -1257,8 +1261,7 @@ impl CustomElementReactionStack {
                 (definition.callbacks.form_associated_callback.clone(), args)
             },
             CallbackReaction::FormDisabled(disabled) => {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut disabled_value = BooleanValue(disabled));
+                rooted!(&in(cx) let disabled_value = BooleanValue(disabled));
                 let args = vec![Heap::default()];
                 args[0].set(disabled_value.get());
                 (definition.callbacks.form_disabled_callback.clone(), args)

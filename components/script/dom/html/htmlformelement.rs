@@ -1476,6 +1476,7 @@ impl Element {
             html_element.is_form_associated_custom_element()
         {
             ScriptThread::enqueue_callback_reaction(
+                cx,
                 html_element.upcast::<Element>(),
                 CallbackReaction::FormReset,
                 None,
@@ -1719,6 +1720,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
                 html_elem.is_form_associated_custom_element()
             {
                 ScriptThread::enqueue_callback_reaction(
+                    cx,
                     elem,
                     CallbackReaction::FormAssociated(
                         new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),

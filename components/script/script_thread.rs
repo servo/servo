@@ -842,6 +842,7 @@ impl ScriptThread {
     }
 
     pub(crate) fn enqueue_callback_reaction(
+        cx: &mut js::context::JSContext,
         element: &Element,
         reaction: CallbackReaction,
         definition: Option<Rc<CustomElementDefinition>>,
@@ -849,7 +850,7 @@ impl ScriptThread {
         with_script_thread(|script_thread| {
             script_thread
                 .custom_element_reaction_stack
-                .enqueue_callback_reaction(element, reaction, definition);
+                .enqueue_callback_reaction(cx, element, reaction, definition);
         })
     }
 
