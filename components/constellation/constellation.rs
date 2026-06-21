@@ -6148,7 +6148,7 @@ where
         // 4. continue in WebDriver thread
         if let Some(ref chan) = self.webdriver_sender {
             // TODO: fields
-            let msg = ConstellationToWebDriverMsg::BrowsingContextCreated(Info {
+            let msg = ConstellationToWebDriverMsg::ContextCreated(Info {
                 children: None,
                 client_window: "".to_string(),
                 context: navigable.to_string(),

@@ -60,7 +60,11 @@ use servo_base::{
 
 use crate::bidi::{
     browser::SetClientWindowStateParameters,
-    browsing_context::{self, ClipRectangle, CreateType, Locator, PrintParameters},
+    browsing_context::{
+        self, ClipRectangle, CreateType, DownloadEndParams, DownloadWillBeginParams,
+        HistoryUpdatedParameters, Locator, NavigationInfo, PrintParameters, UserPromptClosed,
+        UserPromptClosedParameters, UserPromptOpenedParameters,
+    },
     emulation::{
         ForcedColorsModeTheme, ScreenArea, ScreenOrientation, SetGeolocationOverrideParameters,
         SetScrollbarTypeOverrideParametersScrollbarType,
@@ -92,7 +96,18 @@ impl From<ScriptToWebDriverMsg> for WebDriverMsg {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ConstellationToWebDriverMsg {
-    BrowsingContextCreated(browsing_context::Info),
+    ContextCreated(browsing_context::Info),
+    ContextDestroyed(browsing_context::Info),
+    DomContentLoaded(NavigationInfo),
+    DownloadWillBegin(DownloadWillBeginParams),
+    DownloadEnd(DownloadEndParams),
+    FragmentNavigated(NavigationInfo),
+    HistoryUpdated(HistoryUpdatedParameters),
+    Load(NavigationInfo),
+    NavigationStarted(NavigationInfo),
+    NavigationAborted(NavigationInfo),
+    NavigationCommitted(NavigationInfo),
+    NavigationFailed(NavigationInfo),
 }
 
 // TODO: command responses need session id
@@ -103,6 +118,7 @@ pub enum ScriptToWebDriverMsg {
         (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
         GenericSender<WebDriverToScriptMsg>,
     ),
+    RealmDestroyed(PipelineId, Option<WorkerId>),
     /// When a channel previously sent to script thread is called.
     ChannelMessage {
         // TODO: channel should have more speicific id type
@@ -110,6 +126,8 @@ pub enum ScriptToWebDriverMsg {
         data: script::RemoteValue, // TODO: source with realm id & context id
     },
     FileDialogOpened(input::FileDialogOpened),
+    UserPromptClosed(UserPromptClosedParameters),
+    UserPromptOpened(UserPromptOpenedParameters),
 }
 
 // TODO: remove all callback

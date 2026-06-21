@@ -26,6 +26,9 @@ impl RemoteEnd {
             ),
             ScriptToWebDriverMsg::ChannelMessage { channel, data } => todo!(),
             ScriptToWebDriverMsg::FileDialogOpened(file_dialog_opened) => todo!(),
+            ScriptToWebDriverMsg::RealmDestroyed(namespace_index, worker_id) => todo!(),
+            ScriptToWebDriverMsg::UserPromptClosed(user_prompt_closed_parameters) => todo!(),
+            ScriptToWebDriverMsg::UserPromptOpened(user_prompt_opened_parameters) => todo!(),
         }
     }
 
