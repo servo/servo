@@ -13,7 +13,7 @@ use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use stylo_dom::ElementState;
 
-use super::bindings::codegen::Bindings::ElementInternalsBinding::ValidityStateFlags;
+use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::ValidityStateFlags;
 use crate::dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
