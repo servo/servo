@@ -883,3 +883,10 @@ Everything else gets no phone line.
 - No new resource acquisition paths were discovered; this change is presentation/event-hosting work rather than local package loader policy work.
 - AccessKit remains egui-owned in normal mode. Bare mode does not initialize egui's AccessKit adapter and ignores accessibility app events after updating shell accessibility state, leaving direct AccessKit architecture deferred.
 - Deferred validation: broad servoshell build/check remained too large for this agent run from the current checkout; parser coverage was added but the full focused command did not complete before being stopped.
+
+## 2026-06-21 — Plain Debian 12 recovery workflow restoration
+
+- Restored `ci/local-runtime/debian12-preflight.sh` from historical commit `9ce4a68580502f62723530eabeecea9557e92815` as active executable CI logic for the manual plain-Debian recovery path.
+- Added `.github/workflows/local-runtime-debian12-recovery.yml` as a `workflow_dispatch`-only recipe-restoration workflow: stock `debian:12`, restored preflight, fail-fast Git/Rust/toolchain provenance gate, `./mach bootstrap --yes`, `./mach build --debug`, `./mach package --debug`, stripped runtime extraction, `nogit` rejection, and one uploaded runtime artifact containing `BUILD-RECEIPT.txt`.
+- Added `ci/local-runtime/debian12-recovery-preflight.Dockerfile` as a saved remote preflight candidate kitchen only. It starts from `debian:12`, runs the restored preflight with only `rust-toolchain.toml` copied long enough to select Rust, and does not copy Servo source or run bootstrap/build/package.
+- No Servo runtime code, local-runtime resource policy code, or `--no-egui` behavior was touched. No runtime resource paths were loaded, logged, or denied by this CI-only restoration.

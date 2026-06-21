@@ -1,0 +1,349 @@
+name: Local Runtime Debian 12 Recipe Restoration
+
+on:
+  workflow_dispatch:
+    inputs:
+      save_preflight_candidate:
+        description: Save a remote GHCR preflight candidate image after the runtime build succeeds.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  debian12-recovery-runtime:
+    name: Plain Debian 12 debug runtime recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 720
+    container:
+      image: debian:12
+    env:
+      RUST_BACKTRACE: '1'
+      SHELL: /bin/bash
+      CC: clang
+      CXX: clang++
+      CARGO_TARGET_DIR: /var/servo-cargo-target
+      UV_PROJECT_ENVIRONMENT: .devcontainer-venv
+      RUSTUP_HOME: /usr/local/rustup
+      CARGO_HOME: /usr/local/cargo
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout current source with full Git metadata
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run restored Debian 12 preflight
+        run: ci/local-runtime/debian12-preflight.sh
+
+      - name: Fail-fast provenance and toolchain gate
+        run: |
+          set -Eeuo pipefail
+          export PATH="${CARGO_HOME}/bin:${PATH}"
+
+          echo '== Git provenance =='
+          git rev-parse --is-inside-work-tree
+          git rev-parse --verify HEAD
+          git describe --always --dirty
+          if [ -d .git ]; then
+            GIT_FORM='directory'
+          elif [ -f .git ]; then
+            GIT_FORM='git-file worktree pointer'
+          else
+            echo 'ERROR: .git is neither a directory nor a Git-file worktree pointer.' >&2
+            exit 1
+          fi
+          echo ".git form: ${GIT_FORM}"
+
+          expected_rust_channel="$(${PYTHON:-python3} - <<'PY_TOOLCHAIN'
+          import re
+          from pathlib import Path
+          text = Path('rust-toolchain.toml').read_text(encoding='utf-8')
+          match = re.search(r'^channel\s*=\s*["\']([^"\']+)["\']', text, re.MULTILINE)
+          if not match:
+              raise SystemExit('rust-toolchain.toml does not declare a channel')
+          print(match.group(1))
+          PY_TOOLCHAIN
+          )"
+          echo "Expected Rust channel: ${expected_rust_channel}"
+
+          echo '== Required tools =='
+          uv --version
+          active_toolchain="$(rustup show active-toolchain)"
+          echo "${active_toolchain}"
+          rustc -Vv
+          cargo -Vv
+          clang --version
+          clang++ --version
+
+          select_tool() {
+            local label="$1"
+            shift
+            local tool
+            for tool in "$@"; do
+              if command -v "$tool" >/dev/null 2>&1; then
+                command -v "$tool"
+                return 0
+              fi
+            done
+            echo "ERROR: missing ${label}; expected one of: $*" >&2
+            return 1
+          }
+          READELF="$(select_tool 'ELF header reader' readelf llvm-readelf)"
+          OBJCOPY="$(select_tool 'debug objcopy tool' objcopy llvm-objcopy)"
+          STRIP="$(select_tool 'strip tool' strip llvm-strip)"
+          echo "Selected readelf: ${READELF}"
+          "${READELF}" --version | sed -n '1p'
+          echo "Selected objcopy: ${OBJCOPY}"
+          "${OBJCOPY}" --version | sed -n '1p'
+          echo "Selected strip: ${STRIP}"
+          "${STRIP}" --version | sed -n '1p'
+
+          rustc_release="$(rustc --version | awk '{print $2}')"
+          case "${active_toolchain}" in
+            "${expected_rust_channel}"* ) ;;
+            * )
+              echo "ERROR: active Rust toolchain '${active_toolchain}' does not match rust-toolchain.toml channel '${expected_rust_channel}'." >&2
+              exit 1
+              ;;
+          esac
+          if [ "${rustc_release}" != "${expected_rust_channel}" ]; then
+            echo "ERROR: rustc version '${rustc_release}' does not match rust-toolchain.toml channel '${expected_rust_channel}'." >&2
+            exit 1
+          fi
+
+          echo '== Environment =='
+          printf 'PATH=%s\n' "${PATH}"
+          printf 'RUSTUP_HOME=%s\n' "${RUSTUP_HOME}"
+          printf 'CARGO_HOME=%s\n' "${CARGO_HOME}"
+          printf 'CARGO_TARGET_DIR=%s\n' "${CARGO_TARGET_DIR}"
+          printf 'CC=%s\n' "${CC}"
+          printf 'CXX=%s\n' "${CXX}"
+          printf 'UV_PROJECT_ENVIRONMENT=%s\n' "${UV_PROJECT_ENVIRONMENT}"
+          printf 'RUST_BACKTRACE=%s\n' "${RUST_BACKTRACE}"
+
+          echo '== OS and libc =='
+          cat /etc/os-release
+          ldd --version | sed -n '1,3p'
+
+      - name: Bootstrap Servo dependencies
+        run: |
+          set -Eeuo pipefail
+          export PATH="${CARGO_HOME}/bin:${PATH}"
+          ./mach bootstrap --yes
+
+      - name: Write post-bootstrap package and tool receipt
+        run: |
+          set -Eeuo pipefail
+          export PATH="${CARGO_HOME}/bin:${PATH}"
+          receipt="$RUNNER_TEMP/BUILD-RECEIPT.txt"
+          select_tool() {
+            local tool
+            for tool in "$@"; do
+              if command -v "$tool" >/dev/null 2>&1; then
+                command -v "$tool"
+                return 0
+              fi
+            done
+            return 1
+          }
+          READELF="$(select_tool readelf llvm-readelf)"
+          OBJCOPY="$(select_tool objcopy llvm-objcopy)"
+          STRIP="$(select_tool strip llvm-strip)"
+          expected_rust_channel="$(python3 - <<'PY_TOOLCHAIN'
+          import re
+          from pathlib import Path
+          text = Path('rust-toolchain.toml').read_text(encoding='utf-8')
+          match = re.search(r'^channel\s*=\s*["\']([^"\']+)["\']', text, re.MULTILINE)
+          if not match:
+              raise SystemExit('rust-toolchain.toml does not declare a channel')
+          print(match.group(1))
+          PY_TOOLCHAIN
+          )"
+          if [ -d .git ]; then GIT_FORM='directory'; elif [ -f .git ]; then GIT_FORM='git-file worktree pointer'; else GIT_FORM='missing'; fi
+          {
+            echo 'BUILD-RECEIPT.txt'
+            echo
+            echo "Git HEAD full SHA: $(git rev-parse HEAD)"
+            echo "git describe output: $(git describe --always --dirty)"
+            echo 'git status --short:'
+            git status --short || true
+            echo ".git present/form: ${GIT_FORM}"
+            echo "rust-toolchain.toml sha256: $(sha256sum rust-toolchain.toml | awk '{print $1}')"
+            echo "expected Rust channel from rust-toolchain.toml: ${expected_rust_channel}"
+            echo "rustup active-toolchain: $(rustup show active-toolchain)"
+            echo 'rustc -Vv:'
+            rustc -Vv
+            echo 'cargo -Vv:'
+            cargo -Vv
+            echo "uv version: $(uv --version)"
+            echo 'clang version:'
+            clang --version
+            echo 'clang++ version:'
+            clang++ --version
+            echo "selected readelf path: ${READELF}"
+            "${READELF}" --version | sed -n '1p'
+            echo "selected objcopy path: ${OBJCOPY}"
+            "${OBJCOPY}" --version | sed -n '1p'
+            echo "selected strip path: ${STRIP}"
+            "${STRIP}" --version | sed -n '1p'
+            echo '/etc/os-release:'
+            cat /etc/os-release
+            echo 'ldd version:'
+            ldd --version | sed -n '1,3p'
+            echo 'environment:'
+            printf 'PATH=%s\n' "${PATH}"
+            printf 'RUSTUP_HOME=%s\n' "${RUSTUP_HOME}"
+            printf 'CARGO_HOME=%s\n' "${CARGO_HOME}"
+            printf 'CARGO_TARGET_DIR=%s\n' "${CARGO_TARGET_DIR}"
+            printf 'CC=%s\n' "${CC}"
+            printf 'CXX=%s\n' "${CXX}"
+            printf 'UV_PROJECT_ENVIRONMENT=%s\n' "${UV_PROJECT_ENVIRONMENT}"
+            printf 'RUST_BACKTRACE=%s\n' "${RUST_BACKTRACE}"
+            echo 'apt source configuration:'
+            find /etc/apt -maxdepth 3 -type f \( -name '*.list' -o -name '*.sources' \) -print -exec sha256sum {} \; | sort
+            echo 'installed Debian packages from dpkg-query:'
+            dpkg-query -W -f='${binary:Package}\t${Version}\n' | sort
+            echo 'final packaged servoshell --version output: pending package extraction'
+            echo 'final servoshell ELF GLIBC / GLIBCXX / CXXABI floors: pending package extraction'
+          } > "${receipt}"
+          echo "Wrote ${receipt}"
+
+      - name: Build debug runtime
+        run: |
+          set -Eeuo pipefail
+          export PATH="${CARGO_HOME}/bin:${PATH}"
+          ./mach build --debug
+
+      - name: Package debug runtime
+        run: |
+          set -Eeuo pipefail
+          export PATH="${CARGO_HOME}/bin:${PATH}"
+          ./mach package --debug
+
+      - name: Extract, strip, verify, and receipt packaged runtime
+        run: |
+          set -Eeuo pipefail
+          export PATH="${CARGO_HOME}/bin:${PATH}"
+          PACKAGE="${CARGO_TARGET_DIR}/debug/servo-tech-demo.tar.gz"
+          test -s "${PACKAGE}"
+          RUNTIME_DIR="${RUNNER_TEMP}/servo-debian12-recovery-runtime"
+          SYMBOL_DIR="${RUNNER_TEMP}/servo-debian12-recovery-symbols-temp"
+          ELF_LIST="${RUNNER_TEMP}/servo-debian12-recovery-elf-files.txt"
+          rm -rf "${RUNTIME_DIR}" "${SYMBOL_DIR}"
+          mkdir -p "${RUNTIME_DIR}" "${SYMBOL_DIR}"
+          tar -xzf "${PACKAGE}" -C "${RUNTIME_DIR}"
+
+          select_tool() {
+            local tool
+            for tool in "$@"; do
+              if command -v "$tool" >/dev/null 2>&1; then
+                command -v "$tool"
+                return 0
+              fi
+            done
+            return 1
+          }
+          READELF="$(select_tool readelf llvm-readelf)"
+          OBJCOPY="$(select_tool objcopy llvm-objcopy)"
+          STRIP="$(select_tool strip llvm-strip)"
+
+          : > "${ELF_LIST}"
+          while IFS= read -r -d '' file_path; do
+            if "${READELF}" -h "${file_path}" >/dev/null 2>&1; then
+              size="$(stat -c '%s' "${file_path}")"
+              printf '%s %s\n' "${size}" "${file_path}" >> "${ELF_LIST}"
+            fi
+          done < <(find "${RUNTIME_DIR}" -type f -print0)
+
+          while IFS=' ' read -r _ elf_file; do
+            rel_path="${elf_file#${RUNTIME_DIR}/}"
+            symbol_file="${SYMBOL_DIR}/${rel_path}.debug"
+            mkdir -p "$(dirname "${symbol_file}")"
+            "${OBJCOPY}" --only-keep-debug "${elf_file}" "${symbol_file}"
+            "${STRIP}" --strip-debug "${elf_file}"
+            "${OBJCOPY}" --add-gnu-debuglink="${symbol_file}" "${elf_file}" || true
+          done < <(sort -nr "${ELF_LIST}")
+
+          SERVOSHELL_PATH="$(find "${RUNTIME_DIR}" -type f -name servoshell -print -quit)"
+          if [ -z "${SERVOSHELL_PATH}" ]; then
+            echo 'Packaged servoshell not found.' >&2
+            exit 1
+          fi
+          SERVOSHELL_VERSION="$(${SERVOSHELL_PATH} --version)"
+          echo "${SERVOSHELL_VERSION}"
+          if grep -qi 'nogit' <<<"${SERVOSHELL_VERSION}"; then
+            echo 'Packaged servoshell reported nogit; refusing to upload artifact.' >&2
+            exit 1
+          fi
+
+          version_floor() {
+            local prefix="$1"
+            "${READELF}" --version-info "${SERVOSHELL_PATH}" 2>/dev/null | sed -n "s/.*${prefix}_\([0-9][0-9.]*\).*/\1/p" | sort -Vu | tail -n 1
+          }
+          GLIBC_FLOOR="$(version_floor GLIBC)"
+          GLIBCXX_FLOOR="$(version_floor GLIBCXX)"
+          CXXABI_FLOOR="$(version_floor CXXABI)"
+          {
+            echo
+            echo 'final packaged servoshell --version output:'
+            echo "${SERVOSHELL_VERSION}"
+            echo 'final servoshell ELF GLIBC / GLIBCXX / CXXABI floors:'
+            echo "GLIBC_${GLIBC_FLOOR:-not detected}"
+            echo "GLIBCXX_${GLIBCXX_FLOOR:-not detected}"
+            echo "CXXABI_${CXXABI_FLOOR:-not detected}"
+          } >> "${RUNNER_TEMP}/BUILD-RECEIPT.txt"
+          cp "${RUNNER_TEMP}/BUILD-RECEIPT.txt" "${RUNTIME_DIR}/BUILD-RECEIPT.txt"
+          echo "RUNTIME_DIR=${RUNTIME_DIR}" >> "${GITHUB_ENV}"
+
+      - name: Upload stripped runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: servo-debian12-recovery-runtime
+          path: ${{ env.RUNTIME_DIR }}/*
+          if-no-files-found: error
+          compression-level: 6
+
+  save-preflight-candidate:
+    name: Save remote preflight candidate image
+    needs: debian12-recovery-runtime
+    if: ${{ inputs.save_preflight_candidate }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout current source with full Git metadata
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push recovery preflight candidate
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ci/local-runtime/debian12-recovery-preflight.Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/servo-local-runtime:recovery-preflight-candidate-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=Servo local-runtime Debian 12 recovery preflight candidate
+            org.opencontainers.image.description=Remote-only saved candidate for the restored Debian 12 preflight recipe; not used by the runtime recovery build and not verified.
+            org.opencontainers.image.ref.name=recovery-preflight-candidate-${{ github.sha }}
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
+            io.github.local-runtime.source-sha=${{ github.sha }}
+            io.github.local-runtime.workflow-run-id=${{ github.run_id }}
+            io.github.local-runtime.candidate-kind=recovery-preflight-candidate
