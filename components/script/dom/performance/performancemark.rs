@@ -2,31 +2,53 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
 use js::gc::HandleValue;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMarkOptions;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use time::Duration;
 
 use crate::dom::PERFORMANCE_TIMING_ATTRIBUTES;
 use crate::dom::bindings::codegen::Bindings::PerformanceMarkBinding::PerformanceMarkMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 
-impl_performance_entry_struct!(
-    PerformanceMarkBinding,
-    PerformanceMark, EntryType::Mark,
-    {
-        #[ignore_malloc_size_of = "Defined in rust-mozjs"]
-        detail: Heap<JSVal>,
-    }
-);
+#[dom_struct]
+pub(crate) struct PerformanceMark {
+    entry: PerformanceEntry,
+    #[ignore_malloc_size_of = "Defined in rust-mozjs"]
+    detail: Heap<JSVal>,
+}
 
 impl PerformanceMark {
+    fn new_inherited(
+        name: DOMString,
+        start_time: CrossProcessInstant,
+        duration: Duration,
+    ) -> PerformanceMark {
+        PerformanceMark {
+            entry: PerformanceEntry::new_inherited(
+                name,
+                EntryType::Mark,
+                Some(start_time),
+                duration,
+            ),
+            detail: Default::default(),
+        }
+    }
+
     fn set_detail(&self, handle: HandleValue<'_>) {
         self.detail.set(handle.get());
     }
@@ -34,7 +56,30 @@ impl PerformanceMark {
     pub(crate) fn new_with_proto(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
-        _proto: Option<HandleObject>,
+        proto: Option<HandleObject>,
+        name: DOMString,
+        start_time: CrossProcessInstant,
+        duration: Duration,
+    ) -> DomRoot<PerformanceMark> {
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(PerformanceMark::new_inherited(name, start_time, duration)),
+            global,
+            proto,
+            cx,
+        )
+    }
+}
+
+impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
+    fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.detail.get())
+    }
+
+    /// <https://w3c.github.io/user-timing/#the-performancemark-constructor>
+    fn Constructor(
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
         mark_name: DOMString,
         mark_options: RootedTraceableBox<PerformanceMarkOptions>,
     ) -> Fallible<DomRoot<PerformanceMark>> {
@@ -66,12 +111,13 @@ impl PerformanceMark {
         };
 
         // Step 6. Set entry’s duration attribute to 0.
-        let entry = PerformanceMark::new(
+        let entry = PerformanceMark::new_with_proto(
+            cx,
             global,
+            proto,
             mark_name,
             start_time,
             Duration::ZERO,
-            Default::default(),
         );
 
         // Step 7. If markOptions’s detail is null, set entry’s detail to null.
@@ -88,22 +134,5 @@ impl PerformanceMark {
         entry.set_detail(detail.handle());
 
         Ok(entry)
-    }
-}
-
-impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
-    fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
-        retval.set(self.detail.get())
-    }
-
-    /// <https://w3c.github.io/user-timing/#the-performancemark-constructor>
-    fn Constructor(
-        cx: &mut js::context::JSContext,
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        mark_name: DOMString,
-        mark_options: RootedTraceableBox<PerformanceMarkOptions>,
-    ) -> Fallible<DomRoot<PerformanceMark>> {
-        PerformanceMark::new_with_proto(cx, global, proto, mark_name, mark_options)
     }
 }
