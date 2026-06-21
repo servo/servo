@@ -202,6 +202,19 @@ pub enum WebDriverToEmbedderMsg {
 }
 
 pub trait WebDriverDelegate {
-    // TODO: create_os_window -> Option<PainterId>
-    // this also indicates whether the embedder support
+    fn create_window(
+        create_type: CreateType,
+        opener: Option<WebViewId>,
+    ) -> Result<WebViewId, ErrorCode>;
+}
+
+pub struct DefaultWebDriverDelegate;
+
+impl WebDriverDelegate for DefaultWebDriverDelegate {
+    fn create_window(
+        _create_type: CreateType,
+        _opener: Option<WebViewId>,
+    ) -> Result<WebViewId, ErrorCode> {
+        Err(ErrorCode::UnknownError)
+    }
 }
