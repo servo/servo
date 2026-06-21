@@ -165,8 +165,7 @@ pub enum WebDriverToConstellationMsg {
     WebViewClose(WebViewId, bool, GenericCallback<bool>),
     WebViewCreate(
         CreateType,
-        BrowsingContextId,
-        bool,
+        Option<BrowsingContextId>,
         GenericCallback<BrowsingContextId>,
     ),
     WebviewNavigate(WebViewId, String, GenericCallback<()>),

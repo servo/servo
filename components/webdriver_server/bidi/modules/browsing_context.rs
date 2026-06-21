@@ -1,24 +1,28 @@
 use std::{collections::HashSet, rc::Rc};
 
+use log::warn;
 use servo_base::id::BrowsingContextId;
-use webdriver_traits::bidi::{
-    BrowsingContextCommand, BrowsingContextResult, ErrorCode,
-    browser::CloseResult,
-    browsing_context::{
-        ActivateParameters, ActivateResult, CaptureScreenshotParameters, CaptureScreenshotResult,
-        CloseParameters, CreateParameters, CreateResult, GetTreeParameters, GetTreeResult,
-        HandleUserPromptParameters, HandleUserPromptResult, LocateNodesParameters,
-        LocateNodesResult, NavigateParameters, NavigateResult, PrintParameters, PrintResult,
-        ReadinessState, ReloadParameters, ReloadResult, SetBypassCspParameters, SetBypassCspResult,
-        SetViewportParameters, SetViewportResult, StartScreencastParameters, StartScreencastResult,
-        StopScreencastParameters, StopScreencastResult, TraverseHistoryParameters,
-        TraverseHistoryResult,
+use webdriver_traits::{
+    WebDriverToConstellationMsg,
+    bidi::{
+        BrowsingContextCommand, BrowsingContextResult, ErrorCode,
+        browser::CloseResult,
+        browsing_context::{
+            ActivateParameters, ActivateResult, CaptureScreenshotParameters,
+            CaptureScreenshotResult, CloseParameters, CreateParameters, CreateResult, CreateType,
+            GetTreeParameters, GetTreeResult, HandleUserPromptParameters, HandleUserPromptResult,
+            LocateNodesParameters, LocateNodesResult, NavigateParameters, NavigateResult,
+            PrintParameters, PrintResult, ReadinessState, ReloadParameters, ReloadResult,
+            SetBypassCspParameters, SetBypassCspResult, SetViewportParameters, SetViewportResult,
+            StartScreencastParameters, StartScreencastResult, StopScreencastParameters,
+            StopScreencastResult, TraverseHistoryParameters, TraverseHistoryResult,
+        },
     },
 };
 
 use crate::bidi::{
     error::{BidiError, BidiResult},
-    remote_end::{Navigable, RemoteEnd},
+    remote_end::{Navigable, RemoteEnd, Traversable},
     session::SessionId,
     util::new_oneshot_callback,
 };
@@ -163,43 +167,56 @@ impl RemoteEnd {
         self: Rc<Self>,
         command_parameters: CreateParameters,
     ) -> BidiResult<CreateResult> {
-        // 1.
-        let r#type = &command_parameters.r#type;
-        // 2.
+        // Step 1.
+        let r#type = command_parameters.r#type.clone();
+        // Step 2.
         let reference_navigable_id = command_parameters
             .reference_context
             .as_deref()
             .map(|s| BrowsingContextId::from_string(s).ok_or(ErrorCode::InvalidArgument))
             .transpose()?;
-        // 3.
+        // Step 3.
         let reference_naviable = match reference_navigable_id {
             Some(id) => Some(self.get_a_navigable(id)?),
             None => None,
         };
-        // 4.
+        // Step 4. check reference navigable is top level
         if let Some(reference_navigable) = reference_naviable
             && !reference_navigable.is_top_level_traversable
         {
             return Err(ErrorCode::InvalidArgument.into());
         }
-        // 5. SKIP: implementation-defined
-        // 6-9: TODO: blocked by user context not implemented
-        // 10. SKIP: implementation-defined
-        // 11. TODO: setting user context
-        // let traversable = self
-        //     .create_a_new_top_level_traversable(None, "".to_string(), r#type.clone())
-        //     .await?;
-        // 12.
-        // if !command_parameters.background.unwrap_or(false) {
-        //     // 12.1.
-        //     let activate_result = self.activate_a_navigable(traversable.1).await;
-        //     // 12.2.
-        //     activate_result?;
-        // }
+        // Step 5: skip implementation defined
+        // Step 6. default user context
+        let user_context = "default";
+        // Step 7.
+        let user_context_id = command_parameters.user_context;
+        // Step 8. skip as user context not implemented
+        // Step 9. skip as user context
+        // Step 10.
+        if user_context_id.is_some() {
+            return Err(BidiError {
+                code: ErrorCode::UnsupportedOperation,
+                message: "user context is not implemented yet".into(),
+                stacktrace: None,
+            });
+        }
+        // Step 11. create a new top-level traversable
+        let traversable = self
+            .clone()
+            .create_a_new_top_level_traversable(None, r#type)
+            .await?;
+        // Step 12. activate
+        if !command_parameters.background.unwrap_or(false) {
+            // 12.1.
+            let activate_result = self.activate_a_navigable(traversable).await;
+            // 12.2.
+            activate_result?;
+        }
         // 13.
         let body = CreateResult {
             context: "".to_string(),
-            user_context: None,
+            user_context: Some(user_context.into()),
         };
         // 14.
         Ok(body)
@@ -542,5 +559,27 @@ impl RemoteEnd {
         navigable: BrowsingContextId,
     ) {
         todo!()
+    }
+
+    /// Proxy to the actual implementation in constellation and wait for response.
+    async fn create_a_new_top_level_traversable(
+        self: Rc<Self>,
+        opener: Option<BrowsingContextId>,
+        r#type: CreateType,
+    ) -> BidiResult<BrowsingContextId> {
+        let (callback, recv) = new_oneshot_callback();
+        let msg = WebDriverToConstellationMsg::WebViewCreate(r#type, opener, callback);
+        if let Err(err) = self.constellation_sender.send(msg) {
+            warn!("Error sending WebViewCreate message to constellation ({err:?})");
+            return Err(ErrorCode::UnknownError.into());
+        }
+        match recv.await {
+            Err(err) => {
+                warn!("Receiving WebViewCreate callback failed ({err:?})");
+                Err(ErrorCode::UnknownError.into())
+            },
+            // TODO: handle id
+            Ok(id) => Ok(id.unwrap()),
+        }
     }
 }
