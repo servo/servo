@@ -14,7 +14,6 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel;
 use servo_config::pref;
 
-use super::window::Window;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionDescriptor, PermissionName, PermissionState, PermissionStatusMethods,
@@ -31,6 +30,7 @@ use crate::dom::bluetoothpermissionresult::BluetoothPermissionResult;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
+use crate::dom::window::Window;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::CanGc;
 
