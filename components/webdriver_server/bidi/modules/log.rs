@@ -73,4 +73,14 @@ impl RemoteEnd {
             }
         }
     }
+
+    /// The remote end trigger for `log.entryAdded`, the "console steps" part.
+    pub(crate) async fn trigger_log_entry_added_console(self: Rc<Self>) {
+        todo!()
+    }
+
+    /// The remote end trigger for `log.entryAdded`, the "error reporting steps" part.
+    pub(crate) async fn trigger_log_entry_added_error_reporting(self: Rc<Self>) {
+        todo!()
+    }
 }

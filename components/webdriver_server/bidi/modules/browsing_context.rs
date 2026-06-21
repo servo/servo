@@ -428,8 +428,73 @@ impl RemoteEnd {
         Ok(body)
     }
 
-    /// Subscribe steps for `browsingContext.ContextCreated`.
+    /// Remote end subscribe steps for `browsingContext.contextCreated`.
     pub(crate) async fn subscribe_browsing_context_context_created() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.contextCreated`.
+    pub(crate) async fn trigger_browsing_context_context_created() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.ContextDestroyed`.
+    pub(crate) async fn trigger_browsing_context_context_destroyed() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.navigationStarted`.
+    pub(crate) async fn trigger_browsing_context_navigation_started() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.fragmentNavigated`.
+    pub(crate) async fn trigger_browsing_context_fragment_navigated() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.historyUpdated`.
+    pub(crate) async fn trigger_browsing_context_history_updated() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.domContentLoaded`.
+    pub(crate) async fn trigger_browsing_context_dom_content_loaded() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.load`.
+    pub(crate) async fn trigger_browsing_context_load() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.downloadWillBegin`.
+    pub(crate) async fn trigger_browsing_context_download_will_begin() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.downloadEnd`.
+    pub(crate) async fn trigger_browsing_context_download_end() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.navigationAborted`.
+    pub(crate) async fn trigger_browsing_context_navigation_aborted() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.navigationFailed`.
+    pub(crate) async fn trigger_browsing_context_navigation_failed() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.userPromptClosed`.
+    pub(crate) async fn trigger_browsing_user_prompt_closed() {
+        todo!()
+    }
+
+    /// Remote end event trigger for `browsingContext.userPromptOpened`.
+    pub(crate) async fn trigger_browsing_user_prompt_opened() {
         todo!()
     }
 }

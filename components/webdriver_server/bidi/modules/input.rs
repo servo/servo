@@ -54,4 +54,9 @@ impl RemoteEnd {
     ) -> BidiResult<SetFilesResult> {
         todo!()
     }
+
+    /// Remote end event trigger for `input.fileDialogOpened`.
+    pub(crate) async fn trigger_input_file_dialog_opened(self: Rc<Self>) {
+        todo!()
+    }
 }

@@ -138,4 +138,19 @@ impl RemoteEnd {
     pub(crate) async fn subscribe_script_realm_created(self: Rc<Self>) {
         todo!()
     }
+
+    /// Remote end event trigger for `script.message`.
+    pub(crate) async fn trigger_script_message(self: Rc<Self>) {
+        todo!()
+    }
+
+    /// Remote end event trigger for `script.realmCreated`.
+    pub(crate) async fn trigger_script_realm_created(self: Rc<Self>) {
+        todo!()
+    }
+
+    /// Remote end event trigger for `script.realmDestroyed`.
+    pub(crate) async fn trigger_script_realm_destroyed(self: Rc<Self>) {
+        todo!()
+    }
 }
