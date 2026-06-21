@@ -62,9 +62,9 @@ impl DOMMatrixReadOnly {
         global: &GlobalScope,
         is2D: bool,
         matrix: Transform3D<f64>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, is2D, matrix, can_gc)
+        Self::new_with_proto(global, None, is2D, matrix, cx)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -73,10 +73,10 @@ impl DOMMatrixReadOnly {
         proto: Option<HandleObject>,
         is2D: bool,
         matrix: Transform3D<f64>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
-        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto, can_gc)
+        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto, CanGc::from_cx(cx))
     }
 
     pub(crate) fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {
@@ -477,9 +477,9 @@ impl DOMMatrixReadOnly {
 impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         init: Option<StringOrUnrestrictedDoubleSequence>,
     ) -> Fallible<DomRoot<Self>> {
         if init.is_none() {
@@ -488,7 +488,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
                 proto,
                 true,
                 Transform3D::identity(),
-                can_gc,
+                cx,
             ));
         }
         match init.unwrap() {
@@ -499,14 +499,14 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
                     ));
                 }
                 if s.is_empty() {
-                    return Ok(Self::new(global, true, Transform3D::identity(), can_gc));
+                    return Ok(Self::new(global, true, Transform3D::identity(), cx));
                 }
                 transform_to_matrix(&s.str())
-                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, cx))
             },
             StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
                 entries_to_matrix(&entries[..])
-                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, cx))
             },
         }
     }
@@ -518,7 +518,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         other: &DOMMatrixInit,
     ) -> Fallible<DomRoot<Self>> {
         dommatrixinit_to_matrix(other)
-            .map(|(is2D, matrix)| Self::new(global, is2D, matrix, CanGc::from_cx(cx)))
+            .map(|(is2D, matrix)| Self::new(global, is2D, matrix, cx))
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat32array>
@@ -529,9 +529,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
         DOMMatrixReadOnly::Constructor(
-            global,
-            None,
-            CanGc::from_cx(cx),
+            cx, global, None,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -544,9 +542,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
         let vec: Vec<f64> = array.to_vec();
         DOMMatrixReadOnly::Constructor(
-            global,
-            None,
-            CanGc::from_cx(cx),
+            cx, global, None,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -689,7 +685,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-translate>
     fn Translate(&self, cx: &mut js::context::JSContext, tx: f64, ty: f64, tz: f64) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).TranslateSelf(tx, ty, tz)
+        DOMMatrix::from_readonly(&self.global(), self, cx).TranslateSelf(tx, ty, tz)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale>
@@ -703,13 +699,13 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         originY: f64,
         originZ: f64,
     ) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx))
+        DOMMatrix::from_readonly(&self.global(), self, cx)
             .ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ)
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-dommatrixreadonly-scalenonuniform>
     fn ScaleNonUniform(&self, cx: &mut js::context::JSContext, scaleX: f64, scaleY: f64) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).ScaleSelf(
+        DOMMatrix::from_readonly(&self.global(), self, cx).ScaleSelf(
             scaleX,
             Some(scaleY),
             1.0,
@@ -728,7 +724,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         originY: f64,
         originZ: f64,
     ) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx))
+        DOMMatrix::from_readonly(&self.global(), self, cx)
             .Scale3dSelf(scale, originX, originY, originZ)
     }
 
@@ -740,12 +736,12 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         rotY: Option<f64>,
         rotZ: Option<f64>,
     ) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).RotateSelf(rotX, rotY, rotZ)
+        DOMMatrix::from_readonly(&self.global(), self, cx).RotateSelf(rotX, rotY, rotZ)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotatefromvector>
     fn RotateFromVector(&self, cx: &mut js::context::JSContext, x: f64, y: f64) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).RotateFromVectorSelf(x, y)
+        DOMMatrix::from_readonly(&self.global(), self, cx).RotateFromVectorSelf(x, y)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotateaxisangle>
@@ -757,23 +753,23 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         z: f64,
         angle: f64,
     ) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx))
+        DOMMatrix::from_readonly(&self.global(), self, cx)
             .RotateAxisAngleSelf(x, y, z, angle)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewx>
     fn SkewX(&self, cx: &mut js::context::JSContext, sx: f64) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).SkewXSelf(sx)
+        DOMMatrix::from_readonly(&self.global(), self, cx).SkewXSelf(sx)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewy>
     fn SkewY(&self, cx: &mut js::context::JSContext, sy: f64) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).SkewYSelf(sy)
+        DOMMatrix::from_readonly(&self.global(), self, cx).SkewYSelf(sy)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-multiply>
     fn Multiply(&self, cx: &mut js::context::JSContext, other: &DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).MultiplySelf(other)
+        DOMMatrix::from_readonly(&self.global(), self, cx).MultiplySelf(other)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipx>
@@ -783,7 +779,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         );
         let matrix = flip.then(&self.matrix.borrow());
-        DOMMatrix::new(&self.global(), is2D, matrix, CanGc::from_cx(cx))
+        DOMMatrix::new(&self.global(), is2D, matrix, cx)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipy>
@@ -793,12 +789,12 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         );
         let matrix = flip.then(&self.matrix.borrow());
-        DOMMatrix::new(&self.global(), is2D, matrix, CanGc::from_cx(cx))
+        DOMMatrix::new(&self.global(), is2D, matrix, cx)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-inverse>
     fn Inverse(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMMatrix> {
-        DOMMatrix::from_readonly(&self.global(), self, CanGc::from_cx(cx)).InvertSelf()
+        DOMMatrix::from_readonly(&self.global(), self, cx).InvertSelf()
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-transformpoint>

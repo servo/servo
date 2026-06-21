@@ -40,9 +40,9 @@ impl DOMMatrix {
         global: &GlobalScope,
         is2D: bool,
         matrix: Transform3D<f64>,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, is2D, matrix, can_gc)
+        Self::new_with_proto(global, None, is2D, matrix, cx)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -51,10 +51,10 @@ impl DOMMatrix {
         proto: Option<HandleObject>,
         is2D: bool,
         matrix: Transform3D<f64>,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
-        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto, can_gc)
+        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto, CanGc::from_cx(cx))
     }
 
     pub(crate) fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {
@@ -66,9 +66,9 @@ impl DOMMatrix {
     pub(crate) fn from_readonly(
         global: &GlobalScope,
         ro: &DOMMatrixReadOnly,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) -> DomRoot<Self> {
-        Self::new(global, ro.is2D(), *ro.matrix(), can_gc)
+        Self::new(global, ro.is2D(), *ro.matrix(), cx)
     }
 }
 
@@ -76,9 +76,9 @@ impl DOMMatrix {
 impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         init: Option<StringOrUnrestrictedDoubleSequence>,
     ) -> Fallible<DomRoot<Self>> {
         if init.is_none() {
@@ -87,7 +87,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
                 proto,
                 true,
                 Transform3D::identity(),
-                can_gc,
+                cx,
             ));
         }
         match init.unwrap() {
@@ -98,14 +98,14 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
                     ));
                 }
                 if s.is_empty() {
-                    return Ok(Self::new(global, true, Transform3D::identity(), can_gc));
+                    return Ok(Self::new(global, true, Transform3D::identity(), cx));
                 }
                 transform_to_matrix(&s.str())
-                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, cx))
             },
             StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
                 entries_to_matrix(&entries[..])
-                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, cx))
             },
         }
     }
@@ -117,7 +117,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         other: &DOMMatrixInit,
     ) -> Fallible<DomRoot<Self>> {
         dommatrixinit_to_matrix(other)
-            .map(|(is2D, matrix)| Self::new(global, is2D, matrix, CanGc::from_cx(cx)))
+            .map(|(is2D, matrix)| Self::new(global, is2D, matrix, cx))
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat32array>
@@ -128,9 +128,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
         DOMMatrix::Constructor(
-            global,
-            None,
-            CanGc::from_cx(cx),
+            cx, global, None,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -143,9 +141,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec();
         DOMMatrix::Constructor(
-            global,
-            None,
-            CanGc::from_cx(cx),
+            cx, global, None,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
