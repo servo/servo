@@ -90,7 +90,7 @@ impl RemoteEnd {
                 .map(|(id_msg, _, _)| id_msg);
 
                 tokio::select! {
-                    msg = servo_next => self.handle_servo(msg),
+                    msg = servo_next => self.clone().handle_servo(msg),
                     stream = listener_next => self.handle_accept(stream, &mut connection_receivers).await,
                     (conn_id, msg) = connections_next => self.clone().handle_connection(*conn_id, msg),
                 }
@@ -100,7 +100,7 @@ impl RemoteEnd {
         }
     }
 
-    fn handle_servo(&self, msg: Option<WebDriverMsg>) {
+    fn handle_servo(self: Rc<Self>, msg: Option<WebDriverMsg>) {
         let Some(msg) = msg else {
             warn!("Connection from servo closed");
             return;

@@ -113,7 +113,8 @@ pub enum ConstellationToWebDriverMsg {
 // TODO: command responses need session id
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ScriptToWebDriverMsg {
-    LogEntryAdded(Vec<BrowsingContextId>, log::EntryAdded),
+    LogEntryAddedConsole(Vec<BrowsingContextId>, log::EntryAdded),
+    LogEntryAddedErrorReporting(Vec<BrowsingContextId>, log::EntryAdded),
     RealmCreated(
         (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
         GenericSender<WebDriverToScriptMsg>,

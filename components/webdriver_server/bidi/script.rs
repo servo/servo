@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use devtools_traits::WorkerId;
 use servo_base::{
     generic_channel::GenericSender,
@@ -11,28 +13,41 @@ use crate::bidi::remote_end::{ClientWindow, RemoteEnd, Traversable};
 use super::remote_end::{Document, Navigable, Realm};
 
 impl RemoteEnd {
-    pub(crate) fn handle_script(&self, msg: ScriptToWebDriverMsg) {
+    pub(crate) fn handle_script(self: Rc<Self>, msg: ScriptToWebDriverMsg) {
         match msg {
-            ScriptToWebDriverMsg::LogEntryAdded(items, entry_added) => todo!(),
+            ScriptToWebDriverMsg::LogEntryAddedConsole(items, entry_added) => {
+                self.handle_log_entry_added_console()
+            },
+            ScriptToWebDriverMsg::LogEntryAddedErrorReporting(items, entry_added) => {
+                self.handle_log_entry_added_error_reporting()
+            },
             ScriptToWebDriverMsg::RealmCreated(
                 (browsing_context_id, pipeline_id, worker_id, webview_id),
                 script_sender,
-            ) => self.handle_script_realm_created(
+            ) => self.handle_realm_created(
                 browsing_context_id,
                 pipeline_id,
                 worker_id,
                 webview_id,
                 script_sender,
             ),
-            ScriptToWebDriverMsg::ChannelMessage { channel, data } => todo!(),
-            ScriptToWebDriverMsg::FileDialogOpened(file_dialog_opened) => todo!(),
-            ScriptToWebDriverMsg::RealmDestroyed(namespace_index, worker_id) => todo!(),
-            ScriptToWebDriverMsg::UserPromptClosed(user_prompt_closed_parameters) => todo!(),
-            ScriptToWebDriverMsg::UserPromptOpened(user_prompt_opened_parameters) => todo!(),
+            ScriptToWebDriverMsg::ChannelMessage { channel, data } => self.handle_channel_message(),
+            ScriptToWebDriverMsg::FileDialogOpened(file_dialog_opened) => {
+                self.handle_file_dialog_opened()
+            },
+            ScriptToWebDriverMsg::RealmDestroyed(namespace_index, worker_id) => {
+                self.handle_realm_destroyed()
+            },
+            ScriptToWebDriverMsg::UserPromptClosed(user_prompt_closed_parameters) => {
+                self.handle_user_prompt_closed()
+            },
+            ScriptToWebDriverMsg::UserPromptOpened(user_prompt_opened_parameters) => {
+                self.handle_user_prompt_opened()
+            },
         }
     }
 
-    fn handle_script_realm_created(
+    fn handle_realm_created(
         &self,
         browsing_context_id: BrowsingContextId,
         pipeline_id: PipelineId,
@@ -109,5 +124,33 @@ impl RemoteEnd {
                 document_id: pipeline_id,
                 worker_id,
             });
+    }
+
+    fn handle_realm_destroyed(self: Rc<Self>) {
+        todo!()
+    }
+
+    fn handle_log_entry_added_console(self: Rc<Self>) {
+        todo!()
+    }
+
+    fn handle_log_entry_added_error_reporting(self: Rc<Self>) {
+        todo!()
+    }
+
+    fn handle_channel_message(self: Rc<Self>) {
+        todo!()
+    }
+
+    fn handle_file_dialog_opened(self: Rc<Self>) {
+        todo!()
+    }
+
+    fn handle_user_prompt_closed(self: Rc<Self>) {
+        todo!()
+    }
+
+    fn handle_user_prompt_opened(self: Rc<Self>) {
+        todo!()
     }
 }
