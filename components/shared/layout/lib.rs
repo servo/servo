@@ -26,7 +26,10 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
-use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{
+    Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails, WebViewPreference,
+    WebViewPreferencesData,
+};
 use euclid::{Point2D, Rect};
 use fonts::{FontContext, TextByteRange, WebFontDocumentContext};
 pub use layout_damage::LayoutDamage;
@@ -429,6 +432,16 @@ pub trait Layout {
 
     /// See [Self::needs_accessibility_update()].
     fn set_needs_accessibility_update(&self);
+
+    /// Notification to layout that the `WebView`s preferences have changed.
+    ///
+    /// Layout should update relevant state and must return true if the document needs
+    /// to be restyled.
+    fn on_preferences_changed(
+        &mut self,
+        preference_updates: &[WebViewPreference],
+        preferences_data: &WebViewPreferencesData,
+    ) -> bool;
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`
@@ -604,6 +617,7 @@ bitflags! {
         const ThemeChanged = 1 << 4;
         const ViewportChanged = 1 << 5;
         const PaintWorkletLoaded = 1 << 6;
+        const PreferencesChanged = 1 << 7;
     }
 }
 

@@ -78,9 +78,9 @@ fn test_webview_preferences_default_font_size() {
 }
 
 /// Verify that changes to default font size preferences take effect after the
-/// page is reloaded.
+/// without a reload.
 #[test]
-fn test_webview_preferences_default_font_size_changes_after_reload() {
+fn test_webview_preferences_default_font_size_changes_without_reload() {
     let servo_test = ServoTest::new();
 
     // Use an HTTP server instead of a `data:` URL so the reload witl reuse the
@@ -100,10 +100,19 @@ fn test_webview_preferences_default_font_size_changes_after_reload() {
     let result = evaluate_javascript(&servo_test, webview.clone(), script);
     assert_eq!(result, Ok(JSValue::String("16px".into())));
 
-    // Change the font size and assert that it takes effect after reload.
+    // Change the font size and assert that it takes effect *without* a reload.
     let preferences = webview.preferences();
     preferences.set_default_font_size(32);
-    webview.reload();
+
+    // Reset the delegate before we wait so we don't see the stale `true` from the
+    // initial load.
+    delegate.reset();
+    // Wait for a new frame — the preference change should trigger a restyle
+    // and rendering update without needing a reload.
+    servo_test.spin({
+        let delegate = delegate.clone();
+        move || !delegate.new_frame_ready.get()
+    });
 
     let result = evaluate_javascript(&servo_test, webview.clone(), script);
     assert_eq!(result, Ok(JSValue::String("32px".into())));

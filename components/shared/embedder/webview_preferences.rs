@@ -4,12 +4,15 @@
 
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
 static NEXT_WEBVIEW_PREFERENCES_ID: AtomicU32 = AtomicU32::new(1);
 
 /// An opaque identifier for a `WebViewPreferences` type in Servo.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize,
+)]
 pub struct WebViewPreferencesId(pub u32);
 
 impl WebViewPreferencesId {

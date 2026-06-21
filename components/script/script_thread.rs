@@ -2035,6 +2035,21 @@ impl ScriptThread {
                     .entry(id)
                     .or_default()
                     .apply_preference_updates(&preference_updates);
+
+                let preferences_for_id = self.webview_preferences_for_id.borrow();
+                let preferences = preferences_for_id.get(&id).unwrap();
+                for (_, document) in self.documents.borrow().iter() {
+                    if document.window().webview_preferences_id() != id {
+                        continue;
+                    }
+                    let needs_restyle = document
+                        .window()
+                        .layout_mut()
+                        .on_preferences_changed(&preference_updates, preferences);
+                    if needs_restyle {
+                        document.add_restyle_reason(RestyleReason::PreferencesChanged);
+                    }
+                }
             },
             ScriptThreadMessage::DestroyWebViewPreferences(id) => {
                 self.webview_preferences_for_id.borrow_mut().remove(&id);
@@ -3518,6 +3533,7 @@ impl ScriptThread {
         let window = Window::new(
             cx,
             incomplete.webview_id,
+            incomplete.webview_preferences_id,
             self.js_runtime.clone(),
             self.senders.self_sender.clone(),
             self.layout_factory.create(layout_config),
