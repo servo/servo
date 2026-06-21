@@ -568,15 +568,21 @@ impl HeadedWindow {
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
         self.gui
             .as_ref()
-            .map_or(Length::zero(), |gui| gui.borrow().toolbar_height())
+            .map_or(Length::new(0.0), |gui| gui.borrow().toolbar_height())
     }
 
     fn paint_bare_frame(&self, window: &ServoShellWindow) {
         if let Some(webview) = window.active_webview() {
-            let size = self.inner_size.get();
-            let size = Size2D::new(size.width, size.height);
-            if size != webview.size() {
-                webview.resize(PhysicalSize::new(size.width, size.height));
+            let physical_size = self.inner_size.get();
+            let viewport_size = Size2D::<f32, DevicePixel>::new(
+                physical_size.width as f32,
+                physical_size.height as f32,
+            );
+            if viewport_size != webview.size() {
+                webview.resize(PhysicalSize::new(
+                    physical_size.width,
+                    physical_size.height,
+                ));
             }
         }
 
