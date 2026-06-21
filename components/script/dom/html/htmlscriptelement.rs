@@ -50,8 +50,8 @@ use crate::dom::element::{
     reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::eventtarget::EventTarget;
-use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
