@@ -11,29 +11,23 @@ pub(crate) mod web_extension;
 
 use std::{borrow::Cow, collections::HashSet, rc::Rc, sync::OnceLock};
 
-use webdriver_traits::bidi::{Command, CommandData, ResultData};
+use tokio::sync::oneshot::Receiver;
+use webdriver_traits::bidi::{CommandData, ResultData};
 
-use crate::bidi::{error::BidiResult, remote_end::RemoteEnd, session::common::SessionId};
+use crate::bidi::{error::BidiResult, remote_end::RemoteEnd, session::SessionId};
 
 static SET_OF_ALL_COMMAND_NAMES: OnceLock<HashSet<Cow<'static, str>>> = OnceLock::new();
 
 impl RemoteEnd {
-    /// <https://www.w3.org/TR/webdriver-bidi/#set-of-all-command-names>
-    pub(crate) fn set_of_all_command_names(&self) -> &HashSet<Cow<'static, str>> {
-        SET_OF_ALL_COMMAND_NAMES.get_or_init(|| {
-            // TODO: init from standard and custom
-            HashSet::new()
-        })
-    }
-
     pub(crate) async fn handle_command(
         self: Rc<Self>,
         session_id: Option<SessionId>,
         command: CommandData,
+        msg_sent: Receiver<()>,
     ) -> BidiResult<ResultData> {
         match command {
             CommandData::BrowserCommand(cmd) => self
-                .handle_browser_command(session_id.unwrap(), cmd)
+                .handle_browser_command(session_id.unwrap(), cmd, msg_sent)
                 .await
                 .map(ResultData::BrowserResult),
             CommandData::BrowsingContextCommand(cmd) => self
@@ -57,7 +51,7 @@ impl RemoteEnd {
                 .await
                 .map(|r| ResultData::ScriptResult(Box::new(r))),
             CommandData::SessionCommand(cmd) => self
-                .handle_session_command(session_id, cmd)
+                .handle_session_command(session_id, cmd, msg_sent)
                 .await
                 .map(ResultData::SessionResult),
             CommandData::StorageCommand(cmd) => self
@@ -69,5 +63,13 @@ impl RemoteEnd {
                 .await
                 .map(ResultData::WebExtensionResult),
         }
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#set-of-all-command-names>
+    pub(crate) fn set_of_all_command_names(&self) -> &HashSet<Cow<'static, str>> {
+        SET_OF_ALL_COMMAND_NAMES.get_or_init(|| {
+            // TODO: init from standard and custom
+            HashSet::new()
+        })
     }
 }

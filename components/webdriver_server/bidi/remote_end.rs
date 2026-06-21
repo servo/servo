@@ -22,7 +22,7 @@ use servo_base::{
 };
 use tokio::{
     net::{TcpListener, TcpStream},
-    sync::{Mutex, mpsc::UnboundedReceiver},
+    sync::{Mutex, RwLock, mpsc::UnboundedReceiver, oneshot},
     task,
 };
 use webdriver_traits::{
@@ -38,18 +38,11 @@ use webdriver_traits::{
 use crate::bidi::{
     connection::{ConnectionId, ConnectionReceiver, ConnectionSender},
     error::{BidiError, BidiResult},
-    session::{Session, common::SessionId},
-    wait_queue::WaitQueue,
+    session::{Session, SessionId},
 };
-
-use super::wait_queue::ResumeEvent;
 
 // Since we use single-threaded `LocalRutime`, `RefCell` can be used.
 pub(crate) struct RemoteEnd {
-    /// We use wait queue to defer steps to the time certain resume events happen.
-    /// The model is slightly different from spec, see [`WaitQueue`] for details.
-    pub(crate) wait_queue: WaitQueue,
-
     /// An associated list of all sessions that are currently started.
     pub(crate) active_sessions: RefCell<HashMap<SessionId, Session>>,
 
@@ -64,7 +57,7 @@ pub(crate) struct RemoteEnd {
     pub(crate) realms: RefCell<HashMap<RealmId, Realm>>,
 
     /// All the
-    pub(crate) connection_senders: RefCell<HashMap<ConnectionId, Mutex<ConnectionSender>>>,
+    pub(crate) connection_senders: RwLock<HashMap<ConnectionId, Mutex<ConnectionSender>>>,
 
     /// Send message to constellation.
     pub(crate) constellation_sender: Sender<WebDriverToConstellationMsg>,
@@ -131,7 +124,8 @@ impl RemoteEnd {
                         let conn_id = ConnectionId::next();
                         let (sender, receiver) = ws_stream.split();
                         self.connection_senders
-                            .borrow_mut()
+                            .write()
+                            .await
                             .insert(conn_id, sender.into());
                         connection_receivers.insert(conn_id, receiver);
                     },
@@ -157,10 +151,7 @@ impl RemoteEnd {
                     if let WsMessage::Close(_) = msg {
                         self.handle_a_connection_closing(connection_id);
                     }
-                    task::spawn_local({
-                        let this = self.clone();
-                        async move { this.handle_an_incoming_message(connection_id, msg) }
-                    });
+                    task::spawn_local(self.clone().handle_an_incoming_message(connection_id, msg));
                 },
                 Err(err) => {
                     warn!(
@@ -256,7 +247,11 @@ impl RemoteEnd {
                     return;
                 }
                 // Step 6.7.1.
-                let result = self.clone().handle_command(session_id, command).await;
+                let (msg_sent_tx, msg_sent) = oneshot::channel::<()>();
+                let result = self
+                    .clone()
+                    .handle_command(session_id, command, msg_sent)
+                    .await;
                 let value = match result {
                     // Step 6.7.2. send error response
                     Err(error) => {
@@ -294,7 +289,7 @@ impl RemoteEnd {
                 let serialized = serde_json::to_string(&response)
                     .expect("CommandResponse serialization is infallible");
                 // Step 6.7.8. send response message
-                match self.connection_senders.borrow().get(&connection_id) {
+                match self.connection_senders.read().await.get(&connection_id) {
                     Some(connection) => {
                         if let Err(err) = connection
                             .lock()
@@ -315,12 +310,9 @@ impl RemoteEnd {
                         );
                     },
                 }
-
-                // In addition, notify wait queue that response is done,
-                // so that commands like `session.end` can resume.
-                if let Some(session_id) = session_id {
-                    self.wait_queue
-                        .resume(ResumeEvent::SessionResponded(session_id));
+                // In addition, notify msg sent to resume `session.end` and `browser.close`
+                if let Err(err) = msg_sent_tx.send(()) {
+                    warn!("Notifying sending a WebSocket message failed ({err:?})");
                 }
             },
             // Step 7.
@@ -376,7 +368,7 @@ impl RemoteEnd {
         let response =
             serde_json::to_string(&error_data).expect("ErrorResponse serialization is infallible");
         // Step 3. Send websocket message
-        match self.connection_senders.borrow().get(&connection_id) {
+        match self.connection_senders.read().await.get(&connection_id) {
             Some(connection) => {
                 if let Err(err) = connection
                     .lock()
@@ -501,7 +493,6 @@ impl RemoteEnd {
                 .entry(*navigable_id)
                 // Step 4.4. new list if not contained
                 .or_default()
-                .borrow_mut()
                 // Step 4.5.
                 .push((event.clone(), other_navigables));
         }
@@ -522,18 +513,17 @@ impl RemoteEnd {
             .flat_map(|s| s.connections.iter().copied())
             .collect::<Vec<_>>();
         for connection_id in session_connections {
-            if let Some(connection) = self.connection_senders.borrow().get(&connection_id) {
-                if let Err(err) = connection
+            if let Some(connection) = self.connection_senders.read().await.get(&connection_id)
+                && let Err(err) = connection
                     .lock()
                     .await
                     .send(WsMessage::Text(bytes.clone()))
                     .await
-                {
-                    warn!(
-                        "Sending event to connection failed (id: {:?}, err: {:?})",
-                        connection_id, err
-                    );
-                }
+            {
+                warn!(
+                    "Sending event to connection failed (id: {:?}, err: {:?})",
+                    connection_id, err
+                );
             }
         }
     }

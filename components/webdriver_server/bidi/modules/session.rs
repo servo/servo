@@ -1,6 +1,7 @@
 use std::{collections::HashSet, rc::Rc};
 
 use log::warn;
+use tokio::{sync::oneshot::Receiver, task};
 use webdriver_traits::bidi::{
     EmptyParams, EmptyResult, ErrorCode, SessionCommand, SessionResult,
     session::{
@@ -12,8 +13,7 @@ use webdriver_traits::bidi::{
 use crate::bidi::{
     error::{BidiError, BidiResult},
     remote_end::RemoteEnd,
-    session::common::SessionId,
-    wait_queue::ResumeEvent,
+    session::SessionId,
 };
 
 impl RemoteEnd {
@@ -21,6 +21,7 @@ impl RemoteEnd {
         self: Rc<Self>,
         session_id: Option<SessionId>,
         command: SessionCommand,
+        msg_sent: Receiver<()>,
     ) -> BidiResult<SessionResult> {
         match command {
             SessionCommand::Status(cmd) => self
@@ -32,7 +33,7 @@ impl RemoteEnd {
                 .await
                 .map(|r| SessionResult::NewResult(Box::new(r))),
             SessionCommand::End(cmd) => self
-                .handle_session_end(session_id.unwrap(), cmd.params)
+                .handle_session_end(session_id.unwrap(), cmd.params, msg_sent)
                 .await
                 .map(SessionResult::EndResult),
             SessionCommand::Subscribe(cmd) => self
@@ -108,15 +109,18 @@ impl RemoteEnd {
     async fn handle_session_end(
         self: Rc<Self>,
         session_id: SessionId,
-        _command_parameters: EmptyParams,
+        _: EmptyParams,
+        msg_sent: Receiver<()>,
     ) -> BidiResult<EmptyResult> {
         // Step 1. end current session
         self.end_the_session(session_id);
         // Step 2. return success before do cleanup
-        self.wait_queue.awaits(
-            &[ResumeEvent::SessionResponded(session_id)],
-            self.clone().cleanup_the_session(session_id),
-        );
+        task::spawn_local(async move {
+            if let Err(err) = msg_sent.await {
+                warn!("Waiting sending a WebSocket message failed ({err:?})");
+            }
+            self.cleanup_the_session(session_id);
+        });
         Ok(EmptyResult {
             extensible: Default::default(),
         })

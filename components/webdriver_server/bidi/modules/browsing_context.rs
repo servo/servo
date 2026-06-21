@@ -17,10 +17,10 @@ use webdriver_traits::bidi::{
 };
 
 use crate::bidi::{
-    callback::new_oneshot_callback,
     error::{BidiError, BidiResult},
     remote_end::RemoteEnd,
-    session::common::SessionId,
+    session::SessionId,
+    util::new_oneshot_callback,
 };
 
 impl RemoteEnd {

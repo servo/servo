@@ -4,7 +4,7 @@ use log::warn;
 use servo_base::id::BrowsingContextId;
 use webdriver_traits::bidi::{Event, EventData};
 
-use crate::bidi::{remote_end::RemoteEnd, session::common::SessionId};
+use crate::bidi::{remote_end::RemoteEnd, session::SessionId};
 
 impl RemoteEnd {
     pub(crate) async fn subscribe_log_entry_added(
@@ -13,28 +13,24 @@ impl RemoteEnd {
         navigable_ids: &[BrowsingContextId],
         include_global: bool,
     ) {
-        // TODO: refcell may be too large, when will there be borrow_mut active sessions?
-        let active_sessions = self.active_sessions.borrow();
-        let Some(log_event_buffer) = active_sessions
-            .get(&session_id)
-            .map(|s| &s.log_event_buffer)
-        else {
-            warn!(
-                "The session to subscribe log.entryAdded is not active (id: {:?})",
-                session_id
-            );
-            return;
+        let log_event_buffer = {
+            let active_sessions = self.active_sessions.borrow();
+            let Some(log_event_buffer) = active_sessions
+                .get(&session_id)
+                .map(|s| &s.log_event_buffer)
+            else {
+                warn!("The session {session_id:?} to subscribe log.entryAdded is not active");
+                return;
+            };
+            log_event_buffer.replace(Default::default())
         };
         // Step 1.
-        for (navigable_id, events) in log_event_buffer.borrow().iter() {
+        for (navigable_id, events) in log_event_buffer.iter() {
             // Step 1.1.
             let maybe_context = self.get_a_navigable(*navigable_id);
             let navigable = match maybe_context {
-                // Step 1.2.
-                Err(_) => {
-                    log_event_buffer.borrow_mut().remove(navigable_id);
-                    continue;
-                },
+                // Step 1.2. skip as remove is not needed
+                Err(_) => continue,
                 // Step 1.3.
                 Ok(navigable) => navigable,
             };
@@ -52,9 +48,12 @@ impl RemoteEnd {
             if let (true, false) | (false, true) =
                 (include_global, navigable_ids.contains(&top_level_navigable))
             {
+                let mut removed_events = vec![];
                 // Step 1.5.1.
-                for (event, other_navigables) in events.borrow().iter() {
-                    // TODO: be careful, borrow across await here
+                for (event, other_navigables) in events.iter() {
+                    if removed_events.contains(&event) {
+                        continue;
+                    }
                     // Step 1.5.1.1.
                     self.clone()
                         .emit_an_event(
@@ -65,12 +64,9 @@ impl RemoteEnd {
                             },
                         )
                         .await;
-                    // Step 1.5.1.2. remove event from other navigable
-                    for other_context_id in other_navigables {
-                        if let Some(v) = log_event_buffer.borrow().get(other_context_id) {
-                            // TODO: check eq.
-                            v.borrow_mut().retain(|(e, _)| event != e);
-                        }
+                    // Step 1.5.1.2. mark duplicate event removed
+                    if !other_navigables.is_empty() {
+                        removed_events.push(event);
                     }
                 }
             }

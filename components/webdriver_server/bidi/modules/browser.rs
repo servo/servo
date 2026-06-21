@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use log::warn;
+use tokio::{sync::oneshot::Receiver, task};
 use webdriver_traits::bidi::{
     BrowserCommand, BrowserResult, EmptyParams, EmptyResult, ErrorCode,
     browser::{
@@ -13,8 +15,7 @@ use webdriver_traits::bidi::{
 use crate::bidi::{
     error::{BidiError, BidiResult},
     remote_end::RemoteEnd,
-    session::common::SessionId,
-    wait_queue::ResumeEvent,
+    session::SessionId,
 };
 
 impl RemoteEnd {
@@ -22,10 +23,11 @@ impl RemoteEnd {
         self: Rc<Self>,
         session_id: SessionId,
         command: BrowserCommand,
+        msg_sent: Receiver<()>,
     ) -> BidiResult<BrowserResult> {
         match command {
             BrowserCommand::Close(cmd) => self
-                .handle_browser_close(session_id, cmd.params)
+                .handle_browser_close(session_id, cmd.params, msg_sent)
                 .await
                 .map(BrowserResult::CloseResult),
             BrowserCommand::CreateUserContext(cmd) => self
@@ -60,16 +62,18 @@ impl RemoteEnd {
         self: Rc<Self>,
         session_id: SessionId,
         _: EmptyParams,
+        msg_sent: Receiver<()>,
     ) -> BidiResult<CloseResult> {
         // Step 1. end this session.
         self.end_the_session(session_id);
         if !self.active_sessions.borrow().is_empty() {
             // Step 2.1.
-            self.wait_queue.awaits(
-                &[ResumeEvent::SessionResponded(session_id)],
-                // Step 2.2.
-                self.clone().cleanup_the_session(session_id),
-            );
+            task::spawn_local(async move {
+                if let Err(err) = msg_sent.await {
+                    warn!("Waiting sending a WebSocket message failed ({err:?})");
+                }
+                self.clone().cleanup_the_session(session_id)
+            });
             // Step 2.
             return Err(BidiError {
                 code: ErrorCode::UnableToCloseBrowser,
@@ -90,16 +94,14 @@ impl RemoteEnd {
             self.clone().cleanup_the_session(session_id).await;
         }
         // Step 4.1.
-        let this = self.clone();
-        self.wait_queue
-            .awaits(&[ResumeEvent::SessionResponded(session_id)], async {
-                // Step 6.2. cleanup this session
-                this.clone().cleanup_the_session(session_id).await;
-                // Step 6.3. close traversables
-                this.close_all_traversables(false).await;
-                // Step 6.4. send close to embedder
-                this.close_browser();
-            });
+        task::spawn_local(async move {
+            if let Err(err) = msg_sent.await {
+                warn!("Waiting sending a WebSocket message failed ({err:?})");
+            }
+            self.clone().cleanup_the_session(session_id).await;
+            self.clone().close_all_traversables(false).await;
+            self.close_browser();
+        });
         // Step 4.
         Ok(EmptyResult::default())
     }
