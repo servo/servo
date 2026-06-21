@@ -873,3 +873,13 @@ The host may supply permitted local package bytes.
 Everything else gets no phone line.
 ```
 
+
+## 2026-06-21 — servoshell bare no-egui presentation mode
+
+- Inspected `ports/servoshell/prefs.rs`, `ports/servoshell/desktop/headed_window.rs`, and `ports/servoshell/desktop/gui.rs` for the headed desktop startup, event routing, egui AccessKit initialization, and render-to-parent presentation seam.
+- Added a headed desktop runtime preference/CLI path for `--no-egui` that leaves normal startup unchanged while allowing a native decorated window to present the active Servo WebView directly without constructing egui.
+- Touched `ports/servoshell/desktop/headed_window.rs` so the GUI is explicitly absent in bare mode, toolbar height is zero through the existing accessor, Servo WebView resize/input coordinates use the full client area, and the existing offscreen render context plus `render_to_parent_callback()` are used for direct presentation.
+- Bare mode now drops/dismisses GUI-only embedder controls through their existing safe responses: file picker dismissed, confirm/prompt dismissed, alert confirmed, permission denied, Bluetooth cancelled, authentication dropped, select/color/context menu resolved or dismissed through their existing defaults.
+- No new resource acquisition paths were discovered; this change is presentation/event-hosting work rather than local package loader policy work.
+- AccessKit remains egui-owned in normal mode. Bare mode does not initialize egui's AccessKit adapter and ignores accessibility app events after updating shell accessibility state, leaving direct AccessKit architecture deferred.
+- Deferred validation: broad servoshell build/check remained too large for this agent run from the current checkout; parser coverage was added but the full focused command did not complete before being stopped.

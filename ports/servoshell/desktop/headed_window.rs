@@ -64,7 +64,7 @@ pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
 pub struct HeadedWindow {
     /// The egui interface that is responsible for showing the user interface elements of
     /// this headed `Window`.
-    gui: RefCell<Gui>,
+    gui: Option<RefCell<Gui>>,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
     /// The inner size of the window in physical pixels which excludes OS decorations.
@@ -112,7 +112,8 @@ impl HeadedWindow {
         event_loop_proxy: EventLoopProxy<AppEvent>,
         initial_url: Url,
     ) -> Rc<Self> {
-        let no_native_titlebar = servoshell_preferences.no_native_titlebar;
+        let no_egui = servoshell_preferences.no_egui;
+        let no_native_titlebar = servoshell_preferences.no_native_titlebar && !no_egui;
         let inner_size = servoshell_preferences.initial_window_size;
         let window_attr = winit::window::Window::default_attributes()
             .with_title(INITIAL_WINDOW_TITLE.to_string())
@@ -185,13 +186,18 @@ impl HeadedWindow {
             .expect("Could not make window RenderingContext current");
 
         let rendering_context = Rc::new(window_rendering_context.offscreen_context(inner_size));
-        let gui = RefCell::new(Gui::new(
-            &winit_window,
-            event_loop,
-            event_loop_proxy,
-            rendering_context.clone(),
-            initial_url,
-        ));
+        let gui = if no_egui {
+            winit_window.set_visible(true);
+            None
+        } else {
+            Some(RefCell::new(Gui::new(
+                &winit_window,
+                event_loop,
+                event_loop_proxy,
+                rendering_context.clone(),
+                initial_url,
+            )))
+        };
 
         debug!("Created window {:?}", winit_window.id());
         Rc::new(HeadedWindow {
@@ -504,6 +510,38 @@ impl HeadedWindow {
         dialogs.retain_mut(callback);
     }
 
+    fn dismiss_embedder_control_without_gui(&self, embedder_control: EmbedderControl) {
+        match embedder_control {
+            EmbedderControl::SelectElement(prompt) => {
+                prompt.submit();
+            },
+            EmbedderControl::ColorPicker(mut color_picker) => {
+                color_picker.select(None);
+                color_picker.submit();
+            },
+            EmbedderControl::InputMethod(input_method_control) => {
+                self.show_ime(input_method_control.id(), input_method_control);
+            },
+            EmbedderControl::FilePicker(file_picker) => {
+                file_picker.dismiss();
+            },
+            EmbedderControl::SimpleDialog(simple_dialog) => match simple_dialog {
+                servo::SimpleDialog::Alert(alert_dialog) => {
+                    alert_dialog.confirm();
+                },
+                servo::SimpleDialog::Confirm(confirm_dialog) => {
+                    confirm_dialog.dismiss();
+                },
+                servo::SimpleDialog::Prompt(prompt_dialog) => {
+                    prompt_dialog.dismiss();
+                },
+            },
+            EmbedderControl::ContextMenu(context_menu) => {
+                context_menu.dismiss();
+            },
+        }
+    }
+
     fn add_dialog(&self, webview_id: WebViewId, dialog: Dialog) {
         self.dialogs
             .borrow_mut()
@@ -528,7 +566,40 @@ impl HeadedWindow {
     }
 
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
-        self.gui.borrow().toolbar_height()
+        self.gui
+            .as_ref()
+            .map_or(Length::zero(), |gui| gui.borrow().toolbar_height())
+    }
+
+    fn paint_bare_frame(&self, window: &ServoShellWindow) {
+        if let Some(webview) = window.active_webview() {
+            let size = self.inner_size.get();
+            let size = Size2D::new(size.width, size.height);
+            if size != webview.size() {
+                webview.resize(PhysicalSize::new(size.width, size.height));
+            }
+        }
+
+        window.repaint_webviews();
+
+        self.rendering_context
+            .make_current()
+            .expect("Could not make RenderingContext current");
+        self.rendering_context
+            .parent_context()
+            .prepare_for_rendering();
+
+        if let Some(render_to_parent) = self.rendering_context.render_to_parent_callback() {
+            let size = self.inner_size.get();
+            let rect_in_parent = Rect::new(
+                Point2D::origin(),
+                Size2D::new(size.width as i32, size.height as i32),
+            );
+            let gl = self.window_rendering_context.glow_gl_api();
+            render_to_parent(&gl, rect_in_parent);
+        }
+
+        self.rendering_context.parent_context().present();
     }
 
     pub(crate) fn handle_winit_window_event(
@@ -551,9 +622,13 @@ impl HeadedWindow {
         // If requested to redraw or resized, repaint as soon as possible, so that new buffer
         // contents are available to the window manager.
         if event == WindowEvent::RedrawRequested || resized {
-            let mut gui = self.gui.borrow_mut();
-            gui.update(&state, &window, self);
-            gui.paint(&self.winit_window);
+            if let Some(gui) = &self.gui {
+                let mut gui = gui.borrow_mut();
+                gui.update(&state, &window, self);
+                gui.paint(&self.winit_window);
+            } else {
+                self.paint_bare_frame(&window);
+            }
         }
 
         if let WindowEvent::CursorMoved { position, .. } = event {
@@ -570,34 +645,38 @@ impl HeadedWindow {
                 return true;
             }
             // Otherwise, if the cursor is over the egui interface, forward the event.
-            self.last_mouse_position
-                .get()
-                .is_none_or(|point| self.gui.borrow().is_in_egui_toolbar_rect(point))
+            self.gui.as_ref().is_some_and(|gui| {
+                self.last_mouse_position
+                    .get()
+                    .is_none_or(|point| gui.borrow().is_in_egui_toolbar_rect(point))
+            })
         };
 
         // Handle the event
         let mut consumed = false;
         match event {
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-                // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
-                // we can use our own logic for calculating the scale factor and set egui’s
-                // scale factor to that value manually.
-                let desired_scale_factor = self.hidpi_scale_factor().get();
-                let effective_egui_zoom_factor = desired_scale_factor / scale_factor as f32;
+                if let Some(gui) = &self.gui {
+                    // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event,
+                    // so we can use our own logic for calculating the scale factor and set egui’s
+                    // scale factor to that value manually.
+                    let desired_scale_factor = self.hidpi_scale_factor().get();
+                    let effective_egui_zoom_factor = desired_scale_factor / scale_factor as f32;
 
-                info!(
-                    "window scale factor changed to {}, setting egui zoom factor to {}",
-                    scale_factor, effective_egui_zoom_factor
-                );
+                    info!(
+                        "window scale factor changed to {}, setting egui zoom factor to {}",
+                        scale_factor, effective_egui_zoom_factor
+                    );
 
-                self.gui
-                    .borrow()
-                    .set_zoom_factor(effective_egui_zoom_factor);
+                    gui.borrow().set_zoom_factor(effective_egui_zoom_factor);
+                } else {
+                    info!("window scale factor changed to {scale_factor}");
+                }
 
                 window.hidpi_scale_factor_changed();
 
                 // Request a winit redraw event, so we can recomposite, update and paint
-                // the GUI, and present the new frame.
+                // the GUI or bare WebView frame, and present the new frame.
                 self.winit_window.request_redraw();
             },
             WindowEvent::MouseInput {
@@ -619,43 +698,62 @@ impl HeadedWindow {
             WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. }
                 if !should_forward_mouse_event_to_egui() =>
             {
-                self.gui.borrow().surrender_focus();
+                if let Some(gui) = &self.gui {
+                    gui.borrow().surrender_focus();
+                }
             },
-            WindowEvent::KeyboardInput { .. } if !self.gui.borrow().has_keyboard_focus() => {
+            WindowEvent::KeyboardInput { .. }
+                if self
+                    .gui
+                    .as_ref()
+                    .is_none_or(|gui| !gui.borrow().has_keyboard_focus()) =>
+            {
                 // Keyboard events should go to the WebView unless some other GUI
                 // component has keyboard focus.
             },
             ref event => {
-                let response = self
-                    .gui
-                    .borrow_mut()
-                    .on_window_event(&self.winit_window, event);
-
                 if let WindowEvent::Focused(true) = event {
                     state.handle_focused(window.clone());
                 }
 
-                if response.repaint && *event != WindowEvent::RedrawRequested {
-                    self.winit_window.request_redraw();
-                }
+                if let Some(gui) = &self.gui {
+                    let response = gui
+                        .borrow_mut()
+                        .on_window_event(&self.winit_window, event);
 
-                // All CursorMoved events, even when forwarded to the WebView, are also
-                // forwarded to Gui (above). This is because egui needs to know when
-                // the mouse is moving in other parts of the view in order to properly
-                // hide tooltips.
-                if let WindowEvent::CursorMoved { .. } = event &&
-                    !should_forward_mouse_event_to_egui()
-                {
-                    consumed = false;
-                } else {
-                    // TODO how do we handle the tab key? (see doc for consumed)
-                    // Note that servo doesn’t yet support tabbing through links and inputs
-                    consumed = response.consumed;
+                    if response.repaint && *event != WindowEvent::RedrawRequested {
+                        self.winit_window.request_redraw();
+                    }
+
+                    // All CursorMoved events, even when forwarded to the WebView, are also
+                    // forwarded to Gui (above). This is because egui needs to know when
+                    // the mouse is moving in other parts of the view in order to properly
+                    // hide tooltips.
+                    if let WindowEvent::CursorMoved { .. } = event &&
+                        !should_forward_mouse_event_to_egui()
+                    {
+                        consumed = false;
+                    } else {
+                        // TODO how do we handle the tab key? (see doc for consumed)
+                        // Note that servo doesn’t yet support tabbing through links and inputs
+                        consumed = response.consumed;
+                    }
                 }
             },
         }
 
-        if !consumed && let Some(webview) = window.active_webview() {
+        if !consumed {
+            self.forward_unconsumed_window_event(state, window, event);
+        }
+    }
+
+    fn forward_unconsumed_window_event(
+        &self,
+        state: Rc<RunningAppState>,
+        window: Rc<ServoShellWindow>,
+        event: WindowEvent,
+    ) {
+        if let Some(webview) = window.active_webview() {
             match event {
                 WindowEvent::KeyboardInput { event, .. } => {
                     self.handle_keyboard_input(state, &window, event)
@@ -796,10 +894,8 @@ impl HeadedWindow {
                 },
             }
 
-            if self
-                .gui
-                .borrow_mut()
-                .handle_accesskit_event(&event.window_event)
+            if let Some(gui) = &self.gui &&
+                gui.borrow_mut().handle_accesskit_event(&event.window_event)
             {
                 self.winit_window.request_redraw();
             }
@@ -859,7 +955,9 @@ impl PlatformWindow for HeadedWindow {
             *self.last_title.borrow_mut() = title;
         }
 
-        self.gui.borrow_mut().update_webview_data(window)
+        self.gui
+            .as_ref()
+            .is_some_and(|gui| gui.borrow_mut().update_webview_data(window))
     }
 
     fn request_repaint(&self, _: &ServoShellWindow) {
@@ -1073,12 +1171,17 @@ impl PlatformWindow for HeadedWindow {
     }
 
     fn show_embedder_control(&self, webview_id: WebViewId, embedder_control: EmbedderControl) {
+        if self.gui.is_none() {
+            self.dismiss_embedder_control_without_gui(embedder_control);
+            return;
+        }
+
         let control_id = embedder_control.id();
         match embedder_control {
             EmbedderControl::SelectElement(prompt) => {
                 // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
                 // But if the toolbar height changes while the dialog is open then the position won't be updated
-                let offset = self.gui.borrow().toolbar_height();
+                let offset = self.toolbar_height();
                 self.add_dialog(
                     webview_id,
                     Dialog::new_select_element_dialog(prompt, offset),
@@ -1087,7 +1190,7 @@ impl PlatformWindow for HeadedWindow {
             EmbedderControl::ColorPicker(color_picker) => {
                 // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
                 // But if the toolbar height changes while the dialog is open then the position won't be updated
-                let offset = self.gui.borrow().toolbar_height();
+                let offset = self.toolbar_height();
                 self.add_dialog(
                     webview_id,
                     Dialog::new_color_picker_dialog(color_picker, offset),
@@ -1103,7 +1206,7 @@ impl PlatformWindow for HeadedWindow {
                 self.add_dialog(webview_id, Dialog::new_simple_dialog(simple_dialog));
             },
             EmbedderControl::ContextMenu(prompt) => {
-                let offset = self.gui.borrow().toolbar_height();
+                let offset = self.toolbar_height();
                 self.add_dialog(webview_id, Dialog::new_context_menu(prompt, offset));
             },
         }
@@ -1123,10 +1226,20 @@ impl PlatformWindow for HeadedWindow {
         webview_id: WebViewId,
         request: BluetoothDeviceSelectionRequest,
     ) {
+        if self.gui.is_none() {
+            if let Err(error) = request.cancel() {
+                log::warn!("Failed to send cancellation: {error}");
+            }
+            return;
+        }
         self.add_dialog(webview_id, Dialog::new_device_selection_dialog(request));
     }
 
     fn show_permission_dialog(&self, webview_id: WebViewId, permission_request: PermissionRequest) {
+        if self.gui.is_none() {
+            permission_request.deny();
+            return;
+        }
         self.add_dialog(
             webview_id,
             Dialog::new_permission_request_dialog(permission_request),
@@ -1138,6 +1251,10 @@ impl PlatformWindow for HeadedWindow {
         webview_id: WebViewId,
         authentication_request: AuthenticationRequest,
     ) {
+        if self.gui.is_none() {
+            drop(authentication_request);
+            return;
+        }
         self.add_dialog(
             webview_id,
             Dialog::new_authentication_dialog(authentication_request),
@@ -1158,9 +1275,10 @@ impl PlatformWindow for HeadedWindow {
         _webview: WebView,
         tree_update: accesskit::TreeUpdate,
     ) {
-        self.gui
-            .borrow_mut()
-            .notify_accessibility_tree_update(tree_update);
+        if let Some(gui) = &self.gui {
+            gui.borrow_mut()
+                .notify_accessibility_tree_update(tree_update);
+        }
     }
 }
 
