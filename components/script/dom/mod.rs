@@ -225,11 +225,10 @@ pub(crate) use self::bluetooth::*;
 pub(crate) mod broadcastchannel;
 mod canvas;
 pub(crate) use self::canvas::*;
-pub(crate) mod cdatasection;
 pub(crate) mod characterdata;
+pub(crate) use self::characterdata::*;
 pub(crate) mod clipboard;
 pub(crate) use self::clipboard::*;
-pub(crate) mod comment;
 pub(crate) mod console;
 pub(crate) mod cookiestore;
 pub(crate) mod credentialmanagement;
@@ -302,7 +301,6 @@ pub(crate) mod performance;
 pub(crate) use self::performance::*;
 pub(crate) mod permissions;
 pub(crate) mod permissionstatus;
-pub(crate) mod processinginstruction;
 pub(crate) mod processingoptions;
 #[expect(dead_code)]
 pub(crate) mod promise;
@@ -337,7 +335,6 @@ pub(crate) use self::svg::*;
 mod testing;
 #[cfg(feature = "testbinding")]
 pub(crate) use self::testing::*;
-pub(crate) mod text;
 pub(crate) mod textcontrol;
 pub(crate) mod timeranges;
 pub(crate) mod touch;
