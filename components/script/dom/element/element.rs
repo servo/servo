@@ -1998,7 +1998,7 @@ impl Element {
                 new_value,
                 attr.namespace().clone(),
             );
-            ScriptThread::enqueue_callback_reaction(self, reaction, None);
+            ScriptThread::enqueue_callback_reaction(cx, self, reaction, None);
         }
 
         // Step 3. Run the attribute change steps with element, attribute’s local name, oldValue, newValue, and attribute’s namespace.

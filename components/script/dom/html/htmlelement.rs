@@ -1223,6 +1223,7 @@ impl VirtualMethods for HTMLElement {
                 element.set_disabled_state(true);
                 element.set_enabled_state(false);
                 ScriptThread::enqueue_callback_reaction(
+                    cx,
                     element,
                     CallbackReaction::FormDisabled(true),
                     None,
@@ -1238,6 +1239,7 @@ impl VirtualMethods for HTMLElement {
                 element.check_ancestors_disabled_state_for_form_control();
                 if element.enabled_state() {
                     ScriptThread::enqueue_callback_reaction(
+                        cx,
                         element,
                         CallbackReaction::FormDisabled(false),
                         None,
@@ -1279,6 +1281,7 @@ impl VirtualMethods for HTMLElement {
             element.check_ancestors_disabled_state_for_form_control();
             if element.disabled_state() {
                 ScriptThread::enqueue_callback_reaction(
+                    cx,
                     element,
                     CallbackReaction::FormDisabled(true),
                     None,
@@ -1342,6 +1345,7 @@ impl VirtualMethods for HTMLElement {
             element.check_ancestors_disabled_state_for_form_control();
             if element.enabled_state() {
                 ScriptThread::enqueue_callback_reaction(
+                    cx,
                     element,
                     CallbackReaction::FormDisabled(false),
                     None,
