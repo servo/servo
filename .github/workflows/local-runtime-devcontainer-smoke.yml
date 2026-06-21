@@ -345,6 +345,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install GitHub CLI
+        run: |
+          set -Eeuo pipefail
+
+          if command -v gh >/dev/null 2>&1; then
+            gh --version
+            exit 0
+          fi
+
+          apt-get update
+          apt-get install -y gh
+          gh --version
+
       - name: Verify Debian 12 build-room image
         run: |
           set -euxo pipefail
