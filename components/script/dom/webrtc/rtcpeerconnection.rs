@@ -457,7 +457,7 @@ impl RTCPeerConnection {
             .as_ref()
             .unwrap()
             .create_offer(Box::new(move |desc: SessionDescription| {
-                task_source.queue(task!(offer_created: move || {
+                task_source.queue(task!(offer_created: move |cx| {
                     let this = this.root();
                     if this.offer_answer_generation.get() != generation {
                         // the state has changed since we last created the offer,
@@ -466,7 +466,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.offer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init, CanGc::deprecated_note());
+                            promise.resolve_native(cx, &init);
                         }
                     }
                 }));
@@ -486,7 +486,7 @@ impl RTCPeerConnection {
             .as_ref()
             .unwrap()
             .create_answer(Box::new(move |desc: SessionDescription| {
-                task_source.queue(task!(answer_created: move || {
+                task_source.queue(task!(answer_created: move |cx| {
                     let this = this.root();
                     if this.offer_answer_generation.get() != generation {
                         // the state has changed since we last created the offer,
@@ -495,7 +495,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.answer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init, CanGc::deprecated_note());
+                            promise.resolve_native(cx, &init);
                         }
                     }
                 }));

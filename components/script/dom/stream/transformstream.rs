@@ -124,9 +124,8 @@ struct PerformTransformFulfillment {
 
 impl Callback for PerformTransformFulfillment {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         // Fulfilled: resolve the outer promise
-        self.result_promise.resolve_native(&(), can_gc);
+        self.result_promise.resolve_native(cx, &());
     }
 }
 

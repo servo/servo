@@ -48,7 +48,7 @@ use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::realms::{InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
@@ -198,18 +198,7 @@ impl Promise {
         Promise::new_with_js_promise(p.handle(), cx.into())
     }
 
-    pub(crate) fn resolve_native<T>(&self, val: &T, can_gc: CanGc)
-    where
-        T: SafeToJSValConvertible,
-    {
-        let cx = GlobalScope::get_cx();
-        let _ac = enter_realm(self);
-        rooted!(in(*cx) let mut v = UndefinedValue());
-        val.safe_to_jsval(cx, v.handle_mut(), can_gc);
-        self.resolve(cx, v.handle(), can_gc);
-    }
-
-    pub(crate) fn resolve_native_with_cx<T>(&self, cx: &mut JSContext, val: &T)
+    pub(crate) fn resolve_native<T>(&self, cx: &mut JSContext, val: &T)
     where
         T: SafeToJSValConvertible,
     {
@@ -218,6 +207,14 @@ impl Promise {
         rooted!(&in(cx) let mut v = UndefinedValue());
         val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
         self.resolve_with_cx(cx, v.handle());
+    }
+
+    /// Deprecated: use [`Self::resolve_native`] instead
+    pub(crate) fn resolve_native_with_cx<T>(&self, cx: &mut JSContext, val: &T)
+    where
+        T: SafeToJSValConvertible,
+    {
+        self.resolve_native(cx, val);
     }
 
     #[expect(unsafe_code)]

@@ -154,7 +154,7 @@ impl OneshotTimerCallback {
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, cx),
             #[cfg(feature = "testbinding")]
-            OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
+            OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(cx),
             OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(cx),
             OneshotTimerCallback::RunStepsAfterTimeout { completion, .. } => {
                 // <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
