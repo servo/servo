@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<title>Point mapping through deeply nested 3D transforms</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="text/css" media="screen">
+  body {
+    margin: 0;
+    border: 1px solid black;
+    overflow: hidden;
+  }
+
+  .test {
+    display: inline-block;
+    height: 400px;
+    width: 400px;
+    border: 1px solid black;
+    margin: 20px;
+  }
+
+  #box1, #box2, #box3, #box4, #box5, #box6, #box7 {
+    height: 300px;
+    width: 300px;
+    box-sizing: border-box;
+    background-color: #ddd;
+    border: 1px solid black;
+  }
+
+  #box1 {
+    height: 340px;
+    width: 340px;
+    margin: 20px;
+    perspective: 400px;
+  }
+
+  #box2 {
+    padding: 20px;
+    margin: 20px;
+    background-color: #81aa8a;
+    transform-style: preserve-3d;
+    transform: rotateY(20deg);
+  }
+
+  #box3 {
+    padding: 20px;
+    margin: 20px;
+    background-color: #81aa8a;
+    transform-style: preserve-3d;
+    transform: translateZ(40px) rotateX(10deg);
+  }
+
+  #box4 {
+    padding: 20px;
+    margin: 20px;
+    background-color: #aa7994;
+    transform-style: flat;
+    transform: translate3d(0, 20px, 40px) rotateX(-15deg);
+  }
+
+  #box5 {
+    padding: 20px;
+    margin: 20px;
+    background-color: #aa7994;
+    transform-style: flat;
+    perspective: 500px;
+  }
+
+  #box6 {
+    padding: 20px;
+    margin: 20px;
+    background-color: #81aa8a;
+    transform-style: preserve-3d;
+    transform-origin: top left;
+    transform: rotateY(-15deg);
+  }
+
+  #box7 {
+    padding: 20px;
+    margin: 20px;
+    background-color: #81aa8a;
+    transform-style: preserve-3d;
+    transform-origin: top left;
+    transform: translateZ(20px);
+  }
+
+  #box8 {
+    background-color: blue;
+    height: 90px;
+    width: 90px;
+    margin: 40px;
+  }
+</style>
+
+<body>
+  <div class="test">
+    <div id="box1">
+      <div id="box2">
+        <div id="box3">
+          <div id="box4">
+            <div id="box5">
+              <div id="box6">
+                <div id="box7">
+                  <div id="box8"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  class Point {
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+  }
+  // Each test case defines four test points near the corners of an element.
+  // - Point 1: Top-left
+  // - Point 2: Top-right
+  // - Point 3: Bottom-left
+  // - Point 4: Bottom-right
+  const tests = [
+    {
+      expectedElemId: "box1",
+      points: [
+        new Point(45, 45),
+        new Point(370, 45),
+        new Point(45, 370),
+        // The bottom-right area is overlapped.
+      ]
+    },
+    {
+      expectedElemId: "box2",
+      points: [
+        new Point(54, 44),  // Inside box1 without rotateY transform.
+        new Point(330, 85),
+        new Point(56, 373), // Inside box1 without rotateY transform.
+        new Point(97, 370),
+      ],
+
+    },
+    {
+      expectedElemId: "box3",
+      points: [
+        new Point(104, 93),
+        new Point(369, 119), // Inside box1 without translateZ and rotateX transform.
+        new Point(110, 455), // Inside main document without translateZ and rotateX transform.
+        new Point(160, 444), // Inside main document without translateZ and rotateX transform.
+      ],
+    },
+    {
+      expectedElemId: "box4",
+      points: [
+        new Point(175, 137),
+        new Point(470, 156), // Inside main document without translate3d and rotateX transform.
+        new Point(167, 522), // Inside main document without translate3d and rotateX transform.
+        new Point(207, 512), // Inside main document without translate3d and rotateX transform.
+      ],
+    },
+    {
+      expectedElemId: "box5",
+      points: [
+        new Point(227, 197),
+        new Point(494, 200),
+        new Point(215, 555),
+        new Point(252, 545),
+      ],
+    },
+    {
+      expectedElemId: "box6",
+      points: [
+        new Point(274, 252),
+        new Point(536, 220), // Inside main document without rotateY transform.
+        new Point(258, 588),
+        new Point(280, 579),
+      ],
+    },
+    {
+      expectedElemId: "box7",
+      points: [
+        new Point(303, 290), // Inside box6 without translateZ transform.
+        new Point(568, 258), // Inside main document without translateZ transform.
+        new Point(288, 580), // Inside main document without translateZ transform.
+        new Point(539, 569), // Inside main document without translateZ transform.
+      ],
+    },
+    {
+      expectedElemId: "box8",
+      points: [
+        new Point(358, 356),
+        new Point(435, 344),
+        new Point(352, 454),
+        new Point(428, 438),
+      ],
+    },
+  ];
+
+  tests.forEach((testcase) => {
+    test(() => {
+      const expectedElem = document.getElementById(testcase.expectedElemId);
+      for (const point of testcase.points) {
+        const hitElem = document.elementFromPoint(point.x, point.y);
+        assert_equals(
+          hitElem,
+          expectedElem,
+          `point (${point.x}, ${point.y}) is inside element ${testcase.expectedElemId}`
+        );
+      }
+    }, `${document.title}, hittesting ${testcase.expectedElemId}`);
+  });
+</script>

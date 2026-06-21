@@ -4,10 +4,18 @@
   <title>Type element selectors</title>
   <style type="text/css"><![CDATA[address { background-color: lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
  </head>
  <body>
-<address>This address element should have a green background.</address>
+<address id="t1">This address element should have a green background.</address>
+<script><![CDATA[
+test(function() {
+  const t1 = document.getElementById("t1");
+  assert_equals(getComputedStyle(t1).backgroundColor, "rgb(0, 255, 0)");
+}, "address elements should have a green background.");
+]]></script>
 </body>
 </html>

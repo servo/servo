@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="/speculation-rules/prefetch/resources/utils.sub.js"></script>
+
+<script>
+  setup(() => assertSpeculationRulesIsSupported('prerender'));
+
+  promise_test(async t => {
+    const uuid = token();
+    const prerender_uuid = token();
+    const agent = await spawnWindow(t, {}, uuid);
+
+    // Pass activated_uuid=${uuid} to let the activated page use the initiator's UUID.
+    const prerenderUrl = new URL(`resources/activation_beacon.py?uuid=${prerender_uuid}&activated_uuid=${uuid}&action=serve`, location.href);
+
+
+    // Trigger prerender
+    await agent.execute_script((url) => {
+        insertSpeculationRules({
+            prerender: [{urls: [url]}]
+        });
+    }, [prerenderUrl.toString()]);
+
+    // Wait for prerender to load by trying to execute a script in it.
+    const prerender_agent = new RemoteContext(prerender_uuid);
+    await prerender_agent.execute_script(() => {});
+
+    // Navigate to the prerendered URL
+    await agent.navigate(prerenderUrl, { expectedDestinationUrl: null });
+
+    const checkUrl = new URL(`resources/activation_beacon.py?uuid=${prerender_uuid}&action=check`, location.href);
+
+    // Poll for beacon received
+    let state = {};
+    let attempts = 0;
+    while (!state.beacon_received && attempts < 20) {
+        await new Promise(resolve => t.step_timeout(resolve, 500));
+        let response = await fetch(checkUrl);
+        state = await response.json();
+        attempts++;
+    }
+
+    assert_true(state.fetched, "Resource should have been fetched.");
+    assert_true(state.beacon_received, "Beacon should have been received.");
+  }, "Test that prefetch activation beacon is sent upon direct prerender activation.");
+
+  promise_test(async t => {
+    const uuid = token();
+    const prerender_uuid = token();
+    const agent = await spawnWindow(t, {}, uuid);
+
+    // Pass activated_uuid=${uuid} to let the activated page use the initiator's UUID.
+    const prefetchUrl = new URL(`resources/activation_beacon.py?uuid=${prerender_uuid}&activated_uuid=${uuid}&action=serve`, location.href);
+
+
+    // Trigger prefetch
+    await agent.forceSinglePrefetch(prefetchUrl.toString());
+
+    // Wait a bit for prefetch to complete (heuristic)
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+
+    // Trigger prerender for the same URL
+    await agent.execute_script((url) => {
+        insertSpeculationRules({
+            prerender: [{urls: [url]}]
+        });
+    }, [prefetchUrl.toString()]);
+
+    // Wait for prerender to load
+    const prerender_agent = new RemoteContext(prerender_uuid);
+    await prerender_agent.execute_script(() => {});
+
+    // Navigate to the URL
+    await agent.navigate(prefetchUrl, { expectedDestinationUrl: null });
+
+    const checkUrl = new URL(`resources/activation_beacon.py?uuid=${prerender_uuid}&action=check`, location.href);
+
+    // Poll for beacon received
+    let state = {};
+    let attempts = 0;
+    while (!state.beacon_received && attempts < 20) {
+        await new Promise(resolve => t.step_timeout(resolve, 500));
+        let response = await fetch(checkUrl);
+        state = await response.json();
+        attempts++;
+    }
+
+    assert_true(state.fetched, "Resource should have been fetched.");
+    assert_true(state.beacon_received, "Beacon should have been received.");
+  }, "Test that prefetch activation beacon is sent upon prefetch-to-prerender upgraded activation.");
+</script>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<style>
+body {
+  margin: 0;
+  width: 1000px;
+  height: 1000px;
+}
+
+div {
+  width: 50px;
+  height: 50px;
+}
+
+#anchor1 {
+  position: absolute;
+  left: 150px;
+  top: 150px;
+  background: orange;
+}
+
+#anchor2 {
+  position: absolute;
+  left: 250px;
+  top: 250px;
+  background: teal;
+}
+
+#f1 {
+  position: fixed;
+  left: 100px;
+  top: 100px;
+  background: yellow;
+}
+
+#f2 {
+  position: fixed;
+  left: 200px;
+  top: 200px;
+  background: aqua;
+}
+
+#f3 {
+  position: fixed;
+  left: 100px;
+  top: 200px;
+  background: aqua;
+}
+</style>
+
+<div id="anchor1"></div>
+<div id="anchor2"></div>
+<div id="f1"></div>
+<div id="f2"></div>
+<div id="f3"></div>
+
+<script>
+document.documentElement.scrollLeft = 100;
+document.documentElement.scrollTop = 100;
+</script>

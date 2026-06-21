@@ -128,6 +128,13 @@
         assert_equals(computedStyle.getPropertyValue(name), value);
     }
 
+    function assert_length_property_approx_equals(name, value, epsilon, element = target) {
+        var computedStyle = getComputedStyle(element);
+        var propertyValue = computedStyle.getPropertyValue(name);
+        assert_approx_equals(parseFloat(value), parseFloat(propertyValue), epsilon,
+                             "unexpected value of " + name);
+    }
+
     let unsetFontSize = compute_dimension('1em', 'unset');
     const unsetLineHeight = "normal";
 
@@ -167,7 +174,7 @@
             const v = `var(--${variable})`;
             const expected = universal_variables[variable](v);
             target.style = `font-size: ${v};`;
-            assert_property_equals('font-size', expected);
+            assert_length_property_approx_equals('font-size', expected, 0.1);
         }
     }, 'Registered universal variables referencing font-dependent units can be used in font-size');
 
@@ -320,8 +327,8 @@
     test(function() {
         let expected4ex = compute_dimension('4ex', 'unset');
         target.style = 'font-size: var(--font-size-ex-inherited);';
-        assert_property_equals('font-size', expected4ex);
-        assert_property_equals('--font-size-ex-inherited', expected4ex);
+        assert_length_property_approx_equals('font-size', expected4ex, 0.1);
+        assert_length_property_approx_equals('--font-size-ex-inherited', expected4ex, 0.1);
     }, 'Inherited lengths with ex units may be used');
 
     test(function() {

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html class='reftest-wait'>
+<title>Reference: Fixed box anchors to sticky child while scrolling</title>
+<link rel="author" title="Elika J. Etemad" href="https://fantasai.inkedblade.net/contact">
+
+<style>
+#sticky {
+  background: teal;
+  border: 10px solid aqua;
+  color: white;
+  anchor-name: --sticky;
+}
+
+#child {
+  anchor-name: --sticky-child;
+  background: blue;
+  border: 5px solid navy;
+  margin-inline: 25%;
+}
+
+.anchored {
+  position: absolute;
+  background: fuchsia;
+  padding: 4px;
+}
+.anchored.positionArea {
+  position-area: bottom span-right;
+}
+.anchored.anchorFunction {
+  top: anchor(outside);
+  right: anchor(inside);
+ }
+
+.anchored.sticky {
+  position-anchor: --sticky;
+}
+.anchored.sticky-child {
+  position-anchor: --sticky-child;
+}
+
+:root {
+  padding: 40px;
+  block-size: 200%;
+}
+body {
+  border: 2px dashed;
+  height: 100%;
+}
+</style>
+
+<div style="position: fixed; top: 0; width: calc(100% - 100px); height: 100vh">
+<div id="sticky">Sticky
+  <div id="child">Sticky Child</div>
+</div>
+<div class="anchored sticky positionArea">Anchored to Sticky</div>
+<div class="anchored sticky-child positionArea">Anchored to Child</div>
+<div class="anchored sticky anchorFunction">Anchored to Sticky</div>
+<div class="anchored sticky-child anchorFunction">Anchored to Child</div>
+</div>
+
+<script>
+window.scrollBy(0, 100);
+document.documentElement.removeAttribute('class');
+</script>

@@ -27,5 +27,15 @@ promise_test(async function(t) {
       'with NotAllowedError');
 }, 'navigator.install(url, manifest_id) rejects with NotAllowedError ' +
    'without a user activation.');
+
+promise_test(async function(t) {
+  await promise_rejects_dom(t, 'NotAllowedError',
+      navigator.install({
+        manifest: 'https://example.com/manifest.json',
+      }),
+      'navigator.install({manifest}) without user activation should reject ' +
+      'with NotAllowedError');
+}, 'navigator.install({manifest}) rejects with NotAllowedError without a ' +
+   'user activation.');
 </script>
 </body>

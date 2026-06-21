@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+  <title>Pointer Lock suppress mouse boundary events test</title>
+  <meta name="viewport" content="width=device-width">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="test-helper.js"></script>
+</head>
+<body>
+  <div id="div1" style="width:800px;height:250px;background:green"></div>
+  <div id="div2" style="width:800px;height:250px;background:yellow"></div>
+</body>
+<script>
+  const kSuppressedEvents = ['mouseenter', 'mouseleave', 'mouseover',
+    'mouseout'
+  ];
+
+  promise_test(async function(t) {
+      var div1 = document.getElementById("div1");
+      var div2 = document.getElementById("div2");
+      var pointermove_count = 0;
+      var suppressed_events_log = [];
+
+      await lockPointerAndWaitForEvent(div1, /*provideTransientActivation=*/
+        true);
+
+      // Register listeners for the suppressed events on both elements
+      // and the document.
+      [div1, div2, document].forEach(function(target) {
+        kSuppressedEvents.forEach(function(eventType) {
+          target.addEventListener(eventType, function(event) {
+            suppressed_events_log.push(event.type + ' on ' + (
+              target.id || 'document'));
+          });
+        });
+      });
+
+      div1.addEventListener('pointermove', function(event) {
+        pointermove_count++;
+      });
+
+      // Move across element boundaries while locked.
+      await new test_driver.Actions()
+        .pointerMove(0, 0, {
+          origin: div1
+        })
+        .pointerMove(0, 0, {
+          origin: div2
+        })
+        .pointerMove(50, 50, {
+          origin: div2
+        })
+        .pointerMove(0, 0, {
+          origin: div1
+        })
+        .pointerMove(50, 50, {
+          origin: div1
+        })
+        .send();
+
+      await unlockPointerAndWaitForEvent();
+
+      assert_equals(document.pointerLockElement, null,
+        "document.pointerLockElement should be null after unlock.");
+      assert_equals(suppressed_events_log.length, 0,
+        "No mouseenter/mouseleave/mouseover/mouseout events should fire during pointer lock. " +
+        "Events fired: [" + suppressed_events_log.join(", ") + "]");
+      assert_greater_than(pointermove_count, 0,
+        "At least one pointermove should have fired on the lock target.");
+    },
+    "mouseenter/mouseleave/mouseover/mouseout do not fire during pointer lock");
+</script>
+</html>

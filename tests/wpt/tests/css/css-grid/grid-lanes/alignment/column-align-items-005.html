@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: stretched item's children resolve percentage heights against stretched size in column direction</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="column-align-items-005-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-columns: repeat(3, 80px);
+      height: 500px;
+      gap: 10px;
+      padding: 2px;
+      margin: 5px;
+      align-items: stretch;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Item 1 has no explicit height, stretches, and contains a child with
+     height: 50% which should resolve against the stretched size. -->
+<div class="grid-lanes">
+  <item style="background: #f4a0a0;">
+    <div style="height: 50%; background: #d62728;"></div>
+  </item>
+  <item style="height: 80px; background: #aad4f5;">2</item>
+  <item style="height: 200px; background: #2ca02c;">3</item>
+  <item style="height: 50px; background: #f4a0a0; grid-column: span 2; align-self: start;">
+    <div style="height: 50%; background: #d62728;"></div>
+  </item>
+  <item style="background: #2ca02c; grid-column: span 3;">5</item>
+</div>
+
+</body>
+</html>

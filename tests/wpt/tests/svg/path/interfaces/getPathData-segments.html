@@ -1,0 +1,101 @@
+<!doctype html>
+<title>SVGPathElement.getPathData() returns segments matching the d attribute</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<script>
+const cases = [
+  {
+    description: "straight lines",
+    input: "M 0 0 H 100 V 100 H 0 Z",
+    output: [
+      { type: "M", values: [0, 0] },
+      { type: "H", values: [100] },
+      { type: "V", values: [100] },
+      { type: "H", values: [0] },
+      { type: "Z", values: [] }
+    ]
+  },
+  {
+    description: "arc",
+    input: "M 0 0 A 10 10 0 0 1 20 20",
+    output: [
+      { type: "M", values: [0, 0] },
+      { type: "A", values: [10, 10, 0, 0, 1, 20, 20] }
+    ]
+  },
+  {
+    description: "cubic",
+    input: "M 413 140 C 413 140 438 40 302 44",
+    output: [
+      { type: "M", values: [413, 140] },
+      { type: "C", values: [413, 140, 438, 40, 302, 44] }
+    ]
+  },
+  {
+    description: "relative forms (m, l, q, s, t)",
+    input: "m 10 20 l 30 0 q 10 0 20 10 t 20 -10 s 10 5 20 0",
+    output: [
+      { type: "m", values: [10, 20] },
+      { type: "l", values: [30, 0] },
+      { type: "q", values: [10, 0, 20, 10] },
+      { type: "t", values: [20, -10] },
+      { type: "s", values: [10, 5, 20, 0] }
+    ]
+  },
+  {
+    description: "absolute L/Q/S/T commands",
+    input: "M 0 0 L 10 10 Q 20 0 30 10 T 40 20 S 50 10 60 0",
+    output: [
+      { type: "M", values: [0, 0] },
+      { type: "L", values: [10, 10] },
+      { type: "Q", values: [20, 0, 30, 10] },
+      { type: "T", values: [40, 20] },
+      { type: "S", values: [50, 10, 60, 0] }
+    ]
+  },
+  {
+    description: "relative forms (h, v, c, a)",
+    input: "M 0 0 h 10 v 10 c 10 0 20 0 30 -10 a 5 5 0 0 1 10 10",
+    output: [
+      { type: "M", values: [0, 0] },
+      { type: "h", values: [10] },
+      { type: "v", values: [10] },
+      { type: "c", values: [10, 0, 20, 0, 30, -10] },
+      { type: "a", values: [5, 5, 0, 0, 1, 10, 10] }
+    ]
+  },
+  {
+    description: "implicit repeated commands",
+    // "M 0 0 100 100" parses as MoveTo + implicit LineTo.
+    // "L 10 10 20 20" parses as two explicit LineTos.
+    input: "M 0 0 100 100 L 10 10 20 20",
+    output: [
+      { type: "M", values: [0, 0] },
+      { type: "L", values: [100, 100] },
+      { type: "L", values: [10, 10] },
+      { type: "L", values: [20, 20] }
+    ]
+  }
+];
+
+for (const c of cases) {
+  test(() => {
+    const path = createPath(c.input);
+    assert_path_data_equals(path.getPathData(), c.output);
+  }, `path.getPathData() ${c.description}`);
+}
+
+test(() => {
+  const path = createPath("M 0 0 L 10 10");
+  const a = path.getPathData();
+  const b = path.getPathData();
+  assert_not_equals(a, b, "each call returns a fresh array");
+  assert_not_equals(a[0], b[0], "each call returns fresh segment objects");
+  assert_not_equals(a[0].values, b[0].values,
+                    "each call returns fresh value arrays");
+}, "path.getPathData() returns a fresh array on each call");
+</script>

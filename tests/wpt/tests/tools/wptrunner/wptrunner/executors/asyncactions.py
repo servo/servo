@@ -342,6 +342,22 @@ class BidiPermissionsSetPermissionAction:
                                                                    embedded_origin)
 
 
+class BidiDigitalCredentialsSetVirtualWalletBehaviorAction:
+    name = "set_virtual_wallet_behavior"
+
+    def __init__(self, logger, protocol):
+        do_delayed_imports()
+        self.logger = logger
+        self.protocol = protocol
+
+    async def execute(self, context: str, payload: Mapping[str, Any]) -> Any:
+        action = payload["action"]
+        protocol = payload.get("protocol")
+        response = payload.get("response")
+        self.logger.debug("Setting virtual wallet behavior to %s" % action)
+        return await self.protocol.digital_credentials.set_virtual_wallet_behavior(action, protocol, response, context)
+
+
 async_actions = [
     BidiBluetoothHandleRequestDevicePrompt,
     BidiBluetoothSimulateAdapterAction,
@@ -362,4 +378,5 @@ async_actions = [
     BidiPermissionsSetPermissionAction,
     BidiSessionSubscribeAction,
     BidiSessionUnsubscribeAction,
-    BidiPermissionsSetPermissionAction]
+    BidiPermissionsSetPermissionAction,
+    BidiDigitalCredentialsSetVirtualWalletBehaviorAction]

@@ -13,6 +13,7 @@
 test_valid_value("color", "alpha(from red / 0.5)");
 test_valid_value("color", "alpha(from blue / 1)");
 test_valid_value("color", "alpha(from green / 0)");
+test_valid_value("color", "alpha(from rgba(0, 0, 0, 0.5) / 1)");
 
 // Percentage alpha.
 test_valid_value("color", "alpha(from red / 50%)");
@@ -52,5 +53,41 @@ test_valid_value("color", "alpha(from currentcolor / 0.5)");
 // Out-of-range alpha values.
 test_valid_value("color", "alpha(from red / 2)");
 test_valid_value("color", "alpha(from red / -1)");
+
+// Origin color carrying its own alpha (with and without replacement).
+test_valid_value("color", "alpha(from rgba(255, 0, 0, 0.3))");
+test_valid_value("color", "alpha(from rgba(255, 0, 0, 0.8) / alpha)");
+
+// Non-legacy origins keep their color space in the serialized origin.
+test_valid_value("color", "alpha(from color(srgb 1 0 0) / 50%)");
+test_valid_value("color", "alpha(from oklab(0.5 0.2 -0.3) / 0.5)");
+test_valid_value("color", "alpha(from lch(50% 20 30) / 0.5)", "alpha(from lch(50 20 30) / 0.5)");
+
+// Legacy origins are normalized to their canonical form.
+test_valid_value("color", "alpha(from hsl(120 50% 50%) / 0.5)", "alpha(from rgb(64, 191, 64) / 0.5)");
+test_valid_value("color", "alpha(from hwb(120 0% 0%) / 0.5)", "alpha(from rgb(0, 255, 0) / 0.5)");
+
+// System color as origin.
+test_valid_value("color", "alpha(from ActiveText / 0.5)", "alpha(from activetext / 0.5)");
+
+// Tree-counting and var() alpha values (substitution functions stay unresolved).
+test_valid_value("color", "alpha(from green / sibling-index())");
+test_valid_value("color", "alpha(from green / sibling-count())");
+test_valid_value("color", "alpha(from green / calc(sibling-index() * 0.2))", "alpha(from green / calc(0.2 * sibling-index()))");
+test_valid_value("color", "alpha(from red / var(--alpha))");
+
+// Nested alpha() as origin.
+test_valid_value("color", "alpha(from alpha(from currentcolor / 0.5) / alpha)");
+test_valid_value("color", "alpha(from alpha(from currentcolor / 0.5) / calc(alpha + 0.25))", "alpha(from alpha(from currentcolor / 0.5) / calc(0.25 + alpha))");
+
+// alpha() as the origin of other relative color functions.
+test_valid_value("color", "rgb(from alpha(from red / 0.5) r g b / alpha)");
+test_valid_value("color", "hsl(from alpha(from currentcolor / 0.5) h s l / alpha)");
+test_valid_value("color", "hwb(from alpha(from currentcolor / 0.5) h w b / alpha)");
+test_valid_value("color", "lab(from alpha(from currentcolor / 0.5) l a b / alpha)");
+test_valid_value("color", "lch(from alpha(from currentcolor / 0.5) l c h / alpha)");
+test_valid_value("color", "oklab(from alpha(from currentcolor / 0.5) l a b / alpha)");
+test_valid_value("color", "oklch(from alpha(from currentcolor / 0.5) l c h / alpha)");
+test_valid_value("color", "color(from alpha(from currentcolor / 0.5) display-p3 r g b / alpha)");
 
 </script>

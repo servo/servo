@@ -2,6 +2,8 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>More than one class selector</title>
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
   <style type="text/css"><![CDATA[p { background-color : red ; border : thick solid red ; padding : 1em }
 p.t1 { background-color : lime }
 p.t2 { border : thick solid green }
@@ -17,12 +19,25 @@ div.te.st { background: red; color: yellow; }]]></style>
  </head>
  <body>
 
-<p class="t1 t2">This paragraph
+<p id="target1" class="t1 t2">This paragraph
 should have a green background and a green thick solid border because
 it carries both classes t1 and t2.</p>
 
-<div class="test">This line
+<div id="target2" class="test">This line
 should be green.</div>
 
+<script><![CDATA[
+test(function() {
+  const t1 = document.getElementById('target1');
+  assert_equals(getComputedStyle(t1).backgroundColor, 'rgb(0, 255, 0)', 'background-color');
+  assert_equals(getComputedStyle(t1).borderLeftColor, 'rgb(0, 128, 0)', 'border-left-color');
+  assert_equals(getComputedStyle(t1).borderLeftStyle, 'solid', 'border-left-style');
+}, "p.t1.t2 should have green background and border");
+
+test(function() {
+  const t2 = document.getElementById('target2');
+  assert_equals(getComputedStyle(t2).backgroundColor, 'rgb(0, 128, 0)', 'background-color');
+}, "div.test should have green background");
+]]></script>
 </body>
 </html>

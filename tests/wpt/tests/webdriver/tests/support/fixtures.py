@@ -255,6 +255,12 @@ def get_test_page(iframe, inline):
                 """
 
         page_data = f"""
+            <!-- This is used for tests which check the event position synthesized via
+                TestDriver. Therefore, if the page is initially scaled to non-100%,
+                TestDriver needs to floor the specified position so that the event may be
+                fired at different position. Thus, we need to fix the scale here. -->
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+
             <style>
                 custom-element {{
                     display:block; width:20px; height:20px;

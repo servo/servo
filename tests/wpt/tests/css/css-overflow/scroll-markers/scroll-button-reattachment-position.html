@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: ::scroll-button positioning works after position type transitions</title>
+<link rel="match" href="scroll-button-reattachment-position-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<style>
+  body {
+    margin: 0;
+  }
+  #scroller {
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    background: red;
+    position: fixed;
+  }
+  #scroller::scroll-button(inline-end) {
+    border: none;
+    content: ' ';
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  #scroller.fixed::scroll-button(inline-end) {
+    position: fixed;
+  }
+</style>
+<p>You should see a green square below.</p>
+<div id="scroller">
+  <div style="width: 500px; height: 100px;"></div>
+</div>
+<script>
+  scroller.offsetTop;
+  scroller.classList.add("fixed");
+</script>

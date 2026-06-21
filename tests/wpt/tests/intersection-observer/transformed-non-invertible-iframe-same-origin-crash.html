@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+<title>Don't crash if a same-origin iframe uses intersection observer and is transformed with a non-invertible transformation</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+  iframe {
+    transform: matrix3d(
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0
+    );
+  }
+</style>
+
+<p>This test passes if it does not crash. You should not see anything besides this text.</p>
+<iframe src="resources/transformed-iframe-subframe.html"></iframe>
+
+<script>
+  window.addEventListener("message", (e) => {
+    if (Object.hasOwn(e.data, "isIntersecting"))
+        takeScreenshot();
+  });
+</script>
+
+</html>

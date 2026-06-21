@@ -1,0 +1,87 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTCCertificateStats describes the local and remote certificates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // The following helpers come from RTCPeerConnection-helper.js:
+  //   exchangeIceCandidates, exchangeOfferAnswer, trackFactories, waitForState
+
+  // Normalize an RFC 4572 fingerprint (colon-separated, any case) to bare
+  // lowercase hex so values from different sources can be compared.
+  function normalizeFingerprint(value) {
+    return value.replace(/:/g, '').toLowerCase();
+  }
+
+  // transport.localCertificateId and transport.remoteCertificateId are
+  // references to the RTCCertificateStats describing each end's DTLS
+  // certificate. By configuring both peers with certificates whose fingerprints
+  // we know in advance, we can assert that each id resolves to a certificate
+  // stat that actually describes the expected certificate -- not merely that
+  // the field is present. Served over HTTPS because generateCertificate() and
+  // getFingerprints() require a secure context.
+  promise_test(async t => {
+    const [localCert, remoteCert] = await Promise.all([
+      RTCPeerConnection.generateCertificate(
+        {name: 'ECDSA', namedCurve: 'P-256'}),
+      RTCPeerConnection.generateCertificate(
+        {name: 'ECDSA', namedCurve: 'P-256'}),
+    ]);
+    const pc1 = new RTCPeerConnection({certificates: [localCert]});
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection({certificates: [remoteCert]});
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTrack(trackFactories.audio());
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+
+    const dtlsTransport = pc1.getSenders()[0].transport;
+    await waitForState(dtlsTransport, 'connected');
+
+    const report = await pc1.getStats();
+    const transport = [...report.values()].find(s => s.type === 'transport');
+    assert_not_equals(transport, undefined, 'Expect a transport stat');
+
+    async function checkCertificate(id, cert, label) {
+      assert_not_equals(id, undefined,
+        `Expect transport.${label} to be set when connected`);
+      const stat = report.get(id);
+      assert_not_equals(stat, undefined,
+        `Expect transport.${label} to resolve to a stats object`);
+      assert_equals(stat.type, 'certificate',
+        `Expect transport.${label} to reference a certificate stat`);
+
+      // Both peers use a single self-signed certificate, so there is no issuer.
+      // See https://w3c.github.io/webrtc-stats/#dom-rtccertificatestats-issuercertificateid
+      assert_equals(stat.issuerCertificateId, undefined,
+        `Expect transport.${label} to be self-signed with no ` +
+        `issuerCertificateId`);
+
+      const fingerprint = cert.getFingerprints().find(
+        f => f.algorithm === stat.fingerprintAlgorithm);
+      assert_not_equals(fingerprint, undefined,
+        `Expect the certificate to have a ${stat.fingerprintAlgorithm} ` +
+        `fingerprint`);
+      assert_equals(normalizeFingerprint(stat.fingerprint),
+        normalizeFingerprint(fingerprint.value),
+        `Expect transport.${label} to describe the expected certificate`);
+
+      const der = Uint8Array.fromBase64(stat.base64Certificate);
+      const digest = new Uint8Array(
+        await crypto.subtle.digest(stat.fingerprintAlgorithm, der)).toHex();
+      assert_equals(digest, normalizeFingerprint(stat.fingerprint),
+        `Expect transport.${label} base64Certificate to hash to its ` +
+        `fingerprint`);
+    }
+
+    await checkCertificate(transport.localCertificateId, localCert,
+      'localCertificateId');
+    await checkCertificate(transport.remoteCertificateId, remoteCert,
+      'remoteCertificateId');
+  });
+
+</script>

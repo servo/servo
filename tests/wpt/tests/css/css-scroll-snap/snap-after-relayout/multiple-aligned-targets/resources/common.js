@@ -34,11 +34,11 @@ async function scrollToAlignedElements(scroller, elements_x, elements_y) {
   if ((target_offset_x != null && scroller.scrollLeft != target_offset_x) ||
       (target_offset_y != null && scroller.scrollTop != target_offset_y)) {
     const scrollend_promise = waitForScrollendEventNoTimeout(scroller);
-    await new test_driver.Actions().scroll(0, 0,
-      (target_offset_x || scroller.scrollLeft) - scroller.scrollLeft,
-      (target_offset_y || scroller.scrollTop) - scroller.scrollTop,
-      { origin: scroller })
-      .send();
+    const delta_x =
+      (target_offset_x || scroller.scrollLeft) - scroller.scrollLeft;
+    const delta_y =
+      (target_offset_y || scroller.scrollTop) - scroller.scrollTop;
+    scroller.scrollBy(delta_x, delta_y);
     await scrollend_promise;
   }
   if (target_offset_y) {

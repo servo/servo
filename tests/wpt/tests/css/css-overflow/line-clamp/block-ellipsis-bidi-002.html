@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: bidi handling of ellipsis in plaintext content</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-bidi-002-ref.html">
+<meta name="assert" content="line-clamp should place the ellipsis appropriately in RTL content, getting its direction from the bidi paragraph, which can vary inside of a block when using unicode-bidi:plaintext">
+<style>
+div {
+    font-family: monospace;
+    line-clamp: 2;
+    unicode-bidi: plaintext;
+    width: 14ch;
+}
+.red { color: red; }
+</style>
+
+<p>Test passes if there is no red,
+and there is an ellipsis character (“…”) on the <em>left</em> side
+of the of second line of the text below.
+
+<div>
+        Story time:<br>
+        "روزی روزگاری <span class=red>بد بد بد بد بد بد بد بد</span>
+</div>

@@ -2,6 +2,8 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Omitted universal selector</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
   <style type="text/css"><![CDATA[#foo { background-color : lime }
 p { background-color : red }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
@@ -9,5 +11,11 @@ p { background-color : red }]]></style>
  </head>
  <body>
 <p id="foo">This paragraph should have a green background</p>
+<script><![CDATA[
+test(function() {
+  const foo = document.getElementById("foo");
+  assert_equals(getComputedStyle(foo).backgroundColor, "rgb(0, 255, 0)");
+}, "Omitted universal selector");
+]]></script>
 </body>
 </html>

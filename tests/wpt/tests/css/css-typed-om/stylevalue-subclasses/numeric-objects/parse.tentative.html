@@ -103,4 +103,9 @@ test(() => {
   assert_style_value_equals('calc(min(1) * min(2) * min(3))', expected.toString());
 }, 'Parsing product of multiple min() is successful');
 
+test(() => {
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse("calc(1 / sign(10em - 10rem))"));
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse("calc(sign(10em - 10rem))"));
+  assert_throws_dom("SyntaxError", () => CSSNumericValue.parse("calc(sign(10rem - 1px) / 0)"));
+}, 'Parsing division with unsupported sign() function throws a SyntaxError instead of crashing');
 </script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis can hang</title>
+<link rel="author" title="Florian Rivoal" href="https::/florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#hanging-punctuation-property">
+<link rel="match" href="reference/block-ellipsis-035-ref.html">
+<meta name="assert" content="The block ellipsis is affected by the hanging punctuation property, and thus can itself hang.">
+<style>
+p {
+  font-family: monospace;
+  width: 60ch; /* Less than 60, and the word "parenthesis" wouldn't fit the second line. More than 60 and the ")" would fit even if it didn't hang. */
+  line-clamp: 2 ")";
+  hanging-punctuation: last;
+}
+.red { color: red; }
+.blue { color: blue; }
+</style>
+
+<p>Test passes if there are <em>two</em> lines of text, and the second line ends with a blue word followed by a closing <span class=blue>parenthesis</span>
+<span class=red>
+FAIL FAIL FAIL FAIL
+FAIL FAIL FAIL FAIL
+FAIL FAIL FAIL FAIL
+</span>
