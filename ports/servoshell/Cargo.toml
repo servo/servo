@@ -83,6 +83,7 @@ tracing-perfetto = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
 url = { workspace = true }
 webdriver_server = { workspace = true }
+webdriver_traits = { workspace = true } # TODO: should remove this
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = { workspace = true }

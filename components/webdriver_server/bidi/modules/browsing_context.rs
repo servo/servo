@@ -1,7 +1,7 @@
 use std::{collections::HashSet, rc::Rc};
 
 use log::warn;
-use servo_base::id::BrowsingContextId;
+use servo_base::id::{BrowsingContextId, WebViewId};
 use webdriver_traits::{
     WebDriverToConstellationMsg, WebDriverToEmbedderMsg,
     bidi::{
@@ -209,7 +209,9 @@ impl RemoteEnd {
         // Step 12. activate
         if !command_parameters.background.unwrap_or(false) {
             // 12.1.
-            let activate_result = self.activate_a_navigable(traversable).await;
+            let activate_result = self
+                .activate_a_navigable(BrowsingContextId::from(traversable))
+                .await;
             // 12.2.
             activate_result?;
         }
@@ -567,18 +569,28 @@ impl RemoteEnd {
         // TODO: change this to webviewid
         opener: Option<BrowsingContextId>,
         r#type: CreateType,
-    ) -> BidiResult<BrowsingContextId> {
+    ) -> BidiResult<WebViewId> {
         let (callback, recv) = new_oneshot_callback();
 
-        let msg = WebDriverToEmbedderMsg::WebViewCreate(r#type, opener, callback);
+        let opener_window = opener.and_then(|id| {
+            self.navigables
+                .borrow()
+                .get(&id)
+                .map(|navigable| navigable.traversable_id)
+        });
+
+        let msg = WebDriverToEmbedderMsg::WebViewCreate(webdriver_traits::WebViewCreateRequest {
+            create_type: r#type,
+            opener: opener_window,
+            callback,
+        });
         self.send_to_embedder(msg)?;
         match recv.await {
             Err(err) => {
                 warn!("Receiving WebViewCreate callback failed ({err:?})");
                 Err(ErrorCode::UnknownError.into())
             },
-            // TODO: why is there two ipc error here.
-            Ok(id) => Ok(id.unwrap()?),
+            Ok(id) => Ok(id??),
         }
     }
 }

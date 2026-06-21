@@ -32,6 +32,12 @@ impl From<ErrorCode> for BidiError {
     }
 }
 
+impl From<ipc_channel::IpcError> for BidiError {
+    fn from(value: ipc_channel::IpcError) -> Self {
+        ErrorCode::UnknownError.into()
+    }
+}
+
 // === Error Old ===
 
 /// This is basically a mirror of ruustenium `ErrorResponse` except `id`.

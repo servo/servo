@@ -21,13 +21,15 @@ use log::{error, info, warn};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CSSPixel,
     ConsoleLogLevel, CreateNewWebViewRequest, DeviceIntPoint, DeviceIntSize, EmbedderControl,
-    EmbedderControlId, EventLoopWaker, GenericSender, InputEvent, InputEventId, InputEventResult,
-    JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, Preferences,
-    ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId, UserContentManager,
-    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
-    WebDriverSenders, WebView, WebViewDelegate, WebViewId,
+    EmbedderControlId, EventLoopWaker, GenericCallback, GenericSender, InputEvent, InputEventId,
+    InputEventResult, JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue,
+    Preferences, ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId,
+    UserContentManager, WebDriverCommandMsg, WebDriverDelegate, WebDriverJSResult,
+    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
+    WebViewId,
 };
 use url::Url;
+use webdriver_traits::WebViewCreateRequest as WebDriverWebViewCreateRequest;
 
 #[cfg(all(
     feature = "gamepad",
@@ -188,6 +190,8 @@ pub(crate) struct RunningAppState {
     /// was enabled.
     pub(crate) webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
 
+    pub(crate) pending_webdriver_requests: RefCell<Vec<WebDriverWebViewCreateRequest>>,
+
     /// servoshell specific preferences created during startup of the application.
     pub(crate) servoshell_preferences: ServoShellPreferences,
 
@@ -265,6 +269,7 @@ impl RunningAppState {
             webdriver_senders: RefCell::default(),
             webdriver_embedder_controls: Default::default(),
             pending_webdriver_events: Default::default(),
+            pending_webdriver_requests: Default::default(),
             webdriver_receiver,
             servoshell_preferences,
             servo,
@@ -428,6 +433,8 @@ impl RunningAppState {
         }
 
         self.servo.spin_event_loop();
+
+        self.handle_pending_webdriver_requests(create_platform_window);
 
         for window in self.windows.borrow().values() {
             window.update_and_request_repaint_if_necessary(self);

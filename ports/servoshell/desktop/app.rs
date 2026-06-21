@@ -132,6 +132,9 @@ impl App {
             #[cfg(feature = "gamepad")]
             ServoshellGamepadDelegate::maybe_new().map(Rc::new),
         ));
+        running_state
+            .servo
+            .set_webdriver_delegate(running_state.clone());
         running_state.open_window(platform_window, self.initial_url.as_url().clone());
 
         self.state = AppState::Running(running_state);
@@ -200,8 +203,8 @@ impl ApplicationHandler<AppEvent> for App {
             return;
         };
 
-        if let Some(window) = state.window(ServoShellWindowId::from(u64::from(window_id))) &&
-            let Some(headed_window) = window.platform_window().as_headed_window()
+        if let Some(window) = state.window(ServoShellWindowId::from(u64::from(window_id)))
+            && let Some(headed_window) = window.platform_window().as_headed_window()
         {
             headed_window.handle_winit_window_event(state.clone(), window, window_event);
         }
@@ -220,8 +223,8 @@ impl ApplicationHandler<AppEvent> for App {
 
         if let Some(window) = app_event
             .window_id()
-            .and_then(|window_id| state.window(ServoShellWindowId::from(u64::from(window_id)))) &&
-            let Some(headed_window) = window.platform_window().as_headed_window()
+            .and_then(|window_id| state.window(ServoShellWindowId::from(u64::from(window_id))))
+            && let Some(headed_window) = window.platform_window().as_headed_window()
         {
             headed_window.handle_winit_app_event(state.clone(), app_event);
         }

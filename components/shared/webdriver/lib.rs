@@ -51,6 +51,8 @@ pub mod bidi {
     }
 }
 
+pub mod ids;
+
 use devtools_traits::WorkerId;
 use serde::{Deserialize, Serialize};
 use servo_base::{
@@ -193,28 +195,12 @@ pub enum WebDriverToEmbedderMsg {
     Exit,
     // TODO: param
     SetClientWindowState(PainterId, SetClientWindowStateParameters),
-    WebViewCreate(
-        CreateType,
-        Option<BrowsingContextId>,
-        // TODO: move bidierror to crate, so that error message can be conveyed
-        GenericCallback<Result<BrowsingContextId, ErrorCode>>,
-    ),
+    WebViewCreate(WebViewCreateRequest),
 }
 
-pub trait WebDriverDelegate {
-    fn create_window(
-        create_type: CreateType,
-        opener: Option<WebViewId>,
-    ) -> Result<WebViewId, ErrorCode>;
-}
-
-pub struct DefaultWebDriverDelegate;
-
-impl WebDriverDelegate for DefaultWebDriverDelegate {
-    fn create_window(
-        _create_type: CreateType,
-        _opener: Option<WebViewId>,
-    ) -> Result<WebViewId, ErrorCode> {
-        Err(ErrorCode::UnknownError)
-    }
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WebViewCreateRequest {
+    pub create_type: CreateType,
+    pub opener: Option<WebViewId>,
+    pub callback: GenericCallback<Result<WebViewId, ErrorCode>>,
 }

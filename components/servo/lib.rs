@@ -25,6 +25,7 @@ mod servo;
 mod servo_delegate;
 mod site_data_manager;
 mod user_content_manager;
+mod webdriver_delegate;
 mod webview;
 mod webview_delegate;
 
@@ -55,7 +56,7 @@ pub use profile_traits;
 // This should be replaced with an API on ServoBuilder.
 // See <https://github.com/servo/servo/issues/40950>.
 pub use resources;
-pub use servo_base::generic_channel::GenericSender;
+pub use servo_base::generic_channel::{GenericCallback, GenericSender};
 pub use servo_base::id::WebViewId;
 pub use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption, Opts, OutputOptions};
 pub use servo_config::prefs::{PrefValue, Preferences, UserAgentPlatform};
@@ -82,6 +83,7 @@ pub use crate::servo::{Servo, ServoBuilder, run_content_process};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};
 pub use crate::user_content_manager::UserContentManager;
+pub use crate::webdriver_delegate::{DefaultWebDriverDelegate, WebDriverDelegate};
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest,

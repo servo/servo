@@ -91,6 +91,7 @@ use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, EmbedderControl,
     FilePicker, NavigationRequest, PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
 };
+use crate::{DefaultWebDriverDelegate, WebDriverDelegate};
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
@@ -229,6 +230,7 @@ pub struct PendingHandledInputEvent {
 
 struct ServoInner {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
+    webdriver_delegate: RefCell<Rc<dyn WebDriverDelegate>>,
     paint: Rc<RefCell<Paint>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
@@ -862,6 +864,7 @@ impl ServoInner {
     }
 
     fn handle_webdriver_embedder_message(&self, message: WebDriverToEmbedderMsg) {
+        use webdriver_traits::bidi::ErrorCode;
         match message {
             WebDriverToEmbedderMsg::Exit => {
                 self.handle_exit();
@@ -870,30 +873,8 @@ impl ServoInner {
                 painter_id,
                 set_client_window_state_parameters,
             ) => todo!(),
-            WebDriverToEmbedderMsg::WebViewCreate(create_type, opener_id, response_sender) => {
-                // TODO:
-                // 1. servoinner does not record focus, random existing webview is picked
-                // 2. not able to create new window until webdriver delegate
-                let response = match create_type {
-                    CreateType::Tab => match self
-                        .webviews
-                        .borrow()
-                        .iter()
-                        .next()
-                        .and_then(|(id, weak)| Some((id, WebView::from_weak_handle(weak)?)))
-                    {
-                        None => Err(webdriver_traits::bidi::ErrorCode::UnknownError),
-                        Some((webview_id, webview)) => {
-                            // TODO: should switch to delegate
-                            // webview.request_create_new(response_sender);
-                            Err(webdriver_traits::bidi::ErrorCode::UnknownError)
-                        },
-                    },
-                    CreateType::Window => Err(webdriver_traits::bidi::ErrorCode::UnknownError),
-                };
-                if let Err(err) = response_sender.send(response) {
-                    warn!("Sending WebViewCreate response to WebDriver failed ({err:?})");
-                }
+            WebDriverToEmbedderMsg::WebViewCreate(request) => {
+                self.webdriver_delegate.borrow().queue_request(request);
             },
         }
     }
@@ -1070,6 +1051,7 @@ impl Servo {
 
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
+            webdriver_delegate: RefCell::new(Rc::new(DefaultWebDriverDelegate)),
             paint,
             network_manager: Rc::new(RefCell::new(NetworkManager::new(
                 public_resource_threads.clone(),
@@ -1104,6 +1086,14 @@ impl Servo {
 
     pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
         *self.0.delegate.borrow_mut() = delegate;
+    }
+
+    pub fn webdriver_delegate(&self) -> Rc<dyn WebDriverDelegate> {
+        self.0.webdriver_delegate.borrow().clone()
+    }
+
+    pub fn set_webdriver_delegate(&self, delegate: Rc<dyn WebDriverDelegate>) {
+        *self.0.webdriver_delegate.borrow_mut() = delegate;
     }
 
     /// **EXPERIMENTAL:** Intialize GL accelerated media playback. This currently only works on a limited number

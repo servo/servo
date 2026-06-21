@@ -9466,6 +9466,7 @@ dependencies = [
  "servo-allocator",
  "servo-base",
  "servo-webdriver-server",
+ "servo-webdriver-traits",
  "signal-hook-registry",
  "surfman",
  "tokio",

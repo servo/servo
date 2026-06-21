@@ -32,10 +32,10 @@ TODO: write doc for this part.
 
 | Command                             | Status | Details                                |
 | ----------------------------------- | ------ | -------------------------------------- |
+| `browsingContext.create`            | ✅     |                                        |
 | `browsingContext.activate`          | 🚧     | Server side done, message not handled. |
 | `browsingContext.captureScreenshot` | 🚧     | Server side done, message not handled. |
 | `browsingContext.close`             | 🚧     | Server side done, message not handled. |
-| `browsingContext.create`            | 🚧     | Server side done, message not handled. |
 | `browsingContext.getTree`           | 🚧     | Server side done, message not handled. |
 | `browsingContext.reload`            | 🚧     | Server side done, message not handled. |
 | `browsingContext.traverseHistory`   | 🚧     | Server side done, message not handled. |

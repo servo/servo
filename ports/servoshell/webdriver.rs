@@ -8,10 +8,12 @@ use std::rc::Rc;
 
 use log::warn;
 use servo::{
-    EmbedderControl, EmbedderControlId, NewWindowTypeHint, SimpleDialog, WebDriverCommandMsg,
-    WebDriverUserPrompt, WebDriverUserPromptAction, WebViewId,
+    EmbedderControl, EmbedderControlId, GenericCallback, GenericSender, NewWindowTypeHint,
+    SimpleDialog, WebDriverCommandMsg, WebDriverDelegate, WebDriverUserPrompt,
+    WebDriverUserPromptAction, WebViewId,
 };
 use url::Url;
+use webdriver_traits::bidi::ErrorCode;
 
 use crate::running_app_state::RunningAppState;
 use crate::window::PlatformWindow;
@@ -327,6 +329,62 @@ impl RunningAppState {
                     self.handle_webdriver_screenshot(webview_id, rect, result_sender);
                 },
             };
+        }
+    }
+}
+
+impl WebDriverDelegate for RunningAppState {
+    fn support_multiple_window(&self) -> bool {
+        // TODO: is this true for mobile platforms?
+        true
+    }
+
+    fn queue_request(&self, request: webdriver_traits::WebViewCreateRequest) {
+        self.pending_webdriver_requests.borrow_mut().push(request);
+    }
+}
+
+impl RunningAppState {
+    pub(crate) fn handle_pending_webdriver_requests(
+        self: &Rc<Self>,
+        create_platform_window: Option<&dyn Fn(Url) -> Rc<dyn PlatformWindow>>,
+    ) {
+        use webdriver_traits::bidi::browsing_context::CreateType;
+        // TODO: activate
+        let url = Url::parse("about:blank").unwrap();
+        for request in self.pending_webdriver_requests.borrow_mut().drain(..) {
+            let response = match request.create_type {
+                CreateType::Tab => {
+                    let webview = request
+                        .opener
+                        .and_then(|id| self.maybe_window_for_webview_id(id))
+                        .or_else(|| self.focused_window())
+                        .unwrap_or_else(|| {
+                            self.windows()
+                                .values()
+                                .last()
+                                .expect("Expected at least one window to be open")
+                                .clone()
+                        })
+                        .create_toplevel_webview(self.clone(), url.clone());
+                    Ok(webview.id())
+                },
+                CreateType::Window => match create_platform_window {
+                    Some(create_platform_window) => {
+                        let window =
+                            self.open_window(create_platform_window(url.clone()), url.clone());
+                        let webview = window
+                            .active_webview()
+                            .expect("Should have at least one WebView in a new window");
+                        Ok(webview.id())
+                    },
+                    None => Err(ErrorCode::UnknownError),
+                },
+            };
+
+            if let Err(err) = request.callback.send(response) {
+                warn!("Sending create window response to WebDriver failed ({err:?})");
+            }
         }
     }
 }
