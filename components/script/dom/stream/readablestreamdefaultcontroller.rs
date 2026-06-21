@@ -334,21 +334,15 @@ pub(crate) struct ReadableStreamDefaultController {
 
 impl ReadableStreamDefaultController {
     fn new_inherited(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        underlying_source_type: UnderlyingSourceType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
+        underlying_source: &UnderlyingSourceContainer,
     ) -> ReadableStreamDefaultController {
         ReadableStreamDefaultController {
             reflector_: Reflector::new(),
             queue: Default::default(),
             stream: MutNullableDom::new(None),
-            underlying_source: MutNullableDom::new(Some(&*UnderlyingSourceContainer::new(
-                cx,
-                global,
-                underlying_source_type,
-            ))),
+            underlying_source: MutNullableDom::new(Some(underlying_source)),
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
             close_requested: Default::default(),
@@ -365,13 +359,17 @@ impl ReadableStreamDefaultController {
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
     ) -> DomRoot<ReadableStreamDefaultController> {
+        let underlying_source = UnderlyingSourceContainer::new(
+            cx,
+            global,
+            underlying_source,
+        );
         reflect_dom_object_with_cx(
             Box::new(ReadableStreamDefaultController::new_inherited(
                 cx,
-                global,
-                underlying_source,
                 strategy_hwm,
                 strategy_size,
+                &underlying_source,
             )),
             global,
             cx,
