@@ -243,10 +243,16 @@ impl HTMLDialogElement {
             let element = self.upcast::<Element>();
 
             if let Some(tracker) = element.take_toggle_event_tracker() {
-                // Step 1.1. Set oldState to element's dialog toggle task tracker's old state.
-                tracker.canceller.store(true, Ordering::SeqCst); // Step 1.2: cancel the pending task
+                // Step 1.2. Remove element's dialog toggle task tracker's task from its task queue.
+                //
+                // Servo's task queues don't support removing a queued task directly. Instead,
+                // we flip a shared cancellation flag; the queued task checks this flag when it
+                // runs and no-ops if set, which is observably equivalent to removal.
+                tracker.canceller.store(true, Ordering::SeqCst);
 
-                // Step 1.3: tracker is gone (we called take())
+                // Step 1.3. Set element's dialog toggle task tracker to null.
+                //
+                // Note: the tracker is already gone, as we called `take()` above.
                 tracker.old_state
             } else {
                 old_state.to_string()
@@ -272,11 +278,21 @@ impl HTMLDialogElement {
                     return;
                 }
 
+                // Step 2.2. Set element's toggle task tracker to null.
+                //
+                // Clear the tracker before dispatch (rather than after, per the literal
+                // spec order) so a reentrant toggle during event dispatch can't observe
+                // a stale tracker pointing at this in-progress task.
+                *this.upcast::<Element>().toggle_event_tracker_mut() = None;
+
                 let source = trusted_source.as_ref().map(|s| {
                     DomRoot::from_ref(s.root().downcast::<Element>().unwrap())
                 });
 
-                // Step 2.1. Fire an event named toggle at element, using ToggleEvent, with the oldState attribute initialized to oldState, the newState attribute initialized to newState, and the source attribute initialized to source.
+                // Step 2.1. Fire an event named toggle at element, using ToggleEvent,
+                // with the oldState attribute initialized to oldState,
+                // the newState attribute initialized to newState,
+                // and the source attribute initialized to source.
                 let event = ToggleEvent::new(
                     cx,
                     &this.owner_window(),
@@ -290,12 +306,9 @@ impl HTMLDialogElement {
                 let event = event.upcast::<Event>();
                 event.fire(cx, this.upcast::<EventTarget>());
 
-                // Step 2.2. Set element's dialog toggle task tracker to null.
-                *this.upcast::<Element>().toggle_event_tracker_mut() = None;
-
             }));
-        // Step 3. Set element's dialog toggle task tracker to a struct with task set to the just-queued task and old state set to oldState.
-        // task set to the just-queued task and old state set to oldState.
+        // Step 3. Set element's dialog toggle task tracker to a struct
+        // with task set to the just-queued task and old state set to oldState.
         *self.upcast::<Element>().toggle_event_tracker_mut() = Some(ToggleEventTracker {
             old_state,
             canceller,

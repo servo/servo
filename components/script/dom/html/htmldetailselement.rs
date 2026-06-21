@@ -375,17 +375,29 @@ impl HTMLDetailsElement {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#queue-a-dialog-toggle-event-task>
     fn queue_details_toggle_event_task(&self, old_state: &str, new_state: &str) {
+        // Step 1. If element's dialog toggle task tracker is not null, then:
         let old_state = {
             let element = self.upcast::<Element>();
             if let Some(tracker) = element.take_toggle_event_tracker() {
+                // Step 1.2. Remove element's dialog toggle task tracker's task from its task queue.
+                //
+                // Servo's task queues don't support removing a queued task directly. Instead,
+                // we flip a shared cancellation flag; the queued task checks this flag when it
+                // runs and no-ops if set, which is observably equivalent to removal.
                 tracker.canceller.store(true, Ordering::SeqCst);
+
+                // Step 1.3. Set element's dialog toggle task tracker to null.
+                //
+                // Note: the tracker is already gone, as we called `take()` above.
                 tracker.old_state
             } else {
                 old_state.to_string()
             }
         };
 
+        // Step 2. Queue an element task given the DOM manipulation task source and element to run the following steps:
         let canceller = Arc::new(AtomicBool::new(false));
         let task_canceller = canceller.clone();
         let event_old_state = old_state.clone();
@@ -400,8 +412,18 @@ impl HTMLDetailsElement {
                 if task_canceller.load(Ordering::SeqCst) {
                     return;
                 }
+                // Step 2.2. Set element's toggle task tracker to null.
+                //
+                // Clear the tracker before dispatch (rather than after, per the literal
+                // spec order) so a reentrant toggle during event dispatch can't observe
+                // a stale tracker pointing at this in-progress task.
+                *this.upcast::<Element>().toggle_event_tracker_mut() = None;
 
+                // Step 2.1. Fire an event named toggle at element, using ToggleEvent,                                                                                      // with the oldState attribute initialized to oldState,
+                // the newState attribute initialized to newState,
+                // and the source attribute initialized to source.
                 let event = ToggleEvent::new(
+                    cx,
                     this.global().as_window(),
                     atom!("toggle"),
                     EventBubbles::DoesNotBubble,
@@ -409,13 +431,9 @@ impl HTMLDetailsElement {
                     DOMString::from(event_old_state),
                     DOMString::from(new_state),
                     None,
-                    CanGc::from_cx(cx),
                 );
                 let event = event.upcast::<Event>();
                 event.fire(cx, this.upcast::<EventTarget>());
-
-                // Step 2.2. Set element's toggle task tracker to null.
-                *this.upcast::<Element>().toggle_event_tracker_mut() = None;
             }));
         // Step 3. Set element's toggle task tracker.
         *self.upcast::<Element>().toggle_event_tracker_mut() = Some(ToggleEventTracker {
@@ -502,10 +520,10 @@ impl VirtualMethods for HTMLDetailsElement {
             let (old_state, new_state) = if self.Open() {
                 ("closed", "open")
             } else {
-        ("open", "closed")
-    };
+                ("open", "closed")
+            };
 
-    self.queue_details_toggle_event_task(old_state, new_state);
+            self.queue_details_toggle_event_task(old_state, new_state);
             self.upcast::<Node>().dirty(NodeDamage::Other);
 
             // Step 3.2. If oldValue is null and value is not null, then ensure details exclusivity

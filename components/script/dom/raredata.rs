@@ -12,7 +12,6 @@ use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 
 use crate::dom::UniqueId;
-use crate::JSTraceable;
 use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementRegistry, CustomElementState,
@@ -61,16 +60,25 @@ pub(crate) struct NodeRareData {
     pub(crate) implemented_pseudo_element: Option<PseudoElement>,
 }
 
-#[derive(MallocSizeOf)]
+/// The "toggle task tracker" concept from the HTML specification.
+///
+/// <https://html.spec.whatwg.org/multipage/#toggle-task-tracker>
+///
+/// Used by `<dialog>` and `<details>` elements to coalesce rapid
+/// open/close state changes into a single fired "toggle" event.
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ToggleEventTracker {
+    /// The `oldState` value to use when the pending toggle event eventually
+    /// fires. Preserved across cancellations so that rapid toggles report
+    /// the state before the *first* change, not the most recent one.
     pub(crate) old_state: String,
-    #[ignore_malloc_size_of = "Arc"]
-    pub(crate) canceller: Arc<AtomicBool>,
-}
 
-#[allow(unsafe_code)]
-unsafe impl JSTraceable for ToggleEventTracker {
-    unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {}
+    /// Shared cancellation flag between the tracker and the queued task.
+    /// Set to `true` when a new toggle supersedes the pending one, causing
+    /// the queued task to no-op when it eventually runs.
+    #[no_trace]
+    #[ignore_malloc_size_of = "Arc is not measured"]
+    pub(crate) canceller: Arc<AtomicBool>,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -119,5 +127,9 @@ pub(crate) struct ElementRareData {
     /// Used for CSP nonce validation (step 3 of "is element nonceable").
     pub(crate) had_duplicate_attributes: bool,
 
+    /// <https://html.spec.whatwg.org/multipage/#toggle-task-tracker>
+    /// Tracks a pending "toggle" event task for `<dialog>` and `<details>`
+    /// elements, allowing rapid open/close sequences to be coalesced into
+    /// a single fired event.
     pub(crate) toggle_event_tracker: Option<ToggleEventTracker>,
 }

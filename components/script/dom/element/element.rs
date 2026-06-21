@@ -1020,32 +1020,37 @@ impl Element {
         })
     }
 
-pub(crate) fn check_style_on_self_or_eager_pseudos(
-    &self,
-    check_styles_fn: impl Fn(&ComputedValues) -> bool,
-) -> bool {
-    let style_data = self.style_data.borrow();
-    let Some(data) = style_data.as_ref().map(|data| data.element_data.borrow()) else {
-        return false;
-    };
+    pub(crate) fn check_style_on_self_or_eager_pseudos(
+        &self,
+        check_styles_fn: impl Fn(&ComputedValues) -> bool,
+    ) -> bool {
+        let style_data = self.style_data.borrow();
+        let Some(data) = style_data.as_ref().map(|data| data.element_data.borrow()) else {
+            return false;
+        };
 
-    if check_styles_fn(data.styles.primary()) {
-        return true;
+        if check_styles_fn(data.styles.primary()) {
+            return true;
+        }
+
+        let mut pseudo_styles = data.styles.pseudos.as_array().iter();
+        pseudo_styles.any(|style| style.as_deref().is_some_and(&check_styles_fn))
     }
 
-    let mut pseudo_styles = data.styles.pseudos.as_array().iter();
-    pseudo_styles.any(|style| style.as_deref().is_some_and(&check_styles_fn))
-}
-
+    /// Returns a mutable reference to this element's toggle event tracker.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#toggle-task-tracker>
     pub(crate) fn toggle_event_tracker_mut(&self) -> RefMut<'_, Option<ToggleEventTracker>> {
-        RefMut::map(self.ensure_rare_data(), |data| &mut data.toggle_event_tracker)
+        RefMut::map(self.ensure_rare_data(), |data| {
+            &mut data.toggle_event_tracker
+        })
     }
 
+    /// Takes the toggle event tracker off this element, leaving `None` in its place.
     pub(crate) fn take_toggle_event_tracker(&self) -> Option<ToggleEventTracker> {
         self.rare_data_mut()
             .as_mut()
             .and_then(|data| data.toggle_event_tracker.take())
-}
     }
 }
 
