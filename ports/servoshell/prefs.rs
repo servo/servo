@@ -62,6 +62,8 @@ pub(crate) struct ServoShellPreferences {
     pub clean_shutdown: bool,
     /// Enable native window's titlebar and decorations.
     pub no_native_titlebar: bool,
+    /// Run headed desktop mode without constructing egui chrome or presentation.
+    pub no_egui: bool,
     /// URL string of the homepage.
     pub homepage: String,
     /// URL string of the search engine page with '%s' standing in for the search term.
@@ -115,6 +117,7 @@ impl Default for ServoShellPreferences {
             homepage: "https://servo.org".into(),
             initial_window_size: Size2D::new(1024, 740),
             no_native_titlebar: true,
+            no_egui: false,
             screen_size_override: None,
             simulate_touch_events: false,
             searchpage: "https://duckduckgo.com/html/?q=%s".into(),
@@ -477,6 +480,10 @@ struct CmdArgs {
     #[bpaf(short('M'), long)]
     multiprocess: bool,
 
+    /// Do not construct egui chrome; present the active WebView directly in a native window.
+    #[bpaf(long("no-egui"))]
+    no_egui: bool,
+
     /// Do not use native titlebar.
     #[bpaf(short('b'), long)]
     no_native_titlebar: bool,
@@ -707,6 +714,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
     let servoshell_preferences = ServoShellPreferences {
         url: Some(cmd_args.url),
         no_native_titlebar: cmd_args.no_native_titlebar,
+        no_egui: cmd_args.no_egui,
         device_pixel_ratio_override: cmd_args.device_pixel_ratio,
         clean_shutdown: cmd_args.clean_shutdown,
         headless: cmd_args.headless,
@@ -923,4 +931,7 @@ fn test_servoshell_cmd() {
         let p = test_parse("--zealous-gc").1;
         p.js_mem_gc_zeal_level == 2 && p.js_mem_gc_zeal_frequency == 1
     });
+
+    assert!(!test_parse("").2.no_egui);
+    assert!(test_parse("--no-egui").2.no_egui);
 }
