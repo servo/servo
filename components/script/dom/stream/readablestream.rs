@@ -223,7 +223,7 @@ impl Callback for PipeTo {
         self.pending_writes.borrow_mut().retain(|p| {
             let pending = p.is_pending();
             if !pending {
-                p.set_promise_is_handled();
+                p.set_promise_is_handled(cx);
             }
             pending
         });
@@ -2292,7 +2292,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         );
 
         // Set promise.[[PromiseIsHandled]] to true.
-        promise.set_promise_is_handled();
+        promise.set_promise_is_handled(cx);
 
         // Return transform["readable"].
         Ok(transform.readable.clone())
@@ -2497,7 +2497,7 @@ impl Transferable for ReadableStream {
         let promise = self.pipe_to(cx, &global, &writable, false, false, false, None);
 
         // Step 8. Set promise.[[PromiseIsHandled]] to true.
-        promise.set_promise_is_handled();
+        promise.set_promise_is_handled(cx);
 
         // Step 9. Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
         port_2.transfer(cx)

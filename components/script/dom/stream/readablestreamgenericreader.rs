@@ -59,7 +59,7 @@ pub(crate) trait ReadableStreamGenericReader {
             self.set_closed_promise(Promise::new_rejected(cx, global, error.handle()));
 
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true
-            self.get_closed_promise().set_promise_is_handled();
+            self.get_closed_promise().set_promise_is_handled(cx);
         }
     }
 
@@ -116,7 +116,7 @@ pub(crate) trait ReadableStreamGenericReader {
                 ));
             }
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
-            self.get_closed_promise().set_promise_is_handled();
+            self.get_closed_promise().set_promise_is_handled(cx);
 
             // Perform ! stream.[[controller]].[[ReleaseSteps]]().
             stream
