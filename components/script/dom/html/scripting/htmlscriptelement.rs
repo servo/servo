@@ -564,7 +564,7 @@ impl HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
-    fn potentially_render_blocking(&self) -> bool {
+    fn potentially_render_blocking(&self, script_type: ScriptType) -> bool {
         // An element is potentially render-blocking if its blocking tokens set contains "render",
         // or if it is implicitly potentially render-blocking, which will be defined at the individual elements.
         // By default, an element is not implicitly potentially render-blocking.
@@ -575,8 +575,7 @@ impl HTMLScriptElement {
         // https://html.spec.whatwg.org/multipage/#script-processing-model:implicitly-potentially-render-blocking
         // > A script element el is implicitly potentially render-blocking if el's type is "classic",
         // > el is parser-inserted, and el does not have an async or defer attribute.
-        self.get_script_type()
-            .is_some_and(|script_type| script_type == ScriptType::Classic) &&
+        script_type == ScriptType::Classic &&
             self.parser_inserted.get() &&
             !element.has_attribute(&local_name!("async")) &&
             !element.has_attribute(&local_name!("defer"))
@@ -629,10 +628,7 @@ impl HTMLScriptElement {
             return;
         }
 
-        let script_type = if let Some(ty) = self.get_script_type() {
-            // Step 9-11.
-            ty
-        } else {
+        let Some(script_type) = self.script_type() else {
             // Step 12. Otherwise, return. (No script is executed, and el's type is left as null.)
             return;
         };
@@ -769,6 +765,8 @@ impl HTMLScriptElement {
         let kind = self.get_script_kind(script_type);
         let delayed_document = self.get_script_active_document(kind);
 
+        let potentially_render_blocking = self.potentially_render_blocking(script_type);
+
         // Step 31. If el has a src content attribute, then:
         // Step 31.2. Let src be the value of el's src attribute.
         if let Some(src) = element.get_attribute_string_value(&local_name!("src")) {
@@ -801,7 +799,7 @@ impl HTMLScriptElement {
             let url = ensure_blob_referenced_by_url_is_kept_alive(global, url);
 
             // Step 31.7. If el is potentially render-blocking, then block rendering on el.
-            if self.potentially_render_blocking() && doc.allows_adding_render_blocking_elements() {
+            if potentially_render_blocking && doc.allows_adding_render_blocking_elements() {
                 self.marked_as_render_blocking.set(true);
                 doc.increment_render_blocking_element_count();
             }
@@ -893,9 +891,7 @@ impl HTMLScriptElement {
                     self.delay_load_event(&delayed_document, base_url.clone());
 
                     // Step 32.2.2.2 If el is potentially render-blocking, then:
-                    if self.potentially_render_blocking() &&
-                        doc.allows_adding_render_blocking_elements()
-                    {
+                    if potentially_render_blocking && doc.allows_adding_render_blocking_elements() {
                         // Step 32.2.2.2.1 Block rendering on el.
                         self.marked_as_render_blocking.set(true);
                         doc.increment_render_blocking_element_count();
@@ -1055,64 +1051,64 @@ impl HTMLScriptElement {
             .queue_simple_event(self.upcast(), atom!("error"));
     }
 
-    // <https://html.spec.whatwg.org/multipage/#prepare-a-script> Step 7.
-    pub(crate) fn get_script_type(&self) -> Option<ScriptType> {
+    /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> Steps 8-12.
+    fn script_type(&self) -> Option<ScriptType> {
         let element = self.upcast::<Element>();
 
-        let type_attr = element.get_attribute_string_value(&local_name!("type"));
-        let language_attr = element.get_attribute_string_value(&local_name!("language"));
+        let type_attr = element.get_attribute_string_ref(&local_name!("type"));
+        let language_attr = element.get_attribute_string_ref(&local_name!("language"));
 
         match (type_attr, language_attr) {
-            (Some(ty), _) if ty.is_empty() => {
-                debug!("script type empty, inferring js");
-                Some(ScriptType::Classic)
-            },
-            (None, Some(lang)) if lang.is_empty() => {
-                debug!("script type empty, inferring js");
-                Some(ScriptType::Classic)
-            },
-            (None, None) => {
-                debug!("script type empty, inferring js");
-                Some(ScriptType::Classic)
-            },
+            // Step 8. If any of the following are true:
+            // el has a type attribute whose value is the empty string;
+            // el has no type attribute but it has a language attribute and that attribute's value
+            // is the empty string; or el has neither a type attribute nor a language attribute,
+            // then let the script block's type string for this script element be "text/javascript".
+            (Some(ty), _) if ty.is_empty() => Some(ScriptType::Classic),
+            (None, Some(lang)) if lang.is_empty() => Some(ScriptType::Classic),
+            (None, None) => Some(ScriptType::Classic),
+            // Otherwise, el has a non-empty language attribute; let the script block's type string
+            // be the concatenation of "text/" and the value of el's language attribute.
             (None, Some(lang)) => {
-                debug!("script language={}", lang);
-                let language = format!("text/{}", lang);
+                let language_value = lang.as_attr_ref().value();
+                let script_block_type_string = format!("text/{}", language_value.as_ref());
 
-                if SCRIPT_JS_MIMES
+                // Step 9. If the script block's type string is a JavaScript MIME type essence match,
+                // or el has a type attribute whose value with leading and trailing ASCII whitespace
+                // stripped is a JavaScript MIME type essence match, then set el's type to "classic".
+                let is_a_javascript_mime = SCRIPT_JS_MIMES
                     .iter()
-                    .any(|mime| language.eq_ignore_ascii_case(mime))
-                {
-                    Some(ScriptType::Classic)
-                } else {
-                    None
-                }
-            },
-            (Some(ty), _) => {
-                debug!("script type={}", ty);
+                    .any(|mime| script_block_type_string.eq_ignore_ascii_case(mime));
 
-                if ty
-                    .trim_matches(HTML_SPACE_CHARACTERS)
-                    .eq_ignore_ascii_case("module")
-                {
+                is_a_javascript_mime.then_some(ScriptType::Classic)
+            },
+            // Otherwise, if el has a type attribute, then let the script block's type string be the
+            // value of that attribute.
+            (Some(ty), _) => {
+                // Step 10. Otherwise, if the script block's type string is an ASCII case-insensitive
+                // match for the string "module", then set el's type to "module".
+                if ty.eq_ignore_ascii_case("module") {
                     return Some(ScriptType::Module);
                 }
 
-                if ty
-                    .trim_matches(HTML_SPACE_CHARACTERS)
-                    .eq_ignore_ascii_case("importmap")
-                {
+                // Step 11. Otherwise, if the script block's type string is an ASCII case-insensitive
+                // match for the string "importmap", then set el's type to "importmap".
+                if ty.eq_ignore_ascii_case("importmap") {
                     return Some(ScriptType::ImportMap);
                 }
 
-                if SCRIPT_JS_MIMES.iter().any(|mime| {
-                    ty.trim_matches(HTML_SPACE_CHARACTERS)
+                let type_attr_value = ty.as_attr_ref().value();
+
+                // Step 9. If the script block's type string is a JavaScript MIME type essence match,
+                // or el has a type attribute whose value with leading and trailing ASCII whitespace
+                // stripped is a JavaScript MIME type essence match, then set el's type to "classic".
+                let is_a_javascript_mime = SCRIPT_JS_MIMES.iter().any(|mime| {
+                    type_attr_value
+                        .trim_matches(HTML_SPACE_CHARACTERS)
                         .eq_ignore_ascii_case(mime)
-                }) {
-                    Some(ScriptType::Classic)
-                } else {
-                    None
-                }
+                });
+
+                is_a_javascript_mime.then_some(ScriptType::Classic)
             },
         }
     }
