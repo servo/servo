@@ -6,9 +6,16 @@
 p[title^="foo"] { background-color : lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
  </head>
  <body>
-<p title="foobar">This paragraph should have a green background<br></br>
+<p id="t1" title="foobar">This paragraph should have a green background<br></br>
 because its title attribute begins with &quot;foo&quot;</p>
+ <script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById("t1")).backgroundColor, "rgb(0, 255, 0)");
+}, "Substring matching attribute selector (beginning)");
+]]></script>
 </body>
 </html>

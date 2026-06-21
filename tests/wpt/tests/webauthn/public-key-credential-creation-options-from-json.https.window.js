@@ -112,11 +112,6 @@ test(() => {
         write: test_b64,
       },
       credBlob: test_b64,
-      supplementalPubKeys: {
-        scopes: ["spk scope"],
-        attestation: "directest",
-        attestationFormats: ["asn2"],
-      },
       prf: {
         eval: {
           first: test_b64,
@@ -160,11 +155,6 @@ test(() => {
         write: test_bytes,
       },
       credBlob: test_bytes,
-      supplementalPubKeys: {
-        scopes: ["spk scope"],
-        attestation: "directest",
-        attestationFormats: ["asn2"],
-      },
       prf: {
         eval: {
           first: test_bytes,
@@ -218,11 +208,6 @@ test(() => {
   if (actual.extensions.hasOwnProperty('credBlob')) {
     assert_true(
         bytesEqual(actual.extensions.credBlob, expected.extensions.credBlob));
-  }
-  if (actual.extensions.hasOwnProperty('supplementalPubKeys')) {
-    assertJsonEquals(
-        actual.extensions.supplementalPubKeys,
-        expected.extensions.supplementalPubKeys);
   }
   if (actual.extensions.hasOwnProperty('prf')) {
     let prfValuesEquals = (a, b) => {

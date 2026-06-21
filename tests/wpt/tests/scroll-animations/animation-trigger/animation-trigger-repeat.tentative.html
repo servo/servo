@@ -99,8 +99,12 @@
         // animation was reset.
         await testAnimationTrigger(test, () => {
           return rangeBoundaries.exitExitRangeAbove();
+          // The finished animation transitions from its after phase to its
+          // before phase, causing[1] both an animationstart event and an
+          // animationend event.
+          // [1] https://drafts.csswg.org/css-animations-2/#event-dispatch
         }, target, ["animationstart", "animationend", "animationcancel"],
-          [false, false, false]);
+          [true, true, false]);
         assert_equals(getComputedStyle(target).transform, initial_transform);
 
         // This is a repeat trigger, re-entering plays the animation.
@@ -110,8 +114,12 @@
           await waitForAnimationFrames(5);
           // Exit the range.
           return rangeBoundaries.exitExitRangeBelow();
+          // Enter moves the animation from its before phase to its active
+          // phase, triggering animationstart.
+          // Exit moves the animation from its active phase to its before
+          // phase, triggering animationend.
         }, target, ["animationstart", "animationend", "animationcancel"],
-          [true, false, false]);
+          [true, true, false]);
       }
 
       const CSS_TRIGGER_START_PX = 250;

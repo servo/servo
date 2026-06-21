@@ -337,6 +337,14 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
         (specified || example.defaultSpecified)(example.specifiedExpected || example.input, specifiedResult, example.specifiedAlternateExpected);
       } else {
         assert_style_value_equals(specifiedResult, example.input);
+
+        // Verify that reification preserves the numeric type. This check is
+        // only reached for properties using the generic checking path and
+        // currently covers only CSSUnitValue inputs, but will be extended to
+        // cover all CSSNumericValue subclasses.
+        if (example.input instanceof CSSUnitValue) {
+          assert_numeric_type_equals(specifiedResult.type(), example.input.type());
+        }
       }
 
       // computed style
@@ -350,6 +358,14 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
         (computed || example.defaultComputed)(example.input, computedResult);
       } else {
         assert_style_value_equals(computedResult, example.input);
+
+        // Verify that reification preserves the numeric type. This check is
+        // only reached for properties using the generic checking path and
+        // currently covers only CSSUnitValue inputs, but will be extended to
+        // cover all CSSNumericValue subclasses.
+        if (example.input instanceof CSSUnitValue) {
+          assert_numeric_type_equals(computedResult.type(), example.input.type());
+        }
       }
     }, `Can set '${propertyName}' to ${description}: ${example.input}`);
   }

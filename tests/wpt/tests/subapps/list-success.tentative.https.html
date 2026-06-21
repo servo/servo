@@ -20,13 +20,13 @@ promise_test(async t => {
   ];
 
   let expected_results = {
-    [url_1]: { "app_name": "App 1" },
-    [url_2]: { "app_name": "App 2" },
+    [url_1]: { "appName": "App 1" },
+    [url_2]: { "appName": "App 2" },
   };
 
   await createMockSubAppsService(Status.SUCCESS, [], mocked_response);
 
-  await navigator.subApps.list()
+  await window.subApps.list()
     .catch(e => {
       assert_unreached("Should not have rejected.");
     })
@@ -46,7 +46,7 @@ promise_test(async t => {
 
   let mocked_response = [];
   await createMockSubAppsService(Status.SUCCESS, [], mocked_response);
-  await navigator.subApps.list()
+  await window.subApps.list()
   .catch(e => {
       assert_unreached("Should not have rejected.");
     })

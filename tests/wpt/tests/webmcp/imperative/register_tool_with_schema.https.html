@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP registerTool</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(() => {
+  const tool = {
+    name: 'echo',
+    description: 'echo input',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: {
+          description: 'Value to echo',
+          type: 'string',
+        },
+      },
+      required: ['text'],
+    },
+    execute: (obj) => obj.text,
+    annotations: {
+      readOnlyHint: 'true',
+    },
+  };
+
+  const controller = new AbortController();
+  document.modelContext.registerTool(tool, { signal: controller.signal });
+  controller.abort();
+}, 'register and unregister script tool');
+
+test(() => {
+  document.modelContext.registerTool({
+    name: 'empty',
+    description: 'empty',
+    inputSchema: {
+      toJSON: () => {
+        return 'undefined';
+      },
+    },
+    execute: () => {},
+  });
+}, "registerTool succeeds when inputSchema.toJSON() returns 'undefined'");
+</script>
+</body>
+</html>

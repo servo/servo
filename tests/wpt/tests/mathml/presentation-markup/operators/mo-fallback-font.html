@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Operator glyph resolved from a fallback font</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-of-operators">
+<link rel="match" href="mo-fallback-font-ref.html">
+<meta name="assert" content="An operator glyph is rendered from a fallback font when the primary font does not contain it. Both an explicit U+2212 MINUS SIGN and a U+002D HYPHEN-MINUS (which WebKit promotes to U+2212) are routed through the special minus operator rendering.">
+<script src="/mathml/support/fonts.js"></script>
+<style>
+  @font-face {
+    font-family: nominus;
+    src: url("/fonts/math/math-text.woff"); /* Does not contain U+2212 MINUS SIGN. */
+  }
+  @font-face {
+    font-family: hasminus;
+    src: url("/fonts/GentiumPlus-R.woff"); /* Contains U+2212 MINUS SIGN. */
+  }
+  .operator {
+    font-size: 50px;
+    /* The primary font lacks U+2212, so the minus must resolve to "hasminus". */
+    font-family: nominus, hasminus;
+  }
+</style>
+<script>
+  window.addEventListener("load", () => {
+    loadAllFonts().then(() => document.documentElement.classList.remove("reftest-wait"));
+  });
+</script>
+</head>
+<body>
+  <p>Test passes if there are two minus signs below.</p>
+  <!-- Explicit U+2212 MINUS SIGN. -->
+  <math><mo class="operator">&#x2212;</mo></math>
+  <!-- U+002D HYPHEN-MINUS, promoted to U+2212 by the minus operator handling. -->
+  <math><mo class="operator">-</mo></math>
+</body>
+</html>

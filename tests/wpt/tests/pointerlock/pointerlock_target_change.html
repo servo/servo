@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+  <title>Pointer Lock target change test</title>
+  <meta name="viewport" content="width=device-width">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="test-helper.js"></script>
+</head>
+<body>
+  <div id="div1" style="width:800px;height:250px;background:green"></div>
+  <div id="div2" style="width:800px;height:250px;background:yellow"></div>
+</body>
+<script>
+  promise_test(async function(t) {
+    var div1 = document.getElementById("div1");
+    var div2 = document.getElementById("div2");
+    var mousemove_on_div1 = 0;
+    var mousemove_on_div2 = 0;
+
+    div1.addEventListener('mousemove', function(event) {
+      mousemove_on_div1++;
+    });
+    div2.addEventListener('mousemove', function(event) {
+      mousemove_on_div2++;
+    });
+
+    await lockPointerAndWaitForEvent(div1, /*provideTransientActivation=*/
+      true);
+
+    // Send some moves, then click to provide transient activation
+    // before re-locking to div2.
+    await new test_driver.Actions()
+      .pointerMove(10, 10, {
+        origin: div1
+      })
+      .pointerMove(20, 20, {
+        origin: div1
+      })
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    assert_greater_than(mousemove_on_div1, 0,
+      "div1 should have received mousemove events while it was the lock target."
+    );
+
+    // Re-lock to div2 and wait for the change event.
+    await lockPointerAndWaitForEvent(div2);
+
+    // Send mouse moves which should be routed to div2.
+    await new test_driver.Actions()
+      .pointerMove(10, 10, {
+        origin: div2
+      })
+      .pointerMove(20, 20, {
+        origin: div2
+      })
+      .pointerMove(30, 30, {
+        origin: div2
+      })
+      .send();
+
+    await unlockPointerAndWaitForEvent();
+
+    assert_greater_than(mousemove_on_div2, 0,
+      "div2 should have received mousemove events after becoming the lock target."
+    );
+  }, "pointer lock target can be changed while locked");
+</script>
+</html>

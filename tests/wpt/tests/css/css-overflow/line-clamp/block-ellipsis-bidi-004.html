@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis as a bidi isolate</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-bidi-004-ref.html">
+<meta name="assert" content="Characters inserted as block ellipsis should be treated as an isolate, with an embeding level matching that of the paragraph. It should neither get itself reordered away from the end of the line, nor have its strongly directional content influence surrounding neutrals.">
+<style>
+div {
+    font-family: monospace;
+    width: 19ch;
+}
+.test {
+    line-clamp: 1 "…آخرہ";
+}
+.test { border: solid blue 5px; }
+.ref { border: solid orange 5px; }
+
+</style>
+
+<p>Test passes if the text in the blue box matches the one in the orange box.
+
+<div class=test>
+    He said "سلام" and smiled.
+</div>
+<div class=ref>
+    He said "سلام" <bdi dir=rtl>…آخرہ</bdi>
+</div>

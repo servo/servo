@@ -1594,6 +1594,63 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
       return;
     }
 
+    const mlTensor = await mlContext.createExportableTensor(
+        {dataType, shape, readable: true}, gpuDevice);
+    mlContext.exportToGPU(mlTensor);
+
+    await promise_rejects_js(t, TypeError, mlContext.readTensor(mlTensor));
+  }, `${testName} / read after export`);
+
+  promise_test(async t => {
+    if (!isExportToGPUSupported) {
+      return;
+    }
+
+    const mlTensorInput1 =
+        await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
+    const mlTensorInput2 =
+        await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
+    const mlTensorOutput1 =
+        await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
+    const mlTensorOutput2 =
+        await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
+    mlContext.exportToGPU(mlTensorInput1);
+
+    assert_throws_js(
+        TypeError,
+        () => mlContext.dispatch(
+            mlGraph, {'lhs': mlTensorInput1, 'rhs': mlTensorInput2},
+            {'output1': mlTensorOutput1, 'output2': mlTensorOutput2}));
+  }, `${testName} / dispatch as input after export`);
+
+  promise_test(async t => {
+    if (!isExportToGPUSupported) {
+      return;
+    }
+
+    const mlTensorInput1 = await mlContext.createExportableTensor(
+        {dataType, shape, writable: true}, gpuDevice);
+    const mlTensorInput2 = await mlContext.createExportableTensor(
+        {dataType, shape, writable: true}, gpuDevice);
+    const mlTensorOutput1 =
+        await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
+    const mlTensorOutput2 =
+        await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
+
+    mlContext.exportToGPU(mlTensorOutput1);
+
+    assert_throws_js(
+        TypeError,
+        () => mlContext.dispatch(
+            mlGraph, {'lhs': mlTensorInput1, 'rhs': mlTensorInput2},
+            {'output1': mlTensorOutput1, 'output2': mlTensorOutput2}));
+  }, `${testName} / dispatch as output after export`);
+
+  promise_test(async t => {
+    if (!isExportToGPUSupported) {
+      return;
+    }
+
     const mlTensor =
         await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
 

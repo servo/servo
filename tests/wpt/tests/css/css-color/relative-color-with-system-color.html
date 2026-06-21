@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Color: relative colors and system colors</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#relative-colors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+// We need to use Typed-OM for this because getComputedStyle uses returns
+// resolved colors. We also can't assert the particular resolved value of the
+// accentcolor system color.
+function get_computed_color(specified) {
+  target.style.backgroundColor = specified;
+  assert_not_equals(target.style.backgroundColor, "");
+  let result = target.computedStyleMap().get("background-color").toString();
+  target.style.backgroundColor = "";
+  assert_not_equals(result, "");
+  return result;
+}
+
+test(() => {
+  let computed = get_computed_color("hsl(from accentcolor h s calc(l + 32))");
+  assert_false(computed.includes("from"), "Should resolve the system color and end up with an absolute color at computed value time")
+}, "System color");
+
+test(() => {
+  let computed = get_computed_color("hsl(from light-dark(currentColor, red) h s calc(32 + l))");
+  assert_equals(computed, "hsl(from currentcolor h s calc(32 + l))");
+}, "light-dark color");
+
+test(() => {
+  let computed = get_computed_color("hsl(from light-dark(currentColor, red) h s sibling-index())");
+  assert_equals(computed, "hsl(from currentcolor h s 1)");
+}, "light-dark + sibling-index()");
+</script>
+

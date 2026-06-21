@@ -344,4 +344,20 @@ promise_test(async (t) => {
     controller.abort();
     await promise_rejects_dom(t, "AbortError", promise);
   }, "navigator.credentials.get() with bogus requests at both ends should skip them and not fail.");
+
+  // State machine: after a mid-flight abort via AbortSignal, the coordinator
+  // must return to the idle state so a subsequent get() works.
+  promise_test(async (t) => {
+    const ac1 = new AbortController();
+    await test_driver.bless("user activation");
+    const p1 = navigator.credentials.get(makeGetOptions({ signal: ac1.signal }));
+    ac1.abort();
+    await promise_rejects_dom(t, "AbortError", DOMException, p1);
+
+    const ac2 = new AbortController();
+    await test_driver.bless("user activation");
+    const p2 = navigator.credentials.get(makeGetOptions({ signal: ac2.signal }));
+    ac2.abort();
+    await promise_rejects_dom(t, "AbortError", DOMException, p2);
+  }, "navigator.credentials.get() returns coordinator to idle after mid-flight abort.");
 </script>

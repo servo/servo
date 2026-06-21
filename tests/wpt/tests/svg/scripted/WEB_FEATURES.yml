@@ -1,4 +1,4 @@
 features:
 - name: fetch-priority
   files:
-  - attr-script-fetchpriority.html
+  - attr-script-fetchpriority.optional.html

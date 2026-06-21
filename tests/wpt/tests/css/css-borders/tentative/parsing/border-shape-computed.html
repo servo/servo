@@ -11,11 +11,16 @@
 <script>
 test_computed_value("border-shape", "none");
 test_computed_value("border-shape", "circle()");
+test_computed_value("border-shape", "circle(closest-corner at center)", "circle(closest-corner at 50% 50%)");
+test_computed_value("border-shape", "circle(closest-corner at 20px 50px)");
+test_computed_value("border-shape", "circle(farthest-corner at center)", "circle(farthest-corner at 50% 50%)");
+test_computed_value("border-shape", "ellipse(closest-corner farthest-corner at 20px 50px)");
 test_computed_value("border-shape", "polygon(10px 10px, 100px 10px, 10px 100px)");
 test_computed_value("border-shape", "shape(from 0px 0px, hline to 100px, vline to 100px, close)");
 test_computed_value("border-shape", "circle() circle()");
 test_computed_value("border-shape", "circle() border-box circle() padding-box", "circle() circle()");
 test_computed_value("border-shape", "circle() polygon(10px 10px, 100px 10px, 10px 100px)");
+test_computed_value("border-shape", "circle(closest-corner) ellipse(farthest-corner closest-corner)");
 test_computed_value("border-shape", "circle() content-box");
 test_computed_value("border-shape", "circle() border-box");
 test_computed_value("border-shape", "circle() border-box polygon(10px 10px, 100px 10px, 10px 100px) border-box", "circle() polygon(10px 10px, 100px 10px, 10px 100px) border-box");

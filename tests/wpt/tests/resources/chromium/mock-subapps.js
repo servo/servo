@@ -1,6 +1,10 @@
 'use strict';
 
-import {SubAppsService, SubAppsServiceReceiver, SubAppsServiceResultCode} from '/gen/third_party/blink/public/mojom/subapps/sub_apps_service.mojom.m.js';
+import {SubAppsService, SubAppsServiceReceiver, SubAppsServiceResultCode, SubAppsServiceAddResultType, SubAppsServiceRemoveResultType} from '/gen/third_party/blink/public/mojom/subapps/sub_apps_service.mojom.m.js';
+
+self.SubAppsServiceAddResultType = SubAppsServiceAddResultType;
+self.SubAppsServiceRemoveResultType = SubAppsServiceRemoveResultType;
+self.SubAppsServiceResultCode = SubAppsServiceResultCode;
 
 self.SubAppsServiceTest = (() => {
   // Class that mocks SubAppsService interface defined in /third_party/blink/public/mojom/subapps/sub_apps_service.mojom
@@ -20,9 +24,12 @@ self.SubAppsServiceTest = (() => {
       this.receiver_.$.close();
     }
 
-    add(sub_apps) {
+    add(install_urls) {
       return Promise.resolve({
-        result: testInternal.addCallReturnValue,
+        resultList: {
+          resultCode: testInternal.serviceResultCode,
+          results: testInternal.addCallReturnValue,
+        }
       });
     }
 
@@ -35,9 +42,12 @@ self.SubAppsServiceTest = (() => {
       });
     }
 
-    remove() {
+    remove(manifest_ids) {
       return Promise.resolve({
-        result: testInternal.removeCallReturnValue,
+        resultList: {
+          resultCode: testInternal.serviceResultCode,
+          results: testInternal.removeCallReturnValue,
+        }
       });
     }
   }

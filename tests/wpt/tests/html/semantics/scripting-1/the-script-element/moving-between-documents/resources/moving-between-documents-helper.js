@@ -16,15 +16,37 @@ function createDocument(documentType, result, inlineOrExternal, type, hasBlockin
       if (event.source !== iframe.contentWindow || event.data !== "fox") {
         return;
       }
-      window.removeEventListener("message", onMessage);
-      if (documentType === "iframe") {
-        resolve([iframe.contentWindow, iframe.contentDocument]);
-      } else if (documentType === "createHTMLDocument") {
-        resolve([
-            iframe.contentWindow,
-            iframe.contentDocument.implementation.createHTMLDocument("")]);
+
+      const postSource = iframe.contentWindow;
+      const postDocument = iframe.contentDocument;
+
+      const proceed = () => {
+        window.removeEventListener("message", onMessage);
+        if (documentType === "iframe") {
+          resolve([postSource, postDocument]);
+        } else if (documentType === "createHTMLDocument") {
+          resolve([
+              postSource,
+              postDocument.implementation.createHTMLDocument("")]);
+        } else {
+          reject(new Error("Invalid document type: " + documentType));
+        }
+      };
+
+      const needsStreamingElement = inlineOrExternal === "inline" ||
+                                    inlineOrExternal === "external" ||
+                                    inlineOrExternal === "empty-src";
+
+      if (needsStreamingElement && !postDocument.querySelector("streaming-element")) {
+        const observer = new MutationObserver(() => {
+          if (postDocument.querySelector("streaming-element")) {
+            observer.disconnect();
+            proceed();
+          }
+        });
+        observer.observe(postDocument, { childList: true, subtree: true });
       } else {
-        reject(new Error("Invalid document type: " + documentType));
+        proceed();
       }
     };
     window.addEventListener("message", onMessage);

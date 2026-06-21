@@ -9,14 +9,22 @@ address[title~="foo"] { background-color : lime }
 span[class~="b"] { background-color : red }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
  </head>
  <body>
-<p class="a b c">This paragraph should have green background because CLASS
+<p id="t1" class="a b c">This paragraph should have green background because CLASS
   contains &quot;b&quot;</p>
-<address title="tot foo bar">
+<address id="t2" title="tot foo bar">
 <span class="a c">This address should also</span>
   <span class="a bb c">have green background because the selector in the last
     rule does not apply to the inner SPANs.</span>
 </address>
+<script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('t1')).backgroundColor, 'rgb(0, 255, 0)');
+  assert_equals(getComputedStyle(document.getElementById('t2')).backgroundColor, 'rgb(0, 255, 0)');
+}, "Attribute multivalue selector");
+]]></script>
 </body>
 </html>

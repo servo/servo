@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp on RTL content</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/webkit-line-clamp-014-ref.html">
+<meta name="assert" content="line-clamp should place the ellipsis appropriately in RTL content.">
+<style>
+.clamp {
+  line-clamp: 2;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 0 4px;
+  background-color: yellow;
+  direction: rtl;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3</div>

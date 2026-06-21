@@ -16,6 +16,7 @@
         </script>
         <tr><td><input id='input1'></td></tr>
         <tr><td><input id='input2' form='form1'></td></tr>
+        <tr><td><image id='image1'></td></tr>
       </table>
       <form id="form3">
         <input id="input3" />
@@ -27,15 +28,18 @@
         var form1 = document.getElementById('form1');
 
         assert_equals(document.getElementById('input1').form, null,
-          "input1's form owner must be null since form2 is not in the" +
+          "input1's form owner must be null since form2 is not in the " +
           "same home subtree");
 
         assert_equals(document.getElementById('input2').form, form1,
           "input2's form owner must be the form with id 'form1'");
 
         assert_equals(document.getElementById('input3').form, null,
-          "input3's form owner must be null instead of form2 (as per parsing rules)" +
+          "input3's form owner must be null instead of form2 (as per parsing rules) " +
           "since form2 is not in the same home subtree");
+
+        assert_equals(f['image1'], undefined,
+          "image1 must not be a form control of form2 since form2 is not in the same home subtree");
 
       }, "Controls nested in tables are not associated with form element inside the " +
          "table if the form had been removed by script before the controls were " +

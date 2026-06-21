@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>scrollIntoView nearest aligns to the closest edge for an oversized target before the scrollport</title>
+  <link rel="help" href="https://drafts.csswg.org/cssom-view/#determine-the-scroll-into-view-position">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<style>
+#container {
+  width: 200px;
+  height: 200px;
+  overflow: scroll;
+}
+
+#content {
+  width: 1000px;
+  height: 1000px;
+  position: relative;
+}
+
+/* Target is larger than the 200x200 scrollport in both axes. */
+#target {
+  position: absolute;
+  left: 50px;
+  top: 50px;
+  width: 400px;
+  height: 400px;
+  background-color: aqua;
+}
+</style>
+
+<div id="container">
+  <div id="content">
+    <div id="target"></div>
+  </div>
+</div>
+
+<script>
+  test(function() {
+    const targetLeft = target.offsetLeft;
+    const targetTop = target.offsetTop;
+    const targetRight = targetLeft + target.offsetWidth;
+    const targetBottom = targetTop + target.offsetHeight;
+
+    // Scroll so the target is fully above and to the left of the scrollport.
+    container.scrollLeft = targetRight + 100;
+    container.scrollTop = targetBottom + 100;
+
+    target.scrollIntoView({block: 'nearest', inline: 'nearest'});
+
+    // The target is larger than the scrollport and lies before the viewport, so
+    // the closest edge is the target's right/bottom edge. The minimal scroll
+    // aligns the target's bottom-right edge with the scrollport's bottom-right.
+    const expectedLeft = targetRight - container.clientWidth;
+    const expectedTop = targetBottom - container.clientHeight;
+
+    assert_approx_equals(container.scrollLeft, expectedLeft, 1,
+      'inline: nearest aligns the target right edge to the scrollport right edge');
+    assert_approx_equals(container.scrollTop, expectedTop, 1,
+      'block: nearest aligns the target bottom edge to the scrollport bottom edge');
+  }, "scrollIntoView nearest aligns an oversized target before the scrollport to its closest (right/bottom) edge");
+</script>
+</html>

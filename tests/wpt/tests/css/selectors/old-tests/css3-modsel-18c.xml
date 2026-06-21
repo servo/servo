@@ -8,9 +8,25 @@
 ]]></style>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content=" interact" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
  </head>
  <body>
- <p><a href="#foo">Hover <strong>here</strong> and the background of <span>this text should go green</span>.</a></p>
+ <p><a href="#foo" id="link">Hover <strong>here</strong> and the background of <span id="t1">this text should go green</span>.</a></p>
+  <script><![CDATA[
+promise_test(async () => {
+  const link = document.getElementById('link');
+  const t1 = document.getElementById('t1');
+  assert_not_equals(getComputedStyle(t1).backgroundColor, "rgb(0, 255, 0)");
+
+  await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: link})
+      .send();
+  assert_equals(getComputedStyle(t1).backgroundColor, "rgb(0, 255, 0)");
+}, ":hover pseudo-class on links");
+]]></script>
 </body>
 </html>

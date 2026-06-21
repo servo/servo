@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS test: font-variant:small-caps + letter-spacing + ligatures</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-variant-caps-prop">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#letter-spacing-property">
+<link rel="help" href="https://www.unicode.org/Public/UNIDATA/SpecialCasing.txt">
+
+<meta name="assert" content="When ligatures such as ﬁ or ﬃ are decomposed to create small-caps, letter-spacing should apply between the glyphs.">
+<link rel="match" href="small-caps-letter-spacing-002-ref.html">
+
+<style>
+@font-face {
+  font-family: test;
+  src: url("/fonts/Lato-Medium.ttf");
+}
+.test, .ref {
+  font: 24px test, sans-serif;
+  letter-spacing: 1em;
+  font-variant: small-caps;
+}
+</style>
+
+<p>Both lines should have the same spacing:</p>
+
+<p class="test">O&#xfb03;ce &#xfb01;les</p>
+<p class="ref">Office files</p>

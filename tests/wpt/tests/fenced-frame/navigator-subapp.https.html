@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>navigator.subApp API test</title>
+<title>window.subApp API test</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
@@ -14,17 +14,17 @@ promise_test(async () => {
     const expected_error_message =
         'Cannot read properties of undefined (reading \'list\')';
     try {
-      const list = await navigator.subApps.list();
-      return 'navigator.subApps.list() succeeded';
+      const list = await window.subApps.list();
+      return 'window.subApps.list() succeeded';
     } catch (e) {
       if (e.name === 'TypeError' &&
           e.message === expected_error_message) {
-        return 'navigator.subApps.list() was disallowed';
+        return 'window.subApps.list() was disallowed';
       }
-      return 'navigator.subApps.list() failed with unknown error' +
+      return 'window.subApps.list() failed with unknown error' +
           `${e.name} ${e.message}`;
     }
   });
-  assert_equals(result, 'navigator.subApps.list() was disallowed');
-}, 'navigator.subApps.list() should fail in the fenced frame.');
+  assert_equals(result, 'window.subApps.list() was disallowed');
+}, 'window.subApps.list() should fail in the fenced frame.');
 </script>

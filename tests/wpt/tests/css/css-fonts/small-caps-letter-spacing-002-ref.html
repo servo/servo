@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS reference: font-variant:small-caps + letter-spacing + ligatures</title>
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<style>
+@font-face {
+  font-family: test;
+  src: url("/fonts/Lato-Medium.ttf");
+}
+.ref {
+  font: 24px test, sans-serif;
+  letter-spacing: 1em;
+  font-variant: small-caps;
+}
+</style>
+
+<p>Both lines should have the same spacing:</p>
+
+<p class="ref">Office files</p>
+<p class="ref">Office files</p>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<title>Fixed-positioned element nested in anchor-scroll-adjusted container doesn't double-compensate for scroll container scroll</title>
+<link rel="author" href="mailto:fantasai@inkedblade.net">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#default-scroll-shift">
+<link rel="match" href="reference/anchor-scroll-fixedpos-nested-002-ref.html">
+<style>
+body {
+  margin: 0;
+  width: 1000px;
+  height: 1000px;
+}
+
+div {
+  width: 50px;
+  height: 50px;
+}
+
+#scroller {
+  position: absolute;
+  left: 150px;
+  top: 150px;
+  width: 200px;
+  height: 200px;
+  overflow: scroll;
+  outline: 1px solid black;
+}
+
+#scroller-content {
+  position: relative;
+  width: 400px;
+  height: 400px;
+}
+
+#anchor1 {
+  position: absolute;
+  left: 75px;
+  top: 100px;
+  anchor-name: --a1;
+  background: orange;
+}
+
+#anchor2 {
+  position: absolute;
+  left: 175px;
+  top: 100px;
+  anchor-name: --a2;
+  background: teal;
+}
+
+#f1 {
+  position: fixed;
+  position-anchor: --a1;
+  position-area: bottom right;
+  background: yellow;
+}
+
+#f2 {
+  position: fixed;
+  position-anchor: --a2;
+  position-area: bottom right;
+  background: aqua;
+}
+</style>
+
+<div id="scroller">
+  <div id="scroller-content">
+    <div id="anchor1"></div>
+    <div id="anchor2"></div>
+  </div>
+</div>
+<div id="f1">
+  <div id="wrapper">
+    <div id="f2"></div>
+  </div>
+</div>
+
+<script>
+document.documentElement.scrollLeft = 100;
+document.documentElement.scrollTop = 100;
+let scroller = document.getElementById('scroller');
+scroller.scrollLeft = 25;
+scroller.scrollTop = 50;
+</script>

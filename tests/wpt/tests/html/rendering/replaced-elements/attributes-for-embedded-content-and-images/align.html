@@ -11,11 +11,9 @@ const kMapping = {
 
   "top": ["vertical-align", "top"],
 
-  // This one requires a magic value (`-moz-middle-with-baseline` on Gecko,
+  // These two require a magic value (`-moz-middle-with-baseline` on Gecko,
   // `-webkit-baseline-middle` on WebKit-based browsers).
   "middle": ["vertical-align", undefined],
-  // These are inconsistent across browsers. WebKit maps it to "middle", Gecko
-  // to the aforementioned value.
   "center": ["vertical-align", undefined],
 
   "baseline": ["vertical-align", "baseline"],
@@ -31,6 +29,17 @@ const kInitialValues = {
   "vertical-align": "baseline",
   "float": "none",
 };
+
+const kVerticalAlignKeywords = [
+  "baseline",
+  "sub",
+  "super",
+  "text-top",
+  "text-bottom",
+  "middle",
+  "top",
+  "bottom",
+];
 
 let replaced = document.getElementById("replaced");
 let nonReplaced = document.getElementById("non-replaced");
@@ -49,7 +58,10 @@ onload = t.step_func_done(function() {
             assert_equals(actual, expected, `align=${attributeValue} should map to ${property}: ${expected}`);
           } else {
             assert_equals(property, "vertical-align");
-            assert_not_equals(actual, "baseline", `align=${attributeValue} should map a vertical-align value`);
+            assert_false(
+              kVerticalAlignKeywords.includes(actual),
+             `align=${attributeValue} should map to a special vertical-align value`
+            );
           }
         }
       }, `align=${attributeValue} on ${element == replaced ? "replaced" : "non-replaced"} elements`);

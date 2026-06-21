@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <title>Pointer Lock all mouse events to lock target test</title>
+  <meta name="viewport" content="width=device-width">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="test-helper.js"></script>
+</head>
+<body>
+  <div id="div1" style="width:800px;height:250px;background:green"></div>
+  <div id="div2" style="width:800px;height:250px;background:yellow"></div>
+</body>
+<script>
+  const kExpectedEventTypes = ['mousedown', 'mouseup', 'click'];
+
+  promise_test(async function(t) {
+    var div1 = document.getElementById("div1");
+    var div2 = document.getElementById("div2");
+    var events_on_target = [];
+    var events_on_other = [];
+
+    await lockPointerAndWaitForEvent(div1, /*provideTransientActivation=*/ true);
+
+    // Register mouse event listeners after the lock so that the
+    // initial activation click does not pollute the captured events.
+    kExpectedEventTypes.forEach(function(eventType) {
+      div1.addEventListener(eventType, function(event) {
+        events_on_target.push(event.type);
+      });
+      div2.addEventListener(eventType, function(event) {
+        events_on_other.push(event.type);
+      });
+    });
+
+    // Move to div2's location then click. Events should still go
+    // to div1 (the lock target).
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {
+        origin: div2
+      })
+      .pointerDown()
+      .pointerUp()
+      .pointerMove(50, 50, {
+        origin: div2
+      })
+      .send();
+
+    await unlockPointerAndWaitForEvent();
+
+    assert_true(events_on_target.includes('mousedown'),
+      "mousedown should fire on lock target.");
+    assert_true(events_on_target.includes('mouseup'),
+      "mouseup should fire on lock target.");
+    assert_true(events_on_target.includes('click'),
+      "click should fire on lock target.");
+    assert_array_equals(events_on_other, [],
+      "No mouse events should fire on non-lock-target element.");
+  }, "mousedown, mouseup, click events go to the lock target");
+</script>
+</html>

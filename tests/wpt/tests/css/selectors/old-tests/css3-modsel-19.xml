@@ -6,11 +6,36 @@
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content=" interact" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
  </head>
  <body>
-<p>The background color of <a href="#foo">the anchor</a>
+<p>The background color of <a id="t1" href="#foo">the anchor</a>
    should turn to green when it is activated and come back to
    normal when it is released.</p>
+<script><![CDATA[
+promise_test(async () => {
+  const t1 = document.getElementById('t1');
+
+  // Initial state check
+  assert_not_equals(getComputedStyle(t1).backgroundColor, 'rgb(0, 255, 0)', 't1 initial');
+
+  // Move to t1 and pointerDown (active)
+  let actions = new test_driver.Actions();
+  await actions.pointerMove(0, 0, {origin: t1})
+               .pointerDown()
+               .send();
+  assert_equals(getComputedStyle(t1).backgroundColor, 'rgb(0, 255, 0)', 't1 active');
+
+  // pointerUp (inactive)
+  actions = new test_driver.Actions();
+  await actions.pointerUp()
+               .send();
+  assert_not_equals(getComputedStyle(t1).backgroundColor, 'rgb(0, 255, 0)', 't1 released');
+}, "Verify :active styles");
+]]></script>
 </body>
 </html>

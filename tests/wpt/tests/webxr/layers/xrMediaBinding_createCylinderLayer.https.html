@@ -1,0 +1,67 @@
+<!doctype html>
+<title>XRMediaBinding::createCylinderLayer</title>
+<link rel="help" href="https://immersive-web.github.io/layers/#dom-xrmediabinding-createcylinderlayer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="./xr_layer_promise_test.js"></script>
+
+<script>
+    function testCreateCylinderLayer(xrSession, deviceController, t, { gl, xrSpace }) {
+        return new Promise((resolve, reject) => {
+            const mediaBinding = new XRMediaBinding(xrSession);
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgb(0, 255, 0)';
+            ctx.fillRect(0, 0, 64, 64);
+
+            const video = document.createElement('video');
+            video.srcObject = canvas.captureStream();
+            video.play();
+
+            const valid_init = {
+                space: xrSpace
+            };
+
+            video.onloadedmetadata = () => {
+                t.step(() => {
+                    // Cylinder radius must be greater than or equal to 0.
+                    let invalid_radius = Object.assign({}, valid_init, { radius: -5 });
+                    assert_throws_js(TypeError, () => mediaBinding.createCylinderLayer(video, invalid_radius), "radius is negative");
+                });
+
+                t.step(() => {
+                    // Cylinder aspectRatio must be greater than 0.
+                    let invalid_aspect_ratio = Object.assign({}, valid_init, { aspectRatio: 0 });
+                    assert_throws_js(TypeError, () => mediaBinding.createCylinderLayer(video, invalid_aspect_ratio), "aspectRatio is 0");
+                });
+
+                t.step(() => {
+                    // Cylinder central angle must be greater than or equal to 0.
+                    let invalid_central_angle = Object.assign({}, valid_init, { centralAngle: -6 });
+                    assert_throws_js(TypeError, () => mediaBinding.createCylinderLayer(video, invalid_central_angle), "centralAngle is negative");
+                });
+
+                t.step(() => {
+                    // Cylinder central angle should not be greater than 2pi.
+                    let invalid_central_angle = Object.assign({}, valid_init, { centralAngle: 7.0 });
+                    assert_throws_js(TypeError, () => mediaBinding.createCylinderLayer(video, invalid_central_angle), "centralAngle is greater than 2pi");
+                });
+
+                // Test that a valid init works.
+                t.step(() => {
+                    const layer = mediaBinding.createCylinderLayer(video, valid_init);
+                    assert_true(layer instanceof XRCylinderLayer, "Valid init parameters must create an XRCylinderLayer");
+                });
+
+                resolve();
+            };
+        });
+    }
+
+    xr_layer_promise_test("Ensure XRMediaBinding::createCylinderLayer throws the appropriate errors",
+        testCreateCylinderLayer, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+</script>

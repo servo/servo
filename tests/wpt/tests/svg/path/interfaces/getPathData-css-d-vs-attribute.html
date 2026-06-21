@@ -1,0 +1,36 @@
+<!doctype html>
+<title>SVGPathElement.getPathData() returns attribute value, not CSS d value</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<style>
+  #path { d: path("M 100 100 L 200 200"); }
+  #cssOnly { d: path("M 1 1 L 2 2"); }
+</style>
+
+<svg>
+  <path id="path" d="M 0 0 L 10 10"/>
+  <path id="cssOnly"/>
+</svg>
+<script>
+test(() => {
+  assert_not_equals(getComputedStyle(path).getPropertyValue("d"),
+                    "none", "CSS 'd' property is applied");
+
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10, 10] }
+  ]);
+}, "path.getPathData() returns attribute value, not CSS d value");
+
+test(() => {
+  assert_not_equals(getComputedStyle(cssOnly).getPropertyValue("d"),
+                    "none", "CSS 'd' property is applied");
+
+  // No `d` attribute set; the CSS `d` property must not be exposed here.
+  assert_path_data_equals(cssOnly.getPathData(), []);
+}, "path.getPathData() returns [] when only CSS d is set (no d attribute)");
+</script>
