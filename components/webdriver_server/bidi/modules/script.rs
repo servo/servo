@@ -133,4 +133,9 @@ impl RemoteEnd {
     ) -> BidiResult<RemovePreloadScriptResult> {
         todo!()
     }
+
+    /// Remote end subscribe steps for `script.realmCreated`.
+    pub(crate) async fn subscribe_script_realm_created(self: Rc<Self>) {
+        todo!()
+    }
 }

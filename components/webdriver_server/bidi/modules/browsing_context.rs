@@ -427,4 +427,9 @@ impl RemoteEnd {
         // 12.
         Ok(body)
     }
+
+    /// Subscribe steps for `browsingContext.ContextCreated`.
+    pub(crate) async fn subscribe_browsing_context_context_created() {
+        todo!()
+    }
 }

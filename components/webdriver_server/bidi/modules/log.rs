@@ -7,6 +7,7 @@ use webdriver_traits::bidi::{Event, EventData};
 use crate::bidi::{remote_end::RemoteEnd, session::SessionId};
 
 impl RemoteEnd {
+    /// Remote end subscribe steps for `log.entryAdded`.
     pub(crate) async fn subscribe_log_entry_added(
         self: Rc<Self>,
         session_id: SessionId,
