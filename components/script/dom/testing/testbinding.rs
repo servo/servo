@@ -56,7 +56,6 @@ use crate::dom::node::Node;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
-use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::timers::OneshotTimerCallback;
 
@@ -1096,8 +1095,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
     }
 
-    fn PromiseAttribute(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        Promise::new_in_current_realm(comp, can_gc)
+    fn PromiseAttribute(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        Promise::new_in_realm(cx)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}
