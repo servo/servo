@@ -232,7 +232,7 @@ impl Console {
             // 1.15. TODO
             let related_navigables = vec![];
             // 1.16: continue in webdriver thread callback
-            if let Err(err) = chan.send(ScriptToWebDriverMsg::LogEntryAdded(
+            if let Err(err) = chan.send(ScriptToWebDriverMsg::LogEntryAddedConsole(
                 related_navigables,
                 body,
             )) {

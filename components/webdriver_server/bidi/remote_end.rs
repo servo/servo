@@ -545,6 +545,14 @@ impl RemoteEnd {
             },
         }
     }
+
+    pub(crate) fn set_of_sessions_for_which_an_event_is_enabled(
+        &self,
+        event_name: &str,
+        navigable_ids: impl Iterator<Item = BrowsingContextId>,
+    ) -> HashSet<SessionId> {
+        todo!()
+    }
 }
 
 /// The OS client window.
@@ -578,6 +586,7 @@ pub struct Navigable {
     /// All documents (pipelines) that belongs to this navigable.
     pub(crate) documents: Vec<PipelineId>,
     pub(crate) active_index: usize,
+    pub(crate) original_opener: Option<BrowsingContextId>,
 
     // TODO: should remove this field
     // and query in traversables instead.

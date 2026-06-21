@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashSet, rc::Rc};
 
 use servo_base::id::BrowsingContextId;
 use webdriver_traits::bidi::{
@@ -18,7 +18,7 @@ use webdriver_traits::bidi::{
 
 use crate::bidi::{
     error::{BidiError, BidiResult},
-    remote_end::RemoteEnd,
+    remote_end::{Navigable, RemoteEnd},
     session::SessionId,
     util::new_oneshot_callback,
 };
@@ -434,7 +434,30 @@ impl RemoteEnd {
     }
 
     /// Remote end event trigger for `browsingContext.contextCreated`.
-    pub(crate) async fn trigger_browsing_context_context_created() {
+    pub(crate) fn trigger_browsing_context_context_created(
+        self: Rc<Self>,
+        mut navigable: Navigable,
+        opener_navigable: BrowsingContextId,
+    ) {
+        // Step 1. set original opener
+        // TODO: the spec is bad, many irrelevant steps are mixed in,
+        // "trigger" is a trigger once event happens, not a monitering thread.
+        navigable.original_opener = None;
+        // Step 2.
+        // TODO: the implementation-specific step to disable cache behavior
+        // Step 3.
+        let related_navigables = HashSet::<BrowsingContextId>::from_iter([navigable.id]);
+        // Step 4.
+        for session in self.set_of_sessions_for_which_an_event_is_enabled(
+            "browsingContext.contextCreated",
+            related_navigables.into_iter(),
+        ) {
+            // Step 4.1.
+            tokio::task::spawn_local(
+                self.clone()
+                    .emit_a_context_created_event(session, navigable.id),
+            );
+        }
         todo!()
     }
 
@@ -495,6 +518,29 @@ impl RemoteEnd {
 
     /// Remote end event trigger for `browsingContext.userPromptOpened`.
     pub(crate) async fn trigger_browsing_user_prompt_opened() {
+        todo!()
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#recursively-emit-context-created-events>
+    pub(crate) async fn recursively_emit_context_created_events(
+        self: Rc<Self>,
+        session_id: SessionId,
+        navigable: BrowsingContextId,
+    ) {
+        // Step 1. emit current
+        self.clone()
+            .emit_a_context_created_event(session_id, navigable)
+            .await;
+        // Step 2. emit child
+        // TODO: save child navigable id
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#emit-a-context-created-event>
+    pub(crate) async fn emit_a_context_created_event(
+        self: Rc<Self>,
+        session_id: SessionId,
+        navigable: BrowsingContextId,
+    ) {
         todo!()
     }
 }

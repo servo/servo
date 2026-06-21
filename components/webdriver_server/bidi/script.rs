@@ -97,6 +97,7 @@ impl RemoteEnd {
                 // TODO: multiple pipeline and one active
                 documents: vec![],
                 active_index: 0,
+                original_opener: None,
                 is_top_level_traversable: false,
             });
         // TODO: we need to cleanup

@@ -41,6 +41,8 @@ impl RemoteEnd {
     }
 
     fn handle_context_created(self: Rc<Self>) {
+        // TODO: record context hierarchy
+        // TODO:
         todo!()
     }
 
