@@ -883,3 +883,12 @@ Everything else gets no phone line.
 - No new resource acquisition paths were discovered; this change is presentation/event-hosting work rather than local package loader policy work.
 - AccessKit remains egui-owned in normal mode. Bare mode does not initialize egui's AccessKit adapter and ignores accessibility app events after updating shell accessibility state, leaving direct AccessKit architecture deferred.
 - Deferred validation: broad servoshell build/check remained too large for this agent run from the current checkout; parser coverage was added but the full focused command did not complete before being stopped.
+
+## 2026-06-21 — Debian fossil probe workflow
+
+- Added a manual-only GitHub Actions diagnostic workflow for rebuilding historical Servo commit `9f5117f8fe8ce059f82a34cd5480c7ce039cd353` in the current Debian 12 build-room image.
+- Touched workflow only: `.github/workflows/local-runtime-debian-fossil-probe.yml`.
+- Purpose: distinguish whether the observed local-runtime performance gap follows Servo source history or the current Debian build environment.
+- The workflow preserves the current Debian debug packaging shape where practical: debug build, package step, symbol split, GLIBC/GLIBCXX/CXXABI inspection, ldd check, Actions artifact upload, and release upload.
+- Added an explicit provenance/toolchain receipt before bootstrap, including Git worktree evidence, exact commit, OS/tool versions, relevant environment, and Rust channel validation against the checked-out `rust-toolchain.toml`.
+- No Servo runtime code, artifact workflow, preflight script, or Debian build-room Dockerfile changes were made.
