@@ -426,7 +426,7 @@ impl ReadableStreamDefaultReader {
         self.closed_promise.borrow().reject_native(cx, &e);
 
         // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
-        self.closed_promise.borrow().set_promise_is_handled();
+        self.closed_promise.borrow().set_promise_is_handled(cx);
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
         self.error_read_requests(cx, e);

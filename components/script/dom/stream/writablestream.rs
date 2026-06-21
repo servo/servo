@@ -367,7 +367,7 @@ impl WritableStream {
             writer.reject_closed_promise_with_stored_error(cx, &stored_error.handle());
 
             // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
-            writer.set_close_promise_is_handled();
+            writer.set_close_promise_is_handled(cx);
         }
     }
 
@@ -1232,7 +1232,7 @@ impl Transferable for WritableStream {
         let promise = readable.pipe_to(cx, &global, self, false, false, false, None);
 
         // Step 8. Set promise.[[PromiseIsHandled]] to true.
-        promise.set_promise_is_handled();
+        promise.set_promise_is_handled(cx);
 
         // Step 9. Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
         port_2.transfer(cx)

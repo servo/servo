@@ -106,7 +106,7 @@ impl WritableStreamDefaultWriter {
             // Note: new promise created in `new_inherited`.
             let ready_promise = self.ready_promise.borrow();
             ready_promise.reject_native(cx, &error.handle());
-            ready_promise.set_promise_is_handled();
+            ready_promise.set_promise_is_handled(cx);
 
             // Set writer.[[closedPromise]] to a new promise.
             // Done in `new_inherited`.
@@ -138,14 +138,14 @@ impl WritableStreamDefaultWriter {
         // Note: new promise created in `new_inherited`.
         let ready_promise = self.ready_promise.borrow();
         ready_promise.reject_native(cx, &error.handle());
-        ready_promise.set_promise_is_handled();
+        ready_promise.set_promise_is_handled(cx);
 
         // Set writer.[[closedPromise]] to a promise rejected with storedError.
         // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
         // Note: new promise created in `new_inherited`.
         let ready_promise = self.closed_promise.borrow();
         ready_promise.reject_native(cx, &error.handle());
-        ready_promise.set_promise_is_handled();
+        ready_promise.set_promise_is_handled(cx);
 
         Ok(())
     }
@@ -158,8 +158,8 @@ impl WritableStreamDefaultWriter {
         self.closed_promise.borrow().reject_native(cx, error);
     }
 
-    pub(crate) fn set_close_promise_is_handled(&self) {
-        self.closed_promise.borrow().set_promise_is_handled();
+    pub(crate) fn set_close_promise_is_handled(&self, cx: &mut JSContext) {
+        self.closed_promise.borrow().set_promise_is_handled(cx);
     }
 
     pub(crate) fn set_ready_promise(&self, promise: Rc<Promise>) {
@@ -189,13 +189,13 @@ impl WritableStreamDefaultWriter {
             ready_promise.reject_native(cx, &error);
 
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
-            ready_promise.set_promise_is_handled();
+            ready_promise.set_promise_is_handled(cx);
         } else {
             // Otherwise, set writer.[[readyPromise]] to a promise rejected with error.
             let promise = Promise::new_rejected(cx, global, error);
 
             // Set writer.[[readyPromise]].[[PromiseIsHandled]] to true.
-            promise.set_promise_is_handled();
+            promise.set_promise_is_handled(cx);
             *self.ready_promise.borrow_mut() = promise;
         }
     }
@@ -215,13 +215,13 @@ impl WritableStreamDefaultWriter {
             closed_promise.reject_native(cx, &error);
 
             // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
-            closed_promise.set_promise_is_handled();
+            closed_promise.set_promise_is_handled(cx);
         } else {
             // Otherwise, set writer.[[closedPromise]] to a promise rejected with error.
             let promise = Promise::new_rejected(cx, global, error);
 
             // Set writer.[[closedPromise]].[[PromiseIsHandled]] to true.
-            promise.set_promise_is_handled();
+            promise.set_promise_is_handled(cx);
             *self.closed_promise.borrow_mut() = promise;
         }
     }

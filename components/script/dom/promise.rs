@@ -28,11 +28,12 @@ use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{
     GetPromiseIsHandled, GetPromiseState, IsPromiseObject, NewPromiseObject,
-    SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
+    SetPromiseUserInputEventHandlingState,
 };
 use js::rust::wrappers2::{
     AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
     JS_ClearPendingException, NewFunctionWithReserved, RejectPromise, ResolvePromise,
+    SetAnyPromiseIsHandled,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -330,9 +331,8 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn set_promise_is_handled(&self) -> bool {
-        let cx = GlobalScope::get_cx();
-        unsafe { SetAnyPromiseIsHandled(*cx, self.reflector().get_jsobject()) }
+    pub(crate) fn set_promise_is_handled(&self, cx: &mut JSContext) -> bool {
+        unsafe { SetAnyPromiseIsHandled(cx, self.reflector().get_jsobject()) }
     }
 }
 

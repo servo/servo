@@ -1102,7 +1102,7 @@ impl Transferable for TransformStream {
         proxy_readable.setup_cross_realm_transform_readable(cx, &port1);
         proxy_readable
             .pipe_to(cx, &global, &writable, false, false, false, None)
-            .set_promise_is_handled();
+            .set_promise_is_handled(cx);
 
         // Second port pair (proxy readable → writable)
         let port2 = MessagePort::new(&global, CanGc::from_cx(cx));
@@ -1117,7 +1117,7 @@ impl Transferable for TransformStream {
         // Pipe readable into the proxy writable (→ port_1)
         readable
             .pipe_to(cx, &global, &proxy_writable, false, false, false, None)
-            .set_promise_is_handled();
+            .set_promise_is_handled(cx);
 
         // Step 5. Set dataHolder.[[readable]] to !
         // StructuredSerializeWithTransfer(readable, « readable »).

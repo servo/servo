@@ -273,7 +273,7 @@ impl ReadableStreamBYOBReader {
         self.closed_promise.borrow().reject_native(cx, &e);
 
         // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
-        self.closed_promise.borrow().set_promise_is_handled();
+        self.closed_promise.borrow().set_promise_is_handled(cx);
 
         // Let readRequests be reader.[[readRequests]].
         let mut read_into_requests = self.take_read_into_requests();
