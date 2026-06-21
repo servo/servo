@@ -116,8 +116,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         global: &GlobalScope,
         other: &DOMMatrixInit,
     ) -> Fallible<DomRoot<Self>> {
-        dommatrixinit_to_matrix(other)
-            .map(|(is2D, matrix)| Self::new(global, is2D, matrix, cx))
+        dommatrixinit_to_matrix(other).map(|(is2D, matrix)| Self::new(global, is2D, matrix, cx))
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat32array>
@@ -128,7 +127,9 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
         DOMMatrix::Constructor(
-            cx, global, None,
+            cx,
+            global,
+            None,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -141,7 +142,9 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec();
         DOMMatrix::Constructor(
-            cx, global, None,
+            cx,
+            global,
+            None,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -562,15 +565,10 @@ impl Serializable for DOMMatrix {
                     0.0,
                     1.0,
                 ),
-                CanGc::from_cx(cx),
+                cx,
             ))
         } else {
-            Ok(Self::new(
-                owner,
-                false,
-                serialized.matrix,
-                CanGc::from_cx(cx),
-            ))
+            Ok(Self::new(owner, false, serialized.matrix, cx))
         }
     }
 
