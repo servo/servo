@@ -16,13 +16,13 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::{EmbedderMsg, GenericEmbedderProxy};
 use net_traits::ResourceThreads;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
-use webdriver_traits::{WebDriverMsg, WebDriverToConstellationMsg};
+use webdriver_traits::{WebDriverMsg, WebDriverToConstellationMsg, WebDriverToEmbedderMsg};
 
 // TODO: this should later be renamed to `WebDriverServer`
 // after classic is merged.
 pub struct WebDriverBidiThread {
     port: u16,
-    embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+    embedder_proxy: GenericEmbedderProxy<WebDriverToEmbedderMsg>,
     constellation_sender: Sender<WebDriverToConstellationMsg>,
     resource_threads: ResourceThreads,
     // Remote end states are shared across all sessions.
@@ -31,7 +31,7 @@ pub struct WebDriverBidiThread {
 
 impl WebDriverBidiThread {
     pub fn start(
-        embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+        embedder_proxy: GenericEmbedderProxy<WebDriverToEmbedderMsg>,
         resource_threads: ResourceThreads,
     ) -> (
         UnboundedSender<WebDriverMsg>,
@@ -53,7 +53,7 @@ impl WebDriverBidiThread {
 
     fn new(
         port: u16,
-        embedder_proxy: GenericEmbedderProxy<EmbedderMsg>,
+        embedder_proxy: GenericEmbedderProxy<WebDriverToEmbedderMsg>,
         resource_threads: ResourceThreads,
         constellation_sender: Sender<WebDriverToConstellationMsg>,
     ) -> Self {

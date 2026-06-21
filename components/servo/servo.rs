@@ -74,6 +74,8 @@ use storage::new_storage_threads;
 use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
 use tokio::sync::mpsc::UnboundedSender;
+use webdriver_traits::WebDriverToEmbedderMsg;
+use webdriver_traits::bidi::browsing_context::CreateType;
 
 use crate::clipboard_delegate::StringRequest;
 #[cfg(feature = "gamepad")]
@@ -146,6 +148,7 @@ enum Message {
     FromNet(NetToEmbedderMsg),
     FromConstellation(ConstellationToEmbedderMsg),
     FromUnknown(EmbedderMsg),
+    FromWebDriver(WebDriverToEmbedderMsg),
 }
 
 /// Holds a prebuilt `crossbeam_channel::Select` over the crossbeam
@@ -159,6 +162,7 @@ struct EmbedderMessageSelector<'a> {
         &'a Receiver<EmbedderMsg>,
         &'a Receiver<NetToEmbedderMsg>,
         &'a Receiver<ConstellationToEmbedderMsg>,
+        &'a Receiver<WebDriverToEmbedderMsg>,
     ),
 }
 
@@ -167,6 +171,7 @@ impl<'a> EmbedderMessageSelector<'a> {
         embedder_receiver: &'a Receiver<EmbedderMsg>,
         net_embedder_receiver: &'a Receiver<NetToEmbedderMsg>,
         constellation_embedder_receiver: &'a Receiver<ConstellationToEmbedderMsg>,
+        webdriver_embedder_receiver: &'a Receiver<WebDriverToEmbedderMsg>,
     ) -> Self {
         let mut select = crossbeam_channel::Select::new();
         // The order of `.recv()` calls **must** match the order of fields in `receivers`.
@@ -177,12 +182,15 @@ impl<'a> EmbedderMessageSelector<'a> {
         debug_assert_eq!(net_embedder_index, 1);
         let constellation_embedder_index = select.recv(constellation_embedder_receiver);
         debug_assert_eq!(constellation_embedder_index, 2);
+        let webdriver_embedder_index = select.recv(webdriver_embedder_receiver);
+        debug_assert_eq!(webdriver_embedder_index, 3);
         Self {
             select,
             receivers: (
                 embedder_receiver,
                 net_embedder_receiver,
                 constellation_embedder_receiver,
+                webdriver_embedder_receiver,
             ),
         }
     }
@@ -204,6 +212,9 @@ impl<'a> EmbedderMessageSelector<'a> {
         } else if index == 2 {
             let message = operation.recv(self.receivers.2).ok()?;
             Some(Message::FromConstellation(message))
+        } else if index == 3 {
+            let message = operation.recv(self.receivers.3).ok()?;
+            Some(Message::FromWebDriver(message))
         } else {
             log::error!("No select operation registered for {index:?}");
             None
@@ -223,6 +234,7 @@ struct ServoInner {
     embedder_receiver: Receiver<EmbedderMsg>,
     net_embedder_receiver: Receiver<NetToEmbedderMsg>,
     constellation_embedder_receiver: Receiver<ConstellationToEmbedderMsg>,
+    webdriver_embedder_receiver: Receiver<WebDriverToEmbedderMsg>,
     network_manager: Rc<RefCell<NetworkManager>>,
     site_data_manager: SiteDataManager,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
@@ -280,6 +292,7 @@ impl ServoInner {
             &self.embedder_receiver,
             &self.net_embedder_receiver,
             &self.constellation_embedder_receiver,
+            &self.webdriver_embedder_receiver,
         );
         // Only handle incoming embedder messages if `Paint` hasn't already started shutting down.
         while let Some(message) = selector.try_recv_one_message() {
@@ -289,6 +302,7 @@ impl ServoInner {
                 Message::FromConstellation(message) => {
                     self.handle_constellation_embedder_message(message)
                 },
+                Message::FromWebDriver(message) => self.handle_webdriver_embedder_message(message),
             }
             if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
                 break;
@@ -846,16 +860,57 @@ impl ServoInner {
             },
         }
     }
-}
 
-impl Drop for ServoInner {
-    fn drop(&mut self) {
+    fn handle_webdriver_embedder_message(&self, message: WebDriverToEmbedderMsg) {
+        match message {
+            WebDriverToEmbedderMsg::Exit => {
+                self.handle_exit();
+            },
+            WebDriverToEmbedderMsg::SetClientWindowState(
+                painter_id,
+                set_client_window_state_parameters,
+            ) => todo!(),
+            WebDriverToEmbedderMsg::WebViewCreate(create_type, opener_id, response_sender) => {
+                // TODO:
+                // 1. servoinner does not record focus, random existing webview is picked
+                // 2. not able to create new window until webdriver delegate
+                let response = match create_type {
+                    CreateType::Tab => match self
+                        .webviews
+                        .borrow()
+                        .iter()
+                        .next()
+                        .and_then(|(id, weak)| Some((id, WebView::from_weak_handle(weak)?)))
+                    {
+                        None => Err(webdriver_traits::bidi::ErrorCode::UnknownError),
+                        Some((webview_id, webview)) => {
+                            // TODO: should switch to delegate
+                            // webview.request_create_new(response_sender);
+                            Err(webdriver_traits::bidi::ErrorCode::UnknownError)
+                        },
+                    },
+                    CreateType::Window => Err(webdriver_traits::bidi::ErrorCode::UnknownError),
+                };
+                if let Err(err) = response_sender.send(response) {
+                    warn!("Sending WebViewCreate response to WebDriver failed ({err:?})");
+                }
+            },
+        }
+    }
+
+    fn handle_exit(&self) {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::Exit);
         self.shutdown_state.set(ShutdownState::ShuttingDown);
         while self.spin_event_loop() {
             std::thread::sleep(Duration::from_micros(500));
         }
+    }
+}
+
+impl Drop for ServoInner {
+    fn drop(&mut self) {
+        self.handle_exit();
     }
 }
 
@@ -914,6 +969,8 @@ impl Servo {
             create_generic_embedder_channel::<NetToEmbedderMsg>(event_loop_waker.clone());
         let (constellation_embedder_proxy, constellation_embedder_receiver) =
             create_generic_embedder_channel::<ConstellationToEmbedderMsg>(event_loop_waker.clone());
+        let (webdriver_embedder_proxy, webdriver_embedder_receiver) =
+            create_generic_embedder_channel(event_loop_waker.clone());
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
@@ -978,7 +1035,7 @@ impl Servo {
 
         let (webdriver_sender, webdriver_receiver) = if pref!(devtools_server_enabled) {
             let (sender, receiver) = webdriver_server::bidi::WebDriverBidiThread::start(
-                embedder_proxy.clone(),
+                webdriver_embedder_proxy.clone(),
                 public_resource_threads.clone(),
             );
             (Some(sender), Some(receiver))
@@ -1031,6 +1088,7 @@ impl Servo {
             embedder_receiver,
             net_embedder_receiver,
             constellation_embedder_receiver,
+            webdriver_embedder_receiver,
             shutdown_state,
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),

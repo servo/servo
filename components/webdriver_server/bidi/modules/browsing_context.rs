@@ -3,7 +3,7 @@ use std::{collections::HashSet, rc::Rc};
 use log::warn;
 use servo_base::id::BrowsingContextId;
 use webdriver_traits::{
-    WebDriverToConstellationMsg,
+    WebDriverToConstellationMsg, WebDriverToEmbedderMsg,
     bidi::{
         BrowsingContextCommand, BrowsingContextResult, ErrorCode,
         browser::CloseResult,
@@ -564,22 +564,21 @@ impl RemoteEnd {
     /// Proxy to the actual implementation in constellation and wait for response.
     async fn create_a_new_top_level_traversable(
         self: Rc<Self>,
+        // TODO: change this to webviewid
         opener: Option<BrowsingContextId>,
         r#type: CreateType,
     ) -> BidiResult<BrowsingContextId> {
         let (callback, recv) = new_oneshot_callback();
-        let msg = WebDriverToConstellationMsg::WebViewCreate(r#type, opener, callback);
-        if let Err(err) = self.constellation_sender.send(msg) {
-            warn!("Error sending WebViewCreate message to constellation ({err:?})");
-            return Err(ErrorCode::UnknownError.into());
-        }
+
+        let msg = WebDriverToEmbedderMsg::WebViewCreate(r#type, opener, callback);
+        self.send_to_embedder(msg)?;
         match recv.await {
             Err(err) => {
                 warn!("Receiving WebViewCreate callback failed ({err:?})");
                 Err(ErrorCode::UnknownError.into())
             },
-            // TODO: handle id
-            Ok(id) => Ok(id.unwrap()),
+            // TODO: why is there two ipc error here.
+            Ok(id) => Ok(id.unwrap()?),
         }
     }
 }

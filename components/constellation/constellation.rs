@@ -1655,11 +1655,6 @@ where
             WebDriverToConstellationMsg::SetTouchOverride(web_view_id, _) => todo!(),
             WebDriverToConstellationMsg::SetUserAgentOverride(web_view_id, _) => todo!(),
             WebDriverToConstellationMsg::SetViewport(web_view_id, generic_callback) => todo!(),
-            WebDriverToConstellationMsg::WebViewCreate(
-                create_type,
-                namespace_index,
-                generic_callback,
-            ) => todo!(),
             WebDriverToConstellationMsg::WebviewNavigate(web_view_id, _, generic_callback) => {
                 todo!()
             },

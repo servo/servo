@@ -59,6 +59,7 @@ use servo_base::{
 };
 
 use crate::bidi::{
+    ErrorCode,
     browser::SetClientWindowStateParameters,
     browsing_context::{
         self, ClipRectangle, CreateType, DownloadEndParams, DownloadWillBeginParams,
@@ -163,11 +164,6 @@ pub enum WebDriverToConstellationMsg {
     TraverseHistory(WebViewId, i64, GenericCallback<bool>),
     WebViewActivate(WebViewId, GenericCallback<bool>),
     WebViewClose(WebViewId, bool, GenericCallback<bool>),
-    WebViewCreate(
-        CreateType,
-        Option<BrowsingContextId>,
-        GenericCallback<BrowsingContextId>,
-    ),
     WebviewNavigate(WebViewId, String, GenericCallback<()>),
 }
 
@@ -194,7 +190,18 @@ pub enum WebDriverToScriptMsg {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToEmbedderMsg {
-    BrowserClose,
+    Exit,
     // TODO: param
     SetClientWindowState(PainterId, SetClientWindowStateParameters),
+    WebViewCreate(
+        CreateType,
+        Option<BrowsingContextId>,
+        // TODO: move bidierror to crate, so that error message can be conveyed
+        GenericCallback<Result<BrowsingContextId, ErrorCode>>,
+    ),
+}
+
+pub trait WebDriverDelegate {
+    // TODO: create_os_window -> Option<PainterId>
+    // this also indicates whether the embedder support
 }

@@ -11,7 +11,7 @@ use async_tungstenite::{
 };
 use crossbeam_channel::Sender;
 use devtools_traits::WorkerId;
-use embedder_traits::EmbedderProxy;
+use embedder_traits::{EmbedderProxy, EventLoopWaker, GenericEmbedderProxy};
 use futures_util::{FutureExt, StreamExt, future};
 use log::warn;
 use serde::Deserialize;
@@ -26,7 +26,7 @@ use tokio::{
     task,
 };
 use webdriver_traits::{
-    WebDriverMsg, WebDriverToConstellationMsg, WebDriverToScriptMsg,
+    WebDriverMsg, WebDriverToConstellationMsg, WebDriverToEmbedderMsg, WebDriverToScriptMsg,
     bidi::{
         Command, CommandData, CommandResponse, EmptyResult, ErrorCode, ErrorResponse, Event,
         LogEvent, Message, ResultData, SessionCommand, SessionResult,
@@ -66,8 +66,8 @@ pub(crate) struct RemoteEnd {
     /// Receive messages from other components of servo (constellation and script thread).
 
     /// Send messages and wake embedder.
-    pub(crate) embedder_proxy: EmbedderProxy,
-    // TODO: should we receive event from embedder `embedder_receiver`?
+    embedder_sender: Sender<WebDriverToEmbedderMsg>,
+    event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
 impl RemoteEnd {
@@ -552,6 +552,15 @@ impl RemoteEnd {
         navigable_ids: impl Iterator<Item = BrowsingContextId>,
     ) -> HashSet<SessionId> {
         todo!()
+    }
+
+    pub(crate) fn send_to_embedder(&self, msg: WebDriverToEmbedderMsg) -> BidiResult<()> {
+        if let Err(err) = self.embedder_sender.send(msg) {
+            warn!("Error sending WebViewCreate message to embedder ({err:?})");
+            return Err(ErrorCode::UnknownError.into());
+        }
+        self.event_loop_waker.wake();
+        Ok(())
     }
 }
 
