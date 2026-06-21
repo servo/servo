@@ -404,7 +404,7 @@ impl ReadableByteStreamController {
                             rooted!(&in(cx) let mut view_value = UndefinedValue());
                             filled_view.get_buffer_view_value(cx.into(), view_value.handle_mut());
                             result.set(*view_value);
-                            read_into_request.chunk_steps(result, CanGc::from_cx(cx));
+                            read_into_request.chunk_steps(cx, result);
 
                             // Return.
                             return;

@@ -19,7 +19,6 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::writablestream::WritableStream;
-use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#writablestreamdefaultwriter>
 #[dom_struct]
@@ -170,8 +169,8 @@ impl WritableStreamDefaultWriter {
         self.ready_promise.borrow().resolve_native_with_cx(cx, &());
     }
 
-    pub(crate) fn resolve_closed_promise_with_undefined(&self, can_gc: CanGc) {
-        self.closed_promise.borrow().resolve_native(&(), can_gc);
+    pub(crate) fn resolve_closed_promise_with_undefined(&self, cx: &mut JSContext) {
+        self.closed_promise.borrow().resolve_native(cx, &());
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-ensure-ready-promise-rejected>

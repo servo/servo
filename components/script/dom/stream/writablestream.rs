@@ -48,7 +48,7 @@ use crate::dom::stream::writablestreamdefaultcontroller::{
 };
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
 
@@ -380,14 +380,14 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write>
-    pub(crate) fn finish_in_flight_write(&self, can_gc: CanGc) {
+    pub(crate) fn finish_in_flight_write(&self, cx: &mut JSContext) {
         let Some(in_flight_write_request) = self.in_flight_write_request.borrow_mut().take() else {
             // Assert: stream.[[inFlightWriteRequest]] is not undefined.
             unreachable!("Stream should have a write request");
         };
 
         // Resolve stream.[[inFlightWriteRequest]] with undefined.
-        in_flight_write_request.resolve_native(&(), can_gc);
+        in_flight_write_request.resolve_native(cx, &());
 
         // Set stream.[[inFlightWriteRequest]] to undefined.
         // Done above with `take`.
@@ -495,14 +495,14 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close>
-    pub(crate) fn finish_in_flight_close(&self, cx: SafeJSContext, can_gc: CanGc) {
+    pub(crate) fn finish_in_flight_close(&self, cx: &mut JSContext) {
         let Some(in_flight_close_request) = self.in_flight_close_request.borrow_mut().take() else {
             // Assert: stream.[[inFlightCloseRequest]] is not undefined.
             unreachable!("in_flight_close_request must be Some");
         };
 
         // Resolve stream.[[inFlightCloseRequest]] with undefined.
-        in_flight_close_request.resolve_native(&(), can_gc);
+        in_flight_close_request.resolve_native(cx, &());
 
         // Set stream.[[inFlightCloseRequest]] to undefined.
         // Done with take above.
@@ -516,10 +516,10 @@ impl WritableStream {
             self.stored_error.set(UndefinedValue());
 
             // If stream.[[pendingAbortRequest]] is not undefined,
-            rooted!(in(*cx) let pending_abort_request = self.pending_abort_request.borrow_mut().take());
+            rooted!(&in(cx) let pending_abort_request = self.pending_abort_request.borrow_mut().take());
             if let Some(pending_abort_request) = &*pending_abort_request {
                 // Resolve stream.[[pendingAbortRequest]]'s promise with undefined.
-                pending_abort_request.promise.resolve_native(&(), can_gc);
+                pending_abort_request.promise.resolve_native(cx, &());
 
                 // Set stream.[[pendingAbortRequest]] to undefined.
                 // Done above with `take`.
@@ -533,7 +533,7 @@ impl WritableStream {
         if let Some(writer) = self.writer.get() {
             // If writer is not undefined,
             // resolve writer.[[closedPromise]] with undefined.
-            writer.resolve_closed_promise_with_undefined(can_gc);
+            writer.resolve_closed_promise_with_undefined(cx);
         }
 
         // Assert: stream.[[pendingAbortRequest]] is undefined.

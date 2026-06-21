@@ -347,8 +347,7 @@ impl FontFace {
         if let Some(template) = result {
             // Step 1. If the load was successful, font face now represents the parsed font; fulfill font face’s
             // [[FontStatusPromise]] with font face, and set its status attribute to "loaded".
-            self.font_status_promise
-                .resolve_native(&self, CanGc::deprecated_note());
+            self.font_status_promise.resolve_native(cx, &self);
             self.status.set(FontFaceLoadStatus::Loaded);
             *self.template.borrow_mut() = Some(template);
 

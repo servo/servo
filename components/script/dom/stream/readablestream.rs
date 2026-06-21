@@ -1541,7 +1541,7 @@ impl ReadableStream {
                 } else {
                     // Otherwise, perform readIntoRequest’s chunk steps, given chunk.
                     result.set(*chunk);
-                    read_into_request.chunk_steps(result, CanGc::from_cx(cx));
+                    read_into_request.chunk_steps(cx, result);
                 }
             },
             _ => {
@@ -1588,7 +1588,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // steps 5 & 6 for a BYOB reader
-            reader.close(CanGc::from_cx(cx));
+            reader.close(cx);
         }
 
         // If reader is undefined, return.

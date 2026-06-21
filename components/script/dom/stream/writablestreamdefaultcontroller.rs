@@ -46,11 +46,10 @@ struct CloseAlgorithmFulfillmentHandler {
 
 impl Callback for CloseAlgorithmFulfillmentHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         let stream = self.stream.as_rooted();
 
         // Perform ! WritableStreamFinishInFlightClose(stream).
-        stream.finish_in_flight_close(cx.into(), can_gc);
+        stream.finish_in_flight_close(cx);
     }
 }
 
@@ -167,7 +166,6 @@ struct TransferBackPressurePromiseReaction {
 impl Callback for TransferBackPressurePromiseReaction {
     /// Reacting to backpressurePromise with the following fulfillment steps:
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         let global = self.result_promise.global();
         // Set backpressurePromise to a new promise.
         let promise = Promise::new(cx, &global);
@@ -189,7 +187,7 @@ impl Callback for TransferBackPressurePromiseReaction {
             self.result_promise.reject_error(cx, error);
         } else {
             // Otherwise, return a promise resolved with undefined.
-            self.result_promise.resolve_native(&(), can_gc);
+            self.result_promise.resolve_native(cx, &());
         }
     }
 }
@@ -206,7 +204,6 @@ struct WriteAlgorithmFulfillmentHandler {
 
 impl Callback for WriteAlgorithmFulfillmentHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         let controller = self.controller.as_rooted();
         let stream = controller
             .stream
@@ -214,7 +211,7 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
             .expect("Controller should have a stream.");
 
         // Perform ! WritableStreamFinishInFlightWrite(stream).
-        stream.finish_in_flight_write(can_gc);
+        stream.finish_in_flight_write(cx);
 
         // Let state be stream.[[state]].
         // Assert: state is "writable" or "erroring".
@@ -224,7 +221,7 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
         rooted!(&in(cx) let mut rval = UndefinedValue());
         controller
             .queue
-            .dequeue_value(cx.into(), Some(rval.handle_mut()), can_gc);
+            .dequeue_value(cx.into(), Some(rval.handle_mut()), CanGc::from_cx(cx));
 
         let global = GlobalScope::from_current_realm(cx);
 

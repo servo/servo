@@ -38,7 +38,6 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#read-into-request>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -52,17 +51,17 @@ pub enum ReadIntoRequest {
 
 impl ReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-chunk-steps%E2%91%A0>
-    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>, can_gc: CanGc) {
+    pub fn chunk_steps(&self, cx: &mut JSContext, chunk: RootedTraceableBox<Heap<JSVal>>) {
         match self {
             ReadIntoRequest::Read(promise) => {
                 // chunk steps, given chunk
                 // Resolve promise with «[ "value" → chunk, "done" → false ]».
                 promise.resolve_native(
+                    cx,
                     &ReadableStreamReadResult {
                         done: Some(false),
                         value: chunk,
                     },
-                    can_gc,
                 );
             },
             ReadIntoRequest::ByteTee {
@@ -82,21 +81,21 @@ impl ReadIntoRequest {
                 // close steps, given chunk
                 // Resolve promise with «[ "value" → chunk, "done" → true ]».
                 Some(chunk) => promise.resolve_native(
+                    cx,
                     &ReadableStreamReadResult {
                         done: Some(true),
                         value: chunk,
                     },
-                    CanGc::from_cx(cx),
                 ),
                 None => {
                     let result = RootedTraceableBox::new(Heap::default());
                     result.set(UndefinedValue());
                     promise.resolve_native(
+                        cx,
                         &ReadableStreamReadResult {
                             done: Some(true),
                             value: result,
                         },
-                        CanGc::from_cx(cx),
                     );
                 },
             },
@@ -309,9 +308,9 @@ impl ReadableStreamBYOBReader {
         }
     }
 
-    pub(crate) fn close(&self, can_gc: CanGc) {
+    pub(crate) fn close(&self, cx: &mut JSContext) {
         // Resolve reader.[[closedPromise]] with undefined.
-        self.closed_promise.borrow().resolve_native(&(), can_gc);
+        self.closed_promise.borrow().resolve_native(cx, &());
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>

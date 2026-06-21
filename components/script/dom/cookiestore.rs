@@ -79,7 +79,7 @@ struct CookieListener {
 impl CookieListener {
     pub(crate) fn handle(&self, message: CookieAsyncResponse) {
         let context = self.context.clone();
-        self.task_source.queue(task!(cookie_message: move || {
+        self.task_source.queue(task!(cookie_message: move |cx| {
             let Some(promise) = context.root().in_flight.borrow_mut().pop_front() else {
                 warn!("No promise exists for cookie store response");
                 return;
@@ -90,23 +90,22 @@ impl CookieListener {
                     // (There is currently no way for list to result in failure)
                     if let Some(cookie) = cookie {
                         // Otherwise, resolve p with the first item of list.
-                        promise.resolve_native(&cookie_to_list_item(cookie.into_inner()), CanGc::deprecated_note());
+                        promise.resolve_native(cx, &cookie_to_list_item(cookie.into_inner()));
                     } else {
                         // If list is empty, then resolve p with null.
-                        promise.resolve_native(&NullValue(), CanGc::deprecated_note());
+                        promise.resolve_native(cx, &NullValue());
                     }
                 },
                 CookieData::GetAll(cookies) => {
                     // If list is failure, then reject p with a TypeError and abort these steps.
-                    promise.resolve_native(
+                    promise.resolve_native(cx,
                         &cookies
                         .into_iter()
                         .map(|cookie| cookie_to_list_item(cookie.0))
-                        .collect_vec(),
-                    CanGc::deprecated_note());
+                        .collect_vec(),);
                 },
                 CookieData::Delete(_) | CookieData::Change(_) | CookieData::Set(_) => {
-                    promise.resolve_native(&(), CanGc::deprecated_note());
+                    promise.resolve_native(cx, &());
                 }
             }
         }));

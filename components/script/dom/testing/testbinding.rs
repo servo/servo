@@ -1203,10 +1203,8 @@ pub(crate) struct TestBindingCallback {
 }
 
 impl TestBindingCallback {
-    pub(crate) fn invoke(self) {
-        self.promise
-            .root()
-            .resolve_native(&self.value, CanGc::deprecated_note());
+    pub(crate) fn invoke(self, cx: &mut JSContext) {
+        self.promise.root().resolve_native(cx, &self.value);
     }
 }
 

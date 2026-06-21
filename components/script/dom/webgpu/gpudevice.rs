@@ -395,12 +395,12 @@ impl GPUDevice {
         // Queue a global task, using the webgpu task source, to resolve device.lost
         // promise with a new GPUDeviceLostInfo with reason and message.
         self.global().task_manager().webgpu_task_source().queue(
-            task!(resolve_device_lost: move || {
+            task!(resolve_device_lost: move |cx| {
                 let this = this.root();
 
                 let lost_promise = &(*this.lost_promise.borrow());
                 let lost = GPUDeviceLostInfo::new(&this.global(), msg.into(), reason, CanGc::deprecated_note());
-                lost_promise.resolve_native(&*lost, CanGc::deprecated_note());
+                lost_promise.resolve_native(cx, &*lost);
             }),
         );
     }
