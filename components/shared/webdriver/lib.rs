@@ -11,6 +11,7 @@ pub mod bidi {
         }
     }
 
+    #[allow(clippy::derivable_impls)]
     impl Default for storage::CookieFilter {
         fn default() -> Self {
             Self {
@@ -28,6 +29,7 @@ pub mod bidi {
         }
     }
 
+    #[allow(clippy::derivable_impls)]
     impl Default for EmptyResult {
         fn default() -> Self {
             Self {
@@ -52,14 +54,22 @@ pub mod bidi {
 use devtools_traits::WorkerId;
 use serde::{Deserialize, Serialize};
 use servo_base::{
-    generic_channel::{GenericCallback, GenericOneshotSender, GenericSender},
-    id::{BrowsingContextId, PipelineId, WebViewId},
+    generic_channel::{GenericCallback, GenericSender},
+    id::{BrowsingContextId, PainterId, PipelineId, WebViewId},
 };
-use uuid::Uuid;
 
 use crate::bidi::{
-    browsing_context::{self, ReadinessState},
-    input, log, script,
+    browser::SetClientWindowStateParameters,
+    browsing_context::{self, ClipRectangle, CreateType, Locator, PrintParameters},
+    emulation::{
+        ForcedColorsModeTheme, ScreenArea, ScreenOrientation, SetGeolocationOverrideParameters,
+        SetScrollbarTypeOverrideParametersScrollbarType,
+    },
+    input, log,
+    script::{
+        self, AddPreloadScriptParameters, CallFunctionParameters, DisownParameters,
+        EvaluateParameters, EvaluateResult, NodeRemoteValue, SerializationOptions,
+    },
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -93,6 +103,7 @@ pub enum ScriptToWebDriverMsg {
         (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
         GenericSender<WebDriverToScriptMsg>,
     ),
+    /// When a channel previously sent to script thread is called.
     ChannelMessage {
         // TODO: channel should have more speicific id type
         channel: String,
@@ -101,21 +112,71 @@ pub enum ScriptToWebDriverMsg {
     FileDialogOpened(input::FileDialogOpened),
 }
 
+// TODO: remove all callback
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToConstellationMsg {
-    Activate(BrowsingContextId, GenericCallback<bool>),
-    CloseWebView {
-        webview_id: WebViewId,
-        prompt_unload: bool,
-        callback: GenericCallback<bool>,
-    },
-    Request(String),
-    TraverseHistory(BrowsingContextId, i64, GenericCallback<bool>),
+    AddPreloadScript(AddPreloadScriptParameters, GenericCallback<String>),
+    RemovePreloadScript(String, GenericCallback<String>),
+    SetBypassCsp(WebViewId, GenericCallback<()>),
+    SetForcedColorsModeOverride(
+        WebViewId,
+        Option<ForcedColorsModeTheme>,
+        GenericCallback<()>,
+    ),
+    SetGeolocationOverride(
+        WebViewId,
+        SetGeolocationOverrideParameters,
+        GenericCallback<()>,
+    ),
+    SetLocaleOverride(WebViewId, Option<String>, GenericCallback<()>),
+    SetScreenSettingsOverride(WebViewId, Option<ScreenArea>),
+    SetScreenOrientationOverride(WebViewId, Option<ScreenOrientation>),
+    SetScriptEnabledOverride(WebViewId, Option<String>),
+    SetScrollbarTypeOverride(
+        WebViewId,
+        Option<SetScrollbarTypeOverrideParametersScrollbarType>,
+    ),
+    SetTimezoneOverride(WebViewId, Option<String>),
+    SetTouchOverride(WebViewId, Option<u64>),
+    SetUserAgentOverride(WebViewId, Option<String>),
+    SetViewport(WebViewId, GenericCallback<()>),
+    TraverseHistory(WebViewId, i64, GenericCallback<bool>),
+    WebViewActivate(WebViewId, GenericCallback<bool>),
+    WebViewClose(WebViewId, bool, GenericCallback<bool>),
+    WebViewCreate(
+        CreateType,
+        BrowsingContextId,
+        bool,
+        GenericCallback<BrowsingContextId>,
+    ),
+    WebviewNavigate(WebViewId, String, GenericCallback<()>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToScriptMsg {
-    Reload,
-    // bool is prompt unload
-    CloseNavigable(bool, GenericCallback<()>),
+    CallFunction(CallFunctionParameters, GenericCallback<EvaluateResult>),
+    CaptureScreenshot(BrowsingContextId, ClipRectangle, GenericCallback<String>),
+    Disown(DisownParameters, GenericCallback<()>),
+    Evaluate(EvaluateParameters, GenericCallback<EvaluateResult>),
+    HandleUserPrompt(BrowsingContextId, Option<bool>, Option<String>),
+    // TODO: startNodes
+    LocateNode(
+        BrowsingContextId,
+        Locator,
+        Option<u64>,
+        SerializationOptions,
+        GenericCallback<Vec<NodeRemoteValue>>,
+    ),
+    Print(PrintParameters, GenericCallback<String>),
+    Reload(bool, GenericCallback<()>),
+    StartScreencast(BrowsingContextId, GenericCallback<()>),
+    StopScreencast(BrowsingContextId, GenericCallback<()>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum WebDriverToEmbedderMsg {
+    BrowserClose,
+    // TODO: param
+    SetClientWindowState(PainterId, SetClientWindowStateParameters),
 }

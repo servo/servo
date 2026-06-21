@@ -31,9 +31,11 @@ pub(crate) struct Session {
     /// The session's associated connections.
     pub(crate) connections: HashSet<ConnectionId>,
 
-    pub(crate) log_event_buffer:
-        RefCell<HashMap<BrowsingContextId, Vec<(LogEvent, Vec<BrowsingContextId>)>>>,
+    pub(crate) log_event_buffer: RefCell<LogEventBuffer>,
 }
+
+pub(crate) type LogEventBuffer =
+    HashMap<BrowsingContextId, Vec<(LogEvent, Vec<BrowsingContextId>)>>;
 
 impl Session {
     /// <https://www.w3.org/TR/webdriver-bidi/#associated-with-connection>

@@ -1607,21 +1607,61 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_request_from_webdriver(&mut self, message: WebDriverToConstellationMsg) {
         match message {
-            WebDriverToConstellationMsg::Activate(namespace_index, generic_callback) => todo!(),
+            WebDriverToConstellationMsg::WebViewActivate(namespace_index, generic_callback) => {
+                todo!()
+            },
             // Close a top-level traversable.
-            WebDriverToConstellationMsg::CloseWebView {
-                webview_id,
-                callback,
-                // TODO: prompt_iunload is ignored temporily
-                ..
-            } => {
+            WebDriverToConstellationMsg::WebViewClose(webview_id, _, callback) => {
                 self.handle_close_top_level_browsing_context(webview_id);
                 if let Err(e) = callback.send(true) {
                     warn!("Error replying to webdriver close webview ({})", e);
                 };
             },
-            WebDriverToConstellationMsg::Request(_) => todo!(),
             WebDriverToConstellationMsg::TraverseHistory(namespace_index, _, generic_callback) => {
+                todo!()
+            },
+            WebDriverToConstellationMsg::AddPreloadScript(
+                add_preload_script_parameters,
+                generic_callback,
+            ) => todo!(),
+            WebDriverToConstellationMsg::RemovePreloadScript(_, generic_callback) => todo!(),
+            WebDriverToConstellationMsg::SetBypassCsp(web_view_id, generic_callback) => todo!(),
+            WebDriverToConstellationMsg::SetForcedColorsModeOverride(
+                web_view_id,
+                forced_colors_mode_theme,
+                generic_callback,
+            ) => todo!(),
+            WebDriverToConstellationMsg::SetGeolocationOverride(
+                web_view_id,
+                set_geolocation_override_parameters,
+                generic_callback,
+            ) => todo!(),
+            WebDriverToConstellationMsg::SetLocaleOverride(web_view_id, _, generic_callback) => {
+                todo!()
+            },
+            WebDriverToConstellationMsg::SetScreenSettingsOverride(web_view_id, screen_area) => {
+                todo!()
+            },
+            WebDriverToConstellationMsg::SetScreenOrientationOverride(
+                web_view_id,
+                screen_orientation,
+            ) => todo!(),
+            WebDriverToConstellationMsg::SetScriptEnabledOverride(web_view_id, _) => todo!(),
+            WebDriverToConstellationMsg::SetScrollbarTypeOverride(
+                web_view_id,
+                set_scrollbar_type_override_parameters_scrollbar_type,
+            ) => todo!(),
+            WebDriverToConstellationMsg::SetTimezoneOverride(web_view_id, _) => todo!(),
+            WebDriverToConstellationMsg::SetTouchOverride(web_view_id, _) => todo!(),
+            WebDriverToConstellationMsg::SetUserAgentOverride(web_view_id, _) => todo!(),
+            WebDriverToConstellationMsg::SetViewport(web_view_id, generic_callback) => todo!(),
+            WebDriverToConstellationMsg::WebViewCreate(
+                create_type,
+                namespace_index,
+                _,
+                generic_callback,
+            ) => todo!(),
+            WebDriverToConstellationMsg::WebviewNavigate(web_view_id, _, generic_callback) => {
                 todo!()
             },
         }
