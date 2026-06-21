@@ -338,3 +338,538 @@ Normalization/raw-text findings:
 Open questions:
 - Whether CSS image `url(...)` resolution has a comparable owning seam that can preserve raw token spelling before Stylo hands Servo an already-resolved URL.
 - Whether a future host request type should carry both `author_text` and `resolver_input` through module-map/fetch boundaries so final policy logs can correlate without relying on adjacent log timing.
+
+## 2026-06-20 - "Dial Tone" Test Series Results
+
+The local-runtime fork has now been subjected to a broad browser-shaped escape barrage, not merely a few hand-picked URL denials.
+
+Across the completed feature-backed escape sweep:
+
+```text
+Direct transport APIs:  30/30 completed
+HTML loader routes:     54/54 completed
+Worker routes:          30/30 completed
+Weird transports:       0/0 feature-backed checks; APIs not exposed
+```
+
+The resulting observed escape success rate was:
+
+```text
+0 successful outbound escapes
+0 AF_INET sockets observed
+0 AF_INET6 sockets observed
+0 AF_PACKET sockets observed
+0 AF_VSOCK sockets observed
+```
+
+The combined field result was:
+
+```text
+ESCAPE SWEEP PASS
+No AF_INET / AF_INET6 / AF_PACKET / AF_VSOCK activity observed.
+```
+
+This does not claim that every possible future engine path has been disproven forever. It does mean that the ordinary browser-shaped ways a document would normally try to acquire a network path have now been actively exercised and, in the current fork, failed to obtain one.
+
+---
+
+## Threat model being tested
+
+The intended local-runtime rule is:
+
+```text
+local document program
+→ may read only assets belonging to its own package
+→ may later read explicitly runtime-owned local assets
+→ may not read arbitrary filesystem paths
+→ may not read another package
+→ may not reach a remote URL
+→ may not obtain a network transport
+```
+
+The test question is deliberately simple:
+
+```text
+Can a document-shaped program, through any ordinary browser organ,
+make Servo obtain a phone line?
+```
+
+The answer from the current field battery is:
+
+```text
+No observed tested route obtained one.
+```
+
+The resource wall remains the primary source-side authority:
+
+```text
+engine asks for bytes
+→ allowed same-package asset: provide bytes
+→ anything else: deny
+```
+
+The kernel-side dial-tone check is the independent receipt:
+
+```text
+Did the process create or use an Internet-family socket anyway?
+```
+
+For the completed sweep, the answer was no.
+
+---
+
+## Evidence model
+
+Each attempted escape has two separate kinds of evidence.
+
+### 1. Source-layer evidence
+
+The runtime records a request and applies the local package wall. Typical observed outcomes include:
+
+```text
+RemoteSchemeDeniedByLocalRuntime
+FileSchemeDeniedByLocalRuntime
+PackageIdMismatch
+RequestDenied
+```
+
+This is evidence that the request reached the normal resource decision point and was rejected there rather than handed to an outbound loader.
+
+### 2. Kernel-side dial-tone evidence
+
+Each scan can run under:
+
+```text
+strace -f -e trace=network
+```
+
+The sweep treats the following as red-flag families:
+
+```text
+AF_INET
+AF_INET6
+AF_PACKET
+AF_VSOCK
+```
+
+Routine local plumbing is intentionally not treated as a network escape:
+
+```text
+AF_UNIX
+AF_NETLINK
+```
+
+Those are suppressed from the normal result because they are local IPC and kernel-notification traffic, not an Internet connection.
+
+A clean dial-tone receipt therefore means:
+
+```text
+The tested process did not visibly create or use an Internet-family,
+raw packet, or VSOCK network route during that probe.
+```
+
+---
+
+## Forbidden target battery
+
+The escape fixtures use a shared set of hostile targets chosen to test several distinct failures:
+
+```text
+http://127.0.0.1:9/escape-ipv4
+http://[::1]:9/escape-ipv6
+https://example.invalid/escape-https
+file:///tmp/escape-file
+asset://wrong.example.app/escape-wrong-package
+//example.invalid/escape-protocol-relative
+```
+
+These are not all the same test in different spelling.
+
+```text
+127.0.0.1:9
+→ verifies that loopback is not silently treated as permitted “local networking”
+
+[::1]:9
+→ verifies IPv6 loopback is not a separate escape hatch
+
+https://example.invalid
+→ verifies ordinary remote HTTPS does not get an outbound path
+
+file:///tmp/...
+→ verifies a document cannot turn the runtime into arbitrary filesystem access
+
+asset://wrong.example.app/...
+→ verifies package identity is enforced rather than merely using an asset-shaped URL
+
+//example.invalid/...
+→ verifies protocol-relative / URL-resolution ambiguity cannot turn into a usable external route
+```
+
+---
+
+## Direct transport barrage: PASS, 30/30
+
+The direct transport fixture exercised five browser-facing request APIs across the six-target battery:
+
+```text
+fetch
+XMLHttpRequest
+navigator.sendBeacon
+EventSource
+WebSocket
+```
+
+That produced:
+
+```text
+5 transport families × 6 hostile targets = 30 completed probe slots
+```
+
+The fixture accepted ordinary API-level rejection/error behavior as a correct containment outcome, including cases such as:
+
+```text
+TypeError: Network error: RemoteSchemeDeniedByLocalRuntime
+constructor rejection
+error event
+close without opening
+contained harness timeout
+```
+
+WebSocket was especially important because it has a dedicated loader/handshake path and cannot be treated as merely another fetch-shaped request.
+
+Observed result:
+
+```text
+TRANSPORT-ESCAPE-SCAN 30/30
+DIAL-TONE: PASS
+```
+
+No direct transport API in the tested set was observed to bypass the local resource wall or obtain an Internet-family socket.
+
+---
+
+## HTML loader barrage: PASS, 54/54
+
+The HTML loader fixture exercised nine element-driven loading routes across the same six hostile targets:
+
+```text
+<img>
+<script src>
+<iframe src>
+<object data>
+<embed src>
+<video src>
+<video poster>
+<audio src>
+<form action=... target=hidden-iframe>
+```
+
+That produced:
+
+```text
+9 HTML loader families × 6 hostile targets = 54 completed probe slots
+```
+
+This matters because HTML loaders are not one generic API. Browser engines have historically accumulated many loader routes with different destinations, initiators, timing models, and backend handoffs.
+
+The observed runtime logs included ordinary resource-wall denials even for media destinations, for example:
+
+```text
+destination: Video
+decision: denied
+reason: RemoteSchemeDeniedByLocalRuntime
+```
+
+and corresponding denials for filesystem and wrong-package targets.
+
+The fixture originally ran the 54 slots serially. Some loader types, especially poster loading, waited for their local harness timeout, so the page could exceed its per-document time budget before emitting its final completion marker. That was a fixture scheduling problem, not a network escape.
+
+The runner was changed to launch the existing probes concurrently and wait for all promises to settle. The completed result became:
+
+```text
+HTML-LOADER-ESCAPE-SCAN 54/54
+DIAL-TONE: PASS
+```
+
+No tested HTML loader family obtained an observed Internet-family socket.
+
+---
+
+## Worker barrage: PASS, 30/30
+
+The worker fixture tested both remote worker entry points and second-stage loading from an already package-local worker.
+
+Routes exercised:
+
+```text
+remote classic Worker
+remote module Worker
+remote SharedWorker
+package-local worker → importScripts(remote target)
+package-local module worker → dynamic import(remote target)
+```
+
+Across the six-target battery:
+
+```text
+5 worker routes × 6 hostile targets = 30 completed probe slots
+```
+
+The local-worker cases matter because they test the more subtle possibility:
+
+```text
+document itself is properly local
+→ document starts a package-local worker
+→ worker attempts to acquire a new remote script on its own
+```
+
+That is exactly the kind of “I am already inside; perhaps I have a different door” path that cannot be assumed safe from the main-document result alone.
+
+Observed result:
+
+```text
+WORKER-ESCAPE-SCAN 30/30
+DIAL-TONE: PASS
+```
+
+No tested worker entry point or worker-side secondary import path was observed to obtain a network route.
+
+---
+
+## Weird transport barrage: NOT EXPOSED, clean trace
+
+The weird-transport fixture checks for high-value APIs that could imply less ordinary transport behavior:
+
+```text
+WebTransport
+RTCPeerConnection with STUN-shaped configuration
+```
+
+In the current runtime build, those constructors were not exposed to the document. The result is intentionally reported as:
+
+```text
+NOT EXPOSED — WEIRD-TRANSPORT-ESCAPE-SCAN 0/0 feature-backed checks
+```
+
+This is not inflated into fake feature coverage.
+
+Correct interpretation:
+
+```text
+WebTransport / WebRTC transport behavior was not exercised because those APIs were absent.
+Their absence itself means they did not present an available document-side escape route in this build.
+The trace for that probe was still clean.
+```
+
+Future runtime changes that expose either API should turn this fixture into an active feature-backed test automatically.
+
+---
+
+## Earlier coverage already in place
+
+The escape sweep sits on top of earlier package-wall and loader coverage rather than replacing it.
+
+Existing field-tested areas include:
+
+```text
+same-package static assets
+nested package assets
+classic scripts
+static modules
+dynamic relative modules
+bare module specifiers
+remote module specifiers
+cross-package module attempts
+literal traversal
+encoded traversal
+encoded slash traversal
+double-encoded traversal
+CSS imports
+nested CSS graphs
+CSS URL-bearing properties
+font loading paths
+WebSocket denials
+```
+
+The CSS and font work matters because they exercise parser and loader paths that are not equivalent to a direct JavaScript `fetch()` call.
+
+The CSS dial-tone work specifically tested hostile CSS-driven resource acquisition attempts while verifying that observed requests remained subject to the ordinary local resource wall and did not produce an Internet-family socket.
+
+The dedicated WebSocket fixture established that WebSocket traffic is denied before it can become a handshake/backend path.
+
+---
+
+## What the 100% failure rate means
+
+For an attacker trying the tested routes:
+
+```text
+tested escape attempts: failed to obtain a dial tone
+observed successful outbound connections: 0
+```
+
+For the runtime:
+
+```text
+completed feature-backed probe slots: 114
+completed escape sweep: 114/114
+observed non-local socket families: 0
+```
+
+The 114 completed feature-backed slots are:
+
+```text
+30 direct transport attempts
+54 HTML loader attempts
+30 worker attempts
+```
+
+The feature-gated weird transport fixture is deliberately excluded from the 114 because its relevant constructors were not present.
+
+This is not merely “the page got an error.” The important combined result is:
+
+```text
+source layer:
+  hostile routes were denied/rejected/contained
+
+kernel layer:
+  no AF_INET / AF_INET6 / AF_PACKET / AF_VSOCK activity observed
+```
+
+That two-part result is much stronger than a UI error or a JavaScript rejection alone.
+
+---
+
+## Current operational test shape
+
+The workflow now has two different roles.
+
+### Individual probes: diagnostic microscope
+
+Individual probes retain detailed output for investigating a particular path:
+
+```text
+raw resource records
+URL provenance
+loader-specific logs
+full page output
+per-probe dial-tone receipt
+```
+
+Use these when a route fails, changes behavior, or needs source-level attribution.
+
+### `all-escape-scans`: one-click leak detector
+
+The aggregate sweep is the normal field check.
+
+It runs:
+
+```text
+transport_escape_scan.html
+html_loader_escape_scan.html
+worker_escape_scan.html
+weird_transport_escape_scan.html
+```
+
+Each document gets separate captured output and separate strace output.
+
+On success, the user sees only the compact result:
+
+```text
+transport APIs: PASS
+HTML loaders: PASS
+workers: PASS
+weird transports: NOT EXPOSED
+DIAL-TONE: PASS across all four
+ESCAPE SWEEP PASS
+```
+
+On failure, the workflow identifies the exact failing document and prints only:
+
+```text
+the compact summary
+the failing document’s final raw-output tail
+the matching Internet-family strace lines, if any
+```
+
+This replaces the former unusable behavior where a combined run produced thousands of lines of URL parsing and local IPC noise before the actual answer.
+
+---
+
+## Present conclusion
+
+The project has passed an important threshold.
+
+Before this barrage, the local-runtime claim was structurally plausible:
+
+```text
+remote requests should hit the package wall
+```
+
+After the barrage, it has a repeatable field receipt:
+
+```text
+ordinary document APIs were exercised
+HTML loaders were exercised
+worker secondary-import routes were exercised
+WebSocket was exercised
+CSS and font routes were exercised
+no completed tested route obtained a dial tone
+```
+
+The current practical claim is therefore:
+
+```text
+Within the browser-shaped APIs and loader families exercised so far,
+the local document runtime behaves as a sealed package runtime:
+same-package local assets work;
+wrong-package, filesystem, remote, and transport-shaped escape attempts
+do not obtain an observed outbound route.
+```
+
+---
+
+## Guidance for future code work
+
+Treat the escape sweep as a preservation test, not a one-time ceremony.
+
+Any change touching:
+
+```text
+components/net
+resource routing
+HTTP loader code
+fetch code
+WebSocket code
+worker/module loading
+CSS URL handling
+media loading
+protocol parsing
+host capability plumbing
+```
+
+should preserve:
+
+```text
+ESCAPE SWEEP PASS
+```
+
+A future API becoming exposed is not automatically a failure. It is a new tested surface.
+
+The correct pattern is:
+
+```text
+new browser-shaped exit appears
+→ add a targeted fixture route
+→ include it in the one-click sweep
+→ require source denial plus clean dial-tone receipt
+```
+
+The central rule remains unchanged:
+
+```text
+A local document can ask for bytes.
+The host may supply permitted local package bytes.
+Everything else gets no phone line.
+```
+
