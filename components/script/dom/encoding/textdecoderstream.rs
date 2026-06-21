@@ -120,7 +120,7 @@ impl TextDecoderStream {
         }
     }
 
-    fn new_with_proto(
+    pub(crate) fn new_with_proto(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
