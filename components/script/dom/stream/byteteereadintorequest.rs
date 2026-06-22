@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::typedarray::ArrayBufferViewU8;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::trace::RootedTraceableBox;
 
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
@@ -23,7 +23,6 @@ use crate::dom::promise::Promise;
 use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::microtask::Microtask;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ByteTeeReadIntoRequestMicrotask {
@@ -65,6 +64,7 @@ pub(crate) struct ByteTeeReadIntoRequest {
 impl ByteTeeReadIntoRequest {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         for_branch2: bool,
         byob_branch: &ReadableStream,
         other_branch: &ReadableStream,
@@ -77,9 +77,8 @@ impl ByteTeeReadIntoRequest {
         cancel_promise: Rc<Promise>,
         tee_underlying_source: &ByteTeeUnderlyingSource,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ByteTeeReadIntoRequest {
                 reflector_: Reflector::new(),
                 for_branch2,
@@ -95,7 +94,7 @@ impl ByteTeeReadIntoRequest {
                 tee_underlying_source: Dom::from_ref(tee_underlying_source),
             }),
             global,
-            can_gc,
+            cx,
         )
     }
 

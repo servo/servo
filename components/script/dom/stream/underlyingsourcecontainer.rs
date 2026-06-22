@@ -10,7 +10,7 @@ use js::context::JSContext;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use super::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -24,7 +24,6 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::transformstream::TransformStream;
-use crate::script_runtime::CanGc;
 
 /// A variation of [UnderlyingSourceType] used for storing state within UnderlyingContainer.
 /// All variants have identical meanings to [UnderlyingSourceType].
@@ -124,20 +123,19 @@ impl UnderlyingSourceContainer {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
-        can_gc: CanGc,
     ) -> DomRoot<UnderlyingSourceContainer> {
         // TODO: setting the underlying source dict as the prototype of the
         // `UnderlyingSourceContainer`, as it is later used as the "this" in Call_.
         // Is this a good idea?
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_cx(
             Box::new(UnderlyingSourceContainer::new_inherited(
                 underlying_source_type,
             )),
             global,
-            None,
-            can_gc,
+            cx,
         )
     }
 

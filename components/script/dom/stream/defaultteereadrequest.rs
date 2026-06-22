@@ -11,7 +11,7 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::AutoRealm;
 use js::rust::HandleValue as SafeHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -23,7 +23,6 @@ use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -67,6 +66,7 @@ pub(crate) struct DefaultTeeReadRequest {
 impl DefaultTeeReadRequest {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         stream: &ReadableStream,
         branch_1: &ReadableStream,
         branch_2: &ReadableStream,
@@ -77,9 +77,8 @@ impl DefaultTeeReadRequest {
         clone_for_branch_2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
         tee_underlying_source: &DefaultTeeUnderlyingSource,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(DefaultTeeReadRequest {
                 reflector_: Reflector::new(),
                 stream: Dom::from_ref(stream),
@@ -94,7 +93,7 @@ impl DefaultTeeReadRequest {
                 tee_underlying_source: Dom::from_ref(tee_underlying_source),
             }),
             &*stream.global(),
-            can_gc,
+            cx,
         )
     }
     /// Call into cancel of the stream,
