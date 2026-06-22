@@ -10,6 +10,7 @@ use std::thread;
 
 use log::{debug, warn};
 use mime::Mime;
+use servo_base::generic_channel::GenericCallback;
 use servo_media::player::StreamType;
 use servo_media::{
     Backend, BackendInit, BackendMsg, ClientContextId, MediaInstance, MediaInstanceError,
@@ -98,7 +99,7 @@ impl Backend for OhosBackend {
         &self,
         context_id: &servo_media::ClientContextId,
         stream_type: servo_media_player::StreamType,
-        sender: servo_media_player::ipc_channel::ipc::IpcSender<servo_media_player::PlayerEvent>,
+        sender: GenericCallback<servo_media_player::PlayerEvent>,
         video_renderer: Option<
             std::sync::Arc<std::sync::Mutex<dyn servo_media_player::video::VideoFrameRenderer>>,
         >,
