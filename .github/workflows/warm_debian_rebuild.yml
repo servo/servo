@@ -42,6 +42,7 @@ jobs:
             gh
 
       - name: Slurp and restore Release Pieces
+        id: release_pieces
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -58,11 +59,7 @@ jobs:
           gh release download "$WARM_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --dir "$PIECES_DIR" \
-            --clobber \
-            --pattern 'SHA256SUMS' \
-            --pattern 'debian-root.tar.zst.part-*' \
-            --pattern 'github-home.tar.zst.part-*' \
-            --pattern 'repo-warm.tar.zst.part-*'
+            --clobber
 
           (
             cd "$PIECES_DIR"
@@ -152,11 +149,77 @@ jobs:
           # /root. The same path is restored before later build commands run.
           restore_stream github-home.tar.zst "$HOME"
 
+          if [ -f "$PIECES_DIR/repo-worktree.tar.zst.part-000" ]; then
+            echo "has_repo_worktree=true" >> "$GITHUB_OUTPUT"
+          else
+            # The already-published first-generation snapshot has no worktree.
+            # This one bridge build will make one; future runs use it.
+            echo "has_repo_worktree=false" >> "$GITHUB_OUTPUT"
+          fi
+
           test -d "$CARGO_TARGET_DIR"
 
-      # Today's source is intentionally obtained only after the warm Debian
-      # root exists. The workspace was excluded from the root snapshot.
-      - uses: actions/checkout@v6
+      # The target directory is only truly warm when its source inputs keep the
+      # same timestamps. A fresh actions/checkout writes the whole worktree
+      # anew, which makes Cargo regard every source input as newer than the
+      # restored artifacts. Future rolling snapshots therefore carry a git
+      # worktree too. The fallback checkout is only for the already-published
+      # first-generation snapshot that lacks it.
+      - name: Restore warmed repository worktree
+        if: steps.release_pieces.outputs.has_repo_worktree == 'true'
+        run: |
+          set -Eeuo pipefail
+
+          PIECES_DIR="${RUNNER_TEMP}/release-pieces"
+
+          echo "Restoring saved worktree into $GITHUB_WORKSPACE"
+          cat "$PIECES_DIR"/repo-worktree.tar.zst.part-* \
+            | tar --zstd \
+                --numeric-owner \
+                --acls \
+                --xattrs \
+                -xpf - \
+                -C "$GITHUB_WORKSPACE"
+
+          test -d "$GITHUB_WORKSPACE/.git"
+          test -f "$GITHUB_WORKSPACE/Cargo.toml"
+
+      - name: Checkout source for one-time worktree bridge
+        if: steps.release_pieces.outputs.has_repo_worktree != 'true'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Update restored source in place
+        if: steps.release_pieces.outputs.has_repo_worktree == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+
+          # Restore archive intentionally omits .git/config so no credential
+          # configuration rides inside Release Pieces. Reattach an ephemeral
+          # origin and use this job's token only for this fetch.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if git -C "$GITHUB_WORKSPACE" remote get-url origin >/dev/null 2>&1; then
+            git -C "$GITHUB_WORKSPACE" remote set-url origin \
+              "https://github.com/${GITHUB_REPOSITORY}.git"
+          else
+            git -C "$GITHUB_WORKSPACE" remote add origin \
+              "https://github.com/${GITHUB_REPOSITORY}.git"
+          fi
+
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -C "$GITHUB_WORKSPACE" \
+            -c "http.extraheader=AUTHORIZATION: basic $auth" \
+            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+
+          # When the dispatched commit is unchanged, Git leaves the existing
+          # worktree files alone, preserving their timestamps. Changed source
+          # files are the only ones rewritten.
+          git -C "$GITHUB_WORKSPACE" reset --hard FETCH_HEAD
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
 
       - name: Restore repo-local warm state
         run: |
@@ -177,6 +240,14 @@ jobs:
           else
             echo "No repo-local warm state in this snapshot; continuing."
           fi
+
+          echo "=== Cargo warmth inventory ==="
+          du -sh "$CARGO_TARGET_DIR" 2>/dev/null || true
+          find "$CARGO_TARGET_DIR/release/.fingerprint" \
+            -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
+            | wc -l \
+            | xargs printf 'release fingerprint directories: %s\n'
+          stat -c 'Cargo.lock mtime: %y' "$GITHUB_WORKSPACE/Cargo.lock" || true
 
           test -d "$CARGO_TARGET_DIR"
 
@@ -474,8 +545,33 @@ jobs:
                 -cf - .
           fi
 
-          # The UV environment is repo-local, so it is extracted after the
-          # next workflow checks out the current repository source.
+          # Preserve the source worktree's mtimes alongside its .git database.
+          # This is the missing half of Cargo warmth: a clean checkout from
+          # Actions rewrites every source input and invalidates restored target
+          # fingerprints even when file contents have not changed.
+          #
+          # Local Git config is intentionally omitted; the restore path creates
+          # an ephemeral authenticated remote for the current job.
+          if [ -d "$GITHUB_WORKSPACE/.git" ]; then
+            split_zstd_tar repo-worktree.tar.zst \
+              tar --zstd \
+                --numeric-owner \
+                --acls \
+                --xattrs \
+                --exclude='./.git/config' \
+                --exclude='./.git/config.worktree' \
+                --exclude='./.git/credentials' \
+                --exclude='./.git/hooks' \
+                --exclude='./.devcontainer-venv' \
+                --exclude='./release' \
+                --exclude='./warm-state-next' \
+                -C "$GITHUB_WORKSPACE" \
+                -cf - \
+                .
+          fi
+
+          # UV is repo-local but not part of the git worktree. Restore it after
+          # source update so Git never cleans or rewrites it.
           if [ -d "$GITHUB_WORKSPACE/.devcontainer-venv" ]; then
             split_zstd_tar repo-warm.tar.zst \
               tar --zstd \
@@ -498,10 +594,13 @@ jobs:
             1. Reassemble and extract debian-root.tar.zst.part-* into /.
             2. Reassemble and extract github-home.tar.zst.part-* into $HOME,
                when that archive exists.
-            3. Check out current source into $GITHUB_WORKSPACE.
-            4. Reassemble and extract repo-warm.tar.zst.part-* into
+            3. Reassemble and extract repo-worktree.tar.zst.part-* into
                $GITHUB_WORKSPACE, when that archive exists.
-            5. Run ./mach build --release.
+            4. Fetch the requested source commit and git reset --hard to it.
+               Unchanged worktree files keep their restored timestamps.
+            5. Reassemble and extract repo-warm.tar.zst.part-* into
+               $GITHUB_WORKSPACE, when that archive exists.
+            6. Run ./mach build --release.
 
           Each .part-* is a contiguous fragment of one .tar.zst stream:
             cat NAME.part-* | tar --zstd -xf - -C DESTINATION
