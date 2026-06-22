@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       update_state:
-        description: build, package, publish artifacts, and return the newly warmed workshop to Releases.
+        description: Update cache with the newly warmed workshop. Makes next compilation faster, and this one slower.
         type: boolean
         default: true
 
@@ -358,15 +358,17 @@ jobs:
           echo "0 means it completed; 124 means it was deliberately stopped."
           exit 0
 
-      - name: Build Servo Linux NONdebug
+      - name: Build Severin Linux release
         run: ./mach build --release
 
-      - name: Package Linux NONdebug build
+      - name: Package Severin Linux release
         run: |
           set -Eeuo pipefail
 
           ./mach package --release
 
+          # Servo's package command produces this internal archive name.
+          # It is unpacked here and never published as a Severin asset.
           PACKAGE="$CARGO_TARGET_DIR/release/servo-tech-demo.tar.gz"
           WORK_DIR="$(mktemp -d)"
           RUNTIME_DIR="$WORK_DIR/runtime"
@@ -681,8 +683,8 @@ jobs:
                when that archive exists.
             3. Reassemble and extract repo-worktree.tar.zst.part-* into
                $GITHUB_WORKSPACE, when that archive exists.
-            4. Fetch the requested source commit and git reset --hard to it.
-               Unchanged worktree files keep their restored timestamps.
+            4. Fetch the requested source commit and fast-forward to it.
+               Unchanged worktree files retain their restored timestamps.
             5. Reassemble and extract repo-warm.tar.zst.part-* into
                $GITHUB_WORKSPACE, when that archive exists.
             6. Run ./mach build --release.
