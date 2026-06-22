@@ -239,8 +239,18 @@ jobs:
           # When the dispatched commit is unchanged, Git leaves the existing
           # worktree files alone, preserving their timestamps. Changed source
           # files are the only ones rewritten.
-          git -C "$GITHUB_WORKSPACE" reset --hard FETCH_HEAD
+          current_sha="$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)"
+
+          if [ "$current_sha" = "$GITHUB_SHA" ]; then
+            echo "Restored worktree already matches requested commit; preserving timestamps."
+          else
+            # Fast-forward updates only files that actually changed between snapshots.
+            # Unchanged Rust source files retain the mtimes Cargo fingerprinted.
+            git -C "$GITHUB_WORKSPACE" merge --ff-only FETCH_HEAD
+          fi
+
           test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
+
 
       - name: Restore repo-local warm state
         run: |
