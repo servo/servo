@@ -40,7 +40,7 @@ FROM base AS rust_builder
 RUN cargo install cargo-deny cargo-nextest taplo-cli --locked
 
 
-FROM base AS final
+FROM base AS linux
 
 COPY --from=rust_builder \
     /usr/local/cargo/bin/cargo-deny \
@@ -51,7 +51,7 @@ COPY --from=uv /uv /uvx /bin/
 
 
 # Image with Android SDK
-FROM final AS android
+FROM linux AS android
 
 # Keep versions in sync with build.gradle.kts
 ARG JAVA_VERSION=21
@@ -73,3 +73,5 @@ RUN yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --licenses \
     "ndk;${ANDROID_NDK_VERSION}" \
     "platform-tools" \
     "platforms;android-${ANDROID_SDK_VERSION}"
+
+FROM linux as final
