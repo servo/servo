@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       update_state:
-        description: Update cache with the newly warmed workshop. Makes next compilation faster, and this one slower.
+        description: build, package, publish artifacts, and return the newly warmed workshop to Releases.
         type: boolean
         default: true
 
@@ -23,6 +23,8 @@ env:
   CXX: clang++
   CARGO_TARGET_DIR: /var/servo-cargo-target
   UV_PROJECT_ENVIRONMENT: .devcontainer-venv
+  SEVERIN_RELEASE_STEM: severin-debian12-linux-release
+  SEVERIN_RELEASE_TAG: latest-severin-debian12-linux-release
 
 jobs:
   linux-debian12-warm-build:
@@ -467,9 +469,9 @@ jobs:
           fi
 
           STRIPPED_RUNTIME_SIZE="$(du -sh "$RUNTIME_DIR" | cut -f1)"
-          DEBUG_SYMBOL_SIZE="$(du -sh "$SYMBOL_DIR" | cut -f1)"
+          SYMBOLS_SIZE="$(du -sh "$SYMBOL_DIR" | cut -f1)"
           echo "Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
-          echo "Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
+          echo "Symbols tree size: $SYMBOLS_SIZE"
           echo "ELF files processed: $PROCESSED_ELF_COUNT"
 
           echo "Largest 50 files after stripping:"
@@ -480,33 +482,51 @@ jobs:
           from pathlib import Path
           from zipfile import ZIP_DEFLATED, ZipFile
 
+          asset_stem = os.environ["SEVERIN_RELEASE_STEM"]
           archives = [
-              (Path('release/servo-linux-debian12-debug-runtime-stripped.zip'), Path(os.environ['RUNTIME_DIR'])),
-              (Path('release/servo-linux-debian12-debug-symbols.zip'), Path(os.environ['SYMBOL_DIR'])),
+              (
+                  Path("release") / f"{asset_stem}-runtime-stripped.zip",
+                  Path(os.environ["RUNTIME_DIR"]),
+              ),
+              (
+                  Path("release") / f"{asset_stem}-symbols.zip",
+                  Path(os.environ["SYMBOL_DIR"]),
+              ),
           ]
+
           for zip_path, source_dir in archives:
-              with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED, compresslevel=9, strict_timestamps=False) as zf:
-                  for path in sorted(source_dir.rglob('*')):
+              with ZipFile(
+                  zip_path,
+                  "w",
+                  compression=ZIP_DEFLATED,
+                  compresslevel=9,
+                  strict_timestamps=False,
+              ) as zf:
+                  for path in sorted(source_dir.rglob("*")):
                       if path.is_file():
                           archive_name = path.relative_to(source_dir).as_posix()
                           zf.write(path, archive_name)
           PYZIP
 
-          RUNTIME_ZIP_SIZE="$(du -h release/servo-linux-debian12-debug-runtime-stripped.zip | cut -f1)"
-          SYMBOL_ZIP_SIZE="$(du -h release/servo-linux-debian12-debug-symbols.zip | cut -f1)"
+          RUNTIME_ZIP_SIZE="$(
+            du -h "release/${SEVERIN_RELEASE_STEM}-runtime-stripped.zip" | cut -f1
+          )"
+          SYMBOLS_ZIP_SIZE="$(
+            du -h "release/${SEVERIN_RELEASE_STEM}-symbols.zip" | cut -f1
+          )"
 
           {
             echo "ORIGINAL_PACKAGE_SIZE=$ORIGINAL_PACKAGE_SIZE"
             echo "STRIPPED_RUNTIME_SIZE=$STRIPPED_RUNTIME_SIZE"
-            echo "DEBUG_SYMBOL_SIZE=$DEBUG_SYMBOL_SIZE"
+            echo "SYMBOLS_SIZE=$SYMBOLS_SIZE"
             echo "RUNTIME_ZIP_SIZE=$RUNTIME_ZIP_SIZE"
-            echo "SYMBOL_ZIP_SIZE=$SYMBOL_ZIP_SIZE"
+            echo "SYMBOLS_ZIP_SIZE=$SYMBOLS_ZIP_SIZE"
             echo "PROCESSED_ELF_COUNT=$PROCESSED_ELF_COUNT"
             echo "GLIBC_FLOOR=$GLIBC_FLOOR"
             echo "GLIBC_DEBIAN12_COMPAT=$GLIBC_DEBIAN12_COMPAT"
             echo "BEFORE_INVENTORY=$BEFORE_INVENTORY"
             echo "AFTER_INVENTORY=$AFTER_INVENTORY"
-          } >> "$GITHUB_ENV"
+          } >> "$GITHUB_ENV"          
 
       - name: Refresh rolling warm state in Releases
         if: inputs.update_state
@@ -691,76 +711,91 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --clobber
 
-      - name: Upload release ZIP artifacts
+      - name: Upload Severin release ZIP artifacts
         id: upload_zips
         uses: actions/upload-artifact@v7
         with:
-          name: servo-linux-debian12-debug-release
+          name: ${{ env.SEVERIN_RELEASE_STEM }}
           path: |
-            release/servo-linux-debian12-debug-runtime-stripped.zip
-            release/servo-linux-debian12-debug-symbols.zip
+            release/${{ env.SEVERIN_RELEASE_STEM }}-runtime-stripped.zip
+            release/${{ env.SEVERIN_RELEASE_STEM }}-symbols.zip
           if-no-files-found: error
 
-      - name: Keep Debian 12 runtime and leave debug symbols behind
+      - name: Prepare stripped Severin runtime tarball
         run: |
           set -Eeuo pipefail
 
           SOURCE_DIR="release"
-          OUTPUT_DIR="${RUNNER_TEMP}/debian12-runtime-only"
-          RUNTIME_TARBALL="release/servo-linux-debian12-runtime-only-v1.tar.gz"
-          RUNTIME_ZIP_NAME='servo-linux-debian12-debug-runtime-stripped.zip'
-          SYMBOL_ZIP_NAME='servo-linux-debian12-debug-symbols.zip'
+          OUTPUT_DIR="${RUNNER_TEMP}/severin-runtime"
+          RUNTIME_ZIP_NAME="${SEVERIN_RELEASE_STEM}-runtime-stripped.zip"
+          SYMBOLS_ZIP_NAME="${SEVERIN_RELEASE_STEM}-symbols.zip"
+          RUNTIME_TARBALL="release/${SEVERIN_RELEASE_STEM}-runtime-stripped.tar.gz"
 
-          mapfile -t runtime_zips < <(find "${SOURCE_DIR}" -type f -name "${RUNTIME_ZIP_NAME}" -print | sort)
+          mapfile -t runtime_zips < <(
+            find "$SOURCE_DIR" -type f -name "$RUNTIME_ZIP_NAME" -print | sort
+          )
           if [ "${#runtime_zips[@]}" -ne 1 ]; then
-            echo "ERROR: expected exactly one ${RUNTIME_ZIP_NAME}; found ${#runtime_zips[@]}." >&2
+            echo "ERROR: expected exactly one $RUNTIME_ZIP_NAME; found ${#runtime_zips[@]}." >&2
             printf '%s\n' "${runtime_zips[@]:-}" >&2
             exit 1
           fi
 
-          runtime_zip="${runtime_zips[0]}"
-          rm -rf "${OUTPUT_DIR}"
-          rm -f "${RUNTIME_TARBALL}"
-          mkdir -p "${OUTPUT_DIR}"
-          unzip -q "${runtime_zip}" -d "${OUTPUT_DIR}"
-
-          servoshell_path="$(find "${OUTPUT_DIR}" -type f -name servoshell -print -quit)"
-          if [ -z "${servoshell_path}" ]; then
-            echo 'ERROR: stripped runtime ZIP did not contain servoshell.' >&2
+          mapfile -t symbols_zips < <(
+            find "$SOURCE_DIR" -type f -name "$SYMBOLS_ZIP_NAME" -print | sort
+          )
+          if [ "${#symbols_zips[@]}" -ne 1 ]; then
+            echo "ERROR: expected exactly one $SYMBOLS_ZIP_NAME; found ${#symbols_zips[@]}." >&2
+            printf '%s\n' "${symbols_zips[@]:-}" >&2
             exit 1
           fi
 
-          # Uploading a raw directory through Actions can discard executable mode
-          # bits. Pack the extracted runtime in tar.gz so servoshell remains
-          # executable after the browser download is unpacked locally.
-          tar -C "${OUTPUT_DIR}" -czf "${RUNTIME_TARBALL}" .
+          runtime_zip="${runtime_zips[0]}"
+          symbols_zip="${symbols_zips[0]}"
 
-          runtime_tree_size="$(du -sh "${OUTPUT_DIR}" | cut -f1)"
-          runtime_zip_size="$(du -h "${runtime_zip}" | cut -f1)"
-          runtime_tarball_size="$(du -h "${RUNTIME_TARBALL}" | cut -f1)"
-          runtime_zip_sha256="$(sha256sum "${runtime_zip}" | awk '{print $1}')"
-          runtime_tarball_sha256="$(sha256sum "${RUNTIME_TARBALL}" | awk '{print $1}')"
-          symbol_count="$(find "${SOURCE_DIR}" -type f -name "${SYMBOL_ZIP_NAME}" -print | wc -l)"
-          servoshell_version="$("${servoshell_path}" --version 2>&1 || true)"
+          rm -rf "$OUTPUT_DIR"
+          rm -f "$RUNTIME_TARBALL"
+          mkdir -p "$OUTPUT_DIR"
+
+          unzip -q "$runtime_zip" -d "$OUTPUT_DIR"
+
+          servoshell_path="$(find "$OUTPUT_DIR" -type f -name servoshell -print -quit)"
+          if [ -z "$servoshell_path" ]; then
+            echo "ERROR: stripped runtime ZIP did not contain servoshell." >&2
+            exit 1
+          fi
+
+          # Actions artifacts do not reliably preserve executable mode on a raw
+          # directory. The tarball keeps servoshell executable after download.
+          tar -C "$OUTPUT_DIR" -czf "$RUNTIME_TARBALL" .
+
+          runtime_tree_size="$(du -sh "$OUTPUT_DIR" | cut -f1)"
+          runtime_zip_size="$(du -h "$runtime_zip" | cut -f1)"
+          symbols_zip_size="$(du -h "$symbols_zip" | cut -f1)"
+          runtime_tarball_size="$(du -h "$RUNTIME_TARBALL" | cut -f1)"
+
+          runtime_zip_sha256="$(sha256sum "$runtime_zip" | awk '{print $1}')"
+          symbols_zip_sha256="$(sha256sum "$symbols_zip" | awk '{print $1}')"
+          runtime_tarball_sha256="$(sha256sum "$RUNTIME_TARBALL" | awk '{print $1}')"
+          servoshell_version="$("$servoshell_path" --version 2>&1 || true)"
 
           {
-            echo '### Debian 12 runtime-only extraction v1'
+            echo "### Severin Debian 12 Linux runtime"
             echo
-            echo "- Source artifact directory: ${SOURCE_DIR}"
-            echo "- Kept runtime ZIP: ${RUNTIME_ZIP_NAME} (${runtime_zip_size})"
-            echo "- Runtime ZIP SHA-256: ${runtime_zip_sha256}"
-            echo "- Extracted runtime tree size: ${runtime_tree_size}"
-            echo "- Output tarball: $(basename "${RUNTIME_TARBALL}") (${runtime_tarball_size})"
-            echo "- Output tarball SHA-256: ${runtime_tarball_sha256}"
-            echo "- Debug-symbol ZIPs deliberately not copied: ${symbol_count}"
-            echo "- Packaged servoshell --version: ${servoshell_version}"
-          } >> "${GITHUB_STEP_SUMMARY}"
+            echo "- Runtime ZIP: $RUNTIME_ZIP_NAME ($runtime_zip_size)"
+            echo "- Runtime ZIP SHA-256: $runtime_zip_sha256"
+            echo "- Symbols ZIP: $SYMBOLS_ZIP_NAME ($symbols_zip_size)"
+            echo "- Symbols ZIP SHA-256: $symbols_zip_sha256"
+            echo "- Extracted runtime tree: $runtime_tree_size"
+            echo "- Runtime tarball: $(basename "$RUNTIME_TARBALL") ($runtime_tarball_size)"
+            echo "- Runtime tarball SHA-256: $runtime_tarball_sha256"
+            echo "- Packaged servoshell: $servoshell_version"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload stripped Debian 12 runtime only
+      - name: Upload stripped Severin runtime tarball
         uses: actions/upload-artifact@v7
         with:
-          name: servo-linux-debian12-runtime-only-v1
-          path: release/servo-linux-debian12-runtime-only-v1.tar.gz
+          name: ${{ env.SEVERIN_RELEASE_STEM }}-runtime-stripped-tarball
+          path: release/${{ env.SEVERIN_RELEASE_STEM }}-runtime-stripped.tar.gz
           if-no-files-found: error
           compression-level: 0
 
@@ -777,57 +812,60 @@ jobs:
           apt-get install -y gh
           gh --version
 
-      - name: Push successful builds to Releases
+      - name: Push successful Severin build to Releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
 
-          TAG=latest-local-runtime-debian12-linux-debug
+          RUNTIME_ZIP="release/${SEVERIN_RELEASE_STEM}-runtime-stripped.zip"
+          SYMBOLS_ZIP="release/${SEVERIN_RELEASE_STEM}-symbols.zip"
 
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Latest local runtime Debian 12 Linux debug build" \
-              --notes "Automatically updated by GitHub Actions."
-
-          gh release upload "$TAG" \
+          gh release view "$SEVERIN_RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
-            release/servo-linux-debian12-debug-runtime-stripped.zip \
-            release/servo-linux-debian12-debug-symbols.zip \
+            >/dev/null 2>&1 || \
+            gh release create "$SEVERIN_RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Latest Severin Debian 12 Linux release build" \
+              --notes "Rolling Severin build, updated by GitHub Actions."
+
+          gh release upload "$SEVERIN_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            "$RUNTIME_ZIP" \
+            "$SYMBOLS_ZIP" \
             --clobber
 
-      - name: Show build download link
+      - name: Show Severin download link
         run: |
-          TAG=latest-local-runtime-debian12-linux-debug
+          set -Eeuo pipefail
 
           {
-            echo "### Local runtime Debian 12 Linux debug build"
-            echo ""
+            echo "### Severin Debian 12 Linux release build"
+            echo
             echo "- Original package size: $ORIGINAL_PACKAGE_SIZE"
             echo "- Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
-            echo "- Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
-            echo "- Stripped runtime ZIP size: $RUNTIME_ZIP_SIZE"
-            echo "- Debug-symbol ZIP size: $SYMBOL_ZIP_SIZE"
+            echo "- Symbols tree size: $SYMBOLS_SIZE"
+            echo "- Runtime ZIP size: $RUNTIME_ZIP_SIZE"
+            echo "- Symbols ZIP size: $SYMBOLS_ZIP_SIZE"
             echo "- ELF files processed: $PROCESSED_ELF_COUNT"
             echo "- Highest required GLIBC symbol: GLIBC_$GLIBC_FLOOR"
             echo "- Should run on Debian 12 / glibc 2.36: $GLIBC_DEBIAN12_COMPAT"
-            echo ""
+            echo
             echo "#### Largest files before stripping"
             echo '```'
             cat "$BEFORE_INVENTORY"
             echo '```'
-            echo ""
+            echo
             echo "#### Largest files after stripping"
             echo '```'
             cat "$AFTER_INVENTORY"
             echo '```'
-            echo ""
+            echo
+
             if [ -n "${{ steps.upload_zips.outputs.artifact-url }}" ]; then
-              echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})"
-              echo ""
+              echo "[Download Actions ZIP bundle](${{ steps.upload_zips.outputs.artifact-url})"
+              echo
             fi
-            echo "[Download Release build](https://github.com/${{ github.repository }}/releases/tag/$TAG)"
+
+            echo "[Download rolling Severin Release](https://github.com/${{ github.repository }}/releases/tag/$SEVERIN_RELEASE_TAG)"
           } >> "$GITHUB_STEP_SUMMARY"
