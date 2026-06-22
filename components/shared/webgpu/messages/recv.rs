@@ -6,7 +6,7 @@
 //! (usually from the ScriptThread, and more specifically from DOM objects)
 
 use arrayvec::ArrayVec;
-use pixels::SharedSnapshot;
+use pixels::{SharedSnapshot, SnapshotPixelFormat};
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
 use servo_base::generic_channel::{
@@ -30,9 +30,9 @@ pub use wgpu_core::id::markers::{
 };
 use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
-    ComputePassEncoderId, ComputePipelineId, DeviceId, PipelineLayoutId, QuerySetId, QueueId,
-    RenderBundleId, RenderPassEncoderId, RenderPipelineId, SamplerId, ShaderModuleId, TextureId,
-    TextureViewId,
+    ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId,
+    QuerySetId, QueueId, RenderBundleId, RenderPassEncoderId, RenderPipelineId, SamplerId,
+    ShaderModuleId, TextureId, TextureViewId,
 };
 pub use wgpu_core::id::{
     ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
@@ -403,4 +403,30 @@ pub enum WebGPURequest {
         destination: BufferId,
         destination_offset: u64,
     },
+    /// Create planar texture and view to be imported as external texture
+    CreatePlanarTexture {
+        device_id: DeviceId,
+        size: Size2D<u32>,
+        format: SnapshotPixelFormat,
+        texture_id: TextureId,
+        /// aka plane
+        texture_view_id: TextureViewId,
+    },
+    UpdatePlanarTexture {
+        device_id: DeviceId,
+        queue_id: QueueId,
+        texture_id: TextureId,
+        snapshot: SharedSnapshot,
+    },
+    DropPlanarTexture(TextureId, TextureViewId),
+    /// Import plane as external texture, if plane not provided it creates invalid external texture
+    ImportExternalTexture {
+        device_id: DeviceId,
+        external_texture_id: ExternalTextureId,
+        label: String,
+        size: Size2D<u32>,
+        plane0: Option<TextureViewId>,
+    },
+    DestroyExternalTexture(ExternalTextureId),
+    DropExternalTexture(ExternalTextureId),
 }

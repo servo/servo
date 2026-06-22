@@ -33,10 +33,10 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAdapterMethods, GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
-    GPUDeviceMethods, GPUErrorFilter, GPUPipelineErrorReason, GPUPipelineLayoutDescriptor,
-    GPUQuerySetDescriptor, GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor,
-    GPUSamplerDescriptor, GPUShaderModuleDescriptor, GPUTextureDescriptor, GPUTextureFormat,
-    GPUUncapturedErrorEventInit, GPUVertexStepMode,
+    GPUDeviceMethods, GPUErrorFilter, GPUExternalTextureDescriptor, GPUPipelineErrorReason,
+    GPUPipelineLayoutDescriptor, GPUQuerySetDescriptor, GPURenderBundleEncoderDescriptor,
+    GPURenderPipelineDescriptor, GPUSamplerDescriptor, GPUShaderModuleDescriptor,
+    GPUTextureDescriptor, GPUTextureFormat, GPUUncapturedErrorEventInit, GPUVertexStepMode,
 };
 use crate::dom::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -58,6 +58,7 @@ use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::webgpu::gpucomputepipeline::GPUComputePipeline;
+use crate::dom::webgpu::gpuexternaltexture::GPUExternalTexture;
 use crate::dom::webgpu::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::webgpu::gpuqueue::GPUQueue;
 use crate::dom::webgpu::gpurenderbundleencoder::GPURenderBundleEncoder;
@@ -596,6 +597,15 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         descriptor: &GPUQuerySetDescriptor,
     ) -> Fallible<DomRoot<GPUQuerySet>> {
         GPUQuerySet::create(cx, self, descriptor)
+    }
+
+    /// <https://www.w3.org/TR/webgpu/#dom-gpudevice-importexternaltexture>
+    fn ImportExternalTexture(
+        &self,
+        cx: &mut JSContext,
+        descriptor: &GPUExternalTextureDescriptor,
+    ) -> Fallible<DomRoot<GPUExternalTexture>> {
+        GPUExternalTexture::create(cx, self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope>

@@ -9,8 +9,9 @@ pub use wgpu_core::id::markers::{
 };
 use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
-    ComputePipelineId, DeviceId, PipelineLayoutId, QuerySetId, QueueId, RenderBundleId,
-    RenderPipelineId, SamplerId, ShaderModuleId, SurfaceId, TextureId, TextureViewId,
+    ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId, QuerySetId, QueueId,
+    RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId, SurfaceId, TextureId,
+    TextureViewId,
 };
 pub use wgpu_core::id::{
     ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
@@ -52,3 +53,4 @@ webgpu_resource!(WebGPUComputePass, ComputePassId);
 webgpu_resource!(WebGPURenderPass, RenderPassId);
 webgpu_resource!(WebGPUContextId, u64);
 webgpu_resource!(WebGPUQuerySet, QuerySetId);
+webgpu_resource!(WebGPUExternalTexture, ExternalTextureId);
