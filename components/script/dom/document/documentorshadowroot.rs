@@ -10,6 +10,7 @@ use embedder_traits::UntrustedNodeAddress;
 use js::context::JSContext;
 use js::conversions::FromJSValConvertible;
 use js::rust::HandleValue;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -30,6 +31,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::css::stylesheetlist::StyleSheetListOwner;
+use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::element::Element;
 use crate::dom::node::{self, Node};
 use crate::dom::types::{CSSStyleSheet, EventTarget, ShadowRoot};
@@ -120,13 +122,35 @@ impl ::style::stylesheets::StylesheetInDocument for ServoStylesheetInDocument {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct DocumentOrShadowRoot {
     window: Dom<Window>,
+    custom_element_registry: DomRefCell<Option<Dom<CustomElementRegistry>>>,
 }
 
 impl DocumentOrShadowRoot {
-    pub(crate) fn new(window: &Window) -> Self {
+    pub(crate) fn new(
+        window: &Window,
+        custom_element_registry: Option<DomRoot<CustomElementRegistry>>,
+    ) -> Self {
         Self {
             window: Dom::from_ref(window),
+            custom_element_registry: DomRefCell::new(
+                custom_element_registry.as_deref().map(Dom::from_ref),
+            ),
         }
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-documentorshadowroot-customelementregistry>
+    pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        self.custom_element_registry
+            .borrow()
+            .as_deref()
+            .map(DomRoot::from_ref)
+    }
+
+    pub(crate) fn set_custom_element_registry(
+        &self,
+        registry: Option<DomRoot<CustomElementRegistry>>,
+    ) {
+        *self.custom_element_registry.borrow_mut() = registry.as_deref().map(Dom::from_ref);
     }
 
     /// Retarget the result of `elementsFromPoint` or `elementFromPoint` according to the

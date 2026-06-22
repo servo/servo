@@ -2767,7 +2767,6 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
     pub(crate) fn lookup_custom_element_definition(
         &self,
-        cx: &mut JSContext,
         namespace: &Namespace,
         local_name: &LocalName,
         is: Option<&LocalName>,
@@ -2783,17 +2782,26 @@ impl Document {
         }
 
         // Step 3
-        let registry = self.window.CustomElements(cx);
+        let registry = self.custom_element_registry()?;
 
         registry.lookup_definition(local_name, is)
     }
 
-    /// <https://dom.spec.whatwg.org/#document-custom-element-registry>
-    pub(crate) fn custom_element_registry(
-        &self,
-        cx: &mut JSContext,
-    ) -> DomRoot<CustomElementRegistry> {
-        self.window.CustomElements(cx)
+    pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        self.document_or_shadow_root.custom_element_registry()
+    }
+
+    pub(crate) fn set_custom_element_registry(&self, registry: DomRoot<CustomElementRegistry>) {
+        self.document_or_shadow_root
+            .set_custom_element_registry(Some(registry));
+    }
+
+    /// Cleans up any active promises
+    /// <https://github.com/servo/servo/issues/15318>
+    pub(crate) fn teardown_custom_element_registry(&self) {
+        if let Some(custom_elements) = self.custom_element_registry() {
+            custom_elements.teardown();
+        }
     }
 
     pub(crate) fn increment_throw_on_dynamic_markup_insertion_counter(&self) {
@@ -3557,7 +3565,7 @@ impl Document {
 
         Document {
             node: Node::new_document_node(),
-            document_or_shadow_root: DocumentOrShadowRoot::new(window),
+            document_or_shadow_root: DocumentOrShadowRoot::new(window, None),
             window: Dom::from_ref(window),
             has_browsing_context,
             implementation: Default::default(),
@@ -4967,6 +4975,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         self.document_or_shadow_root.active_element(self.upcast())
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-documentorshadowroot-customelementregistry>
+    fn GetCustomElementRegistry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        self.custom_element_registry()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-document-hasfocus>
     fn HasFocus(&self) -> bool {
         // <https://html.spec.whatwg.org/multipage/#has-focus-steps>
@@ -5390,7 +5403,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 let registry = if let Some(registry) = options.customElementRegistry {
                     // Step 5.3. If registry's is scoped is false and registry
                     // is not this's custom element registry, then throw a "NotSupportedError" DOMException.
-                    let this_registry = self.custom_element_registry(cx);
+                    let this_registry = self
+                        .custom_element_registry()
+                        .expect("Document must have a custom element registry");
                     if !registry.is_scoped() && registry != this_registry {
                         return Err(Error::NotSupported(Some(
                             "Imported customElementRegistry is not scoped and does not match existing registry.".into()
@@ -5406,7 +5421,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 6. If registry is null, then set registry to the
         // result of looking up a custom element registry given this.
         let registry = registry
-            .or_else(|| CustomElementRegistry::lookup_a_custom_element_registry(cx, self.upcast()));
+            .or_else(|| CustomElementRegistry::lookup_a_custom_element_registry(self.upcast()));
 
         // Step 7. Return the result of cloning a node given node with
         // document set to this, subtree set to subtree, and fallbackRegistry set to registry.

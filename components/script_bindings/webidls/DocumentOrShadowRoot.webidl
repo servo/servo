@@ -15,6 +15,7 @@ interface mixin DocumentOrShadowRoot {
   // CaretPosition? caretPositionFromPoint (double x, double y);
   readonly attribute Element? activeElement;
   readonly attribute StyleSheetList styleSheets;
+  readonly attribute CustomElementRegistry? customElementRegistry;
 };
 
 partial interface mixin DocumentOrShadowRoot {

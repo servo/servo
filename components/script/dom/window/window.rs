@@ -297,7 +297,6 @@ pub(crate) struct Window {
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
     history: MutNullableDom<History>,
-    custom_element_registry: MutNullableDom<CustomElementRegistry>,
     performance: MutNullableDom<Performance>,
     #[no_trace]
     navigation_start: Cell<CrossProcessInstant>,
@@ -1432,8 +1431,18 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-customelements>
     fn CustomElements(&self, cx: &mut JSContext) -> DomRoot<CustomElementRegistry> {
-        self.custom_element_registry
-            .or_init(|| CustomElementRegistry::new(cx, self))
+        // Step 1: Assert: this's associated Document's custom element registry is
+        // a CustomElementRegistry object.
+        let document = self.Document();
+        if let Some(registry) = document.custom_element_registry() {
+            return registry;
+        }
+        // A Window's associated Document is always created with
+        // a new CustomElementRegistry object.
+        let registry = CustomElementRegistry::new(cx, self);
+        document.set_custom_element_registry(DomRoot::from_ref(&*registry));
+        // Step 2: Return this's associated Document's custom element registry.
+        registry
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
@@ -2406,9 +2415,7 @@ impl Window {
 
         // Clean up any active promises
         // https://github.com/servo/servo/issues/15318
-        if let Some(custom_elements) = self.custom_element_registry.get() {
-            custom_elements.teardown();
-        }
+        self.Document().teardown_custom_element_registry();
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
@@ -3724,7 +3731,6 @@ impl Window {
             crypto: Default::default(),
             location: Default::default(),
             history: Default::default(),
-            custom_element_registry: Default::default(),
             window_proxy: Default::default(),
             document: Default::default(),
             performance: Default::default(),

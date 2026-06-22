@@ -41,6 +41,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
+use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{
@@ -138,7 +139,7 @@ impl ShadowRoot {
 
         ShadowRoot {
             document_fragment,
-            document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
+            document_or_shadow_root: DocumentOrShadowRoot::new(document.window(), None),
             document: Dom::from_ref(document),
             author_styles: DomRefCell::new(AuthorStyles::new()),
             stylesheet_list: MutNullableDom::new(None),
@@ -372,12 +373,21 @@ impl ShadowRoot {
             |details_name_groups| details_name_groups.get_or_insert_default(),
         )
     }
+
+    pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        self.document_or_shadow_root.custom_element_registry()
+    }
 }
 
 impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-activeelement>
     fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
         self.document_or_shadow_root.active_element(self.upcast())
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-documentorshadowroot-customelementregistry>
+    fn GetCustomElementRegistry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        self.custom_element_registry()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint>
