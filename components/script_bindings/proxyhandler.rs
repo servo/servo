@@ -14,27 +14,24 @@ use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::glue::{GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, SetProxyPrivate};
 use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, Handle as RawHandle, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, HandleValue as RawHandleValue, JS_DefinePropertyById,
-    JSContext, JSErrNum, JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSObject,
-    JSPropertySpec, MutableHandle as RawMutableHandle,
-    MutableHandleIdVector as RawMutableHandleIdVector,
+    HandleObject as RawHandleObject, HandleValue as RawHandleValue, JSContext, JSErrNum,
+    JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSObject, JSPropertySpec,
+    MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
 };
 use js::jsid::SymbolId;
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers::{
-    JS_AlreadyHasOwnPropertyById, JS_NewObjectWithGivenProto, SetDataPropertyDescriptor,
-};
+use js::rust::wrappers::{JS_AlreadyHasOwnPropertyById, SetDataPropertyDescriptor};
 use js::rust::wrappers2::{
-    AppendToIdVector, GetPropertyKeys, GetWellKnownSymbol, JS_AtomizeAndPinString, JS_IdToValue,
-    JS_IsExceptionPending, JS_ValueToSource, RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID,
-    int_to_jsid,
+    AppendToIdVector, GetPropertyKeys, GetWellKnownSymbol, JS_AtomizeAndPinString,
+    JS_DefineFunctions, JS_DefineProperties, JS_DefinePropertyById, JS_IdToValue,
+    JS_IsExceptionPending, JS_NewObjectWithGivenProto, JS_ValueToSource,
+    RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID, int_to_jsid,
 };
 use js::rust::{
-    Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle,
-    MutableHandleObject,
+    Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
 };
 use js::{jsapi, rooted};
 
@@ -100,9 +97,18 @@ pub(crate) unsafe extern "C" fn define_property(
     desc: RawHandle<PropertyDescriptor>,
     result: *mut ObjectOpResult,
 ) -> bool {
-    rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
-    ensure_expando_object(cx, proxy, expando.handle_mut());
-    JS_DefinePropertyById(cx, expando.handle().into(), id, desc, result)
+    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let cx = &mut cx;
+
+    rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
+    ensure_expando_object(cx, Handle::from_raw(proxy), expando.handle_mut());
+    JS_DefinePropertyById(
+        cx,
+        expando.handle(),
+        Handle::from_raw(id),
+        Handle::from_raw(desc),
+        result,
+    )
 }
 
 /// Deletes an expando off the given `proxy`.
@@ -191,25 +197,24 @@ pub(crate) fn get_expando_object(obj: RawHandleObject, mut expando: MutableHandl
 
 /// Get the expando object, or create it if it doesn't exist yet.
 /// Fails on JSAPI failure.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-pub(crate) unsafe fn ensure_expando_object(
-    cx: *mut JSContext,
-    obj: RawHandleObject,
+pub(crate) fn ensure_expando_object(
+    cx: &mut js::context::JSContext,
+    obj: HandleObject,
     mut expando: MutableHandleObject,
 ) {
-    assert!(is_dom_proxy(obj.get()));
-    get_expando_object(obj, expando.reborrow());
-    if expando.is_null() {
-        expando.set(JS_NewObjectWithGivenProto(
-            cx,
-            ptr::null_mut(),
-            HandleObject::null(),
-        ));
-        assert!(!expando.is_null());
+    unsafe {
+        assert!(is_dom_proxy(obj.get()));
+        get_expando_object(obj.into(), expando.reborrow());
+        if expando.is_null() {
+            expando.set(JS_NewObjectWithGivenProto(
+                cx,
+                ptr::null_mut(),
+                HandleObject::null(),
+            ));
+            assert!(!expando.is_null());
 
-        SetProxyPrivate(obj.get(), &ObjectValue(expando.get()));
+            SetProxyPrivate(obj.get(), &ObjectValue(expando.get()));
+        }
     }
 }
 
@@ -490,19 +495,19 @@ fn ensure_cross_origin_property_holder(
 
     // Create a holder for the current Realm
     unsafe {
-        out_holder.set(js::rust::wrappers2::JS_NewObjectWithGivenProto(
+        out_holder.set(JS_NewObjectWithGivenProto(
             cx,
             ptr::null_mut(),
             HandleObject::null(),
         ));
 
         if out_holder.get().is_null() ||
-            !js::rust::wrappers2::JS_DefineProperties(
+            !JS_DefineProperties(
                 cx,
                 out_holder.handle(),
                 cross_origin_properties.attributes.as_ptr(),
             ) ||
-            !js::rust::wrappers2::JS_DefineFunctions(
+            !JS_DefineFunctions(
                 cx,
                 out_holder.handle(),
                 cross_origin_properties.methods.as_ptr(),

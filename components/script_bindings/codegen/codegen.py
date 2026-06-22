@@ -3311,7 +3311,7 @@ def CopyLegacyUnforgeablePropertiesToInstance(descriptor: Descriptor) -> str:
     if descriptor.proxy:
         copyCode += """\
 rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
-ensure_expando_object(cx.raw_cx(), obj.handle().into(), expando.handle_mut());
+ensure_expando_object(cx, obj.handle(), expando.handle_mut());
 """
         obj = "expando"
     else:
