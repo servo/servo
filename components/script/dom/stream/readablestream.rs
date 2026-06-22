@@ -2537,3 +2537,32 @@ impl Transferable for ReadableStream {
         }
     }
 }
+
+/// <https://streams.spec.whatwg.org/#readablestream-pipe-through>
+/// Pipe a ReadableStream through a transform and return the readable side.
+/// Unlike [`ReadableStream::PipeThrough`], this is not failliable.
+///
+/// Spec says it takes same options as [`ReadableStream::PipeThrough`],
+/// however all usages use default `false`.
+pub(crate) fn pipe_through(
+    source: &ReadableStream,
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    dest: &WritableStream,
+    readable: DomRoot<ReadableStream>,
+) -> DomRoot<ReadableStream> {
+    // Assert: ! IsReadableStreamLocked(readable) is false.
+    // Assert: ! IsWritableStreamLocked(transform.[[writable]]) is false.
+
+    // Above is done in `pipe_to` below.
+    let mut realm = CurrentRealm::assert(cx);
+    let promise = source.pipe_to(
+        &mut realm, global, dest, false, // preventClose
+        false, // preventAbort
+        false, // preventCancel
+        None,  //signal
+    );
+
+    promise.set_promise_is_handled(cx);
+    readable
+}

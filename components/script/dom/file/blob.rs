@@ -23,9 +23,6 @@ use uuid::Uuid;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
-    ReadableStreamMethods, ReadableWritablePair, StreamPipeOptions,
-};
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
@@ -36,7 +33,7 @@ use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::stream::readablestream::ReadableStream;
+use crate::dom::stream::readablestream::{ReadableStream, pipe_through};
 use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/FileAPI/#dfn-Blob>
@@ -304,18 +301,13 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             false, // ignoreBOM
         )?;
         // Step 4: Return the result of calling stream, piped through decoder.
-        let pair = ReadableWritablePair {
-            readable: decoder.Readable(),
-            writable: decoder.Writable(),
-        };
-        let options = StreamPipeOptions {
-            preventClose: false,
-            preventAbort: false,
-            preventCancel: false,
-            signal: None,
-        };
-        let mut realm = CurrentRealm::assert(cx);
-        stream.PipeThrough(&mut realm, &pair, &options)
+        Ok(pipe_through(
+            &stream,
+            cx,
+            &self.global(),
+            &decoder.Writable(),
+            decoder.Readable(),
+        ))
     }
 
     /// <https://w3c.github.io/FileAPI/#slice-method-algo>
