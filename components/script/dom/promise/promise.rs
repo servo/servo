@@ -20,19 +20,17 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::{ConversionResult, FromJSValConvertibleRc};
 use js::jsapi::{
-    AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject,
-    JS_NewFunction, JSContext as RawJSContext, JSObject, PromiseState,
-    PromiseUserInputEventHandlingState, RemoveRawValueRoot, SetFunctionNativeReserved,
+    CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSContext as RawJSContext,
+    JSObject, PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
+    SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers::{
-    GetPromiseState, IsPromiseObject, NewPromiseObject, SetPromiseUserInputEventHandlingState,
-};
 use js::rust::wrappers2::{
-    AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
-    JS_ClearPendingException, NewFunctionWithReserved, RejectPromise, ResolvePromise,
-    SetAnyPromiseIsHandled,
+    AddPromiseReactions, AddRawValueRoot, CallOriginalPromiseReject, CallOriginalPromiseResolve,
+    GetPromiseState, IsPromiseObject, JS_ClearPendingException, JS_NewFunction,
+    NewFunctionWithReserved, NewPromiseObject, RejectPromise, ResolvePromise,
+    SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -48,7 +46,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::realms::{InRealm, enter_auto_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -65,17 +63,17 @@ pub(crate) struct Promise {
 
 /// Private helper to enable adding new methods to `Rc<Promise>`.
 trait PromiseHelper {
-    fn initialize(&self, cx: SafeJSContext);
+    fn initialize(&self, cx: &mut JSContext);
 }
 
 impl PromiseHelper for Rc<Promise> {
     #[expect(unsafe_code)]
-    fn initialize(&self, cx: SafeJSContext) {
+    fn initialize(&self, cx: &mut JSContext) {
         let obj = self.reflector().get_jsobject();
         self.permanent_js_root.set(ObjectValue(*obj));
         unsafe {
             assert!(AddRawValueRoot(
-                *cx,
+                cx,
                 self.permanent_js_root.get_unsafe(),
                 c"Promise::root".as_ptr(),
             ));
@@ -100,7 +98,7 @@ impl Drop for Promise {
 }
 
 impl Promise {
-    pub(crate) fn new(cx: &mut js::context::JSContext, global: &GlobalScope) -> Rc<Promise> {
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         Promise::new_in_realm(cx)
@@ -109,47 +107,48 @@ impl Promise {
     pub(crate) fn new_in_realm(current_realm: &mut CurrentRealm) -> Rc<Promise> {
         let cx = current_realm.deref_mut();
         rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
-        Promise::create_js_promise(cx.into(), obj.handle_mut(), CanGc::from_cx(cx));
-        Promise::new_with_js_promise(obj.handle(), cx.into())
+        Promise::create_js_promise(cx, obj.handle_mut());
+        Promise::new_with_js_promise(cx, obj.handle())
     }
 
-    pub(crate) fn duplicate(&self) -> Rc<Promise> {
-        let cx = GlobalScope::get_cx();
-        Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
+    pub(crate) fn duplicate(&self, cx: &mut JSContext) -> Rc<Promise> {
+        Promise::new_with_js_promise(cx, self.reflector().get_jsobject())
     }
 
     #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_with_js_promise(obj: HandleObject, cx: SafeJSContext) -> Rc<Promise> {
+    pub(crate) fn new_with_js_promise(cx: &mut JSContext, obj: HandleObject) -> Rc<Promise> {
         unsafe {
             assert!(IsPromiseObject(obj));
-            let promise = Promise {
-                reflector: Reflector::new(),
-                permanent_js_root: Heap::default(),
-            };
-            let promise = Rc::new(promise);
-            promise.init_reflector_without_associated_memory(obj.get());
-            promise.initialize(cx);
-            promise
         }
+        let promise = Promise {
+            reflector: Reflector::new(),
+            permanent_js_root: Heap::default(),
+        };
+        let promise = Rc::new(promise);
+        unsafe {
+            promise.init_reflector_without_associated_memory(obj.get());
+        }
+        promise.initialize(cx);
+        promise
     }
 
     #[expect(unsafe_code)]
     // The apparently-unused CanGc parameter reflects the fact that the JS API calls
     // like JS_NewFunction can trigger a GC.
-    fn create_js_promise(cx: SafeJSContext, mut obj: MutableHandleObject, _can_gc: CanGc) {
+    fn create_js_promise(cx: &mut JSContext, mut obj: MutableHandleObject) {
         unsafe {
             let do_nothing_func = JS_NewFunction(
-                *cx,
+                cx,
                 Some(do_nothing_promise_executor),
                 /* nargs = */ 2,
                 /* flags = */ 0,
                 ptr::null(),
             );
             assert!(!do_nothing_func.is_null());
-            rooted!(in(*cx) let do_nothing_obj = JS_GetFunctionObject(do_nothing_func));
+            rooted!(&in(cx) let do_nothing_obj = JS_GetFunctionObject(do_nothing_func));
             assert!(!do_nothing_obj.is_null());
-            obj.set(NewPromiseObject(*cx, do_nothing_obj.handle()));
+            obj.set(NewPromiseObject(cx, do_nothing_obj.handle()));
             assert!(!obj.is_null());
             let is_user_interacting = if ScriptThread::is_user_interacting() {
                 PromiseUserInputEventHandlingState::HadUserInteractionAtCreation
@@ -162,7 +161,7 @@ impl Promise {
 
     #[expect(unsafe_code)]
     pub(crate) fn new_resolved(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         value: impl SafeToJSValConvertible,
     ) -> Rc<Promise> {
@@ -172,12 +171,12 @@ impl Promise {
         value.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseResolve(cx, rval.handle()) });
         assert!(!p.handle().is_null());
-        Promise::new_with_js_promise(p.handle(), cx.into())
+        Promise::new_with_js_promise(cx, p.handle())
     }
 
     #[expect(unsafe_code)]
     pub(crate) fn new_rejected(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         value: impl SafeToJSValConvertible,
     ) -> Rc<Promise> {
@@ -187,7 +186,7 @@ impl Promise {
         value.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseReject(cx, rval.handle()) });
         assert!(!p.handle().is_null());
-        Promise::new_with_js_promise(p.handle(), cx.into())
+        Promise::new_with_js_promise(cx, p.handle())
     }
 
     pub(crate) fn resolve_native<T>(&self, cx: &mut JSContext, val: &T)

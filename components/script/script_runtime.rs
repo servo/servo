@@ -481,7 +481,7 @@ unsafe extern "C" fn promise_rejection_tracker(
 
                 let target = Trusted::new(global.upcast::<EventTarget>());
                 let promise =
-                    Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx.into());
+                    Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise) });
                 let trusted_promise = TrustedPromise::new(promise);
 
                 // Step 5-4.
@@ -627,9 +627,10 @@ unsafe extern "C" fn content_security_policy_allows(
 
 #[expect(unsafe_code)]
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
-pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
-    let cx = GlobalScope::get_cx();
-
+pub(crate) fn notify_about_rejected_promises(
+    cx: &mut js::context::JSContext,
+    global: &GlobalScope,
+) {
     // Step 1. Let list be a clone of global's about-to-be-notified rejected promises list.
     let uncaught_rejections: Vec<TrustedPromise> = global
         .get_uncaught_rejections()
@@ -637,7 +638,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
         .drain(..)
         .map(|promise| {
             let promise =
-                Promise::new_with_js_promise(unsafe { Handle::from_raw(promise.handle()) }, cx);
+                Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise.handle()) });
 
             TrustedPromise::new(promise)
         })

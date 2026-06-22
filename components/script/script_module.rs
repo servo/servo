@@ -918,7 +918,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let cx = &mut cx;
-    let promise = Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx.into());
+    let promise = Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise) });
 
     let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
     let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
