@@ -26,8 +26,8 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::{JS_GC, JS_GetGCParameter};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::blob_url_store::UrlWithBlobClaim;
-use net_traits::policy_container::PolicyContainer;
-use net_traits::request::{Destination, RequestBuilder, RequestMode};
+use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
+use net_traits::request::{Destination, RequestBuilder, RequestMode, RequestClient, PreloadedResources, Origin};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSend;
@@ -61,6 +61,7 @@ use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::script_runtime::{Runtime, ScriptThreadEventCategory};
 use crate::script_thread::ScriptThread;
+use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 
@@ -694,15 +695,33 @@ impl WorkletThread {
         .policy_container(policy_container)
         .origin(origin);
 
-        let script = load_whole_resource(
-            request,
-            &resource_fetcher,
-            global,
-            &WorkletCspProcessor {},
-            cx,
-        )
-        .ok()
-        .and_then(|(_, bytes, _)| String::from_utf8(bytes).ok());
+        let insecure_requests_policy = global.insecure_requests_policy();
+        let has_trustworthy_ancestor_origin = global.has_trustworthy_ancestor_origin();
+        let is_nested_browsing_context = global.is_nested_browsing_context();
+
+        let request_client = RequestClient {
+            preloaded_resources: PreloadedResources::default(),
+            policy_container: RequestPolicyContainer::PolicyContainer(
+                policy_container.clone(),
+            ),
+            origin: Origin::Origin(origin.clone()),
+            is_nested_browsing_context,
+            insecure_requests_policy,
+        };
+
+        let fetch_client = ModuleFetchClient {
+            insecure_requests_policy,
+            has_trustworthy_ancestor_origin,
+            policy_container,
+            client: request_client,
+            pipeline_id,
+            origin,
+        };
+
+        let referrer = global.get_referrer();
+        let credentials_mode = credentials.convert();
+        
+        let script = fetch_a_module_worker_script_graph(cx, global, script_url, fetch_client, Destination::Script, referrer, credentials_mode, |cx, module_tree| ());
 
         // Step 4.
         // NOTE: the spec parses and executes the script in separate steps,
