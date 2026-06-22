@@ -450,14 +450,14 @@ codegen-units = 1
 # Or for Stylo:
 #
  [patch."https://github.com/servo/stylo"]
- selectors = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
- servo_arc ={ git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
- stylo = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
- stylo_atoms = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
- stylo_dom = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
- stylo_malloc_size_of = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
- stylo_static_prefs = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
- stylo_traits = { git = "https://github.com/jschwe/stylo", rev = "e7d830f9e9b4f46b1edaa9ab7c8edf2e85ec2960" }
+ selectors = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
+ servo_arc ={ git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
+ stylo = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
+ stylo_atoms = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
+ stylo_dom = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
+ stylo_malloc_size_of = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
+ stylo_static_prefs = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
+ stylo_traits = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
 #
 # Or for another Git dependency:
 #
