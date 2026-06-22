@@ -358,7 +358,7 @@ jobs:
 
           ./mach package --release
 
-          PACKAGE="$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz"
+          PACKAGE="$CARGO_TARGET_DIR/release/servo-tech-demo.tar.gz"
           WORK_DIR="$(mktemp -d)"
           RUNTIME_DIR="$WORK_DIR/runtime"
           SYMBOL_DIR="$WORK_DIR/symbols"
