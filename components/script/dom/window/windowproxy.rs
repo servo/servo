@@ -171,6 +171,7 @@ impl WindowProxy {
     }
 
     #[expect(unsafe_code)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
