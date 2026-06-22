@@ -223,19 +223,15 @@ pub(crate) struct ReadableByteStreamController {
 
 impl ReadableByteStreamController {
     fn new_inherited(
-        cx: &mut JSContext,
-        underlying_source_type: UnderlyingSourceType,
+        underlying_source_container: &UnderlyingSourceContainer,
         strategy_hwm: f64,
-        global: &GlobalScope,
     ) -> ReadableByteStreamController {
-        let underlying_source_container =
-            UnderlyingSourceContainer::new(cx, global, underlying_source_type);
         let auto_allocate_chunk_size = underlying_source_container.auto_allocate_chunk_size();
         ReadableByteStreamController {
             reflector_: Reflector::new(),
             byob_request: MutNullableDom::new(None),
             stream: MutNullableDom::new(None),
-            underlying_source: MutNullableDom::new(Some(&*underlying_source_container)),
+            underlying_source: MutNullableDom::new(Some(underlying_source_container)),
             auto_allocate_chunk_size,
             pending_pull_intos: DomRefCell::new(Vec::new()),
             strategy_hwm,
@@ -254,12 +250,12 @@ impl ReadableByteStreamController {
         strategy_hwm: f64,
         global: &GlobalScope,
     ) -> DomRoot<ReadableByteStreamController> {
+        let underlying_source_container =
+            UnderlyingSourceContainer::new(cx, global, underlying_source_type);
         reflect_dom_object_with_cx(
             Box::new(ReadableByteStreamController::new_inherited(
-                cx,
-                underlying_source_type,
+                &underlying_source_container,
                 strategy_hwm,
-                global,
             )),
             global,
             cx,

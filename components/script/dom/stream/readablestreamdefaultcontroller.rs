@@ -359,14 +359,9 @@ impl ReadableStreamDefaultController {
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
     ) -> DomRoot<ReadableStreamDefaultController> {
-        let underlying_source = UnderlyingSourceContainer::new(
-            cx,
-            global,
-            underlying_source,
-        );
+        let underlying_source = UnderlyingSourceContainer::new(cx, global, underlying_source);
         reflect_dom_object_with_cx(
             Box::new(ReadableStreamDefaultController::new_inherited(
-                cx,
                 strategy_hwm,
                 strategy_size,
                 &underlying_source,
