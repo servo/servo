@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::{Arc, OnceLock};
+
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcReceiver};
-use ipc_channel::router::ROUTER;
 use js::context::JSContext;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Uint8Array};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use servo_base::generic_channel::GenericCallback;
 use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::block::Block;
 use servo_media::audio::node::AudioNodeInit;
@@ -43,7 +44,8 @@ impl AnalyserNode {
         _: &Window,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
-    ) -> Fallible<(AnalyserNode, IpcReceiver<Block>)> {
+        callback: Arc<OnceLock<GenericCallback<Block>>>,
+    ) -> Fallible<AnalyserNode> {
         let node_options =
             options
                 .parent
@@ -64,14 +66,9 @@ impl AnalyserNode {
             return Err(Error::IndexSize(None));
         }
 
-        let (send, rcv) = ipc::channel().unwrap();
-        let callback = move |block| {
-            send.send(block).unwrap();
-        };
-
         let node = AudioNode::new_inherited(
             cx,
-            AudioNodeInit::AnalyserNode(Box::new(callback)),
+            AudioNodeInit::AnalyserNode(callback),
             context,
             node_options,
             1, // inputs
@@ -84,13 +81,10 @@ impl AnalyserNode {
             *options.minDecibels,
             *options.maxDecibels,
         );
-        Ok((
-            AnalyserNode {
-                node,
-                engine: DomRefCell::new(engine),
-            },
-            rcv,
-        ))
+        Ok(AnalyserNode {
+            node,
+            engine: DomRefCell::new(engine),
+        })
     }
 
     pub(crate) fn new(
@@ -110,7 +104,9 @@ impl AnalyserNode {
         context: &BaseAudioContext,
         options: &AnalyserOptions,
     ) -> Fallible<DomRoot<AnalyserNode>> {
-        let (node, recv) = AnalyserNode::new_inherited(cx, window, context, options)?;
+        let callback_oncelock = Arc::new(OnceLock::new());
+        let node =
+            AnalyserNode::new_inherited(cx, window, context, options, callback_oncelock.clone())?;
         let object = reflect_dom_object_with_proto_and_cx(Box::new(node), window, proto, cx);
         let task_source = window
             .as_global_scope()
@@ -119,16 +115,18 @@ impl AnalyserNode {
             .to_sendable();
         let this = Trusted::new(&*object);
 
-        ROUTER.add_typed_route(
-            recv,
-            Box::new(move |block| {
-                let this = this.clone();
-                task_source.queue(task!(append_analysis_block: move || {
-                    let this = this.root();
-                    this.push_block(block.unwrap())
-                }));
-            }),
-        );
+        let callback = GenericCallback::new(move |block| {
+            let this = this.clone();
+            task_source.queue(task!(append_analysis_block: move || {
+                let this = this.root();
+                this.push_block(block.unwrap())
+            }));
+        })
+        .unwrap();
+        if callback_oncelock.set(callback).is_err() {
+            log::error!("AnalyzerNode callback is already set. Not setting it again");
+        }
+
         Ok(object)
     }
 
