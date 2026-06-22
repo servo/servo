@@ -336,7 +336,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Debian 12 from the top
-        run: ci/local-runtime/from_the_top.sh
+        run: bash ci/local-runtime/from_the_top.sh
 
       - name: Prepare Debian target directory
         run: mkdir -p "$CARGO_TARGET_DIR"
