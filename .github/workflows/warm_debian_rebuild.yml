@@ -180,6 +180,53 @@ jobs:
 
           test -d "$CARGO_TARGET_DIR"
 
+      - name: Reattach restored Rust toolchain
+        run: |
+          set -Eeuo pipefail
+
+          # Rustup/Cargo was restored as files, but the PATH change made by the
+          # original Factory Reset shell was not. Locate the restored toolchain
+          # rather than assuming whether Actions supplied HOME as /root or as a
+          # separate mounted directory such as /github/home.
+          CARGO_BIN=""
+          for candidate in "$HOME/.cargo/bin" /root/.cargo/bin; do
+            if [ -x "$candidate/cargo" ]; then
+              CARGO_BIN="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$CARGO_BIN" ]; then
+            echo "Restored warm state contains no cargo executable." >&2
+            echo "Checked: $HOME/.cargo/bin/cargo and /root/.cargo/bin/cargo" >&2
+            exit 1
+          fi
+
+          CARGO_HOME="$(dirname "$CARGO_BIN")"
+          TOOLCHAIN_HOME="$(dirname "$CARGO_HOME")"
+          RUSTUP_HOME="$TOOLCHAIN_HOME/.rustup"
+
+          export PATH="$CARGO_BIN:$PATH"
+          export CARGO_HOME RUSTUP_HOME
+
+          # Persist these values to later Actions run: steps. GITHUB_PATH is
+          # applied by the runner after this step; the export above covers the
+          # checks in this shell.
+          printf '%s\n' "$CARGO_BIN" >> "$GITHUB_PATH"
+          {
+            printf 'CARGO_HOME=%s\n' "$CARGO_HOME"
+            printf 'RUSTUP_HOME=%s\n' "$RUSTUP_HOME"
+          } >> "$GITHUB_ENV"
+
+          echo "Restored Cargo bin: $CARGO_BIN"
+          echo "Restored Cargo home: $CARGO_HOME"
+          echo "Restored Rustup home: $RUSTUP_HOME"
+
+          command -v cargo
+          cargo --version --verbose
+          command -v rustc
+          rustc --version --verbose
+
       - name: Build Servo Linux NONdebug
         run: ./mach build --release
 
