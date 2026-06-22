@@ -2118,7 +2118,8 @@ impl ScriptThread {
                 violations,
             )) => {
                 if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
-                    let _realm = enter_realm(&*global);
+                    let mut realm = enter_auto_realm(cx, &*global);
+                    let cx = &mut realm.current_realm();
                     global.run_worker_csp_violation_report_tasks(violations, cx);
                 }
             },

@@ -15,7 +15,7 @@ use content_security_policy::{
 };
 use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
-use js::context::JSContext;
+use js::realm::CurrentRealm;
 use js::rust::describe_scripted_caller;
 use log::warn;
 use servo_constellation_traits::{LoadData, LoadOrigin};
@@ -464,7 +464,7 @@ impl GlobalScope {
     pub(crate) fn run_worker_csp_violation_report_tasks(
         &self,
         violations: Vec<Violation>,
-        cx: &mut JSContext,
+        cx: &mut CurrentRealm,
     ) {
         // Worker CSP violations already crossed an event-loop boundary via
         // `CommonScriptMsg::ReportCspViolations`, so run the queued report
