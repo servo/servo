@@ -237,20 +237,24 @@ jobs:
           echo "=== Factory Reset warm snapshot ==="
           du -sh "$SNAPSHOT_DIR"/* | sort -h
 
-          # Exactly one durable snapshot release exists. Recreating this fixed
-          # prerelease removes all old parts before publishing the new set, so
-          # repeated Factory Resets do not accumulate generations of storage.
-          gh release delete "$WARM_TAG" --yes --cleanup-tag 2>/dev/null || true
-          gh api --method DELETE \
-            "repos/$GITHUB_REPOSITORY/git/refs/tags/$WARM_TAG" \
-            >/dev/null 2>&1 || true
-
-          gh release create "$WARM_TAG" "$SNAPSHOT_DIR"/* \
-            --target "$GITHUB_SHA" \
-            --title "Factory Reset warm state — Debian 12 on Ubuntu 24.04" \
-            --notes-file "$SNAPSHOT_DIR/README.txt" \
-            --prerelease \
-            --latest=false
+          # Factory Reset seeds the one durable warm-state prerelease when it
+          # does not exist. When it already exists, replace its fixed assets
+          # in place rather than deleting/recreating its release and tag.
+          if gh release view "$WARM_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            >/dev/null 2>&1; then
+            gh release upload "$WARM_TAG" "$SNAPSHOT_DIR"/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+          else
+            gh release create "$WARM_TAG" "$SNAPSHOT_DIR"/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Factory Reset warm state — Debian 12 on Ubuntu 24.04" \
+              --notes-file "$SNAPSHOT_DIR/README.txt" \
+              --prerelease \
+              --latest=false
+          fi
 
           PACKAGE="$CARGO_TARGET_DIR/release/servo-tech-demo.tar.gz"
           WORK_DIR="$(mktemp -d)"
