@@ -45,7 +45,6 @@ use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingConte
 use crate::dom::promise::Promise;
 use crate::dom::types::{WebGLRenderingContext, Window};
 use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
-use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#offscreencanvas>
 #[dom_struct]
@@ -163,12 +162,8 @@ impl OffscreenCanvas {
                 _ => None,
             };
         }
-        let context = OffscreenCanvasRenderingContext2D::new(
-            &self.global(),
-            self,
-            self.get_size(),
-            CanGc::from_cx(cx),
-        )?;
+        let context =
+            OffscreenCanvasRenderingContext2D::new(cx, &self.global(), self, self.get_size())?;
         *self.context.borrow_mut() = Some(OffscreenRenderingContext::Context2d(Dom::from_ref(
             &*context,
         )));
@@ -195,7 +190,7 @@ impl OffscreenCanvas {
         let canvas =
             RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(DomRoot::from_ref(self));
 
-        let context = ImageBitmapRenderingContext::new(&self.global(), &canvas, CanGc::from_cx(cx));
+        let context = ImageBitmapRenderingContext::new(cx, &self.global(), &canvas);
 
         // Step 2. Set this's context mode to bitmaprenderer.
         *self.context.borrow_mut() = Some(OffscreenRenderingContext::BitmapRenderer(

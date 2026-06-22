@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
-use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object};
+use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object_with_cx};
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::canvas::{CanvasCommand, CanvasId};
 use servo_url::ServoUrl;
@@ -36,7 +36,6 @@ use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
-use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct(associated_memory)]
@@ -81,10 +80,10 @@ impl CanvasRenderingContext2D {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         canvas: &HTMLCanvasElement,
         size: Size2D<u32>,
-        can_gc: CanGc,
     ) -> Option<DomRoot<CanvasRenderingContext2D>> {
         CanvasRenderingContext2D::new_inherited(
             global,
@@ -92,7 +91,7 @@ impl CanvasRenderingContext2D {
             size,
         )
         .map(|context| {
-            let context = reflect_dom_object(Box::new(context), global, can_gc);
+            let context = reflect_dom_object_with_cx(Box::new(context), global, cx);
             context.update_associated_memory_size();
             context
         })
@@ -538,32 +537,37 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata>
-    fn CreateImageData(&self, sw: i32, sh: i32, can_gc: CanGc) -> Fallible<DomRoot<ImageData>> {
+    fn CreateImageData(
+        &self,
+        cx: &mut JSContext,
+        sw: i32,
+        sh: i32,
+    ) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
-            .create_image_data(&self.global(), sw, sh, can_gc)
+            .create_image_data(cx, &self.global(), sw, sh)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata>
     fn CreateImageData_(
         &self,
+        cx: &mut JSContext,
         imagedata: &ImageData,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
-            .create_image_data_(&self.global(), imagedata, can_gc)
+            .create_image_data_(cx, &self.global(), imagedata)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata>
     fn GetImageData(
         &self,
+        cx: &mut JSContext,
         sx: i32,
         sy: i32,
         sw: i32,
         sh: i32,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
-            .get_image_data(self.canvas.size(), &self.global(), sx, sy, sw, sh, can_gc)
+            .get_image_data(cx, self.canvas.size(), &self.global(), sx, sy, sw, sh)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
