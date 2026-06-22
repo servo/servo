@@ -22,6 +22,7 @@ use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::nodelist::NodeList;
 use crate::dom::range::{Range, WeakRangeVec};
 use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::types::Element;
 use crate::dom::window::LayoutValue;
 
 // XXX(ferjm) Ideally merge NodeRareData and ElementRareData so they share
@@ -103,4 +104,7 @@ pub(crate) struct ElementRareData {
     /// Whether this element had duplicate attributes during tokenization.
     /// Used for CSP nonce validation (step 3 of "is element nonceable").
     pub(crate) had_duplicate_attributes: bool,
+
+    /// <https://html.spec.whatwg.org/multipage/#previously-focused-element>
+    pub(crate) previously_focused_element: MutNullableDom<Element>,
 }

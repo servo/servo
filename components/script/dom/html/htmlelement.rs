@@ -77,8 +77,6 @@ pub(crate) struct HTMLElement {
     element: Element,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
     dataset: MutNullableDom<DOMStringMap>,
-    /// <https://html.spec.whatwg.org/multipage/#previously-focused-element>
-    previously_focused_element: MutNullableDom<Element>,
 }
 
 impl HTMLElement {
@@ -106,7 +104,6 @@ impl HTMLElement {
             ),
             style_decl: Default::default(),
             dataset: Default::default(),
-            previously_focused_element: Default::default(),
         }
     }
 
@@ -183,11 +180,17 @@ impl HTMLElement {
     }
 
     pub(crate) fn previously_focused_element(&self) -> Option<DomRoot<Element>> {
-        self.previously_focused_element.get()
+        self.upcast::<Element>()
+            .ensure_rare_data()
+            .previously_focused_element
+            .get()
     }
 
     pub(crate) fn set_previously_focused_element(&self, element: Option<&Element>) {
-        self.previously_focused_element.set(element);
+        self.upcast::<Element>()
+            .ensure_rare_data()
+            .previously_focused_element
+            .set(element);
     }
 }
 
