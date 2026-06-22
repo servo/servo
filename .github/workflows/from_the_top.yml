@@ -506,6 +506,69 @@ jobs:
             release/servo-linux-debian12-debug-symbols.zip
           if-no-files-found: error
 
+      - name: Keep Debian 12 runtime and leave debug symbols behind
+        run: |
+          set -Eeuo pipefail
+
+          SOURCE_DIR="release"
+          OUTPUT_DIR="${RUNNER_TEMP}/debian12-runtime-only"
+          RUNTIME_TARBALL="release/servo-linux-debian12-runtime-only-v1.tar.gz"
+          RUNTIME_ZIP_NAME='servo-linux-debian12-debug-runtime-stripped.zip'
+          SYMBOL_ZIP_NAME='servo-linux-debian12-debug-symbols.zip'
+
+          mapfile -t runtime_zips < <(find "${SOURCE_DIR}" -type f -name "${RUNTIME_ZIP_NAME}" -print | sort)
+          if [ "${#runtime_zips[@]}" -ne 1 ]; then
+            echo "ERROR: expected exactly one ${RUNTIME_ZIP_NAME}; found ${#runtime_zips[@]}." >&2
+            printf '%s\n' "${runtime_zips[@]:-}" >&2
+            exit 1
+          fi
+
+          runtime_zip="${runtime_zips[0]}"
+          rm -rf "${OUTPUT_DIR}"
+          rm -f "${RUNTIME_TARBALL}"
+          mkdir -p "${OUTPUT_DIR}"
+          unzip -q "${runtime_zip}" -d "${OUTPUT_DIR}"
+
+          servoshell_path="$(find "${OUTPUT_DIR}" -type f -name servoshell -print -quit)"
+          if [ -z "${servoshell_path}" ]; then
+            echo 'ERROR: stripped runtime ZIP did not contain servoshell.' >&2
+            exit 1
+          fi
+
+          # Uploading a raw directory through Actions can discard executable mode
+          # bits. Pack the extracted runtime in tar.gz so servoshell remains
+          # executable after the browser download is unpacked locally.
+          tar -C "${OUTPUT_DIR}" -czf "${RUNTIME_TARBALL}" .
+
+          runtime_tree_size="$(du -sh "${OUTPUT_DIR}" | cut -f1)"
+          runtime_zip_size="$(du -h "${runtime_zip}" | cut -f1)"
+          runtime_tarball_size="$(du -h "${RUNTIME_TARBALL}" | cut -f1)"
+          runtime_zip_sha256="$(sha256sum "${runtime_zip}" | awk '{print $1}')"
+          runtime_tarball_sha256="$(sha256sum "${RUNTIME_TARBALL}" | awk '{print $1}')"
+          symbol_count="$(find "${SOURCE_DIR}" -type f -name "${SYMBOL_ZIP_NAME}" -print | wc -l)"
+          servoshell_version="$("${servoshell_path}" --version 2>&1 || true)"
+
+          {
+            echo '### Debian 12 runtime-only extraction v1'
+            echo
+            echo "- Source artifact directory: ${SOURCE_DIR}"
+            echo "- Kept runtime ZIP: ${RUNTIME_ZIP_NAME} (${runtime_zip_size})"
+            echo "- Runtime ZIP SHA-256: ${runtime_zip_sha256}"
+            echo "- Extracted runtime tree size: ${runtime_tree_size}"
+            echo "- Output tarball: $(basename "${RUNTIME_TARBALL}") (${runtime_tarball_size})"
+            echo "- Output tarball SHA-256: ${runtime_tarball_sha256}"
+            echo "- Debug-symbol ZIPs deliberately not copied: ${symbol_count}"
+            echo "- Packaged servoshell --version: ${servoshell_version}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload stripped Debian 12 runtime only
+        uses: actions/upload-artifact@v7
+        with:
+          name: servo-linux-debian12-runtime-only-v1
+          path: release/servo-linux-debian12-runtime-only-v1.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+
       - name: Install GitHub CLI
         run: |
           set -Eeuo pipefail
