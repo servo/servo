@@ -26,11 +26,11 @@ use std::vec::Vec;
 
 use device_monitor::GStreamerDeviceMonitor;
 use gstreamer::prelude::*;
-use ipc_channel::ipc::IpcSender;
 use log::warn;
 use media_stream::GStreamerMediaStream;
 use mime::Mime;
 use registry_scanner::GSTREAMER_REGISTRY_SCANNER;
+use servo_base::generic_channel::GenericCallback;
 use servo_media::{Backend, BackendDeInit, BackendInit, MediaInstanceError, SupportsMediaType};
 use servo_media_audio::context::{AudioContext, AudioContextOptions};
 use servo_media_audio::decoder::AudioDecoder;
@@ -173,7 +173,7 @@ impl Backend for GStreamerBackend {
         &self,
         context_id: &ClientContextId,
         stream_type: StreamType,
-        sender: IpcSender<PlayerEvent>,
+        sender: GenericCallback<PlayerEvent>,
         renderer: Option<Arc<Mutex<dyn VideoFrameRenderer>>>,
         audio_renderer: Option<Arc<Mutex<dyn AudioRenderer>>>,
         gl_context: Box<dyn PlayerGLContext>,

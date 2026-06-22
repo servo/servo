@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-extern crate ipc_channel;
 extern crate servo_media;
 extern crate servo_media_audio;
 extern crate servo_media_player;
@@ -15,7 +14,7 @@ use std::ops::Range;
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 
-use ipc_channel::ipc::IpcSender;
+use servo_base::generic_channel::GenericCallback;
 use servo_media::{Backend, BackendInit, MediaInstanceError, SupportsMediaType};
 use servo_media_audio::block::{Block, Chunk};
 use servo_media_audio::context::{AudioContext, AudioContextOptions};
@@ -87,7 +86,7 @@ impl Backend for DummyBackend {
         &self,
         _id: &ClientContextId,
         _: StreamType,
-        _: IpcSender<PlayerEvent>,
+        _: GenericCallback<PlayerEvent>,
         _: Option<Arc<Mutex<dyn video::VideoFrameRenderer>>>,
         _: Option<Arc<Mutex<dyn audio::AudioRenderer>>>,
         _: Box<dyn PlayerGLContext>,
