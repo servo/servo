@@ -47,6 +47,7 @@ jobs:
 
           SOURCE_DIR="${RUNNER_TEMP}/source-artifact"
           OUTPUT_DIR="${RUNNER_TEMP}/debian12-runtime-only"
+          RUNTIME_TARBALL="${RUNNER_TEMP}/servo-linux-debian12-runtime-only-v1.tar.gz"
           RUNTIME_ZIP_NAME='servo-linux-debian12-debug-runtime-stripped.zip'
           SYMBOL_ZIP_NAME='servo-linux-debian12-debug-symbols.zip'
 
@@ -59,6 +60,7 @@ jobs:
 
           runtime_zip="${runtime_zips[0]}"
           rm -rf "${OUTPUT_DIR}"
+          rm -f "${RUNTIME_TARBALL}"
           mkdir -p "${OUTPUT_DIR}"
           unzip -q "${runtime_zip}" -d "${OUTPUT_DIR}"
 
@@ -68,9 +70,16 @@ jobs:
             exit 1
           fi
 
-          runtime_size="$(du -sh "${OUTPUT_DIR}" | cut -f1)"
+          # Uploading a raw directory through Actions can discard executable mode
+          # bits. Pack the extracted runtime in tar.gz so servoshell remains
+          # executable after the browser download is unpacked locally.
+          tar -C "${OUTPUT_DIR}" -czf "${RUNTIME_TARBALL}" .
+
+          runtime_tree_size="$(du -sh "${OUTPUT_DIR}" | cut -f1)"
           runtime_zip_size="$(du -h "${runtime_zip}" | cut -f1)"
-          runtime_sha256="$(sha256sum "${runtime_zip}" | awk '{print $1}')"
+          runtime_tarball_size="$(du -h "${RUNTIME_TARBALL}" | cut -f1)"
+          runtime_zip_sha256="$(sha256sum "${runtime_zip}" | awk '{print $1}')"
+          runtime_tarball_sha256="$(sha256sum "${RUNTIME_TARBALL}" | awk '{print $1}')"
           symbol_count="$(find "${SOURCE_DIR}" -type f -name "${SYMBOL_ZIP_NAME}" -print | wc -l)"
           servoshell_version="$("${servoshell_path}" --version 2>&1 || true)"
 
@@ -80,8 +89,10 @@ jobs:
             echo "- Source Actions run: ${SOURCE_RUN_ID}"
             echo "- Source artifact: ${SOURCE_ARTIFACT_NAME}"
             echo "- Kept runtime ZIP: ${RUNTIME_ZIP_NAME} (${runtime_zip_size})"
-            echo "- Runtime ZIP SHA-256: ${runtime_sha256}"
-            echo "- Extracted runtime tree size: ${runtime_size}"
+            echo "- Runtime ZIP SHA-256: ${runtime_zip_sha256}"
+            echo "- Extracted runtime tree size: ${runtime_tree_size}"
+            echo "- Output tarball: $(basename "${RUNTIME_TARBALL}") (${runtime_tarball_size})"
+            echo "- Output tarball SHA-256: ${runtime_tarball_sha256}"
             echo "- Debug-symbol ZIPs deliberately not copied: ${symbol_count}"
             echo "- Packaged servoshell --version: ${servoshell_version}"
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -90,6 +101,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.output_artifact_name }}
-          path: ${{ runner.temp }}/debian12-runtime-only/*
+          path: ${{ runner.temp }}/servo-linux-debian12-runtime-only-v1.tar.gz
           if-no-files-found: error
-          compression-level: 6
+          compression-level: 0
