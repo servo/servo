@@ -866,6 +866,12 @@ impl ServoInner {
     fn handle_webdriver_embedder_message(&self, message: WebDriverToEmbedderMsg) {
         use webdriver_traits::bidi::ErrorCode;
         match message {
+            WebDriverToEmbedderMsg::Activate(webview_id, callback) => {
+                let focus_result = self.webdriver_delegate.borrow().focus_webview(webview_id);
+                if let Err(err) = callback.send(focus_result) {
+                    warn!("Sending response to webdriver failed ({err:?})");
+                }
+            },
             WebDriverToEmbedderMsg::Exit => {
                 self.handle_exit();
             },

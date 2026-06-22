@@ -164,9 +164,8 @@ pub enum WebDriverToConstellationMsg {
     SetUserAgentOverride(WebViewId, Option<String>),
     SetViewport(WebViewId, GenericCallback<()>),
     TraverseHistory(WebViewId, i64, GenericCallback<bool>),
-    WebViewActivate(WebViewId, GenericCallback<bool>),
-    WebViewClose(WebViewId, bool, GenericCallback<bool>),
-    WebviewNavigate(WebViewId, String, GenericCallback<()>),
+    Close(WebViewId, bool, GenericCallback<bool>),
+    Navigate(WebViewId, String, GenericCallback<()>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -192,6 +191,7 @@ pub enum WebDriverToScriptMsg {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToEmbedderMsg {
+    Activate(WebViewId, GenericCallback<bool>),
     Exit,
     // TODO: param
     SetClientWindowState(PainterId, SetClientWindowStateParameters),

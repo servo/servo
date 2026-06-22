@@ -1607,11 +1607,8 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_request_from_webdriver(&mut self, message: WebDriverToConstellationMsg) {
         match message {
-            WebDriverToConstellationMsg::WebViewActivate(namespace_index, generic_callback) => {
-                todo!()
-            },
             // Close a top-level traversable.
-            WebDriverToConstellationMsg::WebViewClose(webview_id, _, callback) => {
+            WebDriverToConstellationMsg::Close(webview_id, _, callback) => {
                 self.handle_close_top_level_browsing_context(webview_id);
                 if let Err(e) = callback.send(true) {
                     warn!("Error replying to webdriver close webview ({})", e);
@@ -1655,7 +1652,7 @@ where
             WebDriverToConstellationMsg::SetTouchOverride(web_view_id, _) => todo!(),
             WebDriverToConstellationMsg::SetUserAgentOverride(web_view_id, _) => todo!(),
             WebDriverToConstellationMsg::SetViewport(web_view_id, generic_callback) => todo!(),
-            WebDriverToConstellationMsg::WebviewNavigate(web_view_id, _, generic_callback) => {
+            WebDriverToConstellationMsg::Navigate(web_view_id, _, generic_callback) => {
                 todo!()
             },
         }

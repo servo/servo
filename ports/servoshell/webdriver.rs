@@ -342,6 +342,13 @@ impl WebDriverDelegate for RunningAppState {
     fn queue_request(&self, request: webdriver_traits::WebViewCreateRequest) {
         self.pending_webdriver_requests.borrow_mut().push(request);
     }
+
+    fn focus_webview(&self, webview_id: WebViewId) -> bool {
+        let window = self.window_for_webview_id(webview_id);
+        window.activate_webview(webview_id);
+        self.focus_window(window);
+        true
+    }
 }
 
 impl RunningAppState {

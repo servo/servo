@@ -19,6 +19,9 @@ pub trait WebDriverDelegate {
     /// We need to save the requests to a queue because OS window factory is
     /// not available in servo spin loop. Embedder should handle these requests later.
     fn queue_request(&self, request: WebViewCreateRequest) {}
+    fn focus_webview(&self, webview_id: WebViewId) -> bool {
+        false
+    }
 }
 
 pub struct DefaultWebDriverDelegate;

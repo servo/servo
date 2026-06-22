@@ -30,23 +30,23 @@ TODO: write doc for this part.
 
 ### The `browsingContext` module
 
-| Command                             | Status | Details                                |
-| ----------------------------------- | ------ | -------------------------------------- |
-| `browsingContext.create`            | ✅     |                                        |
-| `browsingContext.activate`          | 🚧     | Server side done, message not handled. |
-| `browsingContext.captureScreenshot` | 🚧     | Server side done, message not handled. |
-| `browsingContext.close`             | 🚧     | Server side done, message not handled. |
-| `browsingContext.getTree`           | 🚧     | Server side done, message not handled. |
-| `browsingContext.reload`            | 🚧     | Server side done, message not handled. |
-| `browsingContext.traverseHistory`   | 🚧     | Server side done, message not handled. |
-| `browsingContext.navigate`          | 🚧     | Server side done, message not handled. |
-| `browsingContext.handleUserPrompt`  | 🚧     | Server side done, message not handled  |
-| `browsingContext.locateNodes`       | ❌     |                                        |
-| `browsingContext.startScreencast`   | ⏳     | Unstable.                              |
-| `browsingContext.stopScreencast`    | ⏳     | Unstable.                              |
-| `browsingContext.setBypassCSP`      | ⛔     | Blocked by no CSP option.              |
-| `browsingContext.setViewport`       | ⛔     | Blocked by viewport not configurable.  |
-| `browsingContext.print`             | ⛔     | Blocked by PDF not implemented.        |
+| Command                             | Status | Details                                              |
+| ----------------------------------- | ------ | ---------------------------------------------------- |
+| `browsingContext.create`            | ✅     |                                                      |
+| `browsingContext.close`             | ✅     | `prompt_to_unload` not implemented in constellation. |
+| `browsingContext.activate`          | ✅     |                                                      |
+| `browsingContext.captureScreenshot` | 🚧     | Server side done, message not handled.               |
+| `browsingContext.getTree`           | 🚧     | Server side done, message not handled.               |
+| `browsingContext.reload`            | 🚧     | Server side done, message not handled.               |
+| `browsingContext.traverseHistory`   | 🚧     | Server side done, message not handled.               |
+| `browsingContext.navigate`          | 🚧     | Server side done, message not handled.               |
+| `browsingContext.handleUserPrompt`  | 🚧     | Server side done, message not handled                |
+| `browsingContext.locateNodes`       | ❌     |                                                      |
+| `browsingContext.startScreencast`   | ⏳     | Unstable.                                            |
+| `browsingContext.stopScreencast`    | ⏳     | Unstable.                                            |
+| `browsingContext.setBypassCSP`      | ⛔     | Blocked by no CSP option.                            |
+| `browsingContext.setViewport`       | ⛔     | Blocked by viewport not configurable.                |
+| `browsingContext.print`             | ⛔     | Blocked by PDF not implemented.                      |
 
 | Event                                 | Status | Details                              |
 | ------------------------------------- | ------ | ------------------------------------ |

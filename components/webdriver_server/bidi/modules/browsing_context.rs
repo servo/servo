@@ -1,7 +1,7 @@
 use std::{collections::HashSet, rc::Rc};
 
 use log::warn;
-use servo_base::id::{BrowsingContextId, WebViewId};
+use servo_base::id::{BrowsingContextId, PainterId, WebViewId};
 use webdriver_traits::{
     WebDriverToConstellationMsg, WebDriverToEmbedderMsg,
     bidi::{
@@ -22,7 +22,7 @@ use webdriver_traits::{
 
 use crate::bidi::{
     error::{BidiError, BidiResult},
-    remote_end::{Navigable, RemoteEnd, Traversable},
+    remote_end::{Navigable, RemoteEnd},
     session::SessionId,
     util::new_oneshot_callback,
 };
@@ -43,7 +43,7 @@ impl RemoteEnd {
                 .await
                 .map(BrowsingContextResult::CaptureScreenshotResult),
             BrowsingContextCommand::Close(cmd) => self
-                .handle_browsing_context_close(session_id, cmd.params)
+                .handle_browsing_context_close(cmd.params)
                 .await
                 .map(BrowsingContextResult::CloseResult),
             BrowsingContextCommand::Create(cmd) => self
@@ -133,7 +133,6 @@ impl RemoteEnd {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-close>
     async fn handle_browsing_context_close(
         self: Rc<Self>,
-        session_id: SessionId,
         command_parameters: CloseParameters,
     ) -> BidiResult<CloseResult> {
         // 1.
@@ -148,12 +147,21 @@ impl RemoteEnd {
         if !navigable.is_top_level_traversable {
             return Err(ErrorCode::InvalidArgument.into());
         }
+        let Some(webview_id) = self
+            .navigables
+            .borrow()
+            .get(&navigable_id)
+            .map(|n| n.traversable_id)
+        else {
+            return Err(ErrorCode::NoSuchFrame.into());
+        };
         // 6. & 7.
-        let (callback, receiver) = new_oneshot_callback::<()>();
-        // navigable.send_to_script(WebDriverToScriptMessage::CloseNavigable(
-        //     prompt_unload,
-        //     callback,
-        // ));
+        let (callback, receiver) = new_oneshot_callback();
+        self.send_to_constellation(WebDriverToConstellationMsg::Close(
+            webview_id,
+            prompt_unload,
+            callback,
+        ))?;
         if let Err(e) = receiver.await {
             log::warn!("Receiving callback failed: {e:?}");
             return Err(ErrorCode::UnknownError.into());
@@ -590,7 +598,21 @@ impl RemoteEnd {
                 warn!("Receiving WebViewCreate callback failed ({err:?})");
                 Err(ErrorCode::UnknownError.into())
             },
-            Ok(id) => Ok(id??),
+            Ok(webview_id) => {
+                let webview_id = webview_id??;
+                let painter_id = PainterId::from(webview_id);
+                self.client_windows
+                    .borrow_mut()
+                    .entry(painter_id)
+                    .or_insert_with(|| crate::bidi::remote_end::ClientWindow {
+                        id: painter_id,
+                        traversables: vec![],
+                    })
+                    .traversables
+                    .push(webview_id);
+                // TODO: should dedup or use indexmap
+                Ok(webview_id)
+            },
         }
     }
 }

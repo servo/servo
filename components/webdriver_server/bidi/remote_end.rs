@@ -39,6 +39,7 @@ use crate::bidi::{
     connection::{ConnectionId, ConnectionReceiver, ConnectionSender},
     error::{BidiError, BidiResult},
     session::{Session, SessionId},
+    util::new_oneshot_callback,
 };
 
 // Since we use single-threaded `LocalRutime`, `RefCell` can be used.
@@ -454,7 +455,30 @@ impl RemoteEnd {
         self: Rc<Self>,
         navigable_id: BrowsingContextId,
     ) -> BidiResult<EmptyResult> {
-        todo!()
+        let Some(webview_id) = self
+            .navigables
+            .borrow()
+            .get(&navigable_id)
+            .map(|n| n.traversable_id)
+        else {
+            return Err(ErrorCode::NoSuchFrame.into());
+        };
+        let (callback, recv) = new_oneshot_callback();
+        self.send_to_embedder(WebDriverToEmbedderMsg::Activate(webview_id, callback))?;
+        match recv.await {
+            Err(err) => {
+                warn!("Receiving callback failed ({err:?})");
+                Err(ErrorCode::UnknownError.into())
+            },
+            Ok(msg) => {
+                let msg = msg?;
+                if msg {
+                    Ok(EmptyResult::default())
+                } else {
+                    Err(ErrorCode::UnsupportedOperation.into())
+                }
+            },
+        }
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#buffer-a-log-event>
@@ -562,6 +586,14 @@ impl RemoteEnd {
         self.event_loop_waker.wake();
         Ok(())
     }
+
+    pub(crate) fn send_to_constellation(&self, msg: WebDriverToConstellationMsg) -> BidiResult<()> {
+        if let Err(err) = self.constellation_sender.send(msg) {
+            warn!("Error sending WebViewCreate message to constellation ({err:?})");
+            return Err(ErrorCode::UnknownError.into());
+        }
+        Ok(())
+    }
 }
 
 /// The OS client window.
@@ -600,6 +632,7 @@ pub struct Navigable {
     // TODO: should remove this field
     // and query in traversables instead.
     pub(crate) is_top_level_traversable: bool,
+    // TODO: parent
 }
 
 #[derive(Clone, Debug)]
