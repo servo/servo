@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       update_state:
-        description: build, package, publish artifacts, and return the newly warmed workshop to Releases.
+        description: Update cache with the newly warmed workshop. Makes next compilation faster, and this one slower.
         type: boolean
         default: true
 
