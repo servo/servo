@@ -313,6 +313,31 @@ jobs:
     container:
       image: debian:12
     steps:
+      - name: Install Debian bootstrap prerequisites
+        run: |
+          set -Eeuo pipefail
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            git \
+            python3 \
+            python3-venv \
+            python3-pip \
+            build-essential \
+            clang \
+            lld \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libssl-dev \
+            unzip \
+            zip \
+            tar \
+            xz-utils \
+            zstd \
+            sudo \
+            gh
       - uses: actions/checkout@v6
 
       - name: Debian 12 from the top
@@ -325,13 +350,13 @@ jobs:
         run: ./mach bootstrap --yes
 
       - name: Build Servo Linux NONdebug
-        run: ./mach build
+        run: ./mach build --release
 
       - name: Package Linux NONdebug build
         run: |
           set -Eeuo pipefail
 
-          ./mach package
+          ./mach package --release
 
           PACKAGE="$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz"
           WORK_DIR="$(mktemp -d)"
