@@ -1,4 +1,4 @@
-name: Warm Debian 12 Build
+name: From The Top v2
 
 on:
   workflow_dispatch:
@@ -20,121 +20,213 @@ env:
   UV_PROJECT_ENVIRONMENT: .devcontainer-venv
 
 jobs:
-  linux-debian12-warm-build:
-    name: Debian 12 warm restore-and-build
+  linux-debian12-debug-build:
+    name: Debian 12 debug symbol-split build
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     container:
       image: debian:12
     steps:
-      # A blank Debian 12 container only needs enough equipment to retrieve and
-      # unpack the saved warm environment. The restored Debian root then brings
-      # back the full compiler/toolchain/Cargo workshop.
-      - name: Install release-piece bootstrap
+      - name: Install Debian bootstrap prerequisites
         run: |
           set -Eeuo pipefail
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             ca-certificates \
+            curl \
             git \
+            python3 \
+            python3-venv \
+            python3-pip \
+            build-essential \
+            clang \
+            lld \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libssl-dev \
+            unzip \
+            zip \
             tar \
+            xz-utils \
             zstd \
+            sudo \
             gh
-
-      - name: Slurp and restore Release Pieces
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -Eeuo pipefail
-
-          WARM_TAG="factory-reset-debian12-ubuntu24-warm-state"
-          PIECES_DIR="${RUNNER_TEMP}/release-pieces"
-
-          rm -rf "$PIECES_DIR"
-          mkdir -p "$PIECES_DIR"
-
-          # This workflow starts outside a checked-out repository, so tell gh
-          # the source repository explicitly.
-          gh release download "$WARM_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --dir "$PIECES_DIR" \
-            --clobber \
-            --pattern 'SHA256SUMS' \
-            --pattern 'debian-root.tar.zst.part-*' \
-            --pattern 'github-home.tar.zst.part-*' \
-            --pattern 'repo-warm.tar.zst.part-*'
-
-          (
-            cd "$PIECES_DIR"
-            sha256sum -c SHA256SUMS
-          )
-
-          restore_stream() {
-            local stream_name="$1"
-            local destination="$2"
-            local first_piece="$PIECES_DIR/${stream_name}.part-000"
-
-            if [ ! -f "$first_piece" ]; then
-              echo "No ${stream_name} stream in this warm state; skipping."
-              return 0
-            fi
-
-            echo "Restoring ${stream_name} into ${destination}"
-            cat "$PIECES_DIR"/"${stream_name}".part-* \
-              | tar --zstd \
-                  --numeric-owner \
-                  --acls \
-                  --xattrs \
-                  -xpf - \
-                  -C "$destination"
-          }
-
-          # This overlays the saved Debian userspace and Cargo target tree
-          # onto the fresh Debian 12 container. The snapshot deliberately
-          # omitted /proc, /sys, /dev, /run and Actions bind mounts, which are
-          # supplied fresh by the new job.
-          restore_stream debian-root.tar.zst /
-
-          # Factory Reset only writes this when Actions provided HOME outside
-          # /root. The same path is restored before later build commands run.
-          restore_stream github-home.tar.zst "$HOME"
-
-          test -d "$CARGO_TARGET_DIR"
-
-      # Today's source is intentionally obtained only after the warm Debian
-      # root exists. The workspace was excluded from the root snapshot.
       - uses: actions/checkout@v6
 
-      - name: Restore repo-local warm state
-        run: |
-          set -Eeuo pipefail
+      - name: Debian 12 from the top
+        run: bash ci/local-runtime/from_the_top.sh
 
-          PIECES_DIR="${RUNNER_TEMP}/release-pieces"
-          first_piece="$PIECES_DIR/repo-warm.tar.zst.part-000"
+      - name: Prepare Debian target directory
+        run: mkdir -p "$CARGO_TARGET_DIR"
 
-          if [ -f "$first_piece" ]; then
-            echo "Restoring repo-local warm state into $GITHUB_WORKSPACE"
-            cat "$PIECES_DIR"/repo-warm.tar.zst.part-* \
-              | tar --zstd \
-                  --numeric-owner \
-                  --acls \
-                  --xattrs \
-                  -xpf - \
-                  -C "$GITHUB_WORKSPACE"
-          else
-            echo "No repo-local warm state in this snapshot; continuing."
-          fi
-
-          test -d "$CARGO_TARGET_DIR"
+      - name: Bootstrap Servo dependencies
+        run: ./mach bootstrap --yes
 
       - name: Build Servo Linux NONdebug
         run: ./mach build --release
 
       - name: Package Linux NONdebug build
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
 
           ./mach package --release
+
+          # This is the Factory Reset checkpoint: the complete warm Debian
+          # userspace and incremental build state, captured before the later
+          # packaging work stages files and extracts debug symbols.
+          #
+          # The snapshot is written to the workspace only as a temporary
+          # staging area. It is then published directly to one fixed GitHub
+          # prerelease, replacing the prior Factory Reset snapshot.
+          SNAPSHOT_DIR="$GITHUB_WORKSPACE/factory-reset-snapshot"
+          WARM_TAG="factory-reset-debian12-ubuntu24-warm-state"
+
+          rm -rf "$SNAPSHOT_DIR"
+          mkdir -p "$SNAPSHOT_DIR"
+
+          {
+            echo "factory_reset_snapshot=debian12-ubuntu24"
+            echo "created_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "repository=$GITHUB_REPOSITORY"
+            echo "commit=$GITHUB_SHA"
+            echo "runner_os=$RUNNER_OS"
+            echo "runner_arch=$RUNNER_ARCH"
+            echo "outer_host_label=ubuntu-24.04"
+            echo "container_image=debian:12"
+            echo "github_workspace=$GITHUB_WORKSPACE"
+            echo "home=$HOME"
+            echo "cargo_target_dir=$CARGO_TARGET_DIR"
+            echo "uv_project_environment=$UV_PROJECT_ENVIRONMENT"
+          } > "$SNAPSHOT_DIR/manifest.env"
+
+          uname -a > "$SNAPSHOT_DIR/uname.txt"
+          cat /etc/os-release > "$SNAPSHOT_DIR/debian-os-release.txt"
+          cat /proc/self/mountinfo > "$SNAPSHOT_DIR/mountinfo.txt"
+
+          du -sh \
+            "$CARGO_TARGET_DIR" \
+            "$HOME" \
+            "$GITHUB_WORKSPACE/.devcontainer-venv" \
+            2>&1 | tee "$SNAPSHOT_DIR/warm-state-sizes.txt" || true
+
+          # GitHub Release assets must each remain below 2 GiB. 1900 MiB
+          # leaves room below that cap while keeping every stream restorable
+          # with one ordered `cat ... | tar --zstd` command.
+          split_zstd_tar() {
+            local stem="$1"
+            shift
+
+            "$@" | split \
+              --bytes=1900M \
+              --numeric-suffixes=0 \
+              --suffix-length=3 \
+              - "$SNAPSHOT_DIR/${stem}.part-"
+          }
+
+          ROOT_EXCLUDES=(
+            --exclude='./dev'
+            --exclude='./proc'
+            --exclude='./sys'
+            --exclude='./run'
+            --exclude='./tmp'
+            --exclude='./__w'
+            --exclude='./__e'
+            --exclude='./__t'
+            --exclude='./github'
+          )
+
+          # These runner-mounted paths are not part of Debian's saved root.
+          # $HOME is captured separately when Actions maps it outside /root.
+          for mounted_path in "$GITHUB_WORKSPACE" "${RUNNER_TEMP:-}"; do
+            [ -n "$mounted_path" ] || continue
+            ROOT_EXCLUDES+=(--exclude="./${mounted_path#/}")
+          done
+
+          if [ "$HOME" != "/root" ]; then
+            ROOT_EXCLUDES+=(--exclude="./${HOME#/}")
+          fi
+
+          # Root snapshot: Debian packages and configuration, toolchains,
+          # Cargo target state at /var/servo-cargo-target, and root-owned
+          # caches. Pseudo-filesystems and Actions bridge mounts stay fresh.
+          split_zstd_tar debian-root.tar.zst \
+            tar --zstd \
+              --numeric-owner \
+              --acls \
+              --xattrs \
+              --one-file-system \
+              "${ROOT_EXCLUDES[@]}" \
+              -C / \
+              -cf - .
+
+          # GitHub commonly mounts HOME outside the Debian root. Preserve its
+          # build caches but keep runner GitHub/Git credentials out of release.
+          if [ "$HOME" != "/root" ] && [ -d "$HOME" ]; then
+            split_zstd_tar github-home.tar.zst \
+              tar --zstd \
+                --numeric-owner \
+                --acls \
+                --xattrs \
+                --exclude='./.gitconfig' \
+                --exclude='./.config/gh/hosts.yml' \
+                -C "$HOME" \
+                -cf - .
+          fi
+
+          # UV is deliberately repo-local, so it is restored only after the
+          # next workflow checks out current source into the workspace.
+          if [ -d "$GITHUB_WORKSPACE/.devcontainer-venv" ]; then
+            split_zstd_tar repo-warm.tar.zst \
+              tar --zstd \
+                --numeric-owner \
+                --acls \
+                --xattrs \
+                -C "$GITHUB_WORKSPACE" \
+                -cf - \
+                .devcontainer-venv
+          fi
+
+          (
+            cd "$SNAPSHOT_DIR"
+            sha256sum *.part-* > SHA256SUMS
+            cat > README.txt <<'EOF'
+          Factory Reset warm snapshot: Debian 12 userspace on the Ubuntu 24.04
+          GitHub-hosted runner floor.
+
+          Restore order:
+            1. Reassemble and extract debian-root.tar.zst.part-* into /.
+            2. Reassemble and extract github-home.tar.zst.part-* into $HOME,
+               when that archive exists.
+            3. Check out current source into $GITHUB_WORKSPACE.
+            4. Reassemble and extract repo-warm.tar.zst.part-* into
+               $GITHUB_WORKSPACE, when that archive exists.
+            5. Run ./mach build --release.
+
+          Each .part-* is one contiguous segment of a .tar.zst stream:
+            cat NAME.part-* | tar --zstd -xf - -C DESTINATION
+          EOF
+          )
+
+          echo "=== Factory Reset warm snapshot ==="
+          du -sh "$SNAPSHOT_DIR"/* | sort -h
+
+          # Exactly one durable snapshot release exists. Recreating this fixed
+          # prerelease removes all old parts before publishing the new set, so
+          # repeated Factory Resets do not accumulate generations of storage.
+          gh release delete "$WARM_TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh api --method DELETE \
+            "repos/$GITHUB_REPOSITORY/git/refs/tags/$WARM_TAG" \
+            >/dev/null 2>&1 || true
+
+          gh release create "$WARM_TAG" "$SNAPSHOT_DIR"/* \
+            --target "$GITHUB_SHA" \
+            --title "Factory Reset warm state — Debian 12 on Ubuntu 24.04" \
+            --notes-file "$SNAPSHOT_DIR/README.txt" \
+            --prerelease \
+            --latest=false
 
           PACKAGE="$CARGO_TARGET_DIR/release/servo-tech-demo.tar.gz"
           WORK_DIR="$(mktemp -d)"
@@ -279,162 +371,6 @@ jobs:
             echo "AFTER_INVENTORY=$AFTER_INVENTORY"
           } >> "$GITHUB_ENV"
 
-      - name: Refresh rolling warm state in Releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -Eeuo pipefail
-
-          SNAPSHOT_DIR="$GITHUB_WORKSPACE/warm-state-next"
-          WARM_TAG="factory-reset-debian12-ubuntu24-warm-state"
-
-          rm -rf "$SNAPSHOT_DIR"
-          mkdir -p "$SNAPSHOT_DIR"
-
-          {
-            echo "warm_snapshot=debian12-ubuntu24"
-            echo "created_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "repository=$GITHUB_REPOSITORY"
-            echo "commit=$GITHUB_SHA"
-            echo "runner_os=$RUNNER_OS"
-            echo "runner_arch=$RUNNER_ARCH"
-            echo "outer_host_label=ubuntu-24.04"
-            echo "container_image=debian:12"
-            echo "github_workspace=$GITHUB_WORKSPACE"
-            echo "home=$HOME"
-            echo "cargo_target_dir=$CARGO_TARGET_DIR"
-            echo "uv_project_environment=$UV_PROJECT_ENVIRONMENT"
-          } > "$SNAPSHOT_DIR/manifest.env"
-
-          uname -a > "$SNAPSHOT_DIR/uname.txt"
-          cat /etc/os-release > "$SNAPSHOT_DIR/debian-os-release.txt"
-          cat /proc/self/mountinfo > "$SNAPSHOT_DIR/mountinfo.txt"
-
-          du -sh \
-            "$CARGO_TARGET_DIR" \
-            "$HOME" \
-            "$GITHUB_WORKSPACE/.devcontainer-venv" \
-            2>&1 | tee "$SNAPSHOT_DIR/warm-state-sizes.txt" || true
-
-          # Release assets stay below 2 GiB. Each stream is split into
-          # contiguous 1900 MiB pieces and restored with one ordered cat pipe.
-          split_zstd_tar() {
-            local stem="$1"
-            shift
-
-            "$@" | split \
-              --bytes=1900M \
-              --numeric-suffixes=0 \
-              --suffix-length=3 \
-              - "$SNAPSHOT_DIR/${stem}.part-"
-          }
-
-          ROOT_EXCLUDES=(
-            --exclude='./dev'
-            --exclude='./proc'
-            --exclude='./sys'
-            --exclude='./run'
-            --exclude='./tmp'
-            --exclude='./__w'
-            --exclude='./__e'
-            --exclude='./__t'
-            --exclude='./github'
-            --exclude='./root/.gitconfig'
-            --exclude='./root/.config/gh/hosts.yml'
-          )
-
-          for mounted_path in "$GITHUB_WORKSPACE" "${RUNNER_TEMP:-}"; do
-            [ -n "$mounted_path" ] || continue
-            ROOT_EXCLUDES+=(--exclude="./${mounted_path#/}")
-          done
-
-          if [ "$HOME" != "/root" ]; then
-            ROOT_EXCLUDES+=(--exclude="./${HOME#/}")
-          fi
-
-          # Debian root: packages, toolchains, /var/servo-cargo-target and
-          # root-owned caches. Actions bridges and live pseudo-filesystems are
-          # not carried forward.
-          split_zstd_tar debian-root.tar.zst \
-            tar --zstd \
-              --numeric-owner \
-              --acls \
-              --xattrs \
-              --one-file-system \
-              "${ROOT_EXCLUDES[@]}" \
-              -C / \
-              -cf - .
-
-          # Preserve a separately mounted Actions HOME without preserving Git
-          # or GitHub authentication configuration.
-          if [ "$HOME" != "/root" ] && [ -d "$HOME" ]; then
-            split_zstd_tar github-home.tar.zst \
-              tar --zstd \
-                --numeric-owner \
-                --acls \
-                --xattrs \
-                --exclude='./.gitconfig' \
-                --exclude='./.config/gh/hosts.yml' \
-                -C "$HOME" \
-                -cf - .
-          fi
-
-          # The UV environment is repo-local, so it is extracted after the
-          # next workflow checks out the current repository source.
-          if [ -d "$GITHUB_WORKSPACE/.devcontainer-venv" ]; then
-            split_zstd_tar repo-warm.tar.zst \
-              tar --zstd \
-                --numeric-owner \
-                --acls \
-                --xattrs \
-                -C "$GITHUB_WORKSPACE" \
-                -cf - \
-                .devcontainer-venv
-          fi
-
-          (
-            cd "$SNAPSHOT_DIR"
-            sha256sum *.part-* > SHA256SUMS
-            cat > README.txt <<'EOF'
-          Rolling warm state: Debian 12 userspace on the Ubuntu 24.04
-          GitHub-hosted runner floor.
-
-          Restore order:
-            1. Reassemble and extract debian-root.tar.zst.part-* into /.
-            2. Reassemble and extract github-home.tar.zst.part-* into $HOME,
-               when that archive exists.
-            3. Check out current source into $GITHUB_WORKSPACE.
-            4. Reassemble and extract repo-warm.tar.zst.part-* into
-               $GITHUB_WORKSPACE, when that archive exists.
-            5. Run ./mach build --release.
-
-          Each .part-* is a contiguous fragment of one .tar.zst stream:
-            cat NAME.part-* | tar --zstd -xf - -C DESTINATION
-          EOF
-          )
-
-          echo "=== Refreshed warm state ==="
-          du -sh "$SNAPSHOT_DIR"/* | sort -h
-
-          # There is one rolling warm-state release, not a historical stack of
-          # multi-gigabyte environments. The new release replaces the old one.
-          gh release delete "$WARM_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --yes \
-            --cleanup-tag \
-            2>/dev/null || true
-          gh api --method DELETE \
-            "repos/$GITHUB_REPOSITORY/git/refs/tags/$WARM_TAG" \
-            >/dev/null 2>&1 || true
-
-          gh release create "$WARM_TAG" "$SNAPSHOT_DIR"/* \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "Rolling warm state — Debian 12 on Ubuntu 24.04" \
-            --notes-file "$SNAPSHOT_DIR/README.txt" \
-            --prerelease \
-            --latest=false
-
       - name: Upload release ZIP artifacts
         id: upload_zips
         uses: actions/upload-artifact@v7
@@ -531,14 +467,12 @@ jobs:
 
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+          gh release view "$TAG" >/dev/null 2>&1 || \
             gh release create "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
               --title "Latest local runtime Debian 12 Linux debug build" \
               --notes "Automatically updated by GitHub Actions."
 
           gh release upload "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
             release/servo-linux-debian12-debug-runtime-stripped.zip \
             release/servo-linux-debian12-debug-symbols.zip \
             --clobber
