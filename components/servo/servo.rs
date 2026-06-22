@@ -864,40 +864,18 @@ impl ServoInner {
     }
 
     fn handle_webdriver_embedder_message(&self, message: WebDriverToEmbedderMsg) {
-        use webdriver_traits::bidi::ErrorCode;
-        match message {
-            WebDriverToEmbedderMsg::Activate(webview_id, callback) => {
-                let focus_result = self.webdriver_delegate.borrow().focus_webview(webview_id);
-                if let Err(err) = callback.send(focus_result) {
-                    warn!("Sending response to webdriver failed ({err:?})");
-                }
-            },
-            WebDriverToEmbedderMsg::Exit => {
-                self.handle_exit();
-            },
-            WebDriverToEmbedderMsg::SetClientWindowState(
-                painter_id,
-                set_client_window_state_parameters,
-            ) => todo!(),
-            WebDriverToEmbedderMsg::WebViewCreate(request) => {
-                self.webdriver_delegate.borrow().queue_request(request);
-            },
-        }
+        self.webdriver_delegate.borrow().pend_request(message);
     }
+}
 
-    fn handle_exit(&self) {
+impl Drop for ServoInner {
+    fn drop(&mut self) {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::Exit);
         self.shutdown_state.set(ShutdownState::ShuttingDown);
         while self.spin_event_loop() {
             std::thread::sleep(Duration::from_micros(500));
         }
-    }
-}
-
-impl Drop for ServoInner {
-    fn drop(&mut self) {
-        self.handle_exit();
     }
 }
 

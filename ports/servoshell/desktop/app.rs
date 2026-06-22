@@ -132,9 +132,6 @@ impl App {
             #[cfg(feature = "gamepad")]
             ServoshellGamepadDelegate::maybe_new().map(Rc::new),
         ));
-        running_state
-            .servo
-            .set_webdriver_delegate(running_state.clone());
         running_state.open_window(platform_window, self.initial_url.as_url().clone());
 
         self.state = AppState::Running(running_state);

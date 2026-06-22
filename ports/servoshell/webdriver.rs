@@ -14,6 +14,7 @@ use servo::{
 };
 use url::Url;
 use webdriver_traits::bidi::ErrorCode;
+use webdriver_traits::{WebDriverToEmbedderMsg, WebViewCreateRequest};
 
 use crate::running_app_state::RunningAppState;
 use crate::window::PlatformWindow;
@@ -333,21 +334,19 @@ impl RunningAppState {
     }
 }
 
-impl WebDriverDelegate for RunningAppState {
+#[derive(Default)]
+pub struct ServoshellWebDriverDelegate {
+    pub requests: RefCell<Vec<WebDriverToEmbedderMsg>>,
+}
+
+impl WebDriverDelegate for ServoshellWebDriverDelegate {
     fn support_multiple_window(&self) -> bool {
         // TODO: is this true for mobile platforms?
         true
     }
 
-    fn queue_request(&self, request: webdriver_traits::WebViewCreateRequest) {
-        self.pending_webdriver_requests.borrow_mut().push(request);
-    }
-
-    fn focus_webview(&self, webview_id: WebViewId) -> bool {
-        let window = self.window_for_webview_id(webview_id);
-        window.activate_webview(webview_id);
-        self.focus_window(window);
-        true
+    fn pend_request(&self, request: WebDriverToEmbedderMsg) {
+        self.requests.borrow_mut().push(request);
     }
 }
 
@@ -357,40 +356,70 @@ impl RunningAppState {
         create_platform_window: Option<&dyn Fn(Url) -> Rc<dyn PlatformWindow>>,
     ) {
         use webdriver_traits::bidi::browsing_context::CreateType;
-        // TODO: activate
-        let url = Url::parse("about:blank").unwrap();
-        for request in self.pending_webdriver_requests.borrow_mut().drain(..) {
-            let response = match request.create_type {
-                CreateType::Tab => {
-                    let webview = request
-                        .opener
-                        .and_then(|id| self.maybe_window_for_webview_id(id))
-                        .or_else(|| self.focused_window())
-                        .unwrap_or_else(|| {
-                            self.windows()
-                                .values()
-                                .last()
-                                .expect("Expected at least one window to be open")
-                                .clone()
-                        })
-                        .create_toplevel_webview(self.clone(), url.clone());
-                    Ok(webview.id())
-                },
-                CreateType::Window => match create_platform_window {
-                    Some(create_platform_window) => {
-                        let window =
-                            self.open_window(create_platform_window(url.clone()), url.clone());
-                        let webview = window
-                            .active_webview()
-                            .expect("Should have at least one WebView in a new window");
-                        Ok(webview.id())
-                    },
-                    None => Err(ErrorCode::UnknownError),
-                },
-            };
 
-            if let Err(err) = request.callback.send(response) {
-                warn!("Sending create window response to WebDriver failed ({err:?})");
+        for request in self.webdriver_delegate.requests.borrow_mut().drain(..) {
+            match request {
+                WebDriverToEmbedderMsg::Activate(webview_id, callback) => {
+                    let msg = match self.maybe_window_for_webview_id(webview_id) {
+                        Some(window) => {
+                            // Step 1. navigable's visibility state
+                            window.activate_webview(webview_id);
+                            // Step 2. system focus
+                            self.focus_window(window);
+                            true
+                        },
+                        None => false,
+                    };
+                    if let Err(err) = callback.send(msg) {
+                        warn!("Sending response to webdriver failed ({err:?})");
+                    }
+                },
+                WebDriverToEmbedderMsg::Exit => self.schedule_exit(),
+                WebDriverToEmbedderMsg::SetClientWindowState(
+                    painter_id,
+                    set_client_window_state_parameters,
+                ) => {
+                    // TODO: not implemented
+                },
+                WebDriverToEmbedderMsg::WebViewCreate(WebViewCreateRequest {
+                    create_type,
+                    opener,
+                    callback,
+                }) => {
+                    let url = Url::parse("about:blank").unwrap();
+
+                    let response = match create_type {
+                        CreateType::Tab => {
+                            let webview = opener
+                                .and_then(|id| self.maybe_window_for_webview_id(id))
+                                .or_else(|| self.focused_window())
+                                .unwrap_or_else(|| {
+                                    self.windows()
+                                        .values()
+                                        .last()
+                                        .expect("Expected at least one window to be open")
+                                        .clone()
+                                })
+                                .create_toplevel_webview(self.clone(), url.clone());
+                            Ok(webview.id())
+                        },
+                        CreateType::Window => match create_platform_window {
+                            Some(create_platform_window) => {
+                                let window = self
+                                    .open_window(create_platform_window(url.clone()), url.clone());
+                                let webview = window
+                                    .active_webview()
+                                    .expect("Should have at least one WebView in a new window");
+                                Ok(webview.id())
+                            },
+                            None => Err(ErrorCode::UnknownError),
+                        },
+                    };
+
+                    if let Err(err) = callback.send(response) {
+                        warn!("Sending create window response to WebDriver failed ({err:?})");
+                    }
+                },
             }
         }
     }

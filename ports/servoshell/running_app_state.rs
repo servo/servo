@@ -21,12 +21,11 @@ use log::{error, info, warn};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CSSPixel,
     ConsoleLogLevel, CreateNewWebViewRequest, DeviceIntPoint, DeviceIntSize, EmbedderControl,
-    EmbedderControlId, EventLoopWaker, GenericCallback, GenericSender, InputEvent, InputEventId,
-    InputEventResult, JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue,
-    Preferences, ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId,
-    UserContentManager, WebDriverCommandMsg, WebDriverDelegate, WebDriverJSResult,
-    WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate,
-    WebViewId,
+    EmbedderControlId, EventLoopWaker, GenericSender, InputEvent, InputEventId, InputEventResult,
+    JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, Preferences,
+    ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId, UserContentManager,
+    WebDriverCommandMsg, WebDriverDelegate, WebDriverJSResult, WebDriverLoadStatus,
+    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate, WebViewId,
 };
 use url::Url;
 use webdriver_traits::WebViewCreateRequest as WebDriverWebViewCreateRequest;
@@ -37,7 +36,7 @@ use webdriver_traits::WebViewCreateRequest as WebDriverWebViewCreateRequest;
 ))]
 pub(crate) use crate::desktop::gamepad::ServoshellGamepadDelegate;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
-use crate::webdriver::WebDriverEmbedderControls;
+use crate::webdriver::{ServoshellWebDriverDelegate, WebDriverEmbedderControls};
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
 #[cfg(all(
@@ -190,7 +189,7 @@ pub(crate) struct RunningAppState {
     /// was enabled.
     pub(crate) webdriver_receiver: Option<Receiver<WebDriverCommandMsg>>,
 
-    pub(crate) pending_webdriver_requests: RefCell<Vec<WebDriverWebViewCreateRequest>>,
+    pub(crate) webdriver_delegate: Rc<ServoshellWebDriverDelegate>,
 
     /// servoshell specific preferences created during startup of the application.
     pub(crate) servoshell_preferences: ServoShellPreferences,
@@ -244,6 +243,9 @@ impl RunningAppState {
     ) -> Self {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
 
+        let webdriver_delegate = Rc::<ServoshellWebDriverDelegate>::default();
+        servo.set_webdriver_delegate(webdriver_delegate.clone());
+
         let webdriver_receiver = servoshell_preferences.webdriver_port.get().map(|port| {
             let (embedder_sender, embedder_receiver) = unbounded();
             webdriver_server::start_server(
@@ -269,8 +271,8 @@ impl RunningAppState {
             webdriver_senders: RefCell::default(),
             webdriver_embedder_controls: Default::default(),
             pending_webdriver_events: Default::default(),
-            pending_webdriver_requests: Default::default(),
             webdriver_receiver,
+            webdriver_delegate,
             servoshell_preferences,
             servo,
             achieved_stable_image: Default::default(),
