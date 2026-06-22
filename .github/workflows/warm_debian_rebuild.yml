@@ -234,7 +234,7 @@ jobs:
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git -C "$GITHUB_WORKSPACE" \
             -c "http.extraheader=AUTHORIZATION: basic $auth" \
-            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+            fetch --no-tags --depth=50 origin "$GITHUB_SHA"
 
           # When the dispatched commit is unchanged, Git leaves the existing
           # worktree files alone, preserving their timestamps. Changed source
