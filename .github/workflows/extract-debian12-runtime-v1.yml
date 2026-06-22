@@ -1,0 +1,95 @@
+name: Extract Debian 12 Runtime v1
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: GitHub Actions run ID that owns the two-ZIP Debian 12 build artifact.
+        required: true
+        default: '27922902329'
+        type: string
+      source_artifact_name:
+        description: Source artifact name containing the runtime ZIP and debug-symbol ZIP.
+        required: true
+        default: servo-linux-debian12-debug-release
+        type: string
+      output_artifact_name:
+        description: New runtime-only artifact name.
+        required: true
+        default: servo-linux-debian12-runtime-only-v1
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  extract-runtime:
+    name: Extract stripped Debian 12 runtime only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Download source build artifact inside GitHub Actions
+        uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          name: ${{ inputs.source_artifact_name }}
+          path: ${{ runner.temp }}/source-artifact
+
+      - name: Keep runtime and leave debug symbols behind
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_ARTIFACT_NAME: ${{ inputs.source_artifact_name }}
+        run: |
+          set -Eeuo pipefail
+
+          SOURCE_DIR="${RUNNER_TEMP}/source-artifact"
+          OUTPUT_DIR="${RUNNER_TEMP}/debian12-runtime-only"
+          RUNTIME_ZIP_NAME='servo-linux-debian12-debug-runtime-stripped.zip'
+          SYMBOL_ZIP_NAME='servo-linux-debian12-debug-symbols.zip'
+
+          mapfile -t runtime_zips < <(find "${SOURCE_DIR}" -type f -name "${RUNTIME_ZIP_NAME}" -print | sort)
+          if [ "${#runtime_zips[@]}" -ne 1 ]; then
+            echo "ERROR: expected exactly one ${RUNTIME_ZIP_NAME}; found ${#runtime_zips[@]}." >&2
+            printf '%s\n' "${runtime_zips[@]:-}" >&2
+            exit 1
+          fi
+
+          runtime_zip="${runtime_zips[0]}"
+          rm -rf "${OUTPUT_DIR}"
+          mkdir -p "${OUTPUT_DIR}"
+          unzip -q "${runtime_zip}" -d "${OUTPUT_DIR}"
+
+          servoshell_path="$(find "${OUTPUT_DIR}" -type f -name servoshell -print -quit)"
+          if [ -z "${servoshell_path}" ]; then
+            echo 'ERROR: stripped runtime ZIP did not contain servoshell.' >&2
+            exit 1
+          fi
+
+          runtime_size="$(du -sh "${OUTPUT_DIR}" | cut -f1)"
+          runtime_zip_size="$(du -h "${runtime_zip}" | cut -f1)"
+          runtime_sha256="$(sha256sum "${runtime_zip}" | awk '{print $1}')"
+          symbol_count="$(find "${SOURCE_DIR}" -type f -name "${SYMBOL_ZIP_NAME}" -print | wc -l)"
+          servoshell_version="$("${servoshell_path}" --version 2>&1 || true)"
+
+          {
+            echo '### Debian 12 runtime-only extraction v1'
+            echo
+            echo "- Source Actions run: ${SOURCE_RUN_ID}"
+            echo "- Source artifact: ${SOURCE_ARTIFACT_NAME}"
+            echo "- Kept runtime ZIP: ${RUNTIME_ZIP_NAME} (${runtime_zip_size})"
+            echo "- Runtime ZIP SHA-256: ${runtime_sha256}"
+            echo "- Extracted runtime tree size: ${runtime_size}"
+            echo "- Debug-symbol ZIPs deliberately not copied: ${symbol_count}"
+            echo "- Packaged servoshell --version: ${servoshell_version}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload stripped runtime only
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.output_artifact_name }}
+          path: ${{ runner.temp }}/debian12-runtime-only/*
+          if-no-files-found: error
+          compression-level: 6
