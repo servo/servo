@@ -3282,12 +3282,12 @@ impl Window {
         self.gc(cx);
     }
 
-    pub(crate) fn resume(&self, can_gc: CanGc) {
+    pub(crate) fn resume(&self, cx: &mut JSContext) {
         // Resume timer events.
         self.as_global_scope().resume();
 
         // Set the window proxy to be this object.
-        self.window_proxy().set_currently_active(self, can_gc);
+        self.window_proxy().set_currently_active(cx, self);
 
         // Push the document title to `Paint` since we are
         // activating this document due to a navigation.

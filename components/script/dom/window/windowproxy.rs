@@ -26,8 +26,8 @@ use js::jsapi::{
 };
 use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
-use js::rust::wrappers2::{JS_HasOwnPropertyById, JS_IsExceptionPending};
+use js::rust::wrappers::{NewWindowProxy, SetWindowProxy};
+use js::rust::wrappers2::{JS_HasOwnPropertyById, JS_IsExceptionPending, JS_TransplantObject};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::ReferrerPolicy;
@@ -62,8 +62,8 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::navigation::navigate;
-use crate::realms::enter_realm;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::realms::enter_auto_realm;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::script_window_proxies::ScriptWindowProxies;
 
@@ -722,11 +722,10 @@ impl WindowProxy {
     /// Change the Window that this WindowProxy resolves to.
     // TODO: support setting the window proxy to a dummy value,
     // to handle the case when the active document is in another script thread.
-    fn set_window(&self, window: &GlobalScope, handler: &WindowProxyHandler, _can_gc: CanGc) {
+    fn set_window(&self, cx: &mut JSContext, window: &GlobalScope, handler: &WindowProxyHandler) {
         unsafe {
             debug!("Setting window of {:p}.", self);
 
-            let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
             let old_js_proxy = self.reflector.get_jsobject();
             assert!(!window_jsobject.get().is_null());
@@ -734,7 +733,9 @@ impl WindowProxy {
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = enter_realm(window);
+
+            let mut realm = enter_auto_realm(cx, window);
+            let cx = &mut realm;
 
             // The old window proxy no longer owns this browsing context.
             SetProxyReservedSlot(old_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
@@ -744,7 +745,7 @@ impl WindowProxy {
             // that's not what we are doing here. We need to do this just
             // because we want to replace the wrapper's `ProxyTraps`, but we
             // don't want to update its identity.
-            rooted!(in(*cx) let new_js_proxy = handler.new_window_proxy(&cx, window_jsobject));
+            rooted!(&in(cx) let new_js_proxy = handler.new_window_proxy(&cx.into(), window_jsobject));
             // Explicitly set this slot to a null pointer in case a GC occurs before we
             // are ready to set it to a real value.
             SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
@@ -753,7 +754,7 @@ impl WindowProxy {
                 old_js_proxy.get(),
                 new_js_proxy.get()
             );
-            rooted!(in(*cx) let new_js_proxy = JS_TransplantObject(*cx, old_js_proxy, new_js_proxy.handle()));
+            rooted!(&in(cx) let new_js_proxy = JS_TransplantObject(cx, old_js_proxy, new_js_proxy.handle()));
             debug!("Transplanted proxy is {:p}.", new_js_proxy.get());
 
             // Transfer ownership of this browsing context from the old window proxy to the new one.
@@ -764,7 +765,7 @@ impl WindowProxy {
             );
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(*cx, window_jsobject, new_js_proxy.handle());
+            SetWindowProxy(cx.raw_cx(), window_jsobject, new_js_proxy.handle());
 
             // Update the reflector.
             debug!(
@@ -776,7 +777,7 @@ impl WindowProxy {
         }
     }
 
-    pub(crate) fn set_currently_active(&self, window: &Window, can_gc: CanGc) {
+    pub(crate) fn set_currently_active(&self, cx: &mut JSContext, window: &Window) {
         if let Some(pipeline_id) = self.currently_active() &&
             pipeline_id == window.pipeline_id()
         {
@@ -786,7 +787,7 @@ impl WindowProxy {
         }
 
         let global_scope = window.as_global_scope();
-        self.set_window(global_scope, WindowProxyHandler::proxy_handler(), can_gc);
+        self.set_window(cx, global_scope, WindowProxyHandler::proxy_handler());
         self.currently_active.set(Some(global_scope.pipeline_id()));
     }
 
@@ -799,9 +800,9 @@ impl WindowProxy {
         let globalscope = self.global();
         let window = DissimilarOriginWindow::new(cx, &globalscope, self);
         self.set_window(
+            cx,
             window.upcast(),
             WindowProxyHandler::x_origin_proxy_handler(),
-            CanGc::from_cx(cx),
         );
         self.currently_active.set(None);
     }

@@ -3699,7 +3699,7 @@ impl ScriptThread {
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
-            window.resume(CanGc::from_cx(cx));
+            window.resume(cx);
         } else {
             window.suspend(cx);
         }
