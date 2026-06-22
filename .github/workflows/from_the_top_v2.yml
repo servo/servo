@@ -177,8 +177,29 @@ jobs:
                 -cf - .
           fi
 
-          # UV is deliberately repo-local, so it is restored only after the
-          # next workflow checks out current source into the workspace.
+          # Preserve the exact source worktree and its Git database so the
+          # first normal warm build does not recreate every source timestamp.
+          # Git credentials/config stay out of the release; the normal workflow
+          # reconnects origin with the current job token.
+          if [ -d "$GITHUB_WORKSPACE/.git" ]; then
+            split_zstd_tar repo-worktree.tar.zst \
+              tar --zstd \
+                --numeric-owner \
+                --acls \
+                --xattrs \
+                --exclude='./.git/config' \
+                --exclude='./.git/config.worktree' \
+                --exclude='./.git/credentials' \
+                --exclude='./.git/hooks' \
+                --exclude='./.devcontainer-venv' \
+                --exclude='./release' \
+                --exclude='./factory-reset-snapshot' \
+                -C "$GITHUB_WORKSPACE" \
+                -cf - \
+                .
+          fi
+
+          # UV is repo-local but separate from the rest of source state.
           if [ -d "$GITHUB_WORKSPACE/.devcontainer-venv" ]; then
             split_zstd_tar repo-warm.tar.zst \
               tar --zstd \
@@ -201,10 +222,12 @@ jobs:
             1. Reassemble and extract debian-root.tar.zst.part-* into /.
             2. Reassemble and extract github-home.tar.zst.part-* into $HOME,
                when that archive exists.
-            3. Check out current source into $GITHUB_WORKSPACE.
-            4. Reassemble and extract repo-warm.tar.zst.part-* into
+            3. Reassemble and extract repo-worktree.tar.zst.part-* into
                $GITHUB_WORKSPACE, when that archive exists.
-            5. Run ./mach build --release.
+            4. Fetch the requested source commit and git reset --hard to it.
+            5. Reassemble and extract repo-warm.tar.zst.part-* into
+               $GITHUB_WORKSPACE, when that archive exists.
+            6. Run ./mach build --release.
 
           Each .part-* is one contiguous segment of a .tar.zst stream:
             cat NAME.part-* | tar --zstd -xf - -C DESTINATION
