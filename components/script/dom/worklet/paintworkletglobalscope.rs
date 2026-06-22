@@ -576,7 +576,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
         }
 
         // Step 19.
-        let Some(context) = PaintRenderingContext2D::new(self, CanGc::from_cx(cx)) else {
+        let Some(context) = PaintRenderingContext2D::new(cx, self) else {
             return Err(Error::Operation(None));
         };
         let definition = PaintDefinition::new(
