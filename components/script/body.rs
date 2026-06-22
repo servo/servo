@@ -1177,16 +1177,15 @@ pub(crate) fn body_text_stream<T: BodyMixin + DomObject>(
         ));
     }
 
-    // Step 2: If this's body is null:
-    // set up a ReadableStream, close it, and return it.
-    let body = match object.body() {
-        Some(stream) => stream,
-        None => {
-            return ReadableStream::new_from_bytes(cx, &object.global(), vec![]);
-        },
+    // Step 3: Let stream be this’s body’s stream.
+    let Some(stream) = object.body() else {
+        // Step 2: If this's body is null:
+        // set up a ReadableStream, close it, and return it.
+        return ReadableStream::new_from_bytes(cx, &object.global(), vec![]);
     };
 
-    // Steps 3-6: Pipe body stream through a TextDecoderStream.
+    // Step 4: Let decoder be a new TextDecoderStream object in this’s relevant realm.
+    // Step 5: Set up decoder with UTF-8.
     let decoder =
         TextDecoderStream::new_with_proto(cx, &object.global(), None, UTF_8, false, false)?;
 
@@ -1201,5 +1200,6 @@ pub(crate) fn body_text_stream<T: BodyMixin + DomObject>(
         signal: None,
     };
     let mut realm = CurrentRealm::assert(cx);
-    body.PipeThrough(&mut realm, &pair, &options)
+    // Stel 6. Return the result of stream, piped through decoder.
+    stream.PipeThrough(&mut realm, &pair, &options)
 }
