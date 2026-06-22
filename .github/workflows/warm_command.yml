@@ -30,7 +30,6 @@ name: Debian 12 warm command
 runs-on: ubuntu-24.04
 timeout-minutes: 30
 
-```
 container:
   image: debian:12
 
@@ -298,4 +297,4 @@ steps:
 
       echo "=== Command exit status: $status ==="
       exit "$status"
-```
+
