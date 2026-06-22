@@ -903,7 +903,7 @@ impl Document {
         self.title_changed();
         self.notify_embedder_favicon();
         self.dirty_all_nodes();
-        self.window().resume(CanGc::from_cx(cx));
+        self.window().resume(cx);
         media.resume(&client_context_id);
 
         if self.ready_state.get() != DocumentReadyState::Complete {
