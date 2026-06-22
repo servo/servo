@@ -3565,7 +3565,7 @@ impl Document {
 
         Document {
             node: Node::new_document_node(),
-            document_or_shadow_root: DocumentOrShadowRoot::new(window, None),
+            document_or_shadow_root: DocumentOrShadowRoot::new(window),
             window: Dom::from_ref(window),
             has_browsing_context,
             implementation: Default::default(),

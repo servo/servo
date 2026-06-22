@@ -139,7 +139,7 @@ impl ShadowRoot {
 
         ShadowRoot {
             document_fragment,
-            document_or_shadow_root: DocumentOrShadowRoot::new(document.window(), None),
+            document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
             document: Dom::from_ref(document),
             author_styles: DomRefCell::new(AuthorStyles::new()),
             stylesheet_list: MutNullableDom::new(None),
