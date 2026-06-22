@@ -1,0 +1,301 @@
+name: Warm Debian 12 Command
+
+on:
+workflow_dispatch:
+inputs:
+command:
+description: 'Command to run in the restored warm environment. Semicolon chains are supported.'
+required: false
+default: './mach print-env'
+type: string
+
+permissions:
+contents: read
+
+defaults:
+run:
+shell: bash
+
+env:
+RUST_BACKTRACE: 1
+SHELL: /bin/bash
+CC: clang
+CXX: clang++
+CARGO_TARGET_DIR: /var/servo-cargo-target
+UV_PROJECT_ENVIRONMENT: .devcontainer-venv
+
+jobs:
+warm-command:
+name: Debian 12 warm command
+runs-on: ubuntu-24.04
+timeout-minutes: 30
+
+```
+container:
+  image: debian:12
+
+steps:
+  - name: Install restore bootstrap
+    run: |
+      set -Eeuo pipefail
+
+      apt-get update
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        tar \
+        zstd \
+        gh
+
+  - name: Download and restore warm state
+    id: warm_state
+    env:
+      GH_TOKEN: ${{ github.token }}
+    run: |
+      set -Eeuo pipefail
+
+      WARM_TAG="factory-reset-debian12-ubuntu24-warm-state"
+      PIECES_DIR="${RUNNER_TEMP}/release-pieces"
+
+      rm -rf "$PIECES_DIR"
+      mkdir -p "$PIECES_DIR"
+
+      gh release download "$WARM_TAG" \
+        --repo "$GITHUB_REPOSITORY" \
+        --dir "$PIECES_DIR" \
+        --clobber \
+        --pattern 'SHA256SUMS'
+
+      mapfile -t expected_piece_names < <(
+        awk '{print $2}' "$PIECES_DIR/SHA256SUMS"
+      )
+
+      if [ "${#expected_piece_names[@]}" -eq 0 ]; then
+        echo "Warm release SHA256SUMS contains no archive pieces." >&2
+        exit 1
+      fi
+
+      for piece_name in "${expected_piece_names[@]}"; do
+        gh release download "$WARM_TAG" \
+          --repo "$GITHUB_REPOSITORY" \
+          --dir "$PIECES_DIR" \
+          --clobber \
+          --pattern "$piece_name"
+      done
+
+      (
+        cd "$PIECES_DIR"
+        sha256sum -c SHA256SUMS
+      )
+
+      mounted_targets() {
+        awk '$5 != "/" { print $5 }' /proc/self/mountinfo \
+          | while IFS= read -r encoded_path; do
+              printf '%b\n' "$encoded_path"
+            done \
+          | sort -u
+      }
+
+      tar_excludes_for_destination() {
+        local destination="$1"
+        local mountpoint
+        local relative_path
+
+        while IFS= read -r mountpoint; do
+          if [ "$destination" = "/" ]; then
+            relative_path="${mountpoint#/}"
+          else
+            case "$mountpoint" in
+              "$destination")
+                continue
+                ;;
+              "$destination"/*)
+                relative_path="${mountpoint#"$destination"/}"
+                ;;
+              *)
+                continue
+                ;;
+            esac
+          fi
+
+          [ -n "$relative_path" ] || continue
+          printf '%s\0' "--exclude=./$relative_path"
+        done < <(mounted_targets)
+      }
+
+      restore_stream() {
+        local stream_name="$1"
+        local destination="$2"
+        local first_piece="$PIECES_DIR/${stream_name}.part-000"
+        local tar_excludes=()
+        local exclude_arg
+
+        if [ ! -f "$first_piece" ]; then
+          echo "No ${stream_name} stream in warm state; skipping."
+          return 0
+        fi
+
+        while IFS= read -r -d '' exclude_arg; do
+          tar_excludes+=("$exclude_arg")
+        done < <(tar_excludes_for_destination "$destination")
+
+        echo "Restoring ${stream_name} into ${destination}"
+        cat "$PIECES_DIR"/"${stream_name}".part-* \
+          | tar --zstd \
+              --numeric-owner \
+              --acls \
+              --xattrs \
+              "${tar_excludes[@]}" \
+              -xpf - \
+              -C "$destination"
+      }
+
+      restore_stream debian-root.tar.zst /
+      restore_stream github-home.tar.zst "$HOME"
+
+      if [ -f "$PIECES_DIR/repo-worktree.tar.zst.part-000" ]; then
+        echo "has_repo_worktree=true" >> "$GITHUB_OUTPUT"
+      else
+        echo "has_repo_worktree=false" >> "$GITHUB_OUTPUT"
+      fi
+
+      test -d "$CARGO_TARGET_DIR"
+
+  - name: Restore warmed repository worktree
+    if: steps.warm_state.outputs.has_repo_worktree == 'true'
+    run: |
+      set -Eeuo pipefail
+
+      PIECES_DIR="${RUNNER_TEMP}/release-pieces"
+
+      echo "Restoring saved worktree into $GITHUB_WORKSPACE"
+      cat "$PIECES_DIR"/repo-worktree.tar.zst.part-* \
+        | tar --zstd \
+            --numeric-owner \
+            --acls \
+            --xattrs \
+            -xpf - \
+            -C "$GITHUB_WORKSPACE"
+
+      test -d "$GITHUB_WORKSPACE/.git"
+      test -f "$GITHUB_WORKSPACE/Cargo.toml"
+
+  - name: Checkout source when warm state has no worktree
+    if: steps.warm_state.outputs.has_repo_worktree != 'true'
+    uses: actions/checkout@v6
+    with:
+      fetch-depth: 1
+      persist-credentials: false
+
+  - name: Update restored source in place
+    if: steps.warm_state.outputs.has_repo_worktree == 'true'
+    env:
+      GH_TOKEN: ${{ github.token }}
+    run: |
+      set -Eeuo pipefail
+
+      git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      if git -C "$GITHUB_WORKSPACE" remote get-url origin >/dev/null 2>&1; then
+        git -C "$GITHUB_WORKSPACE" remote set-url origin \
+          "https://github.com/${GITHUB_REPOSITORY}.git"
+      else
+        git -C "$GITHUB_WORKSPACE" remote add origin \
+          "https://github.com/${GITHUB_REPOSITORY}.git"
+      fi
+
+      auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+
+      git -C "$GITHUB_WORKSPACE" \
+        -c "http.extraheader=AUTHORIZATION: basic $auth" \
+        fetch --no-tags --depth=50 origin "$GITHUB_SHA"
+
+      current_sha="$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)"
+
+      if [ "$current_sha" = "$GITHUB_SHA" ]; then
+        echo "Restored worktree already matches requested commit; preserving timestamps."
+      elif git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor HEAD FETCH_HEAD; then
+        echo "Fast-forwarding restored worktree; unchanged files retain timestamps."
+        git -C "$GITHUB_WORKSPACE" merge --ff-only FETCH_HEAD
+      else
+        echo "Requested commit diverges from warm worktree; resetting source to requested commit."
+        git -C "$GITHUB_WORKSPACE" reset --hard FETCH_HEAD
+      fi
+
+      test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$GITHUB_SHA"
+
+  - name: Restore repo-local warm state
+    run: |
+      set -Eeuo pipefail
+
+      PIECES_DIR="${RUNNER_TEMP}/release-pieces"
+      first_piece="$PIECES_DIR/repo-warm.tar.zst.part-000"
+
+      if [ -f "$first_piece" ]; then
+        echo "Restoring repo-local warm state into $GITHUB_WORKSPACE"
+        cat "$PIECES_DIR"/repo-warm.tar.zst.part-* \
+          | tar --zstd \
+              --numeric-owner \
+              --acls \
+              --xattrs \
+              -xpf - \
+              -C "$GITHUB_WORKSPACE"
+      else
+        echo "No repo-local warm state in this snapshot; continuing."
+      fi
+
+      test -d "$CARGO_TARGET_DIR"
+
+  - name: Reattach restored Rust toolchain
+    run: |
+      set -Eeuo pipefail
+
+      CARGO_HOME=/usr/local/cargo
+      RUSTUP_HOME=/usr/local/rustup
+      CARGO_BIN="$CARGO_HOME/bin"
+
+      if [ ! -x "$CARGO_BIN/cargo" ]; then
+        echo "Cargo was not restored at $CARGO_BIN/cargo." >&2
+        exit 1
+      fi
+
+      export CARGO_HOME RUSTUP_HOME
+      export PATH="$CARGO_BIN:$PATH"
+
+      printf '%s\n' "$CARGO_BIN" >> "$GITHUB_PATH"
+      {
+        printf 'CARGO_HOME=%s\n' "$CARGO_HOME"
+        printf 'RUSTUP_HOME=%s\n' "$RUSTUP_HOME"
+      } >> "$GITHUB_ENV"
+
+      command -v cargo
+      cargo --version --verbose
+      command -v rustc
+      rustc --version --verbose
+
+  - name: Run requested command
+    env:
+      RUN_COMMAND: ${{ inputs.command }}
+    run: |
+      set -uo pipefail
+
+      cd "$GITHUB_WORKSPACE"
+
+      COMMAND_FILE="$(mktemp)"
+      trap 'rm -f "$COMMAND_FILE"' EXIT
+
+      printf '%s\n' "$RUN_COMMAND" > "$COMMAND_FILE"
+
+      echo "=== Requested command ==="
+      cat "$COMMAND_FILE"
+      echo "=== Command output begins ==="
+
+      # No `set -e` is injected into the requested command. Thus:
+      #   command-a; command-b
+      # runs both commands under normal Bash semicolon semantics.
+      bash -o pipefail "$COMMAND_FILE" 2>&1
+      status=$?
+
+      echo "=== Command exit status: $status ==="
+      exit "$status"
+```
