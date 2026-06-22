@@ -1,0 +1,596 @@
+name: Local Runtime Devcontainer Smoke
+
+on:
+  push:
+    paths:
+      - '.devcontainer/**'
+      - '.github/workflows/local-runtime-devcontainer-smoke.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'mach'
+      - 'python/**'
+      - 'docs/local-runtime/**'
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+      - '.github/workflows/local-runtime-devcontainer-smoke.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'mach'
+      - 'python/**'
+      - 'docs/local-runtime/**'
+  workflow_dispatch:
+    inputs:
+      build_kind:
+        description: Manual build mode to run
+        required: true
+        default: ubuntu-debug-symbol-split
+        type: choice
+        options:
+          - ubuntu-debug-symbol-split
+          - debian12-debug-symbol-split
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CC: clang
+  CXX: clang++
+  CARGO_TARGET_DIR: /var/servo-cargo-target
+  UV_PROJECT_ENVIRONMENT: .devcontainer-venv
+
+jobs:
+  smoke:
+    name: Bootstrap and metadata smoke
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/servo/servo/devcontainer-ubuntu:latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Prepare devcontainer target directory
+        run: mkdir -p "$CARGO_TARGET_DIR"
+
+      - name: Bootstrap Servo dependencies
+        run: ./mach bootstrap --yes
+
+      - name: Record toolchain versions
+        run: |
+          set -euxo pipefail
+          uname -a
+          clang --version
+          clang++ --version
+          rustc --version --verbose
+          cargo --version --verbose
+          python3 --version
+          uv --version
+
+      - name: Check Cargo workspace metadata
+        run: cargo metadata --format-version 1 --locked --no-deps
+
+      - name: Check servo-net crate
+        run: cargo check -p servo-net --locked
+
+      - name: Print mach build help
+        run: ./mach build --help
+
+
+  linux-debug-build:
+    name: Ubuntu devcontainer debug symbol-split build
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'workflow_dispatch' && inputs.build_kind == 'ubuntu-debug-symbol-split'
+    timeout-minutes: 180
+    container:
+      image: ghcr.io/servo/servo/devcontainer-ubuntu:latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Prepare devcontainer target directory
+        run: mkdir -p "$CARGO_TARGET_DIR"
+
+      - name: Bootstrap Servo dependencies
+        run: ./mach bootstrap --yes
+
+      - name: Build Servo Linux debug
+        run: ./mach build --debug
+
+      - name: Package Linux debug build
+        run: |
+          set -Eeuo pipefail
+
+          ./mach package --debug
+
+          PACKAGE="$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz"
+          WORK_DIR="$(mktemp -d)"
+          RUNTIME_DIR="$WORK_DIR/runtime"
+          SYMBOL_DIR="$WORK_DIR/symbols"
+          export RUNTIME_DIR SYMBOL_DIR
+          BEFORE_INVENTORY="$WORK_DIR/largest-before.md"
+          AFTER_INVENTORY="$WORK_DIR/largest-after.md"
+          ELF_LIST="$WORK_DIR/elf-files.txt"
+
+          rm -rf release
+          mkdir -p release "$RUNTIME_DIR" "$SYMBOL_DIR"
+
+          tar -xzf "$PACKAGE" -C "$RUNTIME_DIR"
+
+          ORIGINAL_PACKAGE_SIZE="$(du -h "$PACKAGE" | cut -f1)"
+          echo "Original package size: $ORIGINAL_PACKAGE_SIZE"
+
+          echo "Largest 50 files before stripping:"
+          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$BEFORE_INVENTORY"
+
+          select_tool() {
+            local tool
+            for tool in "$@"; do
+              if command -v "$tool" >/dev/null 2>&1; then
+                command -v "$tool"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          READELF="$(select_tool readelf llvm-readelf)" || {
+            echo "No usable ELF header reader found; expected readelf or llvm-readelf." >&2
+            exit 1
+          }
+          OBJCOPY="$(select_tool objcopy llvm-objcopy)" || {
+            echo "No usable debug objcopy tool found; expected objcopy or llvm-objcopy." >&2
+            exit 1
+          }
+          STRIP="$(select_tool strip llvm-strip)" || {
+            echo "No usable strip tool found; expected strip or llvm-strip." >&2
+            exit 1
+          }
+
+          echo "Selected ELF header reader: $READELF"
+          echo "Selected debug objcopy tool: $OBJCOPY"
+          echo "Selected strip tool: $STRIP"
+
+          : > "$ELF_LIST"
+          while IFS= read -r -d '' file_path; do
+            if "$READELF" -h "$file_path" >/dev/null 2>&1; then
+              size="$(stat -c '%s' "$file_path")"
+              printf '%s %s\n' "$size" "$file_path" >> "$ELF_LIST"
+              printf '%s: ELF file detected by %s\n' "${file_path#$RUNTIME_DIR/}" "$(basename "$READELF")"
+            fi
+          done < <(find "$RUNTIME_DIR" -type f -print0)
+
+          echo "Section information for largest ELF files before stripping:"
+          sort -nr "$ELF_LIST" | sed -n '1,20p' | while IFS=' ' read -r _ elf_file; do
+            echo "### ${elf_file#$RUNTIME_DIR/}"
+            "$READELF" -S "$elf_file" | sed -n '1,80p'
+          done
+
+          PROCESSED_ELF_COUNT=0
+
+          while IFS=' ' read -r _ elf_file; do
+            rel_path="${elf_file#$RUNTIME_DIR/}"
+            symbol_file="$SYMBOL_DIR/$rel_path.debug"
+            mkdir -p "$(dirname "$symbol_file")"
+
+            "$OBJCOPY" --only-keep-debug "$elf_file" "$symbol_file"
+            "$STRIP" --strip-debug "$elf_file"
+            if "$OBJCOPY" --add-gnu-debuglink="$symbol_file" "$elf_file"; then
+              echo "Added GNU debug link for $rel_path"
+            else
+              echo "GNU debug link unsupported for $rel_path"
+            fi
+            PROCESSED_ELF_COUNT=$((PROCESSED_ELF_COUNT + 1))
+          done < <(sort -nr "$ELF_LIST")
+
+          SERVOSHELL_PATH="$(find "$RUNTIME_DIR" -type f -name servoshell -print -quit)"
+          if [ -z "$SERVOSHELL_PATH" ]; then
+            echo "Packaged servoshell not found for GLIBC floor inspection." >&2
+            exit 1
+          fi
+          GLIBC_FLOOR="$($READELF --version-info "$SERVOSHELL_PATH" 2>/dev/null | sed -n 's/.*GLIBC_\([0-9][0-9.]*\).*/\1/p' | sort -Vu | tail -n 1)"
+          if [ -z "$GLIBC_FLOOR" ]; then
+            GLIBC_FLOOR="not detected"
+            GLIBC_DEBIAN12_COMPAT="unknown"
+          elif printf '%s\n%s\n' "$GLIBC_FLOOR" "2.36" | sort -CV; then
+            GLIBC_DEBIAN12_COMPAT="yes"
+          else
+            GLIBC_DEBIAN12_COMPAT="no"
+          fi
+          echo "Highest required GLIBC symbol: GLIBC_$GLIBC_FLOOR"
+          echo "Debian 12 / glibc 2.36 compatible: $GLIBC_DEBIAN12_COMPAT"
+
+          STRIPPED_RUNTIME_SIZE="$(du -sh "$RUNTIME_DIR" | cut -f1)"
+          DEBUG_SYMBOL_SIZE="$(du -sh "$SYMBOL_DIR" | cut -f1)"
+          echo "Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
+          echo "Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
+          echo "ELF files processed: $PROCESSED_ELF_COUNT"
+
+          echo "Largest 50 files after stripping:"
+          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$AFTER_INVENTORY"
+
+          python3 - <<'PYZIP'
+          import os
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          archives = [
+              (Path('release/servo-linux-debug-runtime-stripped.zip'), Path(os.environ['RUNTIME_DIR'])),
+              (Path('release/servo-linux-debug-symbols.zip'), Path(os.environ['SYMBOL_DIR'])),
+          ]
+          for zip_path, source_dir in archives:
+              with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED, compresslevel=9, strict_timestamps=False) as zf:
+                  for path in sorted(source_dir.rglob('*')):
+                      if path.is_file():
+                          archive_name = path.relative_to(source_dir).as_posix()
+                          zf.write(path, archive_name)
+          PYZIP
+
+          RUNTIME_ZIP_SIZE="$(du -h release/servo-linux-debug-runtime-stripped.zip | cut -f1)"
+          SYMBOL_ZIP_SIZE="$(du -h release/servo-linux-debug-symbols.zip | cut -f1)"
+
+          {
+            echo "ORIGINAL_PACKAGE_SIZE=$ORIGINAL_PACKAGE_SIZE"
+            echo "STRIPPED_RUNTIME_SIZE=$STRIPPED_RUNTIME_SIZE"
+            echo "DEBUG_SYMBOL_SIZE=$DEBUG_SYMBOL_SIZE"
+            echo "RUNTIME_ZIP_SIZE=$RUNTIME_ZIP_SIZE"
+            echo "SYMBOL_ZIP_SIZE=$SYMBOL_ZIP_SIZE"
+            echo "PROCESSED_ELF_COUNT=$PROCESSED_ELF_COUNT"
+            echo "GLIBC_FLOOR=$GLIBC_FLOOR"
+            echo "GLIBC_DEBIAN12_COMPAT=$GLIBC_DEBIAN12_COMPAT"
+            echo "BEFORE_INVENTORY=$BEFORE_INVENTORY"
+            echo "AFTER_INVENTORY=$AFTER_INVENTORY"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload release ZIP artifacts
+        id: upload_zips
+        uses: actions/upload-artifact@v7
+        with:
+          name: servo-linux-debug-release
+          path: |
+            release/servo-linux-debug-runtime-stripped.zip
+            release/servo-linux-debug-symbols.zip
+          if-no-files-found: error
+
+      - name: Install GitHub CLI
+        run: |
+          set -Eeuo pipefail
+
+          if command -v gh >/dev/null 2>&1; then
+            gh --version
+            exit 0
+          fi
+
+          apt-get update
+          apt-get install -y gh
+          gh --version
+
+      - name: Push successful builds to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+
+          TAG=latest-local-runtime-devcontainer-linux-debug
+
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" \
+              --title "Latest local runtime devcontainer Linux debug build" \
+              --notes "Automatically updated by GitHub Actions."
+
+          gh release upload "$TAG" \
+            release/servo-linux-debug-runtime-stripped.zip \
+            release/servo-linux-debug-symbols.zip \
+            --clobber
+
+      - name: Show build download link
+        run: |
+          TAG=latest-local-runtime-devcontainer-linux-debug
+
+          {
+            echo "### Local runtime devcontainer Linux debug build"
+            echo ""
+            echo "- Original package size: $ORIGINAL_PACKAGE_SIZE"
+            echo "- Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
+            echo "- Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
+            echo "- Stripped runtime ZIP size: $RUNTIME_ZIP_SIZE"
+            echo "- Debug-symbol ZIP size: $SYMBOL_ZIP_SIZE"
+            echo "- ELF files processed: $PROCESSED_ELF_COUNT"
+            echo "- Highest required GLIBC symbol: GLIBC_$GLIBC_FLOOR"
+            echo "- Should run on Debian 12 / glibc 2.36: $GLIBC_DEBIAN12_COMPAT"
+            echo ""
+            echo "#### Largest files before stripping"
+            echo '```'
+            cat "$BEFORE_INVENTORY"
+            echo '```'
+            echo ""
+            echo "#### Largest files after stripping"
+            echo '```'
+            cat "$AFTER_INVENTORY"
+            echo '```'
+            echo ""
+            if [ -n "${{ steps.upload_zips.outputs.artifact-url }}" ]; then
+              echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})"
+              echo ""
+            fi
+            echo "[Download Release build](https://github.com/${{ github.repository }}/releases/tag/$TAG)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+
+  linux-debian12-debug-build:
+    name: Debian 12 debug symbol-split build
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'workflow_dispatch' && inputs.build_kind == 'debian12-debug-symbol-split'
+    timeout-minutes: 180
+    container:
+      image: debian:12
+    steps:
+      - name: Install Debian bootstrap prerequisites
+        run: |
+          set -Eeuo pipefail
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            git \
+            python3 \
+            python3-venv \
+            python3-pip \
+            build-essential \
+            clang \
+            lld \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libssl-dev \
+            unzip \
+            zip \
+            tar \
+            xz-utils \
+            zstd \
+            sudo \
+            gh
+
+      - uses: actions/checkout@v6
+
+      - name: Prepare Debian target directory
+        run: mkdir -p "$CARGO_TARGET_DIR"
+
+      - name: Bootstrap Servo dependencies
+        run: ./mach bootstrap --yes
+
+      - name: Build Servo Linux debug
+        run: ./mach build --debug
+
+      - name: Package Linux debug build
+        run: |
+          set -Eeuo pipefail
+
+          ./mach package --debug
+
+          PACKAGE="$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz"
+          WORK_DIR="$(mktemp -d)"
+          RUNTIME_DIR="$WORK_DIR/runtime"
+          SYMBOL_DIR="$WORK_DIR/symbols"
+          export RUNTIME_DIR SYMBOL_DIR
+          BEFORE_INVENTORY="$WORK_DIR/largest-before.md"
+          AFTER_INVENTORY="$WORK_DIR/largest-after.md"
+          ELF_LIST="$WORK_DIR/elf-files.txt"
+
+          rm -rf release
+          mkdir -p release "$RUNTIME_DIR" "$SYMBOL_DIR"
+
+          tar -xzf "$PACKAGE" -C "$RUNTIME_DIR"
+
+          ORIGINAL_PACKAGE_SIZE="$(du -h "$PACKAGE" | cut -f1)"
+          echo "Original package size: $ORIGINAL_PACKAGE_SIZE"
+
+          echo "Largest 50 files before stripping:"
+          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$BEFORE_INVENTORY"
+
+          select_tool() {
+            local tool
+            for tool in "$@"; do
+              if command -v "$tool" >/dev/null 2>&1; then
+                command -v "$tool"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          READELF="$(select_tool readelf llvm-readelf)" || {
+            echo "No usable ELF header reader found; expected readelf or llvm-readelf." >&2
+            exit 1
+          }
+          OBJCOPY="$(select_tool objcopy llvm-objcopy)" || {
+            echo "No usable debug objcopy tool found; expected objcopy or llvm-objcopy." >&2
+            exit 1
+          }
+          STRIP="$(select_tool strip llvm-strip)" || {
+            echo "No usable strip tool found; expected strip or llvm-strip." >&2
+            exit 1
+          }
+
+          echo "Selected ELF header reader: $READELF"
+          echo "Selected debug objcopy tool: $OBJCOPY"
+          echo "Selected strip tool: $STRIP"
+
+          : > "$ELF_LIST"
+          while IFS= read -r -d '' file_path; do
+            if "$READELF" -h "$file_path" >/dev/null 2>&1; then
+              size="$(stat -c '%s' "$file_path")"
+              printf '%s %s\n' "$size" "$file_path" >> "$ELF_LIST"
+              printf '%s: ELF file detected by %s\n' "${file_path#$RUNTIME_DIR/}" "$(basename "$READELF")"
+            fi
+          done < <(find "$RUNTIME_DIR" -type f -print0)
+
+          echo "Section information for largest ELF files before stripping:"
+          sort -nr "$ELF_LIST" | sed -n '1,20p' | while IFS=' ' read -r _ elf_file; do
+            echo "### ${elf_file#$RUNTIME_DIR/}"
+            "$READELF" -S "$elf_file" | sed -n '1,80p'
+          done
+
+          PROCESSED_ELF_COUNT=0
+
+          while IFS=' ' read -r _ elf_file; do
+            rel_path="${elf_file#$RUNTIME_DIR/}"
+            symbol_file="$SYMBOL_DIR/$rel_path.debug"
+            mkdir -p "$(dirname "$symbol_file")"
+
+            "$OBJCOPY" --only-keep-debug "$elf_file" "$symbol_file"
+            "$STRIP" --strip-debug "$elf_file"
+            if "$OBJCOPY" --add-gnu-debuglink="$symbol_file" "$elf_file"; then
+              echo "Added GNU debug link for $rel_path"
+            else
+              echo "GNU debug link unsupported for $rel_path"
+            fi
+            PROCESSED_ELF_COUNT=$((PROCESSED_ELF_COUNT + 1))
+          done < <(sort -nr "$ELF_LIST")
+
+          SERVOSHELL_PATH="$(find "$RUNTIME_DIR" -type f -name servoshell -print -quit)"
+          if [ -z "$SERVOSHELL_PATH" ]; then
+            echo "Packaged servoshell not found for GLIBC floor inspection." >&2
+            exit 1
+          fi
+          GLIBC_FLOOR="$($READELF --version-info "$SERVOSHELL_PATH" 2>/dev/null | sed -n 's/.*GLIBC_\([0-9][0-9.]*\).*/\1/p' | sort -Vu | tail -n 1)"
+          if [ -z "$GLIBC_FLOOR" ]; then
+            GLIBC_FLOOR="not detected"
+            GLIBC_DEBIAN12_COMPAT="unknown"
+          elif printf '%s\n%s\n' "$GLIBC_FLOOR" "2.36" | sort -CV; then
+            GLIBC_DEBIAN12_COMPAT="yes"
+          else
+            GLIBC_DEBIAN12_COMPAT="no"
+          fi
+          echo "Highest required GLIBC symbol: GLIBC_$GLIBC_FLOOR"
+          echo "Debian 12 / glibc 2.36 compatible: $GLIBC_DEBIAN12_COMPAT"
+          if [ "$GLIBC_DEBIAN12_COMPAT" = "no" ]; then
+            echo "Debian 12 artifact requires newer than GLIBC_2.36." >&2
+            exit 1
+          fi
+
+          STRIPPED_RUNTIME_SIZE="$(du -sh "$RUNTIME_DIR" | cut -f1)"
+          DEBUG_SYMBOL_SIZE="$(du -sh "$SYMBOL_DIR" | cut -f1)"
+          echo "Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
+          echo "Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
+          echo "ELF files processed: $PROCESSED_ELF_COUNT"
+
+          echo "Largest 50 files after stripping:"
+          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$AFTER_INVENTORY"
+
+          python3 - <<'PYZIP'
+          import os
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          archives = [
+              (Path('release/servo-linux-debian12-debug-runtime-stripped.zip'), Path(os.environ['RUNTIME_DIR'])),
+              (Path('release/servo-linux-debian12-debug-symbols.zip'), Path(os.environ['SYMBOL_DIR'])),
+          ]
+          for zip_path, source_dir in archives:
+              with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED, compresslevel=9, strict_timestamps=False) as zf:
+                  for path in sorted(source_dir.rglob('*')):
+                      if path.is_file():
+                          archive_name = path.relative_to(source_dir).as_posix()
+                          zf.write(path, archive_name)
+          PYZIP
+
+          RUNTIME_ZIP_SIZE="$(du -h release/servo-linux-debian12-debug-runtime-stripped.zip | cut -f1)"
+          SYMBOL_ZIP_SIZE="$(du -h release/servo-linux-debian12-debug-symbols.zip | cut -f1)"
+
+          {
+            echo "ORIGINAL_PACKAGE_SIZE=$ORIGINAL_PACKAGE_SIZE"
+            echo "STRIPPED_RUNTIME_SIZE=$STRIPPED_RUNTIME_SIZE"
+            echo "DEBUG_SYMBOL_SIZE=$DEBUG_SYMBOL_SIZE"
+            echo "RUNTIME_ZIP_SIZE=$RUNTIME_ZIP_SIZE"
+            echo "SYMBOL_ZIP_SIZE=$SYMBOL_ZIP_SIZE"
+            echo "PROCESSED_ELF_COUNT=$PROCESSED_ELF_COUNT"
+            echo "GLIBC_FLOOR=$GLIBC_FLOOR"
+            echo "GLIBC_DEBIAN12_COMPAT=$GLIBC_DEBIAN12_COMPAT"
+            echo "BEFORE_INVENTORY=$BEFORE_INVENTORY"
+            echo "AFTER_INVENTORY=$AFTER_INVENTORY"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload release ZIP artifacts
+        id: upload_zips
+        uses: actions/upload-artifact@v7
+        with:
+          name: servo-linux-debian12-debug-release
+          path: |
+            release/servo-linux-debian12-debug-runtime-stripped.zip
+            release/servo-linux-debian12-debug-symbols.zip
+          if-no-files-found: error
+
+      - name: Install GitHub CLI
+        run: |
+          set -Eeuo pipefail
+
+          if command -v gh >/dev/null 2>&1; then
+            gh --version
+            exit 0
+          fi
+
+          apt-get update
+          apt-get install -y gh
+          gh --version
+
+      - name: Push successful builds to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+
+          TAG=latest-local-runtime-debian12-linux-debug
+
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" \
+              --title "Latest local runtime Debian 12 Linux debug build" \
+              --notes "Automatically updated by GitHub Actions."
+
+          gh release upload "$TAG" \
+            release/servo-linux-debian12-debug-runtime-stripped.zip \
+            release/servo-linux-debian12-debug-symbols.zip \
+            --clobber
+
+      - name: Show build download link
+        run: |
+          TAG=latest-local-runtime-debian12-linux-debug
+
+          {
+            echo "### Local runtime Debian 12 Linux debug build"
+            echo ""
+            echo "- Original package size: $ORIGINAL_PACKAGE_SIZE"
+            echo "- Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
+            echo "- Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
+            echo "- Stripped runtime ZIP size: $RUNTIME_ZIP_SIZE"
+            echo "- Debug-symbol ZIP size: $SYMBOL_ZIP_SIZE"
+            echo "- ELF files processed: $PROCESSED_ELF_COUNT"
+            echo "- Highest required GLIBC symbol: GLIBC_$GLIBC_FLOOR"
+            echo "- Should run on Debian 12 / glibc 2.36: $GLIBC_DEBIAN12_COMPAT"
+            echo ""
+            echo "#### Largest files before stripping"
+            echo '```'
+            cat "$BEFORE_INVENTORY"
+            echo '```'
+            echo ""
+            echo "#### Largest files after stripping"
+            echo '```'
+            cat "$AFTER_INVENTORY"
+            echo '```'
+            echo ""
+            if [ -n "${{ steps.upload_zips.outputs.artifact-url }}" ]; then
+              echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})"
+              echo ""
+            fi
+            echo "[Download Release build](https://github.com/${{ github.repository }}/releases/tag/$TAG)"
+          } >> "$GITHUB_STEP_SUMMARY"
