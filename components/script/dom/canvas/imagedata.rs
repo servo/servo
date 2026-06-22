@@ -68,9 +68,13 @@ impl ImageData {
             d.resize(len as usize, 0);
 
             rooted!(&in(cx) let mut js_object = std::ptr::null_mut::<JSObject>());
-            let _buffer_source =
-                create_buffer_source::<ClampedU8>(cx.into(), &d[..], js_object.handle_mut(), CanGc::from_cx(cx))
-                    .map_err(|_| Error::JSFailed)?;
+            let _buffer_source = create_buffer_source::<ClampedU8>(
+                cx.into(),
+                &d[..],
+                js_object.handle_mut(),
+                CanGc::from_cx(cx),
+            )
+            .map_err(|_| Error::JSFailed)?;
             auto_root!(&in(cx) let data = TypedArray::<ClampedU8, *mut JSObject>::from(js_object.get()).map_err(|_| Error::JSFailed)?);
 
             Self::Constructor_(cx, global, None, data, width, Some(height), &settings)

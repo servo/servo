@@ -537,7 +537,12 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata>
-    fn CreateImageData(&self, cx: &mut JSContext, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
+    fn CreateImageData(
+        &self,
+        cx: &mut JSContext,
+        sw: i32,
+        sh: i32,
+    ) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
             .create_image_data(cx, &self.global(), sw, sh)
     }

@@ -415,8 +415,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         sw: i32,
         sh: i32,
     ) -> Fallible<DomRoot<ImageData>> {
-        self.context
-            .GetImageData(cx, sx, sy, sw, sh)
+        self.context.GetImageData(cx, sx, sy, sw, sh)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>

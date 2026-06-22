@@ -225,12 +225,7 @@ impl HTMLCanvasElement {
 
         let window = self.owner_window();
         let size = self.get_size();
-        let context = CanvasRenderingContext2D::new(
-            cx,
-            window.as_global_scope(),
-            self,
-            size,
-        )?;
+        let context = CanvasRenderingContext2D::new(cx, window.as_global_scope(), self, size)?;
         self.set_rendering_context(|| RenderingContext::Context2d(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -256,8 +251,7 @@ impl HTMLCanvasElement {
             RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
 
         // Step 2. Set this's context mode to bitmaprenderer.
-        let context =
-            ImageBitmapRenderingContext::new(cx, &self.owner_global(), &canvas);
+        let context = ImageBitmapRenderingContext::new(cx, &self.owner_global(), &canvas);
         self.set_rendering_context(|| RenderingContext::BitmapRenderer(Dom::from_ref(&*context)));
 
         // Step 3. Return context.

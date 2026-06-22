@@ -206,7 +206,12 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
         proto: Option<HandleObject>,
         other: &Path2D,
     ) -> DomRoot<Path2D> {
-        reflect_dom_object_with_proto_and_cx(Box::new(Self::new_with_path(other)), global, proto, cx)
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(Self::new_with_path(other)),
+            global,
+            proto,
+            cx,
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-path2d-dev>
