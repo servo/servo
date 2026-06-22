@@ -7127,7 +7127,7 @@ class CGInterfaceTrait(CGThing):
             returnType = f" -> {rettype}" if rettype != '()' else ''
             selfArg = "&self" if not isStatic else ""
             extra = [("global", f"&D::{exposedGlobal}")] if isStatic else []
-            if arguments and arguments[0][0] == "cx":
+            if arguments and (arguments[0][0] == "cx" or arguments[0][0] == "realm"):
                 arguments = [arguments[0]] + extra + arguments[1:]
             else:
                 arguments = extra + arguments
