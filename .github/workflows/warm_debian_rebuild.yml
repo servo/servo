@@ -2,6 +2,11 @@ name: Warm Debian 12 Build
 
 on:
   workflow_dispatch:
+    inputs:
+      update_state:
+        description: build, package, publish artifacts, and return the newly warmed workshop to Releases.
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -504,6 +509,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Refresh rolling warm state in Releases
+        if: inputs.update_state
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
