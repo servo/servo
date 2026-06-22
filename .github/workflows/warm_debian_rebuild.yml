@@ -184,34 +184,28 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          # Rustup/Cargo was restored as files, but the PATH change made by the
-          # original Factory Reset shell was not. Locate the restored toolchain
-          # rather than assuming whether Actions supplied HOME as /root or as a
-          # separate mounted directory such as /github/home.
-          CARGO_BIN=""
-          for candidate in "$HOME/.cargo/bin" /root/.cargo/bin; do
-            if [ -x "$candidate/cargo" ]; then
-              CARGO_BIN="$candidate"
-              break
-            fi
-          done
+          # Factory Reset's preflight installs Rustup deliberately here:
+          #   RUSTUP_HOME=/usr/local/rustup
+          #   CARGO_HOME=/usr/local/cargo
+          # The tar restored those files, but not the old shell's PATH export.
+          CARGO_HOME=/usr/local/cargo
+          RUSTUP_HOME=/usr/local/rustup
+          CARGO_BIN="$CARGO_HOME/bin"
 
-          if [ -z "$CARGO_BIN" ]; then
-            echo "Restored warm state contains no cargo executable." >&2
-            echo "Checked: $HOME/.cargo/bin/cargo and /root/.cargo/bin/cargo" >&2
+          if [ ! -x "$CARGO_BIN/cargo" ]; then
+            echo "Cargo was not restored at $CARGO_BIN/cargo." >&2
+            echo "This warm snapshot is missing the Factory Reset Rust install." >&2
+            echo "Present /usr/local entries:" >&2
+            find /usr/local -maxdepth 3 -mindepth 1 -printf '%p\n' 2>/dev/null \
+              | sed -n '1,160p' >&2 || true
             exit 1
           fi
 
-          CARGO_HOME="$(dirname "$CARGO_BIN")"
-          TOOLCHAIN_HOME="$(dirname "$CARGO_HOME")"
-          RUSTUP_HOME="$TOOLCHAIN_HOME/.rustup"
-
-          export PATH="$CARGO_BIN:$PATH"
           export CARGO_HOME RUSTUP_HOME
+          export PATH="$CARGO_BIN:$PATH"
 
-          # Persist these values to later Actions run: steps. GITHUB_PATH is
-          # applied by the runner after this step; the export above covers the
-          # checks in this shell.
+          # Persist the exact original Factory Reset locations into later
+          # Actions steps. The current shell receives the export above.
           printf '%s\n' "$CARGO_BIN" >> "$GITHUB_PATH"
           {
             printf 'CARGO_HOME=%s\n' "$CARGO_HOME"
