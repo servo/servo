@@ -1208,12 +1208,12 @@ impl VirtualMethods for HTMLIFrameElement {
 
         debug!("<iframe> running post connection steps");
 
-        // Step 1. Create a new child navigable for insertedNode.
-        self.create_nested_browsing_context(cx);
-
-        // Step 2: If insertedNode has a sandbox attribute, then parse the sandboxing directive
+        // Step 1: If insertedNode has a sandbox attribute, then parse the sandboxing directive
         // given the attribute's value and insertedNode's iframe sandboxing flag set.
         self.parse_sandbox_attribute();
+
+        // Step 2. Create a new child navigable for insertedNode.
+        self.create_nested_browsing_context(cx);
 
         // Step 3. Process the iframe attributes for insertedNode, with initialInsertion set to true.
         self.process_the_iframe_attributes(ProcessingMode::FirstTime, cx);
