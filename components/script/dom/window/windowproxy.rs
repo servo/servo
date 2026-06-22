@@ -19,15 +19,17 @@ use js::glue::{
 use js::jsapi::{
     GCContext, Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
     HandleValue as RawHandleValue, JS_DefinePropertyById, JS_ForwardGetPropertyTo,
-    JS_ForwardSetPropertyTo, JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, JSAutoRealm,
+    JS_ForwardSetPropertyTo, JS_GetOwnPropertyDescriptorById, JS_HasPropertyById,
     JSContext as RawJSContext, JSErrNum, JSObject, JSPROP_ENUMERATE, JSPROP_READONLY, JSTracer,
     MutableHandle as RawMutableHandle, MutableHandleObject as RawMutableHandleObject,
     MutableHandleValue as RawMutableHandleValue, ObjectOpResult, PropertyDescriptor,
 };
 use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers::{NewWindowProxy, SetWindowProxy};
-use js::rust::wrappers2::{JS_HasOwnPropertyById, JS_IsExceptionPending, JS_TransplantObject};
+use js::rust::wrappers2::{
+    JS_HasOwnPropertyById, JS_IsExceptionPending, JS_TransplantObject, NewWindowProxy,
+    SetWindowProxy,
+};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::ReferrerPolicy;
@@ -62,8 +64,6 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::navigation::navigate;
-use crate::realms::enter_auto_realm;
-use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::script_window_proxies::ScriptWindowProxies;
 
@@ -172,6 +172,7 @@ impl WindowProxy {
 
     #[expect(unsafe_code)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         browsing_context_id: BrowsingContextId,
         webview_id: WebViewId,
@@ -183,17 +184,18 @@ impl WindowProxy {
         unsafe {
             let handler = window.windowproxy_handler();
 
-            let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
             assert_ne!(
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = JSAutoRealm::new(*cx, window_jsobject.get());
+
+            let mut realm = AutoRealm::new_from_handle(cx, window_jsobject);
+            let cx = &mut realm;
 
             // Create a new window proxy.
-            rooted!(in(*cx) let js_proxy = handler.new_window_proxy(&cx, window_jsobject));
+            rooted!(&in(cx) let js_proxy = handler.new_window_proxy(cx, window_jsobject));
             assert!(!js_proxy.is_null());
 
             // Create a new browsing context.
@@ -218,7 +220,7 @@ impl WindowProxy {
             );
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(*cx, window_jsobject, js_proxy.handle());
+            SetWindowProxy(cx, window_jsobject, js_proxy.handle());
 
             // Set the reflector.
             debug!(
@@ -265,11 +267,12 @@ impl WindowProxy {
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let mut realm = AutoRealm::new(cx, NonNull::new(window_jsobject.get()).unwrap());
+
+            let mut realm = AutoRealm::new_from_handle(cx, window_jsobject);
             let cx = &mut realm;
 
             // Create a new window proxy.
-            rooted!(&in(cx) let js_proxy = handler.new_window_proxy(&cx.into(), window_jsobject));
+            rooted!(&in(cx) let js_proxy = handler.new_window_proxy(cx, window_jsobject));
             assert!(!js_proxy.is_null());
 
             // The window proxy owns the browsing context.
@@ -281,7 +284,7 @@ impl WindowProxy {
             );
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(cx.raw_cx(), window_jsobject, js_proxy.handle());
+            SetWindowProxy(cx, window_jsobject, js_proxy.handle());
 
             // Set the reflector.
             debug!(
@@ -734,7 +737,7 @@ impl WindowProxy {
                 0
             );
 
-            let mut realm = enter_auto_realm(cx, window);
+            let mut realm = AutoRealm::new_from_handle(cx, window_jsobject);
             let cx = &mut realm;
 
             // The old window proxy no longer owns this browsing context.
@@ -745,7 +748,7 @@ impl WindowProxy {
             // that's not what we are doing here. We need to do this just
             // because we want to replace the wrapper's `ProxyTraps`, but we
             // don't want to update its identity.
-            rooted!(&in(cx) let new_js_proxy = handler.new_window_proxy(&cx.into(), window_jsobject));
+            rooted!(&in(cx) let new_js_proxy = handler.new_window_proxy(cx, window_jsobject));
             // Explicitly set this slot to a null pointer in case a GC occurs before we
             // are ready to set it to a real value.
             SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
@@ -765,7 +768,7 @@ impl WindowProxy {
             );
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(cx.raw_cx(), window_jsobject, new_js_proxy.handle());
+            SetWindowProxy(cx, window_jsobject, new_js_proxy.handle());
 
             // Update the reflector.
             debug!(
@@ -1235,12 +1238,12 @@ impl WindowProxyHandler {
 
     /// Creates a new WindowProxy object on the C++ side and returns the pointer to it.
     /// The pointer should be owned by the GC.
-    pub(crate) fn new_window_proxy(
+    fn new_window_proxy(
         &self,
-        cx: &SafeJSContext,
+        cx: &mut JSContext,
         window_jsobject: js::gc::HandleObject,
     ) -> *mut JSObject {
-        let obj = unsafe { NewWindowProxy(**cx, window_jsobject, self.0) };
+        let obj = unsafe { NewWindowProxy(cx, window_jsobject, self.0) };
         assert!(!obj.is_null());
         obj
     }
