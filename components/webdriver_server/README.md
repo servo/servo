@@ -21,8 +21,8 @@ TODO: write doc for this part.
 | Command                        | Status | Details                                  |
 | ------------------------------ | ------ | ---------------------------------------- |
 | `browser.close`                | ✅     |                                          |
-| `browser.getClientWindows`     | ✅     | Server side done, message not handled.   |
-| `browser.setClientWindowState` | 🚧     |                                          |
+| `browser.getClientWindows`     | ✅     |                                          |
+| `browser.setClientWindowState` | ✅     |                                          |
 | `browser.createUserContext`    | ⛔     | Blocked by user context not implemented. |
 | `browser.getUserContexts`      | ⛔     | Blocked by user context not implemented. |
 | `browser.removeUserContext`    | ⛔     | Blocked by user context not implemented. |

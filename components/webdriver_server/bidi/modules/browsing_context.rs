@@ -394,10 +394,9 @@ impl RemoteEnd {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-setBypassCSP>
     async fn handle_browsing_context_set_bypass_csp(
         self: Rc<Self>,
-        command_parameters: SetBypassCspParameters,
+        _: SetBypassCspParameters,
     ) -> BidiResult<SetBypassCspResult> {
-        // TODO:
-        todo!()
+        Err(ErrorCode::UnknownError.into())
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browsingContext-setViewport>
@@ -414,7 +413,6 @@ impl RemoteEnd {
         self: Rc<Self>,
         _: StartScreencastParameters,
     ) -> BidiResult<StartScreencastResult> {
-        // TODO: spec is actively changing, deferred
         Err(ErrorCode::UnsupportedOperation.into())
     }
 
@@ -423,7 +421,6 @@ impl RemoteEnd {
         self: Rc<Self>,
         _: StopScreencastParameters,
     ) -> BidiResult<StopScreencastResult> {
-        // TODO: spec is actively changing, deferred
         Err(ErrorCode::UnsupportedOperation.into())
     }
 

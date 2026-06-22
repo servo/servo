@@ -3,13 +3,16 @@ use std::rc::Rc;
 use log::warn;
 use servo_base::id::PainterId;
 use tokio::{sync::oneshot::Receiver, task};
-use webdriver_traits::bidi::{
-    BrowserCommand, BrowserResult, EmptyParams, EmptyResult, ErrorCode,
-    browser::{
-        ClientWindowInfo, CloseResult, CreateUserContextParameters, CreateUserContextResult,
-        GetClientWindowsResult, GetUserContextsResult, RemoveUserContextParameters,
-        RemoveUserContextResult, SetClientWindowStateParameters, SetClientWindowStateResult,
-        SetDownloadBehaviorParameters, SetDownloadBehaviorResult,
+use webdriver_traits::{
+    WebDriverToEmbedderMsg,
+    bidi::{
+        BrowserCommand, BrowserResult, EmptyParams, EmptyResult, ErrorCode,
+        browser::{
+            ClientWindowInfo, CloseResult, CreateUserContextParameters, CreateUserContextResult,
+            GetClientWindowsResult, GetUserContextsResult, RemoveUserContextParameters,
+            RemoveUserContextResult, SetClientWindowStateParameters, SetClientWindowStateResult,
+            SetDownloadBehaviorParameters, SetDownloadBehaviorResult,
+        },
     },
 };
 
@@ -126,9 +129,7 @@ impl RemoteEnd {
         self: Rc<Self>,
     ) -> BidiResult<GetClientWindowsResult> {
         let (callback, recv) = new_oneshot_callback();
-        self.send_to_embedder(webdriver_traits::WebDriverToEmbedderMsg::GetClientWindows(
-            callback,
-        ))?;
+        self.send_to_embedder(WebDriverToEmbedderMsg::GetClientWindows(callback))?;
         let client_windows = recv
             .await??
             .into_iter()
@@ -169,10 +170,27 @@ impl RemoteEnd {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-setClientWindowState>
     async fn handle_browser_set_client_window_state(
         self: Rc<Self>,
-        session_id: SessionId,
-        _: SetClientWindowStateParameters,
+        _: SessionId,
+        command_parameters: SetClientWindowStateParameters,
     ) -> BidiResult<SetClientWindowStateResult> {
-        Err(ErrorCode::UnknownError.into())
+        let (callback, recv) = new_oneshot_callback();
+        self.send_to_embedder(WebDriverToEmbedderMsg::SetClientWindowState(
+            command_parameters,
+            callback,
+        ))?;
+        let r = recv.await???;
+        // TODO: just use the id form of servoshellid, without transform
+        let response = ClientWindowInfo {
+            active: r.active,
+            client_window: PainterId::from(r.webview_id).to_string(),
+            height: r.height,
+            state: r.state,
+            width: r.width,
+            x: r.x,
+            y: r.y,
+        };
+        // TODO: update cached client info?
+        Ok(response)
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-setDownloadBehavior>

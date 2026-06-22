@@ -194,8 +194,10 @@ pub enum WebDriverToEmbedderMsg {
     Activate(WebViewId, GenericCallback<bool>),
     GetClientWindows(GenericCallback<Vec<GetClientWindowResponse>>),
     Exit,
-    // TODO: param
-    SetClientWindowState(PainterId, SetClientWindowStateParameters),
+    SetClientWindowState(
+        SetClientWindowStateParameters,
+        GenericCallback<Result<GetClientWindowResponse, ErrorCode>>,
+    ),
     WebViewCreate(WebViewCreateRequest),
 }
 

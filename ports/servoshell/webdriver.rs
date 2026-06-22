@@ -3,22 +3,27 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::rc::Rc;
 
+use euclid::{Box2D, Point2D};
 use log::warn;
 use servo::{
+    DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntRect, DeviceIntSize,
     EmbedderControl, EmbedderControlId, GenericCallback, GenericSender, NewWindowTypeHint,
     SimpleDialog, WebDriverCommandMsg, WebDriverDelegate, WebDriverUserPrompt,
     WebDriverUserPromptAction, WebViewId,
 };
 use url::Url;
 use webdriver_traits::bidi::ErrorCode;
-use webdriver_traits::bidi::browser::{ClientWindowInfo, ClientWindowInfoState};
+use webdriver_traits::bidi::browser::{
+    ClientWindowInfoState, ClientWindowNamedStateOrClientWindowRectState,
+    ClientWindowNamedStateState,
+};
 use webdriver_traits::{GetClientWindowResponse, WebDriverToEmbedderMsg, WebViewCreateRequest};
 
 use crate::running_app_state::RunningAppState;
-use crate::window::PlatformWindow;
+use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
 
 #[derive(Default)]
 pub(crate) struct WebDriverEmbedderControls {
@@ -376,11 +381,71 @@ impl RunningAppState {
                     }
                 },
                 WebDriverToEmbedderMsg::Exit => self.schedule_exit(),
-                WebDriverToEmbedderMsg::SetClientWindowState(
-                    painter_id,
-                    set_client_window_state_parameters,
-                ) => {
-                    // TODO: not implemented
+                WebDriverToEmbedderMsg::SetClientWindowState(parameters, callback) => {
+                    let Some(window) = parameters
+                        .client_window
+                        .parse::<u64>()
+                        .ok()
+                        .map(ServoShellWindowId::from)
+                        .and_then(|id| self.window(id))
+                    else {
+                        if let Err(err) = callback.send(Err(ErrorCode::UnknownError)) {
+                            warn!("Sending SetClientWindowState response failed ({err:?})");
+                        }
+                        continue;
+                    };
+                    let webview = window
+                        .webviews()
+                        .first()
+                        .expect("window should have at least one webview")
+                        .1
+                        .clone();
+                    // TODO: bad name, change codegen
+                    match parameters.client_window_named_state_or_client_window_rect_state {
+                        ClientWindowNamedStateOrClientWindowRectState::ClientWindowNamedState(
+                            state,
+                        ) => match state.state {
+                            ClientWindowNamedStateState::Fullscreen => {
+                                window.platform_window().set_fullscreen(true);
+                            },
+                            ClientWindowNamedStateState::Maximized => {
+                                window.platform_window().maximize(&webview);
+                            },
+                            ClientWindowNamedStateState::Minimized => {
+                                // TODO: minimize not exposed
+                                if let Err(err) = callback.send(Err(ErrorCode::UnknownError)) {
+                                    warn!("Sending SetClientWindowState response failed ({err:?})");
+                                }
+                                continue;
+                            },
+                        },
+                        ClientWindowNamedStateOrClientWindowRectState::ClientWindowRectState(
+                            state,
+                        ) => {
+                            window.platform_window().set_fullscreen(false);
+                            let old = window.platform_window().screen_geometry().window_rect;
+                            let scale = window.platform_window().hidpi_scale_factor();
+
+                            let x = state.x.unwrap_or(old.min.x as i64);
+                            let y = state.y.unwrap_or(old.min.y as i64);
+                            let w = state.width.unwrap_or(old.width() as u64) as i64;
+                            let h = state.height.unwrap_or(old.height() as u64) as i64;
+
+                            let new_rect = DeviceIndependentIntRect::new(
+                                Point2D::new(x as i32, y as i32),
+                                Point2D::new((x + w) as i32, (y + h) as i32),
+                            );
+                            let new_physical = (new_rect.to_f32() * scale).to_i32();
+                            window
+                                .platform_window()
+                                .request_resize(&webview, new_physical.size());
+                            window.platform_window().set_position(new_physical.min);
+                        },
+                    }
+                    let client_window_info = self.get_the_client_window_info(&window);
+                    if let Err(err) = callback.send(Ok(client_window_info)) {
+                        warn!("Error sending SetClientWindowState response ({err:?})");
+                    }
                 },
                 WebDriverToEmbedderMsg::WebViewCreate(WebViewCreateRequest {
                     create_type,
@@ -427,29 +492,7 @@ impl RunningAppState {
                     let mut client_windows = vec![];
                     // Step 3. we use window directly
                     for client_window in self.windows().values() {
-                        let webview_id = *client_window
-                            .webview_ids()
-                            .first()
-                            .expect("Window should have at least one webview");
-                        let platform_window = client_window.platform_window();
-                        let active = self
-                            .focused_window()
-                            .is_some_and(|window| window.id() == client_window.id());
-                        let state = match platform_window.get_fullscreen() {
-                            true => ClientWindowInfoState::Fullscreen,
-                            // TODO: maximized or minimized not exposed in api
-                            false => ClientWindowInfoState::Normal,
-                        };
-                        let window_rect = platform_window.screen_geometry().window_rect;
-                        let client_window_info = GetClientWindowResponse {
-                            active,
-                            webview_id,
-                            height: window_rect.height() as u64,
-                            width: window_rect.width() as u64,
-                            x: window_rect.min.x as i64,
-                            y: window_rect.min.y as i64,
-                            state,
-                        };
+                        let client_window_info = self.get_the_client_window_info(client_window);
                         client_windows.push(client_window_info);
                     }
                     if let Err(err) = callback.send(client_windows) {
@@ -458,5 +501,35 @@ impl RunningAppState {
                 },
             }
         }
+    }
+
+    fn get_the_client_window_info(
+        &self,
+        client_window: &Rc<ServoShellWindow>,
+    ) -> GetClientWindowResponse {
+        let webview_id = *client_window
+            .webview_ids()
+            .first()
+            .expect("Window should have at least one webview");
+        let platform_window = client_window.platform_window();
+        let active = self
+            .focused_window()
+            .is_some_and(|window| window.id() == client_window.id());
+        let state = match platform_window.get_fullscreen() {
+            true => ClientWindowInfoState::Fullscreen,
+            // TODO: maximized or minimized not exposed in api
+            false => ClientWindowInfoState::Normal,
+        };
+        let window_rect = platform_window.window_rect();
+        let client_window_info = GetClientWindowResponse {
+            active,
+            webview_id,
+            height: window_rect.height() as u64,
+            width: window_rect.width() as u64,
+            x: window_rect.min.x as i64,
+            y: window_rect.min.y as i64,
+            state,
+        };
+        client_window_info
     }
 }
