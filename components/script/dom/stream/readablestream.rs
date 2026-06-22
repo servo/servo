@@ -2552,6 +2552,7 @@ pub(crate) fn pipe_through(
     readable: DomRoot<ReadableStream>,
 ) -> DomRoot<ReadableStream> {
     // Assert: `! IsReadableStreamLocked(readable)` is false.
+
     // Assert: `! IsWritableStreamLocked(transform.[[writable]])` is false.
 
     // Above is done in `pipe_to` below.
@@ -2560,7 +2561,7 @@ pub(crate) fn pipe_through(
         &mut realm, global, dest, false, // preventClose
         false, // preventAbort
         false, // preventCancel
-        None,  //signal
+        None,  // signal
     );
 
     promise.set_promise_is_handled(cx);
