@@ -188,7 +188,7 @@ parking_lot = { version = "0.12", features = ["serde"] }
 peniko = "0.6"
 percent-encoding = "2.3"
 petgraph = "0.8.3"
-phf = "0.13"
+phf = "0.14"
 phf_codegen = "0.13"
 phf_shared = "0.13"
 pkcs8 = "0.11"
