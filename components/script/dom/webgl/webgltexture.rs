@@ -11,9 +11,7 @@ use dom_struct::dom_struct;
 #[cfg(feature = "webxr")]
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-#[cfg(feature = "webxr")]
-use script_bindings::reflector::reflect_dom_object_with_cx;
-use script_bindings::reflector::{DomObject as _, reflect_dom_object};
+use script_bindings::reflector::{DomObject as _, reflect_dom_object_with_cx};
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt, WebGLCommand,
@@ -32,7 +30,6 @@ use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext}
 use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 #[cfg(feature = "webxr")]
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::CanGc;
 
 pub(crate) enum TexParameterValue {
     Float(f32),
@@ -162,21 +159,24 @@ impl WebGLTexture {
         }
     }
 
-    pub(crate) fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(
+        cx: &mut JSContext,
+        context: &WebGLRenderingContext,
+    ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateTexture(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLTexture::new(context, id, CanGc::deprecated_note()))
+            .map(|id| WebGLTexture::new(cx, context, id))
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
         id: WebGLTextureId,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(WebGLTexture::new_inherited(
                 context,
                 id,
@@ -184,7 +184,7 @@ impl WebGLTexture {
                 None,
             )),
             &*context.global(),
-            can_gc,
+            cx,
         )
     }
 

@@ -67,17 +67,25 @@ impl WebGLExtension for ANGLEInstancedArrays {
 
 impl ANGLEInstancedArraysMethods<crate::DomTypeHolder> for ANGLEInstancedArrays {
     /// <https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/>
-    fn DrawArraysInstancedANGLE(&self, mode: u32, first: i32, count: i32, primcount: i32) {
+    fn DrawArraysInstancedANGLE(
+        &self,
+        cx: &mut JSContext,
+        mode: u32,
+        first: i32,
+        count: i32,
+        primcount: i32,
+    ) {
         handle_potential_webgl_error!(
             self.ctx,
             self.ctx
-                .draw_arrays_instanced(mode, first, count, primcount)
+                .draw_arrays_instanced(cx, mode, first, count, primcount)
         )
     }
 
     /// <https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/>
     fn DrawElementsInstancedANGLE(
         &self,
+        cx: &mut JSContext,
         mode: u32,
         count: i32,
         type_: u32,
@@ -87,11 +95,11 @@ impl ANGLEInstancedArraysMethods<crate::DomTypeHolder> for ANGLEInstancedArrays 
         handle_potential_webgl_error!(
             self.ctx,
             self.ctx
-                .draw_elements_instanced(mode, count, type_, offset, primcount)
+                .draw_elements_instanced(cx, mode, count, type_, offset, primcount)
         )
     }
 
-    fn VertexAttribDivisorANGLE(&self, index: u32, divisor: u32) {
-        self.ctx.vertex_attrib_divisor(index, divisor);
+    fn VertexAttribDivisorANGLE(&self, cx: &mut JSContext, index: u32, divisor: u32) {
+        self.ctx.vertex_attrib_divisor(cx, index, divisor);
     }
 }

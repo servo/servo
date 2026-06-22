@@ -11,7 +11,7 @@ use euclid::Size2D;
 #[cfg(feature = "webxr")]
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
@@ -32,7 +32,6 @@ use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext}
 use crate::dom::webgl::webgltexture::WebGLTexture;
 #[cfg(feature = "webxr")]
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::CanGc;
 
 pub(crate) enum CompleteForRendering {
     Complete,
@@ -192,13 +191,13 @@ impl WebGLFramebuffer {
     }
 
     pub(crate) fn maybe_new(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateFramebuffer(sender));
         let id = receiver.recv().unwrap()?;
-        let framebuffer = WebGLFramebuffer::new(context, id, can_gc);
+        let framebuffer = WebGLFramebuffer::new(cx, context, id);
         Some(framebuffer)
     }
 
@@ -211,7 +210,7 @@ impl WebGLFramebuffer {
         context: &WebGLRenderingContext,
         size: Size2D<i32, Viewport>,
     ) -> Option<DomRoot<Self>> {
-        let framebuffer = Self::maybe_new(context, CanGc::from_cx(cx))?;
+        let framebuffer = Self::maybe_new(cx, context)?;
         framebuffer.size.set(Some((size.width, size.height)));
         framebuffer.status.set(constants::FRAMEBUFFER_COMPLETE);
         framebuffer.xr_session.set(Some(session));
@@ -219,14 +218,14 @@ impl WebGLFramebuffer {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
         id: WebGLFramebufferId,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(WebGLFramebuffer::new_inherited(context, id)),
             &*context.global(),
-            can_gc,
+            cx,
         )
     }
 }
