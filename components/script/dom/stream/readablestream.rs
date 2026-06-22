@@ -2551,8 +2551,8 @@ pub(crate) fn pipe_through(
     dest: &WritableStream,
     readable: DomRoot<ReadableStream>,
 ) -> DomRoot<ReadableStream> {
-    // Assert: ! IsReadableStreamLocked(readable) is false.
-    // Assert: ! IsWritableStreamLocked(transform.[[writable]]) is false.
+    // Assert: `! IsReadableStreamLocked(readable)` is false.
+    // Assert: `! IsWritableStreamLocked(transform.[[writable]])` is false.
 
     // Above is done in `pipe_to` below.
     let mut realm = CurrentRealm::assert(cx);
