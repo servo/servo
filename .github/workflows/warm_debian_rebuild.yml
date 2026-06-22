@@ -69,22 +69,75 @@ jobs:
             sha256sum -c SHA256SUMS
           )
 
+          # Every fresh Actions container has live mounts supplied by Docker
+          # and GitHub. Do not overwrite ANY of them while restoring the saved
+          # Debian root. This is derived from this job's actual mount table;
+          # it is not a fixed list of paths.
+          mounted_targets() {
+            awk '$5 != "/" { print $5 }' /proc/self/mountinfo \
+              | while IFS= read -r encoded_path; do
+                  # Linux mountinfo writes spaces and similar characters as
+                  # octal escapes such as \040. Decode them for tar.
+                  printf '%b\n' "$encoded_path"
+                done \
+              | sort -u
+          }
+
+          tar_excludes_for_destination() {
+            local destination="$1"
+            local mountpoint
+            local relative_path
+
+            while IFS= read -r mountpoint; do
+              if [ "$destination" = "/" ]; then
+                relative_path="${mountpoint#/}"
+              else
+                case "$mountpoint" in
+                  "$destination")
+                    # This is the destination itself, not a child mount to skip.
+                    continue
+                    ;;
+                  "$destination"/*)
+                    relative_path="${mountpoint#"$destination"/}"
+                    ;;
+                  *)
+                    continue
+                    ;;
+                esac
+              fi
+
+              [ -n "$relative_path" ] || continue
+              printf '%s\0' "--exclude=./$relative_path"
+            done < <(mounted_targets)
+          }
+
           restore_stream() {
             local stream_name="$1"
             local destination="$2"
             local first_piece="$PIECES_DIR/${stream_name}.part-000"
+            local tar_excludes=()
+            local exclude_arg
 
             if [ ! -f "$first_piece" ]; then
               echo "No ${stream_name} stream in this warm state; skipping."
               return 0
             fi
 
+            # Even the currently published first snapshot is safe: mounted
+            # paths inside it will be skipped instead of overwritten.
+            while IFS= read -r -d '' exclude_arg; do
+              tar_excludes+=("$exclude_arg")
+            done < <(tar_excludes_for_destination "$destination")
+
             echo "Restoring ${stream_name} into ${destination}"
+            echo "Preserving ${#tar_excludes[@]} live mountpoint(s) from this job."
+
             cat "$PIECES_DIR"/"${stream_name}".part-* \
               | tar --zstd \
                   --numeric-owner \
                   --acls \
                   --xattrs \
+                  "${tar_excludes[@]}" \
                   -xpf - \
                   -C "$destination"
           }
@@ -329,28 +382,29 @@ jobs:
               - "$SNAPSHOT_DIR/${stem}.part-"
           }
 
+          # Snapshot rule: preserve the Debian filesystem but exclude every
+          # current mountpoint supplied by this job. This catches Docker's
+          # single-file /etc mounts, Actions work/temp mounts, pseudo-filesystems,
+          # and future injected mounts without keeping a brittle list.
+          mounted_targets() {
+            awk '$5 != "/" { print $5 }' /proc/self/mountinfo \
+              | while IFS= read -r encoded_path; do
+                  printf '%b\n' "$encoded_path"
+                done \
+              | sort -u
+          }
+
           ROOT_EXCLUDES=(
-            --exclude='./dev'
-            --exclude='./proc'
-            --exclude='./sys'
-            --exclude='./run'
             --exclude='./tmp'
-            --exclude='./__w'
-            --exclude='./__e'
-            --exclude='./__t'
-            --exclude='./github'
             --exclude='./root/.gitconfig'
             --exclude='./root/.config/gh/hosts.yml'
           )
 
-          for mounted_path in "$GITHUB_WORKSPACE" "${RUNNER_TEMP:-}"; do
-            [ -n "$mounted_path" ] || continue
-            ROOT_EXCLUDES+=(--exclude="./${mounted_path#/}")
-          done
+          while IFS= read -r mountpoint; do
+            ROOT_EXCLUDES+=("--exclude=./${mountpoint#/}")
+          done < <(mounted_targets)
 
-          if [ "$HOME" != "/root" ]; then
-            ROOT_EXCLUDES+=(--exclude="./${HOME#/}")
-          fi
+          echo "Snapshot will exclude $(( ${#ROOT_EXCLUDES[@]} - 3 )) live mountpoint(s)."
 
           # Debian root: packages, toolchains, /var/servo-cargo-target and
           # root-owned caches. Actions bridges and live pseudo-filesystems are
