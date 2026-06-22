@@ -1,26 +1,6 @@
 name: From The Top
 
 on:
-  push:
-    paths:
-      - '.devcontainer/**'
-      - '.github/workflows/local-runtime-devcontainer-smoke.yml'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'rust-toolchain.toml'
-      - 'mach'
-      - 'python/**'
-      - 'docs/local-runtime/**'
-  pull_request:
-    paths:
-      - '.devcontainer/**'
-      - '.github/workflows/local-runtime-devcontainer-smoke.yml'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'rust-toolchain.toml'
-      - 'mach'
-      - 'python/**'
-      - 'docs/local-runtime/**'
   workflow_dispatch:
     inputs:
       build_kind:
@@ -344,14 +324,14 @@ jobs:
       - name: Bootstrap Servo dependencies
         run: ./mach bootstrap --yes
 
-      - name: Build Servo Linux debug
-        run: ./mach build --debug
+      - name: Build Servo Linux NONdebug
+        run: ./mach build
 
-      - name: Package Linux debug build
+      - name: Package Linux NONdebug build
         run: |
           set -Eeuo pipefail
 
-          ./mach package --debug
+          ./mach package
 
           PACKAGE="$CARGO_TARGET_DIR/debug/servo-tech-demo.tar.gz"
           WORK_DIR="$(mktemp -d)"
