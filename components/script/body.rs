@@ -30,9 +30,6 @@ use url::form_urlencoded;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::Blob_Binding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
-use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
-    ReadableStreamMethods, ReadableWritablePair, StreamPipeOptions,
-};
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -49,7 +46,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
+use crate::dom::readablestream::{
+    ReadableStream, get_read_promise_bytes, get_read_promise_done, pipe_through,
+};
 use crate::dom::urlsearchparams::URLSearchParams;
 use crate::mime_multipart::{Node, read_multipart_body};
 use crate::realms::enter_auto_realm;
@@ -1189,17 +1188,12 @@ pub(crate) fn body_text_stream<T: BodyMixin + DomObject>(
     let decoder =
         TextDecoderStream::new_with_proto(cx, &object.global(), None, UTF_8, false, false)?;
 
-    let pair = ReadableWritablePair {
-        readable: decoder.Readable(),
-        writable: decoder.Writable(),
-    };
-    let options = StreamPipeOptions {
-        preventClose: false,
-        preventAbort: false,
-        preventCancel: false,
-        signal: None,
-    };
-    let mut realm = CurrentRealm::assert(cx);
-    // Stel 6. Return the result of stream, piped through decoder.
-    stream.PipeThrough(&mut realm, &pair, &options)
+    // Step 6. Return the result of stream, piped through decoder.
+    Ok(pipe_through(
+        &stream,
+        cx,
+        &object.global(),
+        &decoder.Writable(),
+        decoder.Readable(),
+    ))
 }
