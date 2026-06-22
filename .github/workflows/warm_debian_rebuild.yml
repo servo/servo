@@ -755,6 +755,35 @@ jobs:
             release/servo-linux-debian12-debug-symbols.zip \
             --clobber
 
+      - name: Probe Cargo freshness — 120 second cap
+        run: |
+          set -Eeuo pipefail
+
+          LOG="$RUNNER_TEMP/cargo-fingerprint.log"
+
+          set +e
+          timeout --kill-after=15s 120s \
+            env CARGO_LOG=cargo::core::compiler::fingerprint=trace \
+            ./mach build --release --very-verbose \
+            >"$LOG" 2>&1
+          status=$?
+          set -e
+
+          echo "=== Cargo freshness excerpts ==="
+          grep -Ei \
+            'CARGO_LOG|dirty|fresh|fingerprint|stale|changed|newer|missing' \
+            "$LOG" \
+            | sed -n '1,350p' \
+            || true
+
+          echo "=== Cargo probe tail ==="
+          tail -n 80 "$LOG" || true
+
+          echo "Probe exit status: $status"
+          echo "0 means it completed; 124 means it was deliberately stopped."
+          exit 0
+
+
       - name: Show build download link
         run: |
           TAG=latest-local-runtime-debian12-linux-debug
