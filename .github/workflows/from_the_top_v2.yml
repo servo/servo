@@ -1,0 +1,511 @@
+name: From The Top v2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CC: clang
+  CXX: clang++
+  CARGO_TARGET_DIR: /var/servo-cargo-target
+  UV_PROJECT_ENVIRONMENT: .devcontainer-venv
+
+jobs:
+  linux-debian12-debug-build:
+    name: Debian 12 debug symbol-split build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    container:
+      image: debian:12
+    steps:
+      - name: Install Debian bootstrap prerequisites
+        run: |
+          set -Eeuo pipefail
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            git \
+            python3 \
+            python3-venv \
+            python3-pip \
+            build-essential \
+            clang \
+            lld \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libssl-dev \
+            unzip \
+            zip \
+            tar \
+            xz-utils \
+            zstd \
+            sudo \
+            gh
+      - uses: actions/checkout@v6
+
+      - name: Debian 12 from the top
+        run: bash ci/local-runtime/from_the_top.sh
+
+      - name: Prepare Debian target directory
+        run: mkdir -p "$CARGO_TARGET_DIR"
+
+      - name: Bootstrap Servo dependencies
+        run: ./mach bootstrap --yes
+
+      - name: Build Servo Linux NONdebug
+        run: ./mach build --release
+
+      - name: Package Linux NONdebug build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+
+          ./mach package --release
+
+          # This is the Factory Reset checkpoint: the complete warm Debian
+          # userspace and incremental build state, captured before the later
+          # packaging work stages files and extracts debug symbols.
+          #
+          # The snapshot is written to the workspace only as a temporary
+          # staging area. It is then published directly to one fixed GitHub
+          # prerelease, replacing the prior Factory Reset snapshot.
+          SNAPSHOT_DIR="$GITHUB_WORKSPACE/factory-reset-snapshot"
+          WARM_TAG="factory-reset-debian12-ubuntu24-warm-state"
+
+          rm -rf "$SNAPSHOT_DIR"
+          mkdir -p "$SNAPSHOT_DIR"
+
+          {
+            echo "factory_reset_snapshot=debian12-ubuntu24"
+            echo "created_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "repository=$GITHUB_REPOSITORY"
+            echo "commit=$GITHUB_SHA"
+            echo "runner_os=$RUNNER_OS"
+            echo "runner_arch=$RUNNER_ARCH"
+            echo "outer_host_label=ubuntu-24.04"
+            echo "container_image=debian:12"
+            echo "github_workspace=$GITHUB_WORKSPACE"
+            echo "home=$HOME"
+            echo "cargo_target_dir=$CARGO_TARGET_DIR"
+            echo "uv_project_environment=$UV_PROJECT_ENVIRONMENT"
+          } > "$SNAPSHOT_DIR/manifest.env"
+
+          uname -a > "$SNAPSHOT_DIR/uname.txt"
+          cat /etc/os-release > "$SNAPSHOT_DIR/debian-os-release.txt"
+          cat /proc/self/mountinfo > "$SNAPSHOT_DIR/mountinfo.txt"
+
+          du -sh \
+            "$CARGO_TARGET_DIR" \
+            "$HOME" \
+            "$GITHUB_WORKSPACE/.devcontainer-venv" \
+            2>&1 | tee "$SNAPSHOT_DIR/warm-state-sizes.txt" || true
+
+          # GitHub Release assets must each remain below 2 GiB. 1900 MiB
+          # leaves room below that cap while keeping every stream restorable
+          # with one ordered `cat ... | tar --zstd` command.
+          split_zstd_tar() {
+            local stem="$1"
+            shift
+
+            "$@" | split \
+              --bytes=1900M \
+              --numeric-suffixes=0 \
+              --suffix-length=3 \
+              - "$SNAPSHOT_DIR/${stem}.part-"
+          }
+
+          ROOT_EXCLUDES=(
+            --exclude='./dev'
+            --exclude='./proc'
+            --exclude='./sys'
+            --exclude='./run'
+            --exclude='./tmp'
+            --exclude='./__w'
+            --exclude='./__e'
+            --exclude='./__t'
+            --exclude='./github'
+          )
+
+          # These runner-mounted paths are not part of Debian's saved root.
+          # $HOME is captured separately when Actions maps it outside /root.
+          for mounted_path in "$GITHUB_WORKSPACE" "${RUNNER_TEMP:-}"; do
+            [ -n "$mounted_path" ] || continue
+            ROOT_EXCLUDES+=(--exclude="./${mounted_path#/}")
+          done
+
+          if [ "$HOME" != "/root" ]; then
+            ROOT_EXCLUDES+=(--exclude="./${HOME#/}")
+          fi
+
+          # Root snapshot: Debian packages and configuration, toolchains,
+          # Cargo target state at /var/servo-cargo-target, and root-owned
+          # caches. Pseudo-filesystems and Actions bridge mounts stay fresh.
+          split_zstd_tar debian-root.tar.zst \
+            tar --zstd \
+              --numeric-owner \
+              --acls \
+              --xattrs \
+              --one-file-system \
+              "${ROOT_EXCLUDES[@]}" \
+              -C / \
+              -cf - .
+
+          # GitHub commonly mounts HOME outside the Debian root. Preserve its
+          # build caches but keep runner GitHub/Git credentials out of release.
+          if [ "$HOME" != "/root" ] && [ -d "$HOME" ]; then
+            split_zstd_tar github-home.tar.zst \
+              tar --zstd \
+                --numeric-owner \
+                --acls \
+                --xattrs \
+                --exclude='./.gitconfig' \
+                --exclude='./.config/gh/hosts.yml' \
+                -C "$HOME" \
+                -cf - .
+          fi
+
+          # UV is deliberately repo-local, so it is restored only after the
+          # next workflow checks out current source into the workspace.
+          if [ -d "$GITHUB_WORKSPACE/.devcontainer-venv" ]; then
+            split_zstd_tar repo-warm.tar.zst \
+              tar --zstd \
+                --numeric-owner \
+                --acls \
+                --xattrs \
+                -C "$GITHUB_WORKSPACE" \
+                -cf - \
+                .devcontainer-venv
+          fi
+
+          (
+            cd "$SNAPSHOT_DIR"
+            sha256sum *.part-* > SHA256SUMS
+            cat > README.txt <<'EOF'
+          Factory Reset warm snapshot: Debian 12 userspace on the Ubuntu 24.04
+          GitHub-hosted runner floor.
+
+          Restore order:
+            1. Reassemble and extract debian-root.tar.zst.part-* into /.
+            2. Reassemble and extract github-home.tar.zst.part-* into $HOME,
+               when that archive exists.
+            3. Check out current source into $GITHUB_WORKSPACE.
+            4. Reassemble and extract repo-warm.tar.zst.part-* into
+               $GITHUB_WORKSPACE, when that archive exists.
+            5. Run ./mach build --release.
+
+          Each .part-* is one contiguous segment of a .tar.zst stream:
+            cat NAME.part-* | tar --zstd -xf - -C DESTINATION
+          EOF
+          )
+
+          echo "=== Factory Reset warm snapshot ==="
+          du -sh "$SNAPSHOT_DIR"/* | sort -h
+
+          # Exactly one durable snapshot release exists. Recreating this fixed
+          # prerelease removes all old parts before publishing the new set, so
+          # repeated Factory Resets do not accumulate generations of storage.
+          gh release delete "$WARM_TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh api --method DELETE \
+            "repos/$GITHUB_REPOSITORY/git/refs/tags/$WARM_TAG" \
+            >/dev/null 2>&1 || true
+
+          gh release create "$WARM_TAG" "$SNAPSHOT_DIR"/* \
+            --target "$GITHUB_SHA" \
+            --title "Factory Reset warm state — Debian 12 on Ubuntu 24.04" \
+            --notes-file "$SNAPSHOT_DIR/README.txt" \
+            --prerelease \
+            --latest=false
+
+          PACKAGE="$CARGO_TARGET_DIR/release/servo-tech-demo.tar.gz"
+          WORK_DIR="$(mktemp -d)"
+          RUNTIME_DIR="$WORK_DIR/runtime"
+          SYMBOL_DIR="$WORK_DIR/symbols"
+          export RUNTIME_DIR SYMBOL_DIR
+          BEFORE_INVENTORY="$WORK_DIR/largest-before.md"
+          AFTER_INVENTORY="$WORK_DIR/largest-after.md"
+          ELF_LIST="$WORK_DIR/elf-files.txt"
+
+          rm -rf release
+          mkdir -p release "$RUNTIME_DIR" "$SYMBOL_DIR"
+
+          tar -xzf "$PACKAGE" -C "$RUNTIME_DIR"
+
+          ORIGINAL_PACKAGE_SIZE="$(du -h "$PACKAGE" | cut -f1)"
+          echo "Original package size: $ORIGINAL_PACKAGE_SIZE"
+
+          echo "Largest 50 files before stripping:"
+          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$BEFORE_INVENTORY"
+
+          select_tool() {
+            local tool
+            for tool in "$@"; do
+              if command -v "$tool" >/dev/null 2>&1; then
+                command -v "$tool"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          READELF="$(select_tool readelf llvm-readelf)" || {
+            echo "No usable ELF header reader found; expected readelf or llvm-readelf." >&2
+            exit 1
+          }
+          OBJCOPY="$(select_tool objcopy llvm-objcopy)" || {
+            echo "No usable debug objcopy tool found; expected objcopy or llvm-objcopy." >&2
+            exit 1
+          }
+          STRIP="$(select_tool strip llvm-strip)" || {
+            echo "No usable strip tool found; expected strip or llvm-strip." >&2
+            exit 1
+          }
+
+          echo "Selected ELF header reader: $READELF"
+          echo "Selected debug objcopy tool: $OBJCOPY"
+          echo "Selected strip tool: $STRIP"
+
+          : > "$ELF_LIST"
+          while IFS= read -r -d '' file_path; do
+            if "$READELF" -h "$file_path" >/dev/null 2>&1; then
+              size="$(stat -c '%s' "$file_path")"
+              printf '%s %s\n' "$size" "$file_path" >> "$ELF_LIST"
+              printf '%s: ELF file detected by %s\n' "${file_path#$RUNTIME_DIR/}" "$(basename "$READELF")"
+            fi
+          done < <(find "$RUNTIME_DIR" -type f -print0)
+
+          echo "Section information for largest ELF files before stripping:"
+          sort -nr "$ELF_LIST" | sed -n '1,20p' | while IFS=' ' read -r _ elf_file; do
+            echo "### ${elf_file#$RUNTIME_DIR/}"
+            "$READELF" -S "$elf_file" | sed -n '1,80p'
+          done
+
+          PROCESSED_ELF_COUNT=0
+
+          while IFS=' ' read -r _ elf_file; do
+            rel_path="${elf_file#$RUNTIME_DIR/}"
+            symbol_file="$SYMBOL_DIR/$rel_path.debug"
+            mkdir -p "$(dirname "$symbol_file")"
+
+            "$OBJCOPY" --only-keep-debug "$elf_file" "$symbol_file"
+            "$STRIP" --strip-debug "$elf_file"
+            if "$OBJCOPY" --add-gnu-debuglink="$symbol_file" "$elf_file"; then
+              echo "Added GNU debug link for $rel_path"
+            else
+              echo "GNU debug link unsupported for $rel_path"
+            fi
+            PROCESSED_ELF_COUNT=$((PROCESSED_ELF_COUNT + 1))
+          done < <(sort -nr "$ELF_LIST")
+
+          SERVOSHELL_PATH="$(find "$RUNTIME_DIR" -type f -name servoshell -print -quit)"
+          if [ -z "$SERVOSHELL_PATH" ]; then
+            echo "Packaged servoshell not found for GLIBC floor inspection." >&2
+            exit 1
+          fi
+          GLIBC_FLOOR="$($READELF --version-info "$SERVOSHELL_PATH" 2>/dev/null | sed -n 's/.*GLIBC_\([0-9][0-9.]*\).*/\1/p' | sort -Vu | tail -n 1)"
+          if [ -z "$GLIBC_FLOOR" ]; then
+            GLIBC_FLOOR="not detected"
+            GLIBC_DEBIAN12_COMPAT="unknown"
+          elif printf '%s\n%s\n' "$GLIBC_FLOOR" "2.36" | sort -CV; then
+            GLIBC_DEBIAN12_COMPAT="yes"
+          else
+            GLIBC_DEBIAN12_COMPAT="no"
+          fi
+          echo "Highest required GLIBC symbol: GLIBC_$GLIBC_FLOOR"
+          echo "Debian 12 / glibc 2.36 compatible: $GLIBC_DEBIAN12_COMPAT"
+          if [ "$GLIBC_DEBIAN12_COMPAT" = "no" ]; then
+            echo "Debian 12 artifact requires newer than GLIBC_2.36." >&2
+            exit 1
+          fi
+
+          STRIPPED_RUNTIME_SIZE="$(du -sh "$RUNTIME_DIR" | cut -f1)"
+          DEBUG_SYMBOL_SIZE="$(du -sh "$SYMBOL_DIR" | cut -f1)"
+          echo "Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
+          echo "Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
+          echo "ELF files processed: $PROCESSED_ELF_COUNT"
+
+          echo "Largest 50 files after stripping:"
+          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$AFTER_INVENTORY"
+
+          python3 - <<'PYZIP'
+          import os
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          archives = [
+              (Path('release/servo-linux-debian12-debug-runtime-stripped.zip'), Path(os.environ['RUNTIME_DIR'])),
+              (Path('release/servo-linux-debian12-debug-symbols.zip'), Path(os.environ['SYMBOL_DIR'])),
+          ]
+          for zip_path, source_dir in archives:
+              with ZipFile(zip_path, 'w', compression=ZIP_DEFLATED, compresslevel=9, strict_timestamps=False) as zf:
+                  for path in sorted(source_dir.rglob('*')):
+                      if path.is_file():
+                          archive_name = path.relative_to(source_dir).as_posix()
+                          zf.write(path, archive_name)
+          PYZIP
+
+          RUNTIME_ZIP_SIZE="$(du -h release/servo-linux-debian12-debug-runtime-stripped.zip | cut -f1)"
+          SYMBOL_ZIP_SIZE="$(du -h release/servo-linux-debian12-debug-symbols.zip | cut -f1)"
+
+          {
+            echo "ORIGINAL_PACKAGE_SIZE=$ORIGINAL_PACKAGE_SIZE"
+            echo "STRIPPED_RUNTIME_SIZE=$STRIPPED_RUNTIME_SIZE"
+            echo "DEBUG_SYMBOL_SIZE=$DEBUG_SYMBOL_SIZE"
+            echo "RUNTIME_ZIP_SIZE=$RUNTIME_ZIP_SIZE"
+            echo "SYMBOL_ZIP_SIZE=$SYMBOL_ZIP_SIZE"
+            echo "PROCESSED_ELF_COUNT=$PROCESSED_ELF_COUNT"
+            echo "GLIBC_FLOOR=$GLIBC_FLOOR"
+            echo "GLIBC_DEBIAN12_COMPAT=$GLIBC_DEBIAN12_COMPAT"
+            echo "BEFORE_INVENTORY=$BEFORE_INVENTORY"
+            echo "AFTER_INVENTORY=$AFTER_INVENTORY"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload release ZIP artifacts
+        id: upload_zips
+        uses: actions/upload-artifact@v7
+        with:
+          name: servo-linux-debian12-debug-release
+          path: |
+            release/servo-linux-debian12-debug-runtime-stripped.zip
+            release/servo-linux-debian12-debug-symbols.zip
+          if-no-files-found: error
+
+      - name: Keep Debian 12 runtime and leave debug symbols behind
+        run: |
+          set -Eeuo pipefail
+
+          SOURCE_DIR="release"
+          OUTPUT_DIR="${RUNNER_TEMP}/debian12-runtime-only"
+          RUNTIME_TARBALL="release/servo-linux-debian12-runtime-only-v1.tar.gz"
+          RUNTIME_ZIP_NAME='servo-linux-debian12-debug-runtime-stripped.zip'
+          SYMBOL_ZIP_NAME='servo-linux-debian12-debug-symbols.zip'
+
+          mapfile -t runtime_zips < <(find "${SOURCE_DIR}" -type f -name "${RUNTIME_ZIP_NAME}" -print | sort)
+          if [ "${#runtime_zips[@]}" -ne 1 ]; then
+            echo "ERROR: expected exactly one ${RUNTIME_ZIP_NAME}; found ${#runtime_zips[@]}." >&2
+            printf '%s\n' "${runtime_zips[@]:-}" >&2
+            exit 1
+          fi
+
+          runtime_zip="${runtime_zips[0]}"
+          rm -rf "${OUTPUT_DIR}"
+          rm -f "${RUNTIME_TARBALL}"
+          mkdir -p "${OUTPUT_DIR}"
+          unzip -q "${runtime_zip}" -d "${OUTPUT_DIR}"
+
+          servoshell_path="$(find "${OUTPUT_DIR}" -type f -name servoshell -print -quit)"
+          if [ -z "${servoshell_path}" ]; then
+            echo 'ERROR: stripped runtime ZIP did not contain servoshell.' >&2
+            exit 1
+          fi
+
+          # Uploading a raw directory through Actions can discard executable mode
+          # bits. Pack the extracted runtime in tar.gz so servoshell remains
+          # executable after the browser download is unpacked locally.
+          tar -C "${OUTPUT_DIR}" -czf "${RUNTIME_TARBALL}" .
+
+          runtime_tree_size="$(du -sh "${OUTPUT_DIR}" | cut -f1)"
+          runtime_zip_size="$(du -h "${runtime_zip}" | cut -f1)"
+          runtime_tarball_size="$(du -h "${RUNTIME_TARBALL}" | cut -f1)"
+          runtime_zip_sha256="$(sha256sum "${runtime_zip}" | awk '{print $1}')"
+          runtime_tarball_sha256="$(sha256sum "${RUNTIME_TARBALL}" | awk '{print $1}')"
+          symbol_count="$(find "${SOURCE_DIR}" -type f -name "${SYMBOL_ZIP_NAME}" -print | wc -l)"
+          servoshell_version="$("${servoshell_path}" --version 2>&1 || true)"
+
+          {
+            echo '### Debian 12 runtime-only extraction v1'
+            echo
+            echo "- Source artifact directory: ${SOURCE_DIR}"
+            echo "- Kept runtime ZIP: ${RUNTIME_ZIP_NAME} (${runtime_zip_size})"
+            echo "- Runtime ZIP SHA-256: ${runtime_zip_sha256}"
+            echo "- Extracted runtime tree size: ${runtime_tree_size}"
+            echo "- Output tarball: $(basename "${RUNTIME_TARBALL}") (${runtime_tarball_size})"
+            echo "- Output tarball SHA-256: ${runtime_tarball_sha256}"
+            echo "- Debug-symbol ZIPs deliberately not copied: ${symbol_count}"
+            echo "- Packaged servoshell --version: ${servoshell_version}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload stripped Debian 12 runtime only
+        uses: actions/upload-artifact@v7
+        with:
+          name: servo-linux-debian12-runtime-only-v1
+          path: release/servo-linux-debian12-runtime-only-v1.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Install GitHub CLI
+        run: |
+          set -Eeuo pipefail
+
+          if command -v gh >/dev/null 2>&1; then
+            gh --version
+            exit 0
+          fi
+
+          apt-get update
+          apt-get install -y gh
+          gh --version
+
+      - name: Push successful builds to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+
+          TAG=latest-local-runtime-debian12-linux-debug
+
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" \
+              --title "Latest local runtime Debian 12 Linux debug build" \
+              --notes "Automatically updated by GitHub Actions."
+
+          gh release upload "$TAG" \
+            release/servo-linux-debian12-debug-runtime-stripped.zip \
+            release/servo-linux-debian12-debug-symbols.zip \
+            --clobber
+
+      - name: Show build download link
+        run: |
+          TAG=latest-local-runtime-debian12-linux-debug
+
+          {
+            echo "### Local runtime Debian 12 Linux debug build"
+            echo ""
+            echo "- Original package size: $ORIGINAL_PACKAGE_SIZE"
+            echo "- Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
+            echo "- Debug-symbol tree size: $DEBUG_SYMBOL_SIZE"
+            echo "- Stripped runtime ZIP size: $RUNTIME_ZIP_SIZE"
+            echo "- Debug-symbol ZIP size: $SYMBOL_ZIP_SIZE"
+            echo "- ELF files processed: $PROCESSED_ELF_COUNT"
+            echo "- Highest required GLIBC symbol: GLIBC_$GLIBC_FLOOR"
+            echo "- Should run on Debian 12 / glibc 2.36: $GLIBC_DEBIAN12_COMPAT"
+            echo ""
+            echo "#### Largest files before stripping"
+            echo '```'
+            cat "$BEFORE_INVENTORY"
+            echo '```'
+            echo ""
+            echo "#### Largest files after stripping"
+            echo '```'
+            cat "$AFTER_INVENTORY"
+            echo '```'
+            echo ""
+            if [ -n "${{ steps.upload_zips.outputs.artifact-url }}" ]; then
+              echo "[Download Actions artifact](${{ steps.upload_zips.outputs.artifact-url }})"
+              echo ""
+            fi
+            echo "[Download Release build](https://github.com/${{ github.repository }}/releases/tag/$TAG)"
+          } >> "$GITHUB_STEP_SUMMARY"
