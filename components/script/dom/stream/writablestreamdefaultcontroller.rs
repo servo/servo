@@ -32,7 +32,6 @@ use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes,
 use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{AbortController, AbortSignal, TransformStream};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 impl js::gc::Rootable for CloseAlgorithmFulfillmentHandler {}
 
@@ -219,9 +218,7 @@ impl Callback for WriteAlgorithmFulfillmentHandler {
 
         // Perform ! DequeueValue(controller).
         rooted!(&in(cx) let mut rval = UndefinedValue());
-        controller
-            .queue
-            .dequeue_value(cx.into(), Some(rval.handle_mut()), CanGc::from_cx(cx));
+        controller.queue.dequeue_value(cx, Some(rval.handle_mut()));
 
         let global = GlobalScope::from_current_realm(cx);
 
@@ -777,8 +774,7 @@ impl WritableStreamDefaultController {
         stream.mark_close_request_in_flight();
 
         // Perform ! DequeueValue(controller).
-        self.queue
-            .dequeue_value(cx.into(), None, CanGc::from_cx(cx));
+        self.queue.dequeue_value(cx, None);
 
         // Assert: controller.[[queue]] is empty.
         assert!(self.queue.is_empty());
@@ -849,8 +845,7 @@ impl WritableStreamDefaultController {
             if self.queue.is_empty() {
                 return;
             }
-            self.queue
-                .peek_queue_value(cx.into(), value.handle_mut(), CanGc::from_cx(cx))
+            self.queue.peek_queue_value(cx, value.handle_mut())
         };
 
         if is_closed {

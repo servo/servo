@@ -7,6 +7,7 @@ use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
 
+use script_bindings::script_runtime::CanGc;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
@@ -43,7 +44,7 @@ use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterB
 use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
 use crate::dom::bindings::reflector::DomGlobal;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::stream::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTeePullAlgorithm, ByteTeeUnderlyingSource};
@@ -62,7 +63,6 @@ use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_auto_realm};
-use crate::script_runtime::CanGc;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -831,25 +831,23 @@ pub(crate) fn create_readable_stream(
     let high_water_mark = high_water_mark.unwrap_or(1.0);
 
     // If sizeAlgorithm was not passed, set it to an algorithm that returns 1.
-    let size_algorithm = queuing_strategy.unwrap_or(extract_size_algorithm(
-        &QueuingStrategy::empty(),
-        CanGc::from_cx(cx),
-    ));
+    let size_algorithm =
+        queuing_strategy.unwrap_or(extract_size_algorithm(cx, &QueuingStrategy::empty()));
 
     // Assert: ! IsNonNegativeNumber(highWaterMark) is true.
     assert!(high_water_mark >= 0.0);
 
     // Let stream be a new ReadableStream.
     // Perform ! InitializeReadableStream(stream).
-    let stream = ReadableStream::new_with_proto(global, None, CanGc::from_cx(cx));
+    let stream = ReadableStream::new_with_proto(cx, global, None);
 
     // Let controller be a new ReadableStreamDefaultController.
     let controller = ReadableStreamDefaultController::new(
+        cx,
         global,
         underlying_source_type,
         high_water_mark,
         size_algorithm,
-        CanGc::from_cx(cx),
     );
 
     // Perform ? SetUpReadableStreamDefaultController(stream, controller, startAlgorithm,
@@ -870,11 +868,10 @@ fn readable_byte_stream_tee(
 ) -> DomRoot<ReadableStream> {
     // Let stream be a new ReadableStream.
     // Perform ! InitializeReadableStream(stream).
-    let tee_stream = ReadableStream::new_with_proto(global, None, CanGc::from_cx(cx));
+    let tee_stream = ReadableStream::new_with_proto(cx, global, None);
 
     // Let controller be a new ReadableByteStreamController.
-    let controller =
-        ReadableByteStreamController::new(underlying_source_type, 0.0, global, CanGc::from_cx(cx));
+    let controller = ReadableByteStreamController::new(cx, underlying_source_type, 0.0, global);
 
     // Perform ? SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, 0, undefined).
     controller
@@ -923,15 +920,15 @@ impl ReadableStream {
     }
 
     pub(crate) fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<ReadableStream> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(ReadableStream::new_inherited()),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -997,14 +994,10 @@ impl ReadableStream {
         source: UnderlyingSourceType,
     ) -> Fallible<DomRoot<ReadableStream>> {
         assert!(source.is_native());
-        let stream = ReadableStream::new_with_proto(global, None, CanGc::from_cx(cx));
-        let controller = ReadableStreamDefaultController::new(
-            global,
-            source,
-            1.0,
-            extract_size_algorithm(&QueuingStrategy::empty(), CanGc::from_cx(cx)),
-            CanGc::from_cx(cx),
-        );
+        let stream = ReadableStream::new_with_proto(cx, global, None);
+        let strategy_size = extract_size_algorithm(cx, &QueuingStrategy::empty());
+        let controller =
+            ReadableStreamDefaultController::new(cx, global, source, 1.0, strategy_size);
         controller.setup(cx, stream.clone())?;
         Ok(stream)
     }
@@ -1016,8 +1009,8 @@ impl ReadableStream {
         source: UnderlyingSourceType,
     ) -> Fallible<DomRoot<ReadableStream>> {
         assert!(source.is_native());
-        let stream = ReadableStream::new_with_proto(global, None, CanGc::from_cx(cx));
-        let controller = ReadableByteStreamController::new(source, 0.0, global, CanGc::from_cx(cx));
+        let stream = ReadableStream::new_with_proto(cx, global, None);
+        let controller = ReadableByteStreamController::new(cx, source, 0.0, global);
         controller.setup(cx, global, stream.clone())?;
         Ok(stream)
     }
@@ -1717,6 +1710,7 @@ impl ReadableStream {
         let reader_version = Rc::new(Cell::new(0));
 
         let byte_tee_source_1 = ByteTeeUnderlyingSource::new(
+            cx,
             reader.clone(),
             self,
             reading.clone(),
@@ -1730,10 +1724,10 @@ impl ReadableStream {
             reader_version.clone(),
             ByteTeeCancelAlgorithm::Cancel1Algorithm,
             ByteTeePullAlgorithm::Pull1Algorithm,
-            CanGc::from_cx(cx),
         );
 
         let byte_tee_source_2 = ByteTeeUnderlyingSource::new(
+            cx,
             reader.clone(),
             self,
             reading,
@@ -1747,7 +1741,6 @@ impl ReadableStream {
             reader_version,
             ByteTeeCancelAlgorithm::Cancel2Algorithm,
             ByteTeePullAlgorithm::Pull2Algorithm,
-            CanGc::from_cx(cx),
         );
 
         // Set branch1 to ! CreateReadableByteStream(startAlgorithm, pull1Algorithm, cancel1Algorithm).
@@ -1808,6 +1801,7 @@ impl ReadableStream {
         let cancel_promise = Promise::new(cx, &self.global());
 
         let tee_source_1 = DefaultTeeUnderlyingSource::new(
+            cx,
             &reader,
             self,
             reading.clone(),
@@ -1819,12 +1813,12 @@ impl ReadableStream {
             reason_2.clone(),
             cancel_promise.clone(),
             DefaultTeeCancelAlgorithm::Cancel1Algorithm,
-            CanGc::from_cx(cx),
         );
 
         let underlying_source_type_branch_1 = UnderlyingSourceType::Tee(&tee_source_1);
 
         let tee_source_2 = DefaultTeeUnderlyingSource::new(
+            cx,
             &reader,
             self,
             reading,
@@ -1836,7 +1830,6 @@ impl ReadableStream {
             reason_2,
             cancel_promise.clone(),
             DefaultTeeCancelAlgorithm::Cancel2Algorithm,
-            CanGc::from_cx(cx),
         );
 
         let underlying_source_type_branch_2 = UnderlyingSourceType::Tee(&tee_source_2);
@@ -2033,10 +2026,10 @@ impl ReadableStream {
         }
 
         let controller = ReadableByteStreamController::new(
+            cx,
             UnderlyingSourceType::Js(underlying_source_dict),
             strategy_hwm,
             global,
-            CanGc::from_cx(cx),
         );
 
         // Note: this must be done before `setup`,
@@ -2061,18 +2054,17 @@ impl ReadableStream {
         // Done in `new_inherited`.
 
         // Let sizeAlgorithm be an algorithm that returns 1.
-        let size_algorithm =
-            extract_size_algorithm(&QueuingStrategy::default(), CanGc::from_cx(cx));
+        let size_algorithm = extract_size_algorithm(cx, &QueuingStrategy::default());
 
         // Note: other algorithms defined in the underlying source container.
 
         // Let controller be a new ReadableStreamDefaultController.
         let controller = ReadableStreamDefaultController::new(
+            cx,
             &self.global(),
             UnderlyingSourceType::Transfer(port),
             0.,
             size_algorithm,
-            CanGc::from_cx(cx),
         );
 
         // Add a handler for port’s message event with the following steps:
@@ -2121,7 +2113,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         };
 
         // Perform ! InitializeReadableStream(this).
-        let stream = ReadableStream::new_with_proto(global, proto, CanGc::from_cx(cx));
+        let stream = ReadableStream::new_with_proto(cx, global, proto);
 
         if underlying_source_dict.type_.is_some() {
             // If strategy["size"] exists, throw a RangeError exception.
@@ -2149,14 +2141,14 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
 
             // Let sizeAlgorithm be ! ExtractSizeAlgorithm(strategy).
-            let size_algorithm = extract_size_algorithm(strategy, CanGc::from_cx(cx));
+            let size_algorithm = extract_size_algorithm(cx, strategy);
 
             let controller = ReadableStreamDefaultController::new(
+                cx,
                 global,
                 UnderlyingSourceType::Js(underlying_source_dict),
                 high_water_mark,
                 size_algorithm,
-                CanGc::from_cx(cx),
             );
 
             // Note: this must be done before `setup`,
@@ -2477,18 +2469,18 @@ impl Transferable for ReadableStream {
         let cx = &mut realm;
 
         // Step 2. Let port1 be a new MessagePort in the current Realm.
-        let port_1 = MessagePort::new(&global, CanGc::from_cx(cx));
+        let port_1 = MessagePort::new(cx, &global);
         global.track_message_port(&port_1, None);
 
         // Step 3. Let port2 be a new MessagePort in the current Realm.
-        let port_2 = MessagePort::new(&global, CanGc::from_cx(cx));
+        let port_2 = MessagePort::new(cx, &global);
         global.track_message_port(&port_2, None);
 
         // Step 4. Entangle port1 and port2.
         global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
 
         // Step 5. Let writable be a new WritableStream in the current Realm.
-        let writable = WritableStream::new_with_proto(&global, None, CanGc::from_cx(cx));
+        let writable = WritableStream::new_with_proto(cx, &global, None);
 
         // Step 6. Perform ! SetUpCrossRealmTransformWritable(writable, port1).
         writable.setup_cross_realm_transform_writable(cx, &port_1);
@@ -2512,7 +2504,7 @@ impl Transferable for ReadableStream {
     ) -> Result<DomRoot<Self>, ()> {
         // Their transfer-receiving steps, given dataHolder and value, are:
         // Note: dataHolder is used in `structuredclone.rs`, and value is created here.
-        let value = ReadableStream::new_with_proto(owner, None, CanGc::from_cx(cx));
+        let value = ReadableStream::new_with_proto(cx, owner, None);
 
         // Step 1. Let deserializedRecord be !
         // StructuredDeserializeWithTransfer(dataHolder.[[port]], the current

@@ -344,7 +344,7 @@ impl TextEncoderStream {
         let transformer_type = TransformerType::Encoder(encoder);
 
         // Step 4. Let transformStream be a new TransformStream.
-        let transform = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
+        let transform = TransformStream::new_with_proto(cx, global, None);
         // Step 5. Set up transformStream with transformAlgorithm set to transformAlgorithm
         //      and flushAlgorithm set to flushAlgorithm.
         transform.set_up(cx, global, transformer_type)?;

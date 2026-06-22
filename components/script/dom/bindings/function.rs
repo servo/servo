@@ -29,7 +29,11 @@ macro_rules! native_raw_obj_fn {
     ($cx:expr, $call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
         #[expect(unsafe_code)]
         #[allow(clippy::macro_metavars_in_unsafe)]
-        unsafe extern "C" fn wrapper(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
+        unsafe extern "C" fn wrapper(
+            cx: *mut js::jsapi::JSContext,
+            argc: u32,
+            vp: *mut JSVal,
+        ) -> bool {
             let mut cx = unsafe {
                 // SAFETY: We are in SM hook
                 js::context::JSContext::from_ptr(

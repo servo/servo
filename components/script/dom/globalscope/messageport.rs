@@ -14,7 +14,7 @@ use js::rust::wrappers2::JS_NewObject;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_cx};
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::{MessagePortImpl, PortMessageTask};
 
@@ -57,9 +57,9 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
-    pub(crate) fn new(owner: &GlobalScope, can_gc: CanGc) -> DomRoot<MessagePort> {
+    pub(crate) fn new(cx: &mut JSContext, owner: &GlobalScope) -> DomRoot<MessagePort> {
         let port_id = MessagePortId::new();
-        reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner, can_gc)
+        reflect_dom_object_with_cx(Box::new(MessagePort::new_inherited(port_id)), owner, cx)
     }
 
     /// Create a new port for an incoming transfer-received one.

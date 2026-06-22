@@ -18,6 +18,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 use js::typedarray::Uint8;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::{
@@ -31,7 +32,6 @@ use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{
     GlobalScope, ReadableStream, TransformStream, TransformStreamDefaultController, WritableStream,
 };
-use crate::script_runtime::CanGc;
 
 pub(crate) const BROTLI_BUFFER_SIZE: usize = 4096;
 const BROTLI_QUALITIY_LEVEL: u32 = 5;
@@ -92,7 +92,7 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
 
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
-        let transform = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
+        let transform = TransformStream::new_with_proto(cx, global, None);
         let compression_stream =
             CompressionStream::new_with_proto(cx, global, proto, &transform, format);
 

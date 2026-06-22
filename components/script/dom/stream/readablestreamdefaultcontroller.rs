@@ -16,7 +16,7 @@ use js::rust::wrappers2::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, MutableHandleValue};
 use js::typedarray::Uint8;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -207,12 +207,7 @@ impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
     /// A none `rval` means we're dequeing the close sentinel,
     /// which should never be made available to script.
-    pub(crate) fn dequeue_value(
-        &self,
-        cx: SafeJSContext,
-        rval: Option<MutableHandleValue>,
-        can_gc: CanGc,
-    ) {
+    pub(crate) fn dequeue_value(&self, cx: &mut JSContext, rval: Option<MutableHandleValue>) {
         {
             let queue = self.queue.borrow();
             let Some(value) = queue.front() else {
@@ -220,7 +215,7 @@ impl QueueWithSizes {
             };
             self.total_size.set(self.total_size.get() - value.size());
             if let Some(rval) = rval {
-                value.to_jsval(cx, rval, can_gc);
+                value.to_jsval(cx.into(), rval, CanGc::from_cx(cx));
             } else {
                 assert_eq!(value, &EnqueuedValue::CloseSentinel);
             }
@@ -257,12 +252,7 @@ impl QueueWithSizes {
 
     /// <https://streams.spec.whatwg.org/#peek-queue-value>
     /// Returns whether value is the close sentinel.
-    pub(crate) fn peek_queue_value(
-        &self,
-        cx: SafeJSContext,
-        rval: MutableHandleValue,
-        can_gc: CanGc,
-    ) -> bool {
+    pub(crate) fn peek_queue_value(&self, cx: &mut JSContext, rval: MutableHandleValue) -> bool {
         // Assert: container has [[queue]] and [[queueTotalSize]] internal slots.
         // Done with the QueueWithSizes type.
 
@@ -277,7 +267,7 @@ impl QueueWithSizes {
         }
 
         // Return valueWithSize’s value.
-        value_with_size.to_jsval(cx, rval, can_gc);
+        value_with_size.to_jsval(cx.into(), rval, CanGc::from_cx(cx));
         false
     }
 
@@ -344,20 +334,20 @@ pub(crate) struct ReadableStreamDefaultController {
 
 impl ReadableStreamDefaultController {
     fn new_inherited(
+        cx: &mut JSContext,
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
-        can_gc: CanGc,
     ) -> ReadableStreamDefaultController {
         ReadableStreamDefaultController {
             reflector_: Reflector::new(),
             queue: Default::default(),
             stream: MutNullableDom::new(None),
             underlying_source: MutNullableDom::new(Some(&*UnderlyingSourceContainer::new(
+                cx,
                 global,
                 underlying_source_type,
-                can_gc,
             ))),
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
@@ -369,22 +359,22 @@ impl ReadableStreamDefaultController {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         underlying_source: UnderlyingSourceType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
-        can_gc: CanGc,
     ) -> DomRoot<ReadableStreamDefaultController> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ReadableStreamDefaultController::new_inherited(
+                cx,
                 global,
                 underlying_source,
                 strategy_hwm,
                 strategy_size,
-                can_gc,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -459,8 +449,8 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#dequeue-value>
-    fn dequeue_value(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
-        self.queue.dequeue_value(cx, Some(rval), can_gc);
+    fn dequeue_value(&self, cx: &mut JSContext, rval: MutableHandleValue) {
+        self.queue.dequeue_value(cx, Some(rval));
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>
@@ -608,7 +598,7 @@ impl ReadableStreamDefaultController {
         if !self.queue.is_empty() {
             rooted!(&in(cx) let mut rval = UndefinedValue());
             let result = RootedTraceableBox::new(Heap::default());
-            self.dequeue_value(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+            self.dequeue_value(cx, rval.handle_mut());
             result.set(*rval);
 
             // If this.[[closeRequested]] is true and this.[[queue]] is empty

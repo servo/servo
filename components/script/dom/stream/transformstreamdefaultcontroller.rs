@@ -14,7 +14,7 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
@@ -40,7 +40,6 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::types::{DecompressionStream, TransformStream};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 impl js::gc::Rootable for TransformTransformPromiseRejection {}
 
@@ -138,16 +137,16 @@ impl TransformStreamDefaultController {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         transformer_type: TransformerType,
-        can_gc: CanGc,
     ) -> DomRoot<TransformStreamDefaultController> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(TransformStreamDefaultController::new_inherited(
                 transformer_type,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
