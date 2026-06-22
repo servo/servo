@@ -209,6 +209,9 @@ apt_install_pre_mach_tools
 install_uv_if_missing
 install_rustup_if_missing
 verify_preflight_tools
+
+git config --global --add safe.directory /__w/servo/servo\
+
 print_versions
 write_summary
 log 'Preflight complete.'
