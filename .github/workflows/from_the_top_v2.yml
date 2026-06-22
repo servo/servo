@@ -126,28 +126,29 @@ jobs:
               - "$SNAPSHOT_DIR/${stem}.part-"
           }
 
+          # Snapshot rule: preserve the Debian filesystem but exclude every
+          # current mountpoint supplied by this job. This catches Docker's
+          # single-file /etc mounts, Actions work/temp mounts, pseudo-filesystems,
+          # and future injected mounts without keeping a brittle list.
+          mounted_targets() {
+            awk '$5 != "/" { print $5 }' /proc/self/mountinfo \
+              | while IFS= read -r encoded_path; do
+                  printf '%b\n' "$encoded_path"
+                done \
+              | sort -u
+          }
+
           ROOT_EXCLUDES=(
-            --exclude='./dev'
-            --exclude='./proc'
-            --exclude='./sys'
-            --exclude='./run'
             --exclude='./tmp'
-            --exclude='./__w'
-            --exclude='./__e'
-            --exclude='./__t'
-            --exclude='./github'
+            --exclude='./root/.gitconfig'
+            --exclude='./root/.config/gh/hosts.yml'
           )
 
-          # These runner-mounted paths are not part of Debian's saved root.
-          # $HOME is captured separately when Actions maps it outside /root.
-          for mounted_path in "$GITHUB_WORKSPACE" "${RUNNER_TEMP:-}"; do
-            [ -n "$mounted_path" ] || continue
-            ROOT_EXCLUDES+=(--exclude="./${mounted_path#/}")
-          done
+          while IFS= read -r mountpoint; do
+            ROOT_EXCLUDES+=("--exclude=./${mountpoint#/}")
+          done < <(mounted_targets)
 
-          if [ "$HOME" != "/root" ]; then
-            ROOT_EXCLUDES+=(--exclude="./${HOME#/}")
-          fi
+          echo "Snapshot will exclude $(( ${#ROOT_EXCLUDES[@]} - 3 )) live mountpoint(s)."
 
           # Root snapshot: Debian packages and configuration, toolchains,
           # Cargo target state at /var/servo-cargo-target, and root-owned
