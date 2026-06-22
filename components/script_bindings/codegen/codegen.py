@@ -4034,12 +4034,12 @@ class CGDefineProxyHandler(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self) -> CGThing:
-        customDefineProperty = 'proxyhandler::define_property'
+        customDefineProperty = 'proxyhandler::define_property_raw'
         if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['IndexedSetter'] or \
            self.descriptor.operations['NamedSetter']:
             customDefineProperty = 'defineProperty::<D>'
 
-        customDelete = 'proxyhandler::delete'
+        customDelete = 'proxyhandler::delete_raw'
         if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['NamedDeleter']:
             customDelete = 'delete::<D>'
 
@@ -6400,7 +6400,7 @@ if {condition} {{
 
         return f"""{get}\
 rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
-get_expando_object(proxy.into(), expando.handle_mut());
+get_expando_object(proxy, expando.handle_mut());
 //if (!xpc::WrapperFactory::IsXrayWrapper(proxy) && (expando = GetExpandoObject(proxy))) {{
 if !expando.is_null() {{
     rooted!(&in(cx) let mut ignored = ptr::null_mut::<JSObject>());
@@ -6477,7 +6477,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "        return (*opresult).fail_no_named_setter();\n"
                     "    }\n"
                     "}\n")
-        set += f"return proxyhandler::define_property(cx.raw_cx(), proxy.into(), id.into(), desc, opresult);"
+        set += f"return proxyhandler::define_property(cx, proxy, id, desc, opresult);"
         return set
 
     def definition_body(self) -> CGThing:
@@ -6516,7 +6516,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
                 raise TypeError("Can't handle a deleter on an interface that has "
                                 "unforgeables. Figure out how that should work!")
             set += CGProxyNamedDeleter(self.descriptor).define()
-        set += f"return proxyhandler::delete(cx.raw_cx(), proxy.into(), id.into(), res);"
+        set += f"return proxyhandler::delete(cx, proxy, id, res);"
         return set
 
     def definition_body(self) -> CGThing:
@@ -6623,7 +6623,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy.into()) {
                     return proxyhandler::cross_origin_has_own(
-                        cx, proxy.into(), CROSS_ORIGIN_PROPERTIES.get(), id.into(), bp
+                        cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, bp
                     );
                 }
 
@@ -6665,7 +6665,7 @@ if {condition} {{
 
         return f"""{indexed}\
 rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
-get_expando_object(proxy.into(), expando.handle_mut());
+get_expando_object(proxy, expando.handle_mut());
 if !expando.is_null() {{
     let ok = JS_HasPropertyById(cx.raw_cx(), expando.handle().into(), id.into(), bp);
     if !ok || *bp {{
@@ -6694,7 +6694,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
             maybeCrossOriginGet = dedent(
                 """
                 if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy.into()) {
-                    return proxyhandler::cross_origin_get::<D>(cx, proxy.into(), receiver, id.into(), vp);
+                    return proxyhandler::cross_origin_get::<D>(cx, proxy, receiver, id, vp);
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6705,7 +6705,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
             maybeCrossOriginGet = ""
         getFromExpando = """\
 rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
-get_expando_object(proxy.into(), expando.handle_mut());
+get_expando_object(proxy, expando.handle_mut());
 if !expando.is_null() {
     let mut hasProp = false;
     if !JS_HasPropertyById(cx.raw_cx(), expando.handle().into(), id.into(), &mut hasProp) {
@@ -6801,7 +6801,7 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
 
             let proxy = Handle::from_raw(proxy);
             let proto = MutableHandleObject::from_raw(proto);
-            proxyhandler::maybe_cross_origin_get_prototype::<D>(&mut realm, proxy.into(), GetProtoObject::<D>, proto.into())
+            proxyhandler::maybe_cross_origin_get_prototype::<D>(&mut realm, proxy, GetProtoObject::<D>, proto)
             """)
 
     def definition_body(self) -> CGThing:

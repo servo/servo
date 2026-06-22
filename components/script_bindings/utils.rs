@@ -21,15 +21,13 @@ use js::jsapi::{
     JS_IsGlobalObject, JS_MayResolveStandardClass, JS_NewEnumerateStandardClasses,
     JS_ResolveStandardClass, JSAtom, JSAtomState, JSContext, JSJitInfo, JSObject, JSPROP_ENUMERATE,
     JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
-    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, PropertyKey, StringIsArrayIndex,
-    jsid,
+    MutableHandleValue as RawMutableHandleValue, PropertyKey, StringIsArrayIndex, jsid,
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
-    CallOriginalPromiseReject, JS_DefineProperty, JS_DeletePropertyById, JS_ForwardGetPropertyTo,
-    JS_GetPendingException, JS_GetPrototype, JS_HasOwnProperty, JS_HasPropertyById,
-    JS_SetPendingException, JS_SetProperty,
+    CallOriginalPromiseReject, JS_DefineProperty, JS_ForwardGetPropertyTo, JS_GetPendingException,
+    JS_GetPrototype, JS_HasOwnProperty, JS_HasPropertyById, JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::wrappers2::{JS_GetProperty, JS_HasProperty};
 use js::rust::{
@@ -362,19 +360,6 @@ pub unsafe fn has_property_on_prototype(
     }
     assert!(!proto.is_null());
     JS_HasPropertyById(cx, proto.handle(), id, found)
-}
-
-/// Deletes the property `id` from `object`.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-pub(crate) unsafe fn delete_property_by_id(
-    cx: *mut JSContext,
-    object: HandleObject,
-    id: HandleId,
-    bp: *mut ObjectOpResult,
-) -> bool {
-    JS_DeletePropertyById(cx, object, id, bp)
 }
 
 pub trait CallPolicy {
