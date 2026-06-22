@@ -69,6 +69,7 @@ deny_public_fields = { workspace = true }
 devtools_traits = { workspace = true }
 dom_struct = { workspace = true }
 ecdsa = { workspace = true }
+ed25519-dalek = { workspace = true }
 elliptic-curve = { workspace = true }
 embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }

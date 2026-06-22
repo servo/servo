@@ -46,8 +46,8 @@ pub(crate) enum Handle {
     P256PublicKey(p256::PublicKey),
     P384PublicKey(p384::PublicKey),
     P521PublicKey(p521::PublicKey),
-    Ed25519PrivateKey(Zeroizing<Vec<u8>>),
-    Ed25519PublicKey(Vec<u8>),
+    Ed25519PrivateKey(ed25519_dalek::SigningKey),
+    Ed25519PublicKey(ed25519_dalek::VerifyingKey),
     X25519PrivateKey(x25519_dalek::StaticSecret),
     X25519PublicKey(x25519_dalek::PublicKey),
     Aes128Key(aes::cipher::common::Key<aes::Aes128>),
@@ -304,8 +304,6 @@ impl Handle {
         match self {
             Self::Pbkdf2(bytes) => bytes,
             Self::Hmac(bytes) => bytes,
-            Self::Ed25519PrivateKey(bytes) => bytes,
-            Self::Ed25519PublicKey(bytes) => bytes,
             _ => unreachable!(),
         }
     }
@@ -380,11 +378,13 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
             SerializableCryptoKeyHandle::P521PublicKey(public_key) => Ok(Handle::P521PublicKey(
                 p521::PublicKey::from_sec1_bytes(public_key).map_err(|_| ())?,
             )),
-            SerializableCryptoKeyHandle::Ed25519PrivateKey(bytes) => {
-                Ok(Handle::Ed25519PrivateKey(bytes.clone().into()))
-            },
-            SerializableCryptoKeyHandle::Ed25519PublicKey(bytes) => {
-                Ok(Handle::Ed25519PublicKey(bytes.clone()))
+            SerializableCryptoKeyHandle::Ed25519PrivateKey(private_key) => Ok(
+                Handle::Ed25519PrivateKey(ed25519_dalek::SigningKey::from_bytes(private_key)),
+            ),
+            SerializableCryptoKeyHandle::Ed25519PublicKey(public_key) => {
+                Ok(Handle::Ed25519PublicKey(
+                    ed25519_dalek::VerifyingKey::from_bytes(public_key).map_err(|_| ())?,
+                ))
             },
             SerializableCryptoKeyHandle::X25519PrivateKey(private_key) => {
                 Ok(Handle::X25519PrivateKey((*private_key).into()))
@@ -515,12 +515,12 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
             Handle::P521PublicKey(public_key) => Ok(SerializableCryptoKeyHandle::P521PublicKey(
                 public_key.to_sec1_bytes().to_vec(),
             )),
-            Handle::Ed25519PrivateKey(bytes) => Ok(SerializableCryptoKeyHandle::Ed25519PrivateKey(
-                bytes.to_vec(),
-            )),
-            Handle::Ed25519PublicKey(bytes) => Ok(SerializableCryptoKeyHandle::Ed25519PublicKey(
-                bytes.to_vec(),
-            )),
+            Handle::Ed25519PrivateKey(private_key) => Ok(
+                SerializableCryptoKeyHandle::Ed25519PrivateKey(private_key.to_bytes()),
+            ),
+            Handle::Ed25519PublicKey(public_key) => Ok(
+                SerializableCryptoKeyHandle::Ed25519PublicKey(public_key.to_bytes()),
+            ),
             Handle::X25519PrivateKey(private_key) => Ok(
                 SerializableCryptoKeyHandle::X25519PrivateKey(private_key.to_bytes()),
             ),
