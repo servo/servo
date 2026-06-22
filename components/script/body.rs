@@ -21,6 +21,7 @@ use mime::{self, Mime};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
 };
+use script_bindings::codegen::GenericBindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_constellation_traits::BlobImpl;
@@ -29,6 +30,9 @@ use url::form_urlencoded;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::Blob_Binding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
+use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
+    ReadableStreamMethods, ReadableWritablePair, StreamPipeOptions,
+};
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -38,6 +42,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::{Blob, normalize_type_string};
+use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use crate::dom::file::File;
 use crate::dom::formdata::FormData;
 use crate::dom::globalscope::GlobalScope;
@@ -1158,4 +1163,43 @@ pub(crate) trait BodyMixin {
     fn body(&self) -> Option<DomRoot<ReadableStream>>;
     /// <https://fetch.spec.whatwg.org/#concept-body-mime-type>
     fn get_mime_type(&self, cx: &mut js::context::JSContext) -> Vec<u8>;
+}
+
+/// <https://fetch.spec.whatwg.org/#dom-body-textstream>
+pub(crate) fn body_text_stream<T: BodyMixin + DomObject>(
+    cx: &mut js::context::JSContext,
+    object: &T,
+) -> Fallible<DomRoot<ReadableStream>> {
+    // Step 1: If this is unusable, then throw a TypeError.
+    if object.is_unusable() {
+        return Err(Error::Type(
+            c"The body's stream is disturbed or locked".to_owned(),
+        ));
+    }
+
+    // Step 3: Let stream be this’s body’s stream.
+    let Some(stream) = object.body() else {
+        // Step 2: If this's body is null:
+        // set up a ReadableStream, close it, and return it.
+        return ReadableStream::new_from_bytes(cx, &object.global(), vec![]);
+    };
+
+    // Step 4: Let decoder be a new TextDecoderStream object in this’s relevant realm.
+    // Step 5: Set up decoder with UTF-8.
+    let decoder =
+        TextDecoderStream::new_with_proto(cx, &object.global(), None, UTF_8, false, false)?;
+
+    let pair = ReadableWritablePair {
+        readable: decoder.Readable(),
+        writable: decoder.Writable(),
+    };
+    let options = StreamPipeOptions {
+        preventClose: false,
+        preventAbort: false,
+        preventCancel: false,
+        signal: None,
+    };
+    let mut realm = CurrentRealm::assert(cx);
+    // Stel 6. Return the result of stream, piped through decoder.
+    stream.PipeThrough(&mut realm, &pair, &options)
 }
