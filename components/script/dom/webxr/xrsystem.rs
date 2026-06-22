@@ -298,7 +298,7 @@ impl XRSystem {
         } else {
             self.set_active_immersive_session(&session);
         }
-        promise.resolve_native_with_cx(cx, &session);
+        promise.resolve_native(cx, &session);
         // https://github.com/immersive-web/webxr/issues/961
         // This must be called _after_ the promise is resolved
         session.setup_initial_inputs();

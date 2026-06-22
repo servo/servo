@@ -588,7 +588,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             });
 
         // XXXManishearth add_ice_candidate should have a callback
-        p.resolve_native_with_cx(current_realm, &());
+        p.resolve_native(current_realm, &());
         p
     }
 
@@ -669,7 +669,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             &desc,
                         ).unwrap();
                         this.local_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native_with_cx(current_realm, &())
+                        trusted_promise.root().resolve_native(current_realm, &())
                     }));
                 }),
             );
@@ -711,7 +711,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             &desc,
                         ).unwrap();
                         this.remote_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native_with_cx(current_realm, &())
+                        trusted_promise.root().resolve_native(current_realm, &())
                     }));
                 }),
             );

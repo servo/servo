@@ -680,7 +680,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                                 version: Some(info.version),
                         })
                         .collect();
-                        promise.resolve_native_with_cx(cx, &info_list);
+                        promise.resolve_native(cx, &info_list);
                 },
             }
             }));

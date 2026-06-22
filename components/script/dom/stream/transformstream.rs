@@ -197,7 +197,7 @@ impl Callback for CancelPromiseFulfillment {
             self.controller
                 .get_finish_promise()
                 .expect("finish promise is not set")
-                .resolve_native_with_cx(cx, &());
+                .resolve_native(cx, &());
         }
     }
 }
@@ -269,7 +269,7 @@ impl Callback for SourceCancelPromiseFulfillment {
             self.stream.unblock_write(cx, global);
 
             // Resolve controller.[[finishPromise]] with undefined.
-            finish_promise.resolve_native_with_cx(cx, &());
+            finish_promise.resolve_native(cx, &());
         }
     }
 }
@@ -338,7 +338,7 @@ impl Callback for FlushPromiseFulfillment {
             self.readable.get_default_controller().close(cx);
 
             // Resolve controller.[[finishPromise]] with undefined.
-            finish_promise.resolve_native_with_cx(cx, &());
+            finish_promise.resolve_native(cx, &());
         }
     }
 }
@@ -582,7 +582,7 @@ impl TransformStream {
         // If stream.[[backpressureChangePromise]] is not undefined, resolve
         // stream.[[backpressureChangePromise]] with undefined.
         if let Some(promise) = self.backpressure_change_promise.borrow_mut().take() {
-            promise.resolve_native_with_cx(cx, &());
+            promise.resolve_native(cx, &());
         }
 
         // Set stream.[[backpressureChangePromise]] to a new promise.;
@@ -1042,10 +1042,10 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
             } else {
                 Promise::new_resolved(cx, global, result.get())
             };
-            start_promise.resolve_native_with_cx(cx, &promise);
+            start_promise.resolve_native(cx, &promise);
         } else {
             // Otherwise, resolve startPromise with undefined.
-            start_promise.resolve_native_with_cx(cx, &());
+            start_promise.resolve_native(cx, &());
         };
 
         Ok(stream)

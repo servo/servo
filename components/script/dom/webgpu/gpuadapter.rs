@@ -291,7 +291,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     descriptor.label.unwrap_or_default(),
                 );
                 self.global().add_gpu_device(&device);
-                promise.resolve_native_with_cx(cx, &device);
+                promise.resolve_native(cx, &device);
             },
             // 1. If features are not supported reject promise with a TypeError.
             (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
@@ -329,7 +329,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                 );
                 // 2. Lose the device(device, "unknown").
                 device.lose(GPUDeviceLostReason::Unknown, e);
-                promise.resolve_native_with_cx(cx, &device);
+                promise.resolve_native(cx, &device);
             },
         }
     }

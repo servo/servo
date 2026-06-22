@@ -410,6 +410,6 @@ impl RoutedPromiseListener<()> for GPUQueue {
         _response: (),
         promise: &Rc<Promise>,
     ) {
-        promise.resolve_native_with_cx(cx, &());
+        promise.resolve_native(cx, &());
     }
 }

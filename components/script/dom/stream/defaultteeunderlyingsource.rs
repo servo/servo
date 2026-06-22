@@ -199,7 +199,6 @@ impl DefaultTeeUnderlyingSource {
         let cancel_result = self.stream.cancel(cx, global, reasons_value.handle());
 
         // Resolve cancelPromise with cancelResult.
-        self.cancel_promise
-            .resolve_native_with_cx(cx, &cancel_result);
+        self.cancel_promise.resolve_native(cx, &cancel_result);
     }
 }

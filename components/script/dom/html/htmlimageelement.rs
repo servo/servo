@@ -1353,7 +1353,7 @@ impl HTMLImageElement {
             State::CompletelyAvailable
         ) {
             // this doesn't follow the spec, but it's been discussed in <https://github.com/whatwg/html/issues/4217>
-            promise.resolve_native_with_cx(cx, &());
+            promise.resolve_native(cx, &());
         } else if matches!(self.current_request.borrow().state, State::Unavailable) &&
             self.current_request.borrow().source_url.is_none()
         {
@@ -1389,7 +1389,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(fulfill_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().resolve_native_with_cx(cx, &());
+                    trusted_promise.root().resolve_native(cx, &());
                 }
             }));
     }

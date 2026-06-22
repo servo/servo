@@ -199,7 +199,7 @@ impl DefaultTeeReadRequest {
         }
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native_with_cx(cx, &());
+            self.cancel_promise.resolve_native(cx, &());
         }
     }
     /// <https://streams.spec.whatwg.org/#read-request-error-steps>

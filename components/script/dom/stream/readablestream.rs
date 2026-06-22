@@ -739,7 +739,7 @@ impl PipeTo {
             self.result_promise.reject_native(cx, &error.handle());
         } else {
             // Otherwise, resolve promise with undefined.
-            self.result_promise.resolve_native_with_cx(cx, &());
+            self.result_promise.resolve_native(cx, &());
         }
     }
 }
@@ -757,7 +757,7 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        self.result.resolve_native_with_cx(cx, &());
+        self.result.resolve_native(cx, &());
     }
 }
 

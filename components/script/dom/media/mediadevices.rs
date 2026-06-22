@@ -70,7 +70,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
             stream.add_track(&track);
         }
 
-        p.resolve_native_with_cx(cx, &stream);
+        p.resolve_native(cx, &stream);
         p
     }
 
@@ -107,7 +107,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
             })
             .unwrap_or_default();
 
-        p.resolve_native_with_cx(cx, &result_list);
+        p.resolve_native(cx, &result_list);
 
         // Step 3.
         p

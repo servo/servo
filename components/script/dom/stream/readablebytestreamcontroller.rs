@@ -1820,7 +1820,7 @@ impl ReadableByteStreamController {
             .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
                 let promise = Promise::new(cx, global);
-                promise.resolve_native_with_cx(cx, &());
+                promise.resolve_native(cx, &());
                 Ok(promise)
             });
 

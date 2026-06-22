@@ -164,8 +164,7 @@ impl ByteTeeReadIntoRequest {
                 let cancel_result =
                     self.stream
                         .cancel(cx, &self.stream.global(), error_value.handle());
-                self.cancel_promise
-                    .resolve_native_with_cx(cx, &cancel_result);
+                self.cancel_promise.resolve_native(cx, &cancel_result);
 
                 // Return.
                 return Ok(());
@@ -271,7 +270,7 @@ impl ByteTeeReadIntoRequest {
 
         // If byobCanceled is false or otherCanceled is false, resolve cancelPromise with undefined.
         if !byob_canceled || !other_canceled {
-            self.cancel_promise.resolve_native_with_cx(cx, &());
+            self.cancel_promise.resolve_native(cx, &());
         }
 
         Ok(())

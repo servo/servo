@@ -583,7 +583,7 @@ impl AsyncBluetoothListener for Bluetooth {
             BluetoothResponse::RequestDevice(device) => {
                 let mut device_instance_map = self.device_instance_map.borrow_mut();
                 if let Some(existing_device) = device_instance_map.get(&device.id) {
-                    return promise.resolve_native_with_cx(cx, &**existing_device);
+                    return promise.resolve_native(cx, &**existing_device);
                 }
                 let bt_device = BluetoothDevice::new(
                     cx,
@@ -603,12 +603,12 @@ impl AsyncBluetoothListener for Bluetooth {
                     });
                 // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
                 // Step 5.
-                promise.resolve_native_with_cx(cx, &bt_device);
+                promise.resolve_native(cx, &bt_device);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
             // Step 2 - 3.
             BluetoothResponse::GetAvailability(is_available) => {
-                promise.resolve_native_with_cx(cx, &is_available);
+                promise.resolve_native(cx, &is_available);
             },
             _ => promise.reject_error(cx, Error::Type(c"Something went wrong...".to_owned())),
         }
@@ -649,7 +649,7 @@ impl PermissionAlgorithm for Bluetooth {
         // Step 3.
         if let PermissionState::Denied = status.get_state() {
             status.set_devices(Vec::new());
-            return promise.resolve_native_with_cx(cx, status);
+            return promise.resolve_native(cx, status);
         }
 
         // Step 4.
@@ -721,7 +721,7 @@ impl PermissionAlgorithm for Bluetooth {
 
         // https://w3c.github.io/permissions/#dom-permissions-query
         // Step 7.
-        promise.resolve_native_with_cx(cx, status);
+        promise.resolve_native(cx, status);
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission>

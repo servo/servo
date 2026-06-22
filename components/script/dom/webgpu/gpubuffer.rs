@@ -435,7 +435,7 @@ impl GPUBuffer {
                 self.mapping.borrow_mut().replace(*mapping.into_box());
                 // Step 7
                 self.pending_map.borrow_mut().take();
-                p.resolve_native_with_cx(cx, &());
+                p.resolve_native(cx, &());
             },
         }
     }

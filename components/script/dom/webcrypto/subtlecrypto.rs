@@ -222,7 +222,7 @@ impl SubtleCrypto {
                     array_buffer_ptr.handle_mut(),
                     CanGc::from_cx(cx),
                 ) {
-                    Ok(_) => promise.resolve_native_with_cx(cx, &*array_buffer_ptr),
+                    Ok(_) => promise.resolve_native(cx, &*array_buffer_ptr),
                     Err(_) => promise.reject_error(cx, Error::JSFailed),
                 }
             }));
@@ -261,7 +261,7 @@ impl SubtleCrypto {
                         rooted!(&in(cx) let mut rval = UndefinedValue());
                         jwk.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
                         rooted!(&in(cx) let mut object = rval.to_object());
-                        promise.resolve_native_with_cx(cx, &*object);
+                        promise.resolve_native(cx, &*object);
                     },
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
@@ -282,7 +282,7 @@ impl SubtleCrypto {
             .queue(task!(resolve_key: move |cx| {
                 let key = trusted_key.root();
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &key);
+                promise.resolve_native(cx, &key);
             }));
     }
 
@@ -301,7 +301,7 @@ impl SubtleCrypto {
                     publicKey: trusted_public_key.map(|trusted_key| trusted_key.root()),
                 };
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &key_pair);
+                promise.resolve_native(cx, &key_pair);
             }));
     }
 
@@ -314,7 +314,7 @@ impl SubtleCrypto {
             .crypto_task_source()
             .queue(task!(resolve_bool: move |cx| {
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &result);
+                promise.resolve_native(cx, &result);
             }));
     }
 
@@ -343,7 +343,7 @@ impl SubtleCrypto {
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_key: move |cx| {
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &encapsulated_key);
+                promise.resolve_native(cx, &encapsulated_key);
             }),
         );
     }
@@ -360,7 +360,7 @@ impl SubtleCrypto {
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_bits: move |cx| {
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &encapsulated_bits);
+                promise.resolve_native(cx, &encapsulated_bits);
             }),
         );
     }
