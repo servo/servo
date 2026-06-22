@@ -431,7 +431,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
                 }
 
                 // Step 3.2.2: Resolve promise with permissionState.
-                promise.resolve_native_with_cx(cx, &notification_permission);
+                promise.resolve_native(cx, &notification_permission);
             }),
         );
 

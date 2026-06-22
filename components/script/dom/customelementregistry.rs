@@ -564,7 +564,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 CanGc::from_cx(cx),
             );
             // Step 19.1: Resolve this's when-defined promise map[name] with constructor.
-            promise.resolve_native_with_cx(cx, &constructor.get());
+            promise.resolve_native(cx, &constructor.get());
         }
         Ok(())
     }
@@ -616,7 +616,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
                 CanGc::from_cx(realm),
             );
             let promise = Promise::new_in_realm(realm);
-            promise.resolve_native_with_cx(realm, &constructor.get());
+            promise.resolve_native(realm, &constructor.get());
             return promise;
         }
 

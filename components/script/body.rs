@@ -815,12 +815,12 @@ fn resolve_result_promise(
     match pkg_data_results {
         Ok(results) => {
             match results {
-                FetchedData::Text(s) => promise.resolve_native_with_cx(cx, &USVString(s)),
-                FetchedData::Json(j) => promise.resolve_native_with_cx(cx, &j),
-                FetchedData::BlobData(b) => promise.resolve_native_with_cx(cx, &b),
-                FetchedData::FormData(f) => promise.resolve_native_with_cx(cx, &f),
-                FetchedData::Bytes(b) => promise.resolve_native_with_cx(cx, &b),
-                FetchedData::ArrayBuffer(a) => promise.resolve_native_with_cx(cx, &a),
+                FetchedData::Text(s) => promise.resolve_native(cx, &USVString(s)),
+                FetchedData::Json(j) => promise.resolve_native(cx, &j),
+                FetchedData::BlobData(b) => promise.resolve_native(cx, &b),
+                FetchedData::FormData(f) => promise.resolve_native(cx, &f),
+                FetchedData::Bytes(b) => promise.resolve_native(cx, &b),
+                FetchedData::ArrayBuffer(a) => promise.resolve_native(cx, &a),
                 FetchedData::JSException(e) => promise.reject_native(cx, &e.handle()),
             };
         },

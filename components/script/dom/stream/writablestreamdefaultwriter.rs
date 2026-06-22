@@ -87,7 +87,7 @@ impl WritableStreamDefaultWriter {
             } else {
                 // Otherwise, set writer.[[readyPromise]] to a promise resolved with undefined.
                 // Note: new promise created in `new_inherited`.
-                self.ready_promise.borrow().resolve_native_with_cx(cx, &());
+                self.ready_promise.borrow().resolve_native(cx, &());
             }
 
             // Set writer.[[closedPromise]] to a new promise.
@@ -116,11 +116,11 @@ impl WritableStreamDefaultWriter {
         if stream.is_closed() {
             // Set writer.[[readyPromise]] to a promise resolved with undefined.
             // Note: new promise created in `new_inherited`.
-            self.ready_promise.borrow().resolve_native_with_cx(cx, &());
+            self.ready_promise.borrow().resolve_native(cx, &());
 
             // Set writer.[[closedPromise]] to a promise resolved with undefined.
             // Note: new promise created in `new_inherited`.
-            self.closed_promise.borrow().resolve_native_with_cx(cx, &());
+            self.closed_promise.borrow().resolve_native(cx, &());
             return Ok(());
         }
 
@@ -166,7 +166,7 @@ impl WritableStreamDefaultWriter {
     }
 
     pub(crate) fn resolve_ready_promise_with_undefined(&self, cx: &mut JSContext) {
-        self.ready_promise.borrow().resolve_native_with_cx(cx, &());
+        self.ready_promise.borrow().resolve_native(cx, &());
     }
 
     pub(crate) fn resolve_closed_promise_with_undefined(&self, cx: &mut JSContext) {
@@ -389,7 +389,7 @@ impl WritableStreamDefaultWriter {
         if stream.close_queued_or_in_flight() || stream.is_closed() {
             // return a promise resolved with undefined.
             let promise = Promise::new(cx, global);
-            promise.resolve_native_with_cx(cx, &());
+            promise.resolve_native(cx, &());
             return promise;
         }
 

@@ -222,7 +222,7 @@ fn inner_module_loading(
         // Note: mozjs defaults to the unlinked status.
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
-        state.promise.resolve_native_with_cx(cx, &());
+        state.promise.resolve_native(cx, &());
     }
 
     // Step 6. Return unused.
@@ -369,7 +369,7 @@ fn continue_dynamic_import(
                     rooted!(&in(cx) let namespace = ObjectValue(rval.get()));
 
                     // ii. Perform ! Call(promiseCapability.[[Resolve]], undefined, « namespace »).
-                    fulfilled_promise.resolve_with_cx(cx, namespace.handle());
+                    fulfilled_promise.resolve(cx, namespace.handle());
 
                     // iii. Return NormalCompletion(undefined).
             })));

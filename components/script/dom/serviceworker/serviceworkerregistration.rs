@@ -197,14 +197,14 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
         let promise = Promise::new(cx, &self.global());
 
         let Some(worker) = self.get_newest_worker() else {
-            promise.resolve_native_with_cx(cx, &true);
+            promise.resolve_native(cx, &true);
             return promise;
         };
 
         let global = self.global();
         let Some(window) = global.downcast::<Window>() else {
             // Worker navigator does not have a service woker container yet.
-            promise.resolve_native_with_cx(cx, &false);
+            promise.resolve_native(cx, &false);
             return promise;
         };
         let service_worker_container = window.Navigator().ServiceWorker(cx);

@@ -639,7 +639,7 @@ impl Callback for QueueTaskHandler {
 
         global.task_manager().networking_task_source().queue(
             task!(continue_module_loading: move |cx| {
-                promise.root().resolve_native_with_cx(cx, &());
+                promise.root().resolve_native(cx, &());
             }),
         );
     }
@@ -765,7 +765,7 @@ impl FetchResponseListener for ModuleContext {
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
             global.set_module_map(self.module_request, ModuleStatus::Loaded(None));
-            return promise.resolve_native_with_cx(cx, &());
+            return promise.resolve_native(cx, &());
         }
 
         let metadata = self.metadata.take().unwrap();
@@ -846,7 +846,7 @@ impl FetchResponseListener for ModuleContext {
         }
         // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
         global.set_module_map(self.module_request, ModuleStatus::Loaded(module_script));
-        promise.resolve_native_with_cx(cx, &());
+        promise.resolve_native(cx, &());
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

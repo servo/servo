@@ -328,7 +328,7 @@ impl ImageBitmap {
                         let promise = trusted_promise.root();
                         let image_bitmap = trusted_image_bitmap.root();
 
-                        promise.resolve_native_with_cx(cx, &image_bitmap);
+                        promise.resolve_native(cx, &image_bitmap);
                     }),
                 );
             };

@@ -65,7 +65,7 @@ struct AbortAlgorithmFulfillmentHandler {
 impl Callback for AbortAlgorithmFulfillmentHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // Resolve abortRequest’s promise with undefined.
-        self.abort_request_promise.resolve_native_with_cx(cx, &());
+        self.abort_request_promise.resolve_native(cx, &());
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
@@ -1161,7 +1161,7 @@ impl CrossRealmTransformWritable {
         // If backpressurePromise is not undefined,
         if let Some(promise) = backpressure_promise {
             // Resolve backpressurePromise with undefined.
-            promise.resolve_native_with_cx(cx, &());
+            promise.resolve_native(cx, &());
 
             // Set backpressurePromise to undefined.
             // Done above with `take`.

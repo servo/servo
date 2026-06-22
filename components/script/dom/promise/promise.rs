@@ -198,28 +198,11 @@ impl Promise {
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut v = UndefinedValue());
         val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
-        self.resolve_with_cx(cx, v.handle());
-    }
-
-    /// Deprecated: use [`Self::resolve_native`] instead
-    pub(crate) fn resolve_native_with_cx<T>(&self, cx: &mut JSContext, val: &T)
-    where
-        T: SafeToJSValConvertible,
-    {
-        self.resolve_native(cx, val);
+        self.resolve(cx, v.handle());
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn resolve(&self, cx: SafeJSContext, value: HandleValue, _can_gc: CanGc) {
-        unsafe {
-            if !js::rust::wrappers::ResolvePromise(*cx, self.promise_obj(), value) {
-                js::jsapi::JS_ClearPendingException(*cx);
-            }
-        }
-    }
-
-    #[expect(unsafe_code)]
-    pub(crate) fn resolve_with_cx(&self, cx: &mut JSContext, value: HandleValue) {
+    pub(crate) fn resolve(&self, cx: &mut JSContext, value: HandleValue) {
         unsafe {
             if !ResolvePromise(cx, self.promise_obj(), value) {
                 JS_ClearPendingException(cx);
@@ -633,7 +616,7 @@ pub(crate) fn wait_for_all_promise(
     // Let successSteps be the following steps, given results:
     let success_steps = Rc::new(move |cx: &mut JSContext, results: Vec<HandleValue>| {
         // Resolve promise with results.
-        success_promise.resolve_native_with_cx(cx, &results);
+        success_promise.resolve_native(cx, &results);
     });
 
     // Let failureSteps be the following steps, given reason:

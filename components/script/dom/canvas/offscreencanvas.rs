@@ -572,7 +572,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
                 let blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
                 let blob = Blob::new(cx, &this.global(), blob_impl);
 
-                promise.resolve_native_with_cx(cx, &blob);
+                promise.resolve_native(cx, &blob);
             }));
 
         // Step 8. Return result.

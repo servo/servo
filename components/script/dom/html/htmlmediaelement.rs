@@ -1874,7 +1874,7 @@ impl HTMLMediaElement {
         f(cx);
         for promise in &*promises {
             match result {
-                Ok(ref value) => promise.resolve_native_with_cx(cx, value),
+                Ok(ref value) => promise.resolve_native(cx, value),
                 Err(ref error) => promise.reject_error(cx, error.clone()),
             }
         }

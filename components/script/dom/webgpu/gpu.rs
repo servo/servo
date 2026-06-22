@@ -84,7 +84,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
                 // and wgpu does not support "compatibility" yet so we return core for now
             },
             _ => {
-                promise.resolve_native_with_cx(cx, &None::<GPUAdapter>);
+                promise.resolve_native(cx, &None::<GPUAdapter>);
                 return promise;
             },
         }
@@ -150,15 +150,15 @@ impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
                     adapter.adapter_info,
                     adapter.adapter_id,
                 );
-                promise.resolve_native_with_cx(cx, &adapter);
+                promise.resolve_native(cx, &adapter);
             },
             Some(Err(e)) => {
                 warn!("Could not get GPUAdapter ({:?})", e);
-                promise.resolve_native_with_cx(cx, &None::<GPUAdapter>);
+                promise.resolve_native(cx, &None::<GPUAdapter>);
             },
             None => {
                 warn!("Couldn't get a response, because WebGPU is disabled");
-                promise.resolve_native_with_cx(cx, &None::<GPUAdapter>);
+                promise.resolve_native(cx, &None::<GPUAdapter>);
             },
         }
     }

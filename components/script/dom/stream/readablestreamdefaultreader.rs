@@ -121,7 +121,7 @@ impl ReadRequest {
             ReadRequest::Read(promise) => {
                 // chunk steps, given chunk
                 // Resolve promise with «[ "value" → chunk, "done" → false ]».
-                promise.resolve_native_with_cx(
+                promise.resolve_native(
                     cx,
                     &ReadableStreamReadResult {
                         done: Some(false),
@@ -155,7 +155,7 @@ impl ReadRequest {
                         // Spec note: Avoid direct recursion; queue into a microtask.
                         // Resolving the promise will queue a microtask to call into the native handler.
                         let tick = Promise::new(cx, &global);
-                        tick.resolve_native_with_cx(cx, &());
+                        tick.resolve_native(cx, &());
 
                         let handler = PromiseNativeHandler::new(
                             cx,
@@ -190,7 +190,7 @@ impl ReadRequest {
                 // Resolve promise with «[ "value" → undefined, "done" → true ]».
                 let result = RootedTraceableBox::new(Heap::default());
                 result.set(UndefinedValue());
-                promise.resolve_native_with_cx(
+                promise.resolve_native(
                     cx,
                     &ReadableStreamReadResult {
                         done: Some(true),
@@ -291,7 +291,7 @@ impl Callback for ByteTeeClosedPromiseRejectionHandler {
 
         // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native_with_cx(cx, &());
+            self.cancel_promise.resolve_native(cx, &());
         }
     }
 }
@@ -322,7 +322,7 @@ impl Callback for DefaultTeeClosedPromiseRejectionHandler {
 
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native_with_cx(cx, &());
+            self.cancel_promise.resolve_native(cx, &());
         }
     }
 }
@@ -396,7 +396,7 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub(crate) fn close(&self, cx: &mut js::context::JSContext) {
         // Resolve reader.[[closedPromise]] with undefined.
-        self.closed_promise.borrow().resolve_native_with_cx(cx, &());
+        self.closed_promise.borrow().resolve_native(cx, &());
         // If reader implements ReadableStreamDefaultReader,
         // Let readRequests be reader.[[readRequests]].
         let mut read_requests = self.take_read_requests();
