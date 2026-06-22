@@ -21,7 +21,7 @@ TODO: write doc for this part.
 | Command                        | Status | Details                                  |
 | ------------------------------ | ------ | ---------------------------------------- |
 | `browser.close`                | ✅     |                                          |
-| `browser.getClientWindows`     | 🚧     | Server side done, message not handled.   |
+| `browser.getClientWindows`     | ✅     | Server side done, message not handled.   |
 | `browser.setClientWindowState` | 🚧     |                                          |
 | `browser.createUserContext`    | ⛔     | Blocked by user context not implemented. |
 | `browser.getUserContexts`      | ⛔     | Blocked by user context not implemented. |
@@ -42,8 +42,8 @@ TODO: write doc for this part.
 | `browsingContext.navigate`          | 🚧     | Server side done, message not handled.               |
 | `browsingContext.handleUserPrompt`  | 🚧     | Server side done, message not handled                |
 | `browsingContext.locateNodes`       | ❌     |                                                      |
-| `browsingContext.startScreencast`   | ⏳     | Unstable.                                            |
-| `browsingContext.stopScreencast`    | ⏳     | Unstable.                                            |
+| `browsingContext.startScreencast`   | ⛔     | Unstable.                                            |
+| `browsingContext.stopScreencast`    | ⛔     | Unstable.                                            |
 | `browsingContext.setBypassCSP`      | ⛔     | Blocked by no CSP option.                            |
 | `browsingContext.setViewport`       | ⛔     | Blocked by viewport not configurable.                |
 | `browsingContext.print`             | ⛔     | Blocked by PDF not implemented.                      |

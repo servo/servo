@@ -3,6 +3,7 @@
 use std::io;
 
 use async_tungstenite::tungstenite;
+use tokio::sync::oneshot;
 use webdriver_traits::bidi::{ErrorCode, ErrorResponse};
 
 pub(crate) type BidiResult<T> = Result<T, BidiError>;
@@ -34,6 +35,12 @@ impl From<ErrorCode> for BidiError {
 
 impl From<ipc_channel::IpcError> for BidiError {
     fn from(value: ipc_channel::IpcError) -> Self {
+        ErrorCode::UnknownError.into()
+    }
+}
+
+impl From<oneshot::error::RecvError> for BidiError {
+    fn from(value: oneshot::error::RecvError) -> Self {
         ErrorCode::UnknownError.into()
     }
 }

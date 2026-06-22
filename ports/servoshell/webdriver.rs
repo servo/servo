@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use log::warn;
@@ -14,7 +14,8 @@ use servo::{
 };
 use url::Url;
 use webdriver_traits::bidi::ErrorCode;
-use webdriver_traits::{WebDriverToEmbedderMsg, WebViewCreateRequest};
+use webdriver_traits::bidi::browser::{ClientWindowInfo, ClientWindowInfoState};
+use webdriver_traits::{GetClientWindowResponse, WebDriverToEmbedderMsg, WebViewCreateRequest};
 
 use crate::running_app_state::RunningAppState;
 use crate::window::PlatformWindow;
@@ -418,6 +419,41 @@ impl RunningAppState {
 
                     if let Err(err) = callback.send(response) {
                         warn!("Sending create window response to WebDriver failed ({err:?})");
+                    }
+                },
+                WebDriverToEmbedderMsg::GetClientWindows(callback) => {
+                    // Step 1. skip, we use window directly
+                    // Step 2.
+                    let mut client_windows = vec![];
+                    // Step 3. we use window directly
+                    for client_window in self.windows().values() {
+                        let webview_id = *client_window
+                            .webview_ids()
+                            .first()
+                            .expect("Window should have at least one webview");
+                        let platform_window = client_window.platform_window();
+                        let active = self
+                            .focused_window()
+                            .is_some_and(|window| window.id() == client_window.id());
+                        let state = match platform_window.get_fullscreen() {
+                            true => ClientWindowInfoState::Fullscreen,
+                            // TODO: maximized or minimized not exposed in api
+                            false => ClientWindowInfoState::Normal,
+                        };
+                        let window_rect = platform_window.screen_geometry().window_rect;
+                        let client_window_info = GetClientWindowResponse {
+                            active,
+                            webview_id,
+                            height: window_rect.height() as u64,
+                            width: window_rect.width() as u64,
+                            x: window_rect.min.x as i64,
+                            y: window_rect.min.y as i64,
+                            state,
+                        };
+                        client_windows.push(client_window_info);
+                    }
+                    if let Err(err) = callback.send(client_windows) {
+                        warn!("Sending GetClientWindow response to WebDriver failed ({err:?})");
                     }
                 },
             }

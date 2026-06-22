@@ -24,11 +24,10 @@ use servo::{
     EmbedderControlId, EventLoopWaker, GenericSender, InputEvent, InputEventId, InputEventResult,
     JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, Preferences,
     ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId, UserContentManager,
-    WebDriverCommandMsg, WebDriverDelegate, WebDriverJSResult, WebDriverLoadStatus,
-    WebDriverScriptCommand, WebDriverSenders, WebView, WebViewDelegate, WebViewId,
+    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebDriverSenders, WebView, WebViewDelegate, WebViewId,
 };
 use url::Url;
-use webdriver_traits::WebViewCreateRequest as WebDriverWebViewCreateRequest;
 
 #[cfg(all(
     feature = "gamepad",

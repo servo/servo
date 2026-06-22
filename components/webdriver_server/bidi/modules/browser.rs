@@ -1,14 +1,15 @@
 use std::rc::Rc;
 
 use log::warn;
+use servo_base::id::PainterId;
 use tokio::{sync::oneshot::Receiver, task};
 use webdriver_traits::bidi::{
     BrowserCommand, BrowserResult, EmptyParams, EmptyResult, ErrorCode,
     browser::{
-        CloseResult, CreateUserContextParameters, CreateUserContextResult, GetClientWindowsResult,
-        GetUserContextsResult, RemoveUserContextParameters, RemoveUserContextResult,
-        SetClientWindowStateParameters, SetClientWindowStateResult, SetDownloadBehaviorParameters,
-        SetDownloadBehaviorResult,
+        ClientWindowInfo, CloseResult, CreateUserContextParameters, CreateUserContextResult,
+        GetClientWindowsResult, GetUserContextsResult, RemoveUserContextParameters,
+        RemoveUserContextResult, SetClientWindowStateParameters, SetClientWindowStateResult,
+        SetDownloadBehaviorParameters, SetDownloadBehaviorResult,
     },
 };
 
@@ -16,6 +17,7 @@ use crate::bidi::{
     error::{BidiError, BidiResult},
     remote_end::RemoteEnd,
     session::SessionId,
+    util::new_oneshot_callback,
 };
 
 impl RemoteEnd {
@@ -34,8 +36,8 @@ impl RemoteEnd {
                 .handle_browser_create_user_context(session_id, cmd.params)
                 .await
                 .map(BrowserResult::CreateUserContextResult),
-            BrowserCommand::GetClientWindows(cmd) => self
-                .handle_browser_get_client_windows(session_id, cmd.params)
+            BrowserCommand::GetClientWindows(_cmd) => self
+                .handle_browser_get_client_windows()
                 .await
                 .map(BrowserResult::GetClientWindowsResult),
             BrowserCommand::GetUserContexts(_) => self
@@ -122,10 +124,25 @@ impl RemoteEnd {
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-getClientWindows>
     async fn handle_browser_get_client_windows(
         self: Rc<Self>,
-        session_id: SessionId,
-        _: EmptyParams,
     ) -> BidiResult<GetClientWindowsResult> {
-        todo!()
+        let (callback, recv) = new_oneshot_callback();
+        self.send_to_embedder(webdriver_traits::WebDriverToEmbedderMsg::GetClientWindows(
+            callback,
+        ))?;
+        let client_windows = recv
+            .await??
+            .into_iter()
+            .map(|r| ClientWindowInfo {
+                active: r.active,
+                client_window: PainterId::from(r.webview_id).to_string(),
+                height: r.height,
+                state: r.state,
+                width: r.width,
+                x: r.x,
+                y: r.y,
+            })
+            .collect();
+        Ok(GetClientWindowsResult { client_windows })
     }
 
     /// <https://www.w3.org/TR/webdriver-bidi/#command-browser-getUserContexts>

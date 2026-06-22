@@ -61,8 +61,8 @@ use servo_base::{
 };
 
 use crate::bidi::{
-    ErrorCode,
-    browser::SetClientWindowStateParameters,
+    ErrorCode, JsInt, JsUint,
+    browser::{ClientWindowInfo, ClientWindowInfoState, SetClientWindowStateParameters},
     browsing_context::{
         self, ClipRectangle, CreateType, DownloadEndParams, DownloadWillBeginParams,
         HistoryUpdatedParameters, Locator, NavigationInfo, PrintParameters, UserPromptClosed,
@@ -192,6 +192,7 @@ pub enum WebDriverToScriptMsg {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverToEmbedderMsg {
     Activate(WebViewId, GenericCallback<bool>),
+    GetClientWindows(GenericCallback<Vec<GetClientWindowResponse>>),
     Exit,
     // TODO: param
     SetClientWindowState(PainterId, SetClientWindowStateParameters),
@@ -203,4 +204,15 @@ pub struct WebViewCreateRequest {
     pub create_type: CreateType,
     pub opener: Option<WebViewId>,
     pub callback: GenericCallback<Result<WebViewId, ErrorCode>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GetClientWindowResponse {
+    pub active: bool,
+    pub webview_id: WebViewId,
+    pub height: JsUint,
+    pub width: JsUint,
+    pub x: JsInt,
+    pub y: JsInt,
+    pub state: ClientWindowInfoState,
 }
