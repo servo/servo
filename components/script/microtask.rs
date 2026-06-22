@@ -174,7 +174,7 @@ impl MicrotaskQueue {
         // event loop is this event loop, notify about rejected promises given
         // settingsObject's global object.
         for global in globalscopes.clone().into_iter() {
-            notify_about_rejected_promises(&global);
+            notify_about_rejected_promises(cx, &global);
         }
 
         // https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint

@@ -356,7 +356,7 @@ fn continue_dynamic_import(
             }
 
             rooted!(&in(cx) let evaluate_promise = rval.to_object());
-            let evaluate_promise = Promise::new_with_js_promise(evaluate_promise.handle(), cx.into());
+            let evaluate_promise = Promise::new_with_js_promise(cx, evaluate_promise.handle());
 
             // d. Let fulfilledClosure be a new Abstract Closure with no parameters that captures
             // module and promiseCapability and performs the following steps when called:

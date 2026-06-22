@@ -1045,8 +1045,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         p.reject_error(cx, Error::Type(cformat!("{}", s.0)));
     }
 
-    fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
-        let promise = p.duplicate();
+    fn ResolvePromiseDelayed(&self, cx: &mut JSContext, p: &Promise, value: DOMString, delay: u64) {
+        let promise = p.duplicate(cx);
         let cb = TestBindingCallback {
             promise: TrustedPromise::new(promise),
             value,
