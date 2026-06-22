@@ -56,10 +56,31 @@ jobs:
 
           # This workflow starts outside a checked-out repository, so tell gh
           # the source repository explicitly.
+          # Download the manifest first, then only the exact piece names it
+          # lists. In-place uploads can leave an old extra part asset behind
+          # when a later snapshot shrinks; it must not be concatenated.
           gh release download "$WARM_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --dir "$PIECES_DIR" \
-            --clobber
+            --clobber \
+            --pattern 'SHA256SUMS'
+
+          mapfile -t expected_piece_names < <(
+            awk '{print $2}' "$PIECES_DIR/SHA256SUMS"
+          )
+
+          if [ "${#expected_piece_names[@]}" -eq 0 ]; then
+            echo "Warm release SHA256SUMS contains no archive pieces." >&2
+            exit 1
+          fi
+
+          for piece_name in "${expected_piece_names[@]}"; do
+            gh release download "$WARM_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --dir "$PIECES_DIR" \
+              --clobber \
+              --pattern "$piece_name"
+          done
 
           (
             cd "$PIECES_DIR"
@@ -610,24 +631,21 @@ jobs:
           echo "=== Refreshed warm state ==="
           du -sh "$SNAPSHOT_DIR"/* | sort -h
 
-          # There is one rolling warm-state release, not a historical stack of
-          # multi-gigabyte environments. The new release replaces the old one.
-          gh release delete "$WARM_TAG" \
+          # Normal builds do not create, delete, or retag the warm release.
+          # Factory Reset owns initial creation. This path only replaces the
+          # fixed asset names on that existing prerelease—the same operation
+          # used by the established ordinary release pipeline.
+          if ! gh release view "$WARM_TAG" \
             --repo "$GITHUB_REPOSITORY" \
-            --yes \
-            --cleanup-tag \
-            2>/dev/null || true
-          gh api --method DELETE \
-            "repos/$GITHUB_REPOSITORY/git/refs/tags/$WARM_TAG" \
-            >/dev/null 2>&1 || true
+            >/dev/null 2>&1; then
+            echo "Warm-state prerelease $WARM_TAG is missing." >&2
+            echo "Run Factory Reset to seed it; normal builds only refresh it." >&2
+            exit 1
+          fi
 
-          gh release create "$WARM_TAG" "$SNAPSHOT_DIR"/* \
+          gh release upload "$WARM_TAG" "$SNAPSHOT_DIR"/* \
             --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "Rolling warm state — Debian 12 on Ubuntu 24.04" \
-            --notes-file "$SNAPSHOT_DIR/README.txt" \
-            --prerelease \
-            --latest=false
+            --clobber
 
       - name: Upload release ZIP artifacts
         id: upload_zips
