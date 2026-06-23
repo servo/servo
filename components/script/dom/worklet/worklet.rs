@@ -627,7 +627,6 @@ impl WorkletThread {
         );
     }
 
-    #[expect(clippy::too_many_arguments)]
     /// Get the worklet global scope for a given worklet.
     /// Creates the worklet global scope if it doesn't exist.
     fn get_worklet_global_scope(

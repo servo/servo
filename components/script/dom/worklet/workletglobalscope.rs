@@ -55,7 +55,6 @@ pub(crate) struct WorkletGlobalScope {
 }
 
 impl WorkletGlobalScope {
-    #[expect(clippy::too_many_arguments)]
     /// Create a new heap-allocated `WorkletGlobalScope`.
     pub(crate) fn new(
         scope_type: WorkletGlobalScopeType,
