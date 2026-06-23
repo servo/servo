@@ -8,7 +8,6 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 #[cfg(feature = "webxr")]
 use euclid::Size2D;
-#[cfg(feature = "webxr")]
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_cx;

@@ -8,7 +8,6 @@ use std::cell::Cell;
 use std::cmp;
 
 use dom_struct::dom_struct;
-#[cfg(feature = "webxr")]
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{DomObject as _, reflect_dom_object_with_cx};
