@@ -138,14 +138,8 @@ impl WebGL2RenderingContext {
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<WebGL2RenderingContext> {
-        let base = WebGLRenderingContext::new(
-            cx.into(),
-            window,
-            canvas,
-            WebGLVersion::WebGL2,
-            size,
-            attrs,
-        )?;
+        let base =
+            WebGLRenderingContext::new(cx, window, canvas, WebGLVersion::WebGL2, size, attrs)?;
 
         let samplers = (0..base.limits().max_combined_texture_image_units)
             .map(|_| Default::default())
@@ -192,7 +186,7 @@ impl WebGL2RenderingContext {
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        WebGL2RenderingContext::new_inherited(cx.into(), window, canvas, size, attrs)
+        WebGL2RenderingContext::new_inherited(cx, window, canvas, size, attrs)
             .map(|ctx| reflect_dom_object_with_cx(Box::new(ctx), window, cx))
     }
 
@@ -1261,7 +1255,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return;
         }
 
-        self.base.GetParameter(cx.into(), parameter, rval)
+        self.base.GetParameter(cx, parameter, rval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
@@ -1272,7 +1266,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         pname: u32,
         retval: MutableHandleValue,
     ) {
-        self.base.GetTexParameter(cx.into(), target, pname, retval)
+        self.base.GetTexParameter(cx, target, pname, retval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
@@ -1302,7 +1296,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         name: DOMString,
         return_value: MutableHandleObject,
     ) {
-        self.base.GetExtension(cx.into(), name, return_value)
+        self.base.GetExtension(cx, name, return_value)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.4>
@@ -1336,7 +1330,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             handle_potential_webgl_error!(
                 self.base,
                 self.get_specific_fb_attachment_param(
-                    cx.into(),
+                    cx,
                     &fb,
                     target,
                     attachment,
@@ -1364,7 +1358,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         retval: MutableHandleValue,
     ) {
         self.base
-            .GetRenderbufferParameter(cx.into(), target, pname, retval)
+            .GetRenderbufferParameter(cx, target, pname, retval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
@@ -2078,9 +2072,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::TRANSFORM_FEEDBACK_BUFFER_MODE => {
                 retval.set(Int32Value(program.transform_feedback_buffer_mode()))
             },
-            _ => self
-                .base
-                .GetProgramParameter(cx.into(), program, param_id, retval),
+            _ => self.base.GetProgramParameter(cx, program, param_id, retval),
         }
     }
 
@@ -2097,8 +2089,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         param_id: u32,
         retval: MutableHandleValue,
     ) {
-        self.base
-            .GetShaderParameter(cx.into(), shader, param_id, retval)
+        self.base.GetShaderParameter(cx, shader, param_id, retval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
@@ -2178,7 +2169,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         pname: u32,
         retval: MutableHandleValue,
     ) {
-        self.base.GetVertexAttrib(cx.into(), index, pname, retval)
+        self.base.GetVertexAttrib(cx, index, pname, retval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
@@ -5071,12 +5062,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     #[cfg(feature = "webxr")]
     fn MakeXRCompatible(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
-        Promise::new_resolved(cx.into(), &self.global(), ())
+        Promise::new_resolved(cx, &self.global(), ())
     }
 }
 
 impl WebGL2RenderingContextHelpers for WebGL2RenderingContext {
     fn is_webgl2_enabled(cx: &mut js::context::JSContext, global: HandleObject) -> bool {
-        Self::is_webgl2_enabled(cx.into(), global)
+        Self::is_webgl2_enabled(cx, global)
     }
 }
