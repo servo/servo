@@ -863,20 +863,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PYTHON_WHEEL: ${{ steps.python_wheel.outputs.wheel_path }}
-         run: |
-           set -Eeuo pipefail
+        run: |
+          set -Eeuo pipefail
 
-           RUNTIME_ZIP="release/${SEVERIN_RELEASE_STEM}-runtime-stripped.zip"
-           SYMBOLS_ZIP="release/${SEVERIN_RELEASE_STEM}-symbols.zip"
-           assets=("$RUNTIME_ZIP" "$SYMBOLS_ZIP")
-           [ -z "$PYTHON_WHEEL" ] || assets+=("$PYTHON_WHEEL")
+          RUNTIME_ZIP="release/${SEVERIN_RELEASE_STEM}-runtime-stripped.zip"
+          SYMBOLS_ZIP="release/${SEVERIN_RELEASE_STEM}-symbols.zip"
+          assets=("$RUNTIME_ZIP" "$SYMBOLS_ZIP")
+          [ -z "$PYTHON_WHEEL" ] || assets+=("$PYTHON_WHEEL")
 
-           # existing release-create code unchanged
+          # existing release-create code unchanged
 
-           gh release upload "$SEVERIN_RELEASE_TAG" \
-             --repo "$GITHUB_REPOSITORY" \
-             "${assets[@]}" \
-             --clobber
+          gh release upload "$SEVERIN_RELEASE_TAG" \
+          --repo "$GITHUB_REPOSITORY" \
+          "${assets[@]}" \
+          --clobber
 
       - name: Show Severin download link
         run: |
