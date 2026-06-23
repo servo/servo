@@ -1249,7 +1249,7 @@ impl ParserContext {
     }
 
     /// Store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
-    fn submit_resource_timing(&mut self) {
+    fn submit_resource_timing(&mut self, cx: &mut JSContext) {
         let Some(parser) = self.parser.as_ref() else {
             return;
         };
@@ -1260,11 +1260,7 @@ impl ParserContext {
 
         let document = &parser.document;
 
-        let performance_entry = PerformanceNavigationTiming::new(
-            &document.global(),
-            document,
-            CanGc::deprecated_note(),
-        );
+        let performance_entry = PerformanceNavigationTiming::new(cx, &document.global(), document);
         self.pushed_entry_index = document
             .global()
             .performance()
@@ -1426,7 +1422,7 @@ impl FetchResponseListener for ParserContext {
             about_base_url: document.about_base_url(),
             resource_header: vec![],
         };
-        self.submit_resource_timing();
+        self.submit_resource_timing(cx);
 
         // Part of https://html.spec.whatwg.org/multipage/#loading-a-document
         //
@@ -1562,7 +1558,7 @@ impl FetchResponseListener for ParserContext {
         if let Some(pushed_index) = self.pushed_entry_index {
             let document = &parser.document;
             let performance_entry =
-                PerformanceNavigationTiming::new(&document.global(), document, CanGc::from_cx(cx));
+                PerformanceNavigationTiming::new(cx, &document.global(), document);
             document
                 .global()
                 .performance()

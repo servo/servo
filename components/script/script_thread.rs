@@ -1930,13 +1930,7 @@ impl ScriptThread {
                 metric_type,
                 metric_value,
                 first_reflow,
-            ) => self.handle_paint_metric(
-                pipeline_id,
-                metric_type,
-                metric_value,
-                first_reflow,
-                CanGc::from_cx(cx),
-            ),
+            ) => self.handle_paint_metric(cx, pipeline_id, metric_type, metric_value, first_reflow),
             ScriptThreadMessage::MediaSessionAction(pipeline_id, action) => {
                 self.handle_media_session_action(cx, pipeline_id, action)
             },
@@ -4254,15 +4248,15 @@ impl ScriptThread {
 
     fn handle_paint_metric(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         metric_type: ProgressiveWebMetricType,
         metric_value: CrossProcessInstant,
         first_reflow: bool,
-        can_gc: CanGc,
     ) {
         match self.documents.borrow().find_document(pipeline_id) {
             Some(document) => {
-                document.handle_paint_metric(metric_type, metric_value, first_reflow, can_gc)
+                document.handle_paint_metric(cx, metric_type, metric_value, first_reflow)
             },
             None => warn!(
                 "Received paint metric ({metric_type:?}) for unknown document: {pipeline_id:?}"

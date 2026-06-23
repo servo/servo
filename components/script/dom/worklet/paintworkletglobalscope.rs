@@ -151,9 +151,9 @@ impl PaintWorkletGlobalScope {
                 } else {
                     debug!("Cache miss on paint worklet {}!", name);
                     let map = StylePropertyMapReadOnly::from_iter(
+                        cx,
                         self.upcast(),
                         properties.iter().cloned(),
-                        CanGc::from_cx(cx),
                     );
                     let result = self.draw_a_paint_image(
                         cx,
@@ -183,9 +183,9 @@ impl PaintWorkletGlobalScope {
                     let size = self.cached_size.get();
                     let device_pixel_ratio = self.cached_device_pixel_ratio.get();
                     let map = StylePropertyMapReadOnly::from_iter(
+                        cx,
                         self.upcast(),
                         properties.iter().cloned(),
-                        CanGc::from_cx(cx),
                     );
                     let result = self.draw_a_paint_image(
                         cx,
@@ -332,8 +332,7 @@ impl PaintWorkletGlobalScope {
         debug!("Invoking paint function {}.", name);
         rooted_vec!(let mut arguments_values);
         for argument in arguments {
-            let style_value =
-                CSSStyleValue::new(self.upcast(), argument.clone(), CanGc::from_cx(cx));
+            let style_value = CSSStyleValue::new(cx, self.upcast(), argument.clone());
             arguments_values.push(ObjectValue(style_value.reflector().get_jsobject().get()));
         }
         let arguments_value_array = HandleValueArray::from(&arguments_values);

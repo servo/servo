@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use super::performance::PerformanceEntryList;
 use super::performanceentry::{EntryType, PerformanceEntry};
@@ -24,7 +24,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::console::Console;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum ObserverType {
@@ -56,24 +55,24 @@ impl PerformanceObserver {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         callback: Rc<PerformanceObserverCallback>,
         entries: DOMPerformanceEntryList,
-        can_gc: CanGc,
     ) -> DomRoot<PerformanceObserver> {
-        Self::new_with_proto(global, None, callback, entries, can_gc)
+        Self::new_with_proto(cx, global, None, callback, entries)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         callback: Rc<PerformanceObserverCallback>,
         entries: DOMPerformanceEntryList,
-        can_gc: CanGc,
     ) -> DomRoot<PerformanceObserver> {
         let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
-        reflect_dom_object_with_proto(Box::new(observer), global, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(Box::new(observer), global, proto, cx)
     }
 
     /// Buffer a new performance entry.
@@ -88,8 +87,7 @@ impl PerformanceObserver {
             return;
         }
         let entry_list = PerformanceEntryList::new(self.entries.borrow_mut().drain(..).collect());
-        let observer_entry_list =
-            PerformanceObserverEntryList::new(&self.global(), entry_list, CanGc::from_cx(cx));
+        let observer_entry_list = PerformanceObserverEntryList::new(cx, &self.global(), entry_list);
         // using self both as thisArg and as the second formal argument
         let _ = self.callback.Call_(
             cx,
@@ -116,17 +114,17 @@ impl PerformanceObserver {
 impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
     /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-constructor>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         callback: Rc<PerformanceObserverCallback>,
     ) -> Fallible<DomRoot<PerformanceObserver>> {
         Ok(PerformanceObserver::new_with_proto(
+            cx,
             global,
             proto,
             callback,
             Vec::new(),
-            can_gc,
         ))
     }
 

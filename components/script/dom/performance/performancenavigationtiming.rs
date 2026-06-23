@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use super::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
@@ -15,7 +16,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming>
@@ -45,14 +45,14 @@ impl PerformanceNavigationTiming {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         document: &Document,
-        can_gc: CanGc,
     ) -> DomRoot<PerformanceNavigationTiming> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(PerformanceNavigationTiming::new_inherited(document)),
             global,
-            can_gc,
+            cx,
         )
     }
 }

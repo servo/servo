@@ -227,8 +227,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dataset>
     fn Dataset(&self, cx: &mut JSContext) -> DomRoot<DOMStringMap> {
-        self.dataset
-            .or_init(|| DOMStringMap::new(self, CanGc::from_cx(cx)))
+        self.dataset.or_init(|| DOMStringMap::new(cx, self))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
