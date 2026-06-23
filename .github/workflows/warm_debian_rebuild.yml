@@ -7,6 +7,10 @@ on:
         description: Update cache with the newly warmed workshop. Makes next compilation faster, and this one slower.
         type: boolean
         default: true
+      probe_cargo_freshness:
+        description: Run Cargo fingerprint diagnostic before the real build. Diagnostic only; it writes to the live target directory and may be slow.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -330,14 +334,15 @@ jobs:
           command -v rustc
           rustc --version --verbose
 
-      - name: Probe Cargo freshness — 120 second cap
+      - name: Probe Cargo freshness — 30 second cap
+        if: ${{ inputs.probe_cargo_freshness }}
         run: |
           set -Eeuo pipefail
 
           LOG="$RUNNER_TEMP/cargo-fingerprint.log"
 
           set +e
-          timeout --kill-after=15s 120s \
+          timeout --kill-after=15s 30s \
             env CARGO_LOG=cargo::core::compiler::fingerprint=trace \
             ./mach build --release --very-verbose \
             >"$LOG" 2>&1
@@ -356,7 +361,6 @@ jobs:
 
           echo "Probe exit status: $status"
           echo "0 means it completed; 124 means it was deliberately stopped."
-          exit 0
 
       - name: Build Severin Linux release
         run: ./mach build --release
