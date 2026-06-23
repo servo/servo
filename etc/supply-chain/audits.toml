@@ -17,6 +17,30 @@ start = "2022-11-09"
 end = "2027-03-09"
 notes = "We trust the upstream review process."
 
+[[wildcard-audits.cssparser]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 3788 # Emilio Cobos Álvarez (emilio)
+start = "2026-03-17"
+end = "2027-03-09"
+notes = "cssparser is maintained under the servo GitHub organization."
+
+[[wildcard-audits.cssparser-macros]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 3788 # Emilio Cobos Álvarez (emilio)
+start = "2026-03-17"
+end = "2027-03-09"
+notes = "cssparser-macros is maintained under the servo GitHub organization."
+
+[[wildcard-audits.euclid]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 1281 # Nicolas Silva (nical)
+start = "2026-03-18"
+end = "2027-03-09"
+notes = "euclid is maintained under the servo GitHub organization."
+
 [[wildcard-audits.ipc-channel]]
 who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
 criteria = "safe-to-deploy"
@@ -41,6 +65,14 @@ start = "2023-07-01"
 end = "2027-03-09"
 notes = "mozangle is maintained as part of the servo project."
 
+[[wildcard-audits.mozangle]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 124752
+start = "2026-03-10"
+end = "2027-03-09"
+notes = "mozangle is maintained as part of the servo project."
+
 [[wildcard-audits.mozjs]]
 who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
 criteria = "safe-to-run"
@@ -59,11 +91,65 @@ trusted-publisher = "github:servo/mozjs"
 start = "2025-12-18"
 end = "2027-03-09"
 
+[[wildcard-audits.smallbitvec]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 2396 # Josh Matthews (jdm)
+start = "2026-05-06"
+end = "2027-03-09"
+notes = "smallbitvec is maintained under the servo GitHub organization."
+
+[[wildcard-audits.smallvec]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 3788 # Emilio Cobos Álvarez (emilio)
+start = "2026-06-11"
+end = "2027-03-09"
+notes = "smallvec is maintained under the servo GitHub organization."
+
+[[wildcard-audits.surfman]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 2844 # Martin Robinson (mrobinson)
+start = "2026-06-13"
+end = "2027-03-09"
+notes = "surfman is maintained under the servo GitHub organization and follows Servo review practices."
+
+[[wildcard-audits.web_atoms]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 2396 # Josh Matthews (jdm)
+start = "2026-04-18"
+end = "2027-03-09"
+notes = "web_atoms is maintained under the servo GitHub organization."
+
 [[wildcard-audits.webrender]]
 who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
 criteria = "safe-to-deploy"
 user-id = 2844 # Martin Robinson (mrobinson)
 start = "2026-01-28"
+end = "2027-03-09"
+notes = """
+We trust the upstream mozilla maintainance of webrender, and our downstream patches follow standard
+servo review practices.
+"""
+
+[[wildcard-audits.webrender_api]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 2844 # Martin Robinson (mrobinson)
+start = "2026-06-12"
+end = "2027-03-09"
+notes = """
+We trust the upstream mozilla maintainance of webrender, and our downstream patches follow standard
+servo review practices.
+"""
+
+[[wildcard-audits.webrender_build]]
+who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
+criteria = "safe-to-deploy"
+user-id = 2844 # Martin Robinson (mrobinson)
+start = "2026-06-12"
 end = "2027-03-09"
 notes = """
 We trust the upstream mozilla maintainance of webrender, and our downstream patches follow standard
