@@ -4313,6 +4313,7 @@ where
         url: ServoUrl,
     ) {
         if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            pipeline.history_state_id = history_state_id;
             pipeline.url = url.clone();
         }
         let msg = ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url);
