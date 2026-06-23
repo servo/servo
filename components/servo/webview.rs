@@ -745,6 +745,17 @@ impl WebView {
         self.inner().servo.paint().render(self.id());
     }
 
+    /// The current scroll offset, in layout pixels, of this [`WebView`]'s root
+    /// scrolling node as applied by the renderer for the most recently painted
+    /// frame
+    pub fn root_scroll_offset(&self) -> Option<(f32, f32)> {
+        self.inner()
+            .servo
+            .paint()
+            .root_scroll_offset(self.id())
+            .map(|offset| (offset.x, offset.y))
+    }
+
     /// Get the [`UserContentManager`] associated with this [`WebView`].
     pub fn user_content_manager(&self) -> Option<Rc<UserContentManager>> {
         self.inner().user_content_manager.clone()

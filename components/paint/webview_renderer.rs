@@ -344,6 +344,16 @@ impl WebViewRenderer {
         }
     }
 
+    /// The current scroll offset of the root scrolling node, as applied by the
+    /// renderer for the most recently composited frame.
+    pub(crate) fn root_scroll_offset(&self) -> Option<LayoutVector2D> {
+        let root_pipeline_id = self.root_pipeline_id?;
+        let details = self.pipelines.get(&root_pipeline_id)?;
+        details
+            .scroll_tree
+            .scroll_offset(ExternalScrollId(0, root_pipeline_id.into()))
+    }
+
     fn for_each_connected_pipeline_internal(
         &self,
         pipeline_id: PipelineId,
