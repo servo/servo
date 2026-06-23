@@ -54,6 +54,7 @@ pub(crate) mod codegen {
 }
 
 pub use promise::{
-    EnqueueWaitForallMicrotask, Promise, WaitForAllSuccessStepsMicrotask, wait_for_all_promise,
+    EnqueueWaitForallMicrotask, Promise, PromiseGlobalScopeTrait, WaitForAllSuccessStepsMicrotask,
+    wait_for_all_promise,
 };
 pub use promisenativehandler::{Callback, PromiseNativeHandler};

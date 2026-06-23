@@ -16,5 +16,5 @@ pub(crate) fn enter_auto_realm<'cx>(
     cx: &'cx mut JSContext,
     object: &impl DomObject,
 ) -> AutoRealm<'cx> {
-    script_bindings::realms::enter_auto_realm::<crate::DomTypeHolder>(cx, object)
+    script_bindings::realms::enter_auto_realm(cx, object)
 }

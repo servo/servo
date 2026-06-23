@@ -228,11 +228,7 @@ impl Promise {
         self.reject(cx, v.handle());
     }
 
-    pub fn reject_error<D>(&self, cx: &mut JSContext, error: Error)
-    where
-        D: DomTypes,
-        D::GlobalScope: GlobalScopeHelpers<D>,
-    {
+    pub fn reject_error(&self, cx: &mut JSContext, error: Error) {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut v = UndefinedValue());
