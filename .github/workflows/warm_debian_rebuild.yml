@@ -862,25 +862,21 @@ jobs:
       - name: Push successful Severin build to Releases
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -Eeuo pipefail
+          PYTHON_WHEEL: ${{ steps.python_wheel.outputs.wheel_path }}
+         run: |
+           set -Eeuo pipefail
 
-          RUNTIME_ZIP="release/${SEVERIN_RELEASE_STEM}-runtime-stripped.zip"
-          SYMBOLS_ZIP="release/${SEVERIN_RELEASE_STEM}-symbols.zip"
+           RUNTIME_ZIP="release/${SEVERIN_RELEASE_STEM}-runtime-stripped.zip"
+           SYMBOLS_ZIP="release/${SEVERIN_RELEASE_STEM}-symbols.zip"
+           assets=("$RUNTIME_ZIP" "$SYMBOLS_ZIP")
+           [ -z "$PYTHON_WHEEL" ] || assets+=("$PYTHON_WHEEL")
 
-          gh release view "$SEVERIN_RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            >/dev/null 2>&1 || \
-            gh release create "$SEVERIN_RELEASE_TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Latest Severin Debian 12 Linux release build" \
-              --notes "Rolling Severin build, updated by GitHub Actions."
+           # existing release-create code unchanged
 
-          gh release upload "$SEVERIN_RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            "$RUNTIME_ZIP" \
-            "$SYMBOLS_ZIP" \
-            --clobber
+           gh release upload "$SEVERIN_RELEASE_TAG" \
+             --repo "$GITHUB_REPOSITORY" \
+             "${assets[@]}" \
+             --clobber
 
       - name: Show Severin download link
         run: |
