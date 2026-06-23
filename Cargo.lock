@@ -9227,6 +9227,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "severin-python"
+version = "0.3.0"
+dependencies = [
+ "dpi",
+ "serde_json",
+ "servo",
+ "url",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
