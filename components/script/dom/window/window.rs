@@ -289,9 +289,6 @@ pub(crate) struct Window {
     layout: RefCell<Box<dyn Layout>>,
     navigator: MutNullableDom<Navigator>,
     crypto: MutNullableDom<Crypto>,
-    #[ignore_malloc_size_of = "ImageCache"]
-    #[no_trace]
-    image_cache: Arc<dyn ImageCache>,
     #[no_trace]
     image_cache_sender: Sender<ImageCacheResponseMessage>,
     window_proxy: MutNullableDom<WindowProxy>,
@@ -576,7 +573,7 @@ impl Window {
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
-        self.image_cache.clone()
+        self.Document().image_cache()
     }
 
     /// This can panic if it is called after the browsing context has been discarded
@@ -3543,6 +3540,7 @@ impl Window {
         pending_svg_element_for_serialization: Vec<UntrustedNodeAddress>,
     ) {
         let pipeline_id = self.pipeline_id();
+        let image_cache = self.image_cache();
         for image in pending_images {
             let id = image.id;
             let node = unsafe { from_untrusted_node_address(image.node) };
@@ -3553,7 +3551,7 @@ impl Window {
                     &node,
                     id,
                     image.is_internal_request,
-                    self.image_cache.clone(),
+                    image_cache.clone(),
                 );
             }
 
@@ -3567,8 +3565,7 @@ impl Window {
                         .pending_layout_image_notification(response);
                 });
 
-                self.image_cache
-                    .add_listener(ImageLoadListener::new(sender, pipeline_id, id));
+                image_cache.add_listener(ImageLoadListener::new(sender, pipeline_id, id));
             }
 
             let nodes = images.entry(id).or_default();
@@ -3586,7 +3583,7 @@ impl Window {
             let mut images = self.pending_images_for_rasterization.borrow_mut();
             if !images.contains_key(&(image.id, image.size)) {
                 let image_cache_sender = self.image_cache_sender.clone();
-                self.image_cache.add_rasterization_complete_listener(
+                image_cache.add_rasterization_complete_listener(
                     pipeline_id,
                     image.id,
                     image.size,
@@ -3673,7 +3670,6 @@ impl Window {
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
         image_cache_sender: Sender<ImageCacheResponseMessage>,
-        image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
         #[cfg(feature = "bluetooth")] bluetooth_thread: GenericSender<BluetoothRequest>,
@@ -3731,7 +3727,6 @@ impl Window {
             script_chan,
             layout: RefCell::new(layout),
             image_cache_sender,
-            image_cache,
             navigator: Default::default(),
             crypto: Default::default(),
             location: Default::default(),

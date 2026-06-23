@@ -112,6 +112,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.custom_element_reaction_stack(),
                     doc.creation_sandboxing_flag_set(),
                     doc.pipeline_id(),
+                    doc.image_cache(),
                     CanGc::from_cx(cx),
                 );
                 // Step switch-1. Parse HTML from a string given document and compliantString.
@@ -150,6 +151,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.custom_element_reaction_stack(),
                     doc.creation_sandboxing_flag_set(),
                     doc.pipeline_id(),
+                    doc.image_cache(),
                     CanGc::from_cx(cx),
                 );
                 // Step switch-1. Create an XML parser parser, associated with document,

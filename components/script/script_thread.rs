@@ -3457,7 +3457,6 @@ impl ScriptThread {
             self.layout_factory.create(layout_config),
             font_context,
             self.senders.image_cache_sender.clone(),
-            image_cache.clone(),
             self.resource_threads.clone(),
             self.storage_threads.clone(),
             #[cfg(feature = "bluetooth")]
@@ -3596,6 +3595,7 @@ impl ScriptThread {
             self.custom_element_reaction_stack.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.pipeline_id,
+            image_cache,
             CanGc::from_cx(cx),
         );
 

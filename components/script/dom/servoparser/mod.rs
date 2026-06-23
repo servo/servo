@@ -270,6 +270,7 @@ impl ServoParser {
             context_document.custom_element_reaction_stack(),
             context_document.creation_sandboxing_flag_set(),
             context_document.pipeline_id(),
+            context_document.image_cache(),
             CanGc::from_cx(cx),
         );
 

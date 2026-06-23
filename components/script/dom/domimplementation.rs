@@ -116,6 +116,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             Some(self.document.insecure_requests_policy()),
             self.document.has_trustworthy_ancestor_or_current_origin(),
             self.document.custom_element_reaction_stack(),
+            self.document.image_cache(),
             CanGc::from_cx(cx),
         );
 
@@ -193,6 +194,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             self.document.custom_element_reaction_stack(),
             self.document.creation_sandboxing_flag_set(),
             self.document.pipeline_id(),
+            self.document.image_cache(),
             CanGc::from_cx(cx),
         );
 

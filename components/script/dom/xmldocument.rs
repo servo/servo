@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
+use std::sync::Arc;
 
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use net_traits::image_cache::ImageCache;
 use net_traits::request::InsecureRequestsPolicy;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::reflector::reflect_dom_object;
@@ -52,6 +54,7 @@ impl XMLDocument {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         timeline: &DocumentTimeline,
+        image_cache: Arc<dyn ImageCache>,
     ) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(
@@ -77,6 +80,7 @@ impl XMLDocument {
                 window.Document().creation_sandboxing_flag_set(),
                 timeline,
                 window.pipeline_id(),
+                image_cache,
             ),
         }
     }
@@ -96,6 +100,7 @@ impl XMLDocument {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+        image_cache: Arc<dyn ImageCache>,
         can_gc: CanGc,
     ) -> DomRoot<XMLDocument> {
         let timeline = DocumentTimeline::new(window, can_gc);
@@ -115,6 +120,7 @@ impl XMLDocument {
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
                 &timeline,
+                image_cache,
             )),
             window,
             can_gc,

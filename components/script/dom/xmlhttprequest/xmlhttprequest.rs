@@ -1585,6 +1585,7 @@ impl XMLHttpRequest {
             doc.custom_element_reaction_stack(),
             doc.creation_sandboxing_flag_set(),
             doc.pipeline_id(),
+            doc.image_cache(),
             can_gc,
         )
     }
