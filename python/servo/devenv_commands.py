@@ -182,9 +182,9 @@ class MachCommands(CommandBase):
         cmd = ["cargo", "vet"]
         cmd.extend(params)
         # See `cargo vet --help` description of `--filter-graph`. This will keep only the dependency tree starting
-        # from libservo, i.e. exclude all dependencies coming only from ServoShell or other test executables.
+        # from the servo package, i.e. exclude all dependencies coming only from ServoShell or other test executables.
         # This greatly reduces the number of dependencies to vet.
-        cmd.extend(["--filter-graph", "exclude(all(is_workspace_member(true),not(name(libservo))))"])
+        cmd.extend(["--filter-graph", "exclude(all(is_workspace_member(true),not(name(servo))))"])
         return call(cmd)
 
     @Command("fetch", description="Fetch Rust, Cargo and Cargo dependencies", category="devenv")
