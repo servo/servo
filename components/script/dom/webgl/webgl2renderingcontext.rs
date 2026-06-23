@@ -18,7 +18,7 @@ use pixels::{Alpha, Snapshot};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use script_bindings::script_runtime::CanGc;
+use script_bindings::script_runtime::{CanGc, temp_cx};
 use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
@@ -1052,14 +1052,16 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
     fn GetBufferParameter(
         &self,
-        cx: &mut js::context::JSContext,
         _cx: JSContext,
         target: u32,
         parameter: u32,
         mut retval: MutableHandleValue,
     ) {
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let buffer = handle_potential_webgl_error!(
             self.base,
             self.bound_buffer(cx, target),
@@ -1069,6 +1071,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
     fn GetParameter(&self, cx: JSContext, parameter: u32, mut rval: MutableHandleValue) {
         match parameter {
             constants::VERSION => {
@@ -1152,16 +1155,18 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             },
             constants::ELEMENT_ARRAY_BUFFER_BINDING => {
                 let buffer = {
-                    let cx = unsafe { temp_cx() };
-                    self.current_vao().element_array_buffer().get()
+                    let mut cx = unsafe { temp_cx() };
+                    let cx = &mut cx;
+                    self.current_vao(cx).element_array_buffer().get()
                 };
                 buffer.safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 return;
             },
             constants::VERTEX_ARRAY_BINDING => {
                 let vao = {
-                    let cx = unsafe { temp_cx() };
-                    self.current_vao()
+                    let mut cx = unsafe { temp_cx() };
+                    let cx = &mut cx;
+                    self.current_vao(cx)
                 };
                 let vao = vao.id().map(|_| &*vao);
                 vao.safe_to_jsval(cx, rval, CanGc::deprecated_note());
@@ -1944,8 +1949,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn CreateProgram(&self) -> Option<DomRoot<WebGLProgram>> {
-        self.base.CreateProgram()
+    fn CreateProgram(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<WebGLProgram>> {
+        self.base.CreateProgram(cx)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
@@ -1975,7 +1980,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         if buffer.is_marked_for_deletion() {
             return;
         }
-        self.current_vao(cx).unbind_buffer(cx, buffer);
+        self.current_vao(cx).unbind_buffer(buffer);
         self.unbind_from(self.base.array_buffer_slot(), buffer);
         self.unbind_from(&self.bound_copy_read_buffer, buffer);
         self.unbind_from(&self.bound_copy_write_buffer, buffer);
@@ -2032,7 +2037,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     fn DrawArrays(&self, cx: &mut js::context::JSContext, mode: u32, first: i32, count: i32) {
         self.validate_uniform_block_for_draw();
         self.validate_vertex_attribs_for_draw(cx);
-        self.base.DrawArrays(mode, first, count)
+        self.base.DrawArrays(cx, mode, first, count)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
@@ -2046,17 +2051,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     ) {
         self.validate_uniform_block_for_draw();
         self.validate_vertex_attribs_for_draw(cx);
-        self.base.DrawElements(mode, count, type_, offset)
+        self.base.DrawElements(cx, mode, count, type_, offset)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn EnableVertexAttribArray(&self, attrib_id: u32) {
-        self.base.EnableVertexAttribArray(attrib_id)
+    fn EnableVertexAttribArray(&self, cx: &mut js::context::JSContext, attrib_id: u32) {
+        self.base.EnableVertexAttribArray(cx, attrib_id)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn DisableVertexAttribArray(&self, attrib_id: u32) {
-        self.base.DisableVertexAttribArray(attrib_id)
+    fn DisableVertexAttribArray(&self, cx: &mut js::context::JSContext, attrib_id: u32) {
+        self.base.DisableVertexAttribArray(cx, attrib_id)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
@@ -2214,8 +2219,13 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn GetVertexAttribOffset(&self, index: u32, pname: u32) -> i64 {
-        self.base.GetVertexAttribOffset(index, pname)
+    fn GetVertexAttribOffset(
+        &self,
+        cx: &mut js::context::JSContext,
+        index: u32,
+        pname: u32,
+    ) -> i64 {
+        self.base.GetVertexAttribOffset(cx, index, pname)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
@@ -3198,6 +3208,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttribPointer(
         &self,
+        cx: &mut js::context::JSContext,
         attrib_id: u32,
         size: i32,
         data_type: u32,
@@ -3206,11 +3217,19 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         offset: i64,
     ) {
         self.base
-            .VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset)
+            .VertexAttribPointer(cx, attrib_id, size, data_type, normalized, stride, offset)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
-    fn VertexAttribIPointer(&self, index: u32, size: i32, type_: u32, stride: i32, offset: i64) {
+    fn VertexAttribIPointer(
+        &self,
+        cx: &mut js::context::JSContext,
+        index: u32,
+        size: i32,
+        type_: u32,
+        stride: i32,
+        offset: i64,
+    ) {
         match type_ {
             constants::BYTE |
             constants::UNSIGNED_BYTE |
@@ -3221,7 +3240,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             _ => return self.base.webgl_error(InvalidEnum),
         };
         self.base
-            .VertexAttribPointer(index, size, type_, false, stride, offset)
+            .VertexAttribPointer(cx, index, size, type_, false, stride, offset)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>
@@ -3909,7 +3928,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.9>
     fn DrawArraysInstanced(
         &self,
-        cx: &mut js::contextJSContext,
+        cx: &mut js::context::JSContext,
         mode: u32,
         first: i32,
         count: i32,
@@ -3946,6 +3965,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.9>
     fn DrawRangeElements(
         &self,
+        cx: &mut js::context::JSContext,
         mode: u32,
         start: u32,
         end: u32,
@@ -3958,17 +3978,17 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return;
         }
         self.validate_uniform_block_for_draw();
-        self.validate_vertex_attribs_for_draw();
+        self.validate_vertex_attribs_for_draw(cx);
         handle_potential_webgl_error!(
             self.base,
             self.base
-                .draw_elements_instanced(mode, count, type_, offset, 1)
+                .draw_elements_instanced(cx, mode, count, type_, offset, 1)
         )
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.9>
-    fn VertexAttribDivisor(&self, index: u32, divisor: u32) {
-        self.base.vertex_attrib_divisor(index, divisor);
+    fn VertexAttribDivisor(&self, cx: &mut js::context::JSContext, index: u32, divisor: u32) {
+        self.base.vertex_attrib_divisor(cx, index, divisor);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
@@ -4009,8 +4029,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.13>
-    fn CreateSampler(&self) -> Option<DomRoot<WebGLSampler>> {
-        Some(WebGLSampler::new(&self.base, CanGc::deprecated_note()))
+    fn CreateSampler(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<WebGLSampler>> {
+        Some(WebGLSampler::new(cx, &self.base))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.13>
@@ -4133,7 +4153,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.14>
-    fn FenceSync(&self, condition: u32, flags: u32) -> Option<DomRoot<WebGLSync>> {
+    fn FenceSync(
+        &self,
+        cx: &mut js::context::JSContext,
+        condition: u32,
+        flags: u32,
+    ) -> Option<DomRoot<WebGLSync>> {
         if flags != 0 {
             self.base.webgl_error(InvalidValue);
             return None;
@@ -4143,7 +4168,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return None;
         }
 
-        Some(WebGLSync::new(&self.base, CanGc::deprecated_note()))
+        Some(WebGLSync::new(cx, &self.base))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.14>
@@ -4334,11 +4359,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.15>
-    fn CreateTransformFeedback(&self) -> Option<DomRoot<WebGLTransformFeedback>> {
-        Some(WebGLTransformFeedback::new(
-            &self.base,
-            CanGc::deprecated_note(),
-        ))
+    fn CreateTransformFeedback(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Option<DomRoot<WebGLTransformFeedback>> {
+        Some(WebGLTransformFeedback::new(cx, &self.base))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.15>
@@ -4536,6 +4561,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.15>
     fn GetTransformFeedbackVarying(
         &self,
+        cx: &mut js::context::JSContext,
         program: &WebGLProgram,
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {

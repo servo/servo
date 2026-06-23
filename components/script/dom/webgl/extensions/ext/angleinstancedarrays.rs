@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::script_runtime::temp_cx;
 use servo_canvas_traits::webgl::WebGLVersion;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
@@ -67,15 +68,19 @@ impl WebGLExtension for ANGLEInstancedArrays {
 
 impl ANGLEInstancedArraysMethods<crate::DomTypeHolder> for ANGLEInstancedArrays {
     /// <https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/>
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
     fn DrawArraysInstancedANGLE(&self, mode: u32, first: i32, count: i32, primcount: i32) {
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         handle_potential_webgl_error!(
             self.ctx,
             self.ctx
-                .draw_arrays_instanced(mode, first, count, primcount)
+                .draw_arrays_instanced(cx, mode, first, count, primcount)
         )
     }
 
     /// <https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/>
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
     fn DrawElementsInstancedANGLE(
         &self,
         mode: u32,
@@ -84,14 +89,19 @@ impl ANGLEInstancedArraysMethods<crate::DomTypeHolder> for ANGLEInstancedArrays 
         offset: i64,
         primcount: i32,
     ) {
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         handle_potential_webgl_error!(
             self.ctx,
             self.ctx
-                .draw_elements_instanced(mode, count, type_, offset, primcount)
+                .draw_elements_instanced(cx, mode, count, type_, offset, primcount)
         )
     }
 
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
     fn VertexAttribDivisorANGLE(&self, index: u32, divisor: u32) {
-        self.ctx.vertex_attrib_divisor(index, divisor);
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        self.ctx.vertex_attrib_divisor(cx, index, divisor);
     }
 }

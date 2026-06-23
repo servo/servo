@@ -8,7 +8,6 @@ use std::os::raw::c_int;
 use std::sync::Once;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_cx;

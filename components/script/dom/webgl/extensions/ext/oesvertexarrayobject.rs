@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::script_runtime::temp_cx;
 use servo_canvas_traits::webgl::WebGLVersion;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
@@ -33,13 +34,19 @@ impl OESVertexArrayObject {
 
 impl OESVertexArrayObjectMethods<crate::DomTypeHolder> for OESVertexArrayObject {
     /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
     fn CreateVertexArrayOES(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
-        self.ctx.create_vertex_array()
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        self.ctx.create_vertex_array(cx)
     }
 
     /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
     fn DeleteVertexArrayOES(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
-        self.ctx.delete_vertex_array(vao);
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        self.ctx.delete_vertex_array(cx, vao);
     }
 
     /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>

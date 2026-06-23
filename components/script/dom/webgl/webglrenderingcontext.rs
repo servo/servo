@@ -2179,14 +2179,16 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
     fn GetBufferParameter(
         &self,
-        cx: &mut js::context::JSContext,
         _cx: SafeJSContext,
         target: u32,
         parameter: u32,
         mut retval: MutableHandleValue,
     ) {
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let buffer = handle_potential_webgl_error!(
             self,
             self.bound_buffer(cx, target),
@@ -2804,13 +2806,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
-    fn BufferData_(
-        &self,
-        cx: &mut js::context::JSContext,
-        target: u32,
-        data: Option<ArrayBufferViewOrArrayBuffer>,
-        usage: u32,
-    ) {
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
+    fn BufferData_(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
         let bound_buffer =
             handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
@@ -2818,7 +2817,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
-    fn BufferData(&self, cx: &mut js::context::JSContext, target: u32, size: i64, usage: u32) {
+    #[expect(unsafe_code, reason = "transfer to jscontext")]
+    fn BufferData(&self, target: u32, size: i64, usage: u32) {
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
         let bound_buffer =
             handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
@@ -3319,7 +3321,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
-    fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
+    fn DrawElements(
+        &self,
+        cx: &mut js::context::JSContext,
+        mode: u32,
+        count: i32,
+        type_: u32,
+        offset: i64,
+    ) {
         handle_potential_webgl_error!(
             self,
             self.draw_elements_instanced(cx, mode, count, type_, offset, 1)
@@ -3378,6 +3387,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetActiveAttrib(
         &self,
+        cx: &mut js::context::JSContext,
         program: &WebGLProgram,
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {
@@ -3697,6 +3707,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetUniformLocation(
         &self,
+        cx: &mut js::context::JSContext,
         program: &WebGLProgram,
         name: DOMString,
     ) -> Option<DomRoot<WebGLUniformLocation>> {
@@ -3789,7 +3800,8 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             }
         };
 
-        let cx = unsafe { js::context::temp_cx() };
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         match self.webgl_version() {
             WebGLVersion::WebGL1 => {
                 let current_vao = self.current_vao(cx);

@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_cx};
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
