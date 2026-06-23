@@ -2021,10 +2021,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetActiveUniform(
         &self,
+        cx: &mut JSContext,
         program: &WebGLProgram,
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {
-        self.base.GetActiveUniform(program, index)
+        self.base.GetActiveUniform(cx, program, index)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
@@ -4057,7 +4058,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.12>
     fn GetQueryParameter(
         &self,
-        _: &mut JSContext,
+        _cx: &mut JSContext,
         query: &WebGLQuery,
         pname: u32,
         mut retval: MutableHandleValue,
@@ -4178,7 +4179,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.14>
     fn GetSyncParameter(
         &self,
-        _: &mut JSContext,
+        _cx: &mut JSContext,
         sync: &WebGLSync,
         pname: u32,
         mut retval: MutableHandleValue,
@@ -4264,7 +4265,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.13>
     fn GetSamplerParameter(
         &self,
-        _: &mut JSContext,
+        _cx: &mut JSContext,
         sampler: &WebGLSampler,
         pname: u32,
         mut retval: MutableHandleValue,

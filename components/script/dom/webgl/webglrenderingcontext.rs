@@ -2459,7 +2459,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn GetTexParameter(
         &self,
-        _: &mut JSContext,
+        _cx: &mut JSContext,
         target: u32,
         pname: u32,
         mut retval: MutableHandleValue,
@@ -3544,7 +3544,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetProgramParameter(
         &self,
-        _: &mut JSContext,
+        _cx: &mut JSContext,
         program: &WebGLProgram,
         param: u32,
         mut retval: MutableHandleValue,
@@ -3595,7 +3595,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderParameter(
         &self,
-        _: &mut JSContext,
+        _cx: &mut JSContext,
         shader: &WebGLShader,
         param: u32,
         mut retval: MutableHandleValue,
