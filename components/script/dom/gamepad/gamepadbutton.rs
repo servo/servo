@@ -5,13 +5,13 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::GamepadButtonBinding::GamepadButtonMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GamepadButton {
@@ -32,15 +32,15 @@ impl GamepadButton {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         pressed: bool,
         touched: bool,
-        can_gc: CanGc,
     ) -> DomRoot<GamepadButton> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(GamepadButton::new_inherited(pressed, touched)),
             window,
-            can_gc,
+            cx,
         )
     }
 }
