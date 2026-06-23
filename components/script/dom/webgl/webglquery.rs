@@ -5,7 +5,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::reflect_dom_object;
+use js::context::JSContext;
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_cx};
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
@@ -17,7 +18,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableWebGLQuery {
@@ -78,15 +78,15 @@ impl WebGLQuery {
         }
     }
 
-    pub(crate) fn new(context: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<Self> {
+    pub(crate) fn new(cx: &mut JSContext, context: &WebGLRenderingContext) -> DomRoot<Self> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::GenerateQuery(sender));
         let id = receiver.recv().unwrap();
 
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(context, id)),
             &*context.global(),
-            can_gc,
+            cx,
         )
     }
 

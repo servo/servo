@@ -7,8 +7,9 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
@@ -27,7 +28,6 @@ use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext}
 use crate::dom::webgl::webglshader::WebGLShader;
 use crate::dom::webgl::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableWebGLProgram {
@@ -210,26 +210,26 @@ impl WebGLProgram {
     }
 
     pub(crate) fn maybe_new(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateProgram(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLProgram::new(context, id, can_gc))
+            .map(|id| WebGLProgram::new(cx, context, id))
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
         id: WebGLProgramId,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(WebGLProgram::new_inherited(context, id)),
             &*context.global(),
-            can_gc,
+            cx,
         )
     }
 }
@@ -443,8 +443,8 @@ impl WebGLProgram {
 
     pub(crate) fn get_active_uniform(
         &self,
+        cx: &mut JSContext,
         index: u32,
-        can_gc: CanGc,
     ) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
@@ -454,19 +454,19 @@ impl WebGLProgram {
             .get(index as usize)
             .ok_or(WebGLError::InvalidValue)?;
         Ok(WebGLActiveInfo::new(
+            cx,
             self.global().as_window(),
             data.size.unwrap_or(1),
             data.type_,
             data.name().into(),
-            can_gc,
         ))
     }
 
     /// glGetActiveAttrib
     pub(crate) fn get_active_attrib(
         &self,
+        cx: &mut JSContext,
         index: u32,
-        can_gc: CanGc,
     ) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
@@ -476,11 +476,11 @@ impl WebGLProgram {
             .get(index as usize)
             .ok_or(WebGLError::InvalidValue)?;
         Ok(WebGLActiveInfo::new(
+            cx,
             self.global().as_window(),
             data.size,
             data.type_,
             data.name.clone().into(),
-            can_gc,
         ))
     }
 
@@ -533,8 +533,8 @@ impl WebGLProgram {
     /// glGetUniformLocation
     pub(crate) fn get_uniform_location(
         &self,
+        cx: &mut JSContext,
         name: DOMString,
-        can_gc: CanGc,
     ) -> WebGLResult<Option<DomRoot<WebGLUniformLocation>>> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
@@ -578,6 +578,7 @@ impl WebGLProgram {
         let context_id = self.upcast().context_id();
 
         Ok(Some(WebGLUniformLocation::new(
+            cx,
             self.global().as_window(),
             location,
             context_id,
@@ -585,7 +586,6 @@ impl WebGLProgram {
             self.link_generation.get(),
             size,
             type_,
-            can_gc,
         )))
     }
 

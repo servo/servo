@@ -6,7 +6,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::reflect_dom_object;
+use js::context::JSContext;
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_cx};
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     GlType, InternalFormatIntVec, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult,
@@ -23,7 +24,6 @@ use crate::dom::webgl::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableWebGLRenderbuffer {
@@ -107,24 +107,27 @@ impl WebGLRenderbuffer {
         }
     }
 
-    pub(crate) fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(
+        cx: &mut JSContext,
+        context: &WebGLRenderingContext,
+    ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateRenderbuffer(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLRenderbuffer::new(context, id, CanGc::deprecated_note()))
+            .map(|id| WebGLRenderbuffer::new(cx, context, id))
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
         id: WebGLRenderbufferId,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(WebGLRenderbuffer::new_inherited(context, id)),
             &*context.global(),
-            can_gc,
+            cx,
         )
     }
 }

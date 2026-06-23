@@ -6,7 +6,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{DomObject, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{DomObject, reflect_dom_object, reflect_dom_object_with_cx};
 use script_bindings::weakref::WeakRef;
 use servo_base::generic_channel;
 use servo_canvas_traits::webgl::{
@@ -20,7 +21,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
-use crate::script_runtime::CanGc;
 
 fn target_is_copy_buffer(target: u32) -> bool {
     target == WebGL2RenderingContextConstants::COPY_READ_BUFFER ||
@@ -137,26 +137,26 @@ impl WebGLBuffer {
     }
 
     pub(crate) fn maybe_new(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateBuffer(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLBuffer::new(context, id, can_gc))
+            .map(|id| WebGLBuffer::new(cx, context, id))
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
         id: WebGLBufferId,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(WebGLBuffer::new_inherited(context, id)),
             &*context.global(),
-            can_gc,
+            cx,
         )
     }
 }

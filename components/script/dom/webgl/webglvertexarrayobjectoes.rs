@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::Ref;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_cx};
 use servo_canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 
 use crate::dom::bindings::reflector::DomGlobal;
@@ -13,7 +14,6 @@ use crate::dom::webgl::vertexarrayobject::{VertexArrayObject, VertexAttribData};
 use crate::dom::webgl::webglbuffer::WebGLBuffer;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
-use crate::script_runtime::CanGc;
 
 #[dom_struct(associated_memory)]
 pub(crate) struct WebGLVertexArrayObjectOES {
@@ -30,14 +30,14 @@ impl WebGLVertexArrayObjectOES {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         context: &WebGLRenderingContext,
         id: Option<WebGLVertexArrayId>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(WebGLVertexArrayObjectOES::new_inherited(context, id)),
             &*context.global(),
-            can_gc,
+            cx,
         )
     }
 

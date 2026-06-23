@@ -23,6 +23,7 @@ use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object_with_cx};
+use script_bindings::script_runtime::{CanGc, temp_cx};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};
@@ -87,7 +88,7 @@ use crate::dom::webgl::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webgl::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::webgl::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     match (arg1, arg2) {
@@ -301,12 +302,12 @@ impl WebGLRenderingContext {
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(
+                    cx,
                     window,
                     atom!("webglcontextcreationerror"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
                     DOMString::from(msg),
-                    CanGc::from_cx(cx),
                 );
                 match canvas {
                     RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
@@ -362,22 +363,26 @@ impl WebGLRenderingContext {
         self.bound_draw_framebuffer.get()
     }
 
-    pub(crate) fn current_vao(&self) -> DomRoot<WebGLVertexArrayObjectOES> {
+    pub(crate) fn current_vao(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> DomRoot<WebGLVertexArrayObjectOES> {
         self.current_vao.or_init(|| {
             DomRoot::from_ref(
-                self.default_vao.init_once(|| {
-                    WebGLVertexArrayObjectOES::new(self, None, CanGc::deprecated_note())
-                }),
+                self.default_vao
+                    .init_once(|| WebGLVertexArrayObjectOES::new(cx, self, None)),
             )
         })
     }
 
-    pub(crate) fn current_vao_webgl2(&self) -> DomRoot<WebGLVertexArrayObject> {
+    pub(crate) fn current_vao_webgl2(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> DomRoot<WebGLVertexArrayObject> {
         self.current_vao_webgl2.or_init(|| {
             DomRoot::from_ref(
-                self.default_vao_webgl2.init_once(|| {
-                    WebGLVertexArrayObject::new(self, None, CanGc::deprecated_note())
-                }),
+                self.default_vao_webgl2
+                    .init_once(|| WebGLVertexArrayObject::new(cx, self, None)),
             )
         })
     }
@@ -526,17 +531,25 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
+    fn vertex_attrib(
+        &self,
+        cx: &mut js::context::JSContext,
+        indx: u32,
+        x: f32,
+        y: f32,
+        z: f32,
+        w: f32,
+    ) {
         if indx >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
 
         match self.webgl_version() {
             WebGLVersion::WebGL1 => self
-                .current_vao()
+                .current_vao(cx)
                 .set_vertex_attrib_type(indx, constants::FLOAT),
             WebGLVersion::WebGL2 => self
-                .current_vao_webgl2()
+                .current_vao_webgl2(cx)
                 .set_vertex_attrib_type(indx, constants::FLOAT),
         };
         self.current_vertex_attribs.borrow_mut()[indx as usize] = VertexAttrib::Float(x, y, z, w);
@@ -982,6 +995,7 @@ impl WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
     pub(crate) fn draw_arrays_instanced(
         &self,
+        cx: &mut js::context::JSContext,
         mode: u32,
         first: i32,
         count: i32,
@@ -1015,12 +1029,12 @@ impl WebGLRenderingContext {
         };
 
         match self.webgl_version() {
-            WebGLVersion::WebGL1 => self.current_vao().validate_for_draw(
+            WebGLVersion::WebGL1 => self.current_vao(cx).validate_for_draw(
                 required_len,
                 primcount as u32,
                 &current_program.active_attribs(),
             )?,
-            WebGLVersion::WebGL2 => self.current_vao_webgl2().validate_for_draw(
+            WebGLVersion::WebGL2 => self.current_vao_webgl2(cx).validate_for_draw(
                 required_len,
                 primcount as u32,
                 &current_program.active_attribs(),
@@ -1050,6 +1064,7 @@ impl WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
     pub(crate) fn draw_elements_instanced(
         &self,
+        cx: &mut js::context::JSContext,
         mode: u32,
         count: i32,
         type_: u32,
@@ -1087,8 +1102,8 @@ impl WebGLRenderingContext {
 
         let current_program = self.current_program.get().ok_or(InvalidOperation)?;
         let array_buffer = match self.webgl_version() {
-            WebGLVersion::WebGL1 => self.current_vao().element_array_buffer().get(),
-            WebGLVersion::WebGL2 => self.current_vao_webgl2().element_array_buffer().get(),
+            WebGLVersion::WebGL1 => self.current_vao(cx).element_array_buffer().get(),
+            WebGLVersion::WebGL2 => self.current_vao_webgl2(cx).element_array_buffer().get(),
         }
         .ok_or(InvalidOperation)?;
 
@@ -1102,12 +1117,12 @@ impl WebGLRenderingContext {
 
         // TODO(nox): Pass the correct number of vertices required.
         match self.webgl_version() {
-            WebGLVersion::WebGL1 => self.current_vao().validate_for_draw(
+            WebGLVersion::WebGL1 => self.current_vao(cx).validate_for_draw(
                 0,
                 primcount as u32,
                 &current_program.active_attribs(),
             )?,
-            WebGLVersion::WebGL2 => self.current_vao_webgl2().validate_for_draw(
+            WebGLVersion::WebGL2 => self.current_vao_webgl2(cx).validate_for_draw(
                 0,
                 primcount as u32,
                 &current_program.active_attribs(),
@@ -1141,15 +1156,20 @@ impl WebGLRenderingContext {
         Ok(())
     }
 
-    pub(crate) fn vertex_attrib_divisor(&self, index: u32, divisor: u32) {
+    pub(crate) fn vertex_attrib_divisor(
+        &self,
+        cx: &mut js::context::JSContext,
+        index: u32,
+        divisor: u32,
+    ) {
         if index >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
 
         match self.webgl_version() {
-            WebGLVersion::WebGL1 => self.current_vao().vertex_attrib_divisor(index, divisor),
+            WebGLVersion::WebGL1 => self.current_vao(cx).vertex_attrib_divisor(index, divisor),
             WebGLVersion::WebGL2 => self
-                .current_vao_webgl2()
+                .current_vao_webgl2(cx)
                 .vertex_attrib_divisor(index, divisor),
         };
         self.send_command(WebGLCommand::VertexAttribDivisor { index, divisor });
@@ -1163,10 +1183,16 @@ impl WebGLRenderingContext {
         &self.bound_buffer_array
     }
 
-    pub(crate) fn bound_buffer(&self, target: u32) -> WebGLResult<Option<DomRoot<WebGLBuffer>>> {
+    pub(crate) fn bound_buffer(
+        &self,
+        cx: &mut js::context::JSContext,
+        target: u32,
+    ) -> WebGLResult<Option<DomRoot<WebGLBuffer>>> {
         match target {
             constants::ARRAY_BUFFER => Ok(self.bound_buffer_array.get()),
-            constants::ELEMENT_ARRAY_BUFFER => Ok(self.current_vao().element_array_buffer().get()),
+            constants::ELEMENT_ARRAY_BUFFER => {
+                Ok(self.current_vao(cx).element_array_buffer().get())
+            },
             _ => Err(WebGLError::InvalidEnum),
         }
     }
@@ -1178,25 +1204,35 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub(crate) fn create_vertex_array(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
+    pub(crate) fn create_vertex_array(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::CreateVertexArray(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObjectOES::new(self, Some(id), CanGc::deprecated_note()))
+            .map(|id| WebGLVertexArrayObjectOES::new(cx, self, Some(id)))
     }
 
-    pub(crate) fn create_vertex_array_webgl2(&self) -> Option<DomRoot<WebGLVertexArrayObject>> {
+    pub(crate) fn create_vertex_array_webgl2(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Option<DomRoot<WebGLVertexArrayObject>> {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::CreateVertexArray(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObject::new(self, Some(id), CanGc::deprecated_note()))
+            .map(|id| WebGLVertexArrayObject::new(cx, self, Some(id)))
     }
 
-    pub(crate) fn delete_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
+    pub(crate) fn delete_vertex_array(
+        &self,
+        cx: &mut js::context::JSContext,
+        vao: Option<&WebGLVertexArrayObjectOES>,
+    ) {
         if let Some(vao) = vao {
             handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
             // The default vertex array has no id and should never be passed around.
@@ -1204,7 +1240,7 @@ impl WebGLRenderingContext {
             if vao.is_deleted() {
                 return;
             }
-            if vao == &*self.current_vao() {
+            if vao == &*self.current_vao(cx) {
                 // Setting it to None will make self.current_vao() reset it to the default one
                 // next time it is called.
                 self.current_vao.set(None);
@@ -1214,7 +1250,11 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub(crate) fn delete_vertex_array_webgl2(&self, vao: Option<&WebGLVertexArrayObject>) {
+    pub(crate) fn delete_vertex_array_webgl2(
+        &self,
+        cx: &mut js::context::JSContext,
+        vao: Option<&WebGLVertexArrayObject>,
+    ) {
         if let Some(vao) = vao {
             handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
             // The default vertex array has no id and should never be passed around.
@@ -1222,7 +1262,7 @@ impl WebGLRenderingContext {
             if vao.is_deleted() {
                 return;
             }
-            if vao == &*self.current_vao_webgl2() {
+            if vao == &*self.current_vao_webgl2(cx) {
                 // Setting it to None will make self.current_vao() reset it to the default one
                 // next time it is called.
                 self.current_vao_webgl2.set(None);
@@ -2141,6 +2181,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn GetBufferParameter(
         &self,
+        cx: &mut js::context::JSContext,
         _cx: SafeJSContext,
         target: u32,
         parameter: u32,
@@ -2148,7 +2189,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     ) {
         let buffer = handle_potential_webgl_error!(
             self,
-            self.bound_buffer(target),
+            self.bound_buffer(cx, target),
             return retval.set(NullValue())
         );
         self.get_buffer_param(buffer, parameter, retval)
@@ -2179,7 +2220,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 return;
             },
             constants::ELEMENT_ARRAY_BUFFER_BINDING => {
-                let buffer = self.current_vao().element_array_buffer().get();
+                let buffer = {
+                    let mut cx = unsafe { temp_cx() };
+                    self.current_vao(&mut cx).element_array_buffer().get()
+                };
                 buffer.safe_to_jsval(cx, retval, CanGc::deprecated_note());
                 return;
             },
@@ -2662,12 +2706,17 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
-    fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
+    fn BindBuffer(
+        &self,
+        cx: &mut js::context::JSContext,
+        target: u32,
+        buffer: Option<&WebGLBuffer>,
+    ) {
         let current_vao;
         let slot = match target {
             constants::ARRAY_BUFFER => &self.bound_buffer_array,
             constants::ELEMENT_ARRAY_BUFFER => {
-                current_vao = self.current_vao();
+                current_vao = self.current_vao(cx);
                 current_vao.element_array_buffer()
             },
             _ => return self.webgl_error(InvalidEnum),
@@ -2755,22 +2804,37 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
-    fn BufferData_(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
+    fn BufferData_(
+        &self,
+        cx: &mut js::context::JSContext,
+        target: u32,
+        data: Option<ArrayBufferViewOrArrayBuffer>,
+        usage: u32,
+    ) {
         let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
-        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
+        let bound_buffer =
+            handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
         self.buffer_data(target, data, usage, bound_buffer)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
-    fn BufferData(&self, target: u32, size: i64, usage: u32) {
+    fn BufferData(&self, cx: &mut js::context::JSContext, target: u32, size: i64, usage: u32) {
         let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
-        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
+        let bound_buffer =
+            handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
         self.buffer_data_(target, size, usage, bound_buffer)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
-        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
+    fn BufferSubData(
+        &self,
+        cx: &mut js::context::JSContext,
+        target: u32,
+        offset: i64,
+        data: ArrayBufferViewOrArrayBuffer,
+    ) {
+        let bound_buffer =
+            handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
         self.buffer_sub_data(target, offset, data, bound_buffer)
     }
 
@@ -3096,32 +3160,42 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
-    fn CreateBuffer(&self) -> Option<DomRoot<WebGLBuffer>> {
-        WebGLBuffer::maybe_new(self, CanGc::deprecated_note())
+    fn CreateBuffer(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<WebGLBuffer>> {
+        WebGLBuffer::maybe_new(cx, self)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
-    fn CreateFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
-        WebGLFramebuffer::maybe_new(self, CanGc::deprecated_note())
+    fn CreateFramebuffer(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Option<DomRoot<WebGLFramebuffer>> {
+        WebGLFramebuffer::maybe_new(cx, self)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
-    fn CreateRenderbuffer(&self) -> Option<DomRoot<WebGLRenderbuffer>> {
-        WebGLRenderbuffer::maybe_new(self)
+    fn CreateRenderbuffer(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Option<DomRoot<WebGLRenderbuffer>> {
+        WebGLRenderbuffer::maybe_new(cx, self)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
-    fn CreateTexture(&self) -> Option<DomRoot<WebGLTexture>> {
-        WebGLTexture::maybe_new(self)
+    fn CreateTexture(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<WebGLTexture>> {
+        WebGLTexture::maybe_new(cx, self)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn CreateProgram(&self) -> Option<DomRoot<WebGLProgram>> {
-        WebGLProgram::maybe_new(self, CanGc::deprecated_note())
+    fn CreateProgram(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<WebGLProgram>> {
+        WebGLProgram::maybe_new(cx, self)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn CreateShader(&self, shader_type: u32) -> Option<DomRoot<WebGLShader>> {
+    fn CreateShader(
+        &self,
+        cx: &mut js::context::JSContext,
+        shader_type: u32,
+    ) -> Option<DomRoot<WebGLShader>> {
         match shader_type {
             constants::VERTEX_SHADER | constants::FRAGMENT_SHADER => {},
             _ => {
@@ -3129,11 +3203,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 return None;
             },
         }
-        WebGLShader::maybe_new(self, shader_type)
+        WebGLShader::maybe_new(cx, self, shader_type)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
-    fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
+    fn DeleteBuffer(&self, cx: &mut js::context::JSContext, buffer: Option<&WebGLBuffer>) {
         let buffer = match buffer {
             Some(buffer) => buffer,
             None => return,
@@ -3142,7 +3216,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         if buffer.is_marked_for_deletion() {
             return;
         }
-        self.current_vao().unbind_buffer(buffer);
+        self.current_vao(cx).unbind_buffer(buffer);
         if self.bound_buffer_array.get().is_some_and(|b| buffer == &*b) {
             self.bound_buffer_array.set(None);
             buffer.decrement_attached_counter(Operation::Infallible);
@@ -3240,45 +3314,45 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
-    fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
-        handle_potential_webgl_error!(self, self.draw_arrays_instanced(mode, first, count, 1));
+    fn DrawArrays(&self, cx: &mut js::context::JSContext, mode: u32, first: i32, count: i32) {
+        handle_potential_webgl_error!(self, self.draw_arrays_instanced(cx, mode, first, count, 1));
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
         handle_potential_webgl_error!(
             self,
-            self.draw_elements_instanced(mode, count, type_, offset, 1)
+            self.draw_elements_instanced(cx, mode, count, type_, offset, 1)
         );
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn EnableVertexAttribArray(&self, attrib_id: u32) {
+    fn EnableVertexAttribArray(&self, cx: &mut js::context::JSContext, attrib_id: u32) {
         if attrib_id >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
         match self.webgl_version() {
             WebGLVersion::WebGL1 => self
-                .current_vao()
+                .current_vao(cx)
                 .enabled_vertex_attrib_array(attrib_id, true),
             WebGLVersion::WebGL2 => self
-                .current_vao_webgl2()
+                .current_vao_webgl2(cx)
                 .enabled_vertex_attrib_array(attrib_id, true),
         };
         self.send_command(WebGLCommand::EnableVertexAttribArray(attrib_id));
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn DisableVertexAttribArray(&self, attrib_id: u32) {
+    fn DisableVertexAttribArray(&self, cx: &mut js::context::JSContext, attrib_id: u32) {
         if attrib_id >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
         match self.webgl_version() {
             WebGLVersion::WebGL1 => self
-                .current_vao()
+                .current_vao(cx)
                 .enabled_vertex_attrib_array(attrib_id, false),
             WebGLVersion::WebGL2 => self
-                .current_vao_webgl2()
+                .current_vao_webgl2(cx)
                 .enabled_vertex_attrib_array(attrib_id, false),
         };
         self.send_command(WebGLCommand::DisableVertexAttribArray(attrib_id));
@@ -3287,11 +3361,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetActiveUniform(
         &self,
+        cx: &mut js::context::JSContext,
         program: &WebGLProgram,
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        match program.get_active_uniform(index, CanGc::deprecated_note()) {
+        match program.get_active_uniform(cx, index) {
             Ok(ret) => Some(ret),
             Err(e) => {
                 self.webgl_error(e);
@@ -3307,13 +3382,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        handle_potential_webgl_error!(
-            self,
-            program
-                .get_active_attrib(index, CanGc::deprecated_note())
-                .map(Some),
-            None
-        )
+        handle_potential_webgl_error!(self, program.get_active_attrib(cx, index).map(Some), None)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
@@ -3583,6 +3652,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderPrecisionFormat(
         &self,
+        cx: &mut js::context::JSContext,
         shader_type: u32,
         precision_type: u32,
     ) -> Option<DomRoot<WebGLShaderPrecisionFormat>> {
@@ -3616,11 +3686,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
         let (range_min, range_max, precision) = receiver.recv().unwrap();
         Some(WebGLShaderPrecisionFormat::new(
+            cx,
             self.global().as_window(),
             range_min,
             range_max,
             precision,
-            CanGc::deprecated_note(),
         ))
     }
 
@@ -3631,11 +3701,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         name: DOMString,
     ) -> Option<DomRoot<WebGLUniformLocation>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        handle_potential_webgl_error!(
-            self,
-            program.get_uniform_location(name, CanGc::deprecated_note()),
-            None
-        )
+        handle_potential_webgl_error!(self, program.get_uniform_location(cx, name), None)
     }
 
     #[expect(unsafe_code)]
@@ -3723,9 +3789,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             }
         };
 
+        let cx = unsafe { js::context::temp_cx() };
         match self.webgl_version() {
             WebGLVersion::WebGL1 => {
-                let current_vao = self.current_vao();
+                let current_vao = self.current_vao(cx);
                 let data = handle_potential_webgl_error!(
                     self,
                     current_vao.get_vertex_attrib(index).ok_or(InvalidValue),
@@ -3734,7 +3801,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 get_attrib(data)
             },
             WebGLVersion::WebGL2 => {
-                let current_vao = self.current_vao_webgl2();
+                let current_vao = self.current_vao_webgl2(cx);
                 let data = handle_potential_webgl_error!(
                     self,
                     current_vao.get_vertex_attrib(index).ok_or(InvalidValue),
@@ -3746,14 +3813,19 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn GetVertexAttribOffset(&self, index: u32, pname: u32) -> i64 {
+    fn GetVertexAttribOffset(
+        &self,
+        cx: &mut js::context::JSContext,
+        index: u32,
+        pname: u32,
+    ) -> i64 {
         if pname != constants::VERTEX_ATTRIB_ARRAY_POINTER {
             self.webgl_error(InvalidEnum);
             return 0;
         }
         match self.webgl_version() {
             WebGLVersion::WebGL1 => {
-                let current_vao = self.current_vao();
+                let current_vao = self.current_vao(cx);
                 let data = handle_potential_webgl_error!(
                     self,
                     current_vao.get_vertex_attrib(index).ok_or(InvalidValue),
@@ -3762,7 +3834,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 data.offset as i64
             },
             WebGLVersion::WebGL2 => {
-                let current_vao = self.current_vao_webgl2();
+                let current_vao = self.current_vao_webgl2(cx);
                 let data = handle_potential_webgl_error!(
                     self,
                     current_vao.get_vertex_attrib(index).ok_or(InvalidValue),
@@ -4437,12 +4509,17 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib1f(&self, indx: u32, x: f32) {
-        self.vertex_attrib(indx, x, 0f32, 0f32, 1f32)
+    fn VertexAttrib1f(&self, cx: &mut js::context::JSContext, indx: u32, x: f32) {
+        self.vertex_attrib(cx, indx, x, 0f32, 0f32, 1f32)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib1fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
+    fn VertexAttrib1fv(
+        &self,
+        cx: &mut js::context::JSContext,
+        indx: u32,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
+    ) {
         let values = match v {
             Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
@@ -4451,16 +4528,21 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/KhronosGroup/WebGL/issues/2700
             return self.webgl_error(InvalidValue);
         }
-        self.vertex_attrib(indx, values[0], 0f32, 0f32, 1f32);
+        self.vertex_attrib(cx, indx, values[0], 0f32, 0f32, 1f32);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib2f(&self, indx: u32, x: f32, y: f32) {
-        self.vertex_attrib(indx, x, y, 0f32, 1f32)
+    fn VertexAttrib2f(&self, cx: &mut js::context::JSContext, indx: u32, x: f32, y: f32) {
+        self.vertex_attrib(cx, indx, x, y, 0f32, 1f32)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib2fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
+    fn VertexAttrib2fv(
+        &self,
+        cx: &mut js::context::JSContext,
+        indx: u32,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
+    ) {
         let values = match v {
             Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
@@ -4469,16 +4551,21 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/KhronosGroup/WebGL/issues/2700
             return self.webgl_error(InvalidValue);
         }
-        self.vertex_attrib(indx, values[0], values[1], 0f32, 1f32);
+        self.vertex_attrib(cx, indx, values[0], values[1], 0f32, 1f32);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib3f(&self, indx: u32, x: f32, y: f32, z: f32) {
-        self.vertex_attrib(indx, x, y, z, 1f32)
+    fn VertexAttrib3f(&self, cx: &mut js::context::JSContext, indx: u32, x: f32, y: f32, z: f32) {
+        self.vertex_attrib(cx, indx, x, y, z, 1f32)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib3fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
+    fn VertexAttrib3fv(
+        &self,
+        cx: &mut js::context::JSContext,
+        indx: u32,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
+    ) {
         let values = match v {
             Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
@@ -4487,16 +4574,29 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/KhronosGroup/WebGL/issues/2700
             return self.webgl_error(InvalidValue);
         }
-        self.vertex_attrib(indx, values[0], values[1], values[2], 1f32);
+        self.vertex_attrib(cx, indx, values[0], values[1], values[2], 1f32);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib4f(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
-        self.vertex_attrib(indx, x, y, z, w)
+    fn VertexAttrib4f(
+        &self,
+        cx: &mut js::context::JSContext,
+        indx: u32,
+        x: f32,
+        y: f32,
+        z: f32,
+        w: f32,
+    ) {
+        self.vertex_attrib(cx, indx, x, y, z, w)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib4fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
+    fn VertexAttrib4fv(
+        &self,
+        cx: &mut js::context::JSContext,
+        indx: u32,
+        v: Float32ArrayOrUnrestrictedFloatSequence,
+    ) {
         let values = match v {
             Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
@@ -4505,12 +4605,13 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/KhronosGroup/WebGL/issues/2700
             return self.webgl_error(InvalidValue);
         }
-        self.vertex_attrib(indx, values[0], values[1], values[2], values[3]);
+        self.vertex_attrib(cx, indx, values[0], values[1], values[2], values[3]);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttribPointer(
         &self,
+        cx: &mut js::context::JSContext,
         index: u32,
         size: i32,
         type_: u32,
@@ -4520,10 +4621,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     ) {
         let res = match self.webgl_version() {
             WebGLVersion::WebGL1 => self
-                .current_vao()
+                .current_vao(cx)
                 .vertex_attrib_pointer(index, size, type_, normalized, stride, offset),
             WebGLVersion::WebGL2 => self
-                .current_vao_webgl2()
+                .current_vao_webgl2(cx)
                 .vertex_attrib_pointer(index, size, type_, normalized, stride, offset),
         };
         handle_potential_webgl_error!(self, res);
