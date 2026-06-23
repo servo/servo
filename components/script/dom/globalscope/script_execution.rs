@@ -303,7 +303,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
-    fn can_run_script(&self) -> bool {
+    pub(crate) fn can_run_script(&self) -> bool {
         // Step 1 If the global object specified by settings is a Window object
         // whose Document object is not fully active, then return "do not run".
         //
