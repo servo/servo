@@ -8,8 +8,8 @@ use std::str;
 
 use devtools_traits::{
     AncestorData, AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty,
-    EventListenerInfo, MatchedRule, NodeInfo, NodeStyle, RuleModification, StyleSheetInfo,
-    TimelineMarker, TimelineMarkerType,
+    EventListenerInfo, GetHTMLType, MatchedRule, NodeInfo, NodeStyle, RuleModification,
+    StyleSheetInfo, TimelineMarker, TimelineMarkerType,
 };
 use js::context::JSContext;
 use markup5ever::{LocalName, ns};
@@ -683,18 +683,13 @@ pub(crate) fn handle_get_xpath(
     reply.send(selector).unwrap();
 }
 
-pub(crate) enum GetHTML {
-    OuterHTML,
-    InnerHTML,
-}
-
 pub(crate) fn handle_get_inner_or_outer_html(
     cx: &mut JSContext,
     state: &DevtoolsState,
     pipeline_id: PipelineId,
     node_id: &str,
     reply: GenericSender<Option<String>>,
-    html_type: GetHTML,
+    html_type: GetHTMLType,
 ) {
     let node = state.find_node_by_unique_id(pipeline_id, node_id);
 
@@ -703,8 +698,8 @@ pub(crate) fn handle_get_inner_or_outer_html(
 
         if let Some(element) = element {
             let inner_or_outer_html = match html_type {
-                GetHTML::InnerHTML => element.GetInnerHTML(cx),
-                GetHTML::OuterHTML => element.GetOuterHTML(cx),
+                GetHTMLType::InnerHTML => element.GetInnerHTML(cx),
+                GetHTMLType::OuterHTML => element.GetOuterHTML(cx),
             };
 
             if let Ok(trusted_html) = inner_or_outer_html {
@@ -722,9 +717,7 @@ pub(crate) fn handle_get_inner_or_outer_html(
                 return Some(html_dom_string.to_string());
             };
         }
-
-        let text_content = node.GetTextContent();
-        Some(text_content.map_or("".to_owned(), String::from))
+        Some("".to_owned())
     });
 
     reply.send(selector).unwrap();

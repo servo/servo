@@ -8,9 +8,10 @@ use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::{
-    GetChildren, GetDocumentElement, GetInnerHTML, GetOuterHTML, GetRootNode,
+    GetChildren, GetDocumentElement, GetInnerOrOuterHTML, GetRootNode,
 };
-use devtools_traits::DomMutation;
+use devtools_traits::{DomMutation, GetHTMLType};
+use log::info;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -121,11 +122,6 @@ struct NewMutationsNotification {
 struct GetInnerOrOuterHTMLReply {
     from: String,
     value: LongStringObj,
-}
-
-enum GetHTML {
-    OuterHTML,
-    InnerHTML,
 }
 
 impl Actor for WalkerActor {
@@ -283,10 +279,10 @@ impl Actor for WalkerActor {
                 request.reply_final(&msg)?
             },
             "outerHTML" => {
-                self.handle_get_inner_or_outer_html(request, registry, msg, GetHTML::OuterHTML)?
+                self.handle_get_inner_or_outer_html(request, registry, msg, GetHTMLType::OuterHTML)?
             },
             "innerHTML" => {
-                self.handle_get_inner_or_outer_html(request, registry, msg, GetHTML::InnerHTML)?
+                self.handle_get_inner_or_outer_html(request, registry, msg, GetHTMLType::InnerHTML)?
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
@@ -396,7 +392,7 @@ impl WalkerActor {
         request: ClientRequest,
         registry: &ActorRegistry,
         msg: &Map<String, Value>,
-        html_type: GetHTML,
+        html_type: GetHTMLType,
     ) -> Result<(), ActorError> {
         let target = msg
             .get("node")
@@ -410,22 +406,16 @@ impl WalkerActor {
 
         let browsing_context_actor = self.browsing_context_actor(registry);
 
-        let handle_get_html = match html_type {
-            GetHTML::InnerHTML => GetInnerHTML(
-                browsing_context_actor.pipeline_id(),
-                registry.actor_to_script(target.into()),
-                tx,
-            ),
-            GetHTML::OuterHTML => GetOuterHTML(
-                browsing_context_actor.pipeline_id(),
-                registry.actor_to_script(target.into()),
-                tx,
-            ),
-        };
+        let handle_get_inner_or_outer_html = GetInnerOrOuterHTML(
+            browsing_context_actor.pipeline_id(),
+            registry.actor_to_script(target.into()),
+            tx,
+            html_type,
+        );
 
         browsing_context_actor
             .script_chan()
-            .send(handle_get_html)
+            .send(handle_get_inner_or_outer_html)
             .map_err(|_| ActorError::Internal)?;
 
         let html_text = rx
