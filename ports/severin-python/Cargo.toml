@@ -19,4 +19,3 @@ dpi = { workspace = true }
 serde_json = { workspace = true }
 servo = { workspace = true, default-features = false, features = ["baked-in-resources"] }
 url = { workspace = true }
-winit = { workspace = true }
