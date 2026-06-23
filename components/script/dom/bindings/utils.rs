@@ -10,7 +10,7 @@ use std::thread::LocalKey;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectStatic};
-use js::jsapi::{CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JSObject};
+use js::jsapi::{CallArgs, DOMCallbacks, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_FreezeObject;
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
@@ -24,7 +24,6 @@ use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
-use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack;
 use crate::dom::globalscope::GlobalScope;
@@ -158,10 +157,6 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
 
     fn principals_callbacks() -> &'static JSPrincipalsCallbacks {
         &PRINCIPALS_CALLBACKS
-    }
-
-    fn is_platform_object_same_origin(cx: &CurrentRealm, obj: RawHandleObject) -> bool {
-        unsafe { is_platform_object_same_origin(cx, obj) }
     }
 
     fn interface_map() -> &'static phf::Map<&'static [u8], Interface> {

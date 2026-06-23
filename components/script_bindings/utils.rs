@@ -43,7 +43,9 @@ use crate::codegen::PrototypeList::{self, MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE
 use crate::conversions::{PrototypeCheck, private_from_proto_check};
 use crate::error::throw_invalid_this;
 use crate::interfaces::DomHelpers;
-use crate::proxyhandler::{is_cross_origin_object, report_cross_origin_denial};
+use crate::proxyhandler::{
+    is_cross_origin_object, is_platform_object_same_origin, report_cross_origin_denial,
+};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
 use crate::trace::trace_object;
@@ -588,7 +590,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
         let mut realm = js::realm::CurrentRealm::assert(&mut cx);
         // [cross_origin_operation == false]
         if is_cross_origin_object::<D>(&mut realm, obj.handle()) &&
-            !<D as DomHelpers<D>>::is_platform_object_same_origin(&realm, obj.handle().into())
+            !is_platform_object_same_origin(&realm, obj.handle())
         {
             // [this_class_cross_origin == true && this_same_origin == false]
             // Throw a `SecurityError` `DOMException`.
