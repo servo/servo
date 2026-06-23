@@ -1124,7 +1124,7 @@ impl GlobalScope {
             dom_port.upcast().fire_event(cx, atom!("close"));
         }
 
-        let chan = self.script_to_constellation_chan().clone();
+        let chan = self.script_to_constellation_chan();
         let initiator_port = *initiator_port;
         self.task_manager()
             .port_message_queue()
