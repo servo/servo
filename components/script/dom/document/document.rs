@@ -211,7 +211,7 @@ use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
 use crate::task_source::TaskSourceName;
-use crate::timers::OneshotTimerCallback;
+use crate::timers::{OneshotTimerCallback, OneshotTimers};
 use crate::xpath::parse_expression;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -669,9 +669,17 @@ pub(crate) struct Document {
     iframe_load_in_progress: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#mute-iframe-load>
     mute_iframe_load: Cell<bool>,
+
+    /// The mechanism by which time-outs and intervals are scheduled.
+    /// <https://html.spec.whatwg.org/multipage/#timers>
+    timers: OneshotTimers,
 }
 
 impl Document {
+    pub(crate) fn timers(&self) -> &OneshotTimers {
+        &self.timers
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps>
     fn unloading_cleanup_steps(&self) {
         // Step 1. Let window be document's relevant global object.
@@ -3691,6 +3699,7 @@ impl Document {
             accessibility_data: Default::default(),
             iframe_load_in_progress: Default::default(),
             mute_iframe_load: Default::default(),
+            timers: OneshotTimers::new(window.upcast()),
         }
     }
 

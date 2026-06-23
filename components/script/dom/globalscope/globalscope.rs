@@ -292,10 +292,6 @@ pub(crate) struct GlobalScope {
     #[no_trace]
     storage_threads: StorageThreads,
 
-    /// The mechanism by which time-outs and intervals are scheduled.
-    /// <https://html.spec.whatwg.org/multipage/#timers>
-    timers: OnceCell<OneshotTimers>,
-
     /// The origin of the globalscope
     #[no_trace]
     origin: MutableOrigin,
@@ -828,7 +824,6 @@ impl GlobalScope {
             in_error_reporting_mode: Default::default(),
             resource_threads,
             storage_threads,
-            timers: OnceCell::default(),
             origin,
             creation_url: DomRefCell::new(creation_url),
             top_level_creation_url,
@@ -876,8 +871,14 @@ impl GlobalScope {
         false
     }
 
-    fn timers(&self) -> &OneshotTimers {
-        self.timers.get_or_init(|| OneshotTimers::new(self))
+    fn with_timers<T>(&self, f: impl FnOnce(&OneshotTimers) -> T) -> T {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            f(worker.timers())
+        } else if let Some(window) = self.downcast::<Window>() {
+            window.with_timers(f)
+        } else {
+            unreachable!("Unsupported global type retrieving timers")
+        }
     }
 
     pub(crate) fn font_context(&self) -> Option<&Arc<FontContext>> {
@@ -2974,12 +2975,11 @@ impl GlobalScope {
         callback: OneshotTimerCallback,
         duration: Duration,
     ) -> OneshotTimerHandle {
-        self.timers()
-            .schedule_callback(callback, duration, self.timer_source())
+        self.with_timers(|timers| timers.schedule_callback(callback, duration, self.timer_source()))
     }
 
     pub(crate) fn unschedule_callback(&self, handle: OneshotTimerHandle) {
-        self.timers().unschedule_callback(handle);
+        self.with_timers(|timers| timers.unschedule_callback(handle));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
@@ -2991,39 +2991,41 @@ impl GlobalScope {
         timeout: Duration,
         is_interval: IsInterval,
     ) -> Fallible<i32> {
-        self.timers().set_timeout_or_interval(
-            cx,
-            self,
-            callback,
-            arguments,
-            timeout,
-            is_interval,
-            self.timer_source(),
-        )
+        self.with_timers(|timers| {
+            timers.set_timeout_or_interval(
+                cx,
+                self,
+                callback,
+                arguments,
+                timeout,
+                is_interval,
+                self.timer_source(),
+            )
+        })
     }
 
     pub(crate) fn clear_timeout_or_interval(&self, handle: i32) {
-        self.timers().clear_timeout_or_interval(self, handle);
+        self.with_timers(|timers| timers.clear_timeout_or_interval(self, handle));
     }
 
     pub(crate) fn fire_timer(&self, handle: TimerEventId, cx: &mut js::context::JSContext) {
-        self.timers().fire_timer(handle, self, cx);
+        self.with_timers(|timers| timers.fire_timer(handle, self, cx));
     }
 
     pub(crate) fn resume(&self) {
-        self.timers().resume();
+        self.with_timers(|timers| timers.resume());
     }
 
     pub(crate) fn suspend(&self) {
-        self.timers().suspend();
+        self.with_timers(|timers| timers.suspend());
     }
 
     pub(crate) fn slow_down_timers(&self) {
-        self.timers().slow_down();
+        self.with_timers(|timers| timers.slow_down());
     }
 
     pub(crate) fn speed_up_timers(&self) {
-        self.timers().speed_up();
+        self.with_timers(|timers| timers.speed_up());
     }
 
     fn timer_source(&self) -> TimerSource {
@@ -3515,32 +3517,34 @@ impl GlobalScope {
     where
         F: 'static + FnOnce(&mut js::context::JSContext, &GlobalScope),
     {
-        let timers = self.timers();
-
-        // Step 1. Let timerKey be a new unique internal value.
-        let timer_key = timers.fresh_runsteps_key();
-
-        // Step 2. Let startTime be the current high resolution time given global.
-        let start_time = timers.now_for_runsteps();
-
-        // Step 3. Set global's map of active timers[timerKey] to startTime plus milliseconds.
         let ms = milliseconds.max(0) as u64;
         let delay = std::time::Duration::from_millis(ms);
-        let deadline = start_time + delay;
-        timers.runsteps_set_active(timer_key, deadline);
 
-        // Step 4. Run the following steps in parallel:
-        //   (We schedule a oneshot that will enforce the sub-steps when it fires.)
-        let callback = crate::timers::OneshotTimerCallback::RunStepsAfterTimeout {
-            // Step 1. timerKey
-            timer_key,
-            // Step 4. orderingIdentifier
-            ordering_id: ordering_identifier,
-            // Spec: milliseconds
-            milliseconds: ms,
-            // Step 4.4 Perform completionSteps.
-            completion: Box::new(completion_steps),
-        };
+        let (callback, timer_key) = self.with_timers(|timers| {
+            // Step 1. Let timerKey be a new unique internal value.
+            let timer_key = timers.fresh_runsteps_key();
+
+            // Step 2. Let startTime be the current high resolution time given global.
+            let start_time = timers.now_for_runsteps();
+
+            // Step 3. Set global's map of active timers[timerKey] to startTime plus milliseconds.
+            let deadline = start_time + delay;
+            timers.runsteps_set_active(timer_key, deadline);
+
+            // Step 4. Run the following steps in parallel:
+            //   (We schedule a oneshot that will enforce the sub-steps when it fires.)
+            let callback = crate::timers::OneshotTimerCallback::RunStepsAfterTimeout {
+                // Step 1. timerKey
+                timer_key,
+                // Step 4. orderingIdentifier
+                ordering_id: ordering_identifier,
+                // Spec: milliseconds
+                milliseconds: ms,
+                // Step 4.4 Perform completionSteps.
+                completion: Box::new(completion_steps),
+            };
+            (callback, timer_key)
+        });
         let _ = self.schedule_callback(callback, delay);
 
         // Step 5. Return timerKey.
