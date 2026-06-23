@@ -11,6 +11,7 @@ on:
 permissions:
   contents: write
   packages: write
+  pull-requests: read
 
 defaults:
   run:
@@ -34,10 +35,17 @@ jobs:
     container:
       image: debian:12
     steps:
+      - name: Start build receipt clock
+        run: |
+          set -Eeuo pipefail
+          date -u +%Y-%m-%dT%H:%M:%SZ > "$RUNNER_TEMP/severin-build-start-utc"
+          date +%s > "$RUNNER_TEMP/severin-build-start-epoch"
+
       # A blank Debian 12 container only needs enough equipment to retrieve and
       # unpack the saved warm environment. The restored Debian root then brings
       # back the full compiler/toolchain/Cargo workshop.
       - name: Install release-piece bootstrap
+        id: bootstrap
         run: |
           set -Eeuo pipefail
           apt-get update
@@ -194,6 +202,7 @@ jobs:
       # worktree too. The fallback checkout is only for the already-published
       # first-generation snapshot that lacks it.
       - name: Restore warmed repository worktree
+        id: restore_worktree
         if: steps.release_pieces.outputs.has_repo_worktree == 'true'
         run: |
           set -Eeuo pipefail
@@ -213,6 +222,7 @@ jobs:
           test -f "$GITHUB_WORKSPACE/Cargo.toml"
 
       - name: Checkout source for one-time worktree bridge
+        id: checkout_bridge
         if: steps.release_pieces.outputs.has_repo_worktree != 'true'
         uses: actions/checkout@v6
         with:
@@ -220,6 +230,7 @@ jobs:
           persist-credentials: false
 
       - name: Update restored source in place
+        id: update_worktree
         if: steps.release_pieces.outputs.has_repo_worktree == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -260,6 +271,7 @@ jobs:
 
 
       - name: Restore repo-local warm state
+        id: restore_repo_warm
         run: |
           set -Eeuo pipefail
 
@@ -290,6 +302,7 @@ jobs:
           test -d "$CARGO_TARGET_DIR"
 
       - name: Reattach restored Rust toolchain
+        id: reattach_toolchain
         run: |
           set -Eeuo pipefail
 
@@ -359,9 +372,11 @@ jobs:
           exit 0
 
       - name: Build Severin Linux release
+        id: build_release
         run: ./mach build --release
 
       - name: Package Severin Linux release
+        id: package_release
         run: |
           set -Eeuo pipefail
 
@@ -374,8 +389,6 @@ jobs:
           RUNTIME_DIR="$WORK_DIR/runtime"
           SYMBOL_DIR="$WORK_DIR/symbols"
           export RUNTIME_DIR SYMBOL_DIR
-          BEFORE_INVENTORY="$WORK_DIR/largest-before.md"
-          AFTER_INVENTORY="$WORK_DIR/largest-after.md"
           ELF_LIST="$WORK_DIR/elf-files.txt"
 
           rm -rf release
@@ -384,10 +397,10 @@ jobs:
           tar -xzf "$PACKAGE" -C "$RUNTIME_DIR"
 
           ORIGINAL_PACKAGE_SIZE="$(du -h "$PACKAGE" | cut -f1)"
-          echo "Original package size: $ORIGINAL_PACKAGE_SIZE"
-
-          echo "Largest 50 files before stripping:"
-          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$BEFORE_INVENTORY"
+          RUNTIME_BEFORE_STRIP_SIZE="$(du -sh "$RUNTIME_DIR" | cut -f1)"
+          RUNTIME_BEFORE_STRIP_BYTES="$(du -sb "$RUNTIME_DIR" | awk '{print $1}')"
+          echo "Original compressed package size: $ORIGINAL_PACKAGE_SIZE"
+          echo "Runtime tree before stripping: $RUNTIME_BEFORE_STRIP_SIZE"
 
           select_tool() {
             local tool
@@ -425,12 +438,6 @@ jobs:
               printf '%s: ELF file detected by %s\n' "${file_path#$RUNTIME_DIR/}" "$(basename "$READELF")"
             fi
           done < <(find "$RUNTIME_DIR" -type f -print0)
-
-          echo "Section information for largest ELF files before stripping:"
-          sort -nr "$ELF_LIST" | sed -n '1,20p' | while IFS=' ' read -r _ elf_file; do
-            echo "### ${elf_file#$RUNTIME_DIR/}"
-            "$READELF" -S "$elf_file" | sed -n '1,80p'
-          done
 
           PROCESSED_ELF_COUNT=0
 
@@ -471,13 +478,18 @@ jobs:
           fi
 
           STRIPPED_RUNTIME_SIZE="$(du -sh "$RUNTIME_DIR" | cut -f1)"
+          STRIPPED_RUNTIME_BYTES="$(du -sb "$RUNTIME_DIR" | awk '{print $1}')"
           SYMBOLS_SIZE="$(du -sh "$SYMBOL_DIR" | cut -f1)"
-          echo "Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
-          echo "Symbols tree size: $SYMBOLS_SIZE"
+          DEBUG_REMOVED_BYTES=$((RUNTIME_BEFORE_STRIP_BYTES - STRIPPED_RUNTIME_BYTES))
+          if [ "$DEBUG_REMOVED_BYTES" -lt 0 ]; then
+            DEBUG_REMOVED_BYTES=0
+          fi
+          DEBUG_REMOVED_SIZE="$(numfmt --to=iec-i --suffix=B "$DEBUG_REMOVED_BYTES")"
+          DEBUG_REMOVED_PERCENT="$(awk -v before="$RUNTIME_BEFORE_STRIP_BYTES" -v removed="$DEBUG_REMOVED_BYTES" 'BEGIN { if (before > 0) printf "%.1f", (removed * 100) / before; else printf "0.0" }')"
+          echo "Runtime tree after stripping: $STRIPPED_RUNTIME_SIZE"
+          echo "Debug removed from runtime: $DEBUG_REMOVED_SIZE ($DEBUG_REMOVED_PERCENT%)"
+          echo "Detached symbols tree size: $SYMBOLS_SIZE"
           echo "ELF files processed: $PROCESSED_ELF_COUNT"
-
-          echo "Largest 50 files after stripping:"
-          find "$RUNTIME_DIR" -type f -printf '%s %p\n' | sort -nr | sed -n '1,50p' | tee "$AFTER_INVENTORY"
 
           python3 - <<'PYZIP'
           import os
@@ -519,18 +531,20 @@ jobs:
 
           {
             echo "ORIGINAL_PACKAGE_SIZE=$ORIGINAL_PACKAGE_SIZE"
+            echo "RUNTIME_BEFORE_STRIP_SIZE=$RUNTIME_BEFORE_STRIP_SIZE"
             echo "STRIPPED_RUNTIME_SIZE=$STRIPPED_RUNTIME_SIZE"
+            echo "DEBUG_REMOVED_SIZE=$DEBUG_REMOVED_SIZE"
+            echo "DEBUG_REMOVED_PERCENT=$DEBUG_REMOVED_PERCENT"
             echo "SYMBOLS_SIZE=$SYMBOLS_SIZE"
             echo "RUNTIME_ZIP_SIZE=$RUNTIME_ZIP_SIZE"
             echo "SYMBOLS_ZIP_SIZE=$SYMBOLS_ZIP_SIZE"
             echo "PROCESSED_ELF_COUNT=$PROCESSED_ELF_COUNT"
             echo "GLIBC_FLOOR=$GLIBC_FLOOR"
             echo "GLIBC_DEBIAN12_COMPAT=$GLIBC_DEBIAN12_COMPAT"
-            echo "BEFORE_INVENTORY=$BEFORE_INVENTORY"
-            echo "AFTER_INVENTORY=$AFTER_INVENTORY"
           } >> "$GITHUB_ENV"          
 
       - name: Refresh rolling warm state in Releases
+        id: refresh_warm_state
         if: inputs.update_state
         env:
           GH_TOKEN: ${{ github.token }}
@@ -724,6 +738,7 @@ jobs:
           if-no-files-found: error
 
       - name: Prepare stripped Severin runtime tarball
+        id: prepare_tarball
         run: |
           set -Eeuo pipefail
 
@@ -794,6 +809,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload stripped Severin runtime tarball
+        id: upload_tarball
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.SEVERIN_RELEASE_STEM }}-runtime-stripped-tarball
@@ -802,6 +818,7 @@ jobs:
           compression-level: 0
 
       - name: Install GitHub CLI
+        id: install_gh
         run: |
           set -Eeuo pipefail
 
@@ -815,6 +832,7 @@ jobs:
           gh --version
 
       - name: Push successful Severin build to Releases
+        id: publish_release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -837,37 +855,190 @@ jobs:
             "$SYMBOLS_ZIP" \
             --clobber
 
-      - name: Show Severin download link
+      - name: Write compact build receipt
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BOOTSTRAP_OUTCOME: ${{ steps.bootstrap.outcome }}
+          RESTORE_OUTCOME: ${{ steps.release_pieces.outcome }}
+          RESTORE_WORKTREE_OUTCOME: ${{ steps.restore_worktree.outcome }}
+          CHECKOUT_BRIDGE_OUTCOME: ${{ steps.checkout_bridge.outcome }}
+          UPDATE_WORKTREE_OUTCOME: ${{ steps.update_worktree.outcome }}
+          REPO_WARM_OUTCOME: ${{ steps.restore_repo_warm.outcome }}
+          TOOLCHAIN_OUTCOME: ${{ steps.reattach_toolchain.outcome }}
+          BUILD_OUTCOME: ${{ steps.build_release.outcome }}
+          PACKAGE_OUTCOME: ${{ steps.package_release.outcome }}
+          WARM_WRITEBACK_OUTCOME: ${{ steps.refresh_warm_state.outcome }}
+          ZIP_UPLOAD_OUTCOME: ${{ steps.upload_zips.outcome }}
+          TARBALL_PREP_OUTCOME: ${{ steps.prepare_tarball.outcome }}
+          TARBALL_UPLOAD_OUTCOME: ${{ steps.upload_tarball.outcome }}
+          PUBLISH_OUTCOME: ${{ steps.publish_release.outcome }}
+          HAS_REPO_WORKTREE: ${{ steps.release_pieces.outputs.has_repo_worktree }}
+          ZIP_ARTIFACT_URL: ${{ steps.upload_zips.outputs['artifact-url'] }}
+          UPDATE_STATE_REQUESTED: ${{ inputs.update_state }}
         run: |
           set -Eeuo pipefail
 
-          {
-            echo "### Severin Debian 12 Linux release build"
-            echo
-            echo "- Original package size: $ORIGINAL_PACKAGE_SIZE"
-            echo "- Stripped runtime tree size: $STRIPPED_RUNTIME_SIZE"
-            echo "- Symbols tree size: $SYMBOLS_SIZE"
-            echo "- Runtime ZIP size: $RUNTIME_ZIP_SIZE"
-            echo "- Symbols ZIP size: $SYMBOLS_ZIP_SIZE"
-            echo "- ELF files processed: $PROCESSED_ELF_COUNT"
-            echo "- Highest required GLIBC symbol: GLIBC_$GLIBC_FLOOR"
-            echo "- Should run on Debian 12 / glibc 2.36: $GLIBC_DEBIAN12_COMPAT"
-            echo
-            echo "#### Largest files before stripping"
-            echo '```'
-            cat "$BEFORE_INVENTORY"
-            echo '```'
-            echo
-            echo "#### Largest files after stripping"
-            echo '```'
-            cat "$AFTER_INVENTORY"
-            echo '```'
-            echo
+          status_label() {
+            case "${1:-}" in
+              success) printf 'success' ;;
+              failure) printf 'FAILED' ;;
+              cancelled) printf 'cancelled' ;;
+              skipped) printf 'skipped' ;;
+              '') printf 'not reached' ;;
+              *) printf '%s' "$1" ;;
+            esac
+          }
 
-            if [ -n "${{ steps.upload_zips.outputs['artifact-url'] }}" ]; then
-              echo "[Download Actions ZIP bundle](${{ steps.upload_zips.outputs['artifact-url'] }})"
+          first_problem=""
+          for entry in \
+            "Bootstrap:$BOOTSTRAP_OUTCOME" \
+            "Restore warm Debian state:$RESTORE_OUTCOME" \
+            "Restore source worktree:$RESTORE_WORKTREE_OUTCOME" \
+            "Checkout source bridge:$CHECKOUT_BRIDGE_OUTCOME" \
+            "Update restored source:$UPDATE_WORKTREE_OUTCOME" \
+            "Restore repo-local warm state:$REPO_WARM_OUTCOME" \
+            "Reattach Rust toolchain:$TOOLCHAIN_OUTCOME" \
+            "Compile Severin release:$BUILD_OUTCOME" \
+            "Package Severin release:$PACKAGE_OUTCOME" \
+            "Save rolling warm state:$WARM_WRITEBACK_OUTCOME" \
+            "Upload ZIP artifacts:$ZIP_UPLOAD_OUTCOME" \
+            "Prepare runtime tarball:$TARBALL_PREP_OUTCOME" \
+            "Upload runtime tarball:$TARBALL_UPLOAD_OUTCOME" \
+            "Publish rolling release:$PUBLISH_OUTCOME"
+          do
+            stage="${entry%%:*}"
+            outcome="${entry#*:}"
+            case "$outcome" in
+              failure|cancelled)
+                first_problem="$stage"
+                break
+                ;;
+            esac
+          done
+
+          if [ "$BUILD_OUTCOME" = "success" ] && [ "$PACKAGE_OUTCOME" = "success" ]; then
+            verdict="PASS — compile + package completed"
+          elif [ "$BUILD_OUTCOME" = "success" ]; then
+            verdict="PARTIAL — compile completed; packaging did not"
+          elif [ "$BUILD_OUTCOME" = "failure" ]; then
+            verdict="FAIL — compile failed"
+          elif [ "$BUILD_OUTCOME" = "cancelled" ]; then
+            verdict="CANCELLED — compile cancelled"
+          else
+            verdict="INCOMPLETE — compile did not complete"
+          fi
+
+          start_utc="unknown"
+          start_epoch=""
+          [ -f "$RUNNER_TEMP/severin-build-start-utc" ] && start_utc="$(cat "$RUNNER_TEMP/severin-build-start-utc")"
+          [ -f "$RUNNER_TEMP/severin-build-start-epoch" ] && start_epoch="$(cat "$RUNNER_TEMP/severin-build-start-epoch")"
+          elapsed="unknown"
+          if [[ "$start_epoch" =~ ^[0-9]+$ ]]; then
+            elapsed_seconds=$(( $(date +%s) - start_epoch ))
+            elapsed="$(printf '%dm %02ds' $((elapsed_seconds / 60)) $((elapsed_seconds % 60)))"
+          fi
+
+          commit_short="${GITHUB_SHA:0:12}"
+          commit_subject="source not available"
+          if git -C "$GITHUB_WORKSPACE" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            commit_short="$(git -C "$GITHUB_WORKSPACE" rev-parse --short=12 HEAD)"
+            commit_subject="$(git -C "$GITHUB_WORKSPACE" log -1 --format=%s | tr '\n\r' '  ' | sed -E 's/[[:space:]]+/ /g; s/[[:space:]]+$//; s/\|/\\|/g')"
+          fi
+
+          pr_label="none found for this commit"
+          pr_url=""
+          if command -v gh >/dev/null 2>&1; then
+            pr_line="$(
+              gh api \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls?per_page=100" \
+                --jq 'if length > 0 then (sort_by(.updated_at) | last | [.number, .title, .html_url] | @tsv) else empty end' \
+                2>/dev/null || true
+            )"
+            if [ -n "$pr_line" ]; then
+              IFS=$'\t' read -r pr_number pr_title pr_url <<< "$pr_line"
+              pr_title="$(printf '%s' "$pr_title" | tr '\n\r' '  ' | sed -E 's/[[:space:]]+/ /g; s/\|/\\|/g')"
+              pr_label="#${pr_number} — ${pr_title}"
+            fi
+          fi
+
+          case "$HAS_REPO_WORKTREE" in
+            true) source_mode="restored warm Git worktree, updated in place" ;;
+            false) source_mode="one-time fresh checkout bridge" ;;
+            *) source_mode="not determined" ;;
+          esac
+
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          rolling_release_url="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${SEVERIN_RELEASE_TAG}"
+
+          {
+            echo "# Warm Debian 12 Build"
+            echo
+            echo "**$verdict**"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Commit | [\`$commit_short\`](https://github.com/${GITHUB_REPOSITORY}/commit/$GITHUB_SHA) — $commit_subject |"
+            if [ -n "$pr_url" ]; then
+              echo "| Most recent associated PR | [${pr_label}]($pr_url) |"
+            else
+              echo "| Most recent associated PR | $pr_label |"
+            fi
+            echo "| Run | [#$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT]($run_url) |"
+            echo "| Started | $start_utc |"
+            echo "| Elapsed | $elapsed |"
+            echo "| Workshop | Ubuntu 24.04 host → Debian 12 container |"
+            echo "| Source | $source_mode |"
+            echo
+            echo "## Build path"
+            echo
+            echo "| Stage | Result |"
+            echo "| --- | --- |"
+            echo "| Restore warm Debian state | \`$(status_label "$RESTORE_OUTCOME")\` |"
+            if [ "$HAS_REPO_WORKTREE" = "true" ]; then
+              echo "| Restore warm source worktree | \`$(status_label "$RESTORE_WORKTREE_OUTCOME")\` |"
+              echo "| Update restored source | \`$(status_label "$UPDATE_WORKTREE_OUTCOME")\` |"
+            else
+              echo "| One-time source checkout bridge | \`$(status_label "$CHECKOUT_BRIDGE_OUTCOME")\` |"
+            fi
+            echo "| Reattach Rust toolchain | \`$(status_label "$TOOLCHAIN_OUTCOME")\` |"
+            echo "| Compile release | \`$(status_label "$BUILD_OUTCOME")\` |"
+            echo "| Package / strip release | \`$(status_label "$PACKAGE_OUTCOME")\` |"
+            echo "| Warm-state writeback | \`$(status_label "$WARM_WRITEBACK_OUTCOME")\` |"
+            echo "| Publish rolling release | \`$(status_label "$PUBLISH_OUTCOME")\` |"
+
+            if [ "$PACKAGE_OUTCOME" = "success" ]; then
               echo
+              echo "## Runtime size"
+              echo
+              echo "- Severin runtime tree: **${RUNTIME_BEFORE_STRIP_SIZE:-unknown} before stripping → ${STRIPPED_RUNTIME_SIZE:-unknown} after stripping**"
+              echo "- Debug removed from runtime: **${DEBUG_REMOVED_SIZE:-unknown} (${DEBUG_REMOVED_PERCENT:-unknown}%)**"
+              echo "- Detached symbols tree: **${SYMBOLS_SIZE:-unknown}**"
+              echo "- Required GLIBC floor: **GLIBC_${GLIBC_FLOOR:-unknown}**; Debian 12 / glibc 2.36 compatible: **${GLIBC_DEBIAN12_COMPAT:-unknown}**"
             fi
 
-            echo "[Download rolling Severin Release](https://github.com/${{ github.repository }}/releases/tag/$SEVERIN_RELEASE_TAG)"
+            echo
+            echo "## Output"
+            echo
+            if [ "$PUBLISH_OUTCOME" = "success" ]; then
+              echo "- [Rolling Severin release]($rolling_release_url) — **updated by this build**."
+            else
+              echo "- [Rolling Severin release]($rolling_release_url) — **not updated by this run; it may contain an earlier successful build**."
+            fi
+            if [ -n "${ZIP_ARTIFACT_URL:-}" ]; then
+              echo "- [Actions ZIP artifact]($ZIP_ARTIFACT_URL)"
+            fi
+            echo "- [This workflow run]($run_url)"
+
+            if [ -n "$first_problem" ]; then
+              echo
+              echo "> **Stopped at:** $first_problem"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "$first_problem" ]; then
+            echo "::error title=Warm Debian 12 Build::${verdict}; stopped at ${first_problem}; elapsed ${elapsed}. See Job Summary."
+          else
+            echo "::notice title=Warm Debian 12 Build::${verdict}; ${commit_short}; elapsed ${elapsed}. See Job Summary."
+          fi
