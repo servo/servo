@@ -63,12 +63,13 @@ use servo_base::generic_channel;
 use servo_base::generic_channel::{GenericCallback, GenericSend};
 use servo_base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
-    ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
+    ServiceWorkerId, ServiceWorkerRegistrationId, TEST_WEBVIEW_ID, WebViewId,
 };
 use servo_config::pref;
 use servo_constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, ConstellationInterest, FileBlob, MessagePortImpl,
     MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ScriptToConstellationSender,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -112,6 +113,7 @@ use crate::dom::broadcastchannel::BroadcastChannel;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
+use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
@@ -266,7 +268,7 @@ pub(crate) struct GlobalScope {
 
     /// A handle for communicating messages to the constellation thread.
     #[no_trace]
-    script_to_constellation_chan: ScriptToConstellationChan,
+    script_to_constellation_sender: ScriptToConstellationSender,
 
     /// A handle for communicating messages to the Embedder.
     #[no_trace]
@@ -782,7 +784,7 @@ impl GlobalScope {
         devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
-        script_to_constellation_chan: ScriptToConstellationChan,
+        script_to_constellation_sender: ScriptToConstellationSender,
         script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
@@ -808,7 +810,7 @@ impl GlobalScope {
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
-            script_to_constellation_chan,
+            script_to_constellation_sender,
             script_to_embedder_chan,
             in_error_reporting_mode: Default::default(),
             resource_threads,
@@ -2489,8 +2491,12 @@ impl GlobalScope {
     }
 
     /// Get a sender to the constellation thread.
-    pub(crate) fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
-        &self.script_to_constellation_chan
+    pub(crate) fn script_to_constellation_chan(&self) -> ScriptToConstellationChan {
+        ScriptToConstellationChan {
+            sender: self.script_to_constellation_sender.clone(),
+            webview_id: self.webview_id().unwrap_or(TEST_WEBVIEW_ID),
+            pipeline_id: self.pipeline_id(),
+        }
     }
 
     pub(crate) fn script_to_embedder_chan(&self) -> &ScriptToEmbedderChan {
@@ -2511,6 +2517,8 @@ impl GlobalScope {
             debugger.pipeline_id()
         } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
             worklet.pipeline_id()
+        } else if let Some(dissimilar) = self.downcast::<DissimilarOriginWindow>() {
+            dissimilar.pipeline_id()
         } else {
             unreachable!("Unsupported global type for pipeline id")
         }

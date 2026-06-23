@@ -272,7 +272,7 @@ impl SharedWorkerGlobalScope {
                 gpu_id_hub,
                 insecure_requests_policy,
                 font_context,
-                Some(ScriptEventLoopSender::SharedWorker(own_sender.clone()))
+                Some(ScriptEventLoopSender::SharedWorker(own_sender.clone())),
             ),
             webview_id,
             task_queue: TaskQueue::new(receiver, own_sender.clone()),

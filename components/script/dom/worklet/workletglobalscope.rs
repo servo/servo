@@ -14,9 +14,9 @@ use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
 use script_traits::Painter;
-use servo_base::generic_channel::{GenericCallback, GenericSender};
+use servo_base::generic_channel::GenericCallback;
 use servo_base::id::{PipelineId, WebViewId};
-use servo_constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
+use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use stylo_atoms::Atom;
@@ -98,24 +98,19 @@ impl WorkletGlobalScope {
 
     /// Create a new stack-allocated `WorkletGlobalScope`.
     pub(crate) fn new_inherited(
-        webview_id: WebViewId,
+        _webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
     ) -> Self {
-        let script_to_constellation_chan = ScriptToConstellationChan {
-            sender: init.to_constellation_sender.clone(),
-            webview_id,
-            pipeline_id,
-        };
         Self {
             globalscope: GlobalScope::new_inherited(
                 init.devtools_chan.clone(),
                 init.mem_profiler_chan.clone(),
                 init.time_profiler_chan.clone(),
-                script_to_constellation_chan,
+                init.script_to_constellation_sender.clone(),
                 init.to_embedder_sender.clone(),
                 init.resource_threads.clone(),
                 init.storage_threads.clone(),
@@ -216,9 +211,6 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) time_profiler_chan: time::ProfilerChan,
     /// Channel to devtools
     pub(crate) devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
-    /// Messages to send to constellation
-    pub(crate) to_constellation_sender:
-        GenericSender<(WebViewId, PipelineId, ScriptToConstellationMessage)>,
     /// Messages to send to the Embedder
     pub(crate) to_embedder_sender: ScriptToEmbedderChan,
     /// The image cache
@@ -226,6 +218,7 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Identity manager for WebGPU resources
     #[cfg(feature = "webgpu")]
     pub(crate) gpu_id_hub: Arc<IdentityHub>,
+    pub(crate) script_to_constellation_sender: ScriptToConstellationSender,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>

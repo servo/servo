@@ -18,7 +18,7 @@ use profile_traits::{mem, time};
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
 use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
-use servo_constellation_traits::ScriptToConstellationChan;
+use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
@@ -90,7 +90,7 @@ impl DebuggerGlobalScope {
         devtools_to_script_sender: GenericSender<DevtoolScriptControlMsg>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
-        script_to_constellation_chan: ScriptToConstellationChan,
+        script_to_constellation_sender: ScriptToConstellationSender,
         script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
@@ -102,7 +102,7 @@ impl DebuggerGlobalScope {
                 script_to_devtools_sender,
                 mem_profiler_chan,
                 time_profiler_chan,
-                script_to_constellation_chan,
+                script_to_constellation_sender,
                 script_to_embedder_chan,
                 resource_threads,
                 storage_threads,
