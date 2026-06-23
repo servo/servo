@@ -298,8 +298,15 @@ pub(crate) use self::performance::*;
 pub(crate) mod permission;
 pub(crate) use self::permission::*;
 pub(crate) mod processingoptions;
-pub(crate) mod promise;
-pub(crate) use self::promise::*;
+pub(crate) mod promise_helpers;
+pub(crate) mod promise {
+    pub(crate) use script_promise::{
+        Promise, WaitForAllSuccessStepsMicrotask, wait_for_all_promise,
+    };
+}
+pub(crate) mod promisenativehandler {
+    pub(crate) use script_promise::{Callback, PromiseNativeHandler};
+}
 pub(crate) mod quotaexceedederror;
 pub(crate) mod range;
 pub(crate) use self::range::*;
