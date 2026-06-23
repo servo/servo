@@ -3247,20 +3247,20 @@ impl Document {
 
     pub(crate) fn handle_paint_metric(
         &self,
+        cx: &mut JSContext,
         metric_type: ProgressiveWebMetricType,
         metric_value: CrossProcessInstant,
         first_reflow: bool,
-        can_gc: CanGc,
     ) {
         let metrics = self.interactive_time.borrow();
         match metric_type {
             ProgressiveWebMetricType::FirstPaint |
             ProgressiveWebMetricType::FirstContentfulPaint => {
                 let binding = PerformancePaintTiming::new(
+                    cx,
                     self.window.as_global_scope(),
                     metric_type.clone(),
                     metric_value,
-                    can_gc,
                 );
                 metrics.set_performance_paint_metric(metric_value, first_reflow, metric_type);
                 let entry = binding.upcast::<PerformanceEntry>();
@@ -3272,7 +3272,7 @@ impl Document {
                     metric_value,
                     area,
                     url,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();

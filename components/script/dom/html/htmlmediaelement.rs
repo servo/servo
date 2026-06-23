@@ -3277,20 +3277,12 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-played>
     fn Played(&self, cx: &mut JSContext) -> DomRoot<TimeRanges> {
-        TimeRanges::new(
-            self.global().as_window(),
-            self.played.borrow().clone(),
-            CanGc::from_cx(cx),
-        )
+        TimeRanges::new(cx, self.global().as_window(), self.played.borrow().clone())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seekable>
     fn Seekable(&self, cx: &mut JSContext) -> DomRoot<TimeRanges> {
-        TimeRanges::new(
-            self.global().as_window(),
-            self.seekable(),
-            CanGc::from_cx(cx),
-        )
+        TimeRanges::new(cx, self.global().as_window(), self.seekable())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-buffered>
@@ -3302,7 +3294,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
                 let _ = buffered.add(range.start, range.end);
             }
         }
-        TimeRanges::new(self.global().as_window(), buffered, CanGc::from_cx(cx))
+        TimeRanges::new(cx, self.global().as_window(), buffered)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-audiotracks>
