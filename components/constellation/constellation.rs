@@ -4312,6 +4312,10 @@ where
         history_state_id: Option<HistoryStateId>,
         url: ServoUrl,
     ) {
+        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            pipeline.history_state_id = history_state_id;
+            pipeline.url = url.clone();
+        }
         let msg = ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url);
         self.send_message_to_pipeline(pipeline_id, msg, "History state updated after closure");
     }
@@ -4886,6 +4890,10 @@ where
                         Some(previous_url.clone())
                     }
                 },
+                SessionHistoryDiff::Hash { ref new_url, .. } => {
+                    *previous_url = new_url.clone();
+                    Some(new_url.clone())
+                },
                 _ => Some(previous_url.clone()),
             };
 
@@ -4909,6 +4917,10 @@ where
                 } else {
                     Some(previous_url.clone())
                 }
+            },
+            SessionHistoryDiff::Hash { ref old_url, .. } => {
+                *previous_url = old_url.clone();
+                Some(old_url.clone())
             },
             _ => Some(previous_url.clone()),
         };

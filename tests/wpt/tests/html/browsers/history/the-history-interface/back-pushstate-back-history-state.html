@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>history.state is null after pushState+back+pushState+back</title>
+    <link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+    <link rel=help href="https://github.com/servo/servo/issues/45905">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    promise_test(async t => {
+      history.pushState({x: 1}, "");
+
+      await new Promise(resolve => {
+        addEventListener("popstate", resolve, {once: true});
+        history.back();
+      });
+      assert_equals(history.state?.x, undefined,
+        "state is null after back from first pushState");
+
+      history.pushState({x: 2}, "");
+
+      await new Promise(resolve => {
+        addEventListener("popstate", resolve, {once: true});
+        history.back();
+      });
+      assert_equals(history.state?.x, undefined,
+        "state is null after back from second pushState");
+    }, "history.state is null after pushState+back+pushState+back");
+    </script>
+  </body>
+</html>
