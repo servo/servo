@@ -6477,7 +6477,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "        return (*opresult).fail_no_named_setter();\n"
                     "    }\n"
                     "}\n")
-        set += f"return proxyhandler::define_property(cx, proxy, id, desc, opresult);"
+        set += "return proxyhandler::define_property(cx, proxy, id, desc, opresult);"
         return set
 
     def definition_body(self) -> CGThing:
@@ -6516,7 +6516,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
                 raise TypeError("Can't handle a deleter on an interface that has "
                                 "unforgeables. Figure out how that should work!")
             set += CGProxyNamedDeleter(self.descriptor).define()
-        set += f"return proxyhandler::delete(cx, proxy, id, res);"
+        set += "return proxyhandler::delete(cx, proxy, id, res);"
         return set
 
     def definition_body(self) -> CGThing:
