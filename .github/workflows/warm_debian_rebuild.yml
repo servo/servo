@@ -11,6 +11,10 @@ on:
         description: Run Cargo fingerprint diagnostic before the real build. Diagnostic only; it writes to the live target directory and may be slow.
         type: boolean
         default: false
+      build_python_wheel:
+        description: Build and publish the experimental Severin CPython wheel to the rolling Release.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -533,6 +537,43 @@ jobs:
             echo "BEFORE_INVENTORY=$BEFORE_INVENTORY"
             echo "AFTER_INVENTORY=$AFTER_INVENTORY"
           } >> "$GITHUB_ENV"          
+
+      - name: Assemble experimental Severin CPython wheel
+        id: python_wheel
+        if: ${{ inputs.build_python_wheel }}
+        run: |
+          set -Eeuo pipefail
+
+          python3 ci/local-runtime/build-severin-python-wheel.py \
+            --repo "$GITHUB_WORKSPACE" \
+            --target-dir "$CARGO_TARGET_DIR" \
+            --profile release \
+            --output-dir release
+
+          mapfile -t wheels < <(
+            find release -maxdepth 1 -type f -name 'severin-*.whl' -print | sort
+          )
+
+          if [ "${#wheels[@]}" -ne 1 ]; then
+            echo "ERROR: expected exactly one Severin wheel; found ${#wheels[@]}." >&2
+            printf '%s\n' "${wheels[@]:-}" >&2
+            exit 1
+          fi
+
+          wheel_path="${wheels[0]}"
+          wheel_name="$(basename "$wheel_path")"
+
+          echo "Built Python wheel: $wheel_path"
+          printf 'wheel_path=%s\n' "$wheel_path" >> "$GITHUB_OUTPUT"
+          printf 'wheel_name=%s\n' "$wheel_name" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Severin CPython wheel"
+            echo
+            echo "- Release asset: \`$wheel_name\`"
+            echo "- Built only because **Build Python wheel** was selected."
+            echo "- Install offline with: \`python3 -m pip install --user --no-deps ./$wheel_name\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Refresh rolling warm state in Releases
         if: inputs.update_state
