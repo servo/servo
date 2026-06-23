@@ -215,14 +215,14 @@ rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
 sea-query = { version = "=1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = "=0.8.0-rc.15"
-selectors = { git = "https://github.com/servo/stylo", rev = "71bbb705678fbcdbab105f0ffc5a339b6600186f" }
+selectors = { git = "https://github.com/servo/stylo", rev = "89499265377cfdf48b9257531259b02642aafa06" }
 seq-macro = "0.3.6"
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
 serde_test = "1.0"
-servo_arc = { git = "https://github.com/servo/stylo", rev = "71bbb705678fbcdbab105f0ffc5a339b6600186f" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "89499265377cfdf48b9257531259b02642aafa06" }
 sha1 = "0.11"
 sha2 = "0.11"
 sha3 = "0.12"
@@ -232,12 +232,12 @@ smallvec = { version = "1.15", features = ["serde", "union"] }
 speexdsp-resampler = "0.1.0"
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "71bbb705678fbcdbab105f0ffc5a339b6600186f" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "71bbb705678fbcdbab105f0ffc5a339b6600186f" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "71bbb705678fbcdbab105f0ffc5a339b6600186f" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "71bbb705678fbcdbab105f0ffc5a339b6600186f" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "71bbb705678fbcdbab105f0ffc5a339b6600186f" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "71bbb705678fbcdbab105f0ffc5a339b6600186f" }
+stylo = { git = "https://github.com/servo/stylo", rev = "89499265377cfdf48b9257531259b02642aafa06" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "89499265377cfdf48b9257531259b02642aafa06" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "89499265377cfdf48b9257531259b02642aafa06" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "89499265377cfdf48b9257531259b02642aafa06" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "89499265377cfdf48b9257531259b02642aafa06" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "89499265377cfdf48b9257531259b02642aafa06" }
 surfman = { version = "0.13.0", features = ["chains"] }
 swapper = "0.1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
@@ -449,15 +449,15 @@ codegen-units = 1
 #
 # Or for Stylo:
 #
- [patch."https://github.com/servo/stylo"]
- selectors = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
- servo_arc ={ git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
- stylo = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
- stylo_atoms = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
- stylo_dom = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
- stylo_malloc_size_of = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
- stylo_static_prefs = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
- stylo_traits = { git = "https://github.com/jschwe/stylo", rev = "b4c42f3586276fe5ce3aee7986aeb305c750883e" }
+# [patch."https://github.com/servo/stylo"]
+# selectors = { path = "../stylo/selectors" }
+# servo_arc = { path = "../stylo/servo_arc" }
+# stylo = { path = "../stylo/style" }
+# stylo_atoms = { path = "../stylo/stylo_atoms" }
+# stylo_dom = { path = "../stylo/stylo_dom" }
+# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
+# stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
+# stylo_traits = { path = "../stylo/style_traits" }
 #
 # Or for another Git dependency:
 #
