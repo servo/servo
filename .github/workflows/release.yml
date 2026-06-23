@@ -110,6 +110,14 @@ jobs:
       - upload-vendored-source
       - upload-artifacts-nightly
       - upload-artifacts-release
+      # Add all build-* jobs here, so that the we take the `Publish release (failure)` branch, if
+      # any of the build jobs failed.
+      - build-android
+      - build-linux
+      - build-mac
+      - build-mac-arm64
+      - build-ohos
+      - build-win
 
   publish-crates-io:
     name: 'Publish to crates.io'
@@ -196,8 +204,11 @@ jobs:
 
   upload-artifacts-nightly:
     # Only run scheduled nightly builds on upstream servo.
+    # Partial failures of the build jobs are accepted for nightly.
     if: |
-      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
+      !cancelled() 
+        && needs.create-draft-release.result == 'success'
+        && (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
         && (inputs.regular_release || false) == false
     runs-on: ubuntu-latest
     permissions:
