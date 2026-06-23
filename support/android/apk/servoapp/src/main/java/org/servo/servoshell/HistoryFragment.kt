@@ -6,20 +6,28 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
-import org.servo.servoshell.HistoryAdapter.OnHistoryItemClickListener
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-class HistoryFragment : Fragment(), OnHistoryItemClickListener {
-    private lateinit var recyclerView: RecyclerView
+class HistoryFragment : Fragment() {
+    private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+    private lateinit var listView: ComposeView
     private lateinit var emptyState: View
     private lateinit var historyManager: HistoryManager
 
@@ -35,7 +43,7 @@ class HistoryFragment : Fragment(), OnHistoryItemClickListener {
     ): View = inflater.inflate(R.layout.fragment_history, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        recyclerView = view.findViewById(R.id.history_recycler_view)
+        listView = view.findViewById(R.id.history_list)
         emptyState = view.findViewById(R.id.empty_state)
 
         val toolbar = view.findViewById<MaterialToolbar>(R.id.toolbar)
@@ -48,8 +56,6 @@ class HistoryFragment : Fragment(), OnHistoryItemClickListener {
             }
         }
 
-        recyclerView.setLayoutManager(LinearLayoutManager(requireContext()))
-
         loadHistory()
     }
 
@@ -57,13 +63,59 @@ class HistoryFragment : Fragment(), OnHistoryItemClickListener {
         val historyEntries = historyManager.history
 
         if (historyEntries.isEmpty()) {
-            recyclerView.isGone = true
+            listView.isGone = true
             emptyState.isVisible = true
         } else {
-            recyclerView.isVisible = true
+            listView.isVisible = true
             emptyState.isGone = true
 
-            recyclerView.setAdapter(HistoryAdapter(groupByDay(historyEntries), this))
+            listView.setContent {
+                LazyColumn {
+                    items(groupByDay(historyEntries)) { item ->
+                        when (item) {
+                            is HistoryHeaderItem -> {
+                                ListItem(
+                                    headlineContent = {
+                                        Text(
+                                            item.headerText,
+                                            style = MaterialTheme.typography.titleSmall,
+                                        )
+                                    },
+                                )
+                            }
+                            is HistoryEntryItem -> {
+                                ListItem(
+                                    modifier = Modifier
+                                        .clickable {
+                                            val resultIntent = Intent().apply {
+                                                putExtra("url", item.entry.url)
+                                            }
+                                            requireActivity().setResult(Activity.RESULT_OK, resultIntent)
+                                            requireActivity().finish()
+                                        },
+                                    headlineContent = {
+                                        Text(
+                                            item.entry.title?.takeUnless { it.isEmpty() } ?: item.entry.url,
+                                            overflow = TextOverflow.Ellipsis,
+                                            maxLines = 1,
+                                        )
+                                    },
+                                    supportingContent = {
+                                        Text(
+                                            item.entry.url,
+                                            overflow = TextOverflow.Ellipsis,
+                                            maxLines = 1,
+                                        )
+                                    },
+                                    leadingContent = {
+                                        Text(timeFormat.format(Date(item.entry.timestamp)))
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -115,13 +167,5 @@ class HistoryFragment : Fragment(), OnHistoryItemClickListener {
     private fun clearHistory() {
         historyManager.clearHistory()
         loadHistory()
-    }
-
-    override fun onHistoryItemClick(entry: HistoryEntry) {
-        val resultIntent = Intent().apply {
-            putExtra("url", entry.url)
-        }
-        requireActivity().setResult(Activity.RESULT_OK, resultIntent)
-        requireActivity().finish()
     }
 }

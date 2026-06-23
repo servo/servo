@@ -23,11 +23,10 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/history_recycler_view"
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/history_list"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scrollbars="vertical" />
+            android:layout_height="match_parent" />
 
         <LinearLayout
             android:id="@+id/empty_state"
