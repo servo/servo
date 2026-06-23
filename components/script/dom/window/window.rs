@@ -294,7 +294,6 @@ pub(crate) struct Window {
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
-    history: MutNullableDom<History>,
     performance: MutNullableDom<Performance>,
     #[no_trace]
     navigation_start: Cell<CrossProcessInstant>,
@@ -1424,7 +1423,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history>
     fn History(&self, cx: &mut JSContext) -> DomRoot<History> {
-        self.history.or_init(|| History::new(cx, self))
+        self.Document().history(cx)
     }
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
@@ -3730,7 +3729,6 @@ impl Window {
             navigator: Default::default(),
             crypto: Default::default(),
             location: Default::default(),
-            history: Default::default(),
             window_proxy: Default::default(),
             document: Default::default(),
             performance: Default::default(),

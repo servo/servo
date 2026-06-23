@@ -151,6 +151,7 @@ use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
+use crate::dom::history::History;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlbaseelement::HTMLBaseElement;
@@ -686,9 +687,16 @@ pub(crate) struct Document {
     #[ignore_malloc_size_of = "ImageCache"]
     #[no_trace]
     image_cache: StdArc<dyn ImageCache>,
+
+    /// <https://html.spec.whatwg.org/multipage/#doc-history>
+    history: MutNullableDom<History>,
 }
 
 impl Document {
+    pub(crate) fn history(&self, cx: &mut JSContext) -> DomRoot<History> {
+        self.history.or_init(|| History::new(cx, &self.window))
+    }
+
     pub(crate) fn image_cache(&self) -> StdArc<dyn ImageCache> {
         self.image_cache.clone()
     }
@@ -3734,6 +3742,7 @@ impl Document {
                 None,
             )),
             image_cache,
+            history: Default::default(),
         }
     }
 
