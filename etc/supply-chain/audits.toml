@@ -68,7 +68,7 @@ notes = "mozangle is maintained as part of the servo project."
 [[wildcard-audits.mozangle]]
 who = "Jonathan Schwender <schwenderjonathan@gmail.com>"
 criteria = "safe-to-deploy"
-user-id = 124752
+user-id = 124752 # Sam (sagudev)
 start = "2026-03-10"
 end = "2027-03-09"
 notes = "mozangle is maintained as part of the servo project."
@@ -249,6 +249,12 @@ user-id = 55123 # rust-lang-owner
 start = "2022-10-29"
 end = "2027-03-09"
 
+[[trusted.cc]]
+criteria = "safe-to-run"
+trusted-publisher = "github:rust-lang/cc-rs"
+start = "2025-09-01"
+end = "2027-06-23"
+
 [[trusted.clap]]
 criteria = "safe-to-deploy"
 user-id = 6743 # Ed Page (epage)
@@ -290,6 +296,12 @@ criteria = "safe-to-deploy"
 user-id = 1139 # Manish Goregaokar (Manishearth)
 start = "2021-08-02"
 end = "2027-03-09"
+
+[[trusted.displaydoc]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2024-06-20"
+end = "2027-06-23"
 
 [[trusted.dtoa]]
 criteria = "safe-to-deploy"
@@ -341,7 +353,7 @@ end = "2027-03-09"
 
 [[trusted.fixed_decimal]]
 criteria = "safe-to-deploy"
-user-id = 166196
+user-id = 166196 # Robert Bastian (robertbastian)
 start = "2023-01-26"
 end = "2027-03-09"
 
@@ -437,7 +449,7 @@ end = "2027-03-09"
 
 [[trusted.icu_collator]]
 criteria = "safe-to-deploy"
-user-id = 166196
+user-id = 166196 # Robert Bastian (robertbastian)
 start = "2023-01-26"
 end = "2027-03-09"
 
@@ -479,7 +491,7 @@ end = "2027-03-09"
 
 [[trusted.icu_experimental]]
 criteria = "safe-to-deploy"
-user-id = 166196
+user-id = 166196 # Robert Bastian (robertbastian)
 start = "2024-05-28"
 end = "2027-03-09"
 
@@ -521,7 +533,7 @@ end = "2027-03-09"
 
 [[trusted.icu_pattern]]
 criteria = "safe-to-deploy"
-user-id = 166196
+user-id = 166196 # Robert Bastian (robertbastian)
 start = "2023-01-26"
 end = "2027-03-09"
 
@@ -533,7 +545,7 @@ end = "2027-03-09"
 
 [[trusted.icu_plurals]]
 criteria = "safe-to-deploy"
-user-id = 166196
+user-id = 166196 # Robert Bastian (robertbastian)
 start = "2023-01-26"
 end = "2027-03-09"
 
@@ -563,7 +575,7 @@ end = "2027-03-09"
 
 [[trusted.icu_timezone]]
 criteria = "safe-to-deploy"
-user-id = 166196
+user-id = 166196 # Robert Bastian (robertbastian)
 start = "2023-01-26"
 end = "2027-03-09"
 
@@ -578,6 +590,12 @@ criteria = "safe-to-deploy"
 user-id = 696 # Nick Fitzgerald (fitzgen)
 start = "2026-01-14"
 end = "2027-03-09"
+
+[[trusted.indexmap]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2020-01-15"
+end = "2027-06-23"
 
 [[trusted.inherent]]
 criteria = "safe-to-deploy"
@@ -771,6 +789,12 @@ user-id = 3618 # David Tolnay (dtolnay)
 start = "2019-04-09"
 end = "2027-03-09"
 
+[[trusted.rayon]]
+criteria = "safe-to-deploy"
+user-id = 539 # Josh Stone (cuviper)
+start = "2019-06-13"
+end = "2027-06-23"
+
 [[trusted.regex]]
 criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
@@ -873,6 +897,12 @@ user-id = 3788 # Emilio Cobos Álvarez (emilio)
 start = "2020-05-08"
 end = "2027-03-09"
 
+[[trusted.socket2]]
+criteria = "safe-to-deploy"
+user-id = 6025 # Thomas de Zeeuw (Thomasdezeeuw)
+start = "2020-09-09"
+end = "2027-06-23"
+
 [[trusted.syn]]
 criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)
@@ -902,6 +932,12 @@ criteria = "safe-to-deploy"
 user-id = 189 # Andrew Gallant (BurntSushi)
 start = "2019-06-04"
 end = "2027-03-09"
+
+[[trusted.thin-vec]]
+criteria = "safe-to-deploy"
+user-id = 3788 # Emilio Cobos Álvarez (emilio)
+start = "2026-04-08"
+end = "2027-06-23"
 
 [[trusted.thiserror]]
 criteria = "safe-to-deploy"
@@ -969,11 +1005,23 @@ user-id = 6743 # Ed Page (epage)
 start = "2025-04-25"
 end = "2027-03-09"
 
+[[trusted.toml_writer]]
+criteria = "safe-to-deploy"
+user-id = 6743 # Ed Page (epage)
+start = "2025-07-08"
+end = "2027-06-23"
+
 [[trusted.try-lock]]
 criteria = "safe-to-run"
 user-id = 359 # Sean McArthur (seanmonstar)
 start = "2020-07-10"
 end = "2027-03-09"
+
+[[trusted.typeid]]
+criteria = "safe-to-deploy"
+user-id = 3618 # David Tolnay (dtolnay)
+start = "2024-05-13"
+end = "2027-06-23"
 
 [[trusted.uluru]]
 criteria = "safe-to-deploy"
@@ -1209,6 +1257,24 @@ user-id = 3788 # Emilio Cobos Álvarez (emilio)
 start = "2025-11-11"
 end = "2027-03-09"
 
+[[trusted.zerofrom]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2022-04-06"
+end = "2027-06-23"
+
+[[trusted.zerofrom-derive]]
+criteria = "safe-to-deploy"
+user-id = 1139 # Manish Goregaokar (Manishearth)
+start = "2022-04-06"
+end = "2027-06-23"
+
+[[trusted.zeroize]]
+criteria = "safe-to-deploy"
+trusted-publisher = "github:RustCrypto/utils"
+start = "2026-06-12"
+end = "2027-06-23"
+
 [[trusted.zerotrie]]
 criteria = "safe-to-deploy"
 user-id = 1139 # Manish Goregaokar (Manishearth)
@@ -1217,7 +1283,7 @@ end = "2027-03-09"
 
 [[trusted.zerotrie]]
 criteria = "safe-to-deploy"
-user-id = 166196
+user-id = 166196 # Robert Bastian (robertbastian)
 start = "2023-11-16"
 end = "2027-03-09"
 
