@@ -133,3 +133,11 @@ Source-level provenance logging now exists before the final resource-thread poli
 - `resolver_input` means the shared URL parser/join layer sees a string, but the caller may already have decoded, rewritten, normalized, or otherwise transformed it.
 
 Future `ResourceRequest` work should carry both the raw author spelling, when available, and the resolved `ServoUrl`. Without that request-shape change, final resource-policy logs can correlate by adjacent source-seam logs but cannot always prove which raw spelling produced a later normalized URL.
+
+## Python Embedding Boundary
+
+A first CPython native extension crate now lives at `ports/severin-python/` and exposes a `severin` module with `App(width, height, bridge=None)`, `load_path(path)`, `run()`, `close()`, `write()`, and `read()`. This is an in-process embedding surface: the Python `App` owns Servo/WebView host state directly and must not use a helper executable, localhost server, HTTP, WebSocket, Unix socket, or other network-shaped bridge.
+
+The current `load_path` implementation is intentionally narrow and maps one entry file onto the existing first-milestone `asset://com.example.app/...` package wall. The final provider should replace that process-global handoff with an explicit package/context object before supporting multiple simultaneous Python `App` instances.
+
+The Python bridge is a transport queue, not an application protocol. Page JavaScript should eventually submit arbitrary serialized JSON to a tiny Promise shim; Python should read `(opaque_receipt, json_text)` from the inbound queue and write arbitrary valid JSON back against that private receipt. The native layer must not define action names, capability names, permission rules, success/error conventions, request schemas, reply schemas, or a registry of host functions. Its only owned failures are transport/lifetime failures such as `App.close()`, document teardown, or an expired reply target. See `docs/local-runtime/python-embedding.md` for the current API and bridge transport model.

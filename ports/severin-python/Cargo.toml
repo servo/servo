@@ -1,0 +1,21 @@
+[package]
+name = "severin-python"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish = false
+rust-version.workspace = true
+repository.workspace = true
+description = "Experimental CPython bindings for the Severin local Servo runtime."
+
+[lib]
+name = "severin"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+dpi = { workspace = true }
+serde_json = { workspace = true }
+servo = { workspace = true, default-features = false, features = ["baked-in-resources"] }
+url = { workspace = true }
