@@ -4,8 +4,7 @@
 
 //! Experimental in-process CPython bindings for the Severin local runtime.
 
-use std::cell::RefCell;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashSet, VecDeque};
 use std::ffi::{CStr, CString, c_char, c_int, c_long, c_void};
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -18,9 +17,8 @@ use std::time::Duration;
 
 use dpi::PhysicalSize;
 use servo::{
-    EventLoopWaker, JSValue, JavaScriptEvaluationError, LoadStatus, Preferences, RenderingContext,
-    Servo, ServoBuilder, ServoUrl, SoftwareRenderingContext, UserContentManager, UserScript,
-    WebView, WebViewBuilder,
+    EventLoopWaker, LoadStatus, Preferences, RenderingContext, Servo, ServoBuilder, ServoUrl,
+    SoftwareRenderingContext, WebView, WebViewBuilder,
 };
 use url::Url;
 
@@ -148,18 +146,15 @@ struct EmbeddedServoApp {
     servo: Servo,
     webview: WebView,
     _rendering_context: Rc<dyn RenderingContext>,
-    _user_content_manager: Rc<UserContentManager>,
     wake_flag: Arc<AtomicBool>,
     bridge_transport: BridgeTransport,
-    pending_evaluations: Vec<PendingEvaluation>,
 }
 
 #[derive(Default)]
 struct BridgeTransport {
     next_receipt: u64,
     inbound: VecDeque<BridgeFrame>,
-    pending: HashMap<u64, PendingReplyTarget>,
-    active_document_id: Option<String>,
+    pending: HashSet<u64>,
 }
 
 struct BridgeFrame {
@@ -167,39 +162,13 @@ struct BridgeFrame {
     json: String,
 }
 
-struct PendingReplyTarget {
-    document_id: String,
-    call_id: u64,
-}
-
-enum PendingEvaluationKind {
-    DrainOutbound,
-    DeliverReply,
-}
-
-struct PendingEvaluation {
-    kind: PendingEvaluationKind,
-    result: Rc<RefCell<Option<Result<JSValue, JavaScriptEvaluationError>>>>,
-}
-
 impl BridgeTransport {
-    fn enqueue_from_javascript(
-        &mut self,
-        document_id: String,
-        call_id: u64,
-        json: String,
-    ) -> Result<u64, String> {
+    #[allow(dead_code)]
+    fn enqueue_from_javascript(&mut self, json: String) -> Result<u64, String> {
         validate_json_frame(&json)?;
-        self.active_document_id = Some(document_id.clone());
         self.next_receipt = self.next_receipt.saturating_add(1);
         let receipt = self.next_receipt;
-        self.pending.insert(
-            receipt,
-            PendingReplyTarget {
-                document_id,
-                call_id,
-            },
-        );
+        self.pending.insert(receipt);
         self.inbound.push_back(BridgeFrame { receipt, json });
         Ok(receipt)
     }
@@ -208,35 +177,16 @@ impl BridgeTransport {
         self.inbound.pop_front()
     }
 
-    fn prepare_reply(&mut self, receipt: u64, json: &str) -> Result<String, String> {
+    fn write_from_python(&mut self, receipt: u64, json: &str) -> Result<(), String> {
         validate_json_frame(json)?;
-        let Some(target) = self.pending.get(&receipt) else {
+        if !self.pending.remove(&receipt) {
             return Err("bridge reply target no longer exists".to_owned());
-        };
-        if self.active_document_id.as_deref() != Some(target.document_id.as_str()) {
-            return Err("bridge reply target document is no longer active".to_owned());
         }
-        let script = resolve_script(&target.document_id, target.call_id, json);
-        self.pending.remove(&receipt);
-        Ok(script)
-    }
 
-    fn finish_reply_delivery(&mut self, delivered: bool) -> Result<(), String> {
-        if delivered {
-            Ok(())
-        } else {
-            Err("bridge reply target was not found in the active document".to_owned())
-        }
-    }
-
-    fn clear_for_navigation(&mut self) {
-        self.inbound.clear();
-        self.pending.clear();
-        self.active_document_id = None;
-    }
-
-    fn clear_for_close(&mut self) {
-        self.clear_for_navigation();
+        // TODO: Resolve the matching JavaScript Promise when the JS shim is wired
+        // into Servo script. The native layer deliberately treats this as an
+        // opaque JSON frame and private transport receipt only.
+        Ok(())
     }
 }
 
@@ -245,104 +195,6 @@ fn validate_json_frame(json: &str) -> Result<(), String> {
         .map(|_| ())
         .map_err(|error| format!("invalid JSON bridge frame: {error}"))
 }
-const SEVERIN_BRIDGE_SHIM: &str = r#"
-(() => {
-  const documentId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  let nextCallId = 1;
-  const outbound = [];
-  const pending = new Map();
-
-  function rejectNotJson() {
-    return Promise.reject(new TypeError("severin.send(value) requires a strict JSON value"));
-  }
-
-  function send(value) {
-    let json;
-    try {
-      json = JSON.stringify(value);
-    } catch (_) {
-      return rejectNotJson();
-    }
-    if (typeof json !== "string") {
-      return rejectNotJson();
-    }
-
-    const callId = nextCallId++;
-    outbound.push({ callId, json });
-    return new Promise((resolve, reject) => {
-      pending.set(callId, { resolve, reject });
-    });
-  }
-
-  Object.defineProperty(globalThis, "severin", {
-    value: Object.freeze({ send }),
-    configurable: false,
-    enumerable: false,
-    writable: false,
-  });
-
-  Object.defineProperty(globalThis, "__severinDrain", {
-    value() {
-      return { documentId, frames: outbound.splice(0, outbound.length) };
-    },
-    configurable: false,
-    enumerable: false,
-    writable: false,
-  });
-
-  Object.defineProperty(globalThis, "__severinResolve", {
-    value(expectedDocumentId, callId, jsonSource) {
-      if (expectedDocumentId !== documentId) {
-        return false;
-      }
-      const target = pending.get(callId);
-      if (!target) {
-        return false;
-      }
-      let value;
-      try {
-        value = JSON.parse(jsonSource);
-      } catch (error) {
-        target.reject(error);
-        pending.delete(callId);
-        return false;
-      }
-      pending.delete(callId);
-      target.resolve(value);
-      return true;
-    },
-    configurable: false,
-    enumerable: false,
-    writable: false,
-  });
-})();
-"#;
-
-const DRAIN_SCRIPT: &str = r#"
-(() => {
-  if (typeof globalThis.__severinDrain !== "function") {
-    return JSON.stringify({ documentId: null, frames: [] });
-  }
-  return JSON.stringify(globalThis.__severinDrain());
-})()
-"#;
-
-fn resolve_script(document_id: &str, call_id: u64, json: &str) -> String {
-    let document_id_literal = serde_json::to_string(document_id).expect("document id serializes");
-    // The reply JSON is embedded as a JavaScript string literal and parsed by
-    // the page shim; it is never concatenated into executable JavaScript as
-    // application-controlled source.
-    let json_literal = serde_json::to_string(json).expect("JSON source string serializes");
-    format!(
-        r#"(() => {{
-  if (typeof globalThis.__severinResolve !== "function") {{
-    return false;
-  }}
-  return globalThis.__severinResolve({document_id_literal}, {call_id}, {json_literal});
-}})()"#
-    )
-}
-
 impl EmbeddedServoApp {
     fn new(width: u32, height: u32) -> Result<Self, String> {
         let rendering_context = Rc::new(
@@ -360,133 +212,18 @@ impl EmbeddedServoApp {
             .preferences(preferences)
             .event_loop_waker(Box::new(PythonEventLoopWaker(wake_flag.clone())))
             .build();
-        let user_content_manager = Rc::new(UserContentManager::new(&servo));
-        user_content_manager.add_script(Rc::new(UserScript::from(SEVERIN_BRIDGE_SHIM)));
-        let webview = WebViewBuilder::new(&servo, rendering_context.clone())
-            .user_content_manager(user_content_manager.clone())
-            .build();
+        let webview = WebViewBuilder::new(&servo, rendering_context.clone()).build();
         Ok(Self {
             servo,
             webview,
             _rendering_context: rendering_context,
-            _user_content_manager: user_content_manager,
             wake_flag,
             bridge_transport: BridgeTransport::default(),
-            pending_evaluations: Vec::new(),
         })
     }
-
     fn spin_once(&self) {
         self.wake_flag.store(false, Ordering::Relaxed);
         self.servo.spin_event_loop();
-    }
-
-    fn pump_once(&mut self) -> Result<(), String> {
-        self.spin_once();
-        self.collect_bridge_evaluations()?;
-        self.schedule_outbound_drain();
-        Ok(())
-    }
-
-    fn schedule_outbound_drain(&mut self) {
-        if self
-            .pending_evaluations
-            .iter()
-            .any(|evaluation| matches!(evaluation.kind, PendingEvaluationKind::DrainOutbound))
-        {
-            return;
-        }
-
-        let result = Rc::new(RefCell::new(None));
-        let callback_result = result.clone();
-        self.webview
-            .evaluate_javascript(DRAIN_SCRIPT, move |value| {
-                *callback_result.borrow_mut() = Some(value);
-            });
-        self.pending_evaluations.push(PendingEvaluation {
-            kind: PendingEvaluationKind::DrainOutbound,
-            result,
-        });
-    }
-
-    fn schedule_reply_delivery(&mut self, script: String) {
-        let result = Rc::new(RefCell::new(None));
-        let callback_result = result.clone();
-        self.webview.evaluate_javascript(script, move |value| {
-            *callback_result.borrow_mut() = Some(value);
-        });
-        self.pending_evaluations.push(PendingEvaluation {
-            kind: PendingEvaluationKind::DeliverReply,
-            result,
-        });
-    }
-
-    fn collect_bridge_evaluations(&mut self) -> Result<(), String> {
-        let mut index = 0;
-        while index < self.pending_evaluations.len() {
-            let result = { self.pending_evaluations[index].result.borrow_mut().take() };
-            let Some(result) = result else {
-                index += 1;
-                continue;
-            };
-            let evaluation = self.pending_evaluations.remove(index);
-            match evaluation.kind {
-                PendingEvaluationKind::DrainOutbound => {
-                    self.handle_drain_result(result)?;
-                },
-                PendingEvaluationKind::DeliverReply => {
-                    let delivered = matches!(result, Ok(JSValue::Boolean(true)));
-                    self.bridge_transport.finish_reply_delivery(delivered)?;
-                },
-            }
-        }
-        Ok(())
-    }
-
-    fn clear_bridge_for_navigation(&mut self) {
-        self.pending_evaluations.clear();
-        self.bridge_transport.clear_for_navigation();
-    }
-
-    fn handle_drain_result(
-        &mut self,
-        result: Result<JSValue, JavaScriptEvaluationError>,
-    ) -> Result<(), String> {
-        let Ok(JSValue::String(serialized)) = result else {
-            return Ok(());
-        };
-        let drained: serde_json::Value = serde_json::from_str(&serialized)
-            .map_err(|error| format!("invalid Severin bridge drain result: {error}"))?;
-        let document_id = drained
-            .get("documentId")
-            .and_then(|value| value.as_str())
-            .unwrap_or_default()
-            .to_owned();
-        if document_id.is_empty() {
-            self.bridge_transport.clear_for_navigation();
-            return Ok(());
-        }
-        if self.bridge_transport.active_document_id.as_deref() != Some(document_id.as_str()) {
-            self.bridge_transport.clear_for_navigation();
-            self.bridge_transport.active_document_id = Some(document_id.clone());
-        }
-        let Some(frames) = drained.get("frames").and_then(|value| value.as_array()) else {
-            return Ok(());
-        };
-        for frame in frames {
-            let Some(call_id) = frame.get("callId").and_then(|value| value.as_u64()) else {
-                continue;
-            };
-            let Some(json) = frame.get("json").and_then(|value| value.as_str()) else {
-                continue;
-            };
-            self.bridge_transport.enqueue_from_javascript(
-                document_id.clone(),
-                call_id,
-                json.to_owned(),
-            )?;
-        }
-        Ok(())
     }
 }
 
@@ -543,7 +280,6 @@ unsafe extern "C" fn app_init(
 unsafe extern "C" fn app_dealloc(self_: *mut PyAppObject) {
     unsafe {
         if !(*self_).app.is_null() {
-            (*(*self_).app).bridge_transport.clear_for_close();
             drop(Box::from_raw((*self_).app));
             (*self_).app = ptr::null_mut();
         }
@@ -572,7 +308,7 @@ unsafe fn get_app_mut<'a>(self_: *mut PyAppObject) -> Result<&'a mut EmbeddedSer
     }
 }
 unsafe extern "C" fn app_load_path(self_: *mut PyAppObject, arg: *mut PyObject) -> *mut PyObject {
-    let Ok(app) = (unsafe { get_app_mut(self_) }) else {
+    let Ok(app) = (unsafe { get_app(self_) }) else {
         return ptr::null_mut();
     };
     let raw = unsafe { PyUnicode_AsUTF8(arg) };
@@ -605,7 +341,6 @@ unsafe extern "C" fn app_load_path(self_: *mut PyAppObject, arg: *mut PyObject) 
             return ptr::null_mut();
         },
     };
-    app.clear_bridge_for_navigation();
     app.webview.load(ServoUrl::from_url(url));
     unsafe {
         Py_XIncRef(py_none());
@@ -628,25 +363,10 @@ unsafe extern "C" fn app_run(self_: *mut PyAppObject, _args: *mut PyObject) -> *
         py_none()
     }
 }
-unsafe extern "C" fn app_pump(self_: *mut PyAppObject, _args: *mut PyObject) -> *mut PyObject {
-    let Ok(app) = (unsafe { get_app_mut(self_) }) else {
-        return ptr::null_mut();
-    };
-    if let Err(error) = app.pump_once() {
-        unsafe { set_error(PyExc_RuntimeError, &error) };
-        return ptr::null_mut();
-    }
-    unsafe {
-        Py_XIncRef(py_none());
-        py_none()
-    }
-}
-
 unsafe extern "C" fn app_close(self_: *mut PyAppObject, _args: *mut PyObject) -> *mut PyObject {
     unsafe {
         (*self_).closed = true;
         if !(*self_).app.is_null() {
-            (*(*self_).app).bridge_transport.clear_for_close();
             drop(Box::from_raw((*self_).app));
             (*self_).app = ptr::null_mut();
         }
@@ -722,14 +442,10 @@ unsafe extern "C" fn app_write(self_: *mut PyAppObject, args: *mut PyObject) -> 
     let Ok(json) = (unsafe { unicode_to_string(json_obj) }) else {
         return ptr::null_mut();
     };
-    let script = match app.bridge_transport.prepare_reply(receipt, &json) {
-        Ok(script) => script,
-        Err(error) => {
-            unsafe { set_error(PyExc_RuntimeError, &error) };
-            return ptr::null_mut();
-        },
-    };
-    app.schedule_reply_delivery(script);
+    if let Err(error) = app.bridge_transport.write_from_python(receipt, &json) {
+        unsafe { set_error(PyExc_RuntimeError, &error) };
+        return ptr::null_mut();
+    }
     unsafe {
         Py_XIncRef(py_none());
         py_none()
@@ -745,7 +461,7 @@ static mut APP_INIT_KWLIST: [*mut c_char; 4] = [
     c"bridge".as_ptr().cast_mut(),
     ptr::null_mut(),
 ];
-static mut APP_METHODS: [PyMethodDef; 7] = [
+static mut APP_METHODS: [PyMethodDef; 6] = [
     PyMethodDef {
         ml_name: c"load_path".as_ptr(),
         ml_meth: app_load_path as *mut c_void,
@@ -763,12 +479,6 @@ static mut APP_METHODS: [PyMethodDef; 7] = [
         ml_meth: app_close as *mut c_void,
         ml_flags: METH_NOARGS,
         ml_doc: c"Close the embedded Servo instance.".as_ptr(),
-    },
-    PyMethodDef {
-        ml_name: c"pump".as_ptr(),
-        ml_meth: app_pump as *mut c_void,
-        ml_flags: METH_NOARGS,
-        ml_doc: c"Run one bounded Servo owner-thread pump turn and bridge delivery pass.".as_ptr(),
     },
     PyMethodDef {
         ml_name: c"write".as_ptr(),
