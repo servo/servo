@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{RefCell, RefMut};
+use std::cell::{OnceCell, RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -31,6 +31,7 @@ use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::conversions::{SafeToJSValConvertible, root_from_handlevalue};
 use script_bindings::reflector::DomObject;
 use script_bindings::root::rooted_heap_handle;
+use script_bindings::trace::CustomTraceable;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
 use servo_base::id::{PipelineId, PipelineNamespace};
@@ -91,7 +92,8 @@ use crate::realms::enter_auto_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, Runtime, get_reports};
 use crate::task::TaskCanceller;
-use crate::timers::{IsInterval, TimerCallback};
+use crate::task_manager::TaskManager;
+use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
@@ -106,7 +108,7 @@ pub(crate) fn prepare_workerscope_init(
         to_devtools_sender: global.devtools_chan().cloned(),
         time_profiler_chan: global.time_profiler_chan().clone(),
         from_devtools_sender: devtools_sender,
-        script_to_constellation_chan: global.script_to_constellation_chan().clone(),
+        script_to_constellation_chan: global.script_to_constellation_chan().sender,
         script_to_embedder_chan: global.script_to_embedder_chan().clone(),
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
         pipeline_id: global.pipeline_id(),
@@ -309,6 +311,10 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     timer_scheduler: RefCell<TimerScheduler>,
 
+    /// The mechanism by which time-outs and intervals are scheduled.
+    /// <https://html.spec.whatwg.org/multipage/#timers>
+    timers: OnceCell<OneshotTimers>,
+
     #[no_trace]
     insecure_requests_policy: InsecureRequestsPolicy,
 
@@ -328,6 +334,13 @@ pub(crate) struct WorkerGlobalScope {
     /// this global's compartment.
     #[ignore_malloc_size_of = "Measured by the JS engine"]
     debugger_global: Heap<Value>,
+
+    #[no_trace]
+    pipeline_id: PipelineId,
+
+    /// A [`TaskManager`] for this [`WorkerGlobalScope`].
+    #[conditional_malloc_size_of]
+    task_manager: Rc<TaskManager>,
 }
 
 impl WorkerGlobalScope {
@@ -343,6 +356,7 @@ impl WorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
+        event_loop_sender: Option<ScriptEventLoopSender>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
@@ -354,7 +368,6 @@ impl WorkerGlobalScope {
 
         Self {
             globalscope: GlobalScope::new_inherited(
-                init.pipeline_id,
                 init.to_devtools_sender,
                 init.mem_profiler_chan,
                 init.time_profiler_chan,
@@ -376,7 +389,7 @@ impl WorkerGlobalScope {
             worker_name,
             worker_type,
             worker_url: DomRefCell::new(worker_url),
-            closing,
+            closing: closing.clone(),
             execution_ready: AtomicBool::new(false),
             runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
@@ -388,13 +401,25 @@ impl WorkerGlobalScope {
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
             timer_scheduler: RefCell::default(),
+            timers: Default::default(),
             insecure_requests_policy,
             trusted_types: Default::default(),
             reporting_observer_list: Default::default(),
             report_list: Default::default(),
             endpoints_list: Default::default(),
             debugger_global: Default::default(),
+            pipeline_id: init.pipeline_id,
+            task_manager: Rc::new(TaskManager::new(
+                event_loop_sender,
+                init.pipeline_id,
+                Some(TaskCanceller { cancelled: closing }),
+            )),
         }
+    }
+
+    pub(crate) fn timers(&self) -> &OneshotTimers {
+        self.timers
+            .get_or_init(|| OneshotTimers::new(self.upcast()))
     }
 
     pub(crate) fn enqueue_microtask(&self, job: Microtask) {
@@ -465,7 +490,11 @@ impl WorkerGlobalScope {
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
-        self.globalscope.pipeline_id()
+        self.pipeline_id
+    }
+
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        self.task_manager.clone()
     }
 
     pub(crate) fn policy_container(&self) -> Ref<'_, PolicyContainer> {
@@ -532,14 +561,6 @@ impl WorkerGlobalScope {
     /// Get a mutable reference to the [`TimerScheduler`] for this [`ServiceWorkerGlobalScope`].
     pub(crate) fn timer_scheduler(&self) -> RefMut<'_, TimerScheduler> {
         self.timer_scheduler.borrow_mut()
-    }
-
-    /// Return a copy to the shared task canceller that is used to cancel all tasks
-    /// when this worker is closing.
-    pub(crate) fn shared_task_canceller(&self) -> TaskCanceller {
-        TaskCanceller {
-            cancelled: self.closing.clone(),
-        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#initialize-worker-policy-container> and

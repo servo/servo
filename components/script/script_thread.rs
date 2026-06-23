@@ -83,8 +83,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{
-    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
-    TEST_WEBVIEW_ID, WebViewId,
+    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId, WebViewId,
 };
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
@@ -790,7 +789,7 @@ impl ScriptThread {
                         mem_profiler_chan: script_thread.senders.memory_profiler_sender.clone(),
                         time_profiler_chan: script_thread.senders.time_profiler_sender.clone(),
                         devtools_chan: script_thread.senders.devtools_server_sender.clone(),
-                        to_constellation_sender: script_thread
+                        script_to_constellation_sender: script_thread
                             .senders
                             .pipeline_to_constellation_sender
                             .clone(),
@@ -965,22 +964,13 @@ impl ScriptThread {
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
-        let debugger_pipeline_id = PipelineId::new();
-        let script_to_constellation_chan = ScriptToConstellationChan {
-            sender: senders.pipeline_to_constellation_sender.clone(),
-            // This channel is not expected to be used, so the `WebViewId` that we set here
-            // does not matter.
-            // TODO: Look at ways of removing the channel entirely for debugger globals.
-            webview_id: TEST_WEBVIEW_ID,
-            pipeline_id: debugger_pipeline_id,
-        };
         let debugger_global = DebuggerGlobalScope::new(
             PipelineId::new(),
             senders.devtools_server_sender.clone(),
             senders.devtools_client_to_script_thread_sender.clone(),
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
-            script_to_constellation_chan,
+            senders.pipeline_to_constellation_sender.clone(),
             senders.pipeline_to_embedder_sender.clone(),
             state.resource_threads.clone(),
             state.storage_threads.clone(),
@@ -3461,7 +3451,6 @@ impl ScriptThread {
             self.layout_factory.create(layout_config),
             font_context,
             self.senders.image_cache_sender.clone(),
-            image_cache.clone(),
             self.resource_threads.clone(),
             self.storage_threads.clone(),
             #[cfg(feature = "bluetooth")]
@@ -3469,7 +3458,7 @@ impl ScriptThread {
             self.senders.memory_profiler_sender.clone(),
             self.senders.time_profiler_sender.clone(),
             self.senders.devtools_server_sender.clone(),
-            script_to_constellation_chan,
+            self.senders.pipeline_to_constellation_sender.clone(),
             self.senders.pipeline_to_embedder_sender.clone(),
             self.senders.constellation_sender.clone(),
             incomplete.pipeline_id,
@@ -3509,26 +3498,6 @@ impl ScriptThread {
 
         let mut realm = enter_auto_realm(cx, &*window);
         let cx = &mut realm;
-
-        // Initialize the browsing context for the window.
-        let window_proxy = self.window_proxies.local_window_proxy(
-            cx,
-            &self.senders,
-            &self.documents,
-            &window,
-            incomplete.browsing_context_id,
-            incomplete.webview_id,
-            incomplete.parent_info,
-            incomplete.opener,
-        );
-        if window_proxy.parent().is_some() {
-            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
-            // The user agent must take this nested browsing context
-            // out of the delaying load events mode
-            // when this navigation algorithm later matures.
-            window_proxy.stop_delaying_load_events_mode();
-        }
-        window.init_window_proxy(&window_proxy);
 
         // https://html.spec.whatwg.org/multipage/#resource-metadata-management
         // > The Document's source file's last modification date and time must be derived from
@@ -3599,6 +3568,8 @@ impl ScriptThread {
             incomplete.load_data.has_trustworthy_ancestor_origin,
             self.custom_element_reaction_stack.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
+            incomplete.pipeline_id,
+            image_cache,
             CanGc::from_cx(cx),
         );
 
@@ -3625,6 +3596,26 @@ impl ScriptThread {
             .insert(incomplete.pipeline_id, &document);
 
         window.init_document(&document);
+
+        // Initialize the browsing context for the window.
+        let window_proxy = self.window_proxies.local_window_proxy(
+            cx,
+            &self.senders,
+            &self.documents,
+            &window,
+            incomplete.browsing_context_id,
+            incomplete.webview_id,
+            incomplete.parent_info,
+            incomplete.opener,
+        );
+        if window_proxy.parent().is_some() {
+            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
+            // The user agent must take this nested browsing context
+            // out of the delaying load events mode
+            // when this navigation algorithm later matures.
+            window_proxy.stop_delaying_load_events_mode();
+        }
+        window.init_window_proxy(&window_proxy);
 
         // For any similar-origin iframe, ensure that the contentWindow/contentDocument
         // APIs resolve to the new window/document as soon as parsing starts.

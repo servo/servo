@@ -18,7 +18,7 @@ use profile_traits::{mem, time};
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
 use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
-use servo_constellation_traits::ScriptToConstellationChan;
+use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
@@ -71,6 +71,8 @@ pub(crate) struct DebuggerGlobalScope {
     get_list_frame_result_sender: RefCell<Option<GenericSender<Vec<String>>>>,
     #[no_trace]
     get_environment_result_sender: RefCell<Option<GenericSender<String>>>,
+    #[no_trace]
+    pipeline_id: PipelineId,
 }
 
 impl DebuggerGlobalScope {
@@ -88,7 +90,7 @@ impl DebuggerGlobalScope {
         devtools_to_script_sender: GenericSender<DevtoolScriptControlMsg>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
-        script_to_constellation_chan: ScriptToConstellationChan,
+        script_to_constellation_sender: ScriptToConstellationSender,
         script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
@@ -97,11 +99,10 @@ impl DebuggerGlobalScope {
     ) -> DomRoot<Self> {
         let global = Box::new(Self {
             global_scope: GlobalScope::new_inherited(
-                debugger_pipeline_id,
                 script_to_devtools_sender,
                 mem_profiler_chan,
                 time_profiler_chan,
-                script_to_constellation_chan,
+                script_to_constellation_sender,
                 script_to_embedder_chan,
                 resource_threads,
                 storage_threads,
@@ -120,6 +121,7 @@ impl DebuggerGlobalScope {
             get_list_frame_result_sender: RefCell::new(None),
             get_environment_result_sender: RefCell::new(None),
             eval_result_sender: RefCell::new(None),
+            pipeline_id: debugger_pipeline_id,
         });
         let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global);
 
@@ -391,6 +393,10 @@ impl DebuggerGlobalScope {
             event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerUnblackboxEvent::new"
         );
+    }
+
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
+        self.pipeline_id
     }
 }
 

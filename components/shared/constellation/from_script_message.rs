@@ -518,7 +518,7 @@ pub struct WorkerGlobalScopeInit {
     /// From devtools sender
     pub from_devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     /// Messages to send to constellation
-    pub script_to_constellation_chan: ScriptToConstellationChan,
+    pub script_to_constellation_chan: ScriptToConstellationSender,
     /// Messages to send to the Embedder
     pub script_to_embedder_chan: ScriptToEmbedderChan,
     /// The worker id

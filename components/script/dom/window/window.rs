@@ -79,8 +79,8 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_config::pref;
 use servo_constellation_traits::{
-    LoadData, LoadOrigin, ScreenshotReadinessResponse, ScriptToConstellationChan,
-    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
+    LoadData, LoadOrigin, ScreenshotReadinessResponse, ScriptToConstellationMessage,
+    ScriptToConstellationSender, StructuredSerializedData, WindowSizeType,
 };
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -192,8 +192,9 @@ use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
+use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
-use crate::timers::{IsInterval, TimerCallback};
+use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 use crate::unminify::unminified_path;
 use crate::webdriver_handlers::{find_node_by_unique_id_in_document, jsval_to_webdriver};
 use crate::{fetch, window_named_properties};
@@ -288,15 +289,11 @@ pub(crate) struct Window {
     layout: RefCell<Box<dyn Layout>>,
     navigator: MutNullableDom<Navigator>,
     crypto: MutNullableDom<Crypto>,
-    #[ignore_malloc_size_of = "ImageCache"]
-    #[no_trace]
-    image_cache: Arc<dyn ImageCache>,
     #[no_trace]
     image_cache_sender: Sender<ImageCacheResponseMessage>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
-    history: MutNullableDom<History>,
     performance: MutNullableDom<Performance>,
     #[no_trace]
     navigation_start: Cell<CrossProcessInstant>,
@@ -575,7 +572,7 @@ impl Window {
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
-        self.image_cache.clone()
+        self.Document().image_cache()
     }
 
     /// This can panic if it is called after the browsing context has been discarded
@@ -946,6 +943,11 @@ impl Window {
         unsafe {
             JS_GC(cx, GCReason::API);
         }
+    }
+
+    pub(crate) fn with_timers<T>(&self, f: impl FnOnce(&OneshotTimers) -> T) -> T {
+        let document = self.Document();
+        f(document.timers())
     }
 }
 
@@ -1421,7 +1423,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history>
     fn History(&self, cx: &mut JSContext) -> DomRoot<History> {
-        self.history.or_init(|| History::new(cx, self))
+        self.Document().history(cx)
     }
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
@@ -3537,6 +3539,7 @@ impl Window {
         pending_svg_element_for_serialization: Vec<UntrustedNodeAddress>,
     ) {
         let pipeline_id = self.pipeline_id();
+        let image_cache = self.image_cache();
         for image in pending_images {
             let id = image.id;
             let node = unsafe { from_untrusted_node_address(image.node) };
@@ -3547,7 +3550,7 @@ impl Window {
                     &node,
                     id,
                     image.is_internal_request,
-                    self.image_cache.clone(),
+                    image_cache.clone(),
                 );
             }
 
@@ -3561,8 +3564,7 @@ impl Window {
                         .pending_layout_image_notification(response);
                 });
 
-                self.image_cache
-                    .add_listener(ImageLoadListener::new(sender, pipeline_id, id));
+                image_cache.add_listener(ImageLoadListener::new(sender, pipeline_id, id));
             }
 
             let nodes = images.entry(id).or_default();
@@ -3580,7 +3582,7 @@ impl Window {
             let mut images = self.pending_images_for_rasterization.borrow_mut();
             if !images.contains_key(&(image.id, image.size)) {
                 let image_cache_sender = self.image_cache_sender.clone();
-                self.image_cache.add_rasterization_complete_listener(
+                image_cache.add_rasterization_complete_listener(
                     pipeline_id,
                     image.id,
                     image.size,
@@ -3667,14 +3669,13 @@ impl Window {
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
         image_cache_sender: Sender<ImageCacheResponseMessage>,
-        image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
         #[cfg(feature = "bluetooth")] bluetooth_thread: GenericSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
-        constellation_chan: ScriptToConstellationChan,
+        script_to_constellation_sender: ScriptToConstellationSender,
         embedder_chan: ScriptToEmbedderChan,
         control_chan: GenericSender<ScriptThreadMessage>,
         pipeline_id: PipelineId,
@@ -3705,11 +3706,10 @@ impl Window {
         let win = Box::new(Self {
             webview_id,
             globalscope: GlobalScope::new_inherited(
-                pipeline_id,
                 devtools_chan,
                 mem_profiler_chan,
                 time_profiler_chan,
-                constellation_chan,
+                script_to_constellation_sender,
                 embedder_chan,
                 resource_threads,
                 storage_threads,
@@ -3726,11 +3726,9 @@ impl Window {
             script_chan,
             layout: RefCell::new(layout),
             image_cache_sender,
-            image_cache,
             navigator: Default::default(),
             crypto: Default::default(),
             location: Default::default(),
-            history: Default::default(),
             window_proxy: Default::default(),
             document: Default::default(),
             performance: Default::default(),
@@ -3798,8 +3796,12 @@ impl Window {
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
     }
 
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        self.Document().task_manager()
+    }
+
     pub(crate) fn pipeline_id(&self) -> PipelineId {
-        self.as_global_scope().pipeline_id()
+        self.Document().pipeline_id()
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {
