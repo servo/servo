@@ -40,7 +40,7 @@ pub(crate) mod base {
     pub(crate) use crate::lock::ThreadUnsafeOnceLock;
     pub(crate) use crate::num::Finite;
     pub(crate) use crate::proxyhandler::CrossOriginProperties;
-    pub(crate) use crate::reflector::{DomGlobalGeneric, DomObject};
+    pub(crate) use crate::reflector::DomObject;
     pub(crate) use crate::root::DomRoot;
     pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
     pub(crate) use crate::str::{ByteString, DOMString, USVString};

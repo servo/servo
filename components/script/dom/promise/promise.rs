@@ -45,7 +45,7 @@ use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -270,10 +270,7 @@ impl Promise {
         cx: &mut CurrentRealm,
         handler: &PromiseNativeHandler,
     ) {
-        let in_realm_proof = cx.into();
-        let realm = InRealm::Already(&in_realm_proof);
-
-        run_a_script::<DomTypeHolder, _, _>(cx, &handler.global_(realm), |cx| {
+        run_a_script::<DomTypeHolder, _, _>(cx, &GlobalScope::from_current_realm(cx), |cx| {
             rooted!(&in(cx) let resolve_func =
                 create_native_handler_function(cx,
                                                handler.reflector().get_jsobject(),

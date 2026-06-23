@@ -4259,7 +4259,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = "global.upcast::<D::GlobalScope>()"
             else:
-                glob = "&this.global_(InRealm::already(&AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx.raw_cx()))))"
+                glob = "&D::GlobalScope::from_current_realm(&CurrentRealm::assert(cx))"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
