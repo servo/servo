@@ -281,7 +281,7 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
                 LeaveRealm(cx, old_realm);
             }
             if handling == ExceptionHandling::Report {
-                let mut realm = enter_auto_realm::<D>(cx, &**global);
+                let mut realm = enter_auto_realm(cx, &**global);
                 let cx = &mut realm.current_realm();
                 <D as DomHelpers<D>>::report_pending_exception(cx);
             }

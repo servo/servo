@@ -11,21 +11,21 @@ import os
 from typing import Any, TypeVar
 
 from WebIDL import (
-    IDLExternalInterface,
-    IDLSequenceType,
-    IDLWrapperType,
-    WebIDLError,
+    IDLAttribute,
+    IDLCallback,
+    IDLDictionary,
     IDLEnum,
+    IDLExternalInterface,
+    IDLInterfaceMember,
+    IDLInterfaceOrNamespace,
+    IDLMethod,
     IDLObject,
     IDLObjectWithIdentifier,
+    IDLSequenceType,
     IDLType,
     IDLTypedef,
-    IDLInterfaceOrNamespace,
-    IDLDictionary,
-    IDLCallback,
-    IDLAttribute,
-    IDLMethod,
-    IDLInterfaceMember,
+    IDLWrapperType,
+    WebIDLError,
 )
 
 TargetType = TypeVar('TargetType')
@@ -49,6 +49,8 @@ class Configuration:
     typedefs: list[IDLTypedef]
     dictionaries: list[IDLDictionary]
     callbacks: list[IDLCallback]
+    crates: dict[str,list[str]]
+    sub_crates: dict[str,list[str]]
 
     def __init__(self, filename: str, parseData: list[IDLObjectWithIdentifier]) -> None:
         # Read the configuration file.
@@ -58,6 +60,8 @@ class Configuration:
         self.enumConfig = glbl['Enums']
         self.dictConfig = glbl['Dictionaries']
         self.unionConfig = glbl['Unions']
+        self.crates = glbl['Crates']
+        self.sub_crates = glbl['SubCrates']
 
         # Build descriptors for all the interfaces we have in the parse data.
         # This allows callers to specify a subset of interfaces by filtering
@@ -302,6 +306,7 @@ class Descriptor(DescriptorProvider):
         self.weakReferenceable = desc.get('weakReferenceable', False)
         self.useSystemCompartment = desc.get('useSystemCompartment', False)
         self.allowDropImpl = desc.get('allowDropImpl', False)
+        self.crate = desc.get('crate', "")
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.

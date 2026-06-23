@@ -72,7 +72,7 @@ pub fn enter_realm<D: DomTypes>(object: &impl DomObject) -> JSAutoRealm {
     )
 }
 
-pub fn enter_auto_realm<'cx, D: DomTypes>(
+pub fn enter_auto_realm<'cx>(
     cx: &'cx mut js::context::JSContext,
     object: &impl DomObject,
 ) -> AutoRealm<'cx> {

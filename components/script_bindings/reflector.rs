@@ -314,3 +314,27 @@ where
     let global_scope = global.upcast();
     unsafe { T::WRAP(cx, global_scope, proto, obj) }
 }
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub fn reflect_dom_object_with_cx_and_wrap<D, AbstractType, GlobalType>(
+    obj: Box<AbstractType>,
+    global: &GlobalType,
+    cx: &mut js::context::JSContext,
+    wrap: unsafe fn(
+        &mut js::context::JSContext,
+        &D::GlobalScope,
+        Option<HandleObject>,
+        Box<AbstractType>,
+    ) -> DomRoot<AbstractType>,
+) -> DomRoot<AbstractType>
+where
+    D: DomTypes,
+    AbstractType: DomObject,
+    GlobalType: DerivedFrom<D::GlobalScope>,
+    Box<AbstractType>: From<Box<AbstractType>>,
+    DomRoot<AbstractType>: From<DomRoot<AbstractType>>,
+{
+    let global_scope = global.upcast();
+    unsafe { wrap(cx, global_scope, None, obj) }
+}

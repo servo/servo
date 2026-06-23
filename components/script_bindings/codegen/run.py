@@ -6,12 +6,13 @@
 
 from __future__ import annotations
 
-import os
-import sys
+import itertools
 import json
+import os
 import re
-from typing import TYPE_CHECKING
+import sys
 from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SCRIPT_BINDINGS_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
@@ -36,8 +37,8 @@ def main() -> None:
     config_file = "Bindings.conf"
 
     import WebIDL
-    from configuration import Configuration
     from codegen import CGBindingRoot, CGConcreteBindingRoot
+    from configuration import Configuration
 
     parser = WebIDL.Parser(make_dir(os.path.join(out_dir, "cache")))
     webidls = [name for name in os.listdir(webidls_dir) if name.endswith(".webidl")]
@@ -58,6 +59,7 @@ def main() -> None:
     config = Configuration(config_file, parser_results)
     make_dir(os.path.join(out_dir, "Bindings"))
     make_dir(os.path.join(out_dir, "ConcreteBindings"))
+    make_dir(os.path.join(out_dir, "IDLInterfaceBindings"))
 
     for name, filename in [
         ("PrototypeList", "PrototypeList.rs"),
@@ -67,8 +69,8 @@ def main() -> None:
         ("InterfaceObjectMapData", "InterfaceObjectMapData.json"),
         ("InterfaceTypes", "InterfaceTypes.rs"),
         ("InheritTypes", "InheritTypes.rs"),
-        ("ConcreteInheritTypes", "ConcreteInheritTypes.rs"),
         ("Bindings", "Bindings/mod.rs"),
+        ("BindingsIDL", "IDLInterfaceBindings/mod.rs"),
         ("Bindings", "ConcreteBindings/mod.rs"),
         ("UnionTypes", "GenericUnionTypes.rs"),
         ("ConcreteUnionTypes", "UnionTypes.rs"),
@@ -80,6 +82,17 @@ def main() -> None:
     make_dir(doc_servo)
     generate(config, "SupportedDomApis", os.path.join(doc_servo, "apis.html"))
 
+    all_interface_descriptors = set(d.interface.identifier.name.replace('\'','') for d in config.descriptors)
+
+    #print("\n\n\n")
+    #for index, i in enumerate(all_interface_descriptors):
+    #    print(str(index) + ":" + i)
+    #print("\n\n\n")
+    build_concrete_inherit_types(config, out_dir)
+    #print(all_interface_descriptors)
+    build_idl(config, out_dir, webidls_dir, webidls, all_interface_descriptors)
+
+
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
         prefix = "Bindings/%sBinding" % webidl[:-len(".webidl")]
@@ -87,11 +100,74 @@ def main() -> None:
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))
+
         prefix = "ConcreteBindings/%sBinding" % webidl[:-len(".webidl")]
-        module = CGConcreteBindingRoot(config, prefix, filename).define()
+        module = CGConcreteBindingRoot(config, prefix, filename, all_interface_descriptors).define()
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))
+
+    #for promise
+    #for webidl in webidls:
+    #    filename = os.path.join(webidls_dir, webidl)
+        #prefix = "PromiseBindings/%sBinding" % webidl[:-len(".webidl")]
+        #module = CGBindingRoot(config, prefix, filename).define()
+        #if module:
+        #    with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
+        #        f.write(module.encode("utf-8"))
+    #    prefix = "PromiseConcreteBindings/%sBinding" % webidl[:-len(".webidl")]
+    #    make_dir(os.path.join(out_dir, "PromiseConcreteBindings"))
+    #    module = CGConcreteBindingRoot(config, prefix, filename, all_interface_descriptors - set(item for item in config.sub_crates["script_promise"])).define()
+    #    if module:
+    #        with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
+    #            f.write(module.encode("utf-8"))
+
+
+
+
+def build_idl(config: Configuration, out_dir: str, webidls_dir: str, webidls:list[str], all_interface_descriptors: set[str]) -> None:
+    from codegen import CGIDLInterfaceBindingRoot
+
+    s = set(item for item in config.sub_crates["script_promise"])
+    other_descriptors = all_interface_descriptors - s
+    #other_bindings = set(webidls) - set(config.idl_crates.values())
+    for webidl in webidls:
+        filename = os.path.join(webidls_dir, webidl)
+        prefix = "IDLInterfaceBindings/%sBinding" % webidl[:-len(".webidl")]
+        module = CGIDLInterfaceBindingRoot(config, prefix, filename, other_descriptors).define()
+        if module:
+            with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
+                f.write(module.encode("utf-8"))
+
+    for webidl in webidls:
+        filename = os.path.join(webidls_dir, webidl)
+        prefix = "PromiseIDLInterfaceBindings/%sBinding" % webidl[:-len(".webidl")]
+        make_dir(os.path.join(out_dir, "PromiseIDLInterfaceBindings"))
+        print("NEW SET " + str(s))
+        module = CGIDLInterfaceBindingRoot(config, prefix, filename, s).define()
+        if module:
+            with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
+                f.write(module.encode("utf-8"))
+
+def build_concrete_inherit_types(config: Configuration, out_dir:str) -> None:
+    from codegen import GlobalGenRoots
+    interfaces_to_skip = list(itertools.chain.from_iterable([interfaces for name,interfaces in config.crates.items()]))
+    # write defaults
+    root = GlobalGenRoots.ConcreteInheritTypes(config, skip=interfaces_to_skip)
+    code = root.define()
+
+    filepath = os.path.join(out_dir, "ConcreteInheritTypes.rs")
+    with open(filepath, "wb") as f:
+        f.write(code.encode("utf-8"))
+    for name,interfaces in config.crates.items():
+        root = GlobalGenRoots.ConcreteInheritTypes(config, skip=interfaces, inverse= True)
+        code = root.define()
+        filepath =os.path.join(out_dir, name+"ConcreteInheritTypes.rs")
+        with open(filepath, "wb") as f:
+            f.write(code.encode("utf-8"))
+
+def build_concrete_bindings(config: Configuration, out_dir: str) -> None:
+    generate(config, "Bindings", os.path.join(out_dir, "ConcreteBindings/mod.rs"))
 
 
 def make_dir(path: str)-> str:

@@ -4,38 +4,39 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::gc::Traceable as JSTraceable;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
+use jstraceable_derive::JSTraceable;
 use malloc_size_of::MallocSizeOf;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::globalscope::GlobalScope;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx_and_wrap};
+use script_bindings::root::DomRoot;
 
 /// Types that implement the `Callback` trait follow the same rooting requirements
 /// as types that use the `#[dom_struct]` attribute.
 /// Prefer storing `Dom<T>` members inside them instead of `DomRoot<T>`
 /// to minimize redundant work by the garbage collector.
-pub(crate) trait Callback: JSTraceable + MallocSizeOf {
+pub trait Callback: JSTraceable + MallocSizeOf {
     fn callback(&self, cx: &mut CurrentRealm, v: HandleValue);
 }
 
 #[dom_struct]
-pub(crate) struct PromiseNativeHandler {
+pub struct PromiseNativeHandler {
     reflector: Reflector,
     resolve: Option<Box<dyn Callback>>,
     reject: Option<Box<dyn Callback>>,
 }
 
 impl PromiseNativeHandler {
-    pub(crate) fn new(
+    pub fn new<D: DomTypes<PromiseNativeHandler = PromiseNativeHandler>>(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         resolve: Option<Box<dyn Callback>>,
         reject: Option<Box<dyn Callback>>,
     ) -> DomRoot<PromiseNativeHandler> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object_with_cx_and_wrap::<D,_,_>(
             Box::new(PromiseNativeHandler {
                 reflector: Reflector::new(),
                 resolve,
@@ -43,6 +44,7 @@ impl PromiseNativeHandler {
             }),
             global,
             cx,
+            crate::dom::bindings::codegen::GenericBindings::PromiseNativeHandlerBinding::PromiseNativeHandler_Binding::Wrap::<D>
         )
     }
 

@@ -162,8 +162,11 @@ pub(crate) mod xmlname;
 pub(crate) use script_bindings::{callback, iterable, num};
 
 /// Generated JS-Rust bindings.
-#[allow(missing_docs, non_snake_case)]
+#[allow(missing_docs, non_snake_case, unused)]
 pub(crate) mod codegen {
+    pub(crate) mod IDLInterface {
+        include!(concat!(env!("OUT_DIR"), "/IDLInterfaceBindings/mod.rs"));
+    }
     pub(crate) mod DomTypeHolder {
         include!(concat!(env!("OUT_DIR"), "/DomTypeHolder.rs"));
     }
