@@ -3710,7 +3710,6 @@ impl Window {
         let win = Box::new(Self {
             webview_id,
             globalscope: GlobalScope::new_inherited(
-                pipeline_id,
                 devtools_chan,
                 mem_profiler_chan,
                 time_profiler_chan,
@@ -3804,7 +3803,7 @@ impl Window {
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
-        self.as_global_scope().pipeline_id()
+        self.Document().pipeline_id()
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {

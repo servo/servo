@@ -55,7 +55,7 @@ use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSend;
-use servo_base::id::WebViewId;
+use servo_base::id::{PipelineId, WebViewId};
 use servo_base::{Epoch, generic_channel};
 use servo_config::pref;
 use servo_constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
@@ -673,11 +673,18 @@ pub(crate) struct Document {
     /// The mechanism by which time-outs and intervals are scheduled.
     /// <https://html.spec.whatwg.org/multipage/#timers>
     timers: OneshotTimers,
+
+    #[no_trace]
+    pipeline_id: PipelineId,
 }
 
 impl Document {
     pub(crate) fn timers(&self) -> &OneshotTimers {
         &self.timers
+    }
+
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
+        self.pipeline_id
     }
 
     /// <https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps>
@@ -3537,6 +3544,7 @@ impl Document {
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
         timeline: &DocumentTimeline,
+        pipeline_id: PipelineId,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3700,6 +3708,7 @@ impl Document {
             iframe_load_in_progress: Default::default(),
             mute_iframe_load: Default::default(),
             timers: OneshotTimers::new(window.upcast()),
+            pipeline_id,
         }
     }
 
@@ -3816,6 +3825,7 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        pipeline_id: PipelineId,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3840,6 +3850,7 @@ impl Document {
             has_trustworthy_ancestor_origin,
             custom_element_reaction_stack,
             creation_sandboxing_flag_set,
+            pipeline_id,
             can_gc,
         )
     }
@@ -3867,6 +3878,7 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        pipeline_id: PipelineId,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let timeline = DocumentTimeline::new(window, can_gc);
@@ -3893,6 +3905,7 @@ impl Document {
                 custom_element_reaction_stack,
                 creation_sandboxing_flag_set,
                 &timeline,
+                pipeline_id,
             )),
             window,
             proto,
@@ -4093,6 +4106,7 @@ impl Document {
                     self.has_trustworthy_ancestor_or_current_origin(),
                     self.custom_element_reaction_stack.clone(),
                     self.creation_sandboxing_flag_set(),
+                    self.pipeline_id(),
                     can_gc,
                 );
                 new_doc
@@ -4851,6 +4865,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.active_sandboxing_flag_set.get(),
+            doc.pipeline_id(),
             can_gc,
         ))
     }
@@ -4902,6 +4917,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.creation_sandboxing_flag_set(),
+            doc.pipeline_id(),
             CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
@@ -4955,6 +4971,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.creation_sandboxing_flag_set(),
+            doc.pipeline_id(),
             CanGc::from_cx(cx),
         );
 

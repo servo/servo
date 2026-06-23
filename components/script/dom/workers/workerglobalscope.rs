@@ -333,6 +333,9 @@ pub(crate) struct WorkerGlobalScope {
     /// this global's compartment.
     #[ignore_malloc_size_of = "Measured by the JS engine"]
     debugger_global: Heap<Value>,
+
+    #[no_trace]
+    pipeline_id: PipelineId,
 }
 
 impl WorkerGlobalScope {
@@ -359,7 +362,6 @@ impl WorkerGlobalScope {
 
         Self {
             globalscope: GlobalScope::new_inherited(
-                init.pipeline_id,
                 init.to_devtools_sender,
                 init.mem_profiler_chan,
                 init.time_profiler_chan,
@@ -400,6 +402,7 @@ impl WorkerGlobalScope {
             report_list: Default::default(),
             endpoints_list: Default::default(),
             debugger_global: Default::default(),
+            pipeline_id: init.pipeline_id,
         }
     }
 

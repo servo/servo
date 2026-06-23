@@ -3605,6 +3605,7 @@ impl ScriptThread {
             incomplete.load_data.has_trustworthy_ancestor_origin,
             self.custom_element_reaction_stack.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
+            incomplete.pipeline_id,
             CanGc::from_cx(cx),
         );
 

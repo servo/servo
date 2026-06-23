@@ -7,7 +7,6 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
-use servo_base::id::PipelineId;
 use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, StructuredSerializedData,
 };
@@ -55,7 +54,6 @@ impl DissimilarOriginWindow {
     ) -> DomRoot<Self> {
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
-                PipelineId::new(),
                 global_to_clone_from.devtools_chan().cloned(),
                 global_to_clone_from.mem_profiler_chan().clone(),
                 global_to_clone_from.time_profiler_chan().clone(),

@@ -76,6 +76,7 @@ impl XMLDocument {
                 custom_element_reaction_stack,
                 window.Document().creation_sandboxing_flag_set(),
                 timeline,
+                window.pipeline_id(),
             ),
         }
     }
