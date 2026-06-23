@@ -93,7 +93,7 @@ pub fn init() {
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 /// `result` must point to a valid, non-null ObjectOpResult.
-pub(crate) unsafe extern "C" fn define_property_raw(
+pub(crate) unsafe extern "C" fn define_property(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -103,27 +103,15 @@ pub(crate) unsafe extern "C" fn define_property_raw(
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
     let cx = &mut cx;
-    define_property(
-        cx,
-        Handle::from_raw(proxy),
-        Handle::from_raw(id),
-        desc,
-        result,
-    )
-}
 
-/// # Safety
-/// `result` must point to a valid, non-null ObjectOpResult.
-pub(crate) unsafe fn define_property(
-    cx: &mut JSContext,
-    proxy: HandleObject,
-    id: HandleId,
-    desc: RawHandle<PropertyDescriptor>,
-    result: *mut ObjectOpResult,
-) -> bool {
+    let proxy = Handle::from_raw(proxy);
+    let id = Handle::from_raw(id);
+    let desc = Handle::from_raw(desc);
+
     rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
     ensure_expando_object(cx, proxy, expando.handle_mut());
-    JS_DefinePropertyById(cx, expando.handle(), id, Handle::from_raw(desc), result)
+
+    JS_DefinePropertyById(cx, expando.handle(), id, desc, result)
 }
 
 /// Deletes an expando off the given `proxy`.
@@ -131,7 +119,7 @@ pub(crate) unsafe fn define_property(
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 /// `bp` must point to a valid, non-null ObjectOpResult.
-pub(crate) unsafe extern "C" fn delete_raw(
+pub(crate) unsafe extern "C" fn delete(
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -140,19 +128,13 @@ pub(crate) unsafe extern "C" fn delete_raw(
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
     let cx = &mut cx;
-    delete(cx, Handle::from_raw(proxy), Handle::from_raw(id), bp)
-}
 
-/// # Safety
-/// `result` must point to a valid, non-null ObjectOpResult.
-pub(crate) unsafe fn delete(
-    cx: &mut JSContext,
-    proxy: HandleObject,
-    id: HandleId,
-    bp: *mut ObjectOpResult,
-) -> bool {
+    let proxy = Handle::from_raw(proxy);
+    let id = Handle::from_raw(id);
+
     rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
     get_expando_object(proxy, expando.handle_mut());
+
     if expando.is_null() {
         (*bp).code_ = 0 /* OkCode */;
         return true;
@@ -255,9 +237,7 @@ pub fn set_property_descriptor(
     attrs: u32,
     is_none: &mut bool,
 ) {
-    unsafe {
-        SetDataPropertyDescriptor(desc, value, attrs);
-    }
+    unsafe { SetDataPropertyDescriptor(desc, value, attrs) };
     *is_none = false;
 }
 

@@ -4034,12 +4034,12 @@ class CGDefineProxyHandler(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self) -> CGThing:
-        customDefineProperty = 'proxyhandler::define_property_raw'
+        customDefineProperty = 'proxyhandler::define_property'
         if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['IndexedSetter'] or \
            self.descriptor.operations['NamedSetter']:
             customDefineProperty = 'defineProperty::<D>'
 
-        customDelete = 'proxyhandler::delete_raw'
+        customDelete = 'proxyhandler::delete'
         if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['NamedDeleter']:
             customDelete = 'delete::<D>'
 
@@ -6477,7 +6477,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "        return (*opresult).fail_no_named_setter();\n"
                     "    }\n"
                     "}\n")
-        set += "return proxyhandler::define_property(cx, proxy, id, desc, opresult);"
+        set += "return proxyhandler::define_property(cx.raw_cx(), proxy.into(), id.into(), desc, opresult);"
         return set
 
     def definition_body(self) -> CGThing:
@@ -6516,7 +6516,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
                 raise TypeError("Can't handle a deleter on an interface that has "
                                 "unforgeables. Figure out how that should work!")
             set += CGProxyNamedDeleter(self.descriptor).define()
-        set += "return proxyhandler::delete(cx, proxy, id, res);"
+        set += "return proxyhandler::delete(cx.raw_cx(), proxy.into(), id.into(), res);"
         return set
 
     def definition_body(self) -> CGThing:
