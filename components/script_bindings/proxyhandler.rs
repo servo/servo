@@ -10,13 +10,14 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::ptr::NonNull;
 
+use js::context::{JSContext, RawJSContext};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::glue::{GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, SetProxyPrivate};
 use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, Handle as RawHandle, HandleId as RawHandleId,
     HandleObject as RawHandleObject, HandleValue as RawHandleValue, HandleValueArray,
-    IsWindowProxy, JSContext, JSErrNum, JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY,
-    JSITER_SYMBOLS, JSObject, JSPROP_READONLY, JSPropertySpec, JSString,
+    IsWindowProxy, JSErrNum, JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS,
+    JSObject, JSPROP_READONLY, JSPropertySpec, JSString,
     MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
@@ -41,7 +42,6 @@ use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::DomObject;
-use crate::script_runtime::JSContext as SafeJSContext;
 use crate::str::DOMString;
 
 /// Determine if this id shadows any existing properties for this proxy.
@@ -49,12 +49,12 @@ use crate::str::DOMString;
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 pub(crate) unsafe extern "C" fn shadow_check_callback(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     object: RawHandleObject,
     id: RawHandleId,
 ) -> DOMProxyShadowsResult {
     // TODO: support OverrideBuiltins when #12978 is fixed.
-    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
     let cx = &mut cx;
 
     let object = HandleObject::from_raw(object);
@@ -94,13 +94,14 @@ pub fn init() {
 /// `cx` must point to a valid, non-null JSContext.
 /// `result` must point to a valid, non-null ObjectOpResult.
 pub(crate) unsafe extern "C" fn define_property_raw(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
     desc: RawHandle<PropertyDescriptor>,
     result: *mut ObjectOpResult,
 ) -> bool {
-    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
     let cx = &mut cx;
     define_property(
         cx,
@@ -114,7 +115,7 @@ pub(crate) unsafe extern "C" fn define_property_raw(
 /// # Safety
 /// `result` must point to a valid, non-null ObjectOpResult.
 pub(crate) unsafe fn define_property(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     proxy: HandleObject,
     id: HandleId,
     desc: RawHandle<PropertyDescriptor>,
@@ -131,12 +132,13 @@ pub(crate) unsafe fn define_property(
 /// `cx` must point to a valid, non-null JSContext.
 /// `bp` must point to a valid, non-null ObjectOpResult.
 pub(crate) unsafe extern "C" fn delete_raw(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
     bp: *mut ObjectOpResult,
 ) -> bool {
-    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
     let cx = &mut cx;
     delete(cx, Handle::from_raw(proxy), Handle::from_raw(id), bp)
 }
@@ -144,7 +146,7 @@ pub(crate) unsafe extern "C" fn delete_raw(
 /// # Safety
 /// `result` must point to a valid, non-null ObjectOpResult.
 pub(crate) unsafe fn delete(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     proxy: HandleObject,
     id: HandleId,
     bp: *mut ObjectOpResult,
@@ -164,7 +166,7 @@ pub(crate) unsafe fn delete(
 /// # Safety
 /// `result` must point to a valid, non-null ObjectOpResult.
 pub(crate) unsafe extern "C" fn prevent_extensions(
-    _cx: *mut JSContext,
+    _cx: *mut RawJSContext,
     _proxy: RawHandleObject,
     result: *mut ObjectOpResult,
 ) -> bool {
@@ -177,7 +179,7 @@ pub(crate) unsafe extern "C" fn prevent_extensions(
 /// # Safety
 /// `succeeded` must point to a valid, non-null bool.
 pub(crate) unsafe extern "C" fn is_extensible(
-    _cx: *mut JSContext,
+    _cx: *mut RawJSContext,
     _proxy: RawHandleObject,
     succeeded: *mut bool,
 ) -> bool {
@@ -198,7 +200,7 @@ pub(crate) unsafe extern "C" fn is_extensible(
 /// # Safety
 /// `is_ordinary` must point to a valid, non-null bool.
 pub(crate) unsafe extern "C" fn get_prototype_if_ordinary(
-    _: *mut JSContext,
+    _: *mut RawJSContext,
     proxy: RawHandleObject,
     is_ordinary: *mut bool,
     proto: RawMutableHandleObject,
@@ -225,7 +227,7 @@ pub(crate) fn get_expando_object(obj: HandleObject, mut expando: MutableHandleOb
 /// Get the expando object, or create it if it doesn't exist yet.
 /// Fails on JSAPI failure.
 pub(crate) fn ensure_expando_object(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     obj: HandleObject,
     mut expando: MutableHandleObject,
 ) {
@@ -259,7 +261,7 @@ pub fn set_property_descriptor(
     *is_none = false;
 }
 
-fn id_to_source(cx: &mut js::context::JSContext, id: HandleId) -> Option<DOMString> {
+fn id_to_source(cx: &mut JSContext, id: HandleId) -> Option<DOMString> {
     unsafe {
         if RUST_JSID_IS_VOID(id) {
             return None;
@@ -301,7 +303,7 @@ impl CrossOriginProperties {
 ///
 /// [`CrossOriginOwnPropertyKeys`]: https://html.spec.whatwg.org/multipage/#crossoriginownpropertykeys-(-o-)
 fn cross_origin_own_property_keys(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     _proxy: HandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
     props: RawMutableHandleIdVector,
@@ -327,7 +329,7 @@ fn cross_origin_own_property_keys(
 /// # Safety
 /// `is_ordinary` must point to a valid, non-null bool.
 pub(crate) unsafe extern "C" fn maybe_cross_origin_get_prototype_if_ordinary_rawcx(
-    _: *mut JSContext,
+    _: *mut RawJSContext,
     _proxy: RawHandleObject,
     is_ordinary: *mut bool,
     _proto: RawMutableHandleObject,
@@ -345,12 +347,13 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_get_prototype_if_ordinary_raw
 /// # Safety
 /// `result` must point to a valid, non-null ObjectOpResult.
 pub(crate) unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     proxy: RawHandleObject,
     proto: RawHandleObject,
     result: *mut ObjectOpResult,
 ) -> bool {
-    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
     let cx = &mut cx;
     // > 1. Return `! SetImmutablePrototype(this, V)`.
     //
@@ -406,7 +409,7 @@ fn is_data_descriptor(d: &PropertyDescriptor) -> bool {
 /// # Safety
 /// `bp` must point to a valid, non-null bool.
 pub(crate) unsafe fn cross_origin_has_own(
-    cx: &mut js::realm::CurrentRealm,
+    cx: &mut CurrentRealm,
     _proxy: HandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
     id: HandleId,
@@ -451,7 +454,7 @@ const ALLOWLISTED_SYMBOL_CODES: &[SymbolCode] = &[
     SymbolCode::isConcatSpreadable,
 ];
 
-fn is_cross_origin_allowlisted_prop(cx: &mut js::context::JSContext, id: HandleId) -> bool {
+fn is_cross_origin_allowlisted_prop(cx: &mut JSContext, id: HandleId) -> bool {
     unsafe {
         if jsid_to_string(cx, id).is_some_and(|st| st == "then") {
             return true;
@@ -471,10 +474,7 @@ fn is_cross_origin_allowlisted_prop(cx: &mut js::context::JSContext, id: HandleI
 /// `props`. This is used to implement [`CrossOriginOwnPropertyKeys`].
 ///
 /// [`CrossOriginOwnPropertyKeys`]: https://html.spec.whatwg.org/multipage/#crossoriginownpropertykeys-(-o-)
-fn append_cross_origin_allowlisted_prop_keys(
-    cx: &mut js::context::JSContext,
-    props: RawMutableHandleIdVector,
-) {
+fn append_cross_origin_allowlisted_prop_keys(cx: &mut JSContext, props: RawMutableHandleIdVector) {
     unsafe {
         rooted!(&in(cx) let mut id: jsid);
 
@@ -547,11 +547,11 @@ fn ensure_cross_origin_property_holder(
 /// IDL operations on a cross-origin object involve [a security check][1].
 ///
 /// [1]: https://html.spec.whatwg.org/multipage/#integration-with-idl
-pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: &mut JSContext, obj: HandleObject) -> bool {
     unsafe {
         IsWindowProxy(*obj) ||
-            native_from_object::<D::Location>(*obj, *cx).is_ok() ||
-            native_from_object::<D::DissimilarOriginLocation>(*obj, *cx).is_ok()
+            native_from_object::<D::Location>(*obj, cx.raw_cx()).is_ok() ||
+            native_from_object::<D::DissimilarOriginLocation>(*obj, cx.raw_cx()).is_ok()
     }
 }
 
@@ -589,7 +589,7 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
 ///
 /// [`Location`]: https://html.spec.whatwg.org/multipage/#location-set
 pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
     v: RawHandleValue,
@@ -597,8 +597,9 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
     result: *mut ObjectOpResult,
 ) -> bool {
     unsafe {
-        let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
-        let mut realm = js::realm::CurrentRealm::assert(&mut cx);
+        // SAFETY: it is safe to construct a JSContext from engine hook.
+        let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
+        let mut realm = CurrentRealm::assert(&mut cx);
         let proxy = HandleObject::from_raw(proxy);
         let id = Handle::from_raw(id);
         let v = Handle::from_raw(v);
@@ -609,7 +610,7 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
         }
 
         // Safe to enter the Realm of proxy now.
-        let mut realm = js::realm::AutoRealm::new_from_handle(&mut realm, proxy);
+        let mut realm = AutoRealm::new_from_handle(&mut realm, proxy);
 
         // OrdinarySet
         // <https://tc39.es/ecma262/#sec-ordinaryset>
@@ -648,11 +649,7 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
 pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
     cx: &mut CurrentRealm,
     proxy: HandleObject,
-    get_proto_object: fn(
-        cx: &mut js::context::JSContext,
-        global: HandleObject,
-        rval: MutableHandleObject,
-    ),
+    get_proto_object: fn(cx: &mut JSContext, global: HandleObject, rval: MutableHandleObject),
     mut proto: MutableHandleObject,
 ) -> bool {
     // > 1. If ! IsPlatformObjectSameOrigin(this) is true, then return ! OrdinaryGetPrototypeOf(this).
@@ -860,11 +857,10 @@ pub(crate) struct JSProxyHandlerOwnPropertyKeysConfig<T>
 where
     T: DomObject,
 {
-    pub(crate) indexed_getter_and_length: Option<fn(&T, &mut js::context::JSContext) -> u32>,
+    pub(crate) indexed_getter_and_length: Option<fn(&T, &mut JSContext) -> u32>,
     pub(crate) cross_origin: Option<&'static CrossOriginProperties>,
     pub(crate) unwrapped_proxy: unsafe fn(RawHandleObject) -> *const T,
-    pub(crate) supported_named_properties:
-        Option<fn(*const T, &mut js::context::JSContext) -> Vec<DOMString>>,
+    pub(crate) supported_named_properties: Option<fn(*const T, &mut JSContext) -> Vec<DOMString>>,
 }
 
 /// Helper type to keep AutoRealm and &mut CurrentRealm alive with Deref to JSContext
@@ -874,7 +870,7 @@ enum Realm<'a> {
 }
 
 impl<'cx> Deref for Realm<'cx> {
-    type Target = js::context::JSContext;
+    type Target = JSContext;
 
     fn deref(&'_ self) -> &'_ Self::Target {
         match self {
@@ -897,7 +893,7 @@ impl<'cx> DerefMut for Realm<'cx> {
 /// SAFETY: cx must point to a valid, non-null JS context.
 pub(crate) unsafe fn JSProxyHandlerOwnPropertyKeys<D, T>(
     config: JSProxyHandlerOwnPropertyKeysConfig<T>,
-    cx: *mut js::jsapi::JSContext,
+    cx: *mut RawJSContext,
     proxy: RawHandleObject,
     props: RawMutableHandleIdVector,
 ) -> bool
@@ -906,7 +902,8 @@ where
     T: DomObject,
 {
     unsafe {
-        let mut cx = js::context::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+        // SAFETY: it is safe to construct a JSContext from engine hook.
+        let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
         let mut cx = CurrentRealm::assert(&mut cx);
         let current_realm = &mut cx;
         let unwrapped_proxy = (config.unwrapped_proxy)(proxy);
@@ -976,15 +973,14 @@ where
 pub(crate) struct JSProxyHandlerOwnEnumerablePropertyKeysConfig<T: DomObject> {
     pub(crate) unwrapped_proxy: unsafe fn(RawHandleObject) -> *const T,
     #[expect(clippy::type_complexity)]
-    pub(crate) indexed_getter_and_length:
-        Option<Box<dyn Fn(&T, &mut js::context::JSContext) -> u32>>,
+    pub(crate) indexed_getter_and_length: Option<Box<dyn Fn(&T, &mut JSContext) -> u32>>,
     pub(crate) cross_origin: bool,
 }
 
 #[expect(non_snake_case)]
 pub(crate) fn JSProxyHandlerGetOwnEnumerablePropertyKeys<T, D>(
     config: JSProxyHandlerOwnEnumerablePropertyKeysConfig<T>,
-    cx: *mut js::jsapi::JSContext,
+    cx: *mut RawJSContext,
     proxy: RawHandleObject,
     props: RawMutableHandleIdVector,
 ) -> bool
@@ -993,7 +989,8 @@ where
     T: DomObject,
 {
     unsafe {
-        let mut cx = js::context::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+        // SAFETY: it is safe to construct a JSContext from engine hook.
+        let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
         let unwrapped_proxy = (config.unwrapped_proxy)(proxy);
         let mut cx = CurrentRealm::assert(&mut cx);
         let current_realm = &mut cx;
