@@ -903,3 +903,21 @@ Everything else gets no phone line.
 - Reworked the bridge design as a transport queue rather than an application protocol: Rust carries only valid serialized JSON frames plus private opaque receipts, while Python owns all application semantics and reply conventions.
 - `App.read()` is now defined as the Python-side inbound mail slot, returning `None` or `(receipt, json_text)`. `App.write(receipt, json_text)` validates JSON and attempts to route the reply to that private receipt; unknown receipts are transport/lifetime failures, not application errors.
 - Open questions: where to install the powerless page-visible Promise shim, which Servo script/user-content seam should enqueue JS JSON frames, how document teardown should reject affected Promises, and whether Python awaitables should be driven by Python's event loop or by a Rust-side transport executor.
+
+## 2026-06-23 — Severin CPython wheel distribution path
+
+- Inspected the existing Debian 12 release-build workflows `.github/workflows/warm_debian_rebuild.yml` and `.github/workflows/from_the_top_v2.yml`, then deliberately left them unchanged because the build pipeline is under separate repair and must not be coupled to this Python-wheel packaging pass.
+- Added `ci/local-runtime/build-severin-python-wheel.py` to assemble a minimal standards-oriented wheel directly from Cargo's `ports/severin-python` `cdylib` output. The script asks the active Python interpreter for its extension suffix, Python ABI tag, and Linux platform tag so the staged extension filename is importable without user-side renaming or symlinks.
+- The wheel path remains in-process: it packages the `severin` CPython extension only. It does not add a helper executable, localhost server, HTTP, WebSocket, Unix socket, daemon, or network-shaped bridge.
+- Added `docs/local-runtime/python-download.md` and updated `docs/local-runtime/python-embedding.md` to describe direct GitHub Release wheel download, offline `pip install --no-deps`, import verification, and the current limit that the JSON receipt bridge is designed transport scaffolding rather than a tested JavaScript Promise roundtrip.
+- No Servo resource loader category or GitHub Actions workflow was changed in this pass. This is a distribution-script and documentation seam for the existing in-process Python embedding crate.
+
+## 2026-06-23 — Severin JavaScript ↔ Python bridge vertical slice
+
+- Confirmed the PR diff for `.github/workflows/warm_debian_rebuild.yml` and `.github/workflows/from_the_top_v2.yml` is empty relative to this PR branch's base commit, and left both workflow files unchanged.
+- Inspected Servo's existing in-process script integration seams: `components/servo/user_content_manager.rs`, `components/shared/embedder/user_contents.rs`, `components/servo/webview.rs::evaluate_javascript`, and the existing `components/servo/tests/user_content_manager.rs` / `components/servo/tests/common/mod.rs` helpers.
+- Updated `ports/severin-python/src/lib.rs` to install a small host-provided top-level user script that exposes `globalThis.severin.send(value)`, queues JSON source in the page, and resolves the original Promise with `JSON.parse(reply_source)` after Python replies.
+- Added `App.pump()` as the explicit owner-thread one-turn API for Python host loops. It spins Servo once, collects completed bridge evaluations, drains page outbound frames, and advances reply delivery without starting a background runtime or helper process.
+- Receipts are native-only, single-use, and bound to the page shim's per-document identity plus private call id. Navigation clears queued frames and native reply targets so a reply cannot be delivered to a later document loaded in the same WebView.
+- Added `ports/severin-python/fixtures/bridge-roundtrip/index.html` and `ports/severin-python/tests/bridge_roundtrip.py` as the future integration harness proving request frame receipt, Python reply, and a second page frame showing the first Promise resolved.
+- No Cargo, mach, wheel assembly, pip installation, Servo test build, GitHub Actions, workflow dispatch, or workflow YAML edit was performed in this pass.
