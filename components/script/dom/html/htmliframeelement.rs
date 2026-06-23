@@ -805,9 +805,22 @@ impl HTMLIFrameElement {
     pub(crate) fn run_iframe_load_event_steps(&self, cx: &mut JSContext) {
         // TODO 1. Assert: element's content navigable is not null.
 
-        // TODO 2-4 Mark resource timing.
+        // Step 2. Let childDocument be element's content navigable's active document.
+        let child_document = self.GetContentDocument();
 
-        // TODO 5 Set childDocument's iframe load in progress flag.
+        // Step 3. If childDocument has its mute iframe load flag set, then return.
+        // Step 5. Set childDocument's iframe load in progress flag.
+        if let Some(document) = child_document {
+            if document.mute_iframe_load_flag() {
+                let blocker = &self.load_blocker;
+                LoadBlocker::terminate(blocker, cx);
+                return;
+            }
+            document.set_iframe_load_in_progress(true);
+        }
+
+        // Step 4. If element's pending resource-timing start time is not null, then:
+        // TODO
 
         // Step 6. Fire an event named load at element.
         self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
@@ -815,7 +828,10 @@ impl HTMLIFrameElement {
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, cx);
 
-        // TODO Step 7 - unset child document `mute iframe load` flag
+        // Step 7. Unset childDocument's iframe load in progress flag
+        if let Some(child_document) = self.GetContentDocument() {
+            child_document.set_iframe_load_in_progress(false);
+        }
     }
 
     /// Parse the `sandbox` attribute value given the [`Attr`]. This sets the `sandboxing_flag_set`
