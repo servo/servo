@@ -11,7 +11,6 @@ use devtools_traits::DevtoolScriptControlMsg::{
     GetChildren, GetDocumentElement, GetInnerOrOuterHTML, GetRootNode,
 };
 use devtools_traits::{DomMutation, GetHTMLType};
-use log::info;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
