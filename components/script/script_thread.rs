@@ -3505,26 +3505,6 @@ impl ScriptThread {
         let mut realm = enter_auto_realm(cx, &*window);
         let cx = &mut realm;
 
-        // Initialize the browsing context for the window.
-        let window_proxy = self.window_proxies.local_window_proxy(
-            cx,
-            &self.senders,
-            &self.documents,
-            &window,
-            incomplete.browsing_context_id,
-            incomplete.webview_id,
-            incomplete.parent_info,
-            incomplete.opener,
-        );
-        if window_proxy.parent().is_some() {
-            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
-            // The user agent must take this nested browsing context
-            // out of the delaying load events mode
-            // when this navigation algorithm later matures.
-            window_proxy.stop_delaying_load_events_mode();
-        }
-        window.init_window_proxy(&window_proxy);
-
         // https://html.spec.whatwg.org/multipage/#resource-metadata-management
         // > The Document's source file's last modification date and time must be derived from
         // > relevant features of the networking protocols used, e.g.
@@ -3622,6 +3602,26 @@ impl ScriptThread {
             .insert(incomplete.pipeline_id, &document);
 
         window.init_document(&document);
+
+        // Initialize the browsing context for the window.
+        let window_proxy = self.window_proxies.local_window_proxy(
+            cx,
+            &self.senders,
+            &self.documents,
+            &window,
+            incomplete.browsing_context_id,
+            incomplete.webview_id,
+            incomplete.parent_info,
+            incomplete.opener,
+        );
+        if window_proxy.parent().is_some() {
+            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
+            // The user agent must take this nested browsing context
+            // out of the delaying load events mode
+            // when this navigation algorithm later matures.
+            window_proxy.stop_delaying_load_events_mode();
+        }
+        window.init_window_proxy(&window_proxy);
 
         // For any similar-origin iframe, ensure that the contentWindow/contentDocument
         // APIs resolve to the new window/document as soon as parsing starts.
