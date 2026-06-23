@@ -2632,7 +2632,7 @@ impl Node {
                             );
                         }
                     } else {
-                        try_upgrade_element(cx, &descendant);
+                        try_upgrade_element(&descendant);
                     }
                 }
             }
@@ -2976,7 +2976,7 @@ impl Node {
                 // set registry to document’s effective global custom element registry.
                 let registry =
                     if CustomElementRegistry::is_a_global_element_registry(registry.as_deref()) {
-                        Some(document.custom_element_registry(cx))
+                        document.custom_element_registry()
                     } else {
                         registry
                     };

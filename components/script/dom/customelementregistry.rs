@@ -39,7 +39,7 @@ use crate::dom::bindings::conversions::{ConversionResult, StringificationBehavio
 use crate::dom::bindings::error::{
     Error, ErrorResult, Fallible, report_pending_exception, throw_dom_exception,
 };
-use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
+use crate::dom::bindings::inheritance::{Castable, DocumentFragmentTypeId, NodeTypeId};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -52,6 +52,7 @@ use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::promise::Promise;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
 use crate::realms::enter_auto_realm;
@@ -166,7 +167,6 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-registry>
     pub(crate) fn lookup_a_custom_element_registry(
-        cx: &mut JSContext,
         node: &Node,
     ) -> Option<DomRoot<CustomElementRegistry>> {
         match node.type_id() {
@@ -176,13 +176,15 @@ impl CustomElementRegistry {
                 .expect("Nodes with element type must be an element")
                 .custom_element_registry(),
             // Step 2. If node is a ShadowRoot object, then return node's custom element registry.
-            // TODO
+            NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => node
+                .downcast::<ShadowRoot>()
+                .expect("Nodes with ShadowRoot type must be a ShadowRoot")
+                .custom_element_registry(),
             // Step 3. If node is a Document object, then return node's custom element registry.
-            NodeTypeId::Document(_) => Some(
-                node.downcast::<Document>()
-                    .expect("Nodes with document type must be a document")
-                    .custom_element_registry(cx),
-            ),
+            NodeTypeId::Document(_) => node
+                .downcast::<Document>()
+                .expect("Nodes with document type must be a document")
+                .custom_element_registry(),
             // Step 4. Return null.
             _ => None,
         }
@@ -630,13 +632,13 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade>
-    fn Upgrade(&self, cx: &mut JSContext, node: &Node) {
+    fn Upgrade(&self, node: &Node) {
         // Spec says to make a list first and then iterate the list, but
         // try-to-upgrade only queues upgrade reactions and doesn't itself
         // modify the tree, so that's not an observable distinction.
         node.traverse_preorder(ShadowIncluding::Yes).for_each(|n| {
             if let Some(element) = n.downcast::<Element>() {
-                try_upgrade_element(cx, element);
+                try_upgrade_element(element);
             }
         });
     }
@@ -1018,7 +1020,7 @@ fn run_upgrade_constructor(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-try-upgrade>
-pub(crate) fn try_upgrade_element(cx: &mut JSContext, element: &Element) {
+pub(crate) fn try_upgrade_element(element: &Element) {
     // Step 1. Let definition be the result of looking up a custom element definition given element's node document,
     // element's namespace, element's local name, and element's is value.
     let document = element.owner_document();
@@ -1026,7 +1028,7 @@ pub(crate) fn try_upgrade_element(cx: &mut JSContext, element: &Element) {
     let local_name = element.local_name();
     let is = element.get_is();
     if let Some(definition) =
-        document.lookup_custom_element_definition(cx, namespace, local_name, is.as_ref())
+        document.lookup_custom_element_definition(namespace, local_name, is.as_ref())
     {
         // Step 2. If definition is not null, then enqueue a custom element upgrade reaction given
         // element and definition.

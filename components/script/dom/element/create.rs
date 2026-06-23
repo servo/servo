@@ -132,12 +132,11 @@ fn create_html_element(
     // Step 2. If registry is "default", then set registry
     // to the result of looking up a custom element registry given document.
     // TODO: We don't pass in any other value than "default" atm
-    let registry = CustomElementRegistry::lookup_a_custom_element_registry(cx, document.upcast());
+    let registry = CustomElementRegistry::lookup_a_custom_element_registry(document.upcast());
 
     // Step 3. Let definition be the result of looking up a custom element
     // definition given document, namespace, localName, and is.
-    let definition =
-        document.lookup_custom_element_definition(cx, &name.ns, &name.local, is.as_ref());
+    let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
 
     // Step 4. If definition is non-null...
     if let Some(definition) = definition {
