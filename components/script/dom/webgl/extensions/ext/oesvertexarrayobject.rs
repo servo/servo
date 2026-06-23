@@ -33,13 +33,16 @@ impl OESVertexArrayObject {
 
 impl OESVertexArrayObjectMethods<crate::DomTypeHolder> for OESVertexArrayObject {
     /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
-    fn CreateVertexArrayOES(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
-        self.ctx.create_vertex_array()
+    fn CreateVertexArrayOES(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
+        self.ctx.create_vertex_array(cx)
     }
 
     /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
-    fn DeleteVertexArrayOES(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
-        self.ctx.delete_vertex_array(vao);
+    fn DeleteVertexArrayOES(&self, cx: &mut JSContext, vao: Option<&WebGLVertexArrayObjectOES>) {
+        self.ctx.delete_vertex_array(cx, vao);
     }
 
     /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
