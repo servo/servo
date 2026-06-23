@@ -1106,22 +1106,31 @@ impl Fragment {
         // Capture this run for the embedder display list snapshot, if enabled. We use
         // the (untransformed) inline rect rather than the inflated glyph bounds so that
         // the reported rectangle matches the text's layout box.
+        //
+        // Guard on color alpha and the CSS `opacity` property so that text the page
+        // deliberately renders invisible is not included in the capture. Like 0 opacity text...
         if let Some(text) = fragment.text_for_display_list.as_deref() {
-            builder.capture_display_list_item(DisplayListItem::Text {
-                text: text.to_owned(),
-                rect: rect.to_webrender(),
-                color: display_list_color(&color),
-            });
+            let dl_color = display_list_color(&color);
+            if dl_color.a > 0.0 && parent_style.clone_opacity() > 0.0 {
+                builder.capture_display_list_item(DisplayListItem::Text {
+                    text: text.to_owned(),
+                    rect: rect.to_webrender(),
+                    color: dl_color,
+                });
+            }
         }
 
-        builder.wr().push_text(
-            &common,
-            glyph_bounds,
-            &glyphs,
-            fragment.font_key,
-            rgba(color),
-            None,
-        );
+        // Captured color not lost
+        if pref!(layout_text_painting_enabled) {
+            builder.wr().push_text(
+                &common,
+                glyph_bounds,
+                &glyphs,
+                fragment.font_key,
+                rgba(color),
+                None,
+            );
+        }
 
         builder.check_if_paintable(glyph_bounds, common.clip_rect, parent_style.clone_opacity());
 
