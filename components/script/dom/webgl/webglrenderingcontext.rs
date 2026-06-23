@@ -306,7 +306,7 @@ impl WebGLRenderingContext {
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(
-                    cx.into(),
+                    cx,
                     window,
                     atom!("webglcontextcreationerror"),
                     EventBubbles::DoesNotBubble,
