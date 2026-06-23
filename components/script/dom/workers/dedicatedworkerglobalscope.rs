@@ -293,6 +293,7 @@ impl DedicatedWorkerGlobalScope {
                 gpu_id_hub,
                 insecure_requests_policy,
                 font_context,
+                None,
             ),
             webview_id,
             task_queue: TaskQueue::new(receiver, own_sender.clone()),

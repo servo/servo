@@ -71,7 +71,8 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     fn ReportMemory(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
         let promise = Promise::new_in_realm(cx);
         let global = self.global();
-        let task_source = global.task_manager().dom_manipulation_task_source();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.dom_manipulation_task_source();
         let callback = callback_promise(&promise, self, task_source);
 
         let script_to_constellation_chan = global.script_to_constellation_chan();

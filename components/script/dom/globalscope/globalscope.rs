@@ -214,9 +214,6 @@ impl Drop for AutoCloseWorker {
 pub(crate) struct GlobalScope {
     eventtarget: EventTarget,
 
-    /// A [`TaskManager`] for this [`GlobalScope`].
-    task_manager: OnceCell<TaskManager>,
-
     /// The message-port router id for this global, if it is managing ports.
     message_port_state: DomRefCell<MessagePortState>,
 
@@ -798,7 +795,6 @@ impl GlobalScope {
         font_context: Option<Arc<FontContext>>,
     ) -> Self {
         Self {
-            task_manager: Default::default(),
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
             constellation_interest_counts: RefCell::new(HashMap::new()),
@@ -2914,17 +2910,14 @@ impl GlobalScope {
     }
 
     /// A reference to the [`TaskManager`] used to schedule tasks for this [`GlobalScope`].
-    pub(crate) fn task_manager(&self) -> &TaskManager {
-        let shared_canceller = self
-            .downcast::<WorkerGlobalScope>()
-            .map(WorkerGlobalScope::shared_task_canceller);
-        self.task_manager.get_or_init(|| {
-            TaskManager::new(
-                self.event_loop_sender(),
-                self.pipeline_id(),
-                shared_canceller,
-            )
-        })
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            worker.task_manager()
+        } else if let Some(window) = self.downcast::<Window>() {
+            window.task_manager()
+        } else {
+            unreachable!("Attempted to use task manager with unsupported global");
+        }
     }
 
     /// Evaluate JS code on this global scope.

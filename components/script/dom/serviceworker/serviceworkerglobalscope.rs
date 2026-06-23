@@ -261,6 +261,7 @@ impl ServiceWorkerGlobalScope {
                 // FIXME: investigate what environment this value comes from for service workers.
                 InsecureRequestsPolicy::DoNotUpgrade,
                 Some(font_context),
+                Some(ScriptEventLoopSender::ServiceWorker(own_sender.clone())),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,

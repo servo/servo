@@ -192,6 +192,7 @@ use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
+use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 use crate::unminify::unminified_path;
@@ -3800,6 +3801,10 @@ impl Window {
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
+    }
+
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        self.Document().task_manager()
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {

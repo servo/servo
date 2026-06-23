@@ -386,7 +386,8 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     fn OnSubmittedWorkDone(&self, cx: &mut JSContext) -> Rc<Promise> {
         let global = self.global();
         let promise = Promise::new(cx, &global);
-        let task_source = global.task_manager().dom_manipulation_task_source();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.dom_manipulation_task_source();
         let callback = callback_promise(&promise, self, task_source);
 
         if let Err(e) = self
