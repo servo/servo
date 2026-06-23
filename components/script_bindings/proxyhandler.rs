@@ -14,8 +14,9 @@ use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::glue::{GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, SetProxyPrivate};
 use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, Handle as RawHandle, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, HandleValue as RawHandleValue, JSContext, JSErrNum,
-    JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSObject, JSPropertySpec,
+    HandleObject as RawHandleObject, HandleValue as RawHandleValue, HandleValueArray,
+    IsWindowProxy, JSContext, JSErrNum, JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY,
+    JSITER_SYMBOLS, JSObject, JSPROP_READONLY, JSPropertySpec, JSString,
     MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
@@ -24,16 +25,16 @@ use js::jsid::SymbolId;
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
-    AppendToIdVector, GetObjectProto, GetPropertyKeys, GetWellKnownSymbol,
-    JS_AlreadyHasOwnPropertyById, JS_AtomizeAndPinString, JS_DefineFunctions, JS_DefineProperties,
-    JS_DefinePropertyById, JS_DeletePropertyById, JS_IdToValue, JS_IsExceptionPending,
+    AppendToIdVector, Call, GetObjectProto, GetPropertyKeys, GetWellKnownSymbol,
+    InvokeGetOwnPropertyDescriptor, JS_AlreadyHasOwnPropertyById, JS_AtomizeAndPinString,
+    JS_DefineFunctions, JS_DefineProperties, JS_DefinePropertyById, JS_DeletePropertyById,
+    JS_GetOwnPropertyDescriptorById, JS_IdToValue, JS_IsExceptionPending,
     JS_NewObjectWithGivenProto, JS_ValueToSource, RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID,
-    SetDataPropertyDescriptor, int_to_jsid,
+    SetDataPropertyDescriptor, SetPropertyIgnoringNamedGetter, int_to_jsid,
 };
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
 };
-use js::{jsapi, rooted};
 
 use crate::DomTypes;
 use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
@@ -264,13 +265,13 @@ fn id_to_source(cx: &mut js::context::JSContext, id: HandleId) -> Option<DOMStri
             return None;
         }
         rooted!(&in(cx) let mut value = UndefinedValue());
-        rooted!(&in(cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
+        rooted!(&in(cx) let mut jsstr = ptr::null_mut::<JSString>());
         JS_IdToValue(cx, id.get(), value.handle_mut())
             .then(|| {
                 jsstr.set(JS_ValueToSource(cx, value.handle()));
                 jsstr.get()
             })
-            .and_then(ptr::NonNull::new)
+            .and_then(NonNull::new)
             .map(|jsstr| jsstr_to_string(cx, jsstr).into())
     }
 }
@@ -441,9 +442,7 @@ pub(crate) fn cross_origin_get_own_property_helper(
     rooted!(&in(cx) let mut holder = ptr::null_mut::<JSObject>());
     ensure_cross_origin_property_holder(cx, proxy, cross_origin_properties, holder.handle_mut());
 
-    unsafe {
-        js::rust::wrappers2::JS_GetOwnPropertyDescriptorById(cx, holder.handle(), id, desc, is_none)
-    }
+    unsafe { JS_GetOwnPropertyDescriptorById(cx, holder.handle(), id, desc, is_none) }
 }
 
 const ALLOWLISTED_SYMBOL_CODES: &[SymbolCode] = &[
@@ -550,7 +549,7 @@ fn ensure_cross_origin_property_holder(
 /// [1]: https://html.spec.whatwg.org/multipage/#integration-with-idl
 pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: SafeJSContext, obj: RawHandleObject) -> bool {
     unsafe {
-        jsapi::IsWindowProxy(*obj) ||
+        IsWindowProxy(*obj) ||
             native_from_object::<D::Location>(*obj, *cx).is_ok() ||
             native_from_object::<D::DissimilarOriginLocation>(*obj, *cx).is_ok()
     }
@@ -616,7 +615,7 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
         // <https://tc39.es/ecma262/#sec-ordinaryset>
         rooted!(&in(&mut realm) let mut own_desc = PropertyDescriptor::default());
         let mut is_none = false;
-        if !js::rust::wrappers2::InvokeGetOwnPropertyDescriptor(
+        if !InvokeGetOwnPropertyDescriptor(
             GetProxyHandler(*proxy),
             &mut realm,
             proxy,
@@ -627,7 +626,7 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
             return false;
         }
 
-        js::rust::wrappers2::SetPropertyIgnoringNamedGetter(
+        SetPropertyIgnoringNamedGetter(
             &mut realm,
             proxy,
             id,
@@ -661,7 +660,11 @@ pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
         let mut realm = AutoRealm::new_from_handle(cx, proxy);
         let mut realm = realm.current_realm();
         let global = D::GlobalScope::from_current_realm(&realm);
-        get_proto_object(&mut realm, global.reflector().get_jsobject(), proto.reborrow());
+        get_proto_object(
+            &mut realm,
+            global.reflector().get_jsobject(),
+            proto.reborrow(),
+        );
         return !proto.is_null();
     }
 
@@ -689,7 +692,7 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
     let mut vp = unsafe { MutableHandle::from_raw(vp) };
     let mut is_none = false;
     if !unsafe {
-        js::rust::wrappers2::InvokeGetOwnPropertyDescriptor(
+        InvokeGetOwnPropertyDescriptor(
             GetProxyHandler(*proxy),
             cx,
             proxy,
@@ -736,11 +739,11 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
 
     // > 7. Return `? Call(getter, Receiver)`.
     unsafe {
-        js::rust::wrappers2::Call(
+        Call(
             cx,
             receiver,
             getter_jsval.handle(),
-            &jsapi::HandleValueArray::empty(),
+            &HandleValueArray::empty(),
             vp,
         )
     }
@@ -763,7 +766,7 @@ unsafe fn cross_origin_set<D: DomTypes>(
     // > 1. Let desc be ? O.[[GetOwnProperty]](P).
     rooted!(&in(cx) let mut descriptor = PropertyDescriptor::default());
     let mut is_none = false;
-    if !js::rust::wrappers2::InvokeGetOwnPropertyDescriptor(
+    if !InvokeGetOwnPropertyDescriptor(
         GetProxyHandler(*proxy),
         cx,
         proxy,
@@ -799,13 +802,13 @@ unsafe fn cross_origin_set<D: DomTypes>(
     // >
     // > 3.2. Return true.
     rooted!(&in(cx) let mut ignored = UndefinedValue());
-    if !js::rust::wrappers2::Call(
+    if !Call(
         cx,
         receiver,
         setter_jsval.handle(),
         // FIXME: Our binding lacks `HandleValueArray(Handle<Value>)`
         // <https://searchfox.org/mozilla-central/rev/072710086ddfe25aa2962c8399fefb2304e8193b/js/public/ValueArray.h#54-55>
-        &jsapi::HandleValueArray {
+        &HandleValueArray {
             length_: 1,
             elements_: v.ptr,
         },
@@ -841,7 +844,7 @@ pub(crate) fn cross_origin_property_fallback<D: DomTypes>(
         set_property_descriptor(
             desc,
             HandleValue::undefined(),
-            jsapi::JSPROP_READONLY as u32,
+            JSPROP_READONLY as u32,
             is_none,
         );
         return true;
