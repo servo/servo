@@ -34,9 +34,6 @@ audit-as-crates-io = false
 [policy.servo]
 audit-as-crates-io = false
 
-[policy.servo_arc]
-audit-as-crates-io = false
-
 [policy.servo-allocator]
 audit-as-crates-io = false
 
@@ -233,6 +230,9 @@ audit-as-crates-io = false
 audit-as-crates-io = false
 
 [policy.servo-xpath]
+audit-as-crates-io = false
+
+[policy.servo_arc]
 audit-as-crates-io = false
 
 [policy.servoshell]
