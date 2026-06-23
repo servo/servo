@@ -31,7 +31,7 @@ use net_traits::request::{Destination, RequestBuilder, RequestMode};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSend;
-use servo_base::id::{PipelineId, WebViewId};
+use servo_base::id::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 use swapper::{Swapper, swapper};
@@ -163,7 +163,6 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
             .thread_pool
             .get_or_init(|| ScriptThread::worklet_thread_pool(self.global().image_cache()))
             .fetch_and_invoke_a_worklet_script(
-                self.window.webview_id(),
                 self.window.pipeline_id(),
                 self.droppable_field.worklet_id,
                 self.global_type,
@@ -323,7 +322,6 @@ impl WorkletThreadPool {
     #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
-        webview_id: WebViewId,
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
         global_type: WorkletGlobalScopeType,
@@ -343,7 +341,6 @@ impl WorkletThreadPool {
             &self.control_sender_2,
         ] {
             let _ = sender.send(WorkletControl::FetchAndInvokeAWorkletScript {
-                webview_id,
                 pipeline_id,
                 worklet_id,
                 global_type,
@@ -401,7 +398,6 @@ enum WorkletData {
 enum WorkletControl {
     ExitWorklet(WorkletId),
     FetchAndInvokeAWorkletScript {
-        webview_id: WebViewId,
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
         global_type: WorkletGlobalScopeType,
@@ -636,7 +632,6 @@ impl WorkletThread {
     /// Creates the worklet global scope if it doesn't exist.
     fn get_worklet_global_scope(
         &mut self,
-        webview_id: WebViewId,
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
         inherited_secure_context: Option<bool>,
@@ -651,7 +646,6 @@ impl WorkletThread {
                 let executor = WorkletExecutor::new(worklet_id, self.primary_sender.clone());
                 let result = WorkletGlobalScope::new(
                     global_type,
-                    webview_id,
                     pipeline_id,
                     base_url,
                     inherited_secure_context,
@@ -757,7 +751,6 @@ impl WorkletThread {
                 self.global_scopes.remove(&worklet_id);
             },
             WorkletControl::FetchAndInvokeAWorkletScript {
-                webview_id,
                 pipeline_id,
                 worklet_id,
                 global_type,
@@ -771,7 +764,6 @@ impl WorkletThread {
                 inherited_secure_context,
             } => {
                 let global = self.get_worklet_global_scope(
-                    webview_id,
                     pipeline_id,
                     worklet_id,
                     inherited_secure_context,

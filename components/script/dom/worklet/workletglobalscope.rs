@@ -15,7 +15,7 @@ use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
 use script_traits::Painter;
 use servo_base::generic_channel::GenericCallback;
-use servo_base::id::{PipelineId, WebViewId};
+use servo_base::id::PipelineId;
 use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -59,7 +59,6 @@ impl WorkletGlobalScope {
     /// Create a new heap-allocated `WorkletGlobalScope`.
     pub(crate) fn new(
         scope_type: WorkletGlobalScopeType,
-        webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         inherited_secure_context: Option<bool>,
@@ -70,7 +69,6 @@ impl WorkletGlobalScope {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
             WorkletGlobalScopeType::Test => DomRoot::upcast(TestWorkletGlobalScope::new(
-                webview_id,
                 pipeline_id,
                 base_url,
                 inherited_secure_context,
@@ -79,7 +77,6 @@ impl WorkletGlobalScope {
                 cx,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
-                webview_id,
                 pipeline_id,
                 base_url,
                 inherited_secure_context,
@@ -98,7 +95,6 @@ impl WorkletGlobalScope {
 
     /// Create a new stack-allocated `WorkletGlobalScope`.
     pub(crate) fn new_inherited(
-        _webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         inherited_secure_context: Option<bool>,

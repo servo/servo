@@ -26,7 +26,7 @@ use pixels::PixelFormat;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::DomObject;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
-use servo_base::id::{PipelineId, WebViewId};
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style_traits::{CSSPixel, SpeculativePainter};
@@ -86,7 +86,6 @@ pub(crate) struct PaintWorkletGlobalScope {
 
 impl PaintWorkletGlobalScope {
     pub(crate) fn new(
-        webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         inherited_secure_context: Option<bool>,
@@ -100,7 +99,6 @@ impl PaintWorkletGlobalScope {
         );
         let global = Box::new(PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(
-                webview_id,
                 pipeline_id,
                 base_url,
                 inherited_secure_context,
