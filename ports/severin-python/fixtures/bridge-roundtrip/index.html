@@ -1,26 +1,29 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>Severin bridge roundtrip fixture</title>
+<p id="state">checking bridge shim</p>
 <script>
-function severinReady() {
-  if (globalThis.severin && typeof globalThis.severin.send === "function") {
-    return Promise.resolve(globalThis.severin);
-  }
-  return new Promise((resolve) => {
-    const tick = () => {
-      if (globalThis.severin && typeof globalThis.severin.send === "function") {
-        resolve(globalThis.severin);
-      } else {
-        setTimeout(tick, 0);
-      }
-    };
-    tick();
-  });
-}
+(() => {
+  const state = document.getElementById("state");
+  const severin = globalThis.severin;
 
-(async () => {
-  const severin = await severinReady();
-  const reply = await severin.send(["request", {"hello": "world"}]);
-  await severin.send(["resolved", reply]);
+  // User-script injection is a document-start contract. A zero-delay retry
+  // loop turns a missing shim into an infinite task source, exactly when this
+  // fixture should report the failure and stop.
+  if (!severin || typeof severin.send !== "function") {
+    state.textContent = "bridge shim missing at document startup";
+    throw new Error("Severin bridge shim missing at document startup");
+  }
+
+  state.textContent = "sending request";
+  (async () => {
+    const reply = await severin.send(["request", {hello: "world"}]);
+    state.textContent = "request resolved; sending confirmation";
+    await severin.send(["resolved", reply]);
+    state.textContent = "roundtrip complete";
+  })().catch((error) => {
+    state.textContent = `bridge failure: ${error}`;
+    throw error;
+  });
 })();
 </script>
