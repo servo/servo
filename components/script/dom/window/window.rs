@@ -35,8 +35,7 @@ use js::glue::DumpJSStack;
 use js::jsapi::{GCReason, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
 use js::jsval::{NullValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers::JS_DefineProperty;
-use js::rust::wrappers2::JS_GC;
+use js::rust::wrappers2::{JS_DefineProperty, JS_GC};
 use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
     MutableHandleValue,
@@ -189,7 +188,7 @@ use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEvent
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
 use crate::realms::{enter_auto_realm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
+use crate::script_runtime::{CanGc, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_manager::TaskManager;
@@ -940,9 +939,7 @@ impl Window {
 
     #[expect(unsafe_code)]
     pub(crate) fn gc(&self, cx: &mut JSContext) {
-        unsafe {
-            JS_GC(cx, GCReason::API);
-        }
+        unsafe { JS_GC(cx, GCReason::API) };
     }
 
     pub(crate) fn with_timers<T>(&self, f: impl FnOnce(&OneshotTimers) -> T) -> T {
@@ -1345,7 +1342,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
-    fn SetOpener(&self, cx: SafeJSContext, value: HandleValue) -> ErrorResult {
+    fn SetOpener(&self, cx: &mut JSContext, value: HandleValue) -> ErrorResult {
         // Step 1.
         if value.is_null() {
             if let Some(proxy) = self.window_proxy.get() {
@@ -1353,14 +1350,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             }
             return Ok(());
         }
+
         // Step 2.
         let obj = self.reflector().get_jsobject();
-        unsafe {
-            let result =
-                JS_DefineProperty(*cx, obj, c"opener".as_ptr(), value, JSPROP_ENUMERATE as u32);
+        let result = unsafe {
+            JS_DefineProperty(cx, obj, c"opener".as_ptr(), value, JSPROP_ENUMERATE as u32)
+        };
 
-            if result { Ok(()) } else { Err(Error::JSFailed) }
-        }
+        if result { Ok(()) } else { Err(Error::JSFailed) }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-closed>
