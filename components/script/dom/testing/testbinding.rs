@@ -11,6 +11,7 @@ use std::time::Duration;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::gc::RootedVec;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::realm::CurrentRealm;
@@ -564,6 +565,14 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> {
         Some(vec![1])
     }
+    #[expect(unsafe_code)]
+    fn ReceiveObjectSequence(
+        &self,
+        cx: SafeJSContext,
+        return_value: &mut RootedVec<'_, Box<Heap<*mut JSObject>>>,
+    ) {
+        return_value.push(Heap::boxed(unsafe { JS_NewPlainObject(*cx) }));
+    }
     fn GetDictionaryWithTypedArray(
         &self,
         cx: &mut JSContext,
@@ -693,8 +702,9 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         &self,
         _: SafeJSContext,
         seq: CustomAutoRooterGuard<Vec<JSVal>>,
-    ) -> Vec<JSVal> {
-        (*seq).clone()
+        return_value: &mut RootedVec<'_, Box<Heap<JSVal>>>,
+    ) {
+        return_value.extend(seq.handle().iter().map(|value| Heap::boxed(*value)));
     }
     fn PassObjectSequence(&self, _: SafeJSContext, _: CustomAutoRooterGuard<Vec<*mut JSObject>>) {}
     fn PassStringSequence(&self, _: Vec<DOMString>) {}

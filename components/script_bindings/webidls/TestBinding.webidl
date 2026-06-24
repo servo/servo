@@ -246,6 +246,7 @@ interface TestBinding {
   (unsigned long or boolean)? receiveNullableUnion5();
   (ByteString or long)? receiveNullableUnion6();
   sequence<long>? receiveNullableSequence();
+  sequence<object> receiveObjectSequence();
   TestDictionary receiveTestDictionaryWithSuccessOnKeyword();
   boolean dictMatchesPassedValues(TestDictionary arg);
 
