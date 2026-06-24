@@ -298,7 +298,7 @@ impl Node {
                 continue;
             }
 
-            // > 6.2. Let focusable area be descendant, if descendant is a focusable area; otherwise
+            // > 1.2. Let focusable area be descendant, if descendant is a focusable area; otherwise
             // >      let focusable area be the result of getting the focusable area for descendant
             // >      given focus trigger.
             let kind = descendant
