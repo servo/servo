@@ -54,6 +54,8 @@ pub(crate) unsafe extern "C" fn shadow_check_callback(
     id: RawHandleId,
 ) -> DOMProxyShadowsResult {
     // TODO: support OverrideBuiltins when #12978 is fixed.
+
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
     let cx = &mut cx;
 
