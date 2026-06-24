@@ -39,7 +39,7 @@ impl CharacterData {
     pub(crate) fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(document),
-            data: DomRefCell::new(String::from(data.str())),
+            data: DomRefCell::new(String::from(data)),
         }
     }
 
