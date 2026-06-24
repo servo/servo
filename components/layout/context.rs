@@ -74,6 +74,7 @@ impl LayoutContext<'_> {
                 .count() >=
                 self.parallelism_job_count_minimum
     }
+}
 
 pub enum ResolvedImage<'a> {
     Gradient(&'a Gradient),
