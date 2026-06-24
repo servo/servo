@@ -8,13 +8,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <com.google.android.material.appbar.MaterialToolbar
+        <androidx.compose.ui.platform.ComposeView
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:elevation="4dp"
-            app:title="@string/history_title"
-            app:menu="@menu/history_menu" />
+            android:layout_height="wrap_content" />
 
     </com.google.android.material.appbar.AppBarLayout>
 

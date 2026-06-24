@@ -12,17 +12,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
-import com.google.android.material.appbar.MaterialToolbar
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -48,14 +52,17 @@ class HistoryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         bodyView = view.findViewById(R.id.body)
 
-        val toolbar = view.findViewById<MaterialToolbar>(R.id.toolbar)
-        toolbar.setOnMenuItemClickListener { item ->
-            if (item.itemId == R.id.clear_history) {
-                clearHistory()
-                true
-            } else {
-                false
-            }
+        val toolbar = view.findViewById<ComposeView>(R.id.toolbar)
+        toolbar.setContent {
+            @OptIn(ExperimentalMaterial3Api::class)
+            TopAppBar(
+                title = { Text(stringResource(R.string.history_title)) },
+                actions = {
+                    IconButton(onClick = { clearHistory() }) {
+                        Icon(painterResource(R.drawable.delete), stringResource(R.string.clear_history))
+                    }
+                },
+            )
         }
 
         loadHistory()
