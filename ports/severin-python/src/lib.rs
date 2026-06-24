@@ -125,9 +125,8 @@ unsafe extern "C" {
         ...
     ) -> c_int;
     fn PyErr_SetString(exception: *mut PyObject, string: *const c_char);
+    fn Py_IncRef(object: *mut PyObject);
     fn Py_DecRef(object: *mut PyObject);
-    fn Py_XIncRef(object: *mut PyObject);
-    fn Py_XDecRef(object: *mut PyObject);
     fn PyLong_AsLong(object: *mut PyObject) -> c_long;
     fn PyLong_AsUnsignedLongLong(object: *mut PyObject) -> u64;
     fn PyLong_FromUnsignedLongLong(value: u64) -> *mut PyObject;
@@ -711,7 +710,9 @@ unsafe extern "C" fn app_init(
         Ok(app) => unsafe {
             (*self_).app = Box::into_raw(Box::new(app));
             (*self_).bridge = bridge;
-            Py_XIncRef(bridge);
+            if !bridge.is_null() {
+                Py_IncRef(bridge);
+            }
             (*self_).closed = false;
             0
         },
@@ -728,7 +729,9 @@ unsafe extern "C" fn app_dealloc(self_: *mut PyAppObject) {
             drop(Box::from_raw((*self_).app));
             (*self_).app = ptr::null_mut();
         }
-        Py_XDecRef((*self_).bridge);
+        if !(*self_).bridge.is_null() {
+            Py_DecRef((*self_).bridge);
+        }
         (*self_).bridge = ptr::null_mut();
     }
 }
@@ -789,7 +792,7 @@ unsafe extern "C" fn app_load_path(self_: *mut PyAppObject, arg: *mut PyObject) 
     app.clear_bridge_for_navigation();
     app.webview.load(url);
     unsafe {
-        Py_XIncRef(py_none());
+        Py_IncRef(py_none());
         py_none()
     }
 }
@@ -811,7 +814,7 @@ unsafe extern "C" fn app_run(self_: *mut PyAppObject, _args: *mut PyObject) -> *
         std::thread::sleep(Duration::from_millis(1));
     }
     unsafe {
-        Py_XIncRef(py_none());
+        Py_IncRef(py_none());
         py_none()
     }
 }
@@ -829,7 +832,7 @@ unsafe extern "C" fn app_pump(self_: *mut PyAppObject, _args: *mut PyObject) -> 
         }
     }
     unsafe {
-        Py_XIncRef(py_none());
+        Py_IncRef(py_none());
         py_none()
     }
 }
@@ -842,9 +845,11 @@ unsafe extern "C" fn app_close(self_: *mut PyAppObject, _args: *mut PyObject) ->
             drop(Box::from_raw((*self_).app));
             (*self_).app = ptr::null_mut();
         }
-        Py_XDecRef((*self_).bridge);
+        if !(*self_).bridge.is_null() {
+            Py_DecRef((*self_).bridge);
+        }
         (*self_).bridge = ptr::null_mut();
-        Py_XIncRef(py_none());
+        Py_IncRef(py_none());
         py_none()
     }
 }
@@ -865,7 +870,7 @@ unsafe extern "C" fn app_read(self_: *mut PyAppObject, _args: *mut PyObject) -> 
     };
     let Some(frame) = app.bridge_transport.read_for_python() else {
         unsafe {
-            Py_XIncRef(py_none());
+            Py_IncRef(py_none());
             return py_none();
         }
     };
@@ -879,21 +884,21 @@ unsafe extern "C" fn app_read(self_: *mut PyAppObject, _args: *mut PyObject) -> 
         PyUnicode_FromStringAndSize(frame.json.as_ptr().cast(), frame.json.len() as isize)
     };
     if receipt.is_null() || json.is_null() {
-        unsafe { Py_XDecRef(tuple) };
+        unsafe { Py_DecRef(tuple) };
         return ptr::null_mut();
     }
     if unsafe { PyTuple_SetItem(tuple, 0, receipt) } < 0 {
         unsafe {
-            Py_XDecRef(receipt);
-            Py_XDecRef(json);
-            Py_XDecRef(tuple);
+            Py_DecRef(receipt);
+            Py_DecRef(json);
+            Py_DecRef(tuple);
         }
         return ptr::null_mut();
     }
     if unsafe { PyTuple_SetItem(tuple, 1, json) } < 0 {
         unsafe {
-            Py_XDecRef(json);
-            Py_XDecRef(tuple);
+            Py_DecRef(json);
+            Py_DecRef(tuple);
         }
         return ptr::null_mut();
     }
@@ -923,7 +928,7 @@ unsafe extern "C" fn app_write(self_: *mut PyAppObject, args: *mut PyObject) -> 
     };
     app.schedule_reply_delivery(script);
     unsafe {
-        Py_XIncRef(py_none());
+        Py_IncRef(py_none());
         py_none()
     }
 }
