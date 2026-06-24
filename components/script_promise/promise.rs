@@ -12,6 +12,7 @@
 //! (ie. address equality for the native objects is meaningless).
 
 use std::cell::{Cell, RefCell};
+use std::marker::PhantomData;
 use std::ops::DerefMut;
 use std::ptr;
 use std::rc::Rc;
@@ -50,7 +51,7 @@ use crate::promisenativehandler::{Callback, PromiseNativeHandler};
 
 #[dom_struct]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
-pub struct Promise {
+pub struct Promise<D: DomTypes> {
     reflector: Reflector,
     /// Since Promise values are natively reference counted without the knowledge of
     /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
@@ -58,6 +59,7 @@ pub struct Promise {
     /// while native code could still interact with its native representation.
     #[ignore_malloc_size_of = "SM handles JS values"]
     permanent_js_root: Heap<JSVal>,
+    phantom: PhantomData<D>,
 }
 
 /// Private helper to enable adding new methods to `Rc<Promise>`.
@@ -65,7 +67,7 @@ trait PromiseHelper {
     fn initialize(&self, cx: SafeJSContext);
 }
 
-impl PromiseHelper for Rc<Promise> {
+impl<D: DomTypes> PromiseHelper for Rc<Promise<D>> {
     #[expect(unsafe_code)]
     fn initialize(&self, cx: SafeJSContext) {
         let obj = self.reflector().get_jsobject();
@@ -83,7 +85,7 @@ impl PromiseHelper for Rc<Promise> {
 // Promise objects are stored inside Rc values, so Drop is run when the last Rc is dropped,
 // rather than when SpiderMonkey runs a GC. This makes it safe to interact with the JS engine unlike
 // Drop implementations for other DOM types.
-impl Drop for Promise {
+impl<D: DomTypes> Drop for Promise<D> {
     #[expect(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
@@ -100,36 +102,37 @@ pub trait PromiseGlobalScopeTrait: DomObject {
     fn get_cx() -> SafeJSContext;
 }
 
-impl Promise {
-    pub fn new(
-        cx: &mut js::context::JSContext,
-        global: &impl PromiseGlobalScopeTrait,
-    ) -> Rc<Promise> {
+impl<D> Promise<D>
+where
+    D: DomTypes<PromiseNativeHandler = PromiseNativeHandler<D>>,
+{
+    pub fn new(cx: &mut js::context::JSContext, global: &D::GlobalScope) -> Rc<Promise<D>> {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
-        Promise::new_in_realm(cx)
+        Promise::<D>::new_in_realm(cx)
     }
 
-    pub fn new_in_realm(current_realm: &mut CurrentRealm) -> Rc<Promise> {
+    pub fn new_in_realm(current_realm: &mut CurrentRealm) -> Rc<Promise<D>> {
         let cx = current_realm.deref_mut();
         rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
-        Promise::create_js_promise(cx.into(), obj.handle_mut(), CanGc::from_cx(cx));
-        Promise::new_with_js_promise(obj.handle(), cx.into())
+        Promise::<D>::create_js_promise(cx.into(), obj.handle_mut(), CanGc::from_cx(cx));
+        Promise::<D>::new_with_js_promise(obj.handle(), cx.into())
     }
 
-    pub fn duplicate<G: PromiseGlobalScopeTrait>(&self) -> Rc<Promise> {
-        let cx = G::get_cx();
-        Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
+    pub fn duplicate(&self) -> Rc<Promise<D>> {
+        let cx = D::GlobalScope::get_cx();
+        Promise::<D>::new_with_js_promise(self.reflector().get_jsobject(), cx)
     }
 
     #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub fn new_with_js_promise(obj: HandleObject, cx: SafeJSContext) -> Rc<Promise> {
+    pub fn new_with_js_promise(obj: HandleObject, cx: SafeJSContext) -> Rc<Promise<D>> {
         unsafe {
             assert!(IsPromiseObject(obj));
             let promise = Promise {
                 reflector: Reflector::new(),
                 permanent_js_root: Heap::default(),
+                phantom: PhantomData,
             };
             let promise = Rc::new(promise);
             promise.init_reflector_without_associated_memory(obj.get());
@@ -170,31 +173,31 @@ impl Promise {
     #[expect(unsafe_code)]
     pub fn new_resolved(
         cx: &mut js::context::JSContext,
-        global: &impl PromiseGlobalScopeTrait,
+        global: &D::GlobalScope,
         value: impl SafeToJSValConvertible,
-    ) -> Rc<Promise> {
+    ) -> Rc<Promise<D>> {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
         value.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseResolve(cx, rval.handle()) });
         assert!(!p.handle().is_null());
-        Promise::new_with_js_promise(p.handle(), cx.into())
+        Promise::<D>::new_with_js_promise(p.handle(), cx.into())
     }
 
     #[expect(unsafe_code)]
-    pub fn new_rejected<D: DomTypes>(
+    pub fn new_rejected(
         cx: &mut js::context::JSContext,
         global: &D::GlobalScope,
         value: impl SafeToJSValConvertible,
-    ) -> Rc<Promise> {
+    ) -> Rc<Promise<D>> {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
         value.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseReject(cx, rval.handle()) });
         assert!(!p.handle().is_null());
-        Promise::new_with_js_promise(p.handle(), cx.into())
+        Promise::<D>::new_with_js_promise(p.handle(), cx.into())
     }
 
     pub fn resolve_native<T>(&self, cx: &mut JSContext, val: &T)
@@ -273,25 +276,21 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    pub fn append_native_handler<D: DomTypes>(
-        &self,
-        cx: &mut CurrentRealm,
-        handler: &PromiseNativeHandler,
-    ) {
+    pub fn append_native_handler(&self, cx: &mut CurrentRealm, handler: &PromiseNativeHandler<D>) {
         let in_realm_proof = cx.into();
         let realm = InRealm::Already(&in_realm_proof);
 
         run_a_script::<D, _, _>(
             cx,
-            &<PromiseNativeHandler as DomGlobalGeneric<D>>::global_(handler, realm),
+            &<PromiseNativeHandler<D> as DomGlobalGeneric<D>>::global_(handler, realm),
             |cx| {
                 rooted!(&in(cx) let resolve_func =
-                create_native_handler_function(cx,
+                create_native_handler_function::<D>(cx,
                                                handler.reflector().get_jsobject(),
                                                NativeHandlerTask::Resolve));
 
                 rooted!(&in(cx) let reject_func =
-                create_native_handler_function(cx,
+                create_native_handler_function::<D>(cx,
                                                handler.reflector().get_jsobject(),
                                                NativeHandlerTask::Reject));
 
@@ -335,11 +334,14 @@ enum NativeHandlerTask {
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn native_handler_callback(
+unsafe extern "C" fn native_handler_callback<D>(
     cx: *mut RawJSContext,
     argc: u32,
     vp: *mut JSVal,
-) -> bool {
+) -> bool
+where
+    D: DomTypes<PromiseNativeHandler = PromiseNativeHandler<D>>,
+{
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
     let mut cx = CurrentRealm::assert(&mut cx);
@@ -352,7 +354,7 @@ unsafe extern "C" fn native_handler_callback(
     assert!(native_handler_value.get().is_object());
 
     let handler = unsafe {
-        root_from_object::<PromiseNativeHandler>(native_handler_value.to_object(), cx.raw_cx())
+        root_from_object::<PromiseNativeHandler<D>>(native_handler_value.to_object(), cx.raw_cx())
     }
     .expect("unexpected value for native handler in promise native handler callback");
 
@@ -377,13 +379,17 @@ unsafe extern "C" fn native_handler_callback(
 }
 
 #[expect(unsafe_code)]
-fn create_native_handler_function(
+fn create_native_handler_function<D>(
     cx: &mut JSContext,
     holder: HandleObject,
     task: NativeHandlerTask,
-) -> *mut JSObject {
+) -> *mut JSObject
+where
+    D: DomTypes<PromiseNativeHandler = PromiseNativeHandler<D>>,
+{
     unsafe {
-        let func = NewFunctionWithReserved(cx, Some(native_handler_callback), 1, 0, ptr::null());
+        let func =
+            NewFunctionWithReserved(cx, Some(native_handler_callback::<D>), 1, 0, ptr::null());
         assert!(!func.is_null());
 
         rooted!(&in(cx) let obj = JS_GetFunctionObject(func));
@@ -394,12 +400,12 @@ fn create_native_handler_function(
     }
 }
 
-impl FromJSValConvertibleRc for Promise {
+impl<D: DomTypes> FromJSValConvertibleRc for Promise<D> {
     #[expect(unsafe_code)]
     unsafe fn from_jsval(
         _cx: *mut RawJSContext,
         value: HandleValue,
-    ) -> Result<ConversionResult<Rc<Promise>>, ()> {
+    ) -> Result<ConversionResult<Rc<Promise<D>>>, ()> {
         // TODO https://github.com/servo/mozjs/issues/749
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         Self::safe_from_jsval(&mut cx, value)
@@ -408,15 +414,15 @@ impl FromJSValConvertibleRc for Promise {
     fn safe_from_jsval(
         cx: &mut JSContext,
         value: HandleValue,
-    ) -> Result<ConversionResult<Rc<Promise>>, ()> {
+    ) -> Result<ConversionResult<Rc<Promise<D>>>, ()> {
         if value.get().is_null() {
             return Ok(ConversionResult::Failure(c"null not allowed".into()));
         }
 
         let realm = CurrentRealm::assert(cx);
-        todo!()
-        //let global_scope = GlobalScope::from_current_realm(&realm);
+        let global_scope = D::GlobalScope::from_current_realm(&realm);
 
+        todo!()
         //let promise = Promise::new_resolved(cx, &global_scope, value);
         //Ok(ConversionResult::Success(promise))
     }
@@ -511,16 +517,16 @@ impl Callback for WaitForAllRejectionHandler {
 /// The microtask for performing successSteps given « » in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct WaitForAllSuccessStepsMicrotask<G: PromiseGlobalScopeTrait> {
-    pub global: DomRoot<G>,
+pub struct WaitForAllSuccessStepsMicrotask<D: DomTypes> {
+    pub global: DomRoot<D::GlobalScope>,
 
     #[ignore_malloc_size_of = "Closure is hard"]
     #[no_trace]
     pub success_steps: WaitForAllSuccessSteps,
 }
 
-pub trait EnqueueWaitForallMicrotask<G: PromiseGlobalScopeTrait> {
-    fn enqueue(global: &G, task: WaitForAllSuccessStepsMicrotask<G>);
+pub trait EnqueueWaitForallMicrotask<D: DomTypes> {
+    fn enqueue(global: &D::GlobalScope, task: WaitForAllSuccessStepsMicrotask<D>);
 }
 
 /// <https://webidl.spec.whatwg.org/#wait-for-all>
@@ -528,12 +534,12 @@ pub trait EnqueueWaitForallMicrotask<G: PromiseGlobalScopeTrait> {
 fn wait_for_all<D>(
     cx: &mut CurrentRealm,
     global: &D::GlobalScope,
-    promises: Vec<Rc<Promise>>,
+    promises: Vec<Rc<Promise<D>>>,
     success_steps: WaitForAllSuccessSteps,
     failure_steps: WaitForAllFailureSteps,
 ) where
-    D: DomTypes<PromiseNativeHandler = PromiseNativeHandler>,
-    D::GlobalScope: EnqueueWaitForallMicrotask<D::GlobalScope> + PromiseGlobalScopeTrait,
+    D: DomTypes<PromiseNativeHandler = PromiseNativeHandler<D>>,
+    D::GlobalScope: EnqueueWaitForallMicrotask<D>,
 {
     // Let fulfilledCount be 0.
     let fulfilled_count: Rc<RefCell<usize>> = Default::default();
@@ -594,7 +600,7 @@ fn wait_for_all<D>(
         // Note: passed below to avoid the need to root it.
 
         // Perform PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler).
-        let handler = PromiseNativeHandler::new::<D>(
+        let handler = PromiseNativeHandler::new(
             cx,
             global,
             Some(Box::new(WaitForAllFulfillmentHandler {
@@ -605,7 +611,7 @@ fn wait_for_all<D>(
             })),
             Some(Box::new(rejection_handler.clone())),
         );
-        promise.append_native_handler::<D>(cx, &handler);
+        promise.append_native_handler(cx, &handler);
 
         // Set index to index + 1.
         // Note: done above with `enumerate`.
@@ -613,14 +619,14 @@ fn wait_for_all<D>(
 }
 
 /// <https://webidl.spec.whatwg.org/#waiting-for-all-promise>
-pub fn wait_for_all_promise<D>(
+pub fn wait_for_all_promise<D: DomTypes>(
     cx: &mut CurrentRealm,
     global: &D::GlobalScope,
-    promises: Vec<Rc<Promise>>,
-) -> Rc<Promise>
+    promises: Vec<Rc<Promise<D>>>,
+) -> Rc<Promise<D>>
 where
-    D: DomTypes<PromiseNativeHandler = PromiseNativeHandler>,
-    D::GlobalScope: EnqueueWaitForallMicrotask<D::GlobalScope> + PromiseGlobalScopeTrait,
+    D: DomTypes<PromiseNativeHandler = PromiseNativeHandler<D>>,
+    D::GlobalScope: EnqueueWaitForallMicrotask<D>,
 {
     // Let promise be a new promise of type Promise<sequence<T>> in realm.
     let promise = Promise::new(cx, global);

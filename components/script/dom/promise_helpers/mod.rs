@@ -9,7 +9,7 @@ use script_promise::{
 use crate::dom::GlobalScope;
 use crate::microtask::{Microtask, MicrotaskRunnable};
 
-impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask<GlobalScope> {
+impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask<crate::DomTypeHolder> {
     fn handler(&self, cx: &mut JSContext) {
         (self.success_steps)(cx, vec![]);
     }
@@ -19,14 +19,16 @@ impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask<GlobalScope> {
     }
 }
 
-impl EnqueueWaitForallMicrotask<GlobalScope> for GlobalScope {
-    fn enqueue(global: &GlobalScope, task: WaitForAllSuccessStepsMicrotask<GlobalScope>) {
+impl EnqueueWaitForallMicrotask<crate::DomTypeHolder> for GlobalScope {
+    fn enqueue(global: &GlobalScope, task: WaitForAllSuccessStepsMicrotask<crate::DomTypeHolder>) {
         global.enqueue_microtask(Microtask::WaitForAllSuccessSteps(task));
     }
 }
 
+/*
 impl PromiseGlobalScopeTrait for GlobalScope {
     fn get_cx() -> script_bindings::script_runtime::JSContext {
         GlobalScope::get_cx()
     }
 }
+ */

@@ -46,7 +46,7 @@ pub(crate) enum Microtask {
     MediaElement(MediaElementMicrotask),
     ImageElement(ImageElementMicrotask),
     ReadableStreamTeeReadRequest(DefaultTeeReadRequestMicrotask),
-    WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask<GlobalScope>),
+    WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask<crate::DomTypeHolder>),
     ReadableStreamByteTeeReadRequest(ByteTeeReadRequestMicrotask),
     ReadableStreamByteTeeReadIntoRequest(ByteTeeReadIntoRequestMicrotask),
     CustomElementReaction,

@@ -375,7 +375,7 @@ fn continue_dynamic_import(
             })));
 
             // f. Perform PerformPromiseThen(evaluatePromise, onFulfilled, onRejected).
-            let handler = PromiseNativeHandler::new::<crate::DomTypeHolder>(cx, &global_scope,
+            let handler = PromiseNativeHandler::new(cx, &global_scope,
                 Some(on_fulfilled),
                 Some(Box::new(OnRejectedHandler { promise: inner_promise })));
             evaluate_promise.append_native_handler(cx, &handler);

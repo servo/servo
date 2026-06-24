@@ -1,6 +1,6 @@
 [package]
 name = "servo-script-bindings"
-build = "build.rs"
+#build = "build.rs"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

@@ -300,12 +300,13 @@ pub(crate) use self::permission::*;
 pub(crate) mod processingoptions;
 pub(crate) mod promise_helpers;
 pub(crate) mod promise {
-    pub(crate) use script_promise::{
-        Promise, WaitForAllSuccessStepsMicrotask, wait_for_all_promise,
-    };
+    pub(crate) type Promise = script_promise::Promise<crate::DomTypeHolder>;
+    pub(crate) use script_promise::{WaitForAllSuccessStepsMicrotask, wait_for_all_promise};
 }
 pub(crate) mod promisenativehandler {
-    pub(crate) use script_promise::{Callback, PromiseNativeHandler};
+    pub(crate) type PromiseNativeHandler =
+        script_promise::PromiseNativeHandler<crate::DomTypeHolder>;
+    pub(crate) use script_promise::Callback;
 }
 pub(crate) mod quotaexceedederror;
 pub(crate) mod range;

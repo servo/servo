@@ -10,6 +10,8 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 fn main() {
+    return;
+
     // copy include! files from script_bindings's OUT_DIR, to script's OUT_DIR
     // this is done to bypass limitation of Rust Analyzer: https://github.com/rust-lang/rust-analyzer/issues/17040
     let script_bindings_out_dir =

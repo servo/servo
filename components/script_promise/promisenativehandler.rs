@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::gc::Traceable as JSTraceable;
@@ -23,24 +25,29 @@ pub trait Callback: JSTraceable + MallocSizeOf {
 }
 
 #[dom_struct]
-pub struct PromiseNativeHandler {
+pub struct PromiseNativeHandler<D: DomTypes> {
     reflector: Reflector,
     resolve: Option<Box<dyn Callback>>,
     reject: Option<Box<dyn Callback>>,
+    phantom: PhantomData<D>,
 }
 
-impl PromiseNativeHandler {
-    pub fn new<D: DomTypes<PromiseNativeHandler = PromiseNativeHandler>>(
+impl<D: DomTypes> PromiseNativeHandler<D>
+where
+    D: DomTypes<PromiseNativeHandler = PromiseNativeHandler<D>>,
+{
+    pub fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         resolve: Option<Box<dyn Callback>>,
         reject: Option<Box<dyn Callback>>,
-    ) -> DomRoot<PromiseNativeHandler> {
+    ) -> DomRoot<PromiseNativeHandler<D>> {
         reflect_dom_object_with_cx_and_wrap::<D,_,_>(
             Box::new(PromiseNativeHandler {
                 reflector: Reflector::new(),
                 resolve,
                 reject,
+                phantom: PhantomData
             }),
             global,
             cx,
@@ -55,10 +62,10 @@ impl PromiseNativeHandler {
     }
 
     pub(crate) fn resolved_callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
-        PromiseNativeHandler::callback(&self.resolve, cx, v)
+        PromiseNativeHandler::<D>::callback(&self.resolve, cx, v)
     }
 
     pub(crate) fn rejected_callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
-        PromiseNativeHandler::callback(&self.reject, cx, v)
+        PromiseNativeHandler::<D>::callback(&self.reject, cx, v)
     }
 }
