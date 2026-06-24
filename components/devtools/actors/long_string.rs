@@ -4,7 +4,6 @@
 use std::cmp::min;
 use std::sync::Arc;
 
-use log::info;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
