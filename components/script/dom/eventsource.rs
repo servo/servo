@@ -277,8 +277,7 @@ impl EventSourceContext {
         let event = {
             let _ac = enter_realm(&*event_source);
             rooted!(&in(cx) let mut data = UndefinedValue());
-            self.data
-                .safe_to_jsval(cx.into(), data.handle_mut(), CanGc::from_cx(cx));
+            self.data.safe_to_jsval(cx, data.handle_mut());
             MessageEvent::new(
                 cx,
                 &event_source.global(),

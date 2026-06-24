@@ -53,7 +53,6 @@ use crate::dom::element::{Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#htmlconstructor>
 fn html_constructor(
@@ -229,11 +228,7 @@ fn html_constructor(
             return Err(());
         }
 
-        result.safe_to_jsval(
-            cx.into(),
-            MutableHandleValue::from_raw(call_args.rval()),
-            CanGc::from_cx(cx),
-        );
+        result.safe_to_jsval(cx, MutableHandleValue::from_raw(call_args.rval()));
     }
     Ok(())
 }

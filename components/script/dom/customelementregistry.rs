@@ -56,7 +56,6 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
@@ -560,11 +559,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         let promise = self.when_defined.borrow_mut().remove(&name);
         if let Some(promise) = promise {
             rooted!(&in(cx) let mut constructor = UndefinedValue());
-            definition.constructor.safe_to_jsval(
-                cx.into(),
-                constructor.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            definition
+                .constructor
+                .safe_to_jsval(cx, constructor.handle_mut());
             // Step 19.1: Resolve this's when-defined promise map[name] with constructor.
             promise.resolve_native(cx, &constructor.get());
         }
@@ -574,11 +571,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     fn Get(&self, cx: &mut JSContext, name: DOMString, mut retval: MutableHandleValue) {
         match self.definitions.borrow().get(&LocalName::from(name)) {
-            Some(definition) => {
-                definition
-                    .constructor
-                    .safe_to_jsval(cx.into(), retval, CanGc::from_cx(cx))
-            },
+            Some(definition) => definition.constructor.safe_to_jsval(cx, retval),
             None => retval.set(UndefinedValue()),
         }
     }
@@ -612,11 +605,9 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 2
         if let Some(definition) = self.definitions.borrow().get(&LocalName::from(&*name)) {
             rooted!(&in(*realm) let mut constructor = UndefinedValue());
-            definition.constructor.safe_to_jsval(
-                realm.into(),
-                constructor.handle_mut(),
-                CanGc::from_cx(realm),
-            );
+            definition
+                .constructor
+                .safe_to_jsval(realm, constructor.handle_mut());
             let promise = Promise::new_in_realm(realm);
             promise.resolve_native(realm, &constructor.get());
             return promise;
@@ -960,7 +951,7 @@ fn run_upgrade_constructor(
     let window = element.owner_window();
     rooted!(&in(cx) let constructor_val = ObjectValue(constructor.callback()));
     rooted!(&in(cx) let mut element_val = UndefinedValue());
-    element.safe_to_jsval(cx.into(), element_val.handle_mut(), CanGc::from_cx(cx));
+    element.safe_to_jsval(cx, element_val.handle_mut());
     rooted!(&in(cx) let mut construct_result = ptr::null_mut::<JSObject>());
     {
         // Step 9.1. If definition's disable shadow is true and element's shadow root is non-null,
@@ -1215,26 +1206,22 @@ impl CustomElementReactionStack {
 
                 let local_name = DOMString::from(&*local_name);
                 rooted!(&in(cx) let mut name_value = UndefinedValue());
-                local_name.safe_to_jsval(cx.into(), name_value.handle_mut(), CanGc::from_cx(cx));
+                local_name.safe_to_jsval(cx, name_value.handle_mut());
 
                 rooted!(&in(cx) let mut old_value = NullValue());
                 if let Some(old_val) = old_val {
-                    old_val.safe_to_jsval(cx.into(), old_value.handle_mut(), CanGc::from_cx(cx));
+                    old_val.safe_to_jsval(cx, old_value.handle_mut());
                 }
 
                 rooted!(&in(cx) let mut value = NullValue());
                 if let Some(val) = val {
-                    val.safe_to_jsval(cx.into(), value.handle_mut(), CanGc::from_cx(cx));
+                    val.safe_to_jsval(cx, value.handle_mut());
                 }
 
                 rooted!(&in(cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
                     let namespace = DOMString::from(&*namespace);
-                    namespace.safe_to_jsval(
-                        cx.into(),
-                        namespace_value.handle_mut(),
-                        CanGc::from_cx(cx),
-                    );
+                    namespace.safe_to_jsval(cx, namespace_value.handle_mut());
                 }
 
                 let args = vec![

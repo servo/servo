@@ -15,13 +15,11 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::ServoInternalsHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_bindings::script_runtime::JSContext;
 use script_bindings::str::USVString;
 use servo_config::prefs::{self, PrefValue, Preferences};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::dom::bindings::codegen::Bindings::ServoInternalsBinding::ServoInternalsMethods;
-use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -30,21 +28,21 @@ use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
-fn pref_to_jsval(pref: &PrefValue, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+fn pref_to_jsval(cx: &mut js::context::JSContext, pref: &PrefValue, rval: MutableHandleValue) {
     match pref {
-        PrefValue::Bool(b) => b.safe_to_jsval(cx, rval, can_gc),
-        PrefValue::Int(i) => i.safe_to_jsval(cx, rval, can_gc),
-        PrefValue::UInt(u) => u.safe_to_jsval(cx, rval, can_gc),
-        PrefValue::Str(s) => s.safe_to_jsval(cx, rval, can_gc),
-        PrefValue::Float(f) => f.safe_to_jsval(cx, rval, can_gc),
+        PrefValue::Bool(b) => b.safe_to_jsval(cx, rval),
+        PrefValue::Int(i) => i.safe_to_jsval(cx, rval),
+        PrefValue::UInt(u) => u.safe_to_jsval(cx, rval),
+        PrefValue::Str(s) => s.safe_to_jsval(cx, rval),
+        PrefValue::Float(f) => f.safe_to_jsval(cx, rval),
         PrefValue::Array(arr) => {
             rooted_vec!(let mut js_arr);
             for item in arr {
-                rooted!(in(*cx) let mut js_val = UndefinedValue());
-                pref_to_jsval(item, cx, js_val.handle_mut(), can_gc);
+                rooted!(&in(cx) let mut js_val = UndefinedValue());
+                pref_to_jsval(cx, item, js_val.handle_mut());
                 js_arr.push(Heap::boxed(js_val.get()));
             }
-            js_arr.safe_to_jsval(cx, rval, can_gc);
+            js_arr.safe_to_jsval(cx, rval);
         },
     }
 }
@@ -114,7 +112,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     /// <https://servo.org/internal-no-spec>
     fn DefaultPreferenceValue(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         name: USVString,
         rval: MutableHandleValue,
     ) -> Fallible<()> {
@@ -122,14 +120,14 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
             return Err(Error::NotFound(None));
         }
         let pref = Preferences::default().get_value(&name);
-        pref_to_jsval(&pref, cx, rval, CanGc::deprecated_note());
+        pref_to_jsval(cx, &pref, rval);
         Ok(())
     }
 
     /// <https://servo.org/internal-no-spec>
     fn GetPreference(
         &self,
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         name: USVString,
         rval: MutableHandleValue,
     ) -> Fallible<()> {
@@ -137,7 +135,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
             return Err(Error::NotFound(None));
         }
         let pref = prefs::get().get_value(&name);
-        pref_to_jsval(&pref, cx, rval, CanGc::deprecated_note());
+        pref_to_jsval(cx, &pref, rval);
         Ok(())
     }
 
