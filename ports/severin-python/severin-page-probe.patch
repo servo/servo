@@ -103,7 +103,7 @@ index 1a603a0bd915..5c9bc41e4387 100644
 +            probe_bridge,
              next_evaluation_id: 0,
          })
-@@ -780,4 +780,16 @@
+@@ -780,6 +780,18 @@
              self.bridge_transport.clear_for_navigation();
              self.bridge_transport.active_document_id = Some(document_id.clone());
          }
@@ -121,4 +121,4 @@ index 1a603a0bd915..5c9bc41e4387 100644
 +        }
          let Some(frames) = drained.get("frames").and_then(|value| value.as_array()) else {
              let message = "Severin bridge drain result did not contain a frames array".to_owned();
-            self.trace(format_args!("drain: failed error={message}"));
+             self.trace(format_args!("drain: failed error={message}"));
