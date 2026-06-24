@@ -22,6 +22,7 @@ euclid = { workspace = true }
 fonts_traits = { workspace = true }
 glow = { workspace = true }
 kurbo = { workspace = true, features = ["serde"] }
+log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 pixels = { workspace = true }

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::thread::JoinHandle;
+
 use log::debug;
 use paint_api::{CrossProcessPaintApi, PainterSurfmanDetailsMap, WebRenderExternalImageIdManager};
 use servo_canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
@@ -20,6 +22,9 @@ pub struct WebGLComm {
     pub busy_webgl_context_map: WebGLContextBusyMap,
     #[cfg(feature = "webxr")]
     pub webxr_layer_grand_manager: WebXRLayerGrandManager<WebXRSurfman>,
+    /// A `JoinHandle` which can be joined after sending the `WebGLMsg::Exit`
+    /// message to the `WebGLThread`.
+    pub join_handle: JoinHandle<()>,
 }
 
 impl WebGLComm {
@@ -52,7 +57,7 @@ impl WebGLComm {
             webxr_init,
         };
 
-        WebGLThread::run_on_own_thread(init);
+        let join_handle = WebGLThread::run_on_own_thread(init);
 
         WebGLComm {
             webgl_threads: WebGLThreads(sender),
@@ -60,6 +65,7 @@ impl WebGLComm {
             busy_webgl_context_map,
             #[cfg(feature = "webxr")]
             webxr_layer_grand_manager,
+            join_handle,
         }
     }
 }
