@@ -1,8 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::cmp::min;
 use std::sync::Arc;
 
+use log::info;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -85,7 +87,7 @@ impl LongStringActor {
         LongStringObj {
             type_: "longString".to_string(),
             actor: self.name.clone(),
-            length: self.full_string.len(),
+            length: min(self.full_string.len(), INITIAL_LENGTH),
             initial: self.full_string.chars().take(INITIAL_LENGTH).collect(),
         }
     }
