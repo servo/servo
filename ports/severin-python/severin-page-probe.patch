@@ -3,7 +3,7 @@ new file mode 100644
 index 000000000000..9f379b533d83
 --- /dev/null
 +++ b/ports/severin-python/src/bridge_probe.rs
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,22 @@
 +//! `SEVERIN_PROBE=1` diagnostics for page-visible bridge state.
 +//!
 +//! This is deliberately independent from `SEVERIN_TRACE`: a probe run emits
@@ -30,7 +30,7 @@ diff --git a/ports/severin-python/src/lib.rs b/ports/severin-python/src/lib.rs
 index 1a603a0bd915..5c9bc41e4387 100644
 --- a/ports/severin-python/src/lib.rs
 +++ b/ports/severin-python/src/lib.rs
-@@ -6,6 +6,7 @@
+@@ -1,6 +1,7 @@
  //! Experimental in-process CPython bindings for the Severin local runtime.
  
  mod bridge_trace;
@@ -38,20 +38,21 @@ index 1a603a0bd915..5c9bc41e4387 100644
  
  use std::cell::RefCell;
  use std::collections::{HashMap, VecDeque};
-@@ -167,6 +168,7 @@ struct EmbeddedServoApp {
+@@ -8,5 +8,6 @@
      bridge_transport: BridgeTransport,
      pending_evaluations: Vec<PendingEvaluation>,
      trace_bridge: bool,
 +    probe_bridge: bool,
      next_evaluation_id: u64,
  }
-@@ -301,6 +303,7 @@ struct BridgeTransport {
+@@ -4,4 +4,5 @@
      inbound: VecDeque<BridgeFrame>,
      pending: HashMap<u64, PendingReplyTarget>,
      active_document_id: Option<String>,
 +    last_page_probe: Option<Option<String>>,
  }
-@@ -415,9 +418,19 @@ impl BridgeTransport {
+@@ -2,9 +2,18 @@
+         self.inbound.clear();
          self.pending.clear();
          self.active_document_id = None;
 +        self.last_page_probe = None;
@@ -69,7 +70,8 @@ index 1a603a0bd915..5c9bc41e4387 100644
 +        true
 +    }
  }
-@@ -484,10 +497,19 @@ const DRAIN_SCRIPT: &str = r#"
+@@ -1,8 +1,15 @@
+ const DRAIN_SCRIPT: &str = r#"
  (() => {
 +  const root = globalThis.document ? document.documentElement : null;
 +  const pageProbe = root ? root.getAttribute("data-severin-probe") : null;
@@ -86,10 +88,7 @@ index 1a603a0bd915..5c9bc41e4387 100644
 +  });
  })()
  "#;
-@@ -506,6 +528,8 @@ impl EmbeddedServoApp {
-     fn new(width: u32, height: u32) -> Result<Self, String> {
-         let trace_bridge = bridge_trace::enabled();
-         bridge_trace::emit(
+@@ -4,5 +4,7 @@
              trace_bridge,
              format_args!("app:new width={width} height={height}"),
          );
@@ -97,15 +96,14 @@ index 1a603a0bd915..5c9bc41e4387 100644
 +        bridge_probe::emit(format_args!("app:new page-global probe enabled"));
  
          let mut event_loop = EventLoop::with_user_event()
-             .build()
-@@ -624,6 +648,7 @@ impl EmbeddedServoApp {
+@@ -1,5 +1,6 @@
+             bridge_transport: BridgeTransport::default(),
              pending_evaluations: Vec::new(),
              trace_bridge,
 +            probe_bridge,
              next_evaluation_id: 0,
          })
-     }
-@@ -769,6 +794,18 @@ impl EmbeddedServoApp {
+@@ -3,4 +3,16 @@
              self.bridge_transport.clear_for_navigation();
              self.bridge_transport.active_document_id = Some(document_id.clone());
          }
