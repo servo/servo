@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="help" href="https://github.com/servo/servo/issues/45732">
+<script src="/common/rendering-utils.js"></script>
+<style>
+  html, body { overflow-x: clip; }
+  meter {
+      transform: rotate(-45deg);
+      filter: grayscale(1);
+      padding-top: 100vh;
+  }
+</style>
+<meter></meter>
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    document.documentElement.classList.remove("test-wait");
+  });
+</script>
+</html>
