@@ -260,7 +260,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         init: &ResponseBinding::ResponseInit,
     ) -> Fallible<DomRoot<Response>> {
         // 1. Let bytes the result of running serialize a JavaScript value to JSON bytes on data.
-        let json_str = serialize_jsval_to_json_utf8(cx.into(), data)?;
+        let json_str = serialize_jsval_to_json_utf8(cx, data)?;
 
         // 2. Let body be the result of extracting bytes
         // The spec's definition of JSON bytes is a UTF-8 encoding so using a DOMString here handles

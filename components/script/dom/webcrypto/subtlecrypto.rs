@@ -4296,7 +4296,7 @@ impl JsonWebKeyExt for JsonWebKey {
     fn stringify(&self, cx: &mut js::context::JSContext) -> Result<Zeroizing<DOMString>, Error> {
         rooted!(&in(cx) let mut data = UndefinedValue());
         self.safe_to_jsval(cx, data.handle_mut());
-        serialize_jsval_to_json_utf8(cx.into(), data.handle()).map(Zeroizing::new)
+        serialize_jsval_to_json_utf8(cx, data.handle()).map(Zeroizing::new)
     }
 
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
