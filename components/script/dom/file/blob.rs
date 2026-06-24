@@ -14,7 +14,6 @@ use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
 use rustc_hash::FxHashMap;
-use script_bindings::codegen::GenericBindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_base::id::{BlobId, BlobIndex};
 use servo_constellation_traits::{BlobData, BlobImpl};
@@ -301,13 +300,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             false, // ignoreBOM
         )?;
         // Step 4: Return the result of calling stream, piped through decoder.
-        Ok(pipe_through(
-            &stream,
-            cx,
-            &self.global(),
-            &decoder.Writable(),
-            decoder.Readable(),
-        ))
+        Ok(pipe_through(&stream, cx, &self.global(), &decoder))
     }
 
     /// <https://w3c.github.io/FileAPI/#slice-method-algo>

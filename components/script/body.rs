@@ -21,7 +21,6 @@ use mime::{self, Mime};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
 };
-use script_bindings::codegen::GenericBindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_constellation_traits::BlobImpl;
@@ -1190,11 +1189,5 @@ pub(crate) fn body_text_stream<T: BodyMixin + DomObject>(
         TextDecoderStream::new_with_proto(cx, &object.global(), None, UTF_8, false, false)?;
 
     // Step 6. Return the result of stream, piped through decoder.
-    Ok(pipe_through(
-        &stream,
-        cx,
-        &object.global(),
-        &decoder.Writable(),
-        decoder.Readable(),
-    ))
+    Ok(pipe_through(&stream, cx, &object.global(), &decoder))
 }
