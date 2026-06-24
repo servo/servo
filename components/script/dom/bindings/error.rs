@@ -74,7 +74,7 @@ pub(crate) fn throw_dom_exception(cx: &mut JSContext, global: &GlobalScope, resu
         Ok(exception) => unsafe {
             assert!(!JS_IsExceptionPending(cx));
             rooted!(&in(cx) let mut thrown = UndefinedValue());
-            exception.safe_to_jsval(cx.into(), thrown.handle_mut(), CanGc::from_cx(cx));
+            exception.safe_to_jsval(cx, thrown.handle_mut());
             JS_SetPendingException(cx, thrown.handle(), ExceptionStackBehavior::Capture);
         },
 

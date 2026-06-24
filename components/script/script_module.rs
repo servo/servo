@@ -82,7 +82,7 @@ use crate::module_loading::{
 };
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::IntroductionType;
 use crate::task::NonSendTaskBox;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
@@ -1157,11 +1157,8 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
     match url {
         Ok(url) => {
             // Step 4.3. Return the serialization of url.
-            url.as_str().safe_to_jsval(
-                cx.into(),
-                unsafe { MutableHandleValue::from_raw(args.rval()) },
-                CanGc::from_cx(cx),
-            );
+            url.as_str()
+                .safe_to_jsval(cx, unsafe { MutableHandleValue::from_raw(args.rval()) });
             true
         },
         Err(error) => {

@@ -168,11 +168,11 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         );
         let event = DomRoot::upcast::<Event>(DebuggerAddDebuggeeEvent::new(
+            cx,
             self.upcast(),
             debuggee_global,
             &debuggee_pipeline_id,
             debuggee_worker_id.map(|id| id.to_string().into()),
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),

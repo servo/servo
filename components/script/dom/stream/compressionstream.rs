@@ -158,7 +158,7 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     )
     .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    buffer_source.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+    buffer_source.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
 
     Ok(())
@@ -197,7 +197,7 @@ pub(crate) fn compress_flush_and_enqueue(
     )
     .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    buffer_source.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+    buffer_source.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
 
     Ok(())

@@ -154,7 +154,7 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     )
     .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    array.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+    array.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
 
     // Step 6. If the end of the compressed input has been reached, and ds’s context has not fully
@@ -198,7 +198,7 @@ pub(crate) fn decompress_flush_and_enqueue(
         )
         .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
         rooted!(&in(cx) let mut rval = UndefinedValue());
-        array.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+        array.safe_to_jsval(cx, rval.handle_mut());
         controller.enqueue(cx, global, rval.handle())?;
     }
 

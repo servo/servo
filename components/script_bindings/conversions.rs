@@ -32,19 +32,19 @@ use crate::inheritance::Castable;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::str::{ByteString, DOMString, USVString};
 use crate::trace::RootedTraceableBox;
 use crate::utils::{DOMClass, DOMJSClass};
 
 /// A safe wrapper for `ToJSValConvertible`.
 pub trait SafeToJSValConvertible {
-    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc);
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue);
 }
 
 impl<T: ToJSValConvertible + ?Sized> SafeToJSValConvertible for T {
-    fn safe_to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, _can_gc: CanGc) {
-        unsafe { self.to_jsval(*cx, rval) };
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
+        ToJSValConvertible::safe_to_jsval(self, cx, rval);
     }
 }
 

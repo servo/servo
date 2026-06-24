@@ -46,7 +46,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -168,7 +167,7 @@ impl Promise {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
-        value.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+        value.safe_to_jsval(cx, rval.handle_mut());
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseResolve(cx, rval.handle()) });
         assert!(!p.handle().is_null());
         Promise::new_with_js_promise(cx, p.handle())
@@ -183,7 +182,7 @@ impl Promise {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
-        value.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+        value.safe_to_jsval(cx, rval.handle_mut());
         rooted!(&in(cx) let p = unsafe { CallOriginalPromiseReject(cx, rval.handle()) });
         assert!(!p.handle().is_null());
         Promise::new_with_js_promise(cx, p.handle())
@@ -196,7 +195,7 @@ impl Promise {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut v = UndefinedValue());
-        val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
+        val.safe_to_jsval(cx, v.handle_mut());
         self.resolve(cx, v.handle());
     }
 
@@ -216,7 +215,7 @@ impl Promise {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut v = UndefinedValue());
-        val.safe_to_jsval(cx.into(), v.handle_mut(), CanGc::from_cx(cx));
+        val.safe_to_jsval(cx, v.handle_mut());
         self.reject(cx, v.handle());
     }
 

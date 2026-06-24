@@ -36,7 +36,7 @@ use crate::dom::stream::underlyingsourcecontainer::{
     UnderlyingSourceContainer, UnderlyingSourceType,
 };
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
@@ -152,17 +152,20 @@ impl EnqueuedValue {
         }
     }
 
-    fn to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {
         match self {
             EnqueuedValue::Native(chunk) => {
-                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                create_buffer_source::<Uint8>(cx, chunk, array_buffer_ptr.handle_mut(), can_gc)
-                    .expect("failed to create buffer source for native chunk.");
-                array_buffer_ptr.safe_to_jsval(cx, rval, can_gc);
+                rooted!(&in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                create_buffer_source::<Uint8>(
+                    cx.into(),
+                    chunk,
+                    array_buffer_ptr.handle_mut(),
+                    CanGc::from_cx(cx),
+                )
+                .expect("failed to create buffer source for native chunk.");
+                array_buffer_ptr.safe_to_jsval(cx, rval);
             },
-            EnqueuedValue::Js(value_with_size) => {
-                value_with_size.value.safe_to_jsval(cx, rval, can_gc)
-            },
+            EnqueuedValue::Js(value_with_size) => value_with_size.value.safe_to_jsval(cx, rval),
             EnqueuedValue::CloseSentinel => {
                 unreachable!("The close sentinel is never made available as a js val.")
             },
@@ -215,7 +218,7 @@ impl QueueWithSizes {
             };
             self.total_size.set(self.total_size.get() - value.size());
             if let Some(rval) = rval {
-                value.to_jsval(cx.into(), rval, CanGc::from_cx(cx));
+                value.to_jsval(cx, rval);
             } else {
                 assert_eq!(value, &EnqueuedValue::CloseSentinel);
             }
@@ -267,7 +270,7 @@ impl QueueWithSizes {
         }
 
         // Return valueWithSize’s value.
-        value_with_size.to_jsval(cx.into(), rval, CanGc::from_cx(cx));
+        value_with_size.to_jsval(cx, rval);
         false
     }
 
@@ -720,11 +723,7 @@ impl ReadableStreamDefaultController {
             .expect("Controller must have a stream when a chunk is enqueued.");
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            EnqueuedValue::Native(chunk.into_boxed_slice()).to_jsval(
-                cx.into(),
-                rval.handle_mut(),
-                CanGc::from_cx(cx),
-            );
+            EnqueuedValue::Native(chunk.into_boxed_slice()).to_jsval(cx, rval.handle_mut());
             stream.fulfill_read_request(cx, rval.handle(), false);
         } else {
             self.queue

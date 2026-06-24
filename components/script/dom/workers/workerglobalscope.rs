@@ -1093,11 +1093,9 @@ impl WorkerGlobalScope {
         // Convert the debugger global’s reflector to a Value, wrapping it from its originating realm (debugger realm)
         // into the active realm (debuggee realm) so that it can be passed across compartments.
         rooted!(&in(cx) let mut wrapped_global: Value);
-        debugger_global.reflector().safe_to_jsval(
-            cx.into(),
-            wrapped_global.handle_mut(),
-            CanGc::from_cx(cx),
-        );
+        debugger_global
+            .reflector()
+            .safe_to_jsval(cx, wrapped_global.handle_mut());
         self.debugger_global.set(*wrapped_global);
     }
 
