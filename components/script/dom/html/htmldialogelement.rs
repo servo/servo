@@ -234,7 +234,6 @@ impl HTMLDialogElement {
             // Step 12.3. If subject's node document's focused area of the document's DOM anchor is
             // a shadow-including inclusive descendant of subject, or wasModal is true, then run the
             // focusing steps for element; the viewport should not be scrolled by doing this step.
-            // TODO: Do not scroll the viewport
             let subject_node = subject.upcast::<Node>();
             let document = subject.owner_document();
             if document
