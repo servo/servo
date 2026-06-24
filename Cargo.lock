@@ -8749,7 +8749,6 @@ dependencies = [
  "servo-base",
  "servo-config",
  "servo-profile-traits",
- "tikv-jemalloc-sys",
  "time",
 ]
 
