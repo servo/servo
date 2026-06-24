@@ -26,101 +26,101 @@ index 000000000000..9f379b533d83
 +    }
 +}
 +
-+diff --git a/ports/severin-python/src/lib.rs b/ports/severin-python/src/lib.rs
-+index 1a603a0bd915..5c9bc41e4387 100644
-+--- a/ports/severin-python/src/lib.rs
-++++ b/ports/severin-python/src/lib.rs
-+@@ -6,6 +6,7 @@
-+ //! Experimental in-process CPython bindings for the Severin local runtime.
-+ 
-+ mod bridge_trace;
-++mod bridge_probe;
-+ 
-+ use std::cell::RefCell;
-+ use std::collections::{HashMap, VecDeque};
-+@@ -167,6 +168,7 @@ struct EmbeddedServoApp {
-+     bridge_transport: BridgeTransport,
-+     pending_evaluations: Vec<PendingEvaluation>,
-+     trace_bridge: bool,
-++    probe_bridge: bool,
-+     next_evaluation_id: u64,
-+ }
-+@@ -301,6 +303,7 @@ struct BridgeTransport {
-+     inbound: VecDeque<BridgeFrame>,
-+     pending: HashMap<u64, PendingReplyTarget>,
-+     active_document_id: Option<String>,
-++    last_page_probe: Option<Option<String>>,
-+ }
-+@@ -415,9 +418,19 @@ impl BridgeTransport {
-+         self.pending.clear();
-+         self.active_document_id = None;
-++        self.last_page_probe = None;
-+     }
-+ 
-+     fn clear_for_close(&mut self) {
-+         self.clear_for_navigation();
-+     }
-++
-++    fn observe_page_probe(&mut self, page_probe: Option<String>) -> bool {
-++        if self.last_page_probe == Some(page_probe.clone()) {
-++            return false;
-++        }
-++        self.last_page_probe = Some(page_probe);
-++        true
-++    }
-+ }
-+@@ -484,10 +497,19 @@ const DRAIN_SCRIPT: &str = r#"
-+ (() => {
-++  const root = globalThis.document ? document.documentElement : null;
-++  const pageProbe = root ? root.getAttribute("data-severin-probe") : null;
-+   if (typeof globalThis.__severinDrain !== "function") {
-+-    return JSON.stringify({ documentId: null, frames: [] });
-++    return JSON.stringify({ documentId: null, frames: [], pageProbe });
-+   }
-+-  return JSON.stringify(globalThis.__severinDrain());
-++  const drained = globalThis.__severinDrain();
-++  return JSON.stringify({
-++    documentId: drained.documentId,
-++    frames: drained.frames,
-++    pageProbe,
-++  });
-+ })()
-+ "#;
-+@@ -506,6 +528,8 @@ impl EmbeddedServoApp {
-+     fn new(width: u32, height: u32) -> Result<Self, String> {
-+         let trace_bridge = bridge_trace::enabled();
-+         bridge_trace::emit(
-+             trace_bridge,
-+             format_args!("app:new width={width} height={height}"),
-+         );
-++        let probe_bridge = bridge_probe::enabled();
-++        bridge_probe::emit(format_args!("app:new page-global probe enabled"));
-+ 
-+         let mut event_loop = EventLoop::with_user_event()
-+             .build()
-+@@ -624,6 +648,7 @@ impl EmbeddedServoApp {
-+             pending_evaluations: Vec::new(),
-+             trace_bridge,
-++            probe_bridge,
-+             next_evaluation_id: 0,
-+         })
-+     }
-+@@ -769,6 +794,18 @@ impl EmbeddedServoApp {
-+             self.bridge_transport.clear_for_navigation();
-+             self.bridge_transport.active_document_id = Some(document_id.clone());
-+         }
-++        if self.probe_bridge {
-++            let page_probe = drained
-++                .get("pageProbe")
-++                .and_then(|value| value.as_str())
-++                .map(str::to_owned);
-++            if self.bridge_transport.observe_page_probe(page_probe.clone()) {
-++                bridge_probe::emit(format_args!(
-++                    "page-global={}",
-++                    page_probe.as_deref().unwrap_or("<absent>")
-++                ));
-++            }
-++        }
-+         let Some(frames) = drained.get("frames").and_then(|value| value.as_array()) else {
-+             let message = "Severin bridge drain result did not contain a frames array".to_owned();
-+             self.trace(format_args!("drain: failed error={message}"));
+diff --git a/ports/severin-python/src/lib.rs b/ports/severin-python/src/lib.rs
+index 1a603a0bd915..5c9bc41e4387 100644
+--- a/ports/severin-python/src/lib.rs
++++ b/ports/severin-python/src/lib.rs
+@@ -6,6 +6,7 @@
+ //! Experimental in-process CPython bindings for the Severin local runtime.
+ 
+ mod bridge_trace;
++mod bridge_probe;
+ 
+ use std::cell::RefCell;
+ use std::collections::{HashMap, VecDeque};
+@@ -167,6 +168,7 @@ struct EmbeddedServoApp {
+     bridge_transport: BridgeTransport,
+     pending_evaluations: Vec<PendingEvaluation>,
+     trace_bridge: bool,
++    probe_bridge: bool,
+     next_evaluation_id: u64,
+ }
+@@ -301,6 +303,7 @@ struct BridgeTransport {
+     inbound: VecDeque<BridgeFrame>,
+     pending: HashMap<u64, PendingReplyTarget>,
+     active_document_id: Option<String>,
++    last_page_probe: Option<Option<String>>,
+ }
+@@ -415,9 +418,19 @@ impl BridgeTransport {
+         self.pending.clear();
+         self.active_document_id = None;
++        self.last_page_probe = None;
+     }
+ 
+     fn clear_for_close(&mut self) {
+         self.clear_for_navigation();
+     }
++
++    fn observe_page_probe(&mut self, page_probe: Option<String>) -> bool {
++        if self.last_page_probe == Some(page_probe.clone()) {
++            return false;
++        }
++        self.last_page_probe = Some(page_probe);
++        true
++    }
+ }
+@@ -484,10 +497,19 @@ const DRAIN_SCRIPT: &str = r#"
+ (() => {
++  const root = globalThis.document ? document.documentElement : null;
++  const pageProbe = root ? root.getAttribute("data-severin-probe") : null;
+   if (typeof globalThis.__severinDrain !== "function") {
+-    return JSON.stringify({ documentId: null, frames: [] });
++    return JSON.stringify({ documentId: null, frames: [], pageProbe });
+   }
+-  return JSON.stringify(globalThis.__severinDrain());
++  const drained = globalThis.__severinDrain();
++  return JSON.stringify({
++    documentId: drained.documentId,
++    frames: drained.frames,
++    pageProbe,
++  });
+ })()
+ "#;
+@@ -506,6 +528,8 @@ impl EmbeddedServoApp {
+     fn new(width: u32, height: u32) -> Result<Self, String> {
+         let trace_bridge = bridge_trace::enabled();
+         bridge_trace::emit(
+             trace_bridge,
+             format_args!("app:new width={width} height={height}"),
+         );
++        let probe_bridge = bridge_probe::enabled();
++        bridge_probe::emit(format_args!("app:new page-global probe enabled"));
+ 
+         let mut event_loop = EventLoop::with_user_event()
+             .build()
+@@ -624,6 +648,7 @@ impl EmbeddedServoApp {
+             pending_evaluations: Vec::new(),
+             trace_bridge,
++            probe_bridge,
+             next_evaluation_id: 0,
+         })
+     }
+@@ -769,6 +794,18 @@ impl EmbeddedServoApp {
+             self.bridge_transport.clear_for_navigation();
+             self.bridge_transport.active_document_id = Some(document_id.clone());
+         }
++        if self.probe_bridge {
++            let page_probe = drained
++                .get("pageProbe")
++                .and_then(|value| value.as_str())
++                .map(str::to_owned);
++            if self.bridge_transport.observe_page_probe(page_probe.clone()) {
++                bridge_probe::emit(format_args!(
++                    "page-global={}",
++                    page_probe.as_deref().unwrap_or("<absent>")
++                ));
++            }
++        }
+         let Some(frames) = drained.get("frames").and_then(|value| value.as_array()) else {
+             let message = "Severin bridge drain result did not contain a frames array".to_owned();
+             self.trace(format_args!("drain: failed error={message}"));
