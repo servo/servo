@@ -32,7 +32,7 @@ use winit::window::Window;
 const DEFAULT_PACKAGE_ID: &str = "com.example.app";
 const PY_TPFLAGS_DEFAULT: u64 = 0;
 const PY_TPFLAGS_BASETYPE: u64 = 1 << 10;
-const PY_MOD_EXEC: c_int = 0;
+const PY_MOD_EXEC: c_int = 2;
 const PY_TP_NEW: c_int = 65;
 const PY_TP_INIT: c_int = 60;
 const PY_TP_DEALLOC: c_int = 52;
