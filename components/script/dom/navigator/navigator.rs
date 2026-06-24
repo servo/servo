@@ -362,8 +362,8 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://www.w3.org/TR/geolocation/#navigator_interface>
-    fn Geolocation(&self) -> DomRoot<Geolocation> {
-        Geolocation::new(&self.global(), CanGc::deprecated_note())
+    fn Geolocation(&self, cx: &mut js::context::JSContext) -> DomRoot<Geolocation> {
+        Geolocation::new(cx, &self.global())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigatorlanguage>

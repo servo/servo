@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::GeolocationCoordinatesBinding::GeolocationCoordinatesMethods;
 use script_bindings::num::Finite;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::globalscope::GlobalScope;
 
@@ -47,6 +47,7 @@ impl GeolocationCoordinates {
 
     #[expect(unused, clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         accuracy: Finite<f64>,
         latitude: Finite<f64>,
@@ -55,9 +56,8 @@ impl GeolocationCoordinates {
         altitude_accuracy: Option<Finite<f64>>,
         heading: Option<Finite<f64>>,
         speed: Option<Finite<f64>>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(
                 accuracy,
                 latitude,
@@ -68,7 +68,7 @@ impl GeolocationCoordinates {
                 speed,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 }
