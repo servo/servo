@@ -137,11 +137,8 @@ impl DocumentOrShadowRoot {
         self.custom_element_registry.get()
     }
 
-    pub(crate) fn set_custom_element_registry(
-        &self,
-        registry: Option<DomRoot<CustomElementRegistry>>,
-    ) {
-        self.custom_element_registry.set(registry.as_deref());
+    pub(crate) fn set_custom_element_registry(&self, registry: Option<&CustomElementRegistry>) {
+        self.custom_element_registry.set(registry);
     }
 
     /// Retarget the result of `elementsFromPoint` or `elementFromPoint` according to the

@@ -2837,7 +2837,7 @@ impl Document {
         self.document_or_shadow_root.custom_element_registry()
     }
 
-    pub(crate) fn set_custom_element_registry(&self, registry: DomRoot<CustomElementRegistry>) {
+    pub(crate) fn set_custom_element_registry(&self, registry: &CustomElementRegistry) {
         self.document_or_shadow_root
             .set_custom_element_registry(Some(registry));
     }
