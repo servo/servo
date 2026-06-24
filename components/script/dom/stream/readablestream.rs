@@ -970,6 +970,25 @@ impl ReadableStream {
         Ok(stream)
     }
 
+    /// Build an empty stream.
+    /// Used as step 2 of <https://fetch.spec.whatwg.org/#dom-body-textstream>
+    pub(crate) fn new_empty(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> Fallible<DomRoot<ReadableStream>> {
+        // Step 1. Let emptyStream be a new ReadableStream in this’s relevant realm.
+        // Step 2. Set up emptyStream.
+        let empty_stream = ReadableStream::new_with_external_underlying_source(
+            cx,
+            global,
+            UnderlyingSourceType::Memory(0),
+        )?;
+        // Step 3. Close emptyStream.
+        empty_stream.controller_close_native(cx);
+        // Step 4. Return emptyStream.
+        Ok(empty_stream)
+    }
+
     /// <https://streams.spec.whatwg.org/#readablestream-set-up-with-byte-reading-support>
     pub(crate) fn new_from_bytes_with_byte_reading_support(
         cx: &mut JSContext,

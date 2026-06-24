@@ -1179,8 +1179,8 @@ pub(crate) fn body_text_stream<T: BodyMixin + DomObject>(
     // Step 3: Let stream be this’s body’s stream.
     let Some(stream) = object.body() else {
         // Step 2: If this's body is null:
-        // set up a ReadableStream, close it, and return it.
-        return ReadableStream::new_from_bytes(cx, &object.global(), vec![]);
+        // set up a ReadableStream emptyStream, close it, and return it.
+        return ReadableStream::new_empty(cx, &object.global());
     };
 
     // Step 4: Let decoder be a new TextDecoderStream object in this’s relevant realm.
