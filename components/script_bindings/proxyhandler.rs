@@ -19,8 +19,8 @@ use js::jsapi::{
     HandleValue as RawHandleValue, HandleValueArray, IsWindowProxy, JSErrNum, JSFunctionSpec,
     JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSObject, JSPROP_READONLY, JSPropertySpec,
     JSString, MutableHandleIdVector as RawMutableHandleIdVector,
-    MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
-    ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
+    MutableHandleObject as RawMutableHandleObject, ObjectOpResult, PropertyDescriptor,
+    SetDOMProxyInformation, SymbolCode, jsid,
 };
 use js::jsid::SymbolId;
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -35,6 +35,7 @@ use js::rust::wrappers2::{
 };
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
+    MutableHandleValue,
 };
 
 use crate::DomTypes;
@@ -662,14 +663,12 @@ pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
 pub(crate) fn cross_origin_get<D: DomTypes>(
     cx: &mut CurrentRealm,
     proxy: HandleObject,
-    receiver: RawHandleValue,
+    receiver: HandleValue,
     id: HandleId,
-    vp: RawMutableHandleValue,
+    mut vp: MutableHandleValue,
 ) -> bool {
     // > 1. Let `desc` be `? O.[[GetOwnProperty]](P)`.
     rooted!(&in(cx) let mut descriptor = PropertyDescriptor::default());
-    let receiver = unsafe { Handle::from_raw(receiver) };
-    let mut vp = unsafe { MutableHandle::from_raw(vp) };
     let mut is_none = false;
     if !unsafe {
         InvokeGetOwnPropertyDescriptor(
