@@ -6387,7 +6387,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             namedGet = f"""
 if {condition} {{
     let mut has_on_proto = false;
-    if !has_property_on_prototype(cx.raw_cx(), proxy, id, &mut has_on_proto) {{
+    if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {{
         return false;
     }}
     if !has_on_proto {{
@@ -6649,7 +6649,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             named = f"""
 if {condition} {{
     let mut has_on_proto = false;
-    if !has_property_on_prototype(cx.raw_cx(), proxy, id, &mut has_on_proto) {{
+    if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {{
         return false;
     }}
     if !has_on_proto {{
@@ -6769,7 +6769,7 @@ let mut vp = MutableHandle::from_raw(vp);
 
 {getIndexedOrExpando}
 let mut found = false;
-if !get_property_on_prototype(cx.raw_cx(), proxy, receiver, id, &mut found, vp.reborrow()) {{
+if !get_property_on_prototype(cx, proxy, receiver, id, &mut found, vp.reborrow()) {{
     return false;
 }}
 
