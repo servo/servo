@@ -14,19 +14,18 @@ use js::jsapi::JS::CompartmentIterResult;
 use js::jsapi::{
     CallArgs, CheckedUnwrapStatic, Compartment, CompartmentSpecifier, GetNonCCWObjectGlobal,
     GetRealmGlobalOrNull, HandleObject as RawHandleObject, IsSharableCompartment,
-    IsSystemCompartment, JS_GetFunctionObject, JS_IterateCompartments, JS_NewGlobalObject,
-    JS_NewObject, JS_NewStringCopyN, JS_SetReservedSlot, JS_SetTrustedPrincipals, JSAutoRealm,
+    IsSystemCompartment, JS_GetFunctionObject, JS_NewObject, JS_NewStringCopyN, JS_SetReservedSlot,
     JSClass, JSClassOps, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_ENUMERATE,
     JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING, JSPropertySpec, JSString, JSTracer,
     ObjectOps, OnNewGlobalHookOption, SymbolCode, TrueHandleValue, Value, jsid,
 };
 use js::jsval::{JSVal, NullValue, PrivateValue};
 use js::realm::AutoRealm;
-use js::rust::wrappers::{JS_FireOnNewGlobalObject, RUST_SYMBOL_TO_JSID};
 use js::rust::wrappers2::{
     GetWellKnownSymbol, JS_AtomizeAndPinString, JS_DefineProperty, JS_DefineProperty3,
-    JS_DefineProperty4, JS_DefineProperty5, JS_DefinePropertyById5, JS_LinkConstructorAndPrototype,
-    JS_NewFunction, JS_NewObjectWithGivenProto,
+    JS_DefineProperty4, JS_DefineProperty5, JS_DefinePropertyById5, JS_FireOnNewGlobalObject,
+    JS_IterateCompartments, JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewGlobalObject,
+    JS_NewObjectWithGivenProto, JS_SetTrustedPrincipals, RUST_SYMBOL_TO_JSID,
 };
 use js::rust::{
     HandleObject, HandleValue, MutableHandleObject, RealmOptions, define_methods,
@@ -41,7 +40,6 @@ use crate::constant::{ConstantSpec, define_constants};
 use crate::conversions::{DOM_OBJECT_SLOT, get_dom_class};
 use crate::guard::Guard;
 use crate::principals::ServoJSPrincipals;
-use crate::script_runtime::JSContext as SafeJSContext;
 use crate::utils::{
     DOM_PROTOTYPE_SLOT, DOMJSClass, JSCLASS_DOM_GLOBAL, ProtoOrIfaceArray, get_proto_or_iface_array,
 };
@@ -136,7 +134,7 @@ pub(crate) type TraceHook = unsafe extern "C" fn(trc: *mut JSTracer, obj: *mut J
 
 /// Create a global object with the given class.
 pub(crate) unsafe fn create_global_object<D: DomTypes>(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     class: &'static JSClass,
     private: *const libc::c_void,
     trace: TraceHook,
@@ -167,11 +165,11 @@ pub(crate) unsafe fn create_global_object<D: DomTypes>(
         // in select_compartment() below [1], preventing compartment reuse in either direction between this global
         // and any globals created with `use_system_compartment` set to false.
         // [1] IsSystemCompartment() → Realm::isSystem() → Realm::isSystem_ → principals == trustedPrincipals()
-        JS_SetTrustedPrincipals(*cx, principal.as_raw());
+        JS_SetTrustedPrincipals(cx, principal.as_raw());
     }
 
     rval.set(JS_NewGlobalObject(
-        *cx,
+        cx,
         class,
         principal.as_raw(),
         OnNewGlobalHookOption::DontFireOnNewGlobalHook,
@@ -188,12 +186,14 @@ pub(crate) unsafe fn create_global_object<D: DomTypes>(
     let val = PrivateValue(Box::into_raw(proto_array) as *const libc::c_void);
     JS_SetReservedSlot(rval.get(), DOM_PROTOTYPE_SLOT, &val);
 
-    let _ac = JSAutoRealm::new(*cx, rval.get());
-    JS_FireOnNewGlobalObject(*cx, rval.handle());
+    let mut cx = AutoRealm::new_from_handle(cx, rval.handle());
+    let cx = &mut cx;
+
+    JS_FireOnNewGlobalObject(cx, rval.handle());
 }
 
 /// Choose the compartment to create a new global object in.
-fn select_compartment(cx: SafeJSContext, options: &mut RealmOptions) {
+fn select_compartment(cx: &mut js::context::JSContext, options: &mut RealmOptions) {
     type Data = *mut Compartment;
     unsafe extern "C" fn callback(
         _cx: *mut JSContext,
@@ -215,7 +215,7 @@ fn select_compartment(cx: SafeJSContext, options: &mut RealmOptions) {
     let mut compartment: Data = ptr::null_mut();
     unsafe {
         JS_IterateCompartments(
-            *cx,
+            cx,
             (&mut compartment) as *mut Data as *mut libc::c_void,
             Some(callback),
         );

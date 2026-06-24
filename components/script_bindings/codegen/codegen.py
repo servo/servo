@@ -3426,7 +3426,7 @@ unsafe {{
 
     rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
     create_global_object::<D>(
-        cx.into(),
+        cx,
         &Class.get().base,
         raw.as_ptr() as *const libc::c_void,
         {TRACE_HOOK_NAME}::<D>,
