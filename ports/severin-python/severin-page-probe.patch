@@ -30,7 +30,7 @@ diff --git a/ports/severin-python/src/lib.rs b/ports/severin-python/src/lib.rs
 index 1a603a0bd915..5c9bc41e4387 100644
 --- a/ports/severin-python/src/lib.rs
 +++ b/ports/severin-python/src/lib.rs
-@@ -1,6 +1,7 @@
+@@ -7,6 +7,7 @@
  //! Experimental in-process CPython bindings for the Severin local runtime.
  
  mod bridge_trace;
@@ -38,20 +38,20 @@ index 1a603a0bd915..5c9bc41e4387 100644
  
  use std::cell::RefCell;
  use std::collections::{HashMap, VecDeque};
-@@ -8,5 +8,6 @@
+@@ -168,5 +168,6 @@
      bridge_transport: BridgeTransport,
      pending_evaluations: Vec<PendingEvaluation>,
      trace_bridge: bool,
 +    probe_bridge: bool,
      next_evaluation_id: u64,
  }
-@@ -4,4 +4,5 @@
+@@ -301,4 +301,5 @@
      inbound: VecDeque<BridgeFrame>,
      pending: HashMap<u64, PendingReplyTarget>,
      active_document_id: Option<String>,
 +    last_page_probe: Option<Option<String>>,
  }
-@@ -2,9 +2,18 @@
+@@ -417,9 +417,18 @@
          self.inbound.clear();
          self.pending.clear();
          self.active_document_id = None;
@@ -70,7 +70,7 @@ index 1a603a0bd915..5c9bc41e4387 100644
 +        true
 +    }
  }
-@@ -1,8 +1,15 @@
+@@ -505,8 +505,15 @@
  const DRAIN_SCRIPT: &str = r#"
  (() => {
 +  const root = globalThis.document ? document.documentElement : null;
@@ -88,7 +88,7 @@ index 1a603a0bd915..5c9bc41e4387 100644
 +  });
  })()
  "#;
-@@ -4,5 +4,7 @@
+@@ -534,5 +534,7 @@
              trace_bridge,
              format_args!("app:new width={width} height={height}"),
          );
@@ -96,14 +96,14 @@ index 1a603a0bd915..5c9bc41e4387 100644
 +        bridge_probe::emit(format_args!("app:new page-global probe enabled"));
  
          let mut event_loop = EventLoop::with_user_event()
-@@ -1,5 +1,6 @@
+@@ -596,5 +596,6 @@
              bridge_transport: BridgeTransport::default(),
              pending_evaluations: Vec::new(),
              trace_bridge,
 +            probe_bridge,
              next_evaluation_id: 0,
          })
-@@ -3,4 +3,16 @@
+@@ -780,4 +780,16 @@
              self.bridge_transport.clear_for_navigation();
              self.bridge_transport.active_document_id = Some(document_id.clone());
          }
@@ -121,4 +121,4 @@ index 1a603a0bd915..5c9bc41e4387 100644
 +        }
          let Some(frames) = drained.get("frames").and_then(|value| value.as_array()) else {
              let message = "Severin bridge drain result did not contain a frames array".to_owned();
-             self.trace(format_args!("drain: failed error={message}"));
+            self.trace(format_args!("drain: failed error={message}"));
