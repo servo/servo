@@ -21,8 +21,6 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.view.isGone
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
 import java.text.SimpleDateFormat
@@ -33,8 +31,7 @@ import java.util.Locale
 class HistoryFragment : Fragment() {
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-    private lateinit var listView: ComposeView
-    private lateinit var emptyState: ComposeView
+    private lateinit var bodyView: ComposeView
     private lateinit var historyManager: HistoryManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,8 +46,7 @@ class HistoryFragment : Fragment() {
     ): View = inflater.inflate(R.layout.fragment_history, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        listView = view.findViewById(R.id.history_list)
-        emptyState = view.findViewById(R.id.empty_state)
+        bodyView = view.findViewById(R.id.body)
 
         val toolbar = view.findViewById<MaterialToolbar>(R.id.toolbar)
         toolbar.setOnMenuItemClickListener { item ->
@@ -68,11 +64,8 @@ class HistoryFragment : Fragment() {
     private fun loadHistory() {
         val historyEntries = historyManager.history
 
-        if (historyEntries.isEmpty()) {
-            listView.isGone = true
-            emptyState.isVisible = true
-
-            emptyState.setContent {
+        bodyView.setContent {
+            if (historyEntries.isEmpty()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
@@ -88,12 +81,7 @@ class HistoryFragment : Fragment() {
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
-            }
-        } else {
-            listView.isVisible = true
-            emptyState.isGone = true
-
-            listView.setContent {
+            } else {
                 LazyColumn {
                     items(groupByDay(historyEntries)) { item ->
                         when (item) {
