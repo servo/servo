@@ -13,6 +13,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 
 use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{
     HTMLAnchorElement, HTMLButtonElement, HTMLElement, HTMLFieldSetElement, HTMLInputElement,
@@ -187,7 +188,7 @@ impl InteractiveElementCommand {
             // >  2. Fire a click event at the element.
             InteractiveElementCommand::HTMLElement(html_element) => {
                 let node: &Node = html_element.upcast();
-                node.run_the_focusing_steps(cx, None);
+                node.run_the_focusing_steps(cx, None, Some(FocusTrigger::Click));
                 node.fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
             },
         }
