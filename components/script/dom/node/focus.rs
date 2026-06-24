@@ -100,7 +100,7 @@ impl Iterator for FocusNavigationScopeIterator {
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum FocusTrigger {
     Click,
-    Other
+    Other,
 }
 
 impl Node {
@@ -114,9 +114,10 @@ impl Node {
     pub(crate) fn find_click_focusable_area(&self, no_gc: &NoGC) -> FocusableArea {
         self.inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(|node| {
-                node.get_the_focusable_area(None, no_gc).filter(|focusable_area| {
-                    focusable_area.kind().contains(FocusableAreaKind::Click)
-                })
+                node.get_the_focusable_area(None, no_gc)
+                    .filter(|focusable_area| {
+                        focusable_area.kind().contains(FocusableAreaKind::Click)
+                    })
             })
             .unwrap_or(FocusableArea::Viewport)
     }
@@ -128,7 +129,11 @@ impl Node {
     /// this for a focus target that actually *is* a focusable area. The obvious thing is to
     /// just return the focus target, but it's still odd that this isn't mentioned in the
     /// specification.
-    pub(crate) fn get_the_focusable_area(&self, focus_trigger: Option<FocusTrigger>, no_gc: &NoGC) -> Option<FocusableArea> {
+    pub(crate) fn get_the_focusable_area(
+        &self,
+        focus_trigger: Option<FocusTrigger>,
+        no_gc: &NoGC,
+    ) -> Option<FocusableArea> {
         let focus_trigger = focus_trigger.unwrap_or(FocusTrigger::Other);
         let kind = self
             .downcast::<Element>()
@@ -227,7 +232,11 @@ impl Node {
     ///
     /// In addition to returning the focus delegate for this [`Node`], this method also returns
     /// the [`FocusableAreaKind`] for efficiency reasons.
-    pub(crate) fn focus_delegate(&self, focus_trigger: Option<FocusTrigger>, no_gc: &NoGC) -> Option<FocusableArea> {
+    pub(crate) fn focus_delegate(
+        &self,
+        focus_trigger: Option<FocusTrigger>,
+        no_gc: &NoGC,
+    ) -> Option<FocusableArea> {
         let focus_trigger = focus_trigger.unwrap_or(FocusTrigger::Other);
 
         // > 1. If focusTarget is a shadow host and its shadow root's delegates focus is false, then
@@ -286,8 +295,8 @@ impl Node {
 
             // > 6.4. Otherwise, set focusableArea to the result of getting the focusable area for
             //        descendant given focusTrigger.
-            if let Some(focusable_area) =
-                descendant.get_the_focusable_area_if_not_a_focusable_area(Some(focus_trigger), no_gc)
+            if let Some(focusable_area) = descendant
+                .get_the_focusable_area_if_not_a_focusable_area(Some(focus_trigger), no_gc)
             {
                 // > 6.5. If focusableArea is not null, then return focusableArea.
                 return Some(focusable_area);
@@ -299,7 +308,11 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#autofocus-delegate>
-    pub(crate) fn autofocus_delegate(&self, focus_trigger: FocusTrigger, no_gc: &NoGC) -> Option<FocusableArea> {
+    pub(crate) fn autofocus_delegate(
+        &self,
+        focus_trigger: FocusTrigger,
+        no_gc: &NoGC,
+    ) -> Option<FocusableArea> {
         // > 1. For each descendant descendant of focus target, in tree order:
         for descendant in self.traverse_preorder(ShadowIncluding::No).skip(1) {
             // > 1.1. If descendant does not have an autofocus content attribute, then continue.
@@ -356,7 +369,7 @@ impl Node {
         &self,
         cx: &mut JSContext,
         fallback_target: Option<FocusableArea>,
-        focus_trigger: Option<FocusTrigger>
+        focus_trigger: Option<FocusTrigger>,
     ) -> bool {
         // > 1. If new focus target is not a focusable area, then set new focus target to the result
         // >    of getting the focusable area for new focus target, given focus trigger if it was
@@ -364,7 +377,10 @@ impl Node {
         // > 2. If new focus target is null, then:
         // > 2.1 If no fallback target was specified, then return.
         // > 2.2 Otherwise, set new focus target to the fallback target.
-        let Some(focusable_area) = self.get_the_focusable_area(focus_trigger, cx.no_gc()).or(fallback_target) else {
+        let Some(focusable_area) = self
+            .get_the_focusable_area(focus_trigger, cx.no_gc())
+            .or(fallback_target)
+        else {
             return false;
         };
 
