@@ -28,33 +28,10 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <LinearLayout
+        <androidx.compose.ui.platform.ComposeView
             android:id="@+id/empty_state"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:gravity="center"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/history_placeholder_title"
-                android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                android:textColor="?android:attr/textColorPrimary"
-                android:layout_marginTop="48dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/history_placeholder_message"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?android:attr/textColorSecondary"
-                android:gravity="center" />
-
-        </LinearLayout>
+            android:layout_height="match_parent" />
 
     </FrameLayout>
 

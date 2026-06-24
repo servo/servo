@@ -7,14 +7,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -28,7 +34,7 @@ class HistoryFragment : Fragment() {
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     private lateinit var listView: ComposeView
-    private lateinit var emptyState: View
+    private lateinit var emptyState: ComposeView
     private lateinit var historyManager: HistoryManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +71,24 @@ class HistoryFragment : Fragment() {
         if (historyEntries.isEmpty()) {
             listView.isGone = true
             emptyState.isVisible = true
+
+            emptyState.setContent {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        stringResource(R.string.history_placeholder_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    Text(
+                        stringResource(R.string.history_placeholder_message),
+                        color = MaterialTheme.colorScheme.secondary,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
         } else {
             listView.isVisible = true
             emptyState.isGone = true
