@@ -4,6 +4,8 @@
 
 //! Experimental in-process CPython bindings for the Severin local runtime.
 
+mod bridge_trace;
+
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::ffi::{CStr, CString, c_char, c_int, c_long, c_void};
@@ -165,6 +167,8 @@ struct EmbeddedServoApp {
     wake_flag: Arc<AtomicBool>,
     bridge_transport: BridgeTransport,
     pending_evaluations: Vec<PendingEvaluation>,
+    trace_bridge: bool,
+    next_evaluation_id: u64,
 }
 
 struct WinitPresentation {
@@ -309,14 +313,57 @@ struct PendingReplyTarget {
     call_id: u64,
 }
 
+#[derive(Clone, Copy, Debug)]
 enum PendingEvaluationKind {
     DrainOutbound,
     DeliverReply,
 }
 
+impl PendingEvaluationKind {
+    fn label(self) -> &'static str {
+        match self {
+            Self::DrainOutbound => "drain",
+            Self::DeliverReply => "reply",
+        }
+    }
+}
+
 struct PendingEvaluation {
+    id: u64,
     kind: PendingEvaluationKind,
     result: Rc<RefCell<Option<Result<JSValue, JavaScriptEvaluationError>>>>,
+}
+
+fn trace_evaluation_callback(
+    enabled: bool,
+    evaluation_id: u64,
+    kind: PendingEvaluationKind,
+    result: &Result<JSValue, JavaScriptEvaluationError>,
+) {
+    match result {
+        Ok(JSValue::String(serialized)) => bridge_trace::emit(
+            enabled,
+            format_args!(
+                "eval:{evaluation_id} callback kind={} result=string bytes={}",
+                kind.label(),
+                serialized.len()
+            ),
+        ),
+        Ok(value) => bridge_trace::emit(
+            enabled,
+            format_args!(
+                "eval:{evaluation_id} callback kind={} result=unexpected value={value:?}",
+                kind.label()
+            ),
+        ),
+        Err(error) => bridge_trace::emit(
+            enabled,
+            format_args!(
+                "eval:{evaluation_id} callback kind={} result=error error={error:?}",
+                kind.label()
+            ),
+        ),
+    }
 }
 
 impl BridgeTransport {
@@ -482,6 +529,12 @@ fn resolve_script(document_id: &str, call_id: u64, json: &str) -> String {
 
 impl EmbeddedServoApp {
     fn new(width: u32, height: u32) -> Result<Self, String> {
+        let trace_bridge = bridge_trace::enabled();
+        bridge_trace::emit(
+            trace_bridge,
+            format_args!("app:new width={width} height={height}"),
+        );
+
         let mut event_loop = EventLoop::with_user_event()
             .build()
             .map_err(|error| format!("failed to create Severin event loop: {error}"))?;
@@ -520,9 +573,14 @@ impl EmbeddedServoApp {
             .build();
         let user_content_manager = Rc::new(UserContentManager::new(&servo));
         user_content_manager.add_script(Rc::new(UserScript::from(SEVERIN_BRIDGE_SHIM)));
+        bridge_trace::emit(
+            trace_bridge,
+            format_args!("bridge-shim: queued in user-content manager"),
+        );
         let webview = WebViewBuilder::new(&servo, rendering_context.clone())
             .user_content_manager(user_content_manager.clone())
             .build();
+        bridge_trace::emit(trace_bridge, format_args!("app:new webview constructed"));
         Ok(Self {
             presentation: WinitPresentation {
                 event_loop,
@@ -537,7 +595,18 @@ impl EmbeddedServoApp {
             wake_flag,
             bridge_transport: BridgeTransport::default(),
             pending_evaluations: Vec::new(),
+            trace_bridge,
+            next_evaluation_id: 0,
         })
+    }
+
+    fn trace(&self, message: std::fmt::Arguments<'_>) {
+        bridge_trace::emit(self.trace_bridge, message);
+    }
+
+    fn next_evaluation_id(&mut self) -> u64 {
+        self.next_evaluation_id = self.next_evaluation_id.saturating_add(1);
+        self.next_evaluation_id
     }
 
     fn spin_once(&mut self) {
@@ -577,26 +646,46 @@ impl EmbeddedServoApp {
             return;
         }
 
+        let evaluation_id = self.next_evaluation_id();
+        let kind = PendingEvaluationKind::DrainOutbound;
+        self.trace(format_args!(
+            "eval:{evaluation_id} queue kind={} load_complete={}",
+            kind.label(),
+            self.webview.load_status() == LoadStatus::Complete,
+        ));
         let result = Rc::new(RefCell::new(None));
         let callback_result = result.clone();
+        let trace_bridge = self.trace_bridge;
         self.webview
             .evaluate_javascript(DRAIN_SCRIPT, move |value| {
+                trace_evaluation_callback(trace_bridge, evaluation_id, kind, &value);
                 *callback_result.borrow_mut() = Some(value);
             });
         self.pending_evaluations.push(PendingEvaluation {
-            kind: PendingEvaluationKind::DrainOutbound,
+            id: evaluation_id,
+            kind,
             result,
         });
     }
 
     fn schedule_reply_delivery(&mut self, script: String) {
+        let evaluation_id = self.next_evaluation_id();
+        let kind = PendingEvaluationKind::DeliverReply;
+        self.trace(format_args!(
+            "eval:{evaluation_id} queue kind={} script_bytes={}",
+            kind.label(),
+            script.len(),
+        ));
         let result = Rc::new(RefCell::new(None));
         let callback_result = result.clone();
+        let trace_bridge = self.trace_bridge;
         self.webview.evaluate_javascript(script, move |value| {
+            trace_evaluation_callback(trace_bridge, evaluation_id, kind, &value);
             *callback_result.borrow_mut() = Some(value);
         });
         self.pending_evaluations.push(PendingEvaluation {
-            kind: PendingEvaluationKind::DeliverReply,
+            id: evaluation_id,
+            kind,
             result,
         });
     }
@@ -610,12 +699,33 @@ impl EmbeddedServoApp {
                 continue;
             };
             let evaluation = self.pending_evaluations.remove(index);
+            self.trace(format_args!(
+                "eval:{} collect kind={}",
+                evaluation.id,
+                evaluation.kind.label()
+            ));
             match evaluation.kind {
                 PendingEvaluationKind::DrainOutbound => {
                     self.handle_drain_result(result)?;
                 },
                 PendingEvaluationKind::DeliverReply => {
-                    let delivered = matches!(result, Ok(JSValue::Boolean(true)));
+                    let delivered = match result {
+                        Ok(JSValue::Boolean(true)) => true,
+                        Ok(value) => {
+                            let message = format!(
+                                "Severin bridge reply evaluation returned unexpected value: {value:?}"
+                            );
+                            self.trace(format_args!("reply: delivery failed error={message}"));
+                            return Err(message);
+                        },
+                        Err(error) => {
+                            let message =
+                                format!("Severin bridge reply evaluation failed: {error:?}");
+                            self.trace(format_args!("reply: delivery failed error={message}"));
+                            return Err(message);
+                        },
+                    };
+                    self.trace(format_args!("reply: delivery acknowledged"));
                     self.bridge_transport.finish_reply_delivery(delivered)?;
                 },
             }
@@ -624,6 +734,12 @@ impl EmbeddedServoApp {
     }
 
     fn clear_bridge_for_navigation(&mut self) {
+        self.trace(format_args!(
+            "bridge: clear navigation pending_evaluations={} inbound={} replies={}",
+            self.pending_evaluations.len(),
+            self.bridge_transport.inbound.len(),
+            self.bridge_transport.pending.len(),
+        ));
         self.pending_evaluations.clear();
         self.bridge_transport.clear_for_navigation();
     }
@@ -632,8 +748,20 @@ impl EmbeddedServoApp {
         &mut self,
         result: Result<JSValue, JavaScriptEvaluationError>,
     ) -> Result<(), String> {
-        let Ok(JSValue::String(serialized)) = result else {
-            return Ok(());
+        let serialized = match result {
+            Ok(JSValue::String(serialized)) => serialized,
+            Ok(value) => {
+                let message = format!(
+                    "Severin bridge drain evaluation returned unexpected value: {value:?}"
+                );
+                self.trace(format_args!("drain: failed error={message}"));
+                return Err(message);
+            },
+            Err(error) => {
+                let message = format!("Severin bridge drain evaluation failed: {error:?}");
+                self.trace(format_args!("drain: failed error={message}"));
+                return Err(message);
+            },
         };
         let drained: serde_json::Value = serde_json::from_str(&serialized)
             .map_err(|error| format!("invalid Severin bridge drain result: {error}"))?;
@@ -643,28 +771,42 @@ impl EmbeddedServoApp {
             .unwrap_or_default()
             .to_owned();
         if document_id.is_empty() {
+            self.trace(format_args!("drain: shim absent in evaluated document"));
             self.bridge_transport.clear_for_navigation();
             return Ok(());
         }
         if self.bridge_transport.active_document_id.as_deref() != Some(document_id.as_str()) {
+            self.trace(format_args!("drain: active document changed id={document_id}"));
             self.bridge_transport.clear_for_navigation();
             self.bridge_transport.active_document_id = Some(document_id.clone());
         }
         let Some(frames) = drained.get("frames").and_then(|value| value.as_array()) else {
-            return Ok(());
+            let message = "Severin bridge drain result did not contain a frames array".to_owned();
+            self.trace(format_args!("drain: failed error={message}"));
+            return Err(message);
         };
+        self.trace(format_args!(
+            "drain: document={document_id} frames={}",
+            frames.len()
+        ));
         for frame in frames {
             let Some(call_id) = frame.get("callId").and_then(|value| value.as_u64()) else {
+                self.trace(format_args!("drain: skipped malformed frame missing callId"));
                 continue;
             };
             let Some(json) = frame.get("json").and_then(|value| value.as_str()) else {
+                self.trace(format_args!("drain: skipped malformed frame call_id={call_id} missing json"));
                 continue;
             };
-            self.bridge_transport.enqueue_from_javascript(
+            let receipt = self.bridge_transport.enqueue_from_javascript(
                 document_id.clone(),
                 call_id,
                 json.to_owned(),
             )?;
+            self.trace(format_args!(
+                "frame: enqueue receipt={receipt} call_id={call_id} json_bytes={}",
+                json.len()
+            ));
         }
         Ok(())
     }
@@ -725,6 +867,7 @@ unsafe extern "C" fn app_init(
 unsafe extern "C" fn app_dealloc(self_: *mut PyAppObject) {
     unsafe {
         if !(*self_).app.is_null() {
+            (*(*self_).app).trace(format_args!("app: dealloc"));
             (*(*self_).app).bridge_transport.clear_for_close();
             drop(Box::from_raw((*self_).app));
             (*self_).app = ptr::null_mut();
@@ -789,6 +932,11 @@ unsafe extern "C" fn app_load_path(self_: *mut PyAppObject, arg: *mut PyObject) 
             return ptr::null_mut();
         },
     };
+    app.trace(format_args!(
+        "navigation: load source={} package_root={} url={url}",
+        canonical.display(),
+        package_root.display(),
+    ));
     app.clear_bridge_for_navigation();
     app.webview.load(url);
     unsafe {
@@ -797,18 +945,25 @@ unsafe extern "C" fn app_load_path(self_: *mut PyAppObject, arg: *mut PyObject) 
     }
 }
 unsafe extern "C" fn app_run(self_: *mut PyAppObject, _args: *mut PyObject) -> *mut PyObject {
+    let mut logged_begin = false;
     while unsafe { !(*self_).closed } {
         let Ok(app) = (unsafe { get_app_mut(self_) }) else {
             break;
         };
+        if !logged_begin {
+            app.trace(format_args!("load: wait begin"));
+            logged_begin = true;
+        }
         app.spin_once();
         if app.presentation.closed_by_window {
+            app.trace(format_args!("load: aborted window closed"));
             unsafe {
                 (*self_).closed = true;
             }
             break;
         }
         if app.webview.load_status() == LoadStatus::Complete {
+            app.trace(format_args!("load: complete"));
             break;
         }
         std::thread::sleep(Duration::from_millis(1));
@@ -823,10 +978,12 @@ unsafe extern "C" fn app_pump(self_: *mut PyAppObject, _args: *mut PyObject) -> 
         return ptr::null_mut();
     };
     if let Err(error) = app.pump_once() {
+        app.trace(format_args!("pump: failed error={error}"));
         unsafe { set_error(PyExc_RuntimeError, &error) };
         return ptr::null_mut();
     }
     if app.presentation.closed_by_window {
+        app.trace(format_args!("pump: window closed"));
         unsafe {
             (*self_).closed = true;
         }
@@ -841,6 +998,7 @@ unsafe extern "C" fn app_close(self_: *mut PyAppObject, _args: *mut PyObject) ->
     unsafe {
         (*self_).closed = true;
         if !(*self_).app.is_null() {
+            (*(*self_).app).trace(format_args!("app: close"));
             (*(*self_).app).bridge_transport.clear_for_close();
             drop(Box::from_raw((*self_).app));
             (*self_).app = ptr::null_mut();
@@ -874,6 +1032,11 @@ unsafe extern "C" fn app_read(self_: *mut PyAppObject, _args: *mut PyObject) -> 
             return py_none();
         }
     };
+    app.trace(format_args!(
+        "frame: read receipt={} json_bytes={}",
+        frame.receipt,
+        frame.json.len()
+    ));
 
     let tuple = unsafe { PyTuple_New(2) };
     if tuple.is_null() {
@@ -919,9 +1082,14 @@ unsafe extern "C" fn app_write(self_: *mut PyAppObject, args: *mut PyObject) -> 
     let Ok(json) = (unsafe { unicode_to_string(json_obj) }) else {
         return ptr::null_mut();
     };
+    app.trace(format_args!(
+        "reply: write receipt={receipt} json_bytes={}",
+        json.len()
+    ));
     let script = match app.bridge_transport.prepare_reply(receipt, &json) {
         Ok(script) => script,
         Err(error) => {
+            app.trace(format_args!("reply: reject receipt={receipt} error={error}"));
             unsafe { set_error(PyExc_RuntimeError, &error) };
             return ptr::null_mut();
         },
