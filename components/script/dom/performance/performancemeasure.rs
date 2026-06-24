@@ -42,7 +42,6 @@ impl PerformanceMeasure {
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         name: DOMString,
@@ -64,6 +63,7 @@ impl PerformanceMeasure {
 }
 
 impl PerformanceMeasureMethods<crate::DomTypeHolder> for PerformanceMeasure {
+    /// <https://w3c.github.io/user-timing/#dom-performancemeasure-detail>
     fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.detail.get())
     }

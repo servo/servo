@@ -71,6 +71,7 @@ impl PerformanceMark {
 }
 
 impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
+    /// <https://w3c.github.io/user-timing/#dom-performancemark-detail>
     fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.detail.get())
     }
