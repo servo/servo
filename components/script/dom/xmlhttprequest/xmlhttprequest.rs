@@ -20,9 +20,10 @@ use html5ever::serialize::SerializeOpts;
 use http::Method;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper_serde::Serde;
-use js::jsapi::{Heap, JS_ClearPendingException};
+use js::context::JSContext;
+use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue};
-use js::rust::wrappers::JS_ParseJSON;
+use js::rust::wrappers2::{JS_ClearPendingException, JS_ParseJSON};
 use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -78,7 +79,7 @@ use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
@@ -111,7 +112,7 @@ impl FetchResponseListener for XHRContext {
 
     fn process_response(
         &mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -122,12 +123,7 @@ impl FetchResponseListener for XHRContext {
         }
     }
 
-    fn process_response_chunk(
-        &mut self,
-        cx: &mut js::context::JSContext,
-        _: RequestId,
-        chunk: Vec<u8>,
-    ) {
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
         self.xhr
             .root()
             .process_data_available(cx, self.gen_id, chunk);
@@ -135,7 +131,7 @@ impl FetchResponseListener for XHRContext {
 
     fn process_response_eof(
         self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -318,12 +314,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-open()-method>
-    fn Open(
-        &self,
-        cx: &mut js::context::JSContext,
-        method: ByteString,
-        url: USVString,
-    ) -> ErrorResult {
+    fn Open(&self, cx: &mut JSContext, method: ByteString, url: USVString) -> ErrorResult {
         // Step 8
         self.Open_(cx, method, url, true, None, None)
     }
@@ -331,7 +322,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#the-open()-method>
     fn Open_(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         method: ByteString,
         url: USVString,
         asynch: bool,
@@ -555,7 +546,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#dom-xmlhttprequest-send>
     fn Send(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         data: Option<DocumentOrXMLHttpRequestBodyInit>,
     ) -> ErrorResult {
         // Step 1. If this’s state is not opened, then throw an "InvalidStateError" DOMException.
@@ -803,7 +794,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-abort()-method>
-    fn Abort(&self, cx: &mut js::context::JSContext) {
+    fn Abort(&self, cx: &mut JSContext) {
         // Step 1
         self.terminate_ongoing_fetch();
         // Step 2
@@ -949,7 +940,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-response-attribute>
-    fn Response(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+    fn Response(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                 let ready_state = self.ready_state.get();
@@ -971,7 +962,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             XMLHttpRequestResponseType::Document => {
                 self.document_response(cx).safe_to_jsval(cx, rval)
             },
-            XMLHttpRequestResponseType::Json => self.json_response(cx.into(), rval),
+            XMLHttpRequestResponseType::Json => self.json_response(cx, rval),
             XMLHttpRequestResponseType::Blob => self.blob_response(cx).safe_to_jsval(cx, rval),
             XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
                 Some(array_buffer) => array_buffer.safe_to_jsval(cx, rval),
@@ -999,10 +990,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-responsexml-attribute>
-    fn GetResponseXML(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> Fallible<Option<DomRoot<Document>>> {
+    fn GetResponseXML(&self, cx: &mut JSContext) -> Fallible<Option<DomRoot<Document>>> {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 // Step 3
@@ -1022,7 +1010,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 pub(crate) type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 impl XMLHttpRequest {
-    fn change_ready_state(&self, cx: &mut js::context::JSContext, rs: XMLHttpRequestState) {
+    fn change_ready_state(&self, cx: &mut JSContext, rs: XMLHttpRequestState) {
         assert_ne!(self.ready_state.get(), rs);
         self.ready_state.set(rs);
         if rs != XMLHttpRequestState::Unsent {
@@ -1039,7 +1027,7 @@ impl XMLHttpRequest {
 
     fn process_headers_available(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         gen_id: GenerationId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) -> Result<(), Error> {
@@ -1076,18 +1064,13 @@ impl XMLHttpRequest {
         Ok(())
     }
 
-    fn process_data_available(
-        &self,
-        cx: &mut js::context::JSContext,
-        gen_id: GenerationId,
-        payload: Vec<u8>,
-    ) {
+    fn process_data_available(&self, cx: &mut JSContext, gen_id: GenerationId, payload: Vec<u8>) {
         self.process_partial_response(cx, XHRProgress::Loading(gen_id, payload));
     }
 
     fn process_response_complete(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         gen_id: GenerationId,
         status: Result<(), NetworkError>,
     ) -> ErrorResult {
@@ -1106,7 +1089,7 @@ impl XMLHttpRequest {
         }
     }
 
-    fn process_partial_response(&self, cx: &mut js::context::JSContext, progress: XHRProgress) {
+    fn process_partial_response(&self, cx: &mut JSContext, progress: XHRProgress) {
         let msg_id = progress.generation_id();
 
         // Aborts processing if abort() or open() was called
@@ -1265,7 +1248,7 @@ impl XMLHttpRequest {
 
     fn dispatch_progress_event(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         upload: bool,
         type_: Atom,
         loaded: u64,
@@ -1300,7 +1283,7 @@ impl XMLHttpRequest {
 
     fn dispatch_upload_progress_event(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         type_: Atom,
         partial_load: Result<Option<u64>, ()>,
     ) {
@@ -1318,7 +1301,7 @@ impl XMLHttpRequest {
         self.dispatch_progress_event(cx, true, type_, loaded, total);
     }
 
-    fn dispatch_response_progress_event(&self, cx: &mut js::context::JSContext, type_: Atom) {
+    fn dispatch_response_progress_event(&self, cx: &mut JSContext, type_: Atom) {
         let len = self.response.borrow().len() as u64;
         let total = self
             .response_headers
@@ -1360,7 +1343,7 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#blob-response>
-    fn blob_response(&self, cx: &mut js::context::JSContext) -> DomRoot<Blob> {
+    fn blob_response(&self, cx: &mut JSContext) -> DomRoot<Blob> {
         // Step 1
         if let Some(response) = self.response_blob.get() {
             return response;
@@ -1378,7 +1361,7 @@ impl XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#arraybuffer-response>
     fn arraybuffer_response(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) -> Option<RootedTraceableBox<HeapArrayBuffer>> {
         // Step 5: Set the response object to a new ArrayBuffer with the received bytes
         // For caching purposes, skip this step if the response is already created
@@ -1394,7 +1377,7 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#document-response>
-    fn document_response(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<Document>> {
+    fn document_response(&self, cx: &mut JSContext) -> Option<DomRoot<Document>> {
         // Caching: if we have existing response xml, redirect it directly
         let response = self.response_xml.get();
         if response.is_some() {
@@ -1478,7 +1461,7 @@ impl XMLHttpRequest {
 
     #[expect(unsafe_code)]
     /// <https://xhr.spec.whatwg.org/#json-response>
-    fn json_response(&self, cx: JSContext, mut rval: MutableHandleValue) {
+    fn json_response(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
         // Step 1
         let response_json = self.response_json.get();
         if !response_json.is_null_or_undefined() {
@@ -1500,12 +1483,12 @@ impl XMLHttpRequest {
         // Step 5
         unsafe {
             if !JS_ParseJSON(
-                *cx,
+                cx,
                 json_text.as_ptr(),
                 json_text.len() as u32,
                 rval.reborrow(),
             ) {
-                JS_ClearPendingException(*cx);
+                JS_ClearPendingException(cx);
                 return rval.set(NullValue());
             }
         }
@@ -1513,7 +1496,7 @@ impl XMLHttpRequest {
         self.response_json.set(rval.get());
     }
 
-    fn document_text_html(&self, cx: &mut js::context::JSContext) -> DomRoot<Document> {
+    fn document_text_html(&self, cx: &mut JSContext) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let response = self.response.borrow();
@@ -1531,7 +1514,7 @@ impl XMLHttpRequest {
         document
     }
 
-    fn handle_xml(&self, cx: &mut js::context::JSContext) -> DomRoot<Document> {
+    fn handle_xml(&self, cx: &mut JSContext) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let response = self.response.borrow();
@@ -1598,7 +1581,7 @@ impl XMLHttpRequest {
 
     fn fetch(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         request_builder: RequestBuilder,
         global: &GlobalScope,
     ) -> ErrorResult {
@@ -1704,7 +1687,7 @@ pub(crate) struct XHRTimeoutCallback {
 }
 
 impl XHRTimeoutCallback {
-    pub(crate) fn invoke(self, cx: &mut js::context::JSContext) {
+    pub(crate) fn invoke(self, cx: &mut JSContext) {
         let xhr = self.xhr.root();
         if xhr.ready_state.get() != XMLHttpRequestState::Done {
             xhr.process_partial_response(

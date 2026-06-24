@@ -28,8 +28,8 @@ use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
     AddPromiseReactions, AddRawValueRoot, CallOriginalPromiseReject, CallOriginalPromiseResolve,
-    GetPromiseState, IsPromiseObject, JS_ClearPendingException, JS_NewFunction,
-    NewFunctionWithReserved, NewPromiseObject, RejectPromise, ResolvePromise,
+    GetPromiseIsHandled, GetPromiseState, IsPromiseObject, JS_ClearPendingException,
+    JS_NewFunction, NewFunctionWithReserved, NewPromiseObject, RejectPromise, ResolvePromise,
     SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
@@ -290,6 +290,11 @@ impl Promise {
                 assert!(ok);
             }
         })
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn get_promise_is_handled(&self) -> bool {
+        unsafe { GetPromiseIsHandled(self.reflector().get_jsobject()) }
     }
 
     #[expect(unsafe_code)]

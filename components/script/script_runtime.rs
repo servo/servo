@@ -43,13 +43,12 @@ use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
 use js::realm::CurrentRealm;
 pub(crate) use js::rust::ThreadSafeJSContext;
-use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::wrappers2::{
     CollectServoSizes, ContextOptionsRef, DispatchableRun, InitConsumeStreamCallback,
-    JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
-    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
-    JS_SetOffthreadIonCompilationEnabled, JS_SetSecurityCallbacks, SetDOMCallbacks,
-    SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    JS_AddExtraGCRootsTracer, JS_GetPromiseResult, JS_InitDestroyPrincipalsCallback,
+    JS_InitReadPrincipalsCallback, JS_SetGCCallback, JS_SetGCParameter,
+    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetSecurityCallbacks,
+    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
     SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
 };
 use js::rust::{
@@ -491,7 +490,9 @@ unsafe extern "C" fn promise_rejection_tracker(
                     let root_promise = trusted_promise.root();
 
                     rooted!(&in(cx) let mut reason = UndefinedValue());
-                    unsafe{JS_GetPromiseResult(root_promise.reflector().get_jsobject(), reason.handle_mut())};
+                    unsafe {
+                        JS_GetPromiseResult(root_promise.reflector().get_jsobject(), reason.handle_mut());
+                    }
 
                     let event = PromiseRejectionEvent::new(
                         cx,
@@ -663,8 +664,7 @@ pub(crate) fn notify_about_rejected_promises(
                 let promise = promise.root();
 
                 // 4.1.1 If p.[[PromiseIsHandled]] is true, then continue.
-                let promise_is_handled = unsafe { GetPromiseIsHandled(promise.reflector().get_jsobject()) };
-                if promise_is_handled {
+                if promise.get_promise_is_handled() {
                     continue;
                 }
 
@@ -697,7 +697,7 @@ pub(crate) fn notify_about_rejected_promises(
 
                 // Step 4.1.4 If p.[[PromiseIsHandled]] is false, then append p to global's outstanding
                 // rejected promises weak set.
-                if !promise_is_handled {
+                if !promise.get_promise_is_handled() {
                     target.global().add_consumed_rejection(promise.reflector().get_jsobject().into_handle());
                 }
             }
