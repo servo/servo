@@ -3000,7 +3000,7 @@ impl Node {
                     None,
                 );
                 // TODO: Move this into `Element::create`
-                element.set_custom_element_registry(registry);
+                element.set_custom_element_registry(registry.as_deref());
                 DomRoot::upcast::<Node>(element)
             },
         };

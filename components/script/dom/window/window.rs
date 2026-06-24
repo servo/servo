@@ -1442,7 +1442,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // A Window's associated Document is always created with
         // a new CustomElementRegistry object.
         let registry = CustomElementRegistry::new(cx, self);
-        document.set_custom_element_registry(DomRoot::from_ref(&*registry));
+        document.set_custom_element_registry(&registry);
         // Step 2: Return this's associated Document's custom element registry.
         registry
     }

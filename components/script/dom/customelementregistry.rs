@@ -656,7 +656,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // then set root's custom element registry to this.
         if let Some(document) = root.downcast::<Document>() {
             if document.custom_element_registry().is_none() {
-                document.set_custom_element_registry(DomRoot::from_ref(self));
+                document.set_custom_element_registry(self);
             }
         }
         // Step 3. Otherwise, if root is a ShadowRoot node whose custom element registry
@@ -664,7 +664,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         else if let Some(shadow_root) = root.downcast::<ShadowRoot>() &&
             shadow_root.custom_element_registry().is_none()
         {
-            shadow_root.set_custom_element_registry(DomRoot::from_ref(self));
+            shadow_root.set_custom_element_registry(self);
         }
 
         // Step 4. For each inclusive descendant inclusiveDescendant of root, in tree order:
@@ -677,7 +677,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             // Step 4.2. If inclusiveDescendant's custom element registry is null:
             if element.custom_element_registry().is_none() {
                 // Step 4.2.1. Set inclusiveDescendant's custom element registry to this.
-                element.set_custom_element_registry(Some(DomRoot::from_ref(self)));
+                element.set_custom_element_registry(Some(self));
 
                 // Step 4.2.2. If this's is scoped is true, then append
                 // inclusiveDescendant's node document to this's scoped document set.
@@ -807,7 +807,7 @@ impl CustomElementDefinition {
         cx: &mut JSContext,
         document: &Document,
         prefix: Option<Prefix>,
-        registry: Option<DomRoot<CustomElementRegistry>>,
+        registry: Option<&CustomElementRegistry>,
     ) -> Fallible<DomRoot<Element>> {
         let window = document.window();
 
