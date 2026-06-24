@@ -5,6 +5,7 @@
 use std::ptr;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
@@ -20,7 +21,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::filereader::FileReaderSharedFunctionality;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct FileReaderSync {
@@ -105,17 +106,16 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
     /// <https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection>
     fn ReadAsArrayBuffer(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         blob: &Blob,
-        can_gc: CanGc,
     ) -> Fallible<RootedTraceableBox<HeapArrayBuffer>> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
         // step 2
-        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+        rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
 
-        create_buffer_source::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut(), can_gc)
+        create_buffer_source::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut())
             .map_err(|_| Error::JSFailed)
     }
 }

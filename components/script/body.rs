@@ -1105,13 +1105,8 @@ fn run_bytes_data_algorithm(
 ) -> Fallible<FetchedData> {
     rooted!(&in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
-    create_buffer_source::<Uint8>(
-        cx.into(),
-        &bytes,
-        array_buffer_ptr.handle_mut(),
-        CanGc::from_cx(cx),
-    )
-    .map_err(|_| Error::JSFailed)?;
+    create_buffer_source::<Uint8>(cx, &bytes, array_buffer_ptr.handle_mut())
+        .map_err(|_| Error::JSFailed)?;
 
     let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(array_buffer_ptr.get()));
     Ok(FetchedData::Bytes(rooted_heap))
@@ -1124,13 +1119,8 @@ pub(crate) fn run_array_buffer_data_algorithm(
 ) -> Fallible<FetchedData> {
     rooted!(&in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
-    create_buffer_source::<ArrayBufferU8>(
-        cx.into(),
-        &bytes,
-        array_buffer_ptr.handle_mut(),
-        CanGc::from_cx(cx),
-    )
-    .map_err(|_| Error::JSFailed)?;
+    create_buffer_source::<ArrayBufferU8>(cx, &bytes, array_buffer_ptr.handle_mut())
+        .map_err(|_| Error::JSFailed)?;
 
     let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(array_buffer_ptr.get()));
     Ok(FetchedData::ArrayBuffer(rooted_heap))

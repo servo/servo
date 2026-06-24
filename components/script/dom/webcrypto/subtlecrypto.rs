@@ -79,7 +79,6 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 
 // Named elliptic curves
 const NAMED_CURVE_P256: &str = "P-256";
@@ -216,11 +215,9 @@ impl SubtleCrypto {
                 let promise = trusted_promise.root();
 
                 rooted!(&in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                match create_buffer_source::<ArrayBufferU8>(
-                    cx.into(),
+                match create_buffer_source::<ArrayBufferU8>(cx,
                     &data,
                     array_buffer_ptr.handle_mut(),
-                    CanGc::from_cx(cx),
                 ) {
                     Ok(_) => promise.resolve_native(cx, &*array_buffer_ptr),
                     Err(_) => promise.reject_error(cx, Error::JSFailed),
@@ -2992,13 +2989,9 @@ pub(crate) struct SubtleRsaHashedKeyAlgorithm {
 impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-        let public_exponent = create_buffer_source(
-            cx.into(),
-            &self.public_exponent,
-            js_object.handle_mut(),
-            CanGc::from_cx(cx),
-        )
-        .expect("Fail to convert publicExponent to Uint8Array");
+        let public_exponent =
+            create_buffer_source(cx, &self.public_exponent, js_object.handle_mut())
+                .expect("Fail to convert publicExponent to Uint8Array");
         let key_algorithm = KeyAlgorithm {
             name: self.name.as_str().into(),
         };
@@ -3979,13 +3972,8 @@ impl SafeToJSValConvertible for SubtleEncapsulatedKey {
         let shared_key = self.shared_key.as_ref().map(|shared_key| shared_key.root());
         let ciphertext = self.ciphertext.as_ref().map(|data| {
             rooted!(&in(cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(
-                cx.into(),
-                data,
-                ciphertext_ptr.handle_mut(),
-                CanGc::from_cx(cx),
-            )
-            .expect("Failed to convert ciphertext to ArrayBufferU8")
+            create_buffer_source::<ArrayBufferU8>(cx, data, ciphertext_ptr.handle_mut())
+                .expect("Failed to convert ciphertext to ArrayBufferU8")
         });
         let encapsulated_key = RootedTraceableBox::new(EncapsulatedKey {
             sharedKey: shared_key,
@@ -4008,23 +3996,13 @@ impl SafeToJSValConvertible for SubtleEncapsulatedBits {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let shared_key = self.shared_key.as_ref().map(|data| {
             rooted!(&in(cx) let mut shared_key_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(
-                cx.into(),
-                data,
-                shared_key_ptr.handle_mut(),
-                CanGc::from_cx(cx),
-            )
-            .expect("Failed to convert shared key to ArrayBufferU8")
+            create_buffer_source::<ArrayBufferU8>(cx, data, shared_key_ptr.handle_mut())
+                .expect("Failed to convert shared key to ArrayBufferU8")
         });
         let ciphertext = self.ciphertext.as_ref().map(|data| {
             rooted!(&in(cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(
-                cx.into(),
-                data,
-                ciphertext_ptr.handle_mut(),
-                CanGc::from_cx(cx),
-            )
-            .expect("Failed to convert ciphertext to ArrayBufferU8")
+            create_buffer_source::<ArrayBufferU8>(cx, data, ciphertext_ptr.handle_mut())
+                .expect("Failed to convert ciphertext to ArrayBufferU8")
         });
         let encapsulated_bits = RootedTraceableBox::new(EncapsulatedBits {
             sharedKey: shared_key,

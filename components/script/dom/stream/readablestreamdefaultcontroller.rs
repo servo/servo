@@ -36,7 +36,6 @@ use crate::dom::stream::underlyingsourcecontainer::{
     UnderlyingSourceContainer, UnderlyingSourceType,
 };
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
@@ -156,13 +155,8 @@ impl EnqueuedValue {
         match self {
             EnqueuedValue::Native(chunk) => {
                 rooted!(&in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                create_buffer_source::<Uint8>(
-                    cx.into(),
-                    chunk,
-                    array_buffer_ptr.handle_mut(),
-                    CanGc::from_cx(cx),
-                )
-                .expect("failed to create buffer source for native chunk.");
+                create_buffer_source::<Uint8>(cx, chunk, array_buffer_ptr.handle_mut())
+                    .expect("failed to create buffer source for native chunk.");
                 array_buffer_ptr.safe_to_jsval(cx, rval);
             },
             EnqueuedValue::Js(value_with_size) => value_with_size.value.safe_to_jsval(cx, rval),
