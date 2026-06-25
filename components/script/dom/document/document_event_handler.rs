@@ -21,6 +21,7 @@ use embedder_traits::{
     GamepadEvent as EmbedderGamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
 use euclid::{Point2D, Vector2D};
+use html5ever::local_name;
 use js::context::JSContext;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
@@ -1093,10 +1094,6 @@ impl DocumentEventHandler {
         hit_test_result: &HitTestResult,
         element: &Element,
     ) {
-        if event.button != MouseButton::Left {
-            return;
-        }
-
         let Some(last_mouse_button_down_point) = self.last_mouse_button_down_point.take() else {
             return;
         };
@@ -1107,49 +1104,75 @@ impl DocumentEventHandler {
             return;
         }
 
-        // From <https://w3c.github.io/pointerevents/#click>
-        // > The click event type MUST be dispatched on the topmost event target indicated by the
-        // > pointer, when the user presses down and releases the primary pointer button.
-        let element = &element.inclusive_ancestor_element_in_non_ua_shadow_root();
-        self.most_recently_clicked_element.set(Some(element));
+        match event.button {
+            MouseButton::Left => {
+                // From <https://w3c.github.io/pointerevents/#click>
+                // > The click event type MUST be dispatched on the topmost event target indicated by the
+                // > pointer, when the user presses down and releases the primary pointer button.
+                let element = &element.inclusive_ancestor_element_in_non_ua_shadow_root();
+                self.most_recently_clicked_element.set(Some(element));
 
-        let click_count = self.click_counting_info.borrow().count;
-        element.set_click_in_progress(true);
-        MouseEvent::for_platform_button_event(
-            cx,
-            atom!("click"),
-            event,
-            input_event.pressed_mouse_buttons,
-            &self.window,
-            hit_test_result,
-            input_event.active_keyboard_modifiers,
-            click_count,
-        )
-        .upcast::<Event>()
-        .dispatch(cx, element.upcast(), false);
-        element.set_click_in_progress(false);
+                let click_count = self.click_counting_info.borrow().count;
+                element.set_click_in_progress(true);
+                MouseEvent::for_platform_button_event(
+                    cx,
+                    atom!("click"),
+                    event,
+                    input_event.pressed_mouse_buttons,
+                    &self.window,
+                    hit_test_result,
+                    input_event.active_keyboard_modifiers,
+                    click_count,
+                )
+                .upcast::<Event>()
+                .dispatch(cx, element.upcast(), false);
+                element.set_click_in_progress(false);
 
-        // The firing of "dbclick" events is dependent on the platform, so we have
-        // some flexibility here. Some browsers on some platforms only fire a
-        // "dbclick" when the click count is 2 and others essentially fire one for
-        // every 2 clicks in a sequence. In all cases, browsers set the click count
-        // `detail` property to 2.
-        //
-        // We follow the latter approach here, considering that every sequence of
-        // even numbered clicks is a series of double clicks.
-        if click_count.is_multiple_of(2) {
-            MouseEvent::for_platform_button_event(
-                cx,
-                Atom::from("dblclick"),
-                event,
-                input_event.pressed_mouse_buttons,
-                &self.window,
-                hit_test_result,
-                input_event.active_keyboard_modifiers,
-                2,
-            )
-            .upcast::<Event>()
-            .dispatch(cx, element.upcast(), false);
+                // The firing of "dbclick" events is dependent on the platform, so we have
+                // some flexibility here. Some browsers on some platforms only fire a
+                // "dbclick" when the click count is 2 and others essentially fire one for
+                // every 2 clicks in a sequence. In all cases, browsers set the click count
+                // `detail` property to 2.
+                //
+                // We follow the latter approach here, considering that every sequence of
+                // even numbered clicks is a series of double clicks.
+                if click_count.is_multiple_of(2) {
+                    MouseEvent::for_platform_button_event(
+                        cx,
+                        Atom::from("dblclick"),
+                        event,
+                        input_event.pressed_mouse_buttons,
+                        &self.window,
+                        hit_test_result,
+                        input_event.active_keyboard_modifiers,
+                        2,
+                    )
+                    .upcast::<Event>()
+                    .dispatch(cx, element.upcast(), false);
+                }
+            },
+            MouseButton::Middle => {
+                let element = &element.inclusive_ancestor_element_in_non_ua_shadow_root();
+                self.most_recently_clicked_element.set(Some(element));
+
+                let click_count = self.click_counting_info.borrow().count;
+                element.set_string_attribute(cx, &local_name!("target"), DOMString::from("_blank"));
+                element.set_click_in_progress(true);
+                MouseEvent::for_platform_button_event(
+                    cx,
+                    Atom::from("auxclick"),
+                    event,
+                    input_event.pressed_mouse_buttons,
+                    &self.window,
+                    hit_test_result,
+                    input_event.active_keyboard_modifiers,
+                    click_count,
+                )
+                .upcast::<Event>()
+                .dispatch(cx, element.upcast(), false);
+                element.set_click_in_progress(false);
+            },
+            _ => {},
         }
     }
 
