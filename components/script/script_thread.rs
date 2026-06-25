@@ -160,6 +160,7 @@ use crate::script_runtime::{
     IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
 };
 use crate::script_window_proxies::ScriptWindowProxies;
+use crate::svg_font::SvgFontResolver;
 use crate::task_queue::TaskQueue;
 use crate::webdriver_handlers::jsval_to_webdriver;
 use crate::{devtools, webdriver_handlers};
@@ -3439,6 +3440,8 @@ impl ScriptThread {
             self.paint_api.clone(),
             self.resource_threads.clone(),
         ));
+
+        let font_resolver = Arc::new(SvgFontResolver {});
 
         let image_cache = self.image_cache_factory.create(
             incomplete.webview_id,
