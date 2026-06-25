@@ -58,7 +58,7 @@ use crate::dom::window::Window;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 /// Fetch canceller object. By default initialized to having a
@@ -625,7 +625,8 @@ impl FetchResponseListener for FetchContext {
         timing: ResourceFetchTiming,
     ) {
         let response_object = self.response_object.root();
-        let _ac = enter_realm(&*response_object);
+        let mut realm = enter_auto_realm(cx, &*response_object);
+        let cx = &mut realm.current_realm();
         if let Err(ref error) = response &&
             *error == NetworkError::DecompressionError
         {

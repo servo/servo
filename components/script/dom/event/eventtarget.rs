@@ -72,7 +72,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
@@ -670,7 +670,8 @@ impl EventTarget {
 
         // Step 3.8 TODO: settings objects not implemented
         let window = document.window();
-        let _ac = enter_realm(window);
+        let mut realm = enter_auto_realm(cx, window);
+        let cx = &mut realm.current_realm();
 
         // Step 3.9
 

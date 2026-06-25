@@ -23,7 +23,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 
 // Spec mandates at least [8000, 96000], we use [8000, 192000] to match Firefox
 // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
@@ -133,7 +133,8 @@ impl AudioBuffer {
     }
 
     fn restore_js_channel_data(&self, cx: &mut JSContext) -> bool {
-        let _ac = enter_realm(self);
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         for (i, channel) in self.js_channels.borrow().iter().enumerate() {
             if channel.is_initialized() {
                 // Already have data in JS array.

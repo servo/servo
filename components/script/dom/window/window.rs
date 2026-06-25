@@ -187,7 +187,7 @@ use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
@@ -3355,7 +3355,8 @@ impl Window {
             return false;
         }
 
-        let _realm = enter_realm(self);
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         debug!(
             "Resizing Window for pipeline {:?} from {:?} to {new_size:?}",
             self.pipeline_id(),

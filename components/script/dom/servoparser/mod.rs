@@ -92,7 +92,7 @@ use crate::dom::text::Text;
 use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
 use crate::navigation::determine_the_origin;
 use crate::network_listener::FetchResponseListener;
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 
@@ -688,7 +688,8 @@ impl ServoParser {
     }
 
     fn parse_bytes_chunk(&self, cx: &mut JSContext, input: Vec<u8>) {
-        let _realm = enter_realm(&*self.document);
+        let mut realm = enter_auto_realm(cx, &*self.document);
+        let cx = &mut realm.current_realm();
         self.document.set_current_parser(Some(self));
         self.push_bytes_input_chunk(input);
         if !self.suspended.get() {
