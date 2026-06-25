@@ -8660,6 +8660,7 @@ dependencies = [
  "parking_lot",
  "percent-encoding",
  "rand 0.10.2",
+ "resvg",
  "rustc-hash 2.1.3",
  "rustls-pki-types",
  "serde",
