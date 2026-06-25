@@ -580,6 +580,13 @@ impl Element {
             .is_some_and(|overflow| overflow.establishes_scroll_container())
     }
 
+    /// Like [`Self::establishes_scroll_container`], but without forcing a reflow.
+    pub(crate) fn establishes_scroll_container_without_reflow(&self) -> bool {
+        self.upcast::<Node>()
+            .effective_overflow_without_reflow()
+            .is_some_and(|overflow| overflow.establishes_scroll_container())
+    }
+
     pub(crate) fn has_overflow(&self) -> bool {
         self.ScrollHeight() > self.ClientHeight() || self.ScrollWidth() > self.ClientWidth()
     }
