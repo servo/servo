@@ -22,12 +22,12 @@ use js::jsapi::{
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::wrappers::{JS_DefineProperty, JS_HasOwnProperty, JS_SetProperty};
+use js::rust::wrappers::JS_SetProperty;
 use js::rust::wrappers2::{
     CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, CallOriginalPromiseReject,
-    JS_ClearPendingException, JS_ForwardGetPropertyTo, JS_GetPendingException, JS_GetProperty,
-    JS_GetPrototype, JS_HasProperty, JS_HasPropertyById, JS_IsExceptionPending,
-    JS_SetPendingException,
+    JS_ClearPendingException, JS_DefineProperty, JS_ForwardGetPropertyTo, JS_GetPendingException,
+    JS_GetProperty, JS_GetPrototype, JS_HasOwnProperty, JS_HasProperty, JS_HasPropertyById,
+    JS_IsExceptionPending, JS_SetPendingException,
 };
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
@@ -209,10 +209,7 @@ pub fn get_array_index_from_id(id: HandleId) -> Option<u32> {
 /// Find the enum equivelent of a string given by `v` in `pairs`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok((None, value))` if there was no matching string.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-#[allow(clippy::result_unit_err)]
+#[expect(clippy::result_unit_err)]
 pub(crate) fn find_enum_value<'a, T>(
     cx: &mut js::context::JSContext,
     v: HandleValue,
@@ -288,9 +285,9 @@ pub fn set_dictionary_property(
 /// Define an own enumerable data property with name `property` on `object`.
 /// Returns `Err(())` on JSAPI failure, or null object,
 /// and Ok(()) otherwise.
-#[allow(clippy::result_unit_err)]
+#[expect(clippy::result_unit_err)]
 pub fn define_dictionary_property(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     object: HandleObject,
     property: &CStr,
     value: HandleValue,
@@ -299,16 +296,16 @@ pub fn define_dictionary_property(
         return Err(());
     }
 
-    unsafe {
-        if !JS_DefineProperty(
-            *cx,
+    if unsafe {
+        !JS_DefineProperty(
+            cx,
             object,
             property.as_ptr(),
             value,
             JSPROP_ENUMERATE as u32,
-        ) {
-            return Err(());
-        }
+        )
+    } {
+        return Err(());
     }
 
     Ok(())
@@ -317,9 +314,9 @@ pub fn define_dictionary_property(
 /// Checks whether `object` has an own property named `property`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception),
 /// and `Ok(false)` for null objects or when the property is not own.
-#[allow(clippy::result_unit_err)]
+#[expect(clippy::result_unit_err)]
 pub fn has_own_property(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     object: HandleObject,
     property: &CStr,
 ) -> Result<bool, ()> {
@@ -328,10 +325,8 @@ pub fn has_own_property(
     }
 
     let mut found = false;
-    unsafe {
-        if !JS_HasOwnProperty(*cx, object, property.as_ptr(), &mut found) {
-            return Err(());
-        }
+    if unsafe { !JS_HasOwnProperty(cx, object, property.as_ptr(), &mut found) } {
+        return Err(());
     }
 
     Ok(found)
