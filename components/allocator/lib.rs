@@ -60,10 +60,10 @@ pub static enclosing_size: Option<EnclosingSizeFn> = None;
 
 #[cfg(not(any(windows, feature = "use-system-allocator", target_env = "ohos")))]
 mod platform {
-    use std::ffi::CString;
-    use std::mem::size_of;
+    use std::ffi::CStr;
+    use std::mem::size_of_val;
     use std::os::raw::c_void;
-    use std::ptr::null_mut;
+    use std::ptr;
 
     use tikv_jemalloc_sys::mallctl;
     pub use tikv_jemallocator::Jemalloc as Allocator;
@@ -72,41 +72,40 @@ mod platform {
         vec![
             crate::HeapReport {
                 path: "jemalloc-heap-allocated",
-                size: jemalloc_stat("stats.allocated"),
+                size: jemalloc_stat(c"stats.allocated"),
             },
             crate::HeapReport {
                 path: "jemalloc-heap-active",
-                size: jemalloc_stat("stats.active"),
+                size: jemalloc_stat(c"stats.active"),
             },
             crate::HeapReport {
                 path: "jemalloc-heap-mapped",
-                size: jemalloc_stat("stats.mapped"),
+                size: jemalloc_stat(c"stats.mapped"),
             },
         ]
     }
 
-    fn jemalloc_stat(value_name: &str) -> Option<usize> {
+    fn jemalloc_stat(value_name: &CStr) -> Option<usize> {
         // Before we request the measurement of interest, we first send an "epoch"
         // request. Without that jemalloc gives cached statistics(!) which can be
         // highly inaccurate.
-        let epoch_c_name = CString::new("epoch").unwrap();
+        let epoch_c_name = c"epoch";
         let mut epoch: u64 = 0;
-        let epoch_ptr = &mut epoch as *mut _ as *mut c_void;
-        let mut epoch_len = size_of::<u64>();
+        let epoch_ptr = &raw mut epoch;
+        let mut epoch_len = size_of_val(&epoch);
 
-        let value_c_name = CString::new(value_name).unwrap();
         let mut value: usize = 0;
-        let value_ptr = &mut value as *mut _ as *mut c_void;
-        let mut value_len = size_of::<usize>();
+        let value_ptr = &raw mut value;
+        let mut value_len = size_of_val(&value);
 
         // Using the same values for the `old` and `new` parameters is enough
         // to get the statistics updated.
         let rv = unsafe {
             mallctl(
                 epoch_c_name.as_ptr(),
-                epoch_ptr,
+                epoch_ptr.cast(),
                 &mut epoch_len,
-                epoch_ptr,
+                epoch_ptr.cast(),
                 epoch_len,
             )
         };
@@ -116,10 +115,10 @@ mod platform {
 
         let rv = unsafe {
             mallctl(
-                value_c_name.as_ptr(),
-                value_ptr,
+                value_name.as_ptr(),
+                value_ptr.cast(),
                 &mut value_len,
-                null_mut(),
+                ptr::null_mut(),
                 0,
             )
         };
@@ -127,7 +126,7 @@ mod platform {
             return None;
         }
 
-        Some(value as usize)
+        Some(value)
     }
 
     /// Get the size of a heap block.
