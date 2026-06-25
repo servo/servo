@@ -13,22 +13,21 @@ use js::glue::{AppendToIdVector, JS_GetReservedSlot, RUST_FUNCTION_VALUE_TO_JITI
 use js::jsapi::{
     AtomToLinearString, CallArgs, ExceptionStackBehavior, GetLinearStringCharAt,
     GetLinearStringLength, GetNonCCWObjectGlobal, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, Heap, JS_AtomizeStringN, JS_ClearPendingException,
-    JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending,
-    JS_IsGlobalObject, JS_MayResolveStandardClass, JS_NewEnumerateStandardClasses,
-    JS_ResolveStandardClass, JSAtom, JSAtomState, JSContext, JSJitInfo, JSObject, JSPROP_ENUMERATE,
-    JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
-    MutableHandleValue as RawMutableHandleValue, PropertyKey, StringIsArrayIndex, jsid,
+    HandleObject as RawHandleObject, Heap, JS_AtomizeStringN, JS_DeprecatedStringHasLatin1Chars,
+    JS_GetLatin1StringCharsAndLength, JS_IsGlobalObject, JS_MayResolveStandardClass,
+    JS_NewEnumerateStandardClasses, JS_ResolveStandardClass, JSAtom, JSAtomState, JSContext,
+    JSJitInfo, JSObject, JSPROP_ENUMERATE, JSTracer,
+    MutableHandleIdVector as RawMutableHandleIdVector, MutableHandleValue as RawMutableHandleValue,
+    PropertyKey, StringIsArrayIndex, jsid,
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::wrappers::{
-    CallOriginalPromiseReject, JS_DefineProperty, JS_GetPendingException, JS_HasOwnProperty,
-    JS_SetPendingException, JS_SetProperty,
-};
+use js::rust::wrappers::{JS_DefineProperty, JS_HasOwnProperty, JS_SetProperty};
 use js::rust::wrappers2::{
-    CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, JS_ForwardGetPropertyTo, JS_GetProperty,
-    JS_GetPrototype, JS_HasProperty, JS_HasPropertyById,
+    CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, CallOriginalPromiseReject,
+    JS_ClearPendingException, JS_ForwardGetPropertyTo, JS_GetPendingException, JS_GetProperty,
+    JS_GetPrototype, JS_HasProperty, JS_HasPropertyById, JS_IsExceptionPending,
+    JS_SetPendingException,
 };
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
@@ -46,7 +45,7 @@ use crate::interfaces::DomHelpers;
 use crate::proxyhandler::{
     is_cross_origin_object, is_platform_object_same_origin, report_cross_origin_denial,
 };
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::str::DOMString;
 use crate::trace::trace_object;
 
@@ -533,7 +532,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
         // invoked in this case
         throw_invalid_this(cx.into(), proto_id);
         return if EXCEPTION_TO_REJECTION {
-            exception_to_promise(cx.raw_cx(), args.rval(), CanGc::from_cx(cx))
+            exception_to_promise(cx, args.rval())
         } else {
             false
         };
@@ -561,13 +560,13 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
             //        have access to the current IDL operation's name and type
             //        and the target object's `CrossOriginProperties`.
             if lenient_this {
-                debug_assert!(!JS_IsExceptionPending(cx.raw_cx_no_gc()));
+                debug_assert!(!JS_IsExceptionPending(cx));
                 *vp = UndefinedValue();
                 return true;
             } else {
                 throw_invalid_this(cx.into(), proto_id);
                 return if EXCEPTION_TO_REJECTION {
-                    exception_to_promise(cx.raw_cx(), args.rval(), CanGc::from_cx(cx))
+                    exception_to_promise(cx, args.rval())
                 } else {
                     false
                 };
@@ -590,7 +589,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
             rooted!(&in(*realm) let mut void_jsid: jsid);
             let result = report_cross_origin_denial::<D>(&mut realm, void_jsid.handle(), "call");
             return if EXCEPTION_TO_REJECTION {
-                exception_to_promise(cx.raw_cx(), args.rval(), CanGc::from_cx(cx))
+                exception_to_promise(cx, args.rval())
             } else {
                 result
             };
@@ -687,42 +686,44 @@ pub(crate) unsafe extern "C" fn generic_static_promise_method(
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let cx = &mut cx;
+
     let args = CallArgs::from_vp(vp, argc);
 
-    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx.raw_cx(), vp));
     assert!(!info.is_null());
     // TODO: we need safe wrappers for this in mozjs!
     // assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
     let static_fn = (*info).__bindgen_anon_1.staticMethod.unwrap();
-    if static_fn(cx, argc, vp) {
+    if static_fn(cx.raw_cx(), argc, vp) {
         return true;
     }
-    exception_to_promise(cx, args.rval(), CanGc::deprecated_note())
+    exception_to_promise(cx, args.rval())
 }
 
 /// Coverts exception to promise rejection
 ///
 /// <https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315>
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-pub(crate) unsafe fn exception_to_promise(
-    cx: *mut JSContext,
+pub(crate) fn exception_to_promise(
+    cx: &mut js::context::JSContext,
     rval: RawMutableHandleValue,
-    _can_gc: CanGc,
 ) -> bool {
-    rooted!(in(cx) let mut exception = UndefinedValue());
-    if !JS_GetPendingException(cx, exception.handle_mut()) {
-        return false;
-    }
-    JS_ClearPendingException(cx);
-    if let Some(promise) = NonNull::new(CallOriginalPromiseReject(cx, exception.handle())) {
-        promise.to_jsval(cx, MutableHandleValue::from_raw(rval));
-        true
-    } else {
-        // We just give up.  Put the exception back.
-        JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
-        false
+    unsafe {
+        rooted!(&in(cx) let mut exception = UndefinedValue());
+        if !JS_GetPendingException(cx, exception.handle_mut()) {
+            return false;
+        }
+        JS_ClearPendingException(cx);
+        if let Some(promise) = NonNull::new(CallOriginalPromiseReject(cx, exception.handle())) {
+            promise.safe_to_jsval(cx, MutableHandleValue::from_raw(rval));
+            true
+        } else {
+            // We just give up. Put the exception back.
+            JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
+            false
+        }
     }
 }
 
