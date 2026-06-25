@@ -2609,12 +2609,18 @@ impl Node {
 
             // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
             // in shadow-including tree order:
-            for descendant in kid.traverse_preorder(ShadowIncluding::Yes) {
+            // This is split into two separate loops. One for nodes that are connected (which then need to have callback_reaction enqueued)
+            // and second for nodes that are not custom which go through try_upgrade.
+            // The number of connected nodes can be vastly smaller than the overall descendants.
+            let descendants: Vec<DomRoot<Node>> = kid
+                .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
+                .filter(|node| node.is_connected())
+                .map(|node| node.as_rooted())
+                .collect();
+            for descendant in descendants {
                 // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
                 //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
-                if descendant.is_connected() {
-                    static_node_list.push(descendant.clone());
-                }
+                static_node_list.push(descendant.clone());
 
                 // Step 7.7.1. Run the insertion steps with inclusiveDescendant.
                 // This is done in `parent.add_child()`.
@@ -2622,19 +2628,20 @@ impl Node {
                 // Step 7.7.2, whatwg/dom#833
                 // Enqueue connected reactions for custom elements or try upgrade.
                 if let Some(descendant) = DomRoot::downcast::<Element>(descendant) {
-                    if descendant.is_custom() {
-                        if descendant.is_connected() {
-                            custom_element_reaction_stack.enqueue_callback_reaction(
-                                cx,
-                                &descendant,
-                                CallbackReaction::Connected,
-                                None,
-                            );
-                        }
-                    } else {
-                        try_upgrade_element(&descendant);
-                    }
+                    custom_element_reaction_stack.enqueue_callback_reaction(
+                        cx,
+                        &descendant,
+                        CallbackReaction::Connected,
+                        None,
+                    );
                 }
+            }
+            for descendant in kid
+                .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
+                .filter_map(UnrootedDom::downcast::<Element>)
+                .filter(|node| !node.is_custom())
+            {
+                try_upgrade_element(&descendant)
             }
         }
 
