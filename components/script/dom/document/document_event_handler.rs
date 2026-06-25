@@ -75,7 +75,7 @@ use crate::dom::types::{
     WheelEvent, Window,
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 
 /// A data structure used for tracking the current click count. This can be
 /// reset to 0 if a mouse button event happens at a sufficient distance or time
@@ -308,7 +308,8 @@ impl DocumentEventHandler {
             !self.pending_input_events.borrow().is_empty(),
             "handle_pending_input_events called with no events"
         );
-        let _realm = enter_realm(&*self.window);
+        let mut realm = enter_auto_realm(cx, &*self.window);
+        let cx = &mut realm.current_realm();
 
         // Reset the mouse and wheel event indices.
         *self.mouse_move_event_index.borrow_mut() = None;

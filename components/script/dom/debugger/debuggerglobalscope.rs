@@ -50,7 +50,7 @@ use crate::dom::types::{
 };
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::with_script_thread;
 
@@ -226,7 +226,8 @@ impl DebuggerGlobalScope {
                 .replace(Some(result_sender))
                 .is_none()
         );
-        let _realm = enter_realm(self);
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         let event = DomRoot::upcast::<Event>(DebuggerGetPossibleBreakpointsEvent::new(
             self.upcast(),
             spidermonkey_id,
@@ -282,7 +283,8 @@ impl DebuggerGlobalScope {
                 .replace(Some(result_sender))
                 .is_none()
         );
-        let _realm = enter_realm(self);
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         let pipeline_id =
             crate::dom::pipelineid::PipelineId::new(self.upcast(), pipeline_id, CanGc::from_cx(cx));
         let event = DomRoot::upcast::<Event>(DebuggerFrameEvent::new(
@@ -309,7 +311,8 @@ impl DebuggerGlobalScope {
                 .replace(Some(result_sender))
                 .is_none()
         );
-        let _realm = enter_realm(self);
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         let event = DomRoot::upcast::<Event>(DebuggerGetEnvironmentEvent::new(
             self.upcast(),
             frame_actor_id.into(),
