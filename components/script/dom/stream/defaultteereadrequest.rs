@@ -13,6 +13,7 @@ use js::realm::AutoRealm;
 use js::rust::HandleValue as SafeHandleValue;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
+use crate::dom::bindings::error::ErrorToJsval;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::structuredclone;
@@ -127,38 +128,57 @@ impl DefaultTeeReadRequest {
         // Set readAgain to false.
         self.read_again.set(false);
         // Let chunk1 and chunk2 be chunk.
-        let chunk1 = chunk;
-        let chunk2 = chunk;
-
-        rooted!(&in(cx) let chunk1_value = chunk1.get());
-        rooted!(&in(cx) let chunk2_value = chunk2.get());
+        rooted!(&in(cx) let chunk1_value = chunk.get());
+        rooted!(&in(cx) let mut chunk2_value = chunk.get());
         // If canceled_2 is false and cloneForBranch2 is true,
         if !self.canceled_2.get() && self.clone_for_branch_2.get() {
             // Let cloneResult be StructuredClone(chunk2).
-            rooted!(&in(cx) let mut clone_result = UndefinedValue());
-            let data = structuredclone::write(cx, chunk2_value.handle(), None).unwrap();
+            let data = match structuredclone::write(cx, chunk2_value.handle(), None) {
+                Ok(data) => data,
+                Err(error) => {
+                    // If cloneResult is an abrupt completion,
+                    rooted!(&in(cx) let mut error_value = UndefinedValue());
+                    error.to_jsval(cx, global, error_value.handle_mut());
+                    // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], cloneResult.[[Value]]).
+                    self.readable_stream_default_controller_error(
+                        cx,
+                        &self.branch_1,
+                        error_value.handle(),
+                    );
+
+                    // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], cloneResult.[[Value]]).
+                    self.readable_stream_default_controller_error(
+                        cx,
+                        &self.branch_2,
+                        error_value.handle(),
+                    );
+                    // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
+                    self.stream_cancel(cx, global, error_value.handle());
+                    // Return.
+                    return;
+                },
+            };
             // If cloneResult is an abrupt completion,
-            if structuredclone::read(cx, global, data, clone_result.handle_mut()).is_err() {
+            if let Err(error) = structuredclone::read(cx, global, data, chunk2_value.handle_mut()) {
+                rooted!(&in(cx) let mut error_value = UndefinedValue());
+                error.to_jsval(cx, global, error_value.handle_mut());
                 // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], cloneResult.[[Value]]).
                 self.readable_stream_default_controller_error(
                     cx,
                     &self.branch_1,
-                    clone_result.handle(),
+                    error_value.handle(),
                 );
 
                 // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], cloneResult.[[Value]]).
                 self.readable_stream_default_controller_error(
                     cx,
                     &self.branch_2,
-                    clone_result.handle(),
+                    error_value.handle(),
                 );
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
-                self.stream_cancel(cx, global, clone_result.handle());
+                self.stream_cancel(cx, global, error_value.handle());
                 // Return.
                 return;
-            } else {
-                // Otherwise, set chunk2 to cloneResult.[[Value]].
-                chunk2.set(*clone_result);
             }
         }
         // If canceled_1 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch_1.[[controller]], chunk1).
