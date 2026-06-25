@@ -962,15 +962,16 @@ fn compute_the_intersection(
                 .upcast::<Node>()
                 .padding_box_without_reflow()
         {
-            let container_padding_box = if containing_element.establishes_scroll_container() {
-                let margin = IntersectionObserver::resolve_percentages_with_basis(
-                    scroll_margin,
-                    container_padding_box,
-                );
-                container_padding_box.outer_rect(margin)
-            } else {
-                container_padding_box
-            };
+            let container_padding_box =
+                if containing_element.establishes_scroll_container_without_reflow() {
+                    let margin = IntersectionObserver::resolve_percentages_with_basis(
+                        scroll_margin,
+                        container_padding_box,
+                    );
+                    container_padding_box.outer_rect(margin)
+                } else {
+                    container_padding_box
+                };
 
             if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box) {
                 intersection_rect = rect;
