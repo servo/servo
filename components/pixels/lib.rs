@@ -800,7 +800,7 @@ fn decode_static_image(
         },
         format: PixelFormat::RGBA8,
         frames: vec![frame],
-        bytes: Arc::new(rgba.to_vec()),
+        bytes: Arc::new(rgba.into_vec()),
         id: None,
         cors_status,
         is_opaque,
