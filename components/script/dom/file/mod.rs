@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(crate) use self::file::*;
+pub(crate) mod blob;
 #[allow(clippy::module_inception, reason = "The interface name is File")]
 pub(crate) mod file;
 pub(crate) mod filelist;

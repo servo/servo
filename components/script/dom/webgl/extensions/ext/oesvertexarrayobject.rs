@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_canvas_traits::webgl::WebGLVersion;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
@@ -14,7 +15,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgl::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct OESVertexArrayObject {
@@ -33,13 +33,16 @@ impl OESVertexArrayObject {
 
 impl OESVertexArrayObjectMethods<crate::DomTypeHolder> for OESVertexArrayObject {
     /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
-    fn CreateVertexArrayOES(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
-        self.ctx.create_vertex_array()
+    fn CreateVertexArrayOES(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
+        self.ctx.create_vertex_array(cx)
     }
 
     /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
-    fn DeleteVertexArrayOES(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
-        self.ctx.delete_vertex_array(vao);
+    fn DeleteVertexArrayOES(&self, cx: &mut JSContext, vao: Option<&WebGLVertexArrayObjectOES>) {
+        self.ctx.delete_vertex_array(cx, vao);
     }
 
     /// <https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/>
@@ -55,11 +58,11 @@ impl OESVertexArrayObjectMethods<crate::DomTypeHolder> for OESVertexArrayObject 
 
 impl WebGLExtension for OESVertexArrayObject {
     type Extension = OESVertexArrayObject;
-    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<OESVertexArrayObject> {
-        reflect_dom_object(
+    fn new(cx: &mut JSContext, ctx: &WebGLRenderingContext) -> DomRoot<OESVertexArrayObject> {
+        reflect_dom_object_with_cx(
             Box::new(OESVertexArrayObject::new_inherited(ctx)),
             &*ctx.global(),
-            can_gc,
+            cx,
         )
     }
 

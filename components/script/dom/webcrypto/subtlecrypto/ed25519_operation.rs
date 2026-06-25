@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use aws_lc_rs::encoding::{AsBigEndian, AsDer};
-use aws_lc_rs::signature::{ED25519, Ed25519KeyPair, KeyPair, ParsedPublicKey, UnparsedPublicKey};
+use ed25519_dalek::pkcs8::{
+    DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey, KeypairBytes,
+};
+use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use js::context::JSContext;
-use rand::TryRng;
-use rand::rngs::SysRng;
+use zeroize::Zeroize;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
@@ -22,8 +23,6 @@ use crate::dom::subtlecrypto::{
     SubtleKeyAlgorithm,
 };
 
-const ED25519_SEED_LENGTH: usize = 32;
-
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-sign>
 pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
@@ -37,16 +36,19 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 2. Let result be the result of performing the Ed25519 signing process, as specified in
     // [RFC8032], Section 5.1.6, with message as M, using the Ed25519 private key associated with
     // key.
-    let key_pair =
-        Ed25519KeyPair::from_seed_unchecked(key.handle().as_bytes()).map_err(|error| {
-            Error::Operation(Some(format!(
-                "The key was rejected for the following reason: {error}"
-            )))
-        })?;
-    let result = key_pair.sign(message).as_ref().to_vec();
+    let Handle::Ed25519PrivateKey(private_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not an Ed25519 private key".into(),
+        )));
+    };
+    let result = private_key.try_sign(message).map_err(|_| {
+        Error::Operation(Some(
+            "Failed to sign the message with Ed25519 algorithm".into(),
+        ))
+    })?;
 
     // Step 3. Return result.
-    Ok(result)
+    Ok(result.to_vec())
 }
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-verify>
@@ -61,22 +63,24 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
 
     // Step 2. If the key data of key represents an invalid point or a small-order element on the
     // Elliptic Curve of Ed25519, return false.
-    // NOTE: Not all implementations perform this check. See WICG/webcrypto-secure-curves issue 27.
-
     // Step 3. If the point R, encoded in the first half of signature, represents an invalid point
     // or a small-order element on the Elliptic Curve of Ed25519, return false.
-    // NOTE: Not all implementations perform this check. See WICG/webcrypto-secure-curves issue 27.
-
-    // Step 4. Perform the Ed25519 verification steps, as specified in [RFC8032], Section
-    // 5.1.7, using the cofactorless (unbatched) equation, [S]B = R + [k]A', on the signature, with
-    // message as M, using the Ed25519 public key associated with key.
+    // Step 4. Perform the Ed25519 verification steps, as specified in [RFC8032], Section 5.1.7,
+    // using the cofactorless (unbatched) equation, [S]B = R + [k]A', on the signature, with message
+    // as M, using the Ed25519 public key associated with key.
     // Step 5. Let result be a boolean with the value true if the signature is valid and the value
     // false otherwise.
-    let public_key = UnparsedPublicKey::new(&ED25519, key.handle().as_bytes());
-    let result = match public_key.verify(message, signature) {
-        Ok(()) => true,
-        Err(aws_lc_rs::error::Unspecified) => false,
+    //
+    // NOTE: Instead of calling `verify`, call `verify_strict`, which includes the small-order
+    // element checks described in Step 2 and 3.
+    let Handle::Ed25519PublicKey(public_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not an Ed25519 public key".into(),
+        )));
     };
+    let result = Signature::from_slice(signature)
+        .and_then(|signature| public_key.verify_strict(message, &signature))
+        .is_ok();
 
     // Step 6. Return result.
     Ok(result)
@@ -101,15 +105,9 @@ pub(crate) fn generate_key(
     }
 
     // Step 2. Generate an Ed25519 key pair, as defined in [RFC8032], section 5.1.5.
-    let mut seed = vec![0u8; ED25519_SEED_LENGTH];
-    if SysRng.try_fill_bytes(&mut seed).is_err() {
-        return Err(Error::Operation(Some("Error getting random data".into())));
-    }
-    let key_pair = Ed25519KeyPair::from_seed_unchecked(&seed).map_err(|error| {
-        Error::Operation(Some(format!(
-            "The key was rejected for the following reason: {error}"
-        )))
-    })?;
+    let mut rng = rand::rng();
+    let private_key = SigningKey::generate(&mut rng);
+    let public_key = private_key.verifying_key();
 
     // Step 3. Let algorithm be a new KeyAlgorithm object.
     // Step 4. Set the name attribute of algorithm to "Ed25519".
@@ -134,7 +132,7 @@ pub(crate) fn generate_key(
             .filter(|&usage| *usage == KeyUsage::Verify)
             .cloned()
             .collect(),
-        Handle::Ed25519PublicKey(key_pair.public_key().as_ref().to_vec()),
+        Handle::Ed25519PublicKey(public_key),
     );
 
     // Step 10. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -154,7 +152,7 @@ pub(crate) fn generate_key(
             .filter(|&usage| *usage == KeyUsage::Sign)
             .cloned()
             .collect(),
-        Handle::Ed25519PrivateKey(seed.into()),
+        Handle::Ed25519PrivateKey(private_key),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -202,10 +200,10 @@ pub(crate) fn import_key(
             // is present, then throw a DataError.
             // Step 2.6. Let publicKey be the Ed25519 public key identified by the subjectPublicKey
             // field of spki.
-            let public_key = ParsedPublicKey::new(&ED25519, key_data).map_err(|error| {
-                Error::Data(Some(format!(
-                    "The key was rejected for the following reason: {error}"
-                )))
+            let public_key = VerifyingKey::from_public_key_der(key_data).map_err(|_| {
+                Error::Data(Some(
+                    "Failed to parse the Ed25519 public key in SPKI format".into(),
+                ))
             })?;
 
             // Step 2.9. Let algorithm be a new KeyAlgorithm.
@@ -224,7 +222,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                Handle::Ed25519PublicKey(public_key.as_ref().to_vec()),
+                Handle::Ed25519PublicKey(public_key),
             )
         },
         // If format is "pkcs8":
@@ -245,30 +243,16 @@ pub(crate) fn import_key(
             // Step 2.5. If the parameters field of the privateKeyAlgorithm
             // PrivateKeyAlgorithmIdentifier field of privateKeyInfo is present, then throw a
             // DataError.
-            let private_key_info = Ed25519KeyPair::from_pkcs8(key_data).map_err(|error| {
-                Error::Data(Some(format!(
-                    "The key was rejected for the following reason: {error}"
-                )))
-            })?;
-
             // Step 2.6. Let curvePrivateKey be the result of performing the parse an ASN.1
             // structure algorithm, with data as the privateKey field of privateKeyInfo, structure
             // as the ASN.1 CurvePrivateKey structure specified in Section 7 of [RFC8410], and
             // exactData set to true.
             // Step 2.7. If an error occurred while parsing, then throw a DataError.
-            let curve_private_key = private_key_info
-                .seed()
-                .map_err(|_| {
-                    Error::Data(Some("Failed to get the seed from the private key".into()))
-                })?
-                .as_be_bytes()
-                .map_err(|_| {
-                    Error::Data(Some(
-                        "Failed to serialize the seed of the private key".into(),
-                    ))
-                })?
-                .as_ref()
-                .to_vec();
+            let curve_private_key = SigningKey::from_pkcs8_der(key_data).map_err(|_| {
+                Error::Data(Some(
+                    "Failed to parse the Ed25519 private key in PKCS#8 format".into(),
+                ))
+            })?;
 
             // Step 2.10. Let algorithm be a new KeyAlgorithm.
             // Step 2.11. Set the name attribute of algorithm to "Ed25519".
@@ -287,7 +271,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                Handle::Ed25519PrivateKey(curve_private_key.into()),
+                Handle::Ed25519PrivateKey(curve_private_key),
             )
         },
         // If format is "jwk":
@@ -371,11 +355,17 @@ pub(crate) fn import_key(
                 // described in Section 2 of [RFC8037], then throw a DataError.
                 let d = jwk.decode_required_string_field(JwkStringField::D)?;
                 let x = jwk.decode_required_string_field(JwkStringField::X)?;
-                let _ = Ed25519KeyPair::from_seed_and_public_key(&d, &x).map_err(|error| {
-                    Error::Data(Some(format!(
-                        "Key rejected for the following reason: {error}"
-                    )))
+                let private_key = SigningKey::try_from(d.as_slice()).map_err(|_| {
+                    Error::Data(Some("Failed to import private key from 'd' field".into()))
                 })?;
+                let public_key = VerifyingKey::try_from(x.as_slice()).map_err(|_| {
+                    Error::Data(Some("Failed to import public key from 'x' field".into()))
+                })?;
+                if private_key.verifying_key() != public_key {
+                    return Err(Error::Data(Some(
+                        "Public key in 'x' field does not match private key in 'd' field".into(),
+                    )));
+                };
 
                 // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519
                 // private key identified by interpreting jwk according to Section
@@ -388,7 +378,7 @@ pub(crate) fn import_key(
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
-                    Handle::Ed25519PrivateKey(d),
+                    Handle::Ed25519PrivateKey(private_key),
                 )
             }
             // Otherwise:
@@ -396,6 +386,9 @@ pub(crate) fn import_key(
                 // Step 2.9.1. If jwk does not meet the requirements of the JWK public key format
                 // described in Section 2 of [RFC8037], then throw a DataError.
                 let x = jwk.decode_required_string_field(JwkStringField::X)?;
+                let public_key = VerifyingKey::try_from(x.as_slice()).map_err(|_| {
+                    Error::Data(Some("Failed to import public key from 'x' field".into()))
+                })?;
 
                 // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519 public
                 // key identified by interpreting jwk according to Section 2 of [RFC8037].
@@ -407,7 +400,7 @@ pub(crate) fn import_key(
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
-                    Handle::Ed25519PublicKey(x.to_vec()),
+                    Handle::Ed25519PublicKey(public_key),
                 )
             }
 
@@ -437,6 +430,9 @@ pub(crate) fn import_key(
             // Step 2.5. Let key be a new CryptoKey representing the key data provided in keyData.
             // Step 2.6. Set the [[type]] internal slot of key to "public"
             // Step 2.7. Set the [[algorithm]] internal slot of key to algorithm.
+            let public_key = VerifyingKey::try_from(key_data).map_err(|_| {
+                Error::Data(Some("Failed to import public key from raw bytes".into()))
+            })?;
             CryptoKey::new(
                 cx,
                 global,
@@ -444,7 +440,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                Handle::Ed25519PublicKey(key_data.to_vec()),
+                Handle::Ed25519PublicKey(public_key),
             )
         },
         // Otherwise:
@@ -460,50 +456,6 @@ pub(crate) fn import_key(
     Ok(key)
 }
 
-/// Steps 9-15 <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
-pub(crate) fn get_public_key(
-    cx: &mut JSContext,
-    global: &GlobalScope,
-    key: &CryptoKey,
-    algorithm: &KeyAlgorithmAndDerivatives,
-    usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
-    // NOTE: Steps 1-8 and 16-18 are handled by `SubtleCrypto::GetPublicKey`.
-
-    // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
-    // identified by algorithm, then throw a SyntaxError.
-    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not supported for a public key by the algorithm \
-             identified by algorithm"
-                .into(),
-        )));
-    }
-
-    // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
-    // private key represented by the [[handle]] internal slot of key.
-    let seed = key.handle().as_bytes();
-    let key_pair = Ed25519KeyPair::from_seed_unchecked(seed).map_err(|_| {
-        // Step 11. If an error occurred, then throw a OperationError.
-        Error::Operation(None)
-    })?;
-    let public_key_bytes = key_pair.public_key().as_ref().to_vec();
-
-    // Step 12. Set the [[type]] internal slot of publicKey to "public".
-    // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
-    // Step 14. Set the [[extractable]] internal slot of publicKey to true.
-    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
-    Ok(CryptoKey::new(
-        cx,
-        global,
-        KeyType::Public,
-        true,
-        algorithm.clone(),
-        usages,
-        Handle::Ed25519PublicKey(public_key_bytes),
-    ))
-}
-
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-export-key>
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     // Step 1. Let key be the CryptoKey to be exported.
@@ -511,8 +463,6 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
     // Step 2. If the underlying cryptographic key material represented by the [[handle]] internal
     // slot of key cannot be accessed, then throw an OperationError.
-    // NOTE: key.handle() guarantees access.
-    let key_data = key.handle().as_bytes();
 
     // Step 3.
     let result = match format {
@@ -533,23 +483,19 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //         Set the algorithm object identifier to the id-Ed25519 OID defined in
             //         [RFC8410].
             //     Set the subjectPublicKey field to keyData.
-            let data = ParsedPublicKey::new(&ED25519, key_data).map_err(|error| {
-                Error::Operation(Some(format!(
-                    "The key was rejected for the following reason: {error}"
-                )))
+            let Handle::Ed25519PublicKey(public_key) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "[[handle]] internal slot of key is not an Ed25519 public key".into(),
+                )));
+            };
+            let data = public_key.to_public_key_der().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to convert Ed25519 public key to SubjectPublicKeyInfo".into(),
+                ))
             })?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::new_bytes(
-                data.as_der()
-                    .map_err(|_| {
-                        Error::Operation(Some(
-                            "Failed to serialize the key into a DER format".into(),
-                        ))
-                    })?
-                    .as_ref()
-                    .to_vec(),
-            )
+            ExportedKey::new_bytes(data.into_vec())
         },
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
@@ -571,21 +517,28 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //     Set the privateKey field to the result of DER-encoding a CurvePrivateKey ASN.1
             //     type, as defined in Section 7 of [RFC8410], that represents the Ed25519 private
             //     key represented by the [[handle]] internal slot of key
-            let data = Ed25519KeyPair::from_seed_unchecked(key_data)
-                .map_err(|error| {
-                    Error::Operation(Some(format!(
-                        "The key was rejected for the following reason: {error}"
-                    )))
-                })?
-                .to_pkcs8v1()
-                .map_err(|_| {
-                    Error::Operation(Some(
-                        "Failed to serialize the key into a PKCS#8 format".into(),
-                    ))
-                })?;
+            //
+            // NOTE: If we directly call `EncodePrivateKey::to_pkcs8_der` on `private_key`, the
+            // resultant PKCS#8 document will include the public key, which does not match the
+            // specification. Instead, we convert `public_key` to `KeypairBytes`, remove the public
+            // key, and then call `EncodePrivateKey::to_pkcs8_der` from it. See more at
+            // <https://github.com/dalek-cryptography/curve25519-dalek/issues/627>.
+            let Handle::Ed25519PrivateKey(private_key) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "[[handle]] internal slot of key is not an Ed25519 private key".into(),
+                )));
+            };
+            let mut keypair_bytes = KeypairBytes::from(private_key);
+            keypair_bytes.public_key = None;
+            let data = keypair_bytes.to_pkcs8_der().map_err(|_| {
+                Error::Operation(Some(
+                    "Failed to convert Ed25519 private key to PrivateKeyInfo".into(),
+                ))
+            })?;
+            keypair_bytes.secret_key.zeroize();
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::new_bytes(data.as_ref().to_vec())
+            ExportedKey::Bytes(data.to_bytes())
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -601,27 +554,35 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.4. Set the crv attribute of jwk to "Ed25519".
             jwk.crv = Some(DOMString::from("Ed25519"));
 
-            // Step 3.5. Set the x attribute of jwk according to the definition in Section 2 of [RFC8037].
+            // Step 3.5. Set the x attribute of jwk according to the definition in Section 2 of
+            // [RFC8037].
+            match key.handle() {
+                Handle::Ed25519PrivateKey(private_key) => {
+                    jwk.encode_string_field(
+                        JwkStringField::X,
+                        private_key.verifying_key().as_bytes().as_slice(),
+                    );
+                },
+                Handle::Ed25519PublicKey(public_key) => {
+                    jwk.encode_string_field(JwkStringField::X, public_key.as_bytes().as_slice());
+                },
+                _ => {
+                    return Err(Error::Operation(Some(
+                        "[[handle]] internal slot of key is not an Ed25519".into(),
+                    )));
+                },
+            }
+
             // Step 3.6.
             // If the [[type]] internal slot of key is "private"
             //     Set the d attribute of jwk according to the definition in Section 2 of [RFC8037].
-            match key.Type() {
-                KeyType::Public => {
-                    jwk.encode_string_field(JwkStringField::X, key_data);
-                },
-                KeyType::Private => {
-                    let key_pair =
-                        Ed25519KeyPair::from_seed_unchecked(key_data).map_err(|error| {
-                            Error::Data(Some(format!(
-                                "The key was rejected for the following reason: {error}"
-                            )))
-                        })?;
-                    jwk.encode_string_field(JwkStringField::X, key_pair.public_key().as_ref());
-                    jwk.encode_string_field(JwkStringField::D, key_data);
-                },
-                KeyType::Secret => {
-                    return Err(Error::Data(Some("Cannot export a secret key".into())));
-                },
+            if key.Type() == KeyType::Private {
+                let Handle::Ed25519PrivateKey(private_key) = key.handle() else {
+                    return Err(Error::Operation(Some(
+                        "[[handle]] internal slot of key is not an Ed25519 private key".into(),
+                    )));
+                };
+                jwk.encode_string_field(JwkStringField::D, private_key.as_bytes().as_slice());
             }
 
             // Step 3.7. Set the key_ops attribute of jwk to the usages attribute of key.
@@ -646,7 +607,12 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.2. Let data be a byte sequence representing the Ed25519 public key
             // represented by the [[handle]] internal slot of key.
             // Step 3.3. Let result be data.
-            ExportedKey::new_bytes(key_data.to_vec())
+            let Handle::Ed25519PublicKey(public_key) = key.handle() else {
+                return Err(Error::Operation(Some(
+                    "[[handle]] internal slot of key is not an Ed25519 public key".into(),
+                )));
+            };
+            ExportedKey::new_bytes(public_key.as_bytes().to_vec())
         },
         // Otherwise:
         _ => {
@@ -659,4 +625,48 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
     // Step 4. Return result.
     Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for Ed25519
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
+    // identified by algorithm, then throw a SyntaxError.
+    //
+    // NOTE: See "impportKey" operation for supported usages
+    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not supported for a public key by the algorithm \
+             identified by algorithm"
+                .into(),
+        )));
+    }
+
+    // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
+    // private key represented by the [[handle]] internal slot of key.
+    // Step 11. If an error occurred, then throw a OperationError.
+    // Step 12. Set the [[type]] internal slot of publicKey to "public".
+    // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 14. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    let Handle::Ed25519PrivateKey(private_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not an Ed25519 private key".into(),
+        )));
+    };
+    Ok(CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        algorithm.clone(),
+        usages,
+        Handle::Ed25519PublicKey(private_key.verifying_key()),
+    ))
 }

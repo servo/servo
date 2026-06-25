@@ -12,6 +12,8 @@ pub(crate) mod layout_dom;
 pub(crate) mod node;
 pub(crate) mod nodeiterator;
 pub(crate) mod nodelist;
+pub(crate) mod treewalker;
+pub(crate) mod virtualmethods;
 
 pub(crate) use children_mutation::ChildrenMutation;
 pub(crate) use context::{BindContext, IsShadowTree, MoveContext, UnbindContext};

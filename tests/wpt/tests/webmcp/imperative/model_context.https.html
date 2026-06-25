@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP modelContext interface</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(() => {
+  assert_true(document.modelContext instanceof ModelContext);
+}, 'document.modelContext instanceof ModelContext');
+
+test(() => {
+  assert_equals(document.modelContext, document.modelContext);
+}, 'document.modelContext SameObject');
+</script>
+</body>
+</html>

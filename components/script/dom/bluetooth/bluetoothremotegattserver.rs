@@ -165,16 +165,16 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                 // Step 5.2.3
                 if self.Device().is_represented_device_null() {
                     if let Err(e) = self.Device().garbage_collect_the_connection(cx) {
-                        return promise.reject_error_with_cx(cx, e);
+                        return promise.reject_error(cx, e);
                     }
-                    return promise.reject_error_with_cx(cx, Error::Network(None));
+                    return promise.reject_error(cx, Error::Network(None));
                 }
 
                 // Step 5.2.4.
                 self.connected.set(connected);
 
                 // Step 5.2.5.
-                promise.resolve_native_with_cx(cx, self);
+                promise.resolve_native(cx, self);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
@@ -182,7 +182,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                 let device = self.Device();
                 if single {
                     let descriptor = device.get_or_create_service(cx, &services_vec[0], self);
-                    promise.resolve_native_with_cx(cx, &descriptor);
+                    promise.resolve_native(cx, &descriptor);
                     return;
                 }
                 let mut services = vec![];
@@ -190,11 +190,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                     let bt_service = device.get_or_create_service(cx, &service, self);
                     services.push(bt_service);
                 }
-                promise.resolve_native_with_cx(cx, &services);
+                promise.resolve_native(cx, &services);
             },
-            _ => {
-                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
-            },
+            _ => promise.reject_error(cx, Error::Type(c"Something went wrong...".to_owned())),
         }
     }
 }

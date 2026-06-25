@@ -37,8 +37,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
 use crate::dom::document::RefreshRedirectDue;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
-use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::script_execution::{ErrorReporting, RethrowErrors};
 #[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
@@ -154,7 +154,7 @@ impl OneshotTimerCallback {
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, cx),
             #[cfg(feature = "testbinding")]
-            OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
+            OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(cx),
             OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(cx),
             OneshotTimerCallback::RunStepsAfterTimeout { completion, .. } => {
                 // <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>

@@ -663,6 +663,14 @@ test(t => {
   assert_equals(frame_copy.duration, 456);
   frame_copy.close();
 
+  let frame_override = new VideoFrame(frame, {timestamp: 1234});
+  assert_equals(frame_override.timestamp, 1234);
+
+  let frame_chain = new VideoFrame(frame_override);
+  assert_equals(frame_chain.timestamp, 1234);
+  frame_chain.close();
+  frame_override.close();
+
   frame.close();
 }, 'Test VideoFrame constructed VideoFrame');
 

@@ -8,7 +8,7 @@ use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use servo_base::id::{PipelineId, WebViewId};
+use servo_base::id::PipelineId;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
@@ -30,7 +30,6 @@ pub(crate) struct TestWorkletGlobalScope {
 
 impl TestWorkletGlobalScope {
     pub(crate) fn new(
-        webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         inherited_secure_context: Option<bool>,
@@ -44,7 +43,6 @@ impl TestWorkletGlobalScope {
         );
         let global = Box::new(TestWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(
-                webview_id,
                 pipeline_id,
                 base_url,
                 inherited_secure_context,

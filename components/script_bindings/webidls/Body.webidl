@@ -15,4 +15,5 @@ interface mixin Body {
   [NewObject] Promise<FormData> formData();
   [NewObject] Promise<any> json();
   [NewObject] Promise<USVString> text();
+  [NewObject, Throws] ReadableStream textStream();
 };

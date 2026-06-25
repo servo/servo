@@ -79,7 +79,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 // Named elliptic curves
 const NAMED_CURVE_P256: &str = "P-256";
@@ -222,8 +222,8 @@ impl SubtleCrypto {
                     array_buffer_ptr.handle_mut(),
                     CanGc::from_cx(cx),
                 ) {
-                    Ok(_) => promise.resolve_native_with_cx(cx, &*array_buffer_ptr),
-                    Err(_) => promise.reject_error_with_cx(cx, Error::JSFailed),
+                    Ok(_) => promise.resolve_native(cx, &*array_buffer_ptr),
+                    Err(_) => promise.reject_error(cx, Error::JSFailed),
                 }
             }));
     }
@@ -259,9 +259,9 @@ impl SubtleCrypto {
                 match JsonWebKey::parse(cx, stringified_jwk.as_bytes()) {
                     Ok(jwk) => {
                         rooted!(&in(cx) let mut rval = UndefinedValue());
-                        jwk.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+                        jwk.safe_to_jsval(cx, rval.handle_mut());
                         rooted!(&in(cx) let mut object = rval.to_object());
-                        promise.resolve_native_with_cx(cx, &*object);
+                        promise.resolve_native(cx, &*object);
                     },
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
@@ -282,7 +282,7 @@ impl SubtleCrypto {
             .queue(task!(resolve_key: move |cx| {
                 let key = trusted_key.root();
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &key);
+                promise.resolve_native(cx, &key);
             }));
     }
 
@@ -301,7 +301,7 @@ impl SubtleCrypto {
                     publicKey: trusted_public_key.map(|trusted_key| trusted_key.root()),
                 };
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &key_pair);
+                promise.resolve_native(cx, &key_pair);
             }));
     }
 
@@ -314,7 +314,7 @@ impl SubtleCrypto {
             .crypto_task_source()
             .queue(task!(resolve_bool: move |cx| {
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &result);
+                promise.resolve_native(cx, &result);
             }));
     }
 
@@ -327,7 +327,7 @@ impl SubtleCrypto {
             .crypto_task_source()
             .queue(task!(reject_error: move |cx| {
                 let promise = trusted_promise.root();
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
             }));
     }
 
@@ -343,7 +343,7 @@ impl SubtleCrypto {
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_key: move |cx| {
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &encapsulated_key);
+                promise.resolve_native(cx, &encapsulated_key);
             }),
         );
     }
@@ -360,7 +360,7 @@ impl SubtleCrypto {
         self.global().task_manager().crypto_task_source().queue(
             task!(resolve_encapsulated_bits: move |cx| {
                 let promise = trusted_promise.root();
-                promise.resolve_native_with_cx(cx, &encapsulated_bits);
+                promise.resolve_native(cx, &encapsulated_bits);
             }),
         );
     }
@@ -386,7 +386,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -473,7 +473,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -560,7 +560,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -647,7 +647,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -737,7 +737,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -806,7 +806,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -913,7 +913,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -926,7 +926,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<ImportKeyOperation>(cx, &derived_key_type) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -939,7 +939,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<GetKeyLengthOperation>(cx, &derived_key_type) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1060,7 +1060,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -1140,7 +1140,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -1155,7 +1155,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         // Step 4.1. If the keyData parameter passed to the importKey() method is
                         // not a JsonWebKey dictionary, throw a TypeError.
                         let promise = Promise::new_in_realm(cx);
-                        promise.reject_error_with_cx(
+                        promise.reject_error(
                             cx,
                             Error::Type(c"The keyData type does not match the format".to_owned()),
                         );
@@ -1174,7 +1174,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                             Ok(stringified) => Zeroizing::new(stringified.as_bytes().to_vec()),
                             Err(error) => {
                                 let promise = Promise::new_in_realm(cx);
-                                promise.reject_error_with_cx(cx, error);
+                                promise.reject_error(cx, error);
                                 return promise;
                             },
                         }
@@ -1188,7 +1188,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     // JsonWebKey dictionary, throw a TypeError.
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(_) => {
                         let promise = Promise::new_in_realm(cx);
-                        promise.reject_error_with_cx(
+                        promise.reject_error(
                             cx,
                             Error::Type(c"The keyData type does not match the format".to_owned()),
                         );
@@ -1382,7 +1382,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => WrapKeyAlgorithmOrEncryptAlgorithm::EncryptAlgorithm(algorithm),
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             }
@@ -1560,7 +1560,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => UnwrapKeyAlgorithmOrDecryptAlgorithm::DecryptAlgorithm(algorithm),
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             }
@@ -1574,7 +1574,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1736,7 +1736,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1749,7 +1749,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<ImportKeyOperation>(cx, &shared_key_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1877,7 +1877,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1971,7 +1971,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -1985,7 +1985,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -2108,7 +2108,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     let promise = Promise::new_in_realm(cx);
-                    promise.reject_error_with_cx(cx, error);
+                    promise.reject_error(cx, error);
                     return promise;
                 },
             };
@@ -2212,7 +2212,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 let promise = Promise::new_in_realm(cx);
-                promise.reject_error_with_cx(cx, error);
+                promise.reject_error(cx, error);
                 return promise;
             },
         };
@@ -2901,11 +2901,11 @@ pub(crate) struct SubtleKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let dictionary = KeyAlgorithm {
             name: self.name.as_str().into(),
         };
-        dictionary.safe_to_jsval(cx, rval, can_gc);
+        dictionary.safe_to_jsval(cx, rval);
     }
 }
 
@@ -2990,11 +2990,15 @@ pub(crate) struct SubtleRsaHashedKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
-        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-        let public_exponent =
-            create_buffer_source(cx, &self.public_exponent, js_object.handle_mut(), can_gc)
-                .expect("Fail to convert publicExponent to Uint8Array");
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
+        rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
+        let public_exponent = create_buffer_source(
+            cx.into(),
+            &self.public_exponent,
+            js_object.handle_mut(),
+            CanGc::from_cx(cx),
+        )
+        .expect("Fail to convert publicExponent to Uint8Array");
         let key_algorithm = KeyAlgorithm {
             name: self.name.as_str().into(),
         };
@@ -3009,7 +3013,7 @@ impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
                 name: self.hash.name().as_str().into(),
             },
         });
-        rsa_hashed_key_algorithm.safe_to_jsval(cx, rval, can_gc);
+        rsa_hashed_key_algorithm.safe_to_jsval(cx, rval);
     }
 }
 
@@ -3187,7 +3191,7 @@ pub(crate) struct SubtleEcKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let parent = KeyAlgorithm {
             name: self.name.as_str().into(),
         };
@@ -3195,7 +3199,7 @@ impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
             parent,
             namedCurve: self.named_curve.clone().into(),
         };
-        dictionary.safe_to_jsval(cx, rval, can_gc);
+        dictionary.safe_to_jsval(cx, rval);
     }
 }
 
@@ -3321,7 +3325,7 @@ pub(crate) struct SubtleAesKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let parent = KeyAlgorithm {
             name: self.name.as_str().into(),
         };
@@ -3329,7 +3333,7 @@ impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
             parent,
             length: self.length,
         };
-        dictionary.safe_to_jsval(cx, rval, can_gc);
+        dictionary.safe_to_jsval(cx, rval);
     }
 }
 
@@ -3516,7 +3520,7 @@ pub(crate) struct SubtleHmacKeyAlgorithm {
 }
 
 impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let parent = KeyAlgorithm {
             name: self.name.as_str().into(),
         };
@@ -3528,7 +3532,7 @@ impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
             hash,
             length: self.length,
         };
-        dictionary.safe_to_jsval(cx, rval, can_gc);
+        dictionary.safe_to_jsval(cx, rval);
     }
 }
 
@@ -3971,18 +3975,23 @@ struct SubtleEncapsulatedKey {
 }
 
 impl SafeToJSValConvertible for SubtleEncapsulatedKey {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let shared_key = self.shared_key.as_ref().map(|shared_key| shared_key.root());
         let ciphertext = self.ciphertext.as_ref().map(|data| {
-            rooted!(in(*cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(cx, data, ciphertext_ptr.handle_mut(), can_gc)
-                .expect("Failed to convert ciphertext to ArrayBufferU8")
+            rooted!(&in(cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
+            create_buffer_source::<ArrayBufferU8>(
+                cx.into(),
+                data,
+                ciphertext_ptr.handle_mut(),
+                CanGc::from_cx(cx),
+            )
+            .expect("Failed to convert ciphertext to ArrayBufferU8")
         });
         let encapsulated_key = RootedTraceableBox::new(EncapsulatedKey {
             sharedKey: shared_key,
             ciphertext,
         });
-        encapsulated_key.safe_to_jsval(cx, rval, can_gc);
+        encapsulated_key.safe_to_jsval(cx, rval);
     }
 }
 
@@ -3996,22 +4005,32 @@ struct SubtleEncapsulatedBits {
 }
 
 impl SafeToJSValConvertible for SubtleEncapsulatedBits {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let shared_key = self.shared_key.as_ref().map(|data| {
-            rooted!(in(*cx) let mut shared_key_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(cx, data, shared_key_ptr.handle_mut(), can_gc)
-                .expect("Failed to convert shared key to ArrayBufferU8")
+            rooted!(&in(cx) let mut shared_key_ptr = ptr::null_mut::<JSObject>());
+            create_buffer_source::<ArrayBufferU8>(
+                cx.into(),
+                data,
+                shared_key_ptr.handle_mut(),
+                CanGc::from_cx(cx),
+            )
+            .expect("Failed to convert shared key to ArrayBufferU8")
         });
         let ciphertext = self.ciphertext.as_ref().map(|data| {
-            rooted!(in(*cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(cx, data, ciphertext_ptr.handle_mut(), can_gc)
-                .expect("Failed to convert ciphertext to ArrayBufferU8")
+            rooted!(&in(cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
+            create_buffer_source::<ArrayBufferU8>(
+                cx.into(),
+                data,
+                ciphertext_ptr.handle_mut(),
+                CanGc::from_cx(cx),
+            )
+            .expect("Failed to convert ciphertext to ArrayBufferU8")
         });
         let encapsulated_bits = RootedTraceableBox::new(EncapsulatedBits {
             sharedKey: shared_key,
             ciphertext,
         });
-        encapsulated_bits.safe_to_jsval(cx, rval, can_gc);
+        encapsulated_bits.safe_to_jsval(cx, rval);
     }
 }
 
@@ -4110,21 +4129,13 @@ impl KeyAlgorithmAndDerivatives {
 }
 
 impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
-    fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         match self {
-            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval, can_gc),
-            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => {
-                algo.safe_to_jsval(cx, rval, can_gc)
-            },
-            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => {
-                algo.safe_to_jsval(cx, rval, can_gc)
-            },
-            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => {
-                algo.safe_to_jsval(cx, rval, can_gc)
-            },
-            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => {
-                algo.safe_to_jsval(cx, rval, can_gc)
-            },
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
         }
     }
 }
@@ -4284,8 +4295,8 @@ impl JsonWebKeyExt for JsonWebKey {
     /// bytes.
     fn stringify(&self, cx: &mut js::context::JSContext) -> Result<Zeroizing<DOMString>, Error> {
         rooted!(&in(cx) let mut data = UndefinedValue());
-        self.safe_to_jsval(cx.into(), data.handle_mut(), CanGc::from_cx(cx));
-        serialize_jsval_to_json_utf8(cx.into(), data.handle()).map(Zeroizing::new)
+        self.safe_to_jsval(cx, data.handle_mut());
+        serialize_jsval_to_json_utf8(cx, data.handle()).map(Zeroizing::new)
     }
 
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
@@ -4502,7 +4513,7 @@ fn normalize_algorithm<Op: Operation>(
                 name: name.to_owned(),
             };
             rooted!(&in(cx) let mut algorithm_value = UndefinedValue());
-            algorithm.safe_to_jsval(cx.into(), algorithm_value.handle_mut(), CanGc::from_cx(cx));
+            algorithm.safe_to_jsval(cx, algorithm_value.handle_mut());
             let algorithm_object = RootedTraceableBox::new(Heap::default());
             algorithm_object.set(algorithm_value.to_object());
             normalize_algorithm::<Op>(cx, &ObjectOrString::Object(algorithm_object))

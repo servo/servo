@@ -4,8 +4,10 @@
 
 use std::cmp::min;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, OnceLock};
 
 use malloc_size_of_derive::MallocSizeOf;
+use servo_base::generic_channel::GenericCallback;
 use servo_media_streams::{MediaSocket, MediaStreamId};
 
 use crate::biquad_filter_node::{BiquadFilterNodeMessage, BiquadFilterNodeOptions};
@@ -25,7 +27,7 @@ use crate::wave_shaper_node::{WaveShaperNodeMessage, WaveShaperNodeOptions};
 /// Information required to construct an audio node
 #[derive(MallocSizeOf)]
 pub enum AudioNodeInit {
-    AnalyserNode(#[ignore_malloc_size_of = "Fn"] Box<dyn FnMut(Block) + Send>),
+    AnalyserNode(#[conditional_malloc_size_of] Arc<OnceLock<GenericCallback<Block>>>),
     BiquadFilterNode(BiquadFilterNodeOptions),
     AudioBuffer,
     AudioBufferSourceNode(AudioBufferSourceNodeOptions),

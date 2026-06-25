@@ -51,5 +51,53 @@ promise_test(async function(t) {
       'Undefined manifest_id should reject with TypeError');
 }, 'navigator.install(url, undefined) rejects with TypeError for undefined ' +
    'manifest ID.');
+
+// Dictionary form: navigator.install({manifest, id}).
+// Note: unlike the positional form above, {id: null} and {id: undefined} are
+// treated as "id omitted" and do NOT reject here.
+
+promise_test(async function(t) {
+  await test_driver.bless('install with missing required manifest');
+  return promise_rejects_js(t, TypeError, navigator.install({}),
+      'Missing required manifest member should reject with TypeError');
+}, 'navigator.install({}) rejects with TypeError when manifest is missing.');
+
+promise_test(async function(t) {
+  await test_driver.bless('install with empty manifest in dict');
+  return promise_rejects_js(t, TypeError,
+      navigator.install({manifest: ''}),
+      'Empty manifest URL should reject with TypeError');
+}, 'navigator.install({manifest: ""}) rejects with TypeError for empty ' +
+   'manifest URL.');
+
+promise_test(async function(t) {
+  await test_driver.bless('install with invalid manifest in dict');
+  return promise_rejects_js(t, TypeError,
+      navigator.install({manifest: '://invalid'}),
+      'Invalid manifest URL should reject with TypeError');
+}, 'navigator.install({manifest: "://invalid"}) rejects with TypeError for ' +
+   'invalid manifest URL.');
+
+promise_test(async function(t) {
+  await test_driver.bless('install with empty id in dict');
+  return promise_rejects_js(t, TypeError,
+      navigator.install({
+        manifest: 'https://example.com/manifest.json',
+        id: '',
+      }),
+      'Empty id should reject with TypeError');
+}, 'navigator.install({manifest, id: ""}) rejects with TypeError for empty ' +
+   'id.');
+
+promise_test(async function(t) {
+  await test_driver.bless('install with invalid id in dict');
+  return promise_rejects_js(t, TypeError,
+      navigator.install({
+        manifest: 'https://example.com/manifest.json',
+        id: '://invalid',
+      }),
+      'Invalid id should reject with TypeError');
+}, 'navigator.install({manifest, id: "://invalid"}) rejects with TypeError ' +
+   'for invalid id.');
 </script>
 </body>

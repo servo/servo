@@ -4,10 +4,10 @@
 
 use std::thread;
 
-use ipc_channel::ipc::{IpcSender, channel};
 use log::{trace, warn};
 use paint_api::{WebRenderExternalImageIdManager, WebRenderImageHandlerType};
 use rustc_hash::FxHashMap;
+use servo_base::generic_channel::{self, GenericCallback, GenericSender};
 use webrender_api::ExternalImageId;
 
 /// GL player threading API entry point that lives in the
@@ -18,7 +18,7 @@ use crate::{GLPlayerMsg, GLPlayerMsgForward};
 /// a set of video players with GL render.
 pub struct GLPlayerThread {
     /// Map of live players.
-    players: FxHashMap<u64, IpcSender<GLPlayerMsgForward>>,
+    players: FxHashMap<u64, GenericCallback<GLPlayerMsgForward>>,
     /// List of registered webrender external images.
     /// We use it to get an unique ID for new players.
     external_image_id_manager: WebRenderExternalImageIdManager,
@@ -34,8 +34,8 @@ impl GLPlayerThread {
 
     pub fn start(
         external_image_id_manager: WebRenderExternalImageIdManager,
-    ) -> IpcSender<GLPlayerMsg> {
-        let (sender, receiver) = channel().unwrap();
+    ) -> GenericSender<GLPlayerMsg> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
         thread::Builder::new()
             .name("GLPlayer".to_owned())
             .spawn(move || {

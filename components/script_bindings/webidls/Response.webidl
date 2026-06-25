@@ -19,8 +19,6 @@ interface Response {
   readonly attribute boolean ok;
   readonly attribute ByteString statusText;
   [SameObject] readonly attribute Headers headers;
-  // readonly attribute ReadableStream? body;
-  // [SameObject] readonly attribute Promise<Headers> trailer;
 
   [NewObject, Throws] Response clone();
 };

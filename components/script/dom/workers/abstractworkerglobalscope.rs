@@ -12,7 +12,7 @@ use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 
 pub(crate) trait WorkerEventLoopMethods {
@@ -99,7 +99,8 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
 
     // Step 3
     for event in sequential {
-        let _realm = enter_realm(worker_scope);
+        let mut realm = enter_auto_realm(cx, worker_scope);
+        let cx = &mut realm.current_realm();
         if !worker_scope.handle_event(event, cx) {
             // Shutdown
             return;

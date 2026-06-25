@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_canvas_traits::canvas::CanvasCommand;
 
 use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
@@ -33,7 +33,6 @@ use crate::dom::imagedata::ImageData;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
-use crate::script_runtime::CanGc;
 
 #[dom_struct(associated_memory)]
 pub(crate) struct OffscreenCanvasRenderingContext2D {
@@ -53,10 +52,10 @@ impl OffscreenCanvasRenderingContext2D {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         canvas: &OffscreenCanvas,
         size: Size2D<u32>,
-        can_gc: CanGc,
     ) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
         OffscreenCanvasRenderingContext2D::new_inherited(
             global,
@@ -64,7 +63,7 @@ impl OffscreenCanvasRenderingContext2D {
             size,
         )
         .map(|context| {
-            let context = reflect_dom_object(Box::new(context), global, can_gc);
+            let context = reflect_dom_object_with_cx(Box::new(context), global, cx);
             context.context.update_associated_memory_size();
             context
         })
@@ -395,7 +394,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         sw: i32,
         sh: i32,
     ) -> Fallible<DomRoot<ImageData>> {
-        self.context.CreateImageData(sw, sh, CanGc::from_cx(cx))
+        self.context.CreateImageData(cx, sw, sh)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata>
@@ -404,7 +403,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         cx: &mut JSContext,
         imagedata: &ImageData,
     ) -> Fallible<DomRoot<ImageData>> {
-        self.context.CreateImageData_(imagedata, CanGc::from_cx(cx))
+        self.context.CreateImageData_(cx, imagedata)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata>
@@ -416,8 +415,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         sw: i32,
         sh: i32,
     ) -> Fallible<DomRoot<ImageData>> {
-        self.context
-            .GetImageData(sx, sy, sw, sh, CanGc::from_cx(cx))
+        self.context.GetImageData(cx, sx, sy, sw, sh)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>

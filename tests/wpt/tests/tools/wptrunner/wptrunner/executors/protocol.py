@@ -1145,6 +1145,22 @@ class FedCMProtocolPart(ProtocolPart):
         pass
 
 
+class DigitalCredentialsProtocolPart(ProtocolPart):
+    """Protocol part for Digital Credentials"""
+    __metaclass__ = ABCMeta
+
+    name = "digital_credentials"
+
+    @abstractmethod
+    async def set_virtual_wallet_behavior(self, action, protocol=None, response=None, context=None):
+        """Set the virtual wallet behavior
+
+        :param str action: The action to take ("decline", "respond", "wait", "clear")
+        :param str protocol: The protocol requested (required for "respond")
+        :param dict response: The response data (optional for "respond")"""
+        pass
+
+
 class PrintProtocolPart(ProtocolPart):
     """Protocol part for rendering to a PDF."""
     __metaclass__ = ABCMeta

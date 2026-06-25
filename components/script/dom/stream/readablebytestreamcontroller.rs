@@ -15,7 +15,7 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
@@ -36,7 +36,6 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::readablestreambyobrequest::ReadableStreamBYOBRequest;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry>
 #[derive(JSTraceable, MallocSizeOf)]
@@ -224,19 +223,15 @@ pub(crate) struct ReadableByteStreamController {
 
 impl ReadableByteStreamController {
     fn new_inherited(
-        underlying_source_type: UnderlyingSourceType,
+        underlying_source_container: &UnderlyingSourceContainer,
         strategy_hwm: f64,
-        global: &GlobalScope,
-        can_gc: CanGc,
     ) -> ReadableByteStreamController {
-        let underlying_source_container =
-            UnderlyingSourceContainer::new(global, underlying_source_type, can_gc);
         let auto_allocate_chunk_size = underlying_source_container.auto_allocate_chunk_size();
         ReadableByteStreamController {
             reflector_: Reflector::new(),
             byob_request: MutNullableDom::new(None),
             stream: MutNullableDom::new(None),
-            underlying_source: MutNullableDom::new(Some(&*underlying_source_container)),
+            underlying_source: MutNullableDom::new(Some(underlying_source_container)),
             auto_allocate_chunk_size,
             pending_pull_intos: DomRefCell::new(Vec::new()),
             strategy_hwm,
@@ -250,20 +245,20 @@ impl ReadableByteStreamController {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         underlying_source_type: UnderlyingSourceType,
         strategy_hwm: f64,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> DomRoot<ReadableByteStreamController> {
-        reflect_dom_object(
+        let underlying_source_container =
+            UnderlyingSourceContainer::new(cx, global, underlying_source_type);
+        reflect_dom_object_with_cx(
             Box::new(ReadableByteStreamController::new_inherited(
-                underlying_source_type,
+                &underlying_source_container,
                 strategy_hwm,
-                global,
-                can_gc,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -404,7 +399,7 @@ impl ReadableByteStreamController {
                             rooted!(&in(cx) let mut view_value = UndefinedValue());
                             filled_view.get_buffer_view_value(cx.into(), view_value.handle_mut());
                             result.set(*view_value);
-                            read_into_request.chunk_steps(result, CanGc::from_cx(cx));
+                            read_into_request.chunk_steps(cx, result);
 
                             // Return.
                             return;
@@ -824,7 +819,7 @@ impl ReadableByteStreamController {
             .expect("Construct Uint8Array failed");
 
             // Let byobRequest be a new ReadableStreamBYOBRequest.
-            let byob_request = ReadableStreamBYOBRequest::new(&self.global(), CanGc::from_cx(cx));
+            let byob_request = ReadableStreamBYOBRequest::new(cx, &self.global());
 
             // Set byobRequest.[[controller]] to controller.
             byob_request.set_controller(Some(&DomRoot::from_ref(self)));
@@ -1643,7 +1638,7 @@ impl ReadableByteStreamController {
             let result = underlying_source
                 .call_pull_algorithm(cx, controller)
                 .unwrap_or_else(|| {
-                    let promise = Promise::new_resolved(&global, cx.into(), (), CanGc::from_cx(cx));
+                    let promise = Promise::new_resolved(cx, &global, ());
                     Ok(promise)
                 });
             let promise = result.unwrap_or_else(|error| {
@@ -1755,14 +1750,7 @@ impl ReadableByteStreamController {
                     cx,
                     Controller::ReadableByteStreamController(rooted_byte_controller.clone()),
                 )
-                .unwrap_or_else(|| {
-                    Ok(Promise::new_resolved(
-                        global,
-                        cx.into(),
-                        (),
-                        CanGc::from_cx(cx),
-                    ))
-                });
+                .unwrap_or_else(|| Ok(Promise::new_resolved(cx, global, ())));
 
             // Let startPromise be a promise resolved with startResult.
             let start_promise = start_result?;
@@ -1826,16 +1814,16 @@ impl ReadableByteStreamController {
         let result = underlying_source
             .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
-                let promise = Promise::new2(cx, global);
-                promise.resolve_native_with_cx(cx, &());
+                let promise = Promise::new(cx, global);
+                promise.resolve_native(cx, &());
                 Ok(promise)
             });
 
         let promise = result.unwrap_or_else(|error| {
             rooted!(&in(cx) let mut rval = UndefinedValue());
             error.to_jsval(cx, global, rval.handle_mut());
-            let promise = Promise::new2(cx, global);
-            promise.reject_native_with_cx(cx, &rval.handle());
+            let promise = Promise::new(cx, global);
+            promise.reject_native(cx, &rval.handle());
             promise
         });
 

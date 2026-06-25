@@ -23,10 +23,10 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -177,7 +177,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                 element.set_disabled_state(disabled_state);
                 element.set_enabled_state(!disabled_state);
                 let mut found_legend = false;
-                let children = node.children_unrooted(cx.no_gc()).filter(|node| {
+                let children = node.children().filter(|node| {
                     if found_legend {
                         true
                     } else if node.is::<HTMLLegendElement>() {
@@ -217,6 +217,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 .is_some_and(|h| h.is_form_associated_custom_element())
                             {
                                 ScriptThread::enqueue_callback_reaction(
+                                    cx,
                                     element,
                                     CallbackReaction::FormDisabled(true),
                                     None,
@@ -237,6 +238,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                                     .is_some_and(|h| h.is_form_associated_custom_element())
                             {
                                 ScriptThread::enqueue_callback_reaction(
+                                    cx,
                                     element,
                                     CallbackReaction::FormDisabled(false),
                                     None,

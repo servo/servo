@@ -22,7 +22,6 @@ use crate::dom::encoding::textdecodercommon::TextDecoderCommon;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{TransformStream, TransformStreamDefaultController};
-use crate::script_runtime::CanGc;
 
 /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
 #[expect(unsafe_code)]
@@ -120,7 +119,7 @@ impl TextDecoderStream {
         }
     }
 
-    fn new_with_proto(
+    pub(crate) fn new_with_proto(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
@@ -131,7 +130,7 @@ impl TextDecoderStream {
         let decoder = Rc::new(TextDecoderCommon::new_inherited(encoding, fatal, ignoreBOM));
         let transformer_type = TransformerType::Decoder(decoder.clone());
 
-        let transform_stream = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
+        let transform_stream = TransformStream::new_with_proto(cx, global, None);
         transform_stream.set_up(cx, global, transformer_type)?;
 
         Ok(reflect_dom_object_with_proto_and_cx(

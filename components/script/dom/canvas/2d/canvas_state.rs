@@ -78,7 +78,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
-use crate::script_runtime::CanGc;
 
 const HANGING_BASELINE_DEFAULT: f64 = 0.8;
 const IDEOGRAPHIC_BASELINE_DEFAULT: f64 = 0.5;
@@ -1823,38 +1822,38 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     pub(super) fn create_image_data(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         sw: i32,
         sh: i32,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         if sw == 0 || sh == 0 {
             return Err(Error::IndexSize(None));
         }
-        ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None, can_gc)
+        ImageData::new(cx, global, sw.unsigned_abs(), sh.unsigned_abs(), None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     pub(super) fn create_image_data_(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         imagedata: &ImageData,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        ImageData::new(global, imagedata.Width(), imagedata.Height(), None, can_gc)
+        ImageData::new(cx, global, imagedata.Width(), imagedata.Height(), None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
     #[expect(clippy::too_many_arguments)]
     pub(super) fn get_image_data(
         &self,
+        cx: &mut JSContext,
         canvas_size: Size2D<u32>,
         global: &GlobalScope,
         sx: i32,
         sy: i32,
         sw: i32,
         sh: i32,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
@@ -1872,7 +1871,7 @@ impl CanvasState {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
-                return ImageData::new(global, size.width, size.height, None, can_gc);
+                return ImageData::new(cx, global, size.width, size.height, None);
             },
         };
 
@@ -1895,7 +1894,7 @@ impl CanvasState {
             None
         };
 
-        ImageData::new(global, size.width, size.height, data, can_gc)
+        ImageData::new(cx, global, size.width, size.height, data)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -2203,7 +2202,7 @@ impl CanvasState {
         cx: &mut JSContext,
     ) -> DomRoot<DOMMatrix> {
         let transform = self.state.borrow_mut().transform;
-        DOMMatrix::new(global, true, transform.to_3d(), CanGc::from_cx(cx))
+        DOMMatrix::new(global, true, transform.to_3d(), cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>

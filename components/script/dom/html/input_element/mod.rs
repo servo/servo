@@ -11,13 +11,12 @@ use encoding_rs::Encoding;
 use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
-use js::jsapi::{
-    ClippedTime, JS_ClearPendingException, JSObject, NewDateObject, NewUCRegExpObject,
-    RegExpFlag_UnicodeSets, RegExpFlags,
-};
+use js::jsapi::{ClippedTime, JSObject, RegExpFlag_UnicodeSets, RegExpFlags};
 use js::jsval::UndefinedValue;
-use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
-use js::rust::wrappers2::{DateGetMsecSinceEpoch, ObjectIsDate};
+use js::rust::wrappers2::{
+    CheckRegExpSyntax, DateGetMsecSinceEpoch, ExecuteRegExpNoStatics, JS_ClearPendingException,
+    NewDateObject, NewUCRegExpObject, ObjectIsDate, ObjectIsRegExp,
+};
 use js::rust::{HandleObject, MutableHandleObject};
 use layout_api::{ScriptSelection, SharedSelection};
 use num_traits::ToPrimitive;
@@ -56,7 +55,6 @@ use crate::dom::event::Event;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::filelist::FileList;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
@@ -69,6 +67,7 @@ use crate::dom::htmlinputelement::radio_input_type::{
 use crate::dom::input_element::input_type::{InputActivationType, InputType};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
@@ -77,9 +76,8 @@ use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::types::{FocusEvent, MouseEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
-use crate::dom::virtualmethods::VirtualMethods;
-use crate::realms::enter_realm;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::realms::enter_auto_realm;
+use crate::script_runtime::CanGc;
 use crate::textinput::{ClipboardEventFlags, IsComposing, KeyReaction, Lines, TextInput};
 
 pub(crate) mod button_input_type;
@@ -223,7 +221,7 @@ impl HTMLInputElement {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -734,7 +732,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-a-pattern-mismatch>
-    fn suffers_from_pattern_mismatch(&self, value: &DOMString, can_gc: CanGc) -> bool {
+    fn suffers_from_pattern_mismatch(&self, cx: &mut JSContext, value: &DOMString) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch
         // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch-2
         let pattern_str = self.Pattern();
@@ -742,17 +740,17 @@ impl HTMLInputElement {
             return false;
         }
 
-        // Rust's regex is not compatible, we need to use mozjs RegExp.
-        let cx = GlobalScope::get_cx();
-        let _ac = enter_realm(self);
-        rooted!(in(*cx) let mut pattern = ptr::null_mut::<JSObject>());
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm;
 
-        if compile_pattern(cx, &pattern_str.str(), pattern.handle_mut(), can_gc) {
+        // Rust's regex is not compatible, we need to use mozjs RegExp.
+        rooted!(&in(cx) let mut pattern = ptr::null_mut::<JSObject>());
+        if compile_pattern(cx, &pattern_str.str(), pattern.handle_mut()) {
             if self.Multiple() && self.does_multiple_apply() {
                 !split_commas(&value.str())
-                    .all(|s| matches_js_regex(cx, pattern.handle(), s, can_gc).unwrap_or(true))
+                    .all(|s| matches_js_regex(cx, pattern.handle(), s).unwrap_or(true))
             } else {
-                !matches_js_regex(cx, pattern.handle(), &value.str(), can_gc).unwrap_or(true)
+                !matches_js_regex(cx, pattern.handle(), &value.str()).unwrap_or(true)
             }
         } else {
             // Element doesn't suffer from pattern mismatch if pattern is invalid.
@@ -867,12 +865,7 @@ impl HTMLInputElement {
         matches!(*self.input_type(), InputType::Color(_)) && !el.disabled_state()
     }
 
-    fn handle_key_reaction(
-        &self,
-        cx: &mut js::context::JSContext,
-        action: KeyReaction,
-        event: &Event,
-    ) {
+    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction, event: &Event) {
         match action {
             KeyReaction::TriggerDefaultAction => {
                 self.implicit_submission(cx);
@@ -945,7 +938,8 @@ impl HTMLInputElement {
                     // Step 1. Set target's has scheduled selectionchange event to false.
                     this.has_scheduled_selectionchange_event.set(false);
                     // Step 2. If target is an element, fire an event named selectionchange, which bubbles and not cancelable, at target.
-                    this.upcast::<EventTarget>().fire_event_with_params(cx,
+                    this.upcast::<EventTarget>().fire_event_with_params(
+                        cx,
                         atom!("selectionchange"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
@@ -1109,7 +1103,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-files>
-    fn SetFiles(&self, _cx: &mut js::context::JSContext, files: Option<&FileList>) {
+    fn SetFiles(&self, _cx: &mut JSContext, files: Option<&FileList>) {
         if let Some(files) = files {
             self.input_type().as_specific().set_files(files)
         }
@@ -1268,7 +1262,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
     #[expect(unsafe_code)]
-    fn GetValueAsDate(&self, cx: SafeJSContext, mut return_value: MutableHandleObject) {
+    fn GetValueAsDate(&self, cx: &mut JSContext, mut return_value: MutableHandleObject) {
         if let Some(date_time) = self
             .input_type()
             .as_specific()
@@ -1277,7 +1271,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             let time = ClippedTime {
                 t: (date_time - OffsetDateTime::UNIX_EPOCH).whole_milliseconds() as f64,
             };
-            return_value.set(unsafe { NewDateObject(*cx, time) });
+            return_value.set(unsafe { NewDateObject(cx, time) });
         }
     }
 
@@ -1849,7 +1843,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#implicit-submission>
-    fn implicit_submission(&self, cx: &mut js::context::JSContext) {
+    fn implicit_submission(&self, cx: &mut JSContext) {
         let doc = self.owner_document();
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
@@ -1962,7 +1956,7 @@ impl HTMLInputElement {
 
     pub(crate) fn handle_color_picker_response(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         response: Option<RgbColor>,
     ) {
         if let InputType::Color(ref color_input_type) = *self.input_type() {
@@ -1972,7 +1966,7 @@ impl HTMLInputElement {
 
     pub(crate) fn handle_file_picker_response(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         response: Option<Vec<SelectedFile>>,
     ) {
         if let InputType::File(ref file_input_type) = *self.input_type() {
@@ -2497,7 +2491,7 @@ impl Validatable for HTMLInputElement {
         }
 
         if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
-            self.suffers_from_pattern_mismatch(&value, CanGc::from_cx(cx))
+            self.suffers_from_pattern_mismatch(cx, &value)
         {
             failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }
@@ -2596,12 +2590,7 @@ impl Activatable for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
-    fn activation_behavior(
-        &self,
-        cx: &mut js::context::JSContext,
-        event: &Event,
-        target: &EventTarget,
-    ) {
+    fn activation_behavior(&self, cx: &mut JSContext, event: &Event, target: &EventTarget) {
         let input_activation_type = {
             let input_type = self.input_type();
             InputActivationType::new_from_input_type(&input_type)
@@ -2618,20 +2607,15 @@ impl Activatable for HTMLInputElement {
 /// This is used to compile JS-compatible regex provided in pattern attribute
 /// that matches only the entirety of string.
 /// <https://html.spec.whatwg.org/multipage/#compiled-pattern-regular-expression>
-fn compile_pattern(
-    cx: SafeJSContext,
-    pattern_str: &str,
-    out_regex: MutableHandleObject,
-    can_gc: CanGc,
-) -> bool {
+fn compile_pattern(cx: &mut JSContext, pattern_str: &str, out_regex: MutableHandleObject) -> bool {
     // First check if pattern compiles...
-    if check_js_regex_syntax(cx, pattern_str, can_gc) {
+    if check_js_regex_syntax(cx, pattern_str) {
         // ...and if it does make pattern that matches only the entirety of string
         let pattern_str = format!("^(?:{})$", pattern_str);
         let flags = RegExpFlags {
             flags_: RegExpFlag_UnicodeSets,
         };
-        new_js_regex(cx, &pattern_str, flags, out_regex, can_gc)
+        new_js_regex(cx, &pattern_str, flags, out_regex)
     } else {
         false
     }
@@ -2640,89 +2624,77 @@ fn compile_pattern(
 #[expect(unsafe_code)]
 /// Check if the pattern by itself is valid first, and not that it only becomes
 /// valid once we add ^(?: and )$.
-fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str, _can_gc: CanGc) -> bool {
+fn check_js_regex_syntax(cx: &mut JSContext, pattern: &str) -> bool {
     let pattern: Vec<u16> = pattern.encode_utf16().collect();
-    unsafe {
-        rooted!(in(*cx) let mut exception = UndefinedValue());
+    rooted!(&in(cx) let mut exception = UndefinedValue());
 
-        let valid = CheckRegExpSyntax(
-            *cx,
+    let valid = unsafe {
+        CheckRegExpSyntax(
+            cx,
             pattern.as_ptr(),
             pattern.len(),
             RegExpFlags {
                 flags_: RegExpFlag_UnicodeSets,
             },
             exception.handle_mut(),
-        );
+        )
+    };
 
-        if !valid {
-            JS_ClearPendingException(*cx);
-            return false;
-        }
-
-        // TODO(cybai): report `exception` to devtools
-        // exception will be `undefined` if the regex is valid
-        exception.is_undefined()
+    if !valid {
+        unsafe { JS_ClearPendingException(cx) };
+        return false;
     }
+
+    // TODO(cybai): report `exception` to devtools
+    // exception will be `undefined` if the regex is valid
+    exception.is_undefined()
 }
 
 #[expect(unsafe_code)]
-pub(crate) fn new_js_regex(
-    cx: SafeJSContext,
+fn new_js_regex(
+    cx: &mut JSContext,
     pattern: &str,
     flags: RegExpFlags,
     mut out_regex: MutableHandleObject,
-    _can_gc: CanGc,
 ) -> bool {
     let pattern: Vec<u16> = pattern.encode_utf16().collect();
-    unsafe {
-        out_regex.set(NewUCRegExpObject(
-            *cx,
-            pattern.as_ptr(),
-            pattern.len(),
-            flags,
-        ));
-        if out_regex.is_null() {
-            JS_ClearPendingException(*cx);
-            return false;
-        }
+    out_regex.set(unsafe { NewUCRegExpObject(cx, pattern.as_ptr(), pattern.len(), flags) });
+
+    if out_regex.is_null() {
+        unsafe { JS_ClearPendingException(cx) };
+        return false;
     }
     true
 }
 
 #[expect(unsafe_code)]
-fn matches_js_regex(
-    cx: SafeJSContext,
-    regex_obj: HandleObject,
-    value: &str,
-    _can_gc: CanGc,
-) -> Result<bool, ()> {
+fn matches_js_regex(cx: &mut JSContext, regex_obj: HandleObject, value: &str) -> Result<bool, ()> {
     let mut value: Vec<u16> = value.encode_utf16().collect();
 
-    unsafe {
-        let mut is_regex = false;
-        assert!(ObjectIsRegExp(*cx, regex_obj, &mut is_regex));
-        assert!(is_regex);
+    let mut is_regex = false;
+    assert!(unsafe { ObjectIsRegExp(cx, regex_obj, &mut is_regex) });
+    assert!(is_regex);
 
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        let mut index = 0;
+    rooted!(&in(cx) let mut rval = UndefinedValue());
+    let mut index = 0;
 
-        let ok = ExecuteRegExpNoStatics(
-            *cx,
+    let ok = unsafe {
+        ExecuteRegExpNoStatics(
+            cx,
             regex_obj,
             value.as_mut_ptr(),
             value.len(),
             &mut index,
             true,
             rval.handle_mut(),
-        );
+        )
+    };
 
-        if ok {
-            Ok(!rval.is_null())
-        } else {
-            JS_ClearPendingException(*cx);
-            Err(())
-        }
+    if ok {
+        Ok(!rval.is_null())
+    } else {
+        unsafe { JS_ClearPendingException(cx) };
+        Err(())
     }
 }
 

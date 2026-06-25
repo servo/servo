@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::FocusEventBinding;
@@ -18,7 +19,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// The type of a [`FocusEvent`].
 pub(crate) enum FocusEventType {
@@ -40,20 +40,26 @@ impl FocusEvent {
         }
     }
 
-    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<FocusEvent> {
-        Self::new_uninitialized_with_proto(window, None, can_gc)
+    pub(crate) fn new_uninitialized(cx: &mut JSContext, window: &Window) -> DomRoot<FocusEvent> {
+        Self::new_uninitialized_with_proto(cx, window, None)
     }
 
     pub(crate) fn new_uninitialized_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<FocusEvent> {
-        reflect_dom_object_with_proto(Box::new(FocusEvent::new_inherited()), window, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(FocusEvent::new_inherited()),
+            window,
+            proto,
+            cx,
+        )
     }
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         event_type: Atom,
         can_bubble: EventBubbles,
@@ -61,9 +67,9 @@ impl FocusEvent {
         view: Option<&Window>,
         detail: i32,
         related_target: Option<&EventTarget>,
-        can_gc: CanGc,
     ) -> DomRoot<FocusEvent> {
         Self::new_with_proto(
+            cx,
             window,
             None,
             event_type,
@@ -72,12 +78,12 @@ impl FocusEvent {
             view,
             detail,
             related_target,
-            can_gc,
         )
     }
 
     #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
@@ -86,9 +92,8 @@ impl FocusEvent {
         view: Option<&Window>,
         detail: i32,
         related_target: Option<&EventTarget>,
-        can_gc: CanGc,
     ) -> DomRoot<FocusEvent> {
-        let ev = FocusEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        let ev = FocusEvent::new_uninitialized_with_proto(cx, window, proto);
         ev.upcast::<UIEvent>().init_event(
             event_type,
             bool::from(can_bubble),
@@ -104,15 +109,16 @@ impl FocusEvent {
 impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
     /// <https://w3c.github.io/uievents/#dom-focusevent-focusevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         event_type: DOMString,
         init: &FocusEventBinding::FocusEventInit,
     ) -> Fallible<DomRoot<FocusEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.cancelable);
         let event = FocusEvent::new_with_proto(
+            cx,
             window,
             proto,
             event_type.into(),
@@ -121,7 +127,6 @@ impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
             init.parent.view.as_deref(),
             init.parent.detail,
             init.relatedTarget.as_deref(),
-            can_gc,
         );
         event
             .upcast::<Event>()

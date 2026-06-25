@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -20,7 +21,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
 #[dom_struct]
@@ -39,28 +40,28 @@ impl PopStateEvent {
     }
 
     fn new_uninitialized(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<PopStateEvent> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(PopStateEvent::new_inherited()),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         state: HandleValue,
-        can_gc: CanGc,
     ) -> DomRoot<PopStateEvent> {
-        let ev = PopStateEvent::new_uninitialized(window, proto, can_gc);
+        let ev = PopStateEvent::new_uninitialized(cx, window, proto);
         ev.state.set(state.get());
         {
             let event = ev.upcast::<Event>();
@@ -75,15 +76,7 @@ impl PopStateEvent {
         window: &Window,
         state: HandleValue,
     ) {
-        let event = PopStateEvent::new(
-            window,
-            None,
-            atom!("popstate"),
-            false,
-            false,
-            state,
-            CanGc::from_cx(cx),
-        );
+        let event = PopStateEvent::new(cx, window, None, atom!("popstate"), false, false, state);
         event.upcast::<Event>().fire(cx, target);
     }
 }
@@ -91,25 +84,25 @@ impl PopStateEvent {
 impl PopStateEventMethods<crate::DomTypeHolder> for PopStateEvent {
     /// <https://html.spec.whatwg.org/multipage/#popstateevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<PopStateEventBinding::PopStateEventInit>,
     ) -> Fallible<DomRoot<PopStateEvent>> {
         Ok(PopStateEvent::new(
+            cx,
             window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
             init.state.handle(),
-            can_gc,
         ))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-popstateevent-state>
-    fn State(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+    fn State(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.state.get())
     }
 

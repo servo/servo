@@ -74,12 +74,6 @@ pub struct IterableIterator<
     _marker: NoTrace<PhantomData<D>>,
 }
 
-impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable> IterableIterator<D, T> {
-    pub fn global_(&self, realm: InRealm) -> DomRoot<D::GlobalScope> {
-        <Self as DomGlobalGeneric<D>>::global_(self, realm)
-    }
-}
-
 impl<
     D: DomTypes,
     T: DomObjectIteratorWrap<D>
@@ -109,7 +103,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
         });
         <D as DomHelpers<D>>::reflect_dom_object(
             iterator,
-            &*iterable.global_(realm),
+            &*iterable.global_from_reflector(realm),
             CanGc::deprecated_note(),
         )
     }

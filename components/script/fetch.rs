@@ -7,11 +7,11 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use ipc_channel::ipc;
-use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
+use js::jsapi::ExceptionStackBehavior;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
-use js::rust::wrappers::JS_SetPendingException;
+use js::rust::wrappers2::{JS_IsExceptionPending, JS_SetPendingException};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
@@ -58,7 +58,7 @@ use crate::dom::window::Window;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 /// Fetch canceller object. By default initialized to having a
@@ -185,7 +185,7 @@ fn abort_fetch_call(
     cx: &mut js::context::JSContext,
 ) {
     // Step 1. Reject promise with error.
-    promise.reject_with_cx(cx, abort_reason);
+    promise.reject(cx, abort_reason);
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
     if let Some(body) = request.body() &&
         body.is_readable()
@@ -217,7 +217,7 @@ pub(crate) fn Fetch(
     let promise = Promise::new_in_realm(cx);
 
     // Step 7. Let responseObject be null.
-    // NOTE: We do initialize the object earlier earlier so we can use it to track errors
+    // NOTE: We do initialize the object earlier so we can use it to track errors.
     let response = Response::new(cx, global);
     response.Headers(cx).set_guard(Guard::Immutable);
 
@@ -226,7 +226,7 @@ pub(crate) fn Fetch(
     let request_object = match Request::Constructor(cx, global, None, input, init) {
         Err(e) => {
             response.error_stream(cx, e.clone());
-            promise.reject_error_with_cx(cx, e);
+            promise.reject_error(cx, e);
             return promise;
         },
         Ok(r) => r,
@@ -363,13 +363,9 @@ pub(crate) fn FetchLater(
         rooted!(&in(cx) let mut abort_reason = UndefinedValue());
         signal.Reason(cx.into(), abort_reason.handle_mut());
         unsafe {
-            assert!(!JS_IsExceptionPending(cx.raw_cx()));
-            JS_SetPendingException(
-                cx.raw_cx(),
-                abort_reason.handle(),
-                ExceptionStackBehavior::Capture,
-            );
-        }
+            assert!(!JS_IsExceptionPending(cx));
+            JS_SetPendingException(cx, abort_reason.handle(), ExceptionStackBehavior::Capture)
+        };
         return Err(Error::JSFailed);
     }
     // Step 3. Let request be requestObject’s request.
@@ -563,8 +559,7 @@ impl FetchResponseListener for FetchContext {
             // Step 12.3. If response is a network error, then reject
             // p with a TypeError and abort these steps.
             Err(error) => {
-                promise
-                    .reject_error_with_cx(cx, Error::Type(cformat!("Network error: {:?}", error)));
+                promise.reject_error(cx, Error::Type(cformat!("Network error: {:?}", error)));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(cx, DOMResponseType::Error);
@@ -608,7 +603,7 @@ impl FetchResponseListener for FetchContext {
         }
 
         // Step 12.5. Resolve p with responseObject.
-        promise.resolve_native_with_cx(cx, &self.response_object.root());
+        promise.resolve_native(cx, &self.response_object.root());
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
@@ -630,7 +625,8 @@ impl FetchResponseListener for FetchContext {
         timing: ResourceFetchTiming,
     ) {
         let response_object = self.response_object.root();
-        let _ac = enter_realm(&*response_object);
+        let mut realm = enter_auto_realm(cx, &*response_object);
+        let cx = &mut realm.current_realm();
         if let Err(ref error) = response &&
             *error == NetworkError::DecompressionError
         {

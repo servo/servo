@@ -1,0 +1,44 @@
+<!doctype html>
+<title>SVGPathElement.getPathData() returns attribute base value during SMIL animation</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<svg id="svg">
+  <path id="path" d="M 0 0 L 10 10">
+    <animate attributeName="d" begin="0s" dur="10s" fill="freeze"
+             values="M 50 50 L 60 60; M 100 100 L 200 200"/>
+  </path>
+</svg>
+<script>
+function waitForAnimationFrame() {
+  return new Promise(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+promise_test(async () => {
+  svg.pauseAnimations();
+  svg.setCurrentTime(5);
+
+  // Wait for the document to load, then two animation frames to let SMIL
+  // sample at currentTime = 5.
+  await new Promise(resolve => {
+    if (document.readyState === "complete") {
+      resolve();
+    } else {
+      window.addEventListener("load", resolve, { once: true });
+    }
+  });
+  await waitForAnimationFrame();
+
+  // SMIL is sampling — getPathData() must still return the base.
+  assert_not_equals(getComputedStyle(path).getPropertyValue("d"),
+                    'path("M 0 0 L 10 10")', "SMIL animation is sampling");
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10, 10] }
+  ]);
+}, "path.getPathData() returns attribute base value during SMIL animation");
+</script>

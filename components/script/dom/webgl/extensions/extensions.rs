@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::ptr::NonNull;
 
+use js::context::JSContext;
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -231,13 +232,14 @@ impl WebGLExtensions {
 
     pub(crate) fn get_or_init_extension(
         &self,
+        cx: &mut JSContext,
         name: &DOMString,
         ctx: &WebGLRenderingContext,
     ) -> Option<NonNull<JSObject>> {
         let name = name.to_uppercase();
         self.extensions.borrow().get(&name).and_then(|extension| {
             if extension.is_supported(self) {
-                Some(extension.instance_or_init(ctx, self))
+                Some(extension.instance_or_init(cx, ctx, self))
             } else {
                 None
             }

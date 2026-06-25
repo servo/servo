@@ -11,11 +11,6 @@ use crate::dom::types::GlobalScope;
 use crate::realms::enter_realm;
 
 pub(crate) trait DomGlobal {
-    /// Returns the [relevant global] in whatever realm is currently active.
-    ///
-    /// [relevant global]: https://html.spec.whatwg.org/multipage/#concept-relevant-global
-    fn global_(&self, realm: InRealm) -> DomRoot<GlobalScope>;
-
     /// Returns the [relevant global] in the same realm as the callee object.
     /// If you know the callee's realm is already the current realm, it is
     /// more efficient to call [DomGlobal::global_] instead.
@@ -25,12 +20,11 @@ pub(crate) trait DomGlobal {
 }
 
 impl<T: DomGlobalGeneric<DomTypeHolder>> DomGlobal for T {
-    fn global_(&self, realm: InRealm) -> DomRoot<GlobalScope> {
-        <Self as DomGlobalGeneric<DomTypeHolder>>::global_(self, realm)
-    }
-
     fn global(&self) -> DomRoot<GlobalScope> {
         let realm = enter_realm(self);
-        <Self as DomGlobalGeneric<DomTypeHolder>>::global_(self, InRealm::entered(&realm))
+        <Self as DomGlobalGeneric<DomTypeHolder>>::global_from_reflector(
+            self,
+            InRealm::entered(&realm),
+        )
     }
 }

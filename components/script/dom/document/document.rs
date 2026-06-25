@@ -10,7 +10,7 @@ use std::default::Default;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::{LazyLock, Mutex};
+use std::sync::{Arc as StdArc, LazyLock, Mutex};
 use std::time::Duration;
 
 use bitflags::bitflags;
@@ -37,6 +37,7 @@ use layout_api::{
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
+use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::{
@@ -55,7 +56,7 @@ use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSend;
-use servo_base::id::WebViewId;
+use servo_base::id::{PipelineId, WebViewId};
 use servo_base::{Epoch, generic_channel};
 use servo_config::pref;
 use servo_constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
@@ -131,6 +132,7 @@ use crate::dom::customelementregistry::{
 use crate::dom::customevent::CustomEvent;
 use crate::dom::document::accessibility_data::AccessibilityData;
 use crate::dom::document::focus::{DocumentFocusHandler, FocusableArea};
+use crate::dom::document::tree_ordered_index_map::TreeOrderedIndexMap;
 use crate::dom::document_embedder_controls::DocumentEmbedderControls;
 use crate::dom::document_event_handler::DocumentEventHandler;
 use crate::dom::documentfragment::DocumentFragment;
@@ -149,6 +151,7 @@ use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
+use crate::dom::history::History;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlbaseelement::HTMLBaseElement;
@@ -170,6 +173,8 @@ use crate::dom::largestcontentfulpaint::LargestContentfulPaint;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
+use crate::dom::node::treewalker::TreeWalker;
+use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
@@ -189,12 +194,9 @@ use crate::dom::storageevent::StorageEvent;
 use crate::dom::text::Text;
 use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
-use crate::dom::tree_ordered_index_map::TreeOrderedIndexMap;
-use crate::dom::treewalker::TreeWalker;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::{HTMLCanvasElement, VisibilityStateEntry};
 use crate::dom::uievent::UIEvent;
-use crate::dom::virtualmethods::vtable_for;
 use crate::dom::websocket::WebSocket;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
@@ -210,8 +212,9 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
+use crate::task_manager::TaskManager;
 use crate::task_source::TaskSourceName;
-use crate::timers::OneshotTimerCallback;
+use crate::timers::{OneshotTimerCallback, OneshotTimers};
 use crate::xpath::parse_expression;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -664,9 +667,52 @@ pub(crate) struct Document {
 
     /// Data necessary for maintaining the accessibility tree.
     accessibility_data: DomRefCell<AccessibilityData>,
+
+    /// <https://html.spec.whatwg.org/multipage/#iframe-load-in-progress>
+    iframe_load_in_progress: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#mute-iframe-load>
+    mute_iframe_load: Cell<bool>,
+
+    /// The mechanism by which time-outs and intervals are scheduled.
+    /// <https://html.spec.whatwg.org/multipage/#timers>
+    timers: OneshotTimers,
+
+    #[no_trace]
+    pipeline_id: PipelineId,
+
+    /// A [`TaskManager`] for this [`Window`].
+    #[conditional_malloc_size_of]
+    task_manager: Rc<TaskManager>,
+
+    #[ignore_malloc_size_of = "ImageCache"]
+    #[no_trace]
+    image_cache: StdArc<dyn ImageCache>,
+
+    /// <https://html.spec.whatwg.org/multipage/#doc-history>
+    history: MutNullableDom<History>,
 }
 
 impl Document {
+    pub(crate) fn history(&self, cx: &mut JSContext) -> DomRoot<History> {
+        self.history.or_init(|| History::new(cx, &self.window))
+    }
+
+    pub(crate) fn image_cache(&self) -> StdArc<dyn ImageCache> {
+        self.image_cache.clone()
+    }
+
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        self.task_manager.clone()
+    }
+
+    pub(crate) fn timers(&self) -> &OneshotTimers {
+        &self.timers
+    }
+
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
+        self.pipeline_id
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps>
     fn unloading_cleanup_steps(&self) {
         // Step 1. Let window be document's relevant global object.
@@ -903,7 +949,7 @@ impl Document {
         self.title_changed();
         self.notify_embedder_favicon();
         self.dirty_all_nodes();
-        self.window().resume(CanGc::from_cx(cx));
+        self.window().resume(cx);
         media.resume(&client_context_id);
 
         if self.ready_state.get() != DocumentReadyState::Complete {
@@ -931,12 +977,12 @@ impl Document {
                 // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
                 // global object with true.
                 let event = PageTransitionEvent::new(
+                    cx,
                     window,
                     atom!("pageshow"),
                     false, // bubbles
                     false, // cancelable
                     true, // persisted
-                    CanGc::from_cx(cx),
                 );
                 let event = event.upcast::<Event>();
                 event.set_trusted(true);
@@ -1929,13 +1975,13 @@ impl Document {
                 .queue(task!(hashchange_event: move |cx| {
                         let window = window.root();
                         HashChangeEvent::new(
+                            cx,
                             &window,
                             atom!("hashchange"),
                             false,
                             false,
                             old_url,
                             new_url,
-                            CanGc::from_cx(cx),
                         )
                         .upcast::<Event>()
                         .fire(cx, window.upcast());
@@ -2023,11 +2069,11 @@ impl Document {
         self.incr_ignore_opens_during_unload_counter();
         // Step 3-5.
         let beforeunload_event = BeforeUnloadEvent::new(
+            cx,
             &self.window,
             atom!("beforeunload"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            CanGc::from_cx(cx),
         );
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
@@ -2087,12 +2133,12 @@ impl Document {
             // Fire a page transition event named pagehide at oldDocument's relevant global object with oldDocument's
             // salvageable state.
             let event = PageTransitionEvent::new(
+                cx,
                 &self.window,
                 atom!("pagehide"),
                 false,                  // bubbles
                 false,                  // cancelable
                 self.salvageable.get(), // persisted
-                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
@@ -2103,11 +2149,11 @@ impl Document {
         // Step 7
         if !self.fired_unload.get() {
             let event = Event::new(
+                cx,
                 self.window.upcast(),
                 atom!("unload"),
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
-                CanGc::from_cx(cx),
             );
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
@@ -2247,11 +2293,11 @@ impl Document {
 
                 // Step 9.5. Fire an event named load at window, with legacy target override flag set.
                 let load_event = Event::new(
+                    cx,
                     window.upcast(),
                     atom!("load"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::from_cx(cx),
                 );
                 load_event.set_trusted(true);
                 debug!("About to dispatch load for {:?}", document.url());
@@ -2276,12 +2322,12 @@ impl Document {
 
                 // Step 9.11. Fire a page transition event named pageshow at window with false.
                 let page_show_event = PageTransitionEvent::new(
+                    cx,
                     window,
                     atom!("pageshow"),
                     false, // bubbles
                     false, // cancelable
                     false, // persisted
-                    CanGc::from_cx(cx),
                 );
                 let page_show_event = page_show_event.upcast::<Event>();
                 page_show_event.set_trusted(true);
@@ -2767,7 +2813,6 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
     pub(crate) fn lookup_custom_element_definition(
         &self,
-        cx: &mut JSContext,
         namespace: &Namespace,
         local_name: &LocalName,
         is: Option<&LocalName>,
@@ -2783,17 +2828,26 @@ impl Document {
         }
 
         // Step 3
-        let registry = self.window.CustomElements(cx);
+        let registry = self.custom_element_registry()?;
 
         registry.lookup_definition(local_name, is)
     }
 
-    /// <https://dom.spec.whatwg.org/#document-custom-element-registry>
-    pub(crate) fn custom_element_registry(
-        &self,
-        cx: &mut JSContext,
-    ) -> DomRoot<CustomElementRegistry> {
-        self.window.CustomElements(cx)
+    pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        self.document_or_shadow_root.custom_element_registry()
+    }
+
+    pub(crate) fn set_custom_element_registry(&self, registry: &CustomElementRegistry) {
+        self.document_or_shadow_root
+            .set_custom_element_registry(Some(registry));
+    }
+
+    /// Cleans up any active promises
+    /// <https://github.com/servo/servo/issues/15318>
+    pub(crate) fn teardown_custom_element_registry(&self) {
+        if let Some(custom_elements) = self.custom_element_registry() {
+            custom_elements.teardown();
+        }
     }
 
     pub(crate) fn increment_throw_on_dynamic_markup_insertion_counter(&self) {
@@ -3234,20 +3288,20 @@ impl Document {
 
     pub(crate) fn handle_paint_metric(
         &self,
+        cx: &mut JSContext,
         metric_type: ProgressiveWebMetricType,
         metric_value: CrossProcessInstant,
         first_reflow: bool,
-        can_gc: CanGc,
     ) {
         let metrics = self.interactive_time.borrow();
         match metric_type {
             ProgressiveWebMetricType::FirstPaint |
             ProgressiveWebMetricType::FirstContentfulPaint => {
                 let binding = PerformancePaintTiming::new(
+                    cx,
                     self.window.as_global_scope(),
                     metric_type.clone(),
                     metric_value,
-                    can_gc,
                 );
                 metrics.set_performance_paint_metric(metric_value, first_reflow, metric_type);
                 let entry = binding.upcast::<PerformanceEntry>();
@@ -3259,7 +3313,7 @@ impl Document {
                     metric_value,
                     area,
                     url,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
@@ -3516,6 +3570,8 @@ impl Document {
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
         timeline: &DocumentTimeline,
+        pipeline_id: PipelineId,
+        image_cache: StdArc<dyn ImageCache>,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3676,6 +3732,17 @@ impl Document {
             default_single_line_container_name: Default::default(),
             css_styling_flag: Default::default(),
             accessibility_data: Default::default(),
+            iframe_load_in_progress: Default::default(),
+            mute_iframe_load: Default::default(),
+            timers: OneshotTimers::new(window.upcast()),
+            pipeline_id,
+            task_manager: Rc::new(TaskManager::new(
+                Some(window.event_loop_sender()),
+                pipeline_id,
+                None,
+            )),
+            image_cache,
+            history: Default::default(),
         }
     }
 
@@ -3792,6 +3859,8 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        pipeline_id: PipelineId,
+        image_cache: StdArc<dyn ImageCache>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3816,6 +3885,8 @@ impl Document {
             has_trustworthy_ancestor_origin,
             custom_element_reaction_stack,
             creation_sandboxing_flag_set,
+            pipeline_id,
+            image_cache,
             can_gc,
         )
     }
@@ -3843,6 +3914,8 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        pipeline_id: PipelineId,
+        image_cache: StdArc<dyn ImageCache>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let timeline = DocumentTimeline::new(window, can_gc);
@@ -3869,6 +3942,8 @@ impl Document {
                 custom_element_reaction_stack,
                 creation_sandboxing_flag_set,
                 &timeline,
+                pipeline_id,
+                image_cache,
             )),
             window,
             proto,
@@ -4069,6 +4144,8 @@ impl Document {
                     self.has_trustworthy_ancestor_or_current_origin(),
                     self.custom_element_reaction_stack.clone(),
                     self.creation_sandboxing_flag_set(),
+                    self.pipeline_id(),
+                    self.image_cache.clone(),
                     can_gc,
                 );
                 new_doc
@@ -4785,6 +4862,14 @@ impl Document {
     pub(crate) fn set_css_styling_flag(&self, value: bool) {
         self.css_styling_flag.set(value)
     }
+
+    pub(crate) fn mute_iframe_load_flag(&self) -> bool {
+        self.mute_iframe_load.get()
+    }
+
+    pub(crate) fn set_iframe_load_in_progress(&self, value: bool) {
+        self.iframe_load_in_progress.set(value)
+    }
 }
 
 impl DocumentMethods<crate::DomTypeHolder> for Document {
@@ -4819,6 +4904,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.active_sandboxing_flag_set.get(),
+            doc.pipeline_id(),
+            doc.image_cache(),
             can_gc,
         ))
     }
@@ -4870,6 +4957,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.creation_sandboxing_flag_set(),
+            doc.pipeline_id(),
+            doc.image_cache(),
             CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
@@ -4923,6 +5012,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.creation_sandboxing_flag_set(),
+            doc.pipeline_id(),
+            doc.image_cache(),
             CanGc::from_cx(cx),
         );
 
@@ -4965,6 +5056,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-activeelement>
     fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
         self.document_or_shadow_root.active_element(self.upcast())
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-documentorshadowroot-customelementregistry>
+    fn GetCustomElementRegistry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        self.custom_element_registry()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-hasfocus>
@@ -5390,7 +5486,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 let registry = if let Some(registry) = options.customElementRegistry {
                     // Step 5.3. If registry's is scoped is false and registry
                     // is not this's custom element registry, then throw a "NotSupportedError" DOMException.
-                    let this_registry = self.custom_element_registry(cx);
+                    let this_registry = self
+                        .custom_element_registry()
+                        .expect("Document must have a custom element registry");
                     if !registry.is_scoped() && registry != this_registry {
                         return Err(Error::NotSupported(Some(
                             "Imported customElementRegistry is not scoped and does not match existing registry.".into()
@@ -5406,7 +5504,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 6. If registry is null, then set registry to the
         // result of looking up a custom element registry given this.
         let registry = registry
-            .or_else(|| CustomElementRegistry::lookup_a_custom_element_registry(cx, self.upcast()));
+            .or_else(|| CustomElementRegistry::lookup_a_custom_element_registry(self.upcast()));
 
         // Step 7. Return the result of cloning a node given node with
         // document set to this, subtree set to subtree, and fallbackRegistry set to registry.
@@ -5441,46 +5539,45 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         interface.make_ascii_lowercase();
         match &*interface.str() {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
+                cx,
                 &self.window,
-                CanGc::from_cx(cx),
             ))),
             "compositionevent" | "textevent" => Ok(DomRoot::upcast(
                 CompositionEvent::new_uninitialized(cx, &self.window),
             )),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
+                cx,
                 self.window.upcast(),
-                CanGc::from_cx(cx),
             ))),
             // FIXME(#25136): devicemotionevent, deviceorientationevent
             // FIXME(#7529): dragevent
-            "events" | "event" | "htmlevents" | "svgevents" => Ok(Event::new_uninitialized(
-                self.window.upcast(),
-                CanGc::from_cx(cx),
-            )),
+            "events" | "event" | "htmlevents" | "svgevents" => {
+                Ok(Event::new_uninitialized(cx, self.window.upcast()))
+            },
             "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(
+                cx,
                 &self.window,
-                CanGc::from_cx(cx),
             ))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
+                cx,
                 &self.window,
-                CanGc::from_cx(cx),
             ))),
             "keyboardevent" => Ok(DomRoot::upcast(KeyboardEvent::new_uninitialized(
                 cx,
                 &self.window,
             ))),
             "messageevent" => Ok(DomRoot::upcast(MessageEvent::new_uninitialized(
+                cx,
                 self.window.upcast(),
-                CanGc::from_cx(cx),
             ))),
             "mouseevent" | "mouseevents" => Ok(DomRoot::upcast(MouseEvent::new_uninitialized(
                 cx,
                 &self.window,
             ))),
             "storageevent" => Ok(DomRoot::upcast(StorageEvent::new_uninitialized(
+                cx,
                 &self.window,
                 "".into(),
-                CanGc::from_cx(cx),
             ))),
             "touchevent" => {
                 let touches = TouchList::new(cx, &self.window, &[]);
@@ -5496,8 +5593,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 )))
             },
             "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(
+                cx,
                 &self.window,
-                CanGc::from_cx(cx),
             ))),
             _ => Err(Error::NotSupported(None)),
         }
@@ -6221,7 +6318,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 14. If document's iframe load in progress flag is set, then set document's mute
         // iframe load flag.
-        // TODO: https://github.com/servo/servo/issues/21938
+        if self.iframe_load_in_progress.get() {
+            self.mute_iframe_load.set(true);
+        }
 
         // Step 15: Set document to no-quirks mode.
         self.set_quirks_mode(QuirksMode::NoQuirks);

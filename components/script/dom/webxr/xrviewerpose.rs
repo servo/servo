@@ -22,7 +22,6 @@ use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{BaseSpace, BaseTransform, XRSession, cast_transform};
 use crate::dom::xrview::XRView;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRViewerPose {
@@ -184,7 +183,7 @@ impl XRViewerPose {
         );
 
         rooted!(&in(cx) let mut jsval = UndefinedValue());
-        views.safe_to_jsval(cx.into(), jsval.handle_mut(), CanGc::from_cx(cx));
+        views.safe_to_jsval(cx, jsval.handle_mut());
         pose.views.set(jsval.get());
 
         pose

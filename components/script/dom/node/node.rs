@@ -110,6 +110,7 @@ use crate::dom::node::iterators::{
     UnrootedSimpleNodeIterator, UnrootedTreeIterator,
 };
 use crate::dom::node::nodelist::NodeList;
+use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
@@ -118,7 +119,6 @@ use crate::dom::servoparser::serialize_html_fragment;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent, ProcessingInstruction};
-use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode};
 use crate::script_runtime::CanGc;
@@ -422,6 +422,7 @@ impl Node {
             // Step 12 & 14.2. Enqueue disconnected custom element reactions.
             if is_parent_connected && let Some(element) = node.as_custom_element() {
                 custom_element_reaction_stack.enqueue_callback_reaction(
+                    cx,
                     &element,
                     CallbackReaction::Disconnected,
                     None,
@@ -1569,6 +1570,7 @@ impl Node {
                 // inclusiveDescendant, callback name "connectedMoveCallback", and « ».
                 let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
                 custom_element_reaction_stack.enqueue_callback_reaction(
+                    cx,
                     descendant,
                     CallbackReaction::ConnectedMove,
                     None,
@@ -2288,10 +2290,11 @@ impl Node {
             // callback name "adoptedCallback", and « oldDocument, document ».
             let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
             for descendant in node
-                .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
+                .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(|d| d.as_custom_element())
             {
                 custom_element_reaction_stack.enqueue_callback_reaction(
+                    cx,
                     &descendant,
                     CallbackReaction::Adopted(old_doc.clone(), DomRoot::from_ref(document)),
                     None,
@@ -2622,13 +2625,14 @@ impl Node {
                     if descendant.is_custom() {
                         if descendant.is_connected() {
                             custom_element_reaction_stack.enqueue_callback_reaction(
+                                cx,
                                 &descendant,
                                 CallbackReaction::Connected,
                                 None,
                             );
                         }
                     } else {
-                        try_upgrade_element(cx, &descendant);
+                        try_upgrade_element(&descendant);
                     }
                 }
             }
@@ -2955,6 +2959,8 @@ impl Node {
                     document.has_trustworthy_ancestor_or_current_origin(),
                     document.custom_element_reaction_stack(),
                     document.creation_sandboxing_flag_set(),
+                    document.pipeline_id(),
+                    document.image_cache(),
                     CanGc::from_cx(cx),
                 );
                 // Step 2. If node’s custom element registry’s is scoped is true,
@@ -2972,7 +2978,7 @@ impl Node {
                 // set registry to document’s effective global custom element registry.
                 let registry =
                     if CustomElementRegistry::is_a_global_element_registry(registry.as_deref()) {
-                        Some(document.custom_element_registry(cx))
+                        document.custom_element_registry()
                     } else {
                         registry
                     };
@@ -2994,7 +3000,7 @@ impl Node {
                     None,
                 );
                 // TODO: Move this into `Element::create`
-                element.set_custom_element_registry(registry);
+                element.set_custom_element_registry(registry.as_deref());
                 DomRoot::upcast::<Node>(element)
             },
         };

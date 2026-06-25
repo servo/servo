@@ -3,11 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use elliptic_curve::Curve;
-use elliptic_curve::generic_array::typenum::Unsigned;
+use elliptic_curve::array::typenum::Unsigned;
 use js::context::JSContext;
 use p256::NistP256;
+use p256::ecdh::diffie_hellman as p256_diffie_hellman;
 use p384::NistP384;
+use p384::ecdh::diffie_hellman as p384_diffie_hellman;
 use p521::NistP521;
+use p521::ecdh::diffie_hellman as p521_diffie_hellman;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
@@ -124,7 +127,7 @@ pub(crate) fn derive_bits(
                     "Public key is not a P-256 public key".to_string(),
                 )));
             };
-            p256::ecdh::diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine())
+            p256_diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine())
                 .raw_secret_bytes()
                 .to_vec()
         },
@@ -139,7 +142,7 @@ pub(crate) fn derive_bits(
                     "Public key is not a P384 public key".to_string(),
                 )));
             };
-            p384::ecdh::diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine())
+            p384_diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine())
                 .raw_secret_bytes()
                 .to_vec()
         },
@@ -154,7 +157,7 @@ pub(crate) fn derive_bits(
                     "Public key is not a P-521 public key".to_string(),
                 )));
             };
-            p521::ecdh::diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine())
+            p521_diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine())
                 .raw_secret_bytes()
                 .to_vec()
         },

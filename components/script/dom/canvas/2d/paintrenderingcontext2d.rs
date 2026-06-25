@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webrender_api::ImageKey;
@@ -31,7 +31,6 @@ use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::path2d::Path2D;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct PaintRenderingContext2D {
@@ -62,13 +61,13 @@ impl PaintRenderingContext2D {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &PaintWorkletGlobalScope,
-        can_gc: CanGc,
     ) -> Option<DomRoot<PaintRenderingContext2D>> {
-        Some(reflect_dom_object(
+        Some(reflect_dom_object_with_cx(
             Box::new(PaintRenderingContext2D::new_inherited(global)?),
             global,
-            can_gc,
+            cx,
         ))
     }
 

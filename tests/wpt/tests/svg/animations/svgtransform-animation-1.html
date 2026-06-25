@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="/svg/resources/svg-transform-equals.js"></script>
 
 <svg>
 </svg>
@@ -40,57 +41,43 @@ rootSVGElement.appendChild(rect);
 function sample1() {
     // Check initial/end conditions
     assert_equals(rect.transform.animVal.numberOfItems, 1);
-    assert_equals(rect.transform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_SCALE);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.a, 0, epsilon);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.d, 0, epsilon);
+    assert_svg_transform_equals(rect.transform.animVal.getItem(0), {scale: [0]}, epsilon);
     assert_equals(rect.transform.baseVal.numberOfItems, 0);
 }
 
 function sample2() {
     assert_equals(rect.transform.animVal.numberOfItems, 1);
-    assert_equals(rect.transform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_SCALE);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.a, 1, epsilon);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.d, 1, epsilon);
+    assert_svg_transform_equals(rect.transform.animVal.getItem(0), {scale: [1]}, epsilon);
     assert_equals(rect.transform.baseVal.numberOfItems, 0);
 }
 
 function sample3() {
     assert_equals(rect.transform.animVal.numberOfItems, 1);
-    assert_equals(rect.transform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_SCALE);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.a, 2, epsilon);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.d, 2, epsilon);
+    assert_svg_transform_equals(rect.transform.animVal.getItem(0), {scale: [2]}, epsilon);
     assert_equals(rect.transform.baseVal.numberOfItems, 0);
 }
 
 function sample4() {
     assert_equals(rect.transform.animVal.numberOfItems, 1);
-    assert_equals(rect.transform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_SCALE);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.a, 3, epsilon);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.d, 3, epsilon);
+    assert_svg_transform_equals(rect.transform.animVal.getItem(0), {scale: [3]}, epsilon);
     assert_equals(rect.transform.baseVal.numberOfItems, 0);
 }
 
 function sample5() {
     assert_equals(rect.transform.animVal.numberOfItems, 1);
-    assert_equals(rect.transform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_SCALE);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.a, 4, epsilon);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.d, 4, epsilon);
+    assert_svg_transform_equals(rect.transform.animVal.getItem(0), {scale: [4]}, epsilon);
     assert_equals(rect.transform.baseVal.numberOfItems, 0);
 }
 
 function sample6() {
     assert_equals(rect.transform.animVal.numberOfItems, 1);
-    assert_equals(rect.transform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_SCALE);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.a, 5, epsilon);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.d, 5, epsilon);
+    assert_svg_transform_equals(rect.transform.animVal.getItem(0), {scale: [5]}, epsilon);
     assert_equals(rect.transform.baseVal.numberOfItems, 0);
 }
 
 function sample7() {
     assert_equals(rect.transform.animVal.numberOfItems, 1);
-    assert_equals(rect.transform.animVal.getItem(0).type, SVGTransform.SVG_TRANSFORM_SCALE);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.a, 6, epsilon);
-    assert_approx_equals(rect.transform.animVal.getItem(0).matrix.d, 6, epsilon);
+    assert_svg_transform_equals(rect.transform.animVal.getItem(0), {scale: [6]}, epsilon);
     assert_equals(rect.transform.baseVal.numberOfItems, 0);
 }
 

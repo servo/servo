@@ -32,5 +32,19 @@ test_invalid_value("color", "alpha(from none / 0.5)");
 
 // Slash without alpha value.
 test_invalid_value("color", "alpha(from red /)");
+test_invalid_value("color", "alpha(from red / / 0.5)");
+
+// Multiple alpha values.
+test_invalid_value("color", "alpha(from red / 0.5 / 0.5)");
+test_invalid_value("color", "alpha(from red / alpha alpha)");
+
+// Comma syntax is not allowed.
+test_invalid_value("color", "alpha(from red, blue)");
+
+// Only the `alpha` channel keyword is allowed (no color channels).
+test_invalid_value("color", "alpha(from red / r)");
+test_invalid_value("color", "alpha(from red / l)");
+test_invalid_value("color", "alpha(from red / red)");
+test_invalid_value("color", "alpha(from red / calc(r * 0.5))");
 
 </script>

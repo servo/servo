@@ -20,10 +20,9 @@ use js::jsapi::ExceptionStackBehavior;
 use js::jsapi::StackFormat as JSStackFormat;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
-use js::rust::wrappers::JS_ErrorFromException;
 use js::rust::wrappers2::{
-    JS_ClearPendingException, JS_GetPendingException, JS_GetProperty, JS_IsExceptionPending,
-    JS_SetPendingException,
+    JS_ClearPendingException, JS_ErrorFromException, JS_GetPendingException, JS_GetProperty,
+    JS_IsExceptionPending, JS_SetPendingException,
 };
 use js::rust::{describe_scripted_caller, error_info_from_exception_stack};
 use libc::c_uint;
@@ -39,7 +38,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::QuotaExceededError;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 #[cfg(feature = "js_backtrace")]
 thread_local! {
@@ -70,11 +69,11 @@ pub(crate) fn throw_dom_exception(cx: &mut JSContext, global: &GlobalScope, resu
         });
     }
 
-    match create_dom_exception(global, result, CanGc::from_cx(cx)) {
+    match create_dom_exception(cx, global, result) {
         Ok(exception) => unsafe {
             assert!(!JS_IsExceptionPending(cx));
             rooted!(&in(cx) let mut thrown = UndefinedValue());
-            exception.safe_to_jsval(cx.into(), thrown.handle_mut(), CanGc::from_cx(cx));
+            exception.safe_to_jsval(cx, thrown.handle_mut());
             JS_SetPendingException(cx, thrown.handle(), ExceptionStackBehavior::Capture);
         },
 
@@ -98,13 +97,13 @@ pub(crate) fn throw_dom_exception(cx: &mut JSContext, global: &GlobalScope, resu
 /// If no such DOMException exists, return a subset of the original error values
 /// that may need additional handling.
 pub(crate) fn create_dom_exception(
+    cx: &mut JSContext,
     global: &GlobalScope,
     result: Error,
-    can_gc: CanGc,
 ) -> Result<DomRoot<DOMException>, JsEngineError> {
-    let new_custom_exception = |error_name, message| {
+    let mut new_custom_exception = |error_name, message| {
         Ok(DOMException::new_with_custom_message(
-            global, error_name, message, can_gc,
+            cx, global, error_name, message,
         ))
     };
 
@@ -203,7 +202,7 @@ pub(crate) fn create_dom_exception(
                 DOMString::new(),
                 quota,
                 requested,
-                can_gc,
+                CanGc::from_cx(cx),
             )));
         },
         Error::TypeMismatch(Some(custom_message)) => {
@@ -238,7 +237,7 @@ pub(crate) fn create_dom_exception(
         Error::Range(message) => return Err(JsEngineError::Range(message)),
         Error::JSFailed => return Err(JsEngineError::JSFailed),
     };
-    Ok(DOMException::new(global, code, can_gc))
+    Ok(DOMException::new(cx, global, code))
 }
 
 /// A struct encapsulating information about a runtime script error.
@@ -255,8 +254,8 @@ pub(crate) struct ErrorInfo {
 }
 
 impl ErrorInfo {
-    fn from_native_error(object: HandleObject, cx: SafeJSContext) -> Option<ErrorInfo> {
-        let report = unsafe { JS_ErrorFromException(*cx, object) };
+    fn from_native_error(cx: &mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
+        let report = unsafe { JS_ErrorFromException(cx, object) };
         if report.is_null() {
             return None;
         }
@@ -294,9 +293,10 @@ impl ErrorInfo {
         })
     }
 
-    fn from_dom_exception(object: HandleObject, cx: SafeJSContext) -> Option<ErrorInfo> {
-        let exception = unsafe { root_from_object::<DOMException>(object.get(), *cx).ok()? };
-        let scripted_caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
+    fn from_dom_exception(cx: &mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
+        let exception =
+            unsafe { root_from_object::<DOMException>(object.get(), cx.raw_cx()).ok()? };
+        let scripted_caller = unsafe { describe_scripted_caller(cx.raw_cx()) }.unwrap_or_default();
         Some(ErrorInfo {
             message: exception.stringifier().into(),
             filename: scripted_caller.filename,
@@ -305,11 +305,11 @@ impl ErrorInfo {
         })
     }
 
-    fn from_object(object: HandleObject, cx: SafeJSContext) -> Option<ErrorInfo> {
-        if let Some(info) = ErrorInfo::from_native_error(object, cx) {
+    fn from_object(cx: &mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
+        if let Some(info) = ErrorInfo::from_native_error(cx, object) {
             return Some(info);
         }
-        if let Some(info) = ErrorInfo::from_dom_exception(object, cx) {
+        if let Some(info) = ErrorInfo::from_dom_exception(cx, object) {
             return Some(info);
         }
         None
@@ -319,7 +319,7 @@ impl ErrorInfo {
     pub(crate) fn from_value(cx: &mut JSContext, value: HandleValue) -> ErrorInfo {
         if value.is_object() {
             rooted!(&in(cx) let object = value.to_object());
-            if let Some(info) = ErrorInfo::from_object(object.handle(), cx.into()) {
+            if let Some(info) = ErrorInfo::from_object(cx, object.handle()) {
                 return info;
             }
         }

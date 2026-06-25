@@ -208,7 +208,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         // Step 1
         let promise = self.pending_map.borrow_mut().take();
         if let Some(promise) = promise {
-            promise.reject_error_with_cx(cx, Error::Abort(None));
+            promise.reject_error(cx, Error::Abort(None));
         }
         // Step 2
         let mut mapping = RootedTraceableBox::new(self.mapping.borrow_mut().take());
@@ -265,7 +265,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         let promise = Promise::new_in_realm(cx);
         // Step 2
         if self.pending_map.borrow().is_some() {
-            promise.reject_error_with_cx(cx, Error::Operation(None));
+            promise.reject_error(cx, Error::Operation(None));
             return promise;
         }
         // Step 4
@@ -398,9 +398,9 @@ impl GPUBuffer {
         // Step 4
         let is_lost = self.device.is_lost();
         if is_lost {
-            p.reject_error_with_cx(cx, Error::Abort(None));
+            p.reject_error(cx, Error::Abort(None));
         } else {
-            p.reject_error_with_cx(cx, Error::Operation(None));
+            p.reject_error(cx, Error::Operation(None));
         }
     }
 
@@ -426,7 +426,7 @@ impl GPUBuffer {
         match mapping {
             Err(error) => {
                 *self.pending_map.borrow_mut() = None;
-                p.reject_error_with_cx(cx, error);
+                p.reject_error(cx, error);
             },
             Ok(mut mapping) => {
                 // Step 5
@@ -435,7 +435,7 @@ impl GPUBuffer {
                 self.mapping.borrow_mut().replace(*mapping.into_box());
                 // Step 7
                 self.pending_map.borrow_mut().take();
-                p.resolve_native_with_cx(cx, &());
+                p.resolve_native(cx, &());
             },
         }
     }

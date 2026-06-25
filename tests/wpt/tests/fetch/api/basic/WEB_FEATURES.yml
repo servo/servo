@@ -3,13 +3,9 @@ features:
   files:
   - "*"
   - "!request-upload*"
-  - "!request-private-network-headers.tentative.any.js"
 - name: fetch-request-streams
   files:
   - request-upload*
-- name: private-network-access
-  files:
-  - request-private-network-headers.tentative.any.js
 - name: early-data
   files:
   # Note: Test coverage for this feature is very incomplete

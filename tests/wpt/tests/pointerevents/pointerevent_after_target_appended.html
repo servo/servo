@@ -107,6 +107,8 @@
       await done_click_promise;
 
       if (tested_event_prefix == "mouse" && !received_compat_mouse_events) {
+        // If no compat mouse event is fired, we will assume that the user
+        // agent does not support the optional requirement to fire those events.
         expected_events = [];
       }
 
@@ -148,6 +150,8 @@
       await done_click_promise;
 
       if (tested_event_prefix == "mouse" && !received_compat_mouse_events) {
+        // If no compat mouse event is fired, we will assume that the user
+        // agent does not support the optional requirement to fire those events.
         expected_events = [];
       }
 

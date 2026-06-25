@@ -47,7 +47,7 @@ use crate::dom::text::Text;
 use crate::dom::types::FocusEvent;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
-use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, SelectElementRequest};
@@ -547,7 +547,8 @@ impl HTMLSelectElement {
                 // Step 2. Fire an event named input at the select element, with the bubbles and composed
                 // attributes initialized to true.
                 this.upcast::<EventTarget>()
-                    .fire_event_with_params(cx,
+                    .fire_event_with_params(
+                        cx,
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,

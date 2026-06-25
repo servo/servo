@@ -34,7 +34,6 @@ use crate::dom::event::Event;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
 use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// The set of animations for a document.
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -542,7 +541,7 @@ impl Animations {
                     elapsedTime: elapsed_time,
                     pseudoElement: pseudo_element,
                 };
-                TransitionEvent::new(&window, event_atom, &event_init, CanGc::from_cx(cx))
+                TransitionEvent::new(cx, &window, event_atom, &event_init)
                     .upcast::<Event>()
                     .fire(cx, node.upcast());
             } else {
@@ -552,7 +551,7 @@ impl Animations {
                     elapsedTime: elapsed_time,
                     pseudoElement: pseudo_element,
                 };
-                AnimationEvent::new(&window, event_atom, &event_init, CanGc::from_cx(cx))
+                AnimationEvent::new(cx, &window, event_atom, &event_init)
                     .upcast::<Event>()
                     .fire(cx, node.upcast());
             }

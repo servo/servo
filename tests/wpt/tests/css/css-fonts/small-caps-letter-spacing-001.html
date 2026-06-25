@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS test: font-variant:small-caps + letter-spacing + es-zett</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-variant-caps-prop">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#letter-spacing-property">
+<link rel="help" href="https://www.unicode.org/Public/UNIDATA/SpecialCasing.txt">
+
+<meta name="assert" content="When ß is uppercased to SS in small-caps, letter-spacing should apply between the two glyphs.">
+<link rel="match" href="small-caps-letter-spacing-001-ref.html">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<style>
+.test, .ref {
+  font: 25px Ahem;  /* Note that Ahem does not include a glyph for U+1E9E;
+                       the only option for uppercasing "ß" is as "SS". */
+  letter-spacing: 0.5em;
+  font-variant: small-caps;
+}
+</style>
+
+<p>Both lines should have the same spacing:</p>
+
+<p class="test">Straße</p>
+<p class="ref">Strasse</p>

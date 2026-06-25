@@ -61,14 +61,14 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
             );
 
             // 1.3 Resolve p with blobData.
-            self.promise.resolve_native_with_cx(cx, &blob_data);
+            self.promise.resolve_native(cx, &blob_data);
         }
         // 2. If v is a Blob, then follow the below steps:
         else if DomRoot::<Blob>::safe_from_jsval(cx, v, ())
             .is_ok_and(|result| result.get_success_value().is_some())
         {
             // 2.1 Resolve p with v.
-            self.promise.resolve_with_cx(cx, v);
+            self.promise.resolve(cx, v);
         }
     }
 }
@@ -85,7 +85,7 @@ impl Callback for RepresentationDataPromiseRejectionHandler {
     /// Substeps of 8.1.2.2 If representationDataPromise was rejected, then:
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // 1. Reject p with "NotFoundError" DOMException in realm.
-        self.promise.reject_error_with_cx(cx, Error::NotFound(None));
+        self.promise.reject_error(cx, Error::NotFound(None));
     }
 }
 
@@ -304,7 +304,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         }
 
         // Step 9 Reject p with "NotFoundError" DOMException in realm.
-        p.reject_error_with_cx(realm, Error::NotFound(None));
+        p.reject_error(realm, Error::NotFound(None));
 
         // Step 10 Return p.
         Ok(p)

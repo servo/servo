@@ -118,7 +118,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
 
                     // https://w3c.github.io/permissions/#dom-permissions-request
                     // Step 8.
-                    return promise.resolve_native_with_cx(cx, self);
+                    return promise.resolve_native(cx, self);
                 }
                 let bt_device = BluetoothDevice::new(
                     cx,
@@ -141,11 +141,9 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
 
                 // https://w3c.github.io/permissions/#dom-permissions-request
                 // Step 8.
-                promise.resolve_native_with_cx(cx, self);
+                promise.resolve_native(cx, self);
             },
-            _ => {
-                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
-            },
+            _ => promise.reject_error(cx, Error::Type(c"Something went wrong...".to_owned())),
         }
     }
 }

@@ -186,7 +186,7 @@
 //!   `dom::bindings::codegen::Bindings::FooBinding::FooMethods` trait for
 //!   `Foo`;
 //! * adding/updating the match arm in create_element in
-//!   `components/script/dom/create.rs` (only applicable to new types inheriting
+//!   `components/script/dom/element/create.rs` (only applicable to new types inheriting
 //!   from `HTMLElement`)
 //!
 //! More information is available in the [bindings module](bindings/index.html).
@@ -209,16 +209,14 @@ pub(crate) mod types {
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
-pub(crate) mod abortcontroller;
-pub(crate) mod abortsignal;
+pub(crate) mod abort;
+pub(crate) use self::abort::*;
 pub(crate) mod activation;
 pub(crate) mod animations;
 pub(crate) use self::animations::*;
-pub(crate) mod attr;
 pub(crate) mod audio;
 pub(crate) use self::audio::*;
 pub(crate) mod bindings;
-pub(crate) mod blob;
 #[cfg(feature = "bluetooth")]
 pub(crate) mod bluetooth;
 #[cfg(feature = "bluetooth")]
@@ -226,16 +224,12 @@ pub(crate) use self::bluetooth::*;
 pub(crate) mod broadcastchannel;
 mod canvas;
 pub(crate) use self::canvas::*;
-
-pub(crate) mod cdatasection;
 pub(crate) mod characterdata;
-pub(crate) mod client;
+pub(crate) use self::characterdata::*;
 pub(crate) mod clipboard;
 pub(crate) use self::clipboard::*;
-pub(crate) mod comment;
 pub(crate) mod console;
 pub(crate) mod cookiestore;
-mod create;
 pub(crate) mod credentialmanagement;
 pub(crate) use self::credentialmanagement::*;
 pub(crate) mod css;
@@ -246,8 +240,6 @@ pub(crate) mod datatransfer;
 pub(crate) use self::datatransfer::*;
 pub(crate) mod debugger;
 pub(crate) use self::debugger::*;
-pub(crate) mod dissimilaroriginlocation;
-pub(crate) mod dissimilaroriginwindow;
 #[expect(dead_code)]
 pub(crate) mod document;
 pub(crate) use self::document::*;
@@ -258,6 +250,7 @@ pub(crate) mod domstringlist;
 pub(crate) mod domstringmap;
 pub(crate) mod domtokenlist;
 pub(crate) mod element;
+pub(crate) use self::element::*;
 pub(crate) mod elementinternals;
 pub(crate) mod encoding;
 pub(crate) use self::encoding::*;
@@ -269,7 +262,8 @@ pub(crate) mod fetch;
 pub(crate) use self::fetch::*;
 pub(crate) mod file;
 pub(crate) use self::file::*;
-pub(crate) mod formdata;
+pub(crate) mod form;
+pub(crate) use self::form::*;
 pub(crate) mod fullscreen;
 #[cfg(feature = "gamepad")]
 pub(crate) mod gamepad;
@@ -279,50 +273,34 @@ pub(crate) mod geolocation;
 pub(crate) use self::geolocation::*;
 pub(crate) mod geometry;
 pub(crate) use self::geometry::*;
-pub(crate) mod global_scope_script_execution;
 pub(crate) mod globalscope;
-pub(crate) mod history;
+pub(crate) use self::globalscope::*;
 pub(crate) mod html;
 pub(crate) use self::html::*;
 pub(crate) mod indexeddb;
 pub(crate) use self::indexeddb::*;
 pub(crate) mod intersectionobserver;
-pub(crate) mod intersectionobserverentry;
-pub(crate) mod location;
+pub(crate) use self::intersectionobserver::*;
 pub(crate) mod media;
 pub(crate) use self::media::*;
-pub(crate) mod messagechannel;
-#[expect(dead_code)]
-pub(crate) mod messageport;
 pub(crate) mod mimetype;
-pub(crate) mod mimetypearray;
+pub(crate) use self::mimetype::*;
 pub(crate) mod mutationobserver;
 pub(crate) use self::mutationobserver::*;
-pub(crate) mod namednodemap;
-pub(crate) mod navigationpreloadmanager;
 pub(crate) mod navigator;
-pub(crate) mod navigatorinfo;
+pub(crate) use self::navigator::*;
 #[expect(dead_code)]
 pub(crate) mod node;
 pub(crate) use self::node::*;
 pub(crate) mod notification;
-pub(crate) mod origin;
-pub(crate) mod paintsize;
-pub(crate) mod paintworkletglobalscope;
 pub(crate) mod performance;
 pub(crate) use self::performance::*;
-pub(crate) mod permissions;
-pub(crate) mod permissionstatus;
-pub(crate) mod pipelineid;
-pub(crate) mod plugin;
-pub(crate) mod pluginarray;
-pub(crate) mod processinginstruction;
+pub(crate) mod permission;
+pub(crate) use self::permission::*;
 pub(crate) mod processingoptions;
-#[expect(dead_code)]
 pub(crate) mod promise;
-pub(crate) mod promisenativehandler;
+pub(crate) use self::promise::*;
 pub(crate) mod quotaexceedederror;
-pub(crate) mod radionodelist;
 pub(crate) mod range;
 pub(crate) use self::range::*;
 pub(crate) mod raredata;
@@ -335,12 +313,14 @@ mod scrolling_box;
 pub(crate) mod security;
 pub(crate) use self::security::*;
 pub(crate) mod selection;
+pub(crate) mod serviceworker;
+pub(crate) use self::serviceworker::*;
 pub(crate) mod servointernals;
 #[expect(dead_code)]
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
 pub(crate) mod storage;
-pub(crate) mod storagemanager;
+pub(crate) use self::storage::*;
 pub(crate) mod stream;
 pub(crate) use self::stream::*;
 pub(crate) mod svg;
@@ -349,24 +329,17 @@ pub(crate) use self::svg::*;
 mod testing;
 #[cfg(feature = "testbinding")]
 pub(crate) use self::testing::*;
-pub(crate) mod text;
 pub(crate) mod textcontrol;
 pub(crate) mod timeranges;
 pub(crate) mod touch;
-pub(crate) mod touchlist;
-pub(crate) mod tree_ordered_index_map;
-pub(crate) mod treewalker;
+pub(crate) use self::touch::*;
 pub(crate) mod trustedtypes;
 pub(crate) use self::trustedtypes::*;
 pub(crate) mod url;
 pub(crate) use self::url::*;
 pub(crate) mod useractivation;
 pub(crate) mod userscripts;
-pub(crate) mod validation;
-pub(crate) mod validitystate;
 pub(crate) mod values;
-pub(crate) mod virtualmethods;
-pub(crate) mod visibilitystateentry;
 pub(crate) mod visualviewport;
 pub(crate) mod wakelock;
 pub(crate) use self::wakelock::*;
@@ -391,16 +364,14 @@ pub(crate) use self::webrtc::*;
 pub(crate) mod webvtt;
 pub(crate) use self::webvtt::*;
 pub(crate) mod window;
-pub(crate) mod windowclient;
-pub(crate) mod windowproxy;
+pub(crate) use self::window::*;
 pub(crate) mod workers;
 pub(crate) use self::workers::*;
 pub(crate) mod worklet;
-pub(crate) mod workletglobalscope;
+pub(crate) use self::worklet::*;
 pub(crate) mod xmldocument;
 pub(crate) mod xmlhttprequest;
-pub(crate) mod xmlhttprequesteventtarget;
-pub(crate) mod xmlhttprequestupload;
+pub(crate) use self::xmlhttprequest::*;
 pub(crate) mod xmlserializer;
 pub(crate) mod xpath;
 pub(crate) use self::xpath::*;

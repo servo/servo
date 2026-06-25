@@ -2,6 +2,8 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Class selectors</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
   <style type="text/css"><![CDATA[li { background-color : red }
 .t1 { background-color : lime }
 li.t2 { background-color : lime }
@@ -11,12 +13,19 @@ li.t2 { background-color : lime }
  </head>
  <body>
 <ul>
-  <li class="t1">This list item should have green background because its class is &quot;t1&quot;</li>
-  <li class="t2">This list item should have green background because its class is &quot;t2&quot;</li>
-  <li class="t2">
+  <li class="t1" id="t1">This list item should have green background because its class is &quot;t1&quot;</li>
+  <li class="t2" id="t2">This list item should have green background because its class is &quot;t2&quot;</li>
+  <li class="t2" id="t3">
 <span class="t33">This list item should have green background because
         the inner SPAN does not match SPAN.t3</span>
 </li>
 </ul>
+  <script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById("t1")).backgroundColor, "rgb(0, 255, 0)");
+  assert_equals(getComputedStyle(document.getElementById("t2")).backgroundColor, "rgb(0, 255, 0)");
+  assert_equals(getComputedStyle(document.getElementById("t3")).backgroundColor, "rgb(0, 255, 0)");
+}, "Class selectors");
+]]></script>
 </body>
 </html>

@@ -340,11 +340,9 @@ impl AsyncBluetoothListener for BluetoothDevice {
                 // Step 3.1.
                 self.watching_advertisements.set(true);
                 // Step 3.2.
-                promise.resolve_native_with_cx(cx, &());
+                promise.resolve_native(cx, &());
             },
-            _ => {
-                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
-            },
+            _ => promise.reject_error(cx, Error::Type(c"Something went wrong...".to_owned())),
         }
     }
 }

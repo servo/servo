@@ -25,7 +25,7 @@ use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::KeyAlgorithmAndDerivatives;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 
 pub(crate) enum CryptoKeyOrCryptoKeyPair {
     CryptoKey(DomRoot<CryptoKey>),
@@ -46,8 +46,8 @@ pub(crate) enum Handle {
     P256PublicKey(p256::PublicKey),
     P384PublicKey(p384::PublicKey),
     P521PublicKey(p521::PublicKey),
-    Ed25519PrivateKey(Zeroizing<Vec<u8>>),
-    Ed25519PublicKey(Vec<u8>),
+    Ed25519PrivateKey(ed25519_dalek::SigningKey),
+    Ed25519PublicKey(ed25519_dalek::VerifyingKey),
     X25519PrivateKey(x25519_dalek::StaticSecret),
     X25519PublicKey(x25519_dalek::PublicKey),
     Aes128Key(aes::cipher::common::Key<aes::Aes128>),
@@ -151,22 +151,14 @@ impl CryptoKey {
 
         // Create and store a cached object of algorithm
         rooted!(&in(cx) let mut algorithm_object_value: Value);
-        algorithm.safe_to_jsval(
-            cx.into(),
-            algorithm_object_value.handle_mut(),
-            CanGc::from_cx(cx),
-        );
+        algorithm.safe_to_jsval(cx, algorithm_object_value.handle_mut());
         crypto_key
             .algorithm_cached
             .set(algorithm_object_value.to_object());
 
         // Create and store a cached object of usages
         rooted!(&in(cx) let mut usages_object_value: Value);
-        usages.safe_to_jsval(
-            cx.into(),
-            usages_object_value.handle_mut(),
-            CanGc::from_cx(cx),
-        );
+        usages.safe_to_jsval(cx, usages_object_value.handle_mut());
         crypto_key
             .usages_cached
             .set(usages_object_value.to_object());
@@ -195,11 +187,7 @@ impl CryptoKey {
 
         // Create and store a cached object of usages
         rooted!(&in(cx) let mut usages_object_value: Value);
-        usages.safe_to_jsval(
-            cx.into(),
-            usages_object_value.handle_mut(),
-            CanGc::from_cx(cx),
-        );
+        usages.safe_to_jsval(cx, usages_object_value.handle_mut());
         self.usages_cached.set(usages_object_value.to_object());
     }
 }
@@ -304,8 +292,6 @@ impl Handle {
         match self {
             Self::Pbkdf2(bytes) => bytes,
             Self::Hmac(bytes) => bytes,
-            Self::Ed25519PrivateKey(bytes) => bytes,
-            Self::Ed25519PublicKey(bytes) => bytes,
             _ => unreachable!(),
         }
     }
@@ -363,13 +349,13 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
                     .map_err(|_| ())?,
             )),
             SerializableCryptoKeyHandle::P256PrivateKey(private_key) => Ok(Handle::P256PrivateKey(
-                p256::SecretKey::from_sec1_der(private_key).map_err(|_| ())?,
+                p256::SecretKey::from_slice(private_key).map_err(|_| ())?,
             )),
             SerializableCryptoKeyHandle::P384PrivateKey(private_key) => Ok(Handle::P384PrivateKey(
-                p384::SecretKey::from_sec1_der(private_key).map_err(|_| ())?,
+                p384::SecretKey::from_slice(private_key).map_err(|_| ())?,
             )),
             SerializableCryptoKeyHandle::P521PrivateKey(private_key) => Ok(Handle::P521PrivateKey(
-                p521::SecretKey::from_sec1_der(private_key).map_err(|_| ())?,
+                p521::SecretKey::from_slice(private_key).map_err(|_| ())?,
             )),
             SerializableCryptoKeyHandle::P256PublicKey(public_key) => Ok(Handle::P256PublicKey(
                 p256::PublicKey::from_sec1_bytes(public_key).map_err(|_| ())?,
@@ -380,11 +366,13 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
             SerializableCryptoKeyHandle::P521PublicKey(public_key) => Ok(Handle::P521PublicKey(
                 p521::PublicKey::from_sec1_bytes(public_key).map_err(|_| ())?,
             )),
-            SerializableCryptoKeyHandle::Ed25519PrivateKey(bytes) => {
-                Ok(Handle::Ed25519PrivateKey(bytes.clone().into()))
-            },
-            SerializableCryptoKeyHandle::Ed25519PublicKey(bytes) => {
-                Ok(Handle::Ed25519PublicKey(bytes.clone()))
+            SerializableCryptoKeyHandle::Ed25519PrivateKey(private_key) => Ok(
+                Handle::Ed25519PrivateKey(ed25519_dalek::SigningKey::from_bytes(private_key)),
+            ),
+            SerializableCryptoKeyHandle::Ed25519PublicKey(public_key) => {
+                Ok(Handle::Ed25519PublicKey(
+                    ed25519_dalek::VerifyingKey::from_bytes(public_key).map_err(|_| ())?,
+                ))
             },
             SerializableCryptoKeyHandle::X25519PrivateKey(private_key) => {
                 Ok(Handle::X25519PrivateKey((*private_key).into()))
@@ -498,13 +486,13 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
                     .into_vec(),
             )),
             Handle::P256PrivateKey(private_key) => Ok(SerializableCryptoKeyHandle::P256PrivateKey(
-                private_key.to_sec1_der().map_err(|_| ())?.to_vec(),
+                private_key.to_bytes().as_slice().to_vec(),
             )),
             Handle::P384PrivateKey(private_key) => Ok(SerializableCryptoKeyHandle::P384PrivateKey(
-                private_key.to_sec1_der().map_err(|_| ())?.to_vec(),
+                private_key.to_bytes().as_slice().to_vec(),
             )),
             Handle::P521PrivateKey(private_key) => Ok(SerializableCryptoKeyHandle::P521PrivateKey(
-                private_key.to_sec1_der().map_err(|_| ())?.to_vec(),
+                private_key.to_bytes().as_slice().to_vec(),
             )),
             Handle::P256PublicKey(public_key) => Ok(SerializableCryptoKeyHandle::P256PublicKey(
                 public_key.to_sec1_bytes().to_vec(),
@@ -515,12 +503,12 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
             Handle::P521PublicKey(public_key) => Ok(SerializableCryptoKeyHandle::P521PublicKey(
                 public_key.to_sec1_bytes().to_vec(),
             )),
-            Handle::Ed25519PrivateKey(bytes) => Ok(SerializableCryptoKeyHandle::Ed25519PrivateKey(
-                bytes.to_vec(),
-            )),
-            Handle::Ed25519PublicKey(bytes) => Ok(SerializableCryptoKeyHandle::Ed25519PublicKey(
-                bytes.to_vec(),
-            )),
+            Handle::Ed25519PrivateKey(private_key) => Ok(
+                SerializableCryptoKeyHandle::Ed25519PrivateKey(private_key.to_bytes()),
+            ),
+            Handle::Ed25519PublicKey(public_key) => Ok(
+                SerializableCryptoKeyHandle::Ed25519PublicKey(public_key.to_bytes()),
+            ),
             Handle::X25519PrivateKey(private_key) => Ok(
                 SerializableCryptoKeyHandle::X25519PrivateKey(private_key.to_bytes()),
             ),

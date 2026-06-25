@@ -24,7 +24,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::Node;
-use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::node::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLLabelElement {

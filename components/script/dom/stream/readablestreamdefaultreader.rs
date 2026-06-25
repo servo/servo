@@ -35,7 +35,6 @@ use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::types::ReadableStreamDefaultController;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 type ReadAllBytesSuccessSteps = dyn Fn(&mut js::context::JSContext, &[u8]);
 type ReadAllBytesFailureSteps = dyn Fn(&mut js::context::JSContext, SafeHandleValue);
@@ -123,11 +122,11 @@ impl ReadRequest {
                 // chunk steps, given chunk
                 // Resolve promise with «[ "value" → chunk, "done" → false ]».
                 promise.resolve_native(
+                    cx,
                     &ReadableStreamReadResult {
                         done: Some(false),
                         value: chunk,
                     },
-                    CanGc::from_cx(cx),
                 );
             },
             ReadRequest::DefaultTee { tee_read_request } => {
@@ -155,8 +154,8 @@ impl ReadRequest {
                         // Step 3. Read-loop given reader, bytes, successSteps, and failureSteps.
                         // Spec note: Avoid direct recursion; queue into a microtask.
                         // Resolving the promise will queue a microtask to call into the native handler.
-                        let tick = Promise::new2(cx, &global);
-                        tick.resolve_native_with_cx(cx, &());
+                        let tick = Promise::new(cx, &global);
+                        tick.resolve_native(cx, &());
 
                         let handler = PromiseNativeHandler::new(
                             cx,
@@ -192,11 +191,11 @@ impl ReadRequest {
                 let result = RootedTraceableBox::new(Heap::default());
                 result.set(UndefinedValue());
                 promise.resolve_native(
+                    cx,
                     &ReadableStreamReadResult {
                         done: Some(true),
                         value: result,
                     },
-                    CanGc::from_cx(cx),
                 );
             },
             ReadRequest::DefaultTee { tee_read_request } => {
@@ -231,7 +230,7 @@ impl ReadRequest {
             ReadRequest::Read(promise) => {
                 // error steps, given e
                 // Reject promise with e.
-                promise.reject_native(&e, CanGc::from_cx(cx))
+                promise.reject_native(cx, &e)
             },
             ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.error_steps();
@@ -292,7 +291,7 @@ impl Callback for ByteTeeClosedPromiseRejectionHandler {
 
         // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native_with_cx(cx, &());
+            self.cancel_promise.resolve_native(cx, &());
         }
     }
 }
@@ -323,7 +322,7 @@ impl Callback for DefaultTeeClosedPromiseRejectionHandler {
 
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native_with_cx(cx, &());
+            self.cancel_promise.resolve_native(cx, &());
         }
     }
 }
@@ -362,7 +361,7 @@ impl ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_requests: DomRefCell::new(Default::default()),
-            closed_promise: DomRefCell::new(Promise::new2(cx, global)),
+            closed_promise: DomRefCell::new(Promise::new(cx, global)),
         }
     }
 
@@ -397,7 +396,7 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub(crate) fn close(&self, cx: &mut js::context::JSContext) {
         // Resolve reader.[[closedPromise]] with undefined.
-        self.closed_promise.borrow().resolve_native_with_cx(cx, &());
+        self.closed_promise.borrow().resolve_native(cx, &());
         // If reader implements ReadableStreamDefaultReader,
         // Let readRequests be reader.[[readRequests]].
         let mut read_requests = self.take_read_requests();
@@ -424,10 +423,10 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub(crate) fn error(&self, cx: &mut js::context::JSContext, e: SafeHandleValue) {
         // Reject reader.[[closedPromise]] with e.
-        self.closed_promise.borrow().reject_native_with_cx(cx, &e);
+        self.closed_promise.borrow().reject_native(cx, &e);
 
         // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
-        self.closed_promise.borrow().set_promise_is_handled();
+        self.closed_promise.borrow().set_promise_is_handled(cx);
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
         self.error_read_requests(cx, e);
@@ -649,7 +648,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
             return Promise::new_rejected(cx, &self.global(), error.handle());
         }
         // Let promise be a new promise.
-        let promise = Promise::new2(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
 
         // Let readRequest be a new read request with the following items:
         // chunk steps, given chunk

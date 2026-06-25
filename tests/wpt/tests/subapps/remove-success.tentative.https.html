@@ -9,8 +9,10 @@ promise_test(async t => {
 
 const url = '/sub-app';
 let remove_call_params = [url];
-let mocked_response = [{ "manifestIdPath": url, "resultCode": Status.SUCCESS }];
-let expected_results = {[url]: "success"};
+let mocked_response = [{ "manifestIdPath": url, "resultType": SubAppsServiceRemoveResultType.kSuccess }];
+let expected_results = {
+  removedApps: [url]
+};
 
 await subapps_remove_expect_success_with_result(t, remove_call_params, mocked_response, expected_results);
 }, 'Remove API call works with one app.');
@@ -24,15 +26,13 @@ const url_3 = '/sub-app-3';
 let remove_call_params = [url_1, url_2, url_3];
 
 let mocked_response = [
-  { "manifestIdPath": url_1, "resultCode": Status.SUCCESS },
-  { "manifestIdPath": url_2, "resultCode": Status.SUCCESS },
-  { "manifestIdPath": url_3, "resultCode": Status.SUCCESS }
+  { "manifestIdPath": url_1, "resultType": SubAppsServiceRemoveResultType.kSuccess },
+  { "manifestIdPath": url_2, "resultType": SubAppsServiceRemoveResultType.kSuccess },
+  { "manifestIdPath": url_3, "resultType": SubAppsServiceRemoveResultType.kSuccess }
 ];
 
 let expected_results = {
-  [url_1]: "success",
-  [url_2]: "success",
-  [url_3]: "success"
+  removedApps: [url_1, url_2, url_3]
 };
 
 await subapps_remove_expect_success_with_result(t, remove_call_params, mocked_response, expected_results);

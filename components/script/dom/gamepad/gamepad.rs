@@ -24,7 +24,6 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // This value is for determining when to consider a gamepad as having a user gesture
 // from an axis tilt. This matches the threshold in Chromium.
@@ -118,7 +117,7 @@ impl Gamepad {
         supported_haptic_effects: GamepadSupportedHapticEffects,
         xr: bool,
     ) -> DomRoot<Gamepad> {
-        let buttons = Gamepad::init_buttons(window, CanGc::from_cx(cx));
+        let buttons = Gamepad::init_buttons(cx, window);
         rooted_vec!(let buttons <- buttons.iter().map(DomRoot::as_traced));
         let vibration_actuator =
             GamepadHapticActuator::new(cx, window, gamepad_id, supported_haptic_effects);
@@ -216,25 +215,25 @@ impl Gamepad {
 
     /// Initialize the standard buttons for a gamepad.
     /// <https://www.w3.org/TR/gamepad/#dfn-initializing-buttons>
-    fn init_buttons(window: &Window, can_gc: CanGc) -> Vec<DomRoot<GamepadButton>> {
+    fn init_buttons(cx: &mut JSContext, window: &Window) -> Vec<DomRoot<GamepadButton>> {
         vec![
-            GamepadButton::new(window, false, false, can_gc), // Bottom button in right cluster
-            GamepadButton::new(window, false, false, can_gc), // Right button in right cluster
-            GamepadButton::new(window, false, false, can_gc), // Left button in right cluster
-            GamepadButton::new(window, false, false, can_gc), // Top button in right cluster
-            GamepadButton::new(window, false, false, can_gc), // Top left front button
-            GamepadButton::new(window, false, false, can_gc), // Top right front button
-            GamepadButton::new(window, false, false, can_gc), // Bottom left front button
-            GamepadButton::new(window, false, false, can_gc), // Bottom right front button
-            GamepadButton::new(window, false, false, can_gc), // Left button in center cluster
-            GamepadButton::new(window, false, false, can_gc), // Right button in center cluster
-            GamepadButton::new(window, false, false, can_gc), // Left stick pressed button
-            GamepadButton::new(window, false, false, can_gc), // Right stick pressed button
-            GamepadButton::new(window, false, false, can_gc), // Top button in left cluster
-            GamepadButton::new(window, false, false, can_gc), // Bottom button in left cluster
-            GamepadButton::new(window, false, false, can_gc), // Left button in left cluster
-            GamepadButton::new(window, false, false, can_gc), // Right button in left cluster
-            GamepadButton::new(window, false, false, can_gc), // Center button in center cluster
+            GamepadButton::new(cx, window, false, false), // Bottom button in right cluster
+            GamepadButton::new(cx, window, false, false), // Right button in right cluster
+            GamepadButton::new(cx, window, false, false), // Left button in right cluster
+            GamepadButton::new(cx, window, false, false), // Top button in right cluster
+            GamepadButton::new(cx, window, false, false), // Top left front button
+            GamepadButton::new(cx, window, false, false), // Top right front button
+            GamepadButton::new(cx, window, false, false), // Bottom left front button
+            GamepadButton::new(cx, window, false, false), // Bottom right front button
+            GamepadButton::new(cx, window, false, false), // Left button in center cluster
+            GamepadButton::new(cx, window, false, false), // Right button in center cluster
+            GamepadButton::new(cx, window, false, false), // Left stick pressed button
+            GamepadButton::new(cx, window, false, false), // Right stick pressed button
+            GamepadButton::new(cx, window, false, false), // Top button in left cluster
+            GamepadButton::new(cx, window, false, false), // Bottom button in left cluster
+            GamepadButton::new(cx, window, false, false), // Left button in left cluster
+            GamepadButton::new(cx, window, false, false), // Right button in left cluster
+            GamepadButton::new(cx, window, false, false), // Center button in center cluster
         ]
     }
 
@@ -259,12 +258,7 @@ impl Gamepad {
         cx: &mut js::context::JSContext,
         event_type: GamepadEventType,
     ) {
-        let event = GamepadEvent::new_with_type(
-            self.global().as_window(),
-            event_type,
-            self,
-            CanGc::from_cx(cx),
-        );
+        let event = GamepadEvent::new_with_type(cx, self.global().as_window(), event_type, self);
         event
             .upcast::<Event>()
             .fire(cx, self.global().as_window().upcast::<EventTarget>());

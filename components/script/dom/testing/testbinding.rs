@@ -56,7 +56,6 @@ use crate::dom::node::Node;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
-use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::timers::OneshotTimerCallback;
 
@@ -1026,28 +1025,28 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Record::new()
     }
 
-    fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_resolved(&self.global(), cx, v, CanGc::deprecated_note())
+    fn ReturnResolvedPromise(&self, cx: &mut JSContext, v: HandleValue) -> Rc<Promise> {
+        Promise::new_resolved(cx, &self.global(), v)
     }
 
     fn ReturnRejectedPromise(&self, cx: &mut JSContext, v: HandleValue) -> Rc<Promise> {
         Promise::new_rejected(cx, &self.global(), v)
     }
 
-    fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
-        p.resolve(cx, v, can_gc);
+    fn PromiseResolveNative(&self, cx: &mut JSContext, p: &Promise, v: HandleValue) {
+        p.resolve(cx, v);
     }
 
-    fn PromiseRejectNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
-        p.reject(cx, v, can_gc);
+    fn PromiseRejectNative(&self, cx: &mut JSContext, p: &Promise, v: HandleValue) {
+        p.reject(cx, v);
     }
 
     fn PromiseRejectWithTypeError(&self, cx: &mut JSContext, p: &Promise, s: USVString) {
         p.reject_error(cx, Error::Type(cformat!("{}", s.0)));
     }
 
-    fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
-        let promise = p.duplicate();
+    fn ResolvePromiseDelayed(&self, cx: &mut JSContext, p: &Promise, value: DOMString, delay: u64) {
+        let promise = p.duplicate(cx);
         let cb = TestBindingCallback {
             promise: TrustedPromise::new(promise),
             value,
@@ -1096,8 +1095,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
     }
 
-    fn PromiseAttribute(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        Promise::new_in_current_realm(comp, can_gc)
+    fn PromiseAttribute(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        Promise::new_in_realm(cx)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}
@@ -1203,10 +1202,8 @@ pub(crate) struct TestBindingCallback {
 }
 
 impl TestBindingCallback {
-    pub(crate) fn invoke(self) {
-        self.promise
-            .root()
-            .resolve_native(&self.value, CanGc::deprecated_note());
+    pub(crate) fn invoke(self, cx: &mut JSContext) {
+        self.promise.root().resolve_native(cx, &self.value);
     }
 }
 

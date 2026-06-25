@@ -15,6 +15,7 @@ use content_security_policy::{
 };
 use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
+use js::realm::CurrentRealm;
 use js::rust::describe_scripted_caller;
 use log::warn;
 use servo_constellation_traits::{LoadData, LoadOrigin};
@@ -33,6 +34,7 @@ use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::security::cspviolationreporttask::CSPViolationReportTask;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::window::Window;
+use crate::task::TaskOnce;
 
 pub(crate) trait CspReporting {
     fn is_js_evaluation_allowed(&self, global: &GlobalScope, source: &str) -> bool;
@@ -398,21 +400,20 @@ fn obtain_blocked_uri_for_violation_resource_with_sample(
     }
 }
 
-impl GlobalCspReporting for GlobalScope {
-    /// <https://www.w3.org/TR/CSP/#report-violation>
-    fn report_csp_violations(
-        &self,
-        violations: Vec<Violation>,
-        element: Option<&Element>,
-        source_position: Option<SourcePosition>,
-    ) {
-        if violations.is_empty() {
-            return;
-        }
-        warn!("Reporting CSP violations: {:?}", violations);
-        let source_position =
-            source_position.unwrap_or_else(compute_scripted_caller_source_position);
-        for violation in violations {
+fn csp_violation_report_tasks(
+    global: &GlobalScope,
+    violations: Vec<Violation>,
+    element: Option<&Element>,
+    source_position: Option<SourcePosition>,
+) -> Vec<CSPViolationReportTask> {
+    if violations.is_empty() {
+        return Vec::new();
+    }
+    warn!("Reporting CSP violations: {:?}", violations);
+    let source_position = source_position.unwrap_or_else(compute_scripted_caller_source_position);
+    violations
+        .into_iter()
+        .map(|violation| {
             let (sample, resource) =
                 obtain_blocked_uri_for_violation_resource_with_sample(violation.resource);
             let report = CSPViolationReportBuilder::default()
@@ -424,14 +425,14 @@ impl GlobalCspReporting for GlobalScope {
                 .source_file(source_position.source_file.clone())
                 .line_number(source_position.line_number)
                 .column_number(source_position.column_number)
-                .build(self);
+                .build(global);
             // Step 1: Let global be violation’s global object.
-            // We use `self` as `global`;
+            // We use the passed-in `global` as the violation's global object.
             // Step 2: Let target be violation’s element.
             let target = element.and_then(|event_target| {
                 // Step 3.1: If target is not null, and global is a Window,
                 // and target’s shadow-including root is not global’s associated Document, set target to null.
-                if let Some(window) = self.downcast::<Window>() {
+                if let Some(window) = global.downcast::<Window>() {
                     // If a node is connected, its owner document is always the shadow-including root.
                     // If it isn't connected, then it also doesn't have a corresponding document, hence
                     // it can't be this document.
@@ -445,18 +446,45 @@ impl GlobalCspReporting for GlobalScope {
                 // Step 3.2: If target is null:
                 None => {
                     // Step 3.2.2: If target is a Window, set target to target’s associated Document.
-                    if let Some(window) = self.downcast::<Window>() {
+                    if let Some(window) = global.downcast::<Window>() {
                         Trusted::new(window.Document().upcast())
                     } else {
                         // Step 3.2.1: Set target to violation’s global object.
-                        Trusted::new(self.upcast())
+                        Trusted::new(global.upcast())
                     }
                 },
                 Some(event_target) => Trusted::new(event_target.upcast()),
             };
-            // Step 3: Queue a task to run the following steps:
-            let task =
-                CSPViolationReportTask::new(Trusted::new(self), target, report, violation.policy);
+            CSPViolationReportTask::new(Trusted::new(global), target, report, violation.policy)
+        })
+        .collect()
+}
+
+impl GlobalScope {
+    pub(crate) fn run_worker_csp_violation_report_tasks(
+        &self,
+        violations: Vec<Violation>,
+        cx: &mut CurrentRealm,
+    ) {
+        // Worker CSP violations already crossed an event-loop boundary via
+        // `CommonScriptMsg::ReportCspViolations`, so run the queued report
+        // task here instead of adding another queued task on the owner global.
+        for task in csp_violation_report_tasks(self, violations, None, None) {
+            task.run_once(cx);
+        }
+    }
+}
+
+impl GlobalCspReporting for GlobalScope {
+    /// <https://www.w3.org/TR/CSP/#report-violation>
+    fn report_csp_violations(
+        &self,
+        violations: Vec<Violation>,
+        element: Option<&Element>,
+        source_position: Option<SourcePosition>,
+    ) {
+        // Step 3: Queue a task to run the following steps:
+        for task in csp_violation_report_tasks(self, violations, element, source_position) {
             self.task_manager()
                 .dom_manipulation_task_source()
                 .queue(task);

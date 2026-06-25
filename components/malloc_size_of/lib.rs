@@ -735,6 +735,12 @@ impl<T: MallocSizeOf> MallocSizeOf for std::sync::Mutex<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for std::sync::RwLock<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        (*self.read().unwrap()).size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for parking_lot::Mutex<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         (*self.lock()).size_of(ops)
@@ -1309,6 +1315,8 @@ malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_pos
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_style::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_rendering::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
+malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontStretchRange);
+malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontWeightRange);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
 malloc_size_of_is_stylo_malloc_size_of!(style::logical_geometry::WritingMode);
 malloc_size_of_is_stylo_malloc_size_of!(style::media_queries::MediaList);

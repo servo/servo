@@ -32,7 +32,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
 use crate::dom::node::Node;
-use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::links::{LinkRelations, follow_hyperlink};
 
 #[derive(Debug, PartialEq)]

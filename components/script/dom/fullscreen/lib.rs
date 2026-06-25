@@ -48,8 +48,7 @@ impl Document {
         // Step 3
         // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
         if !self.is_fully_active() {
-            promise
-                .reject_error_with_cx(cx, Error::Type(c"Document is not fully active".to_owned()));
+            promise.reject_error(cx, Error::Type(c"Document is not fully active".to_owned()));
             return promise;
         }
 
@@ -161,7 +160,7 @@ impl Document {
         // Step 2
         // > If doc is not fully active or doc’s fullscreen element is null, then reject promise with a TypeError exception and return promise.
         if !self.is_fully_active() || self.fullscreen_element().is_none() {
-            promise.reject_error_with_cx(
+            promise.reject_error(
                 cx,
                 Error::Type(
                     c"No fullscreen element to exit or document is not fully active".to_owned(),
@@ -310,8 +309,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
             document
                 .upcast::<EventTarget>()
                 .fire_event(cx, atom!("fullscreenerror"));
-            promise
-                .reject_error_with_cx(cx, Error::Type(c"fullscreen is not connected".to_owned()));
+            promise.reject_error(cx, Error::Type(c"fullscreen is not connected".to_owned()));
             return;
         }
 
@@ -329,7 +327,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
 
         // Step 14.
         // > Resolve promise with undefined.
-        promise.resolve_native_with_cx(cx, &());
+        promise.resolve_native(cx, &());
     }
 }
 
@@ -370,6 +368,6 @@ impl TaskOnce for ElementPerformFullscreenExit {
 
         // Step 16
         // > Resolve promise with undefined.
-        self.promise.root().resolve_native_with_cx(cx, &());
+        self.promise.root().resolve_native(cx, &());
     }
 }

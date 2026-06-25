@@ -8,10 +8,14 @@
 <script>
 test_valid_value("border-shape", "none");
 test_valid_value("border-shape", "circle()");
+test_valid_value("border-shape", "circle(closest-corner at 20px 50px)");
+test_valid_value("border-shape", "circle(farthest-corner at center)", "circle(farthest-corner at center center)");
+test_valid_value("border-shape", "ellipse(closest-corner farthest-corner at 20px 50px)");
 test_valid_value("border-shape", "polygon(10px 10px, 100px 10px, 10px 100px)");
 test_valid_value("border-shape", "shape(from 0px 0px, hline to 100px, vline to 100px, close)");
 test_valid_value("border-shape", "circle() circle()");
 test_valid_value("border-shape", "circle() polygon(10px 10px, 100px 10px, 10px 100px)");
+test_valid_value("border-shape", "circle(closest-corner) ellipse(farthest-corner closest-corner)");
 test_valid_value("border-shape", "circle() border-box circle() content-box");
 test_valid_value("border-shape", "circle() margin-box circle() view-box");
 </script>

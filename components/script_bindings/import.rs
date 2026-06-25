@@ -40,7 +40,7 @@ pub(crate) mod base {
     pub(crate) use crate::lock::ThreadUnsafeOnceLock;
     pub(crate) use crate::num::Finite;
     pub(crate) use crate::proxyhandler::CrossOriginProperties;
-    pub(crate) use crate::reflector::{DomGlobalGeneric, DomObject};
+    pub(crate) use crate::reflector::DomObject;
     pub(crate) use crate::root::DomRoot;
     pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
     pub(crate) use crate::str::{ByteString, DOMString, USVString};
@@ -59,13 +59,13 @@ pub(crate) mod module {
     pub(crate) use js::jsapi::{
         __BindgenBitfieldUnit, CallArgs, GCContext, GetRealmFunctionPrototype, GetWellKnownSymbol,
         Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
-        JS_ForwardGetPropertyTo, JS_GetPropertyDescriptorById, JS_HasPropertyById,
-        JS_NewPlainObject, JS_SetReservedSlot, JSAutoRealm, JSCLASS_FOREGROUND_FINALIZE,
-        JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps, JSFunctionSpec, JSJitGetterCallArgs,
-        JSJitInfo, JSJitInfo__bindgen_ty_1, JSJitInfo__bindgen_ty_2, JSJitInfo__bindgen_ty_3,
-        JSJitInfo_AliasSet, JSJitInfo_ArgType, JSJitInfo_OpType, JSJitMethodCallArgs,
-        JSJitSetterCallArgs, JSNativeWrapper, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY,
-        JSPropertySpec, JSPropertySpec_Accessor, JSPropertySpec_AccessorsOrValue,
+        JS_ForwardGetPropertyTo, JS_HasPropertyById, JS_NewPlainObject, JS_SetReservedSlot,
+        JSAutoRealm, JSCLASS_FOREGROUND_FINALIZE, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass,
+        JSClassOps, JSFunctionSpec, JSJitGetterCallArgs, JSJitInfo, JSJitInfo__bindgen_ty_1,
+        JSJitInfo__bindgen_ty_2, JSJitInfo__bindgen_ty_3, JSJitInfo_AliasSet, JSJitInfo_ArgType,
+        JSJitInfo_OpType, JSJitMethodCallArgs, JSJitSetterCallArgs, JSNativeWrapper,
+        JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPropertySpec,
+        JSPropertySpec_Accessor, JSPropertySpec_AccessorsOrValue,
         JSPropertySpec_AccessorsOrValue_Accessors, JSPropertySpec_Kind, JSPropertySpec_Name,
         JSPropertySpec_ValueWrapper, JSPropertySpec_ValueWrapper__bindgen_ty_1,
         JSPropertySpec_ValueWrapper_Type, JSTracer, JSTypedMethodJitInfo, JSValueType,
@@ -79,6 +79,7 @@ pub(crate) mod module {
         JS_GetProperty, JS_NewObjectWithoutMetadata, JS_SetImmutablePrototype, JS_SetProperty,
         JS_SetPrototype, RUST_SYMBOL_TO_JSID,
     };
+    pub(crate) use js::rust::wrappers2::JS_GetPropertyDescriptorById;
     pub(crate) use js::rust::{CustomAutoRooterGuard, GCMethods, Handle, MutableHandle};
     pub(crate) use js::{
         JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,

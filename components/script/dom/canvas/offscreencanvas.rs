@@ -45,7 +45,6 @@ use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingConte
 use crate::dom::promise::Promise;
 use crate::dom::types::{WebGLRenderingContext, Window};
 use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
-use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#offscreencanvas>
 #[dom_struct]
@@ -163,12 +162,8 @@ impl OffscreenCanvas {
                 _ => None,
             };
         }
-        let context = OffscreenCanvasRenderingContext2D::new(
-            &self.global(),
-            self,
-            self.get_size(),
-            CanGc::from_cx(cx),
-        )?;
+        let context =
+            OffscreenCanvasRenderingContext2D::new(cx, &self.global(), self, self.get_size())?;
         *self.context.borrow_mut() = Some(OffscreenRenderingContext::Context2d(Dom::from_ref(
             &*context,
         )));
@@ -195,7 +190,7 @@ impl OffscreenCanvas {
         let canvas =
             RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(DomRoot::from_ref(self));
 
-        let context = ImageBitmapRenderingContext::new(&self.global(), &canvas, CanGc::from_cx(cx));
+        let context = ImageBitmapRenderingContext::new(cx, &self.global(), &canvas);
 
         // Step 2. Set this's context mode to bitmaprenderer.
         *self.context.borrow_mut() = Some(OffscreenRenderingContext::BitmapRenderer(
@@ -514,7 +509,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // then return a promise rejected with an "InvalidStateError"
         // DOMException.
         if let Some(OffscreenRenderingContext::Detached) = *self.context.borrow() {
-            promise.reject_error_with_cx(cx, Error::InvalidState(None));
+            promise.reject_error(cx, Error::InvalidState(None));
             return promise;
         }
 
@@ -522,7 +517,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // output bitmap's origin-clean flag is set to false, then return a
         // promise rejected with a "SecurityError" DOMException.
         if !self.origin_is_clean() {
-            promise.reject_error_with_cx(cx, Error::Security(None));
+            promise.reject_error(cx, Error::Security(None));
             return promise;
         }
 
@@ -530,13 +525,13 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         // dimension or its vertical dimension is zero), then return a promise
         // rejected with an "IndexSizeError" DOMException.
         if self.Width() == 0 || self.Height() == 0 {
-            promise.reject_error_with_cx(cx, Error::IndexSize(None));
+            promise.reject_error(cx, Error::IndexSize(None));
             return promise;
         }
 
         // Step 4. Let bitmap be a copy of this's bitmap.
         let Some(mut snapshot) = self.get_image_data() else {
-            promise.reject_error_with_cx(cx, Error::InvalidState(None));
+            promise.reject_error(cx, Error::InvalidState(None));
             return promise;
         };
 
@@ -563,7 +558,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
                 if snapshot.encode_for_mime_type(&image_type, quality, &mut encoded).is_err() {
                     // Step 7.2.1. If file is null, then reject result with an
                     // "EncodingError" DOMException.
-                    promise.reject_error_with_cx(cx, Error::Encoding(None));
+                    promise.reject_error(cx, Error::Encoding(None));
                     return;
                 };
 
@@ -572,7 +567,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
                 let blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
                 let blob = Blob::new(cx, &this.global(), blob_impl);
 
-                promise.resolve_native_with_cx(cx, &blob);
+                promise.resolve_native(cx, &blob);
             }));
 
         // Step 8. Return result.

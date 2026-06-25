@@ -385,8 +385,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone>
     fn OnSubmittedWorkDone(&self, cx: &mut JSContext) -> Rc<Promise> {
         let global = self.global();
-        let promise = Promise::new2(cx, &global);
-        let task_source = global.task_manager().dom_manipulation_task_source();
+        let promise = Promise::new(cx, &global);
+        let task_manager = global.task_manager();
+        let task_source = task_manager.dom_manipulation_task_source();
         let callback = callback_promise(&promise, self, task_source);
 
         if let Err(e) = self
@@ -410,6 +411,6 @@ impl RoutedPromiseListener<()> for GPUQueue {
         _response: (),
         promise: &Rc<Promise>,
     ) {
-        promise.resolve_native_with_cx(cx, &());
+        promise.resolve_native(cx, &());
     }
 }

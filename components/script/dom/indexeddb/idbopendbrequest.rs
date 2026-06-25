@@ -8,7 +8,7 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::generic_channel::GenericSend;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::StorageProxyMap;
@@ -32,7 +32,6 @@ use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
 use crate::indexeddb::map_backend_error_to_dom_error;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 #[derive(Clone)]
 struct OpenRequestListener {
@@ -87,13 +86,13 @@ impl OpenRequestListener {
                 // and fire an event named error at request
                 // with its bubbles and cancelable attributes initialized to true.
                 let error = map_backend_error_to_dom_error(err);
-                open_request.set_error(Some(error), CanGc::from_cx(cx));
+                open_request.set_error(cx, Some(error));
                 let event = Event::new(
+                    cx,
                     &global,
                     Atom::from("error"),
                     EventBubbles::Bubbles,
                     EventCancelable::Cancelable,
-                    CanGc::from_cx(cx),
                 );
                 event.fire(cx, open_request.upcast());
             },
@@ -120,8 +119,8 @@ impl IDBOpenDBRequest {
         }
     }
 
-    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBOpenDBRequest> {
-        reflect_dom_object(Box::new(IDBOpenDBRequest::new_inherited()), global, can_gc)
+    pub fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<IDBOpenDBRequest> {
+        reflect_dom_object_with_cx(Box::new(IDBOpenDBRequest::new_inherited()), global, cx)
     }
 
     pub(crate) fn get_id(&self) -> Uuid {
@@ -146,12 +145,12 @@ impl IDBOpenDBRequest {
         self.pending_connection.or_init(|| {
             debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
             IDBDatabase::new(
+                cx,
                 global,
                 name.into(),
                 self.get_id(),
                 version,
                 object_store_names,
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -169,14 +168,16 @@ impl IDBOpenDBRequest {
     ) {
         let global = self.global();
 
+        let scope = connection.object_stores(cx);
+
         let transaction = IDBTransaction::new_with_serial(
+            cx,
             &global,
             connection,
             IDBTransactionMode::Versionchange,
             IDBTransactionDurability::Default,
-            &connection.object_stores(),
+            &scope,
             transaction,
-            CanGc::from_cx(cx),
         );
         transaction.set_versionchange_old_version(old_version);
         connection.set_transaction(&transaction);
@@ -184,7 +185,7 @@ impl IDBOpenDBRequest {
         transaction.set_active_flag(false);
 
         rooted!(&in(cx) let mut connection_val = UndefinedValue());
-        connection.safe_to_jsval(cx.into(), connection_val.handle_mut(), CanGc::from_cx(cx));
+        connection.safe_to_jsval(cx, connection_val.handle_mut());
 
         // Step 10.1: Set request’s result to connection.
         self.idbrequest.set_result(connection_val.handle());
@@ -217,11 +218,11 @@ impl IDBOpenDBRequest {
             // Step 10.6.2: If didThrow is true, run abort a transaction with
             // transaction and a newly created "AbortError" DOMException.
             if did_throw {
-                transaction.initiate_abort(Error::Abort(None), CanGc::from_cx(cx));
+                transaction.initiate_abort(cx, Error::Abort(None));
                 transaction.request_backend_abort();
             } else {
                 // The upgrade transaction auto-commits once inactive and quiescent.
-                transaction.maybe_commit();
+                transaction.maybe_commit(cx);
             }
         }
     }
@@ -270,8 +271,8 @@ impl IDBOpenDBRequest {
         self.idbrequest.set_ready_state_done();
     }
 
-    pub fn set_error(&self, error: Option<Error>, can_gc: CanGc) {
-        self.idbrequest.set_error(error, can_gc);
+    pub fn set_error(&self, cx: &mut JSContext, error: Option<Error>) {
+        self.idbrequest.set_error(cx, error);
     }
 
     pub fn clear_transaction(&self) {
@@ -296,15 +297,15 @@ impl IDBOpenDBRequest {
         let mut realm = enter_auto_realm(cx, &*result);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut result_val = UndefinedValue());
-        result.safe_to_jsval(cx.into(), result_val.handle_mut(), CanGc::from_cx(cx));
+        result.safe_to_jsval(cx, result_val.handle_mut());
         self.set_result(result_val.handle());
 
         let event = Event::new(
+            cx,
             &global,
             Atom::from("success"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.fire(cx, self.upcast());
     }

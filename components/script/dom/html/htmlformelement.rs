@@ -76,12 +76,12 @@ use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::input_element::HTMLInputElement;
 use crate::dom::input_element::input_type::InputType;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
 use crate::dom::types::{DocumentFragment, HTMLIFrameElement};
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::links::{LinkRelations, get_element_target, valid_navigable_target_name_or_keyword};
 use crate::navigation::navigate;
@@ -771,12 +771,12 @@ impl HTMLFormElement {
 
             // Step 6.5
             let event = SubmitEvent::new(
+                cx,
                 self.global().as_window(),
                 atom!("submit"),
                 true,
                 true,
                 submitter_button.map(DomRoot::from_ref),
-                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
             event.fire(cx, self.upcast::<EventTarget>());
@@ -1350,12 +1350,12 @@ impl HTMLFormElement {
 
         // Step 7
         let event = FormDataEvent::new(
+            cx,
             &window,
             atom!("formdata"),
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             &form_data,
-            CanGc::from_cx(cx),
         );
 
         event
@@ -1476,6 +1476,7 @@ impl Element {
             html_element.is_form_associated_custom_element()
         {
             ScriptThread::enqueue_callback_reaction(
+                cx,
                 html_element.upcast::<Element>(),
                 CallbackReaction::FormReset,
                 None,
@@ -1719,6 +1720,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
                 html_elem.is_form_associated_custom_element()
             {
                 ScriptThread::enqueue_callback_reaction(
+                    cx,
                     elem,
                     CallbackReaction::FormAssociated(
                         new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),

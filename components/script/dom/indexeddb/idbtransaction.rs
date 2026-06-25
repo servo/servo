@@ -6,11 +6,12 @@ use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use servo_base::id::ScriptEventLoopId;
 use storage_traits::indexeddb::{
@@ -40,7 +41,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbobjectstore::{IDBObjectStore, IDBObjectStoreAbortState};
 use crate::dom::indexeddb::idbrequest::IDBRequest;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct IDBTransaction {
@@ -127,36 +127,36 @@ impl IDBTransaction {
 
     /// Does a blocking call to create a backend transaction and get its id.
     pub fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
         durability: IDBTransactionDurability,
         scope: &DOMStringList,
-        can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
         let serial_number =
             IDBTransaction::create_transaction(global, connection.get_name(), mode, scope);
         IDBTransaction::new_with_serial(
+            cx,
             global,
             connection,
             mode,
             durability,
             scope,
             serial_number,
-            can_gc,
         )
     }
 
     pub(crate) fn new_with_serial(
+        cx: &mut JSContext,
         global: &GlobalScope,
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
         durability: IDBTransactionDurability,
         scope: &DOMStringList,
         serial_number: u64,
-        can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(IDBTransaction::new_inherited(
                 connection,
                 mode,
@@ -165,7 +165,7 @@ impl IDBTransaction {
                 serial_number,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -286,7 +286,7 @@ impl IDBTransaction {
     }
 
     /// <https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction>
-    fn restore_associated_object_store_handles_after_abort(&self, can_gc: CanGc) {
+    fn restore_associated_object_store_handles_after_abort(&self, cx: &mut JSContext) {
         // Step 5. For each object store handle handle associated with transaction,
         // including those for object stores that were created or deleted during
         // transaction:
@@ -297,7 +297,7 @@ impl IDBTransaction {
             .map(|store| DomRoot::from_ref(&**store))
             .collect::<Vec<_>>();
         for store in stores {
-            store.restore_metadata_after_abort(can_gc);
+            store.restore_metadata_after_abort(cx);
         }
     }
 
@@ -319,7 +319,7 @@ impl IDBTransaction {
             move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
                 let this = this.clone();
                 let task_source = task_source.clone();
-                task_source.queue(task!(handle_commit_result: move || {
+                task_source.queue(task!(handle_commit_result: move |cx| {
                     let this = this.root();
                     let message = message.expect("Could not unwrap message");
                     match message.result {
@@ -328,7 +328,7 @@ impl IDBTransaction {
                         }
                         Err(_err) => {
                              // TODO: Map backend commit/rollback failure to an appropriate DOMException
-                            this.initiate_abort(Error::Operation(None), CanGc::deprecated_note());
+                            this.initiate_abort(cx, Error::Operation(None));
 
                             this.finalize_abort();
                         }
@@ -361,7 +361,7 @@ impl IDBTransaction {
         true
     }
 
-    pub(crate) fn maybe_commit(&self) {
+    pub(crate) fn maybe_commit(&self, cx: &mut JSContext) {
         // https://w3c.github.io/IndexedDB/#transaction-lifetime
         // Step 5: transaction when all requests
         //  placed against the transaction have completed and their returned results handled,
@@ -387,7 +387,7 @@ impl IDBTransaction {
             // We failed to initiate the commit algorithm (backend task could not be queued),
             // so the transaction cannot progress to a successful "complete".
             // Choose the most appropriate DOMException mapping for Servo here.
-            self.initiate_abort(Error::InvalidState(None), CanGc::deprecated_note());
+            self.initiate_abort(cx, Error::InvalidState(None));
             self.finalize_abort();
         }
     }
@@ -474,7 +474,7 @@ impl IDBTransaction {
         self.pending_request_count.set(remaining);
     }
 
-    pub(crate) fn initiate_abort(&self, error: Error, can_gc: CanGc) {
+    pub(crate) fn initiate_abort(&self, cx: &mut JSContext, error: Error) {
         // https://w3c.github.io/IndexedDB/#transaction-lifetime
         // Step 4: An abort will also be initiated following a failed request that is not handled by script.
         // A transaction can be aborted at any time before it is finished,
@@ -494,14 +494,14 @@ impl IDBTransaction {
             {
                 self.db.restore_object_store_names(names);
             }
-            self.restore_associated_object_store_handles_after_abort(can_gc);
+            self.restore_associated_object_store_handles_after_abort(cx);
         }
         self.abort_initiated.set(true);
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction has a error which is set if the transaction is aborted.
         // NOTE: Implementors need to keep in mind that the value "null" is considered an error, as it is set from abort()
         if self.error.get().is_none() &&
-            let Ok(exception) = create_dom_exception(&self.global(), error, can_gc)
+            let Ok(exception) = create_dom_exception(cx, &self.global(), error)
         {
             self.error.set(Some(&exception));
         }
@@ -578,16 +578,16 @@ impl IDBTransaction {
                 }
                 let global = this.global();
                 let event = Event::new(
+                    cx,
                     &global,
                     Atom::from("abort"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::from_cx(cx),
                 );
                 event.fire(cx, this.upcast());
                 if this.mode == IDBTransactionMode::Versionchange {
                     this.global()
-                        .get_indexeddb()
+                        .get_indexeddb(cx)
                         .clear_open_request_transaction_for_txn(&this);
                     let origin = this.global().origin().immutable().clone();
                     let db_name = String::from(this.db.get_name());
@@ -608,7 +608,7 @@ impl IDBTransaction {
                 this.version_change_old_object_store_names.borrow_mut().take();
                 this.notify_backend_transaction_finished();
                 if this.registered_in_global.get() {
-                    this.global().get_indexeddb().unregister_indexeddb_transaction(&this);
+                    this.global().get_indexeddb(cx).unregister_indexeddb_transaction(&this);
                 }
             }));
     }
@@ -643,11 +643,11 @@ impl IDBTransaction {
                 this.finished.set(true);
                 let global = this.global();
                 let event = Event::new(
+                    cx,
                     &global,
                     Atom::from("complete"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::from_cx(cx)
                 );
                 // https://w3c.github.io/IndexedDB/#commit-transaction
                 // Step 5.3: Fire an event named complete at transaction.
@@ -657,7 +657,7 @@ impl IDBTransaction {
                     //  Step 5.1: If transaction is an upgrade transaction, then let request be the request
                     // associated with transaction and set request’s transaction to null.
                     this.global()
-                        .get_indexeddb()
+                        .get_indexeddb(cx)
                         .clear_open_request_transaction_for_txn(&this);
                     let origin = this.global().origin().immutable().clone();
                     let db_name = String::from(this.db.get_name());
@@ -673,7 +673,7 @@ impl IDBTransaction {
                 }
                 this.notify_backend_transaction_finished();
                 if this.registered_in_global.get() {
-                    this.global().get_indexeddb().unregister_indexeddb_transaction(&this);
+                    this.global().get_indexeddb(cx).unregister_indexeddb_transaction(&this);
                 }
             }),
         );
@@ -730,7 +730,11 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-objectstore>
-    fn ObjectStore(&self, name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<IDBObjectStore>> {
+    fn ObjectStore(
+        &self,
+        cx: &mut JSContext,
+        name: DOMString,
+    ) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
         if self.finished.get() || self.abort_initiated.get() {
             return Err(Error::InvalidState(None));
@@ -757,6 +761,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
 
         let parameters = self.object_store_parameters(&name);
         let store = IDBObjectStore::new(
+            cx,
             &self.global(),
             self.db.get_name(),
             name.clone(),
@@ -775,19 +780,18 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
                     .as_ref()
                     .and_then(|(_, _, key_generator_current_number)| *key_generator_current_number),
             },
-            can_gc,
             self,
         );
         if let Some(indexes) = parameters.map(|(_, indexes, _)| indexes) {
             for index in indexes {
                 store.add_index(
+                    cx,
                     index.name.into(),
                     &IDBIndexParameters {
                         multiEntry: index.multi_entry,
                         unique: index.unique,
                     },
                     index.key_path.into(),
-                    can_gc,
                 );
             }
         }
@@ -811,21 +815,21 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-abort>
-    fn Abort(&self) -> Fallible<()> {
+    fn Abort(&self, cx: &mut JSContext) -> Fallible<()> {
         if self.finished.get() || self.committing.get() {
             return Err(Error::InvalidState(None));
         }
         self.active.set(false);
-        self.initiate_abort(Error::Abort(None), CanGc::deprecated_note());
+        self.initiate_abort(cx, Error::Abort(None));
         self.request_backend_abort();
 
         Ok(())
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-objectstorenames>
-    fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
+    fn ObjectStoreNames(&self, cx: &mut JSContext) -> DomRoot<DOMStringList> {
         if self.mode == IDBTransactionMode::Versionchange {
-            self.db.object_stores()
+            self.db.object_stores(cx)
         } else {
             self.object_store_names.as_rooted()
         }

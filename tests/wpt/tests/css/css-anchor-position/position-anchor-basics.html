@@ -16,7 +16,8 @@
 
 <script>
 // position-anchor: <anchor-element>
-// <anchor-element> = none | auto | <dashed-ident>
+// <anchor-element> = normal | none | auto | <dashed-ident>
+test_valid_value('position-anchor', 'normal');
 test_valid_value('position-anchor', 'none');
 test_valid_value('position-anchor', 'auto');
 test_valid_value('position-anchor', '--foo');
@@ -27,6 +28,7 @@ test_invalid_value('position-anchor', '100px');
 test_invalid_value('position-anchor', '100%');
 
 // Computed value: as specified
+test_computed_value('position-anchor', 'normal');
 test_computed_value('position-anchor', 'none');
 test_computed_value('position-anchor', 'auto');
 test_computed_value('position-anchor', '--foo');

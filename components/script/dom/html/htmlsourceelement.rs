@@ -20,8 +20,8 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::html::htmlpictureelement::HTMLPictureElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeDamage, UnbindContext};
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLSourceElement {

@@ -1,96 +1,40 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<body>
-<meta name="timeout" content="long">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/resources/testdriver.js"></script>
-<script src="/resources/testdriver-actions.js"></script>
-<script src="/resources/testdriver-vendor.js"></script>
-<style type="text/css">
-    button {
-        color: blue;
-    }
-
-    #target-wrap {
-        position: relative;
-        background-color: lightgrey;
-        width: 200px;
-        height: 100px;
-        border: grey 1px solid;
-    }
-
-    #target {
-        position: relative;
-        background-color: lightyellow;
-        width: 100px;
-        height: 30px;
-        border: yellow 1px solid;
-    }
-
-    #status-log {
-        margin: 10px 0;
-        color: green;
-    }
-</style>
+<head>
+  <title>Pointer Lock exit on element disconnect test</title>
+  <meta name="viewport" content="width=device-width">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="test-helper.js"></script>
 </head>
 <body>
-    <h2>Description</h2>
-    <p>This test validates that pointer lock will be lost when the target is disconnected.</p>
-    <hr/>
+  <div id="target" style="width:200px;height:200px;background:green"></div>
+</body>
+<script>
+  promise_test(async function(t) {
+    var target = document.getElementById("target");
 
-    <h2>Manual Test Steps:</h2>
-    <p>
-        <ol>
-            <li>Click the "lockTarget" button to request a pointer lock.</li>
-            <li>Test is done.</li>
-        </ol>
-    </p>
-    <hr/>
+    await lockPointerAndWaitForEvent(
+      target, /*provideTransientActivation=*/ true);
 
-    <button id="Button" onclick="lockTarget();">lockTarget</button>
+    // Remove the element from the DOM. This action should
+    // automatically release the lock and fire another
+    // pointerlockchange event.
+    var unlockChangePromise = new Promise(resolve => {
+      document.addEventListener('pointerlockchange', resolve, {
+        once: true
+      });
+    });
+    target.remove();
+    await unlockChangePromise;
 
-    <div id="target-wrap">
-        <div id="status-log">Click the "lockTarget" button.</div>
-        <div id="target">Target</div>
-    </div>
-    <hr/>
-
-    <div id="log"></div>
-
-    <script type="text/javascript" >
-        var target = document.querySelector('#target'),
-            target_wrap = document.querySelector('#target-wrap')
-            status_log = document.querySelector('#status-log');
-
-        var removeTargetTest = async_test("Test that pointer lock will be lost when taking the target element out of the DOM.");
-
-        document.addEventListener("pointerlockchange", function() {
-            if(document.pointerLockElement) {
-                status_log.innerHTML = "Target is locked!";
-
-                target_wrap.removeChild(target);
-            } else {
-                status_log.innerHTML = "Pointer lock exited!";
-
-                removeTargetTest.step(function() {
-                    assert_equals(document.pointerLockElement, null, "Pointer lock exited!");
-                });
-
-                removeTargetTest.done();
-            }
-        });
-
-        function lockTarget() {
-            target.requestPointerLock();
-        }
-
-        // Inject mouse inputs.
-        new test_driver.Actions()
-                       .pointerMove(0, 0, {origin: Button})
-                       .pointerDown()
-                       .pointerUp()
-                       .send();
-    </script>
-    </body>
+    assert_equals(document.pointerLockElement, null,
+      "pointerLockElement should be null after target disconnected.");
+    assert_false(document.contains(target),
+      "Target element should no longer be in the document.");
+  }, "pointer lock exits when lock target is disconnected");
+</script>
 </html>

@@ -576,6 +576,7 @@ impl TaskOnce for CloseTask {
         let code = self.code.unwrap_or(close_code::NO_STATUS);
         let reason = DOMString::from(self.reason.unwrap_or("".to_owned()));
         let close_event = CloseEvent::new(
+            cx,
             &ws.global(),
             atom!("close"),
             EventBubbles::DoesNotBubble,
@@ -583,7 +584,6 @@ impl TaskOnce for CloseTask {
             clean_close,
             code,
             reason,
-            CanGc::from_cx(cx),
         );
         close_event.upcast::<Event>().fire(cx, ws.upcast());
     }
@@ -618,14 +618,12 @@ impl TaskOnce for MessageReceivedTask {
         let cx = &mut *realm;
         rooted!(&in(cx) let mut message = UndefinedValue());
         match self.message {
-            MessageData::Text(text) => {
-                text.safe_to_jsval(cx.into(), message.handle_mut(), CanGc::from_cx(cx))
-            },
+            MessageData::Text(text) => text.safe_to_jsval(cx, message.handle_mut()),
             MessageData::Binary(data) => match ws.binary_type.get() {
                 BinaryType::Blob => {
                     let blob =
                         Blob::new(cx, &global, BlobImpl::new_from_bytes(data, "".to_owned()));
-                    blob.safe_to_jsval(cx.into(), message.handle_mut(), CanGc::from_cx(cx));
+                    blob.safe_to_jsval(cx, message.handle_mut());
                 },
                 BinaryType::Arraybuffer => {
                     rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
@@ -641,11 +639,7 @@ impl TaskOnce for MessageReceivedTask {
                         )
                     };
 
-                    (*array_buffer).safe_to_jsval(
-                        cx.into(),
-                        message.handle_mut(),
-                        CanGc::from_cx(cx),
-                    );
+                    (*array_buffer).safe_to_jsval(cx, message.handle_mut());
                 },
             },
         }

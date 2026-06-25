@@ -57,7 +57,8 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
         let global = &self.global();
         // 1. Let promise be a new promise.
         let promise = Promise::new_in_realm(cx);
-        let task_source = global.task_manager().dom_manipulation_task_source();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.dom_manipulation_task_source();
         let callback = callback_promise(&promise, self, task_source);
 
         let power_preference = match options.powerPreference {
@@ -84,7 +85,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
                 // and wgpu does not support "compatibility" yet so we return core for now
             },
             _ => {
-                promise.resolve_native_with_cx(cx, &None::<GPUAdapter>);
+                promise.resolve_native(cx, &None::<GPUAdapter>);
                 return promise;
             },
         }
@@ -101,7 +102,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
             ))
             .is_err()
         {
-            promise.reject_error_with_cx(cx, Error::Operation(None));
+            promise.reject_error(cx, Error::Operation(None));
         }
         // 4. Return promise
         promise
@@ -150,15 +151,15 @@ impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
                     adapter.adapter_info,
                     adapter.adapter_id,
                 );
-                promise.resolve_native_with_cx(cx, &adapter);
+                promise.resolve_native(cx, &adapter);
             },
             Some(Err(e)) => {
                 warn!("Could not get GPUAdapter ({:?})", e);
-                promise.resolve_native_with_cx(cx, &None::<GPUAdapter>);
+                promise.resolve_native(cx, &None::<GPUAdapter>);
             },
             None => {
                 warn!("Couldn't get a response, because WebGPU is disabled");
-                promise.resolve_native_with_cx(cx, &None::<GPUAdapter>);
+                promise.resolve_native(cx, &None::<GPUAdapter>);
             },
         }
     }

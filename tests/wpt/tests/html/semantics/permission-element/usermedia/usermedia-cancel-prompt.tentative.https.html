@@ -35,7 +35,8 @@ promise_test(async (t) => {
   assert_false(stream_fired, "onstream should not fire on cancel");
   assert_false(error_fired, "onerror should not fire on cancel");
   assert_equals(usermedia.stream, null, "stream should be null on cancel");
-  assert_equals(usermedia.error, null, "error should be null on cancel");
-}, "Denying PEPC prompt triggers oncancel event and does not set error");
+  assert_not_equals(usermedia.error, null, "error should not be null on cancel");
+  assert_equals(usermedia.error.name, "NotAllowedError", "error should be NotAllowedError on cancel");
+}, "Denying PEPC prompt triggers oncancel event and sets NotAllowedError");
 </script>
 </body>

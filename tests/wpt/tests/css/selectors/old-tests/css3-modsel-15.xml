@@ -2,6 +2,8 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>ID selectors</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
   <style type="text/css"><![CDATA[li { background-color : red }
 #t1 { background-color : lime }
 li#t2 { background-color : lime }
@@ -17,5 +19,12 @@ li#t3 { background-color : lime }
   <li id="t2">This list item should have a green background. because its ID is &quot;t2&quot;</li>
   <li id="t3"><span id="t44">This list item should have a green background. because the inner SPAN does not match &quot;#t4&quot;</span></li>
 </ul>
+<script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('t1')).backgroundColor, 'rgb(0, 255, 0)');
+  assert_equals(getComputedStyle(document.getElementById('t2')).backgroundColor, 'rgb(0, 255, 0)');
+  assert_equals(getComputedStyle(document.getElementById('t3')).backgroundColor, 'rgb(0, 255, 0)');
+}, "ID selectors match correctly");
+]]></script>
 </body>
 </html>

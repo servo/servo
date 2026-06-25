@@ -68,7 +68,6 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 
 pub(crate) enum BaseAudioContextOptions {
     AudioContext(RealTimeAudioContextOptions),
@@ -212,8 +211,8 @@ impl BaseAudioContext {
         f();
         for promise in &*promises {
             match result {
-                Ok(ref value) => promise.resolve_native_with_cx(cx, value),
-                Err(ref error) => promise.reject_error_with_cx(cx, error.clone()),
+                Ok(ref value) => promise.resolve_native(cx, value),
+                Err(ref error) => promise.reject_error(cx, error.clone()),
             }
         }
     }
@@ -293,13 +292,13 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
-            promise.reject_error_with_cx(cx, Error::InvalidState(None));
+            promise.reject_error(cx, Error::InvalidState(None));
             return promise;
         }
 
         // Step 3.
         if self.state.get() == AudioContextState::Running {
-            promise.resolve_native_with_cx(cx, &());
+            promise.resolve_native(cx, &());
             return promise;
         }
 
@@ -540,7 +539,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         if let Some(callback) = resolver.success_callback {
                             let _ = callback.Call__(cx, &buffer, ExceptionHandling::Report);
                         }
-                        resolver.promise.resolve_native_with_cx(cx, &buffer);
+                        resolver.promise.resolve_native(cx, &buffer);
                     }));
                 })
                 .error(move |error| {
@@ -550,15 +549,14 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         assert!(resolvers.contains_key(&uuid));
                         let resolver = resolvers.remove(&uuid).unwrap();
                         if let Some(callback) = resolver.error_callback {
-                            let exception = DOMException::new(
+                            let exception = DOMException::new(cx,
                                 &this.global(),
                                 DOMErrorName::DataCloneError,
-                                CanGc::from_cx(cx)
                             );
                             let _ = callback.Call__(cx, &exception, ExceptionHandling::Report);
                         }
                         let error = cformat!("Audio decode error {:?}", error);
-                        resolver.promise.reject_error_with_cx(cx, Error::Type(error));
+                        resolver.promise.reject_error(cx, Error::Type(error));
                     }));
                 })
                 .build();
@@ -568,7 +566,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .decode_audio_data(audio_data, callbacks);
         } else {
             // Step 3.
-            promise.reject_error_with_cx(cx, Error::DataClone(None));
+            promise.reject_error(cx, Error::DataClone(None));
             return promise;
         }
 

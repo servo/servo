@@ -29,11 +29,11 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, ForceSlottableNodeReconciliation, IsShadowTree, Node, NodeDamage, NodeTraits,
     UnbindContext,
 };
-use crate::dom::virtualmethods::VirtualMethods;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]
@@ -325,13 +325,31 @@ impl HTMLSlotElement {
         if self.assigned_nodes.borrow().iter().eq(slottables.iter()) {
             return;
         }
+
+        // Clear the style and layout data for all previously assigned slottables as well as
+        // marking them as dirty, as they need a full restyle and layout.
+        for slottable in self.assigned_nodes().iter() {
+            slottable
+                .node()
+                .remove_style_and_layout_data_from_subtree(no_gc);
+            slottable.node().dirty(NodeDamage::Other);
+        }
+
         self.signal_a_slot_change();
 
-        // NOTE: This is not written in the spec, which is likely a bug (https://github.com/whatwg/dom/issues/1352)
-        // If we don't disconnect the old slottables from this slot then they'll stay implictly
-        // connected, which causes problems later on
+        // If we don't disconnect the old slottables from this slot then they'll stay implicitily
+        // connected, which causes problems later on. Only do this for slottables that have not
+        // already been reassigned to a different slot.
+        //
+        // NOTE: This is not written in the spec, which is likely a bug. See:
+        // <https://github.com/whatwg/dom/issues/1352>.
         for slottable in self.assigned_nodes().iter() {
-            slottable.set_assigned_slot(None);
+            if slottable
+                .assigned_slot()
+                .is_some_and(|assigned_slot| &*assigned_slot == self)
+            {
+                slottable.set_assigned_slot(None);
+            }
         }
 
         // Step 3. Set slot’s assigned nodes to slottables.
@@ -340,6 +358,15 @@ impl HTMLSlotElement {
         // Step 4. For each slottable in slottables, set slottable’s assigned slot to slot.
         for slottable in slottables.iter() {
             slottable.set_assigned_slot(Some(self));
+        }
+
+        // Also clear the style and layout data for all currently assigned slottables
+        // as well as marking them as dirty, as they need a full restyle and layout.
+        for slottable in slottables.iter() {
+            slottable
+                .node()
+                .remove_style_and_layout_data_from_subtree(no_gc);
+            slottable.node().dirty(NodeDamage::Other);
         }
     }
 

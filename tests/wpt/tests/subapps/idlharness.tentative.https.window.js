@@ -3,13 +3,9 @@
 
 'use strict';
 
-idl_test(
-  ['sub-apps.tentative'],
-  ['html', 'dom'],
-  idl_array => {
-    idl_array.add_objects({
-      Navigator: ['navigator'],
-      SubApps: ['navigator.subApps'],
-    });
-  }
-);
+idl_test(['sub-apps.tentative'], ['html', 'dom'], idl_array => {
+  idl_array.add_objects({
+    Window: ['window'],
+    SubApps: ['window.subApps'],
+  });
+});

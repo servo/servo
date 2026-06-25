@@ -95,6 +95,10 @@ async function navigate_by_form_generated_post(url) {
 window.requestUrl = reverse_html_escape(
     "{{location[server]}}{{location[path]}}{{location[query]}}");
 
-const uuid = new URLSearchParams(location.search).get('uuid');
-window.executor = new Executor(uuid);
+const params = new URLSearchParams(location.search);
+const uuid = params.get('uuid');
+const activated_uuid = params.get('activated_uuid') || uuid;
+window.executor = new Executor(document.prerendering ? uuid : activated_uuid);
+
+
 </script>

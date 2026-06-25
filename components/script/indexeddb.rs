@@ -13,10 +13,9 @@ use js::jsapi::{
     JS_GetStringLength, JS_IsArrayBufferViewObject, NewArrayObject1, PropertyKey,
 };
 use js::jsval::{DoubleValue, ObjectValue, UndefinedValue};
-use js::rust::wrappers::SameValue;
 use js::rust::wrappers2::{
     GetArrayLength, IsArrayObject, JS_HasOwnPropertyById, JS_IndexToId, JS_IsIdentifier,
-    JS_NewObject, NewDateObject, ObjectIsDate,
+    JS_NewObject, NewDateObject, ObjectIsDate, SameValue,
 };
 use js::rust::{HandleValue, MutableHandleValue};
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
@@ -234,7 +233,7 @@ pub fn convert_value_to_key(
     // Step 2: If seen contains input, then return "invalid value".
     for seen_input in &seen {
         let mut same = false;
-        if unsafe { !SameValue(cx.raw_cx(), *seen_input, input, &mut same) } {
+        if unsafe { !SameValue(cx, *seen_input, input, &mut same) } {
             return Err(Error::JSFailed);
         }
         if same {
