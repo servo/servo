@@ -15,6 +15,7 @@ import time
 from geckordp.actors.events import Events
 from geckordp.actors.inspector import InspectorActor
 from geckordp.actors.node import NodeActor
+from geckordp.actors.string import StringActor
 from geckordp.actors.walker import WalkerActor
 from geckordp.actors.web_console import WebConsoleActor
 
@@ -220,3 +221,34 @@ class TestInspectorTab:
             response1 = devtools.watcher.get_blackboxing_actor()
             response2 = devtools.watcher.get_blackboxing_actor()
             assert response1["blackboxing"]["actor"] == response2["blackboxing"]["actor"]
+
+    def test_inspector_inner_html(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/event_listeners.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker_info = inspector.get_walker()
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+
+            root_node = walker_info["root"]["actor"]
+            target_node = walker.query_selector(root_node, "button")["node"]["actor"]
+
+            inner_html = walker.inner_html(target_node)
+            assert inner_html["initial"] == "Button"
+
+            target_node = walker.query_selector(root_node, "div")["node"]["actor"]
+            inner_html = walker.inner_html(target_node)
+            string_actor = StringActor(devtools.client, inner_html["actor"])
+            assert len(string_actor.substring(0, inner_html["length"])) == inner_html["length"]
+
+    def test_inspector_outer_html(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/event_listeners.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker_info = inspector.get_walker()
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+
+            root_node = walker_info["root"]["actor"]
+            target_node = walker.query_selector(root_node, "button")["node"]["actor"]
+
+            inner_html = walker.outer_html(target_node)
+            assert inner_html["initial"] == "<button>Button</button>"

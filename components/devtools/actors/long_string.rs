@@ -85,7 +85,7 @@ impl LongStringActor {
         LongStringObj {
             type_: "longString".to_string(),
             actor: self.name.clone(),
-            length: self.full_string.len(),
+            length: self.full_string.chars().count(),
             initial: self.full_string.chars().take(INITIAL_LENGTH).collect(),
         }
     }

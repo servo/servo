@@ -2191,6 +2191,16 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetXPath(id, node_id, reply) => {
                 devtools::handle_get_xpath(&self.devtools_state, id, &node_id, reply)
             },
+            DevtoolScriptControlMsg::GetInnerOrOuterHTML(id, node_id, reply, html_type) => {
+                devtools::handle_get_inner_or_outer_html(
+                    cx,
+                    &self.devtools_state,
+                    id,
+                    &node_id,
+                    reply,
+                    html_type,
+                )
+            },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
                 devtools::handle_modify_attribute(
                     cx,
