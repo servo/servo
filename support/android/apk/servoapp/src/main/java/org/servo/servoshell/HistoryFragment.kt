@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,8 +18,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
@@ -35,7 +41,6 @@ import java.util.Locale
 class HistoryFragment : Fragment() {
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-    private lateinit var bodyView: ComposeView
     private lateinit var historyManager: HistoryManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,89 +52,90 @@ class HistoryFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View = inflater.inflate(R.layout.fragment_history, container, false)
+    ): View = ComposeView(requireContext()).apply {
+        setContent {
+            var historyEntries by remember { mutableStateOf(historyManager.history) }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        bodyView = view.findViewById(R.id.body)
-
-        val toolbar = view.findViewById<ComposeView>(R.id.toolbar)
-        toolbar.setContent {
-            @OptIn(ExperimentalMaterial3Api::class)
-            TopAppBar(
-                title = { Text(stringResource(R.string.history_title)) },
-                actions = {
-                    IconButton(onClick = { clearHistory() }) {
-                        Icon(painterResource(R.drawable.delete), stringResource(R.string.clear_history))
-                    }
-                },
-            )
-        }
-
-        loadHistory()
-    }
-
-    private fun loadHistory() {
-        val historyEntries = historyManager.history
-
-        bodyView.setContent {
-            if (historyEntries.isEmpty()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        stringResource(R.string.history_placeholder_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                    Text(
-                        stringResource(R.string.history_placeholder_message),
-                        color = MaterialTheme.colorScheme.secondary,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            } else {
-                LazyColumn {
-                    items(groupByDay(historyEntries)) { item ->
-                        when (item) {
-                            is HistoryHeaderItem -> {
-                                ListItem(
-                                    headlineContent = {
-                                        Text(
-                                            item.headerText,
-                                            style = MaterialTheme.typography.titleSmall,
-                                        )
-                                    },
-                                )
+            Scaffold(
+                topBar = {
+                    @OptIn(ExperimentalMaterial3Api::class)
+                    TopAppBar(
+                        title = { Text(stringResource(R.string.history_title)) },
+                        actions = {
+                            IconButton(
+                                onClick = {
+                                    historyManager.clearHistory()
+                                    historyEntries = historyManager.history
+                                },
+                            ) {
+                                Icon(painterResource(R.drawable.delete), stringResource(R.string.clear_history))
                             }
-                            is HistoryEntryItem -> {
-                                ListItem(
-                                    modifier = Modifier
-                                        .clickable {
-                                            val resultIntent = Intent().apply {
-                                                putExtra("url", item.entry.url)
-                                            }
-                                            requireActivity().setResult(Activity.RESULT_OK, resultIntent)
-                                            requireActivity().finish()
+                        },
+                    )
+                },
+            ) { innerPadding ->
+                if (historyEntries.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            stringResource(R.string.history_placeholder_title),
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                        Text(
+                            stringResource(R.string.history_placeholder_message),
+                            color = MaterialTheme.colorScheme.secondary,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.padding(innerPadding)) {
+                        items(groupByDay(historyEntries)) { item ->
+                            when (item) {
+                                is HistoryHeaderItem -> {
+                                    ListItem(
+                                        headlineContent = {
+                                            Text(
+                                                item.headerText,
+                                                style = MaterialTheme.typography.titleSmall,
+                                            )
                                         },
-                                    headlineContent = {
-                                        Text(
-                                            item.entry.title?.takeUnless { it.isEmpty() } ?: item.entry.url,
-                                            overflow = TextOverflow.Ellipsis,
-                                            maxLines = 1,
-                                        )
-                                    },
-                                    supportingContent = {
-                                        Text(
-                                            item.entry.url,
-                                            overflow = TextOverflow.Ellipsis,
-                                            maxLines = 1,
-                                        )
-                                    },
-                                    leadingContent = {
-                                        Text(timeFormat.format(Date(item.entry.timestamp)))
-                                    },
-                                )
+                                    )
+                                }
+                                is HistoryEntryItem -> {
+                                    ListItem(
+                                        modifier = Modifier
+                                            .clickable {
+                                                val resultIntent = Intent().apply {
+                                                    putExtra("url", item.entry.url)
+                                                }
+                                                requireActivity().setResult(Activity.RESULT_OK, resultIntent)
+                                                requireActivity().finish()
+                                            },
+                                        headlineContent = {
+                                            Text(
+                                                item.entry.title?.takeUnless { it.isEmpty() } ?: item.entry.url,
+                                                overflow = TextOverflow.Ellipsis,
+                                                maxLines = 1,
+                                            )
+                                        },
+                                        supportingContent = {
+                                            Text(
+                                                item.entry.url,
+                                                overflow = TextOverflow.Ellipsis,
+                                                maxLines = 1,
+                                            )
+                                        },
+                                        leadingContent = {
+                                            Text(timeFormat.format(Date(item.entry.timestamp)))
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -181,10 +187,5 @@ class HistoryFragment : Fragment() {
         }
 
         return items
-    }
-
-    private fun clearHistory() {
-        historyManager.clearHistory()
-        loadHistory()
     }
 }
