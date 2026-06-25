@@ -598,6 +598,7 @@ impl EventTarget {
     /// <https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3>
     pub(crate) fn set_event_handler_uncompiled(
         &self,
+        cx: &mut JSContext,
         url: ServoUrl,
         line: usize,
         ty: &str,
@@ -609,6 +610,7 @@ impl EventTarget {
             if global
                 .get_csp_list()
                 .should_elements_inline_type_behavior_be_blocked(
+                    cx,
                     global,
                     element.upcast(),
                     InlineCheckType::ScriptAttribute,

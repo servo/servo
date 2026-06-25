@@ -664,7 +664,7 @@ impl JsTimers {
                 // If this throws an exception, catch it, report it for global, and abort these steps.
                 if global
                     .get_csp_list()
-                    .is_js_evaluation_allowed(global, &code_str.str())
+                    .is_js_evaluation_allowed(cx, global, &code_str.str())
                 {
                     // Step 9.6.2. Assert: handler is a string.
                     InternalTimerCallback::StringTimerCallback(

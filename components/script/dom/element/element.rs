@@ -2316,7 +2316,12 @@ impl Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
-    fn update_style_attribute(&self, attr: AttrRef<'_>, mutation: AttributeMutation) {
+    fn update_style_attribute(
+        &self,
+        cx: &mut JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         let doc = self.upcast::<Node>().owner_doc();
         // Modifying the `style` attribute might change style.
         *self.style_attribute.borrow_mut() = match mutation {
@@ -2339,6 +2344,7 @@ impl Element {
                         if global
                             .get_csp_list()
                             .should_elements_inline_type_behavior_be_blocked(
+                                cx,
                                 global,
                                 self,
                                 InlineCheckType::StyleAttribute,
@@ -4586,6 +4592,7 @@ impl VirtualMethods for Element {
                         let source = &**attr.value();
                         let source_line = 1; // TODO(#9604) get current JS execution line
                         evtarget.set_event_handler_uncompiled(
+                            cx,
                             self.owner_window().get_url(),
                             source_line,
                             event_name,
@@ -4599,7 +4606,7 @@ impl VirtualMethods for Element {
                     },
                 }
             },
-            local_name!("style") => self.update_style_attribute(attr, mutation),
+            local_name!("style") => self.update_style_attribute(cx, attr, mutation),
             local_name!("id") => {
                 // https://dom.spec.whatwg.org/#ref-for-concept-element-attributes-change-ext%E2%91%A2
                 *self.id_attribute.borrow_mut() = mutation.new_value(attr).and_then(|value| {

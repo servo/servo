@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use ipc_channel::ipc;
+use js::context::JSContext;
 use js::jsapi::ExceptionStackBehavior;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
@@ -182,7 +183,7 @@ fn abort_fetch_call(
     response_object: Option<&Response>,
     abort_reason: HandleValue,
     global: &GlobalScope,
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
 ) {
     // Step 1. Reject promise with error.
     promise.reject(cx, abort_reason);
@@ -347,7 +348,7 @@ fn queue_deferred_fetch(
 /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
 #[expect(non_snake_case, unsafe_code)]
 pub(crate) fn FetchLater(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     window: &Window,
     input: RequestInfo,
     init: RootedTraceableBox<DeferredRequestInit>,
@@ -499,11 +500,7 @@ pub(crate) struct FetchContext {
 
 impl FetchContext {
     /// Step 11 of <https://fetch.spec.whatwg.org/#dom-global-fetch>
-    pub(crate) fn abort_fetch(
-        &mut self,
-        abort_reason: HandleValue,
-        cx: &mut js::context::JSContext,
-    ) {
+    pub(crate) fn abort_fetch(&mut self, abort_reason: HandleValue, cx: &mut JSContext) {
         // Step 11.1. Set locallyAborted to true.
         self.locally_aborted = true;
         // Step 11.2. Assert: controller is non-null.
@@ -539,7 +536,7 @@ impl FetchResponseListener for FetchContext {
 
     fn process_response(
         &mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -607,19 +604,14 @@ impl FetchResponseListener for FetchContext {
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
-    fn process_response_chunk(
-        &mut self,
-        cx: &mut js::context::JSContext,
-        _: RequestId,
-        chunk: Vec<u8>,
-    ) {
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
         let response = self.response_object.root();
         response.stream_chunk(cx, chunk);
     }
 
     fn process_response_eof(
         self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -640,9 +632,14 @@ impl FetchResponseListener for FetchContext {
         network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+    fn process_csp_violations(
+        &mut self,
+        cx: &mut JSContext,
+        _request_id: RequestId,
+        violations: Vec<Violation>,
+    ) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
+        global.report_csp_violations(cx, violations, None, None);
     }
 }
 
@@ -668,25 +665,20 @@ impl FetchResponseListener for FetchLaterListener {
 
     fn process_response(
         &mut self,
-        _: &mut js::context::JSContext,
+        _: &mut JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(
-        &mut self,
-        _: &mut js::context::JSContext,
-        _: RequestId,
-        chunk: Vec<u8>,
-    ) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
         _ = chunk;
     }
 
     fn process_response_eof(
         self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -694,9 +686,14 @@ impl FetchResponseListener for FetchLaterListener {
         network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+    fn process_csp_violations(
+        &mut self,
+        cx: &mut JSContext,
+        _request_id: RequestId,
+        violations: Vec<Violation>,
+    ) {
         let global = self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
+        global.report_csp_violations(cx, violations, None, None);
     }
 }
 
@@ -710,7 +707,7 @@ impl ResourceTimingListener for FetchLaterListener {
     }
 }
 
-fn fill_headers_with_metadata(cx: &mut js::context::JSContext, r: DomRoot<Response>, m: Metadata) {
+fn fill_headers_with_metadata(cx: &mut JSContext, r: DomRoot<Response>, m: Metadata) {
     r.set_headers(cx, m.headers);
     r.set_status(&m.status);
     r.set_final_url(m.final_url);
@@ -718,7 +715,7 @@ fn fill_headers_with_metadata(cx: &mut js::context::JSContext, r: DomRoot<Respon
 }
 
 pub(crate) trait CspViolationsProcessor {
-    fn process_csp_violations(&self, violations: Vec<Violation>);
+    fn process_csp_violations(&self, cx: &mut JSContext, violations: Vec<Violation>);
 }
 
 /// Convenience function for synchronously loading a whole resource.
@@ -727,7 +724,7 @@ pub(crate) fn load_whole_resource(
     core_resource_thread: &CoreResourceThread,
     global: &GlobalScope,
     csp_violations_processor: &dyn CspViolationsProcessor,
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
 ) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let url = request.url.url();
@@ -762,7 +759,7 @@ pub(crate) fn load_whole_resource(
             FetchResponseMsg::ProcessResponse(_, Err(e)) |
             FetchResponseMsg::ProcessResponseEOF(_, Err(e), _) => return Err(e),
             FetchResponseMsg::ProcessCspViolations(_, violations) => {
-                csp_violations_processor.process_csp_violations(violations);
+                csp_violations_processor.process_csp_violations(cx, violations);
             },
         }
     }

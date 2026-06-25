@@ -154,7 +154,7 @@ pub(crate) enum MixedMessage {
 struct ServiceWorkerCspProcessor {}
 
 impl CspViolationsProcessor for ServiceWorkerCspProcessor {
-    fn process_csp_violations(&self, _violations: Vec<Violation>) {}
+    fn process_csp_violations(&self, _cx: &mut JSContext, _violations: Vec<Violation>) {}
 }
 
 #[dom_struct]

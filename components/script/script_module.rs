@@ -849,14 +849,19 @@ impl FetchResponseListener for ModuleContext {
         promise.resolve_native(cx, &());
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+    fn process_csp_violations(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _request_id: RequestId,
+        violations: Vec<Violation>,
+    ) {
         let global = self.owner.root();
         if let Some(scope) = global.downcast::<DedicatedWorkerGlobalScope>() {
             scope.report_csp_violations(violations);
         } else if let Some(scope) = global.downcast::<SharedWorkerGlobalScope>() {
             scope.report_csp_violations(violations);
         } else {
-            global.report_csp_violations(violations, None, None);
+            global.report_csp_violations(cx, violations, None, None);
         }
     }
 }

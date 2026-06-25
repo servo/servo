@@ -115,7 +115,12 @@ pub(crate) trait FetchResponseListener: Send + 'static {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     );
-    fn process_csp_violations(&mut self, request_id: RequestId, violations: Vec<Violation>);
+    fn process_csp_violations(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        request_id: RequestId,
+        violations: Vec<Violation>,
+    );
 }
 
 /// An off-thread sink for async network event tasks. All such events are forwarded to
@@ -162,7 +167,7 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
                         };
                     },
                     FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
-                        fetch_listener.process_csp_violations(request_id, violations)
+                        fetch_listener.process_csp_violations(cx, request_id, violations)
                     },
                 }
             }));

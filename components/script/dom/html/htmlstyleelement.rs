@@ -137,6 +137,7 @@ impl HTMLStyleElement {
         if global
             .get_csp_list()
             .should_elements_inline_type_behavior_be_blocked(
+                cx,
                 global,
                 self.upcast(),
                 InlineCheckType::Style,
