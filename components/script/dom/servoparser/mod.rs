@@ -92,7 +92,7 @@ use crate::dom::text::Text;
 use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
 use crate::navigation::determine_the_origin;
 use crate::network_listener::FetchResponseListener;
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
 
@@ -269,6 +269,8 @@ impl ServoParser {
             context_document.has_trustworthy_ancestor_or_current_origin(),
             context_document.custom_element_reaction_stack(),
             context_document.creation_sandboxing_flag_set(),
+            context_document.pipeline_id(),
+            context_document.image_cache(),
             CanGc::from_cx(cx),
         );
 
@@ -686,7 +688,8 @@ impl ServoParser {
     }
 
     fn parse_bytes_chunk(&self, cx: &mut JSContext, input: Vec<u8>) {
-        let _realm = enter_realm(&*self.document);
+        let mut realm = enter_auto_realm(cx, &*self.document);
+        let cx = &mut realm.current_realm();
         self.document.set_current_parser(Some(self));
         self.push_bytes_input_chunk(input);
         if !self.suspended.get() {
@@ -1249,7 +1252,7 @@ impl ParserContext {
     }
 
     /// Store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
-    fn submit_resource_timing(&mut self) {
+    fn submit_resource_timing(&mut self, cx: &mut JSContext) {
         let Some(parser) = self.parser.as_ref() else {
             return;
         };
@@ -1260,11 +1263,7 @@ impl ParserContext {
 
         let document = &parser.document;
 
-        let performance_entry = PerformanceNavigationTiming::new(
-            &document.global(),
-            document,
-            CanGc::deprecated_note(),
-        );
+        let performance_entry = PerformanceNavigationTiming::new(cx, &document.global(), document);
         self.pushed_entry_index = document
             .global()
             .performance()
@@ -1426,7 +1425,7 @@ impl FetchResponseListener for ParserContext {
             about_base_url: document.about_base_url(),
             resource_header: vec![],
         };
-        self.submit_resource_timing();
+        self.submit_resource_timing(cx);
 
         // Part of https://html.spec.whatwg.org/multipage/#loading-a-document
         //
@@ -1562,7 +1561,7 @@ impl FetchResponseListener for ParserContext {
         if let Some(pushed_index) = self.pushed_entry_index {
             let document = &parser.document;
             let performance_entry =
-                PerformanceNavigationTiming::new(&document.global(), document, CanGc::from_cx(cx));
+                PerformanceNavigationTiming::new(cx, &document.global(), document);
             document
                 .global()
                 .performance()
@@ -2086,8 +2085,7 @@ fn create_element_for_token(
 
     // Step 7. Let definition be the result of looking up a custom element definition
     // given registry, namespace, localName, and is.
-    let definition =
-        document.lookup_custom_element_definition(cx, &name.ns, &name.local, is.as_ref());
+    let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
 
     // Step 8. Let willExecuteScript be true if definition is non-null and the parser was
     // not created as part of the HTML fragment parsing algorithm; otherwise false.

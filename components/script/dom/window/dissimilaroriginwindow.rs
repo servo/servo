@@ -45,6 +45,9 @@ pub(crate) struct DissimilarOriginWindow {
 
     /// The location of this window, initialized lazily.
     location: MutNullableDom<DissimilarOriginLocation>,
+
+    #[no_trace]
+    pipeline_id: PipelineId,
 }
 
 impl DissimilarOriginWindow {
@@ -55,11 +58,10 @@ impl DissimilarOriginWindow {
     ) -> DomRoot<Self> {
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
-                PipelineId::new(),
                 global_to_clone_from.devtools_chan().cloned(),
                 global_to_clone_from.mem_profiler_chan().clone(),
                 global_to_clone_from.time_profiler_chan().clone(),
-                global_to_clone_from.script_to_constellation_chan().clone(),
+                global_to_clone_from.script_to_constellation_chan().sender,
                 global_to_clone_from.script_to_embedder_chan().clone(),
                 global_to_clone_from.resource_threads().clone(),
                 global_to_clone_from.storage_threads().clone(),
@@ -74,12 +76,17 @@ impl DissimilarOriginWindow {
             ),
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
+            pipeline_id: PipelineId::new(),
         });
         DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
     }
 
     pub(crate) fn window_proxy(&self) -> DomRoot<WindowProxy> {
         DomRoot::from_ref(&*self.window_proxy)
+    }
+
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
+        self.pipeline_id
     }
 }
 

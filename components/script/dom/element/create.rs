@@ -132,12 +132,11 @@ fn create_html_element(
     // Step 2. If registry is "default", then set registry
     // to the result of looking up a custom element registry given document.
     // TODO: We don't pass in any other value than "default" atm
-    let registry = CustomElementRegistry::lookup_a_custom_element_registry(cx, document.upcast());
+    let registry = CustomElementRegistry::lookup_a_custom_element_registry(document.upcast());
 
     // Step 3. Let definition be the result of looking up a custom element
     // definition given document, namespace, localName, and is.
-    let definition =
-        document.lookup_custom_element_definition(cx, &name.ns, &name.local, is.as_ref());
+    let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
 
     // Step 4. If definition is non-null...
     if let Some(definition) = definition {
@@ -150,7 +149,7 @@ fn create_html_element(
             let element = create_native_html_element(cx, name, prefix, document, creator, proto);
             element.set_is(definition.name.clone());
             element.set_custom_element_state(CustomElementState::Undefined);
-            element.set_custom_element_registry(registry);
+            element.set_custom_element_registry(registry.as_deref());
 
             match mode {
                 // Step 4.3. If synchronousCustomElements is true, then run this step while catching any exceptions:
@@ -178,7 +177,7 @@ fn create_html_element(
                         cx,
                         document,
                         prefix.clone(),
-                        registry.clone(),
+                        registry.as_deref(),
                     ) {
                         Ok(element) => {
                             element.set_custom_element_definition(definition.clone());
@@ -203,7 +202,7 @@ fn create_html_element(
                                 cx, local_name, prefix, document, proto,
                             ));
                             element.set_custom_element_state(CustomElementState::Failed);
-                            element.set_custom_element_registry(registry);
+                            element.set_custom_element_registry(registry.as_deref());
                             element
                         },
                     };
@@ -219,7 +218,7 @@ fn create_html_element(
                         cx, name.local, prefix, document, proto,
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
-                    result.set_custom_element_registry(registry);
+                    result.set_custom_element_registry(registry.as_deref());
                     // Step 4.2.2. Enqueue a custom element upgrade reaction given result and definition.
                     ScriptThread::enqueue_upgrade_reaction(&result, definition);
                     return result;
@@ -241,12 +240,12 @@ fn create_html_element(
         Some(is) => {
             result.set_is(is);
             result.set_custom_element_state(CustomElementState::Undefined);
-            result.set_custom_element_registry(registry);
+            result.set_custom_element_registry(registry.as_deref());
         },
         None => {
             if is_valid_custom_element_name(&name.local) {
                 result.set_custom_element_state(CustomElementState::Undefined);
-                result.set_custom_element_registry(registry);
+                result.set_custom_element_registry(registry.as_deref());
             } else {
                 // Note: This is a performance optimization. See the doc comment of the method for
                 // more information.

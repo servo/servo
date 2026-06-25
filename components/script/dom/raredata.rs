@@ -24,6 +24,7 @@ use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::nodelist::NodeList;
 use crate::dom::range::{Range, WeakRangeVec};
 use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::types::Element;
 use crate::dom::window::LayoutValue;
 
 // XXX(ferjm) Ideally merge NodeRareData and ElementRareData so they share
@@ -132,4 +133,6 @@ pub(crate) struct ElementRareData {
     /// elements, allowing rapid open/close sequences to be coalesced into
     /// a single fired event.
     pub(crate) toggle_event_tracker: Option<ToggleEventTracker>,
+    /// <https://html.spec.whatwg.org/multipage/#previously-focused-element>
+    pub(crate) previously_focused_element: MutNullableDom<Element>,
 }

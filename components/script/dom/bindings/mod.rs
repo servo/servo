@@ -145,7 +145,6 @@ pub(crate) mod import;
 pub(crate) mod inheritance;
 pub(crate) mod like;
 pub(crate) mod principals;
-pub(crate) mod proxyhandler;
 pub(crate) mod refcounted;
 pub(crate) mod reflector;
 pub(crate) mod root;

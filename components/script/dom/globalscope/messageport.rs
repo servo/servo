@@ -14,7 +14,7 @@ use js::rust::wrappers2::JS_NewObject;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_cx};
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::{MessagePortImpl, PortMessageTask};
 
@@ -57,9 +57,9 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
-    pub(crate) fn new(owner: &GlobalScope, can_gc: CanGc) -> DomRoot<MessagePort> {
+    pub(crate) fn new(cx: &mut JSContext, owner: &GlobalScope) -> DomRoot<MessagePort> {
         let port_id = MessagePortId::new();
-        reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner, can_gc)
+        reflect_dom_object_with_cx(Box::new(MessagePort::new_inherited(port_id)), owner, cx)
     }
 
     /// Create a new port for an incoming transfer-received one.
@@ -214,7 +214,7 @@ impl MessagePort {
         // Let message be OrdinaryObjectCreate(null).
         rooted!(&in(cx) let mut message = unsafe { JS_NewObject(cx, ptr::null()) });
         rooted!(&in(cx) let mut type_string = UndefinedValue());
-        type_.safe_to_jsval(cx.into(), type_string.handle_mut(), CanGc::from_cx(cx));
+        type_.safe_to_jsval(cx, type_string.handle_mut());
 
         // Perform ! CreateDataProperty(message, "type", type).
         set_dictionary_property(cx.into(), message.handle(), c"type", type_string.handle())
@@ -233,7 +233,7 @@ impl MessagePort {
 
         // Run the message port post message steps providing targetPort, message, and options.
         rooted!(&in(cx) let mut message_val = UndefinedValue());
-        message.safe_to_jsval(cx.into(), message_val.handle_mut(), CanGc::from_cx(cx));
+        message.safe_to_jsval(cx, message_val.handle_mut());
         self.post_message_impl(cx, message_val.handle(), transfer)
     }
 }

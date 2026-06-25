@@ -387,6 +387,12 @@ pub struct AutoMargins {
     pub left: bool,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub enum GetHTMLType {
+    OuterHTML,
+    InnerHTML,
+}
+
 /// Messages to process in a particular script thread, as instructed by a devtools client.
 /// TODO: better error handling, e.g. if pipeline id lookup fails?
 #[derive(Debug, Deserialize, Serialize)]
@@ -425,6 +431,13 @@ pub enum DevtoolScriptControlMsg {
     ),
     /// Get a unique XPath selector for the node.
     GetXPath(PipelineId, String, GenericSender<String>),
+    /// Get inner/outer HTML on a node.
+    GetInnerOrOuterHTML(
+        PipelineId,
+        String,
+        GenericSender<Option<String>>,
+        GetHTMLType,
+    ),
     /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<AttrModification>),
     /// Update a given node's style rules with a list of modifications.

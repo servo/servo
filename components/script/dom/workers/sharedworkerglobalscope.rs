@@ -272,6 +272,7 @@ impl SharedWorkerGlobalScope {
                 gpu_id_hub,
                 insecure_requests_policy,
                 font_context,
+                Some(ScriptEventLoopSender::SharedWorker(own_sender.clone())),
             ),
             webview_id,
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
@@ -681,10 +682,8 @@ impl SharedWorkerGlobalScope {
                 let inside_port = inside_port.root();
 
                 rooted!(&in(cx) let mut data = UndefinedValue());
-                DOMString::from("").safe_to_jsval(
-                    cx.into(),
+                DOMString::from("").safe_to_jsval(cx,
                     data.handle_mut(),
-                    CanGc::from_cx(cx),
                 );
 
                 let source = WindowProxyOrMessagePortOrServiceWorker::MessagePort(

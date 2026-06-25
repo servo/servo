@@ -21,15 +21,13 @@ use js::jsapi::{
     JS_IsGlobalObject, JS_MayResolveStandardClass, JS_NewEnumerateStandardClasses,
     JS_ResolveStandardClass, JSAtom, JSAtomState, JSContext, JSJitInfo, JSObject, JSPROP_ENUMERATE,
     JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
-    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, PropertyKey, StringIsArrayIndex,
-    jsid,
+    MutableHandleValue as RawMutableHandleValue, PropertyKey, StringIsArrayIndex, jsid,
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
-    CallOriginalPromiseReject, JS_DefineProperty, JS_DeletePropertyById, JS_ForwardGetPropertyTo,
-    JS_GetPendingException, JS_GetPrototype, JS_HasOwnProperty, JS_HasPropertyById,
-    JS_SetPendingException, JS_SetProperty,
+    CallOriginalPromiseReject, JS_DefineProperty, JS_ForwardGetPropertyTo, JS_GetPendingException,
+    JS_GetPrototype, JS_HasOwnProperty, JS_HasPropertyById, JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::wrappers2::{JS_GetProperty, JS_HasProperty};
 use js::rust::{
@@ -45,7 +43,9 @@ use crate::codegen::PrototypeList::{self, MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE
 use crate::conversions::{PrototypeCheck, private_from_proto_check};
 use crate::error::throw_invalid_this;
 use crate::interfaces::DomHelpers;
-use crate::proxyhandler::{is_cross_origin_object, report_cross_origin_denial};
+use crate::proxyhandler::{
+    is_cross_origin_object, is_platform_object_same_origin, report_cross_origin_denial,
+};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
 use crate::trace::trace_object;
@@ -364,19 +364,6 @@ pub unsafe fn has_property_on_prototype(
     JS_HasPropertyById(cx, proto.handle(), id, found)
 }
 
-/// Deletes the property `id` from `object`.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-pub(crate) unsafe fn delete_property_by_id(
-    cx: *mut JSContext,
-    object: HandleObject,
-    id: HandleId,
-    bp: *mut ObjectOpResult,
-) -> bool {
-    JS_DeletePropertyById(cx, object, id, bp)
-}
-
 pub trait CallPolicy {
     const INFO: CallPolicyInfo;
 }
@@ -602,8 +589,8 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     if needs_security_check_on_interface_match {
         let mut realm = js::realm::CurrentRealm::assert(&mut cx);
         // [cross_origin_operation == false]
-        if is_cross_origin_object::<D>((&mut realm).into(), obj.handle().into()) &&
-            !<D as DomHelpers<D>>::is_platform_object_same_origin(&realm, obj.handle().into())
+        if is_cross_origin_object::<D>(&mut realm, obj.handle()) &&
+            !is_platform_object_same_origin(&realm, obj.handle())
         {
             // [this_class_cross_origin == true && this_same_origin == false]
             // Throw a `SecurityError` `DOMException`.

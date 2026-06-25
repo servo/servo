@@ -36,7 +36,7 @@ impl TestUtilsMethods<crate::DomTypeHolder> for TestUtils {
                 JS_GC(cx.raw_cx(), GCReason::DOM_TESTUTILS);
             }
             let promise = trusted.root();
-            promise.resolve_native_with_cx(cx, &());
+            promise.resolve_native(cx, &());
         });
 
         global

@@ -37,7 +37,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 
@@ -320,12 +320,9 @@ impl FileReader {
                 FileReader::perform_readastext(&fr.result, data, &blob_contents)
             },
             FileReaderFunction::ArrayBuffer => {
-                let _ac = enter_realm(&*fr);
-                FileReader::perform_readasarraybuffer(
-                    &fr.result,
-                    GlobalScope::get_cx(),
-                    &blob_contents,
-                )
+                let mut realm = enter_auto_realm(cx, &*fr);
+                let cx = &mut realm.current_realm();
+                FileReader::perform_readasarraybuffer(cx, &fr.result, &blob_contents)
             },
             FileReaderFunction::BinaryString => {
                 FileReader::perform_readasbinarystring(&fr.result, &blob_contents)
@@ -381,15 +378,19 @@ impl FileReader {
     /// > Return a new ArrayBuffer whose contents are bytes.
     #[expect(unsafe_code)]
     fn perform_readasarraybuffer(
+        cx: &mut js::context::JSContext,
         result: &DomRefCell<Option<FileReaderResult>>,
-        cx: JSContext,
         bytes: &[u8],
     ) {
         unsafe {
-            rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+            rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
             assert!(
-                ArrayBuffer::create(*cx, CreateWith::Slice(bytes), array_buffer.handle_mut())
-                    .is_ok()
+                ArrayBuffer::create(
+                    cx.raw_cx(),
+                    CreateWith::Slice(bytes),
+                    array_buffer.handle_mut()
+                )
+                .is_ok()
             );
 
             *result.borrow_mut() =

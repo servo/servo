@@ -38,13 +38,16 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::{Blob, normalize_type_string};
+use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use crate::dom::file::File;
 use crate::dom::formdata::FormData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
+use crate::dom::readablestream::{
+    ReadableStream, get_read_promise_bytes, get_read_promise_done, pipe_through,
+};
 use crate::dom::urlsearchparams::URLSearchParams;
 use crate::mime_multipart::{Node, read_multipart_body};
 use crate::realms::enter_auto_realm;
@@ -418,7 +421,8 @@ impl ExtractedBody {
         let trusted_stream = Trusted::new(&*stream);
 
         let global = stream.global();
-        let task_source = global.task_manager().networking_task_source();
+        let task_manager = global.task_manager();
+        let task_source = task_manager.networking_task_source();
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SM.
         // Empty extracted bodies are always representable as an in-memory empty payload.
@@ -815,12 +819,12 @@ fn resolve_result_promise(
     match pkg_data_results {
         Ok(results) => {
             match results {
-                FetchedData::Text(s) => promise.resolve_native_with_cx(cx, &USVString(s)),
-                FetchedData::Json(j) => promise.resolve_native_with_cx(cx, &j),
-                FetchedData::BlobData(b) => promise.resolve_native_with_cx(cx, &b),
-                FetchedData::FormData(f) => promise.resolve_native_with_cx(cx, &f),
-                FetchedData::Bytes(b) => promise.resolve_native_with_cx(cx, &b),
-                FetchedData::ArrayBuffer(a) => promise.resolve_native_with_cx(cx, &a),
+                FetchedData::Text(s) => promise.resolve_native(cx, &USVString(s)),
+                FetchedData::Json(j) => promise.resolve_native(cx, &j),
+                FetchedData::BlobData(b) => promise.resolve_native(cx, &b),
+                FetchedData::FormData(f) => promise.resolve_native(cx, &f),
+                FetchedData::Bytes(b) => promise.resolve_native(cx, &b),
+                FetchedData::ArrayBuffer(a) => promise.resolve_native(cx, &a),
                 FetchedData::JSException(e) => promise.reject_native(cx, &e.handle()),
             };
         },
@@ -1158,4 +1162,32 @@ pub(crate) trait BodyMixin {
     fn body(&self) -> Option<DomRoot<ReadableStream>>;
     /// <https://fetch.spec.whatwg.org/#concept-body-mime-type>
     fn get_mime_type(&self, cx: &mut js::context::JSContext) -> Vec<u8>;
+}
+
+/// <https://fetch.spec.whatwg.org/#dom-body-textstream>
+pub(crate) fn body_text_stream<T: BodyMixin + DomObject>(
+    cx: &mut js::context::JSContext,
+    object: &T,
+) -> Fallible<DomRoot<ReadableStream>> {
+    // Step 1: If this is unusable, then throw a TypeError.
+    if object.is_unusable() {
+        return Err(Error::Type(
+            c"The body's stream is disturbed or locked".to_owned(),
+        ));
+    }
+
+    // Step 3: Let stream be this’s body’s stream.
+    let Some(stream) = object.body() else {
+        // Step 2: If this's body is null:
+        // set up a ReadableStream emptyStream, close it, and return it.
+        return ReadableStream::new_empty(cx, &object.global());
+    };
+
+    // Step 4: Let decoder be a new TextDecoderStream object in this’s relevant realm.
+    // Step 5: Set up decoder with UTF-8.
+    let decoder =
+        TextDecoderStream::new_with_proto(cx, &object.global(), None, UTF_8, false, false)?;
+
+    // Step 6. Return the result of stream, piped through decoder.
+    Ok(pipe_through(&stream, cx, &object.global(), &decoder))
 }

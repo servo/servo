@@ -95,7 +95,7 @@ impl FontFaceSet {
         if promise.is_fulfilled() {
             return false;
         }
-        promise.resolve_native_with_cx(cx, self);
+        promise.resolve_native(cx, self);
         true
     }
 
@@ -212,7 +212,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
         impl Callback for LoadPromiseFulfillmentHandler {
             fn callback(&self, cx: &mut CurrentRealm, _: Handle<Value>) {
                 self.load_promise
-                    .resolve_native_with_cx(cx, &Vec::<&FontFace>::new());
+                    .resolve_native(cx, &Vec::<&FontFace>::new());
             }
         }
 

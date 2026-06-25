@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::GeolocationPositionBinding::GeolocationPositionMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::geolocationcoordinates::GeolocationCoordinates;
@@ -30,16 +30,12 @@ impl GeolocationPosition {
 
     #[expect(unused)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         coords: &GeolocationCoordinates,
         timestamp: u64,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(Self::new_inherited(coords, timestamp)),
-            global,
-            can_gc,
-        )
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(coords, timestamp)), global, cx)
     }
 }
 

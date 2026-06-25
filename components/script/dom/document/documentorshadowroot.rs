@@ -28,8 +28,9 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMeth
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::css::stylesheetlist::StyleSheetListOwner;
+use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::element::Element;
 use crate::dom::node::{self, Node};
 use crate::dom::types::{CSSStyleSheet, EventTarget, ShadowRoot};
@@ -117,16 +118,27 @@ impl ::style::stylesheets::StylesheetInDocument for ServoStylesheetInDocument {
 
 // https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct DocumentOrShadowRoot {
     window: Dom<Window>,
+    custom_element_registry: MutNullableDom<CustomElementRegistry>,
 }
 
 impl DocumentOrShadowRoot {
     pub(crate) fn new(window: &Window) -> Self {
         Self {
             window: Dom::from_ref(window),
+            custom_element_registry: MutNullableDom::new(None),
         }
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-documentorshadowroot-customelementregistry>
+    pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
+        self.custom_element_registry.get()
+    }
+
+    pub(crate) fn set_custom_element_registry(&self, registry: Option<&CustomElementRegistry>) {
+        self.custom_element_registry.set(registry);
     }
 
     /// Retarget the result of `elementsFromPoint` or `elementFromPoint` according to the

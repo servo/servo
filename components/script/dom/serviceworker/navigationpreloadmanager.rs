@@ -61,7 +61,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
                 .set_navigation_preload_enabled(true);
 
             // 4.
-            promise.resolve_native_with_cx(cx, &UndefinedValue());
+            promise.resolve_native(cx, &UndefinedValue());
         }
 
         promise
@@ -81,7 +81,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
                 .set_navigation_preload_enabled(false);
 
             // 4.
-            promise.resolve_native_with_cx(cx, &UndefinedValue());
+            promise.resolve_native(cx, &UndefinedValue());
         }
 
         promise
@@ -101,7 +101,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
                 .set_navigation_preload_header_value(value);
 
             // 4.
-            promise.resolve_native_with_cx(cx, &UndefinedValue());
+            promise.resolve_native(cx, &UndefinedValue());
         }
 
         promise
@@ -127,7 +127,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
             .get_navigation_preload_header_value();
 
         // 5.
-        promise.resolve_native_with_cx(cx, &state);
+        promise.resolve_native(cx, &state);
 
         promise
     }

@@ -14,7 +14,6 @@ use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
 use rustc_hash::FxHashMap;
-use script_bindings::codegen::GenericBindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_base::id::{BlobId, BlobIndex};
 use servo_constellation_traits::{BlobData, BlobImpl};
@@ -23,9 +22,6 @@ use uuid::Uuid;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
-    ReadableStreamMethods, ReadableWritablePair, StreamPipeOptions,
-};
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
@@ -36,7 +32,7 @@ use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::stream::readablestream::ReadableStream;
+use crate::dom::stream::readablestream::{ReadableStream, pipe_through};
 use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/FileAPI/#dfn-Blob>
@@ -304,18 +300,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             false, // ignoreBOM
         )?;
         // Step 4: Return the result of calling stream, piped through decoder.
-        let pair = ReadableWritablePair {
-            readable: decoder.Readable(),
-            writable: decoder.Writable(),
-        };
-        let options = StreamPipeOptions {
-            preventClose: false,
-            preventAbort: false,
-            preventCancel: false,
-            signal: None,
-        };
-        let mut realm = CurrentRealm::assert(cx);
-        stream.PipeThrough(&mut realm, &pair, &options)
+        Ok(pipe_through(&stream, cx, &self.global(), &decoder))
     }
 
     /// <https://w3c.github.io/FileAPI/#slice-method-algo>
@@ -358,7 +343,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                 Ok(b) => {
                     let (text, _) = UTF_8.decode_with_bom_removal(&b);
                     let text = DOMString::from(text);
-                    promise.resolve_native_with_cx(cx, &text);
+                    promise.resolve_native(cx, &text);
                 },
                 Err(e) => {
                     promise.reject_error(cx, e);
@@ -401,7 +386,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                     CanGc::from_cx(cx),
                 )
                 .expect("Converting input to ArrayBufferU8 should never fail");
-                success_promise.resolve_native_with_cx(cx, &array_buffer);
+                success_promise.resolve_native(cx, &array_buffer);
             }),
             Rc::new(move |cx, value| {
                 failure_promise.reject(cx, value);
@@ -442,7 +427,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                     CanGc::from_cx(cx),
                 )
                 .expect("Converting input to uint8 array should never fail");
-                p_success.resolve_native_with_cx(cx, &arr);
+                p_success.resolve_native(cx, &arr);
             }),
             Rc::new(move |cx, v| {
                 p_failure.reject(cx, v);

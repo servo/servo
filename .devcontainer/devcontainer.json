@@ -6,6 +6,7 @@
 	// Alternatively, uncomment the "build" property below to build the image from the Dockerfile in this folder.
 	// "build": {
 	// 	"dockerfile": "Ubuntu.Dockerfile",
+	// 	"target": "android",
 	// 	"context": ".."
 	// },
 

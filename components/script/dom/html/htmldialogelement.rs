@@ -25,6 +25,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::htmlbuttonelement::{CommandState, HTMLButtonElement};
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::raredata::ToggleEventTracker;
@@ -146,7 +147,13 @@ impl HTMLDialogElement {
 
         // TODO: Step 15. If subject's node document's top layer does not already contain subject, then add an element to the top layer given subject.
 
-        // TODO: Step 16. Set subject's previously focused element to the focused element.
+        // Step 16. Set subject's previously focused element to the focused element.
+        self.upcast::<HTMLElement>().set_previously_focused_element(
+            self.owner_document()
+                .focus_handler()
+                .focused_area()
+                .element(),
+        );
 
         // TODO: Step 17. Let document be subject's node document.
 
@@ -204,7 +211,8 @@ impl HTMLDialogElement {
 
         // TODO: Step 6. If is modal of subject is true, then request an element to be removed from the top layer given subject.
 
-        // TODO: Step 7. Let wasModal be the value of subject's is modal flag.
+        // Step 7. Let wasModal be the value of subject's is modal flag.
+        let was_modal = subject.state().contains(ElementState::MODAL);
 
         // Step 8. Set is modal of subject to false.
         self.upcast::<Element>().set_modal_state(false);
@@ -218,10 +226,29 @@ impl HTMLDialogElement {
 
         // TODO: Step 11. Set subject's request close source element to null.
 
-        // TODO: Step 12. If subject's previously focused element is not null, then:
-        // TODO: Step 12.1. Let element be subject's previously focused element.
-        // TODO: Step 12.2. Set subject's previously focused element to null.
-        // TODO: Step 12.3. If subject's node document's focused area of the document's DOM anchor is a shadow-including inclusive descendant of subject, or wasModal is true, then run the focusing steps for element; the viewport should not be scrolled by doing this step.
+        // Step 12. If subject's previously focused element is not null, then:
+        if let Some(element) = self.upcast::<HTMLElement>().previously_focused_element() {
+            // Step 12.1. Let element be subject's previously focused element.
+            // Step 12.2. Set subject's previously focused element to null.
+            self.upcast::<HTMLElement>()
+                .set_previously_focused_element(None);
+
+            // Step 12.3. If subject's node document's focused area of the document's DOM anchor is
+            // a shadow-including inclusive descendant of subject, or wasModal is true, then run the
+            // focusing steps for element; the viewport should not be scrolled by doing this step.
+            let subject_node = subject.upcast::<Node>();
+            let document = subject.owner_document();
+            if document
+                .focus_handler()
+                .focused_area()
+                .dom_anchor(&document)
+                .traverse_preorder(ShadowIncluding::Yes)
+                .any(|node| &*node == subject_node) ||
+                was_modal
+            {
+                element.upcast::<Node>().run_the_focusing_steps(cx, None);
+            }
+        }
 
         // Step 13. Queue an element task on the user interaction task source given the subject element to fire an event named close at subject.
         let target = self.upcast::<EventTarget>();
@@ -414,7 +441,13 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         element.set_bool_attribute(cx, &local_name!("open"), true);
         element.set_open_state(true);
 
-        // TODO: Step 7. Set this's previously focused element to the focused element.
+        // Step 7. Set this's previously focused element to the focused element.
+        self.upcast::<HTMLElement>().set_previously_focused_element(
+            self.owner_document()
+                .focus_handler()
+                .focused_area()
+                .element(),
+        );
 
         // TODO: Step 8. Let document be this's node document.
 

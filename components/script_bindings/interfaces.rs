@@ -7,7 +7,7 @@ use std::thread::LocalKey;
 
 use js::context::JSContext;
 use js::glue::JSPrincipalsCallbacks;
-use js::jsapi::{CallArgs, HandleObject as RawHandleObject, JSObject};
+use js::jsapi::{CallArgs, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleObject};
 use servo_url::{MutableOrigin, ServoUrl};
@@ -49,8 +49,6 @@ pub trait DomHelpers<D: DomTypes> {
     fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
 
     fn principals_callbacks() -> &'static JSPrincipalsCallbacks;
-
-    fn is_platform_object_same_origin(cx: &CurrentRealm, obj: RawHandleObject) -> bool;
 
     fn interface_map() -> &'static phf::Map<&'static [u8], Interface>;
 

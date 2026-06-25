@@ -3,14 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::MessageChannelBinding::MessageChannelMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct MessageChannel {
@@ -22,15 +22,15 @@ pub(crate) struct MessageChannel {
 impl MessageChannel {
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
     fn new(
+        cx: &mut JSContext,
         incumbent: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<MessageChannel> {
         // Step 1
-        let port1 = MessagePort::new(incumbent, can_gc);
+        let port1 = MessagePort::new(cx, incumbent);
 
         // Step 2
-        let port2 = MessagePort::new(incumbent, can_gc);
+        let port2 = MessagePort::new(cx, incumbent);
 
         incumbent.track_message_port(&port1, None);
         incumbent.track_message_port(&port2, None);
@@ -39,11 +39,11 @@ impl MessageChannel {
         incumbent.entangle_ports(*port1.message_port_id(), *port2.message_port_id());
 
         // Steps 4-6
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(MessageChannel::new_inherited(&port1, &port2)),
             incumbent,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -59,11 +59,11 @@ impl MessageChannel {
 impl MessageChannelMethods<crate::DomTypeHolder> for MessageChannel {
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<MessageChannel> {
-        MessageChannel::new(global, proto, can_gc)
+        MessageChannel::new(cx, global, proto)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel-port1>

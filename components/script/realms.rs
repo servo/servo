@@ -5,7 +5,7 @@
 use js::context::JSContext;
 use js::jsapi::JSAutoRealm;
 use js::realm::AutoRealm;
-pub(crate) use script_bindings::realms::{AlreadyInRealm, InRealm};
+pub(crate) use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
 
 pub(crate) fn enter_realm(object: &impl DomObject) -> JSAutoRealm {

@@ -14,12 +14,15 @@ use serde::{Deserialize, Serialize};
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
+use style::font_face::{
+    ComputedFontStretchRange, ComputedFontStyleDescriptor, ComputedFontWeightRange,
+};
 use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::font::FontWeight;
 use webrender_api::FontVariation;
 
-use crate::{CSSFontFaceDescriptors, ComputedFontStyleDescriptor, FontDescriptor, FontIdentifier};
+use crate::{CSSFontFaceDescriptors, FontDescriptor, FontIdentifier};
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
 #[derive(Clone, Debug, MallocSizeOf)]
@@ -44,8 +47,8 @@ impl Deref for FontTemplateRef {
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
 #[derive(Clone, Debug, Deserialize, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct FontTemplateDescriptor {
-    pub weight: (FontWeight, FontWeight),
-    pub stretch: (FontStretch, FontStretch),
+    pub weight: ComputedFontWeightRange,
+    pub stretch: ComputedFontStretchRange,
     pub style: (FontStyle, FontStyle),
     #[ignore_malloc_size_of = "MallocSizeOf does not yet support RangeInclusive"]
     pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
@@ -65,8 +68,8 @@ impl FontTemplateDescriptor {
     #[inline]
     pub fn new(weight: FontWeight, stretch: FontStretch, style: FontStyle) -> Self {
         Self {
-            weight: (weight, weight),
-            stretch: (stretch, stretch),
+            weight: ComputedFontWeightRange(weight, weight),
+            stretch: ComputedFontStretchRange(stretch, stretch),
             style: (style, style),
             unicode_range: None,
         }
@@ -126,8 +129,8 @@ impl FontTemplateDescriptor {
         &mut self,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
     ) {
-        if let Some(weight) = css_font_template_descriptors.weight {
-            self.weight = weight;
+        if let Some(ref weight) = css_font_template_descriptors.weight {
+            self.weight = weight.clone();
         }
         self.style = match css_font_template_descriptors.style {
             Some(ComputedFontStyleDescriptor::Italic) => (FontStyle::ITALIC, FontStyle::ITALIC),
@@ -137,8 +140,8 @@ impl FontTemplateDescriptor {
             ),
             None => self.style,
         };
-        if let Some(stretch) = css_font_template_descriptors.stretch {
-            self.stretch = stretch;
+        if let Some(ref stretch) = css_font_template_descriptors.stretch {
+            self.stretch = stretch.clone();
         }
         if let Some(ref unicode_range) = css_font_template_descriptors.unicode_range {
             self.unicode_range = Some(unicode_range.clone());
@@ -344,13 +347,13 @@ impl FontTemplateRefMethods for FontTemplateRef {
 ///
 /// This implementation is ported from Gecko at:
 /// <https://searchfox.org/mozilla-central/rev/0529464f0d2981347ef581f7521ace8b7af7f7ac/gfx/thebes/gfxFontUtils.h#1217>.
-trait FontMatchDistanceMethod: Sized {
-    fn match_distance(&self, range: &(Self, Self)) -> f32;
+trait FontMatchDistanceMethod<T>: Sized {
+    fn match_distance(&self, range: &T) -> f32;
     fn to_float(&self) -> f32;
 }
 
-impl FontMatchDistanceMethod for FontStretch {
-    fn match_distance(&self, range: &(Self, Self)) -> f32 {
+impl FontMatchDistanceMethod<ComputedFontStretchRange> for FontStretch {
+    fn match_distance(&self, range: &ComputedFontStretchRange) -> f32 {
         // stretch distance ==> [0,2000]
         const REVERSE_DISTANCE: f32 = 1000.0;
 
@@ -383,7 +386,7 @@ impl FontMatchDistanceMethod for FontStretch {
     }
 }
 
-impl FontMatchDistanceMethod for FontWeight {
+impl FontMatchDistanceMethod<ComputedFontWeightRange> for FontWeight {
     // Calculate weight distance with values in the range (0..1000). In general,
     // heavier weights match towards even heavier weights while lighter weights
     // match towards even lighter weights. Target weight values in the range
@@ -395,7 +398,7 @@ impl FontMatchDistanceMethod for FontWeight {
     // weights are farther away than lighter weights. If the target is 5 and the
     // font weight 995, the distance would be 1590 for the same reason.
 
-    fn match_distance(&self, range: &(Self, Self)) -> f32 {
+    fn match_distance(&self, range: &ComputedFontWeightRange) -> f32 {
         // weight distance ==> [0,1600]
         const NOT_WITHIN_CENTRAL_RANGE: f32 = 100.0;
         const REVERSE_DISTANCE: f32 = 600.0;
@@ -445,7 +448,7 @@ impl FontMatchDistanceMethod for FontWeight {
     }
 }
 
-impl FontMatchDistanceMethod for FontStyle {
+impl FontMatchDistanceMethod<(Self, Self)> for FontStyle {
     fn match_distance(&self, range: &(Self, Self)) -> f32 {
         // style distance ==> [0,500]
         let min_style = range.0;

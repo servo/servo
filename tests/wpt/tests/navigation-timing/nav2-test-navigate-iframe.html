@@ -14,12 +14,12 @@ promise_test(async function (t) {
 
   ifr.src="resources/blank_page_green.html";
   await new Promise(resolve => {
-    ifr.onload = function() {
+    ifr.onload = t.step_func(() => {
       assert_equals(ifr.contentWindow.performance.getEntriesByType("navigation").length, 1, "Only one navigation time entry");
       assert_equals(ifr.contentWindow.performance.getEntriesByType("navigation")[0].name, ifr.contentWindow.location.toString(), "navigation name matches the window.location");
       assert_true(ifr.contentWindow.performance.getEntriesByType("navigation")[0].name.endsWith("blank_page_green.html"), "navigation name is blank_page_green.html");
       resolve();
-    }
+    });
   });
 
 
@@ -27,12 +27,12 @@ promise_test(async function (t) {
   ifr.src ="resources/blank_page_yellow.html";
 
   await new Promise(resolve => {
-    ifr.onload = function() {
+    ifr.onload = t.step_func(() => {
       assert_equals(ifr.contentWindow.performance.getEntriesByType("navigation").length, 1, "Only one navigation time entry");
       assert_equals(ifr.contentWindow.performance.getEntriesByType("navigation")[0].name, ifr.contentWindow.location.toString(), "navigation name matches the window.location");
       assert_true(ifr.contentWindow.performance.getEntriesByType("navigation")[0].name.endsWith("blank_page_yellow.html"), "navigation name is blank_page_yellow.html");
       resolve();
-    }
+    });
   });
 }, "navigation.name updated when iframe URL changes");
     </script>

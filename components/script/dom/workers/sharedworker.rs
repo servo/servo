@@ -44,7 +44,6 @@ use crate::dom::sharedworkerglobalscope::{
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
-use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
@@ -371,7 +370,7 @@ impl SharedWorker {
         global: &GlobalScope,
         outside_port: &MessagePort,
     ) -> Fallible<MessagePortImpl> {
-        let inside_port = MessagePort::new(global, CanGc::from_cx(cx));
+        let inside_port = MessagePort::new(cx, global);
         global.track_message_port(&inside_port, None);
         global.entangle_ports(
             *outside_port.message_port_id(),
@@ -445,7 +444,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         let constructor_url = worker_url.url();
 
         // Step 6. Let outsidePort be a new MessagePort in outsideSettings's realm.
-        let outside_port = MessagePort::new(global, CanGc::from_cx(cx));
+        let outside_port = MessagePort::new(cx, global);
         global.track_message_port(&outside_port, None);
 
         // Step 7. Set this's port to outsidePort.

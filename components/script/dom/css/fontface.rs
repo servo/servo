@@ -606,7 +606,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
                             font_face.status.set(FontFaceLoadStatus::Loaded);
                             let old_template = font_face.template.borrow_mut().replace((family_name, template));
                             debug_assert!(old_template.is_none(), "FontFace's template must be intialized only once");
-                            font_face.font_status_promise.resolve_native_with_cx(cx, &font_face);
+                            font_face.font_status_promise.resolve_native(cx, &font_face);
                         }
                     }
 

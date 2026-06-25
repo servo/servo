@@ -40,7 +40,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 use crate::timers::OneshotTimerCallback;
 
@@ -275,10 +275,10 @@ impl EventSourceContext {
         };
         // Steps 4-5
         let event = {
-            let _ac = enter_realm(&*event_source);
+            let mut realm = enter_auto_realm(cx, &*event_source);
+            let cx = &mut realm.current_realm();
             rooted!(&in(cx) let mut data = UndefinedValue());
-            self.data
-                .safe_to_jsval(cx.into(), data.handle_mut(), CanGc::from_cx(cx));
+            self.data.safe_to_jsval(cx, data.handle_mut());
             MessageEvent::new(
                 cx,
                 &event_source.global(),

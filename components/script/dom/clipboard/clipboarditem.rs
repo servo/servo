@@ -61,14 +61,14 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
             );
 
             // 1.3 Resolve p with blobData.
-            self.promise.resolve_native_with_cx(cx, &blob_data);
+            self.promise.resolve_native(cx, &blob_data);
         }
         // 2. If v is a Blob, then follow the below steps:
         else if DomRoot::<Blob>::safe_from_jsval(cx, v, ())
             .is_ok_and(|result| result.get_success_value().is_some())
         {
             // 2.1 Resolve p with v.
-            self.promise.resolve_with_cx(cx, v);
+            self.promise.resolve(cx, v);
         }
     }
 }

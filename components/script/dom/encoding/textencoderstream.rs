@@ -277,7 +277,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     )
     .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    chunk.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+    chunk.safe_to_jsval(cx, rval.handle_mut());
     // Step 4.2.2.2 Enqueue chunk into encoder’s transform.
     controller.enqueue(cx, global, rval.handle())?;
     Ok(())
@@ -303,7 +303,7 @@ pub(crate) fn encode_and_flush(
         )
         .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
         rooted!(&in(cx) let mut rval = UndefinedValue());
-        chunk.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+        chunk.safe_to_jsval(cx, rval.handle_mut());
         // Step 1.2 Enqueue chunk into encoder’s transform.
         return controller.enqueue(cx, global, rval.handle());
     }
@@ -344,7 +344,7 @@ impl TextEncoderStream {
         let transformer_type = TransformerType::Encoder(encoder);
 
         // Step 4. Let transformStream be a new TransformStream.
-        let transform = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
+        let transform = TransformStream::new_with_proto(cx, global, None);
         // Step 5. Set up transformStream with transformAlgorithm set to transformAlgorithm
         //      and flushAlgorithm set to flushAlgorithm.
         transform.set_up(cx, global, transformer_type)?;

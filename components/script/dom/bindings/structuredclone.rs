@@ -64,7 +64,6 @@ use crate::dom::types::{
     QuotaExceededError, TransformStream,
 };
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
 // TODO: Determine for sure which value Min and Max should have.
@@ -738,7 +737,7 @@ pub(crate) fn write(
     unsafe {
         rooted!(&in(cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {
-            transfer.safe_to_jsval(cx.into(), val.handle_mut(), CanGc::from_cx(cx));
+            transfer.safe_to_jsval(cx, val.handle_mut());
         }
         let mut sc_writer = StructuredDataWriter::default();
         let sc_writer_ptr = &mut sc_writer as *mut _;

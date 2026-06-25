@@ -817,63 +817,6 @@ macro_rules! window_event_handlers(
     );
 );
 
-/// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
-macro_rules! impl_performance_entry_struct(
-    ($binding:ident, $struct:ident, $type:path,
-        { $( $(#[$attr:meta])* $field_name:ident : $field_type:ty, ),* } // Arguments
-    ) => (
-        use servo_base::cross_process_instant::CrossProcessInstant;
-        use time::Duration;
-
-        use script_bindings::reflector::reflect_dom_object;
-        use crate::dom::bindings::root::DomRoot;
-        use crate::dom::bindings::str::DOMString;
-        use crate::dom::globalscope::GlobalScope;
-        use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
-        use crate::script_runtime::CanGc;
-        use dom_struct::dom_struct;
-
-        #[dom_struct]
-        pub(crate) struct $struct {
-            entry: PerformanceEntry,
-            $( $(#[$attr])* $field_name: $field_type, )*
-        }
-
-        impl $struct {
-            #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-            fn new_inherited(
-                name: DOMString,
-                start_time: CrossProcessInstant,
-                duration: Duration,
-                $( $field_name: $field_type, )* ) -> $struct {
-                $struct {
-                    entry: PerformanceEntry::new_inherited(name,
-                                                           $type,
-                                                           Some(start_time),
-                                                           duration),
-                    $( $field_name: $field_name, )*
-                }
-            }
-
-            #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-            pub(crate) fn new(global: &GlobalScope,
-                       name: DOMString,
-                       start_time: CrossProcessInstant,
-                       duration: Duration,
-                       $( $field_name: $field_type ),*
-                    ) -> DomRoot<$struct> {
-                let entry = $struct::new_inherited(
-                    name,
-                    start_time,
-                    duration,
-                    $( $field_name, )*
-                );
-                reflect_dom_object(Box::new(entry), global, CanGc::deprecated_note())
-            }
-        }
-    );
-);
-
 macro_rules! handle_potential_webgl_error {
     ($context:expr, $call:expr, $return_on_error:expr) => {
         match $call {

@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use super::gamepad::Gamepad;
@@ -17,7 +18,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct GamepadEvent {
@@ -39,30 +39,30 @@ impl GamepadEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         gamepad: &Gamepad,
-        can_gc: CanGc,
     ) -> DomRoot<GamepadEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, gamepad, can_gc)
+        Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, gamepad)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         gamepad: &Gamepad,
-        can_gc: CanGc,
     ) -> DomRoot<GamepadEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(GamepadEvent::new_inherited(gamepad)),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = ev.upcast::<Event>();
@@ -72,37 +72,37 @@ impl GamepadEvent {
     }
 
     pub(crate) fn new_with_type(
+        cx: &mut JSContext,
         window: &Window,
         event_type: GamepadEventType,
         gamepad: &Gamepad,
-        can_gc: CanGc,
     ) -> DomRoot<GamepadEvent> {
         let name = match event_type {
             GamepadEventType::Connected => "gamepadconnected",
             GamepadEventType::Disconnected => "gamepaddisconnected",
         };
 
-        GamepadEvent::new(window, name.into(), false, false, gamepad, can_gc)
+        GamepadEvent::new(cx, window, name.into(), false, false, gamepad)
     }
 }
 
 impl GamepadEventMethods<crate::DomTypeHolder> for GamepadEvent {
     /// <https://w3c.github.io/gamepad/#gamepadevent-interface>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &GamepadEventBinding::GamepadEventInit,
     ) -> Fallible<DomRoot<GamepadEvent>> {
         Ok(GamepadEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
             &init.gamepad,
-            can_gc,
         ))
     }
 

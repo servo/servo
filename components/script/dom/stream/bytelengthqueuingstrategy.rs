@@ -5,12 +5,13 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::error::throw_type_error;
 use js::gc::{HandleValue, MutableHandleValue};
-use js::jsapi::{CallArgs, JSContext};
+use js::jsapi::CallArgs;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
@@ -22,7 +23,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::types::GlobalScope;
 use crate::native_fn;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ByteLengthQueuingStrategy {
@@ -39,24 +39,24 @@ impl ByteLengthQueuingStrategy {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         init: f64,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(Self::new_inherited(init)), global, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(Box::new(Self::new_inherited(init)), global, proto, cx)
     }
 }
 
 impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuingStrategy {
     /// <https://streams.spec.whatwg.org/#blqs-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         init: &QueuingStrategyInit,
     ) -> DomRoot<Self> {
-        Self::new(global, proto, init.highWaterMark, can_gc)
+        Self::new(cx, global, proto, init.highWaterMark)
     }
     /// <https://streams.spec.whatwg.org/#blqs-high-water-mark>
     fn HighWaterMark(&self) -> f64 {

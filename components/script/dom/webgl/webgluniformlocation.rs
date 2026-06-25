@@ -4,12 +4,12 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_canvas_traits::webgl::{WebGLContextId, WebGLProgramId};
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct WebGLUniformLocation {
@@ -46,6 +46,7 @@ impl WebGLUniformLocation {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         id: i32,
         context_id: WebGLContextId,
@@ -53,9 +54,8 @@ impl WebGLUniformLocation {
         link_generation: u64,
         size: Option<i32>,
         type_: u32,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(
                 id,
                 context_id,
@@ -65,7 +65,7 @@ impl WebGLUniformLocation {
                 type_,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
