@@ -196,7 +196,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         };
 
         // 5. Perform *initialize a response* given this, init, and bodyWithType.
-        initialize_response(cx, global, body_with_type, init, response)
+        initialize_response(cx, body_with_type, init, response)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-error>
@@ -275,7 +275,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
         // 4. Perform initialize a response given responseObject, init, and (body, "application/json").
         body.content_type = Some("application/json".into());
-        initialize_response(cx, global, Some(body), init, response)
+        initialize_response(cx, Some(body), init, response)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-type>
@@ -410,7 +410,6 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 /// <https://fetch.spec.whatwg.org/#initialize-a-response>
 fn initialize_response(
     cx: &mut js::context::JSContext,
-    global: &GlobalScope,
     body: Option<ExtractedBody>,
     init: &ResponseBinding::ResponseInit,
     response: DomRoot<Response>,
@@ -470,12 +469,8 @@ fn initialize_response(
             )?;
         };
     } else {
-        // Reset FetchResponse to an in-memory stream with empty byte sequence here for
-        // no-init-body case. This is because the Response/Body types here do not hold onto a
-        // fetch Response object.
-        let stream = ReadableStream::new_from_bytes(cx, global, Vec::with_capacity(0))?;
-        response.body_stream.set(Some(&*stream));
-        response.fetch_body_stream.set(Some(&*stream));
+        response.body_stream.set(None);
+        response.fetch_body_stream.set(None);
     }
 
     Ok(response)

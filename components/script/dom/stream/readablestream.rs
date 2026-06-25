@@ -32,6 +32,8 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
 use script_bindings::str::DOMString;
 
 use crate::dom::domexception::{DOMErrorName, DOMException};
+use crate::dom::encoding::textdecoderstream::TextDecoderStream;
+use script_bindings::codegen::GenericBindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
 use script_bindings::conversions::{is_array_like, StringificationBehavior};
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
@@ -2559,8 +2561,7 @@ pub(crate) fn pipe_through(
     source: &ReadableStream,
     cx: &mut JSContext,
     global: &GlobalScope,
-    dest: &WritableStream,
-    readable: DomRoot<ReadableStream>,
+    transform: &TextDecoderStream,
 ) -> DomRoot<ReadableStream> {
     // Step 1. Assert: `! IsReadableStreamLocked(readable)` is false.
 
@@ -2571,7 +2572,10 @@ pub(crate) fn pipe_through(
     // Step 4. Let promise be ! ReadableStreamPipeTo(readable,
     // transform.[[writable]], preventClose, preventAbort, preventCancel, signalArg).
     let promise = source.pipe_to(
-        &mut realm, global, dest, false, // preventClose
+        &mut realm,
+        global,
+        &transform.Writable(),
+        false, // preventClose
         false, // preventAbort
         false, // preventCancel
         None,  // signal
@@ -2580,5 +2584,5 @@ pub(crate) fn pipe_through(
     // Step 5. Set promise.[[PromiseIsHandled]] to true.
     promise.set_promise_is_handled(cx);
     // Step 6. Return transform.[[readable]].
-    readable
+    transform.Readable()
 }
