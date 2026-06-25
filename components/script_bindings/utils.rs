@@ -26,10 +26,12 @@ use js::jsapi::{
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
-    CallOriginalPromiseReject, JS_DefineProperty, JS_ForwardGetPropertyTo, JS_GetPendingException,
-    JS_GetPrototype, JS_HasOwnProperty, JS_HasPropertyById, JS_SetPendingException, JS_SetProperty,
+    CallOriginalPromiseReject, JS_DefineProperty, JS_GetPendingException, JS_HasOwnProperty,
+    JS_SetPendingException, JS_SetProperty,
 };
-use js::rust::wrappers2::{JS_GetProperty, JS_HasProperty};
+use js::rust::wrappers2::{
+    JS_ForwardGetPropertyTo, JS_GetProperty, JS_GetPrototype, JS_HasProperty, JS_HasPropertyById,
+};
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
 };
@@ -120,25 +122,21 @@ pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
 /// Returns false on JSAPI failure.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-/// `found` must point to a valid, non-null bool.
-pub(crate) unsafe fn get_property_on_prototype(
-    cx: *mut JSContext,
+pub(crate) fn get_property_on_prototype(
+    cx: &mut js::context::JSContext,
     proxy: HandleObject,
     receiver: HandleValue,
     id: HandleId,
-    found: *mut bool,
+    found: &mut bool,
     vp: MutableHandleValue,
 ) -> bool {
-    rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-    if !JS_GetPrototype(cx, proxy, proto.handle_mut()) || proto.is_null() {
+    rooted!(&in(cx) let mut proto = ptr::null_mut::<JSObject>());
+    if unsafe { !JS_GetPrototype(cx, proxy, proto.handle_mut()) || proto.is_null() } {
         *found = false;
         return true;
     }
     let mut has_property = false;
-    if !JS_HasPropertyById(cx, proto.handle(), id, &mut has_property) {
+    if unsafe { !JS_HasPropertyById(cx, proto.handle(), id, &mut has_property) } {
         return false;
     }
     *found = has_property;
@@ -146,7 +144,7 @@ pub(crate) unsafe fn get_property_on_prototype(
         return true;
     }
 
-    JS_ForwardGetPropertyTo(cx, proto.handle(), id, receiver, vp)
+    unsafe { JS_ForwardGetPropertyTo(cx, proto.handle(), id, receiver, vp) }
 }
 
 /// Get an array index from the given `jsid`. Returns `None` if the given
@@ -347,21 +345,18 @@ pub fn has_own_property(
 ///
 /// Returns a boolean indicating whether the check succeeded.
 /// If `false` is returned then the value of `found` is unspecified.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-pub unsafe fn has_property_on_prototype(
-    cx: *mut JSContext,
+pub fn has_property_on_prototype(
+    cx: &mut js::context::JSContext,
     proxy: HandleObject,
     id: HandleId,
     found: &mut bool,
 ) -> bool {
-    rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-    if !JS_GetPrototype(cx, proxy, proto.handle_mut()) {
+    rooted!(&in(cx) let mut proto = ptr::null_mut::<JSObject>());
+    if unsafe { !JS_GetPrototype(cx, proxy, proto.handle_mut()) } {
         return false;
     }
     assert!(!proto.is_null());
-    JS_HasPropertyById(cx, proto.handle(), id, found)
+    unsafe { JS_HasPropertyById(cx, proto.handle(), id, found) }
 }
 
 pub trait CallPolicy {
