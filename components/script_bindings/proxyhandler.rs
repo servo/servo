@@ -14,11 +14,11 @@ use js::context::{JSContext, RawJSContext};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::glue::{GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, SetProxyPrivate};
 use js::jsapi::{
-    DOMProxyShadowsResult, GetStaticPrototype, Handle as RawHandle, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, HandleValue as RawHandleValue, HandleValueArray,
-    IsWindowProxy, JSErrNum, JSFunctionSpec, JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS,
-    JSObject, JSPROP_READONLY, JSPropertySpec, JSString,
-    MutableHandleIdVector as RawMutableHandleIdVector,
+    DOMProxyShadowsResult, GetObjectRealmOrNull, GetRealmPrincipals, GetStaticPrototype,
+    Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
+    HandleValue as RawHandleValue, HandleValueArray, IsWindowProxy, JSErrNum, JSFunctionSpec,
+    JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSObject, JSPROP_READONLY, JSPropertySpec,
+    JSString, MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
 };
@@ -41,6 +41,7 @@ use crate::DomTypes;
 use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
+use crate::principals::ServoJSPrincipalsRef;
 use crate::reflector::DomObject;
 use crate::str::DOMString;
 
@@ -587,7 +588,7 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
         let v = Handle::from_raw(v);
         let receiver = Handle::from_raw(receiver);
 
-        if !<D as DomHelpers<D>>::is_platform_object_same_origin(&realm, proxy.into_handle()) {
+        if !is_platform_object_same_origin(&realm, proxy) {
             return cross_origin_set::<D>(&mut realm, proxy, id, v.into_handle(), receiver, result);
         }
 
@@ -635,7 +636,7 @@ pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
     mut proto: MutableHandleObject,
 ) -> bool {
     // > 1. If ! IsPlatformObjectSameOrigin(this) is true, then return ! OrdinaryGetPrototypeOf(this).
-    if <D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy.into_handle()) {
+    if is_platform_object_same_origin(cx, proxy) {
         let mut realm = AutoRealm::new_from_handle(cx, proxy);
         let mut realm = realm.current_realm();
         let global = D::GlobalScope::from_current_realm(&realm);
@@ -835,10 +836,7 @@ pub(crate) fn cross_origin_property_fallback<D: DomTypes>(
 
 // The types will be rooted in the function using them
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-pub(crate) struct JSProxyHandlerOwnPropertyKeysConfig<T>
-where
-    T: DomObject,
-{
+pub(crate) struct JSProxyHandlerOwnPropertyKeysConfig<T: DomObject> {
     pub(crate) indexed_getter_and_length: Option<fn(&T, &mut JSContext) -> u32>,
     pub(crate) cross_origin: Option<&'static CrossOriginProperties>,
     pub(crate) unwrapped_proxy: unsafe fn(RawHandleObject) -> *const T,
@@ -873,14 +871,13 @@ impl<'cx> DerefMut for Realm<'cx> {
 
 #[expect(non_snake_case)]
 /// SAFETY: cx must point to a valid, non-null JS context.
-pub(crate) unsafe fn JSProxyHandlerOwnPropertyKeys<D, T>(
+pub(crate) unsafe fn JSProxyHandlerOwnPropertyKeys<T>(
     config: JSProxyHandlerOwnPropertyKeysConfig<T>,
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     props: RawMutableHandleIdVector,
 ) -> bool
 where
-    D: DomTypes,
     T: DomObject,
 {
     unsafe {
@@ -893,7 +890,7 @@ where
         let proxy = Handle::from_raw(proxy);
 
         let mut cx = if let Some(cross_origin_properties) = config.cross_origin {
-            if !<D as DomHelpers<D>>::is_platform_object_same_origin(current_realm, proxy.into()) {
+            if !is_platform_object_same_origin(current_realm, proxy) {
                 return cross_origin_own_property_keys(
                     current_realm,
                     proxy,
@@ -960,14 +957,13 @@ pub(crate) struct JSProxyHandlerOwnEnumerablePropertyKeysConfig<T: DomObject> {
 }
 
 #[expect(non_snake_case)]
-pub(crate) fn JSProxyHandlerGetOwnEnumerablePropertyKeys<T, D>(
+pub(crate) fn JSProxyHandlerGetOwnEnumerablePropertyKeys<T>(
     config: JSProxyHandlerOwnEnumerablePropertyKeysConfig<T>,
     cx: *mut RawJSContext,
     proxy: RawHandleObject,
     props: RawMutableHandleIdVector,
 ) -> bool
 where
-    D: DomTypes,
     T: DomObject,
 {
     unsafe {
@@ -980,7 +976,7 @@ where
         let proxy = Handle::from_raw(proxy);
 
         let mut cx = if config.cross_origin {
-            if !<D as DomHelpers<D>>::is_platform_object_same_origin(current_realm, proxy.into()) {
+            if !is_platform_object_same_origin(current_realm, proxy) {
                 // There are no enumerable cross-origin props, so we're done.
                 return true;
             }
@@ -1015,4 +1011,36 @@ where
     }
 
     true
+}
+
+/// <https://html.spec.whatwg.org/multipage/#isplatformobjectsameorigin-(-o-)>
+pub(crate) fn is_platform_object_same_origin(realm: &CurrentRealm, obj: HandleObject) -> bool {
+    let subject_realm = realm.realm().as_ptr();
+    let obj_realm = unsafe { GetObjectRealmOrNull(*obj) };
+    assert!(!obj_realm.is_null());
+
+    let subject_principals =
+        unsafe { ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(subject_realm)) };
+    let obj_principals =
+        unsafe { ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(obj_realm)) };
+
+    let subject_origin = subject_principals.origin();
+    let obj_origin = obj_principals.origin();
+
+    let result = subject_origin.same_origin_domain(&obj_origin);
+    log::trace!(
+        "object {:p} (realm = {:p}, principalls = {:p}, origin = {:?}) is {} \
+        with reference to the current Realm (realm = {:p}, principals = {:p}, \
+        origin = {:?})",
+        obj.get(),
+        obj_realm,
+        obj_principals.as_raw(),
+        obj_origin.immutable(),
+        ["NOT same domain-origin", "same domain-origin"][result as usize],
+        subject_realm,
+        subject_principals.as_raw(),
+        subject_origin.immutable()
+    );
+
+    result
 }

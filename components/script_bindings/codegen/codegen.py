@@ -6313,7 +6313,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             get += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy.into()) {
+                if !is_platform_object_same_origin(cx, proxy) {
                     if !proxyhandler::cross_origin_get_own_property_helper(
                         cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, desc.reborrow(), &mut *is_none
                     ) {
@@ -6438,7 +6438,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             set += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy.into()) {
+                if !is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::report_cross_origin_denial::<D>(cx, id, "define");
                 }
 
@@ -6502,7 +6502,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             set += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy.into()) {
+                if !is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::report_cross_origin_denial::<D>(cx, id, "delete");
                 }
 
@@ -6558,7 +6558,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 cross_origin,
                 unwrapped_proxy: UnwrapProxy::<D>,
             }};
-            crate::proxyhandler::JSProxyHandlerOwnPropertyKeys::<D, _>(config, cx, proxy, props)
+            crate::proxyhandler::JSProxyHandlerOwnPropertyKeys::<_>(config, cx, proxy, props)
         """)
 
 
@@ -6595,7 +6595,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
                 cross_origin: {self.python_bool_to_rust(self.descriptor.isMaybeCrossOriginObject())},
             }};
 
-            crate::proxyhandler::JSProxyHandlerGetOwnEnumerablePropertyKeys::<_,D>(config, cx, proxy, props)
+            crate::proxyhandler::JSProxyHandlerGetOwnEnumerablePropertyKeys::<_>(config, cx, proxy, props)
             """)
 
 
@@ -6621,7 +6621,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             indexed += dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy.into()) {
+                if !is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::cross_origin_has_own(
                         cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, bp
                     );
@@ -6693,7 +6693,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             maybeCrossOriginGet = dedent(
                 """
-                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy.into()) {
+                if !is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::cross_origin_get::<D>(cx, proxy, receiver, id, vp);
                 }
 
