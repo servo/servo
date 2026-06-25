@@ -12,6 +12,7 @@ use js::jsval::NullValue;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMarkOptions;
+use script_bindings::codegen::GenericBindings::PerformanceMarkBinding::PerformanceMarkMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
 use script_bindings::reflector::reflect_dom_object;
@@ -609,7 +610,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     ) -> Fallible<DomRoot<PerformanceMark>> {
         // Step 1. Run the PerformanceMark constructor and let entry be the newly created object.
         let entry =
-            PerformanceMark::new_with_proto(cx, &self.global(), None, mark_name, mark_options)?;
+            PerformanceMark::Constructor(cx, &self.global(), None, mark_name, mark_options)?;
 
         // Step 2. Queue a PerformanceEntry entry.
         // Step 3. Add entry to the performance entry buffer. (This is done in queue_entry itself)
@@ -759,7 +760,6 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             measure_name,
             start_time,
             end_time - start_time,
-            Default::default(),
         );
 
         // Step 9. Set entry’s detail attribute as follows:
