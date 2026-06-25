@@ -81,7 +81,7 @@ egui = "0.34.3"
 egui-file-dialog = "0.13.0"
 egui-winit = { version = "0.34.3", default-features = false }
 egui_glow = "0.34.3"
-elliptic-curve = { version = "=0.14.0-rc.35", features = ["pkcs8"] }
+elliptic-curve = { version = "=0.14.0", features = ["pkcs8"] }
 encoding_rs = { version = "0.8", features = ["serde"] }
 env_filter = "0.1.4"
 env_logger = "0.11"
