@@ -118,7 +118,6 @@ pub(crate) mod module {
     pub(crate) use crate::mem::malloc_size_of_including_raw_self;
     pub(crate) use crate::namespace::NamespaceObjectClass;
     pub(crate) use crate::proxyhandler::{get_expando_object, set_property_descriptor};
-    pub(crate) use crate::realms::{AlreadyInRealm, InRealm};
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::root::{Dom, DomSlice};
     pub(crate) use crate::root::{MaybeUnreflectedDom, Root};

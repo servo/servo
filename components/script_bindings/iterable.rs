@@ -12,6 +12,7 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JS_NewObject};
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 
 use crate::codegen::GenericBindings::IterableIteratorBinding::{
@@ -19,11 +20,10 @@ use crate::codegen::GenericBindings::IterableIteratorBinding::{
 };
 use crate::conversions::IDLInterface;
 use crate::error::Fallible;
-use crate::interfaces::DomHelpers;
-use crate::realms::InRealm;
+use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::{DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector};
 use crate::root::{Dom, DomRoot, Root};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 use crate::trace::{NoTrace, RootedTraceableBox};
 use crate::utils::DOMClass;
 use crate::{DomTypes, JSTraceable};
@@ -93,7 +93,11 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
     IterableIterator<D, T>
 {
     /// Create a new iterator instance for the provided iterable DOM interface.
-    pub(crate) fn new(iterable: &T, type_: IteratorType, realm: InRealm) -> DomRoot<Self> {
+    pub(crate) fn new(
+        realm: &mut CurrentRealm,
+        iterable: &T,
+        type_: IteratorType,
+    ) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),
             type_,
@@ -101,11 +105,8 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
             index: Cell::new(0),
             _marker: NoTrace(PhantomData),
         });
-        <D as DomHelpers<D>>::reflect_dom_object(
-            iterator,
-            &*iterable.global_from_reflector(realm),
-            CanGc::deprecated_note(),
-        )
+        let global = D::GlobalScope::from_current_realm(realm);
+        <D as DomHelpers<D>>::reflect_dom_object_with_cx(realm, iterator, &*global)
     }
 
     /// Return the next value from the iterable object.

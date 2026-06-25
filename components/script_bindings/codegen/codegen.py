@@ -4217,8 +4217,6 @@ class CGCallGenerator(CGThing):
         else:
             if "cx" not in argsPre and needsCx:
                 args.prepend(CGGeneric("SafeJSContext::from_ptr(cx.raw_cx())"))
-            if nativeMethodName in descriptor.inRealmMethods:
-                args.append(CGGeneric("InRealm::already(&AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx.raw_cx())))"))
             if nativeMethodName in descriptor.canGcMethods:
                 args.append(CGGeneric("CanGc::deprecated_note()"))
         if rootType:
@@ -6979,7 +6977,6 @@ class CGInterfaceTrait(CGThing):
                                 cx_no_gc: bool = False,
                                 cx: bool = False,
                                 realm: bool = False,
-                                inRealm: bool = False,
                                 canGc: bool = False,
                                 retval: bool = False
                                 ) -> Iterable[tuple[str, str]]:
@@ -6997,9 +6994,6 @@ class CGInterfaceTrait(CGThing):
 
             if argument:
                 yield "value", argument_type(descriptor, argument)
-
-            if inRealm and not safe_cx:
-                yield "_comp", "InRealm"
 
             if canGc and not safe_cx:
                 yield "_can_gc", "CanGc"
@@ -7028,7 +7022,6 @@ class CGInterfaceTrait(CGThing):
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods,
-                                                     inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
                         rettype = return_type(descriptor, rettype, infallible)
                         yield f"{name}{'_' * idx}", arguments, rettype, m.isStatic()
@@ -7048,7 +7041,6 @@ class CGInterfaceTrait(CGThing):
                                cx_no_gc=name in descriptor.cx_no_gcMethods,
                                cx=name in descriptor.cxMethods or isEventHandlerCallback(m),
                                realm=name in descriptor.realmMethods,
-                               inRealm=name in descriptor.inRealmMethods,
                                canGc=name in descriptor.canGcMethods,
                                retval=True
                            ),
@@ -7069,7 +7061,6 @@ class CGInterfaceTrait(CGThing):
                                    cx_no_gc=name in descriptor.cx_no_gcMethods,
                                    cx=name in descriptor.cxMethods or descriptor.implicitCxSetters or isEventHandlerCallback(m),
                                    realm=name in descriptor.realmMethods,
-                                   inRealm=name in descriptor.inRealmMethods,
                                    canGc=name in descriptor.canGcMethods,
                                    retval=False,
                                ),
@@ -7092,7 +7083,6 @@ class CGInterfaceTrait(CGThing):
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods,
-                                                     inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
 
                         # If this interface 'supports named properties', then we
@@ -7107,7 +7097,6 @@ class CGInterfaceTrait(CGThing):
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods,
-                                                     inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
                     rettype = return_type(descriptor, rettype, infallible)
                     yield name, arguments, rettype, False
@@ -8340,7 +8329,6 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      cx_no_gc: bool = False,
                      cx: bool = False,
                      realm: bool = False,
-                     inRealm: bool = False,
                      canGc: bool = False
                      ) -> Iterator[tuple[str, str]]:
     old_cx = False
@@ -8372,9 +8360,6 @@ def method_arguments(descriptorProvider: DescriptorProvider,
 
     if trailing:
         yield trailing
-
-    if inRealm and not safe_cx:
-        yield "_comp", "InRealm"
 
     if canGc and not safe_cx:
         yield "_can_gc", "CanGc"
@@ -9022,8 +9007,8 @@ class CGIterableMethodGenerator(CGGeneric):
             return
         CGGeneric.__init__(self, fill(
             """
-            let realm = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx.raw_cx()));
-            let result = ${iterClass}::new(this, IteratorType::${itrMethod}, InRealm::already(&realm));
+            let mut realm = CurrentRealm::assert(cx);
+            let result = ${iterClass}::new(&mut realm, this, IteratorType::${itrMethod});
             """,
             iterClass=iteratorNativeType(descriptor, True),
             ifaceName=descriptor.interface.identifier.name,
