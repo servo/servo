@@ -11,6 +11,7 @@ use js::context::JSContext;
 use keyboard_types::Modifiers;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
+use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
@@ -26,7 +27,10 @@ use crate::dom::node::focus::FocusNavigationScopeOwner;
 use crate::dom::types::{
     Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, KeyboardEvent, Window,
 };
-use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
+use crate::dom::{
+    Document, Event, EventBubbles, EventCancelable, Node, NodeTraits, ShadowIncluding,
+    UnbindContext,
+};
 use crate::realms::enter_realm;
 
 /// The kind of focusable area a [`FocusableArea`] is. A [`FocusableArea`] may be click focusable,
@@ -179,6 +183,55 @@ impl DocumentFocusHandler {
         self.focused_area.borrow()
     }
 
+    // From <https://html.spec.whatwg.org/multipage/#selector-focus>
+    // > For the purposes of the CSS :focus pseudo-class, an element has the focus when:
+    // >  - it is not itself a navigable container; and
+    // >  - any of the following are true:
+    // >    - it is one of the elements listed in the current focus chain of the top-level
+    // >      traversable; or
+    // >    - its shadow root shadowRoot is not null and shadowRoot is the root of at least one
+    // >      element that has the focus.
+    //
+    // We are trying to accomplish the last requirement here, by walking up the tree and
+    // marking each shadow host as focused.
+    fn recursively_set_focus_status(element: &Element, new_state: bool) {
+        element.set_focus_state(new_state);
+
+        // From https://drafts.csswg.org/selectors/#the-focus-within-pseudo:
+        // The :focus-within pseudo-class applies to any element (or pseudo-element)
+        // for which the :focus pseudo-class applies...
+        element.set_focus_within_state(new_state);
+
+        let Some(shadow_root) = element.containing_shadow_root() else {
+            // ...as well as to an element (or pseudo-element)
+            // whose descendant in the flat tree
+            // (including non-element nodes, such as text nodes)
+            // matches the conditions for matching :focus.
+            let node = element.upcast::<Node>();
+            for ancestor in node.inclusive_ancestors_in_flat_tree() {
+                if let Some(ancestor_el) = ancestor.downcast::<Element>() {
+                    ancestor_el.set_focus_within_state(new_state);
+                }
+            }
+            return;
+        };
+        Self::recursively_set_focus_status(&shadow_root.Host(), new_state);
+    }
+
+    pub(crate) fn handle_focused_element_unbound(&self, context: &UnbindContext) {
+        let focused_area = self.focused_area.borrow();
+        let Some(focused_element) = focused_area.element() else {
+            return;
+        };
+
+        Self::recursively_set_focus_status(focused_element, false);
+        for ancestor in context.parent.inclusive_ancestors_in_flat_tree() {
+            if let Some(ancestor_el) = ancestor.downcast::<Element>() {
+                ancestor_el.set_focus_within_state(false);
+            }
+        }
+    }
+
     /// Set the element that currently has focus and update the focus state for both the previously
     /// set element (if any) and the new one, as well as the new one. This will not do anything if
     /// the new element is the same as the previous one. Note that this *will not* fire any focus
@@ -188,31 +241,11 @@ impl DocumentFocusHandler {
             return;
         }
 
-        // From <https://html.spec.whatwg.org/multipage/#selector-focus>
-        // > For the purposes of the CSS :focus pseudo-class, an element has the focus when:
-        // >  - it is not itself a navigable container; and
-        // >  - any of the following are true:
-        // >    - it is one of the elements listed in the current focus chain of the top-level
-        // >      traversable; or
-        // >    - its shadow root shadowRoot is not null and shadowRoot is the root of at least one
-        // >      element that has the focus.
-        //
-        // We are trying to accomplish the last requirement here, by walking up the tree and
-        // marking each shadow host as focused.
-        fn recursively_set_focus_status(element: &Element, new_state: bool) {
-            element.set_focus_state(new_state);
-
-            let Some(shadow_root) = element.containing_shadow_root() else {
-                return;
-            };
-            recursively_set_focus_status(&shadow_root.Host(), new_state);
-        }
-
         if let Some(previously_focused_element) = self.focused_area.borrow().element() {
-            recursively_set_focus_status(previously_focused_element, false);
+            Self::recursively_set_focus_status(previously_focused_element, false);
         }
         if let Some(newly_focused_element) = new_focusable_area.element() {
-            recursively_set_focus_status(newly_focused_element, true);
+            Self::recursively_set_focus_status(newly_focused_element, true);
         }
 
         *self.focused_area.borrow_mut() = new_focusable_area;
