@@ -92,6 +92,10 @@ impl<T> WeakRefCell<T> {
     pub(crate) fn upgrade(&self) -> Option<ArcRefCell<T>> {
         self.value.upgrade().map(|value| ArcRefCell { value })
     }
+
+    pub(crate) fn ptr_eq(&self, other: &Self) -> bool {
+        self.value.ptr_eq(&other.value)
+    }
 }
 
 pub(crate) enum RefOrAtomicRef<'a, T> {
