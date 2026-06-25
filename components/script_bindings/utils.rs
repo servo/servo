@@ -209,7 +209,6 @@ pub fn get_array_index_from_id(id: HandleId) -> Option<u32> {
 /// Find the enum equivelent of a string given by `v` in `pairs`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok((None, value))` if there was no matching string.
-#[expect(clippy::result_unit_err)]
 pub(crate) fn find_enum_value<'a, T>(
     cx: &mut JSContext,
     v: HandleValue,
