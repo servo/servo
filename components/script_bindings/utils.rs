@@ -9,10 +9,7 @@ use std::slice;
 
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::Handle;
-use js::glue::{
-    AppendToIdVector, CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, JS_GetReservedSlot,
-    RUST_FUNCTION_VALUE_TO_JITINFO,
-};
+use js::glue::{AppendToIdVector, JS_GetReservedSlot, RUST_FUNCTION_VALUE_TO_JITINFO};
 use js::jsapi::{
     AtomToLinearString, CallArgs, ExceptionStackBehavior, GetLinearStringCharAt,
     GetLinearStringLength, GetNonCCWObjectGlobal, HandleId as RawHandleId,
@@ -30,7 +27,8 @@ use js::rust::wrappers::{
     JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::wrappers2::{
-    JS_ForwardGetPropertyTo, JS_GetProperty, JS_GetPrototype, JS_HasProperty, JS_HasPropertyById,
+    CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, JS_ForwardGetPropertyTo, JS_GetProperty,
+    JS_GetPrototype, JS_HasProperty, JS_HasPropertyById,
 };
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
@@ -221,7 +219,7 @@ pub(crate) fn find_enum_value<'a, T>(
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
 ) -> Result<(Option<&'a T>, DOMString), ()> {
-    match ptr::NonNull::new(unsafe { ToString(cx, v) }) {
+    match NonNull::new(unsafe { ToString(cx, v) }) {
         Some(jsstr) => {
             let search = unsafe { jsstr_to_string(cx, jsstr) }.into();
             Ok((
@@ -433,24 +431,22 @@ pub struct CallPolicyInfo {
 }
 
 unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
-    cx: *mut JSContext,
+    cx: &mut js::context::JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
     CallPolicyInfo {
         lenient_this,
         needs_security_check_on_interface_match,
     }: CallPolicyInfo,
-    call: unsafe extern "C" fn(
+    call: unsafe fn(
         *const JSJitInfo,
-        *mut JSContext,
-        RawHandleObject,
+        &mut js::context::JSContext,
+        HandleObject,
         *mut libc::c_void,
         u32,
         *mut JSVal,
     ) -> bool,
-    can_gc: CanGc,
 ) -> bool {
-    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let args = CallArgs::from_vp(vp, argc);
 
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx.raw_cx_no_gc(), vp));
@@ -535,9 +531,9 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
         // `thisobj` is not a platform object, so the security check is not
         // invoked in this case
-        throw_invalid_this((&mut cx).into(), proto_id);
+        throw_invalid_this(cx.into(), proto_id);
         return if EXCEPTION_TO_REJECTION {
-            exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
+            exception_to_promise(cx.raw_cx(), args.rval(), CanGc::from_cx(cx))
         } else {
             false
         };
@@ -569,9 +565,9 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
                 *vp = UndefinedValue();
                 return true;
             } else {
-                throw_invalid_this((&mut cx).into(), proto_id);
+                throw_invalid_this(cx.into(), proto_id);
                 return if EXCEPTION_TO_REJECTION {
-                    exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
+                    exception_to_promise(cx.raw_cx(), args.rval(), CanGc::from_cx(cx))
                 } else {
                     false
                 };
@@ -582,7 +578,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     // [this_implements_operation == true]
 
     if needs_security_check_on_interface_match {
-        let mut realm = js::realm::CurrentRealm::assert(&mut cx);
+        let mut realm = js::realm::CurrentRealm::assert(cx);
         // [cross_origin_operation == false]
         if is_cross_origin_object::<D>(&mut realm, obj.handle()) &&
             !is_platform_object_same_origin(&realm, obj.handle())
@@ -591,10 +587,10 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
             // Throw a `SecurityError` `DOMException`.
             // FIXME: `Handle<jsid>` could have a default constructor
             //        like `Handle<Value>::null`
-            rooted!(&in(*realm) let mut void_jsid: js::jsapi::jsid);
+            rooted!(&in(*realm) let mut void_jsid: jsid);
             let result = report_cross_origin_denial::<D>(&mut realm, void_jsid.handle(), "call");
             return if EXCEPTION_TO_REJECTION {
-                exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
+                exception_to_promise(cx.raw_cx(), args.rval(), CanGc::from_cx(cx))
             } else {
                 result
             };
@@ -604,14 +600,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
         //  || cross_origin_operation == false && this_class_cross_origin == false]
     }
 
-    call(
-        info,
-        cx.raw_cx(),
-        obj.handle().into(),
-        this as *mut libc::c_void,
-        argc,
-        vp,
-    )
+    call(info, cx, obj.handle(), this as *mut libc::c_void, argc, vp)
 }
 
 /// Generic method of IDL interface.
@@ -628,14 +617,11 @@ pub(crate) unsafe extern "C" fn generic_method<
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<D, EXCEPTION_TO_REJECTION>(
-        cx,
-        argc,
-        vp,
-        Policy::INFO,
-        CallJitMethodOp,
-        CanGc::deprecated_note(),
-    )
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let cx = &mut cx;
+
+    generic_call::<D, EXCEPTION_TO_REJECTION>(cx, argc, vp, Policy::INFO, CallJitMethodOp)
 }
 
 /// Generic getter of IDL interface.
@@ -652,20 +638,17 @@ pub(crate) unsafe extern "C" fn generic_getter<
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<D, EXCEPTION_TO_REJECTION>(
-        cx,
-        argc,
-        vp,
-        Policy::INFO,
-        CallJitGetterOp,
-        CanGc::deprecated_note(),
-    )
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let cx = &mut cx;
+
+    generic_call::<D, EXCEPTION_TO_REJECTION>(cx, argc, vp, Policy::INFO, CallJitGetterOp)
 }
 
-unsafe extern "C" fn call_setter(
+unsafe fn call_setter(
     info: *const JSJitInfo,
-    cx: *mut JSContext,
-    handle: RawHandleObject,
+    cx: &mut js::context::JSContext,
+    handle: HandleObject,
     this: *mut libc::c_void,
     argc: u32,
     vp: *mut JSVal,
@@ -687,14 +670,11 @@ pub(crate) unsafe extern "C" fn generic_setter<D: DomTypes, Policy: CallPolicy>(
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<D, false>(
-        cx,
-        argc,
-        vp,
-        Policy::INFO,
-        call_setter,
-        CanGc::deprecated_note(),
-    )
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let cx = &mut cx;
+
+    generic_call::<D, false>(cx, argc, vp, Policy::INFO, call_setter)
 }
 
 /// <https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300>
