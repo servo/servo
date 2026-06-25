@@ -76,7 +76,14 @@ pub struct AccessibilityTree {
     nodes: FxHashMap<NodeId, ArcRefCell<AccessibilityNode>>,
     /// A map to allow retrieving the [`AccessibilityNode`] which corresponds to a particular DOM
     /// node, if any.
+    ///
+    /// This must be kept in sync with [`Self::id_to_opaque_node`].
     opaque_node_to_id: FxHashMap<OpaqueNode, NodeId>,
+    /// A map to retrieve the `OpaqueNode` corresponding to a particular [`AccessibilityNode`], if
+    /// any.
+    ///
+    /// This must be kept in sync with [`Self::opaque_node_to_id`].
+    id_to_opaque_node: FxHashMap<NodeId, OpaqueNode>,
     /// Sent with each [`accesskit::TreeUpdate`]. This allows this tree to be
     /// [grafted](https://docs.rs/accesskit/latest/accesskit/struct.Node.html#method.tree_id) into
     /// an application's tree.
@@ -131,6 +138,7 @@ impl AccessibilityTree {
         Self {
             nodes: FxHashMap::default(),
             opaque_node_to_id: FxHashMap::default(),
+            id_to_opaque_node: FxHashMap::default(),
             tree_id,
             root_node_id: None,
             embedder_epoch,
@@ -233,9 +241,14 @@ impl AccessibilityTree {
                 _ => None,
             })
         {
-            if let Some(node) = self.nodes.remove(&id) &&
-                let Some(opaque_node) = node.borrow().opaque_node
+            let node = self.nodes.remove(&id);
             {
+                #[cfg(debug_assertions)]
+                let Some(_node) = node else {
+                    panic!("Node for id {id:?} was already removed");
+                };
+            }
+            if let Some(opaque_node) = self.id_to_opaque_node.remove(&id) {
                 self.opaque_node_to_id.remove(&opaque_node);
             }
         }
@@ -263,13 +276,13 @@ impl AccessibilityTree {
         debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
         for (id, change) in update.tree_changes.iter() {
             if change == &TreeChange::Removed {
-                let node = self.assert_node_for_id(id);
-                if let Some(opaque_node) = node.borrow().opaque_node {
-                    assert!(
-                        rooted_nodes.remove(&opaque_node),
-                        "Node removed from accessibility tree wasn't rooted: {node:?}"
-                    );
-                }
+                let Some(&opaque_node) = self.id_to_opaque_node.get(id) else {
+                    panic!("No opaque node found for removed node: id {id:?}");
+                };
+                assert!(
+                    rooted_nodes.remove(&opaque_node),
+                    "Node removed from accessibility tree wasn't rooted: id {id:?}"
+                );
             };
         }
 
@@ -284,8 +297,11 @@ impl AccessibilityTree {
     fn id_for_opaque(&mut self, opaque: OpaqueNode) -> NodeId {
         let id = self.opaque_node_to_id.entry(opaque).or_insert_with(|| {
             static LAST_ID: AtomicU64 = AtomicU64::new(0);
-            LAST_ID.fetch_add(1, atomic::Ordering::SeqCst).into()
+            let id = LAST_ID.fetch_add(1, atomic::Ordering::SeqCst).into();
+            self.id_to_opaque_node.insert(id, opaque);
+            id
         });
+
         *id
     }
 
