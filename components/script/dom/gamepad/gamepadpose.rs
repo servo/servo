@@ -4,14 +4,14 @@
 
 use dom_struct::dom_struct;
 use js::typedarray::{Float32, HeapFloat32Array};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub(crate) struct GamepadPose {
@@ -45,8 +45,11 @@ impl GamepadPose {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<GamepadPose> {
-        reflect_dom_object(Box::new(GamepadPose::new_inherited()), global, can_gc)
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+    ) -> DomRoot<GamepadPose> {
+        reflect_dom_object_with_cx(Box::new(GamepadPose::new_inherited()), global, cx)
     }
 }
 

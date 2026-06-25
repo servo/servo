@@ -2632,7 +2632,7 @@ impl Node {
                             );
                         }
                     } else {
-                        try_upgrade_element(cx, &descendant);
+                        try_upgrade_element(&descendant);
                     }
                 }
             }
@@ -2959,6 +2959,8 @@ impl Node {
                     document.has_trustworthy_ancestor_or_current_origin(),
                     document.custom_element_reaction_stack(),
                     document.creation_sandboxing_flag_set(),
+                    document.pipeline_id(),
+                    document.image_cache(),
                     CanGc::from_cx(cx),
                 );
                 // Step 2. If node’s custom element registry’s is scoped is true,
@@ -2976,7 +2978,7 @@ impl Node {
                 // set registry to document’s effective global custom element registry.
                 let registry =
                     if CustomElementRegistry::is_a_global_element_registry(registry.as_deref()) {
-                        Some(document.custom_element_registry(cx))
+                        document.custom_element_registry()
                     } else {
                         registry
                     };
@@ -2998,7 +3000,7 @@ impl Node {
                     None,
                 );
                 // TODO: Move this into `Element::create`
-                element.set_custom_element_registry(registry);
+                element.set_custom_element_registry(registry.as_deref());
                 DomRoot::upcast::<Node>(element)
             },
         };

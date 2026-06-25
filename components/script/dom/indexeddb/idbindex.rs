@@ -7,7 +7,6 @@ use js::gc::MutableHandleValue;
 use script_bindings::codegen::GenericBindings::IDBIndexBinding::IDBIndexMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::root::DomRoot;
@@ -86,10 +85,10 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
     fn KeyPath(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         match &self.key_path {
             KeyPath::String(string) => {
-                string.safe_to_jsval(cx.into(), retval, CanGc::from_cx(cx));
+                string.safe_to_jsval(cx, retval);
             },
             KeyPath::StringSequence(sequence) => {
-                sequence.safe_to_jsval(cx.into(), retval, CanGc::from_cx(cx));
+                sequence.safe_to_jsval(cx, retval);
             },
         }
     }

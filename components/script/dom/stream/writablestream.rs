@@ -21,7 +21,7 @@ use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
 
@@ -48,7 +48,6 @@ use crate::dom::stream::writablestreamdefaultcontroller::{
 };
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
 
@@ -65,7 +64,7 @@ struct AbortAlgorithmFulfillmentHandler {
 impl Callback for AbortAlgorithmFulfillmentHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // Resolve abortRequest’s promise with undefined.
-        self.abort_request_promise.resolve_native_with_cx(cx, &());
+        self.abort_request_promise.resolve_native(cx, &());
 
         // Perform ! WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream).
         self.stream
@@ -190,15 +189,15 @@ impl WritableStream {
     }
 
     pub(crate) fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<WritableStream> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(WritableStream::new_inherited()),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -871,8 +870,7 @@ impl WritableStream {
 
         // Let sizeAlgorithm be an algorithm that returns 1.
         // Re-ordered because of the need to pass it to `new`.
-        let size_algorithm =
-            extract_size_algorithm(&QueuingStrategy::default(), CanGc::from_cx(cx));
+        let size_algorithm = extract_size_algorithm(cx, &QueuingStrategy::default());
 
         // Note: other algorithms defined in the controller at call site.
 
@@ -980,7 +978,7 @@ pub(crate) fn create_writable_stream(
 
     // Let stream be a new WritableStream.
     // Perform ! InitializeWritableStream(stream).
-    let stream = WritableStream::new_with_proto(global, None, CanGc::from_cx(cx));
+    let stream = WritableStream::new_with_proto(cx, global, None);
 
     // Let controller be a new WritableStreamDefaultController.
     let controller = WritableStreamDefaultController::new(
@@ -1034,10 +1032,10 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         }
 
         // Perform ! InitializeWritableStream(this).
-        let stream = WritableStream::new_with_proto(global, proto, CanGc::from_cx(cx));
+        let stream = WritableStream::new_with_proto(cx, global, proto);
 
         // Let sizeAlgorithm be ! ExtractSizeAlgorithm(strategy).
-        let size_algorithm = extract_size_algorithm(strategy, CanGc::from_cx(cx));
+        let size_algorithm = extract_size_algorithm(cx, strategy);
 
         // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
         let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
@@ -1161,7 +1159,7 @@ impl CrossRealmTransformWritable {
         // If backpressurePromise is not undefined,
         if let Some(promise) = backpressure_promise {
             // Resolve backpressurePromise with undefined.
-            promise.resolve_native_with_cx(cx, &());
+            promise.resolve_native(cx, &());
 
             // Set backpressurePromise to undefined.
             // Done above with `take`.
@@ -1179,7 +1177,7 @@ impl CrossRealmTransformWritable {
         // Let error be a new "DataCloneError" DOMException.
         let error = DOMException::new(cx, global, DOMErrorName::DataCloneError);
         rooted!(&in(cx) let mut rooted_error = UndefinedValue());
-        error.safe_to_jsval(cx.into(), rooted_error.handle_mut(), CanGc::from_cx(cx));
+        error.safe_to_jsval(cx, rooted_error.handle_mut());
 
         // Perform ! CrossRealmTransformSendError(port, error).
         port.cross_realm_transform_send_error(cx, rooted_error.handle());
@@ -1212,18 +1210,18 @@ impl Transferable for WritableStream {
         let cx = &mut realm;
 
         // Step 2. Let port1 be a new MessagePort in the current Realm.
-        let port_1 = MessagePort::new(&global, CanGc::from_cx(cx));
+        let port_1 = MessagePort::new(cx, &global);
         global.track_message_port(&port_1, None);
 
         // Step 3. Let port2 be a new MessagePort in the current Realm.
-        let port_2 = MessagePort::new(&global, CanGc::from_cx(cx));
+        let port_2 = MessagePort::new(cx, &global);
         global.track_message_port(&port_2, None);
 
         // Step 4. Entangle port1 and port2.
         global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
 
         // Step 5. Let readable be a new ReadableStream in the current Realm.
-        let readable = ReadableStream::new_with_proto(&global, None, CanGc::from_cx(cx));
+        let readable = ReadableStream::new_with_proto(cx, &global, None);
 
         // Step 6. Perform ! SetUpCrossRealmTransformReadable(readable, port1).
         readable.setup_cross_realm_transform_readable(cx, &port_1);
@@ -1247,7 +1245,7 @@ impl Transferable for WritableStream {
     ) -> Result<DomRoot<Self>, ()> {
         // Their transfer-receiving steps, given dataHolder and value, are:
         // Note: dataHolder is used in `structuredclone.rs`, and value is created here.
-        let value = WritableStream::new_with_proto(owner, None, CanGc::from_cx(cx));
+        let value = WritableStream::new_with_proto(cx, owner, None);
 
         // Step 1. Let deserializedRecord be !
         // StructuredDeserializeWithTransfer(dataHolder.[[port]], the current

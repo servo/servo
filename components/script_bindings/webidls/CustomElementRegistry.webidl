@@ -18,6 +18,7 @@ interface CustomElementRegistry {
   DOMString? getName(CustomElementConstructor constructor);
   Promise<CustomElementConstructor> whenDefined(DOMString name);
   [CEReactions] undefined upgrade(Node root);
+  [CEReactions, Throws] undefined initialize(Node root);
 };
 
 callback CustomElementConstructor = HTMLElement();

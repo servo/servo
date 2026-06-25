@@ -115,18 +115,27 @@ impl FreeTypeFace {
             return Ok(requested_size);
         }
 
+        let face = self.as_ref();
+        if face.num_fixed_sizes <= 0 || face.available_sizes.is_null() {
+            return Err("No fixed sizes available");
+        }
+
         let requested_size = (requested_size.to_f64_px() * 64.0) as FT_Pos;
-        let get_size_at_index = |index| unsafe {
-            (
-                (*self.as_ref().available_sizes.offset(index as isize)).x_ppem,
-                (*self.as_ref().available_sizes.offset(index as isize)).y_ppem,
-            )
+        let get_size_at_index = |index| {
+            assert!(index < face.num_fixed_sizes);
+            // SAFETY: We checked `available_sizes` is not NULL and that index is in bounds.
+            unsafe {
+                (
+                    (*face.available_sizes.offset(index as isize)).x_ppem,
+                    (*face.available_sizes.offset(index as isize)).y_ppem,
+                )
+            }
         };
 
         let mut best_index = 0;
         let mut best_size = get_size_at_index(0);
         let mut best_dist = best_size.1 - requested_size;
-        for strike_index in 1..self.as_ref().num_fixed_sizes {
+        for strike_index in 1..face.num_fixed_sizes {
             let new_scale = get_size_at_index(strike_index);
             let new_distance = new_scale.1 - requested_size;
 

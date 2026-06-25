@@ -8,7 +8,6 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::time;
 
 use crossbeam_channel::Sender;
-use ipc_channel::ipc::{IpcReceiver, channel};
 use log::{debug, error, warn};
 use ohos_media_sys::avformat::{
     OH_AVFormat, OH_AVFormat_GetFloatValue, OH_AVFormat_GetIntValue, OH_AVFormat_GetLongValue,
@@ -19,6 +18,7 @@ use ohos_media_sys::avplayer_base::{
     OH_PLAYER_SEEK_POSITION, OH_PLAYER_STATE, OH_PLAYER_STATE_CHANGE_REASON,
     OH_PLAYER_VIDEO_HEIGHT, OH_PLAYER_VIDEO_WIDTH, OH_PLAYER_VOLUME,
 };
+use servo_base::generic_channel::{GenericCallback, GenericReceiver, channel};
 use servo_media::{BackendMsg, ClientContextId, MediaInstance, MediaInstanceError};
 use servo_media_player::metadata::Metadata;
 use servo_media_player::video::{self, Buffer, VideoFrame, VideoFrameData};
@@ -64,7 +64,7 @@ pub struct OhosAvPlayer {
     id: usize,
     context_id: ClientContextId,
     player_inner: Arc<Mutex<OhosPlayerInner>>,
-    event_sender: Arc<Mutex<ipc_channel::ipc::IpcSender<servo_media::player::PlayerEvent>>>,
+    event_sender: Arc<Mutex<GenericCallback<servo_media::player::PlayerEvent>>>,
     video_sink: Option<Arc<Mutex<VideoSink>>>,
     backend_chan: Arc<Mutex<mpsc::Sender<BackendMsg>>>,
     last_metadata: Arc<Mutex<Cell<Metadata>>>,
@@ -84,7 +84,7 @@ impl OhosAvPlayer {
     pub fn new(
         id: usize,
         context_id: ClientContextId,
-        sender: ipc_channel::ipc::IpcSender<servo_media::player::PlayerEvent>,
+        sender: GenericCallback<servo_media::player::PlayerEvent>,
         video_renderer: Option<
             std::sync::Arc<std::sync::Mutex<dyn servo_media::player::video::VideoFrameRenderer>>,
         >,
@@ -348,7 +348,7 @@ impl OhosAvPlayer {
 
 struct SeekChannel {
     sender: SeekLock,
-    recv: IpcReceiver<SeekLockMsg>,
+    recv: GenericReceiver<SeekLockMsg>,
 }
 
 impl SeekChannel {
@@ -550,7 +550,7 @@ struct VideoSink {
     video_render:
         std::sync::Arc<std::sync::Mutex<dyn servo_media::player::video::VideoFrameRenderer>>,
     player_inner: Arc<Mutex<OhosPlayerInner>>,
-    event_sender: Arc<Mutex<ipc_channel::ipc::IpcSender<servo_media::player::PlayerEvent>>>,
+    event_sender: Arc<Mutex<GenericCallback<servo_media::player::PlayerEvent>>>,
     thread_send_chan: Cell<Option<Sender<RenderMsg>>>,
 }
 
@@ -565,7 +565,7 @@ impl VideoSink {
             std::sync::Mutex<dyn servo_media::player::video::VideoFrameRenderer>,
         >,
         player_inner: Arc<Mutex<OhosPlayerInner>>,
-        event_sender: Arc<Mutex<ipc_channel::ipc::IpcSender<servo_media::player::PlayerEvent>>>,
+        event_sender: Arc<Mutex<GenericCallback<servo_media::player::PlayerEvent>>>,
     ) -> Self {
         VideoSink {
             video_render,

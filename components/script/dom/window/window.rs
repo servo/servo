@@ -35,8 +35,7 @@ use js::glue::DumpJSStack;
 use js::jsapi::{GCReason, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
 use js::jsval::{NullValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers::JS_DefineProperty;
-use js::rust::wrappers2::JS_GC;
+use js::rust::wrappers2::{JS_DefineProperty, JS_GC};
 use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
     MutableHandleValue,
@@ -79,8 +78,8 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_config::pref;
 use servo_constellation_traits::{
-    LoadData, LoadOrigin, ScreenshotReadinessResponse, ScriptToConstellationChan,
-    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
+    LoadData, LoadOrigin, ScreenshotReadinessResponse, ScriptToConstellationMessage,
+    ScriptToConstellationSender, StructuredSerializedData, WindowSizeType,
 };
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -189,11 +188,12 @@ use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEvent
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
 use crate::realms::{enter_auto_realm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
+use crate::script_runtime::{CanGc, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
+use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
-use crate::timers::{IsInterval, TimerCallback};
+use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 use crate::unminify::unminified_path;
 use crate::webdriver_handlers::{find_node_by_unique_id_in_document, jsval_to_webdriver};
 use crate::{fetch, window_named_properties};
@@ -288,16 +288,11 @@ pub(crate) struct Window {
     layout: RefCell<Box<dyn Layout>>,
     navigator: MutNullableDom<Navigator>,
     crypto: MutNullableDom<Crypto>,
-    #[ignore_malloc_size_of = "ImageCache"]
-    #[no_trace]
-    image_cache: Arc<dyn ImageCache>,
     #[no_trace]
     image_cache_sender: Sender<ImageCacheResponseMessage>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
-    history: MutNullableDom<History>,
-    custom_element_registry: MutNullableDom<CustomElementRegistry>,
     performance: MutNullableDom<Performance>,
     #[no_trace]
     navigation_start: Cell<CrossProcessInstant>,
@@ -576,7 +571,7 @@ impl Window {
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
-        self.image_cache.clone()
+        self.Document().image_cache()
     }
 
     /// This can panic if it is called after the browsing context has been discarded
@@ -944,9 +939,12 @@ impl Window {
 
     #[expect(unsafe_code)]
     pub(crate) fn gc(&self, cx: &mut JSContext) {
-        unsafe {
-            JS_GC(cx, GCReason::API);
-        }
+        unsafe { JS_GC(cx, GCReason::API) };
+    }
+
+    pub(crate) fn with_timers<T>(&self, f: impl FnOnce(&OneshotTimers) -> T) -> T {
+        let document = self.Document();
+        f(document.timers())
     }
 }
 
@@ -1344,7 +1342,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
-    fn SetOpener(&self, cx: SafeJSContext, value: HandleValue) -> ErrorResult {
+    fn SetOpener(&self, cx: &mut JSContext, value: HandleValue) -> ErrorResult {
         // Step 1.
         if value.is_null() {
             if let Some(proxy) = self.window_proxy.get() {
@@ -1352,14 +1350,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             }
             return Ok(());
         }
+
         // Step 2.
         let obj = self.reflector().get_jsobject();
-        unsafe {
-            let result =
-                JS_DefineProperty(*cx, obj, c"opener".as_ptr(), value, JSPROP_ENUMERATE as u32);
+        let result = unsafe {
+            JS_DefineProperty(cx, obj, c"opener".as_ptr(), value, JSPROP_ENUMERATE as u32)
+        };
 
-            if result { Ok(()) } else { Err(Error::JSFailed) }
-        }
+        if result { Ok(()) } else { Err(Error::JSFailed) }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-closed>
@@ -1422,7 +1420,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history>
     fn History(&self, cx: &mut JSContext) -> DomRoot<History> {
-        self.history.or_init(|| History::new(cx, self))
+        self.Document().history(cx)
     }
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
@@ -1432,8 +1430,18 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-customelements>
     fn CustomElements(&self, cx: &mut JSContext) -> DomRoot<CustomElementRegistry> {
-        self.custom_element_registry
-            .or_init(|| CustomElementRegistry::new(cx, self))
+        // Step 1: Assert: this's associated Document's custom element registry is
+        // a CustomElementRegistry object.
+        let document = self.Document();
+        if let Some(registry) = document.custom_element_registry() {
+            return registry;
+        }
+        // A Window's associated Document is always created with
+        // a new CustomElementRegistry object.
+        let registry = CustomElementRegistry::new(cx, self);
+        document.set_custom_element_registry(&registry);
+        // Step 2: Return this's associated Document's custom element registry.
+        registry
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
@@ -2213,12 +2221,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-window-event>
-    fn Event(&self, cx: SafeJSContext, rval: MutableHandleValue) {
+    fn Event(&self, cx: &mut JSContext, rval: MutableHandleValue) {
         if let Some(ref event) = *self.current_event.borrow() {
-            event
-                .reflector()
-                .get_jsobject()
-                .safe_to_jsval(cx, rval, CanGc::deprecated_note());
+            event.reflector().get_jsobject().safe_to_jsval(cx, rval);
         }
     }
 
@@ -2406,23 +2411,10 @@ impl Window {
 
         // Clean up any active promises
         // https://github.com/servo/servo/issues/15318
-        if let Some(custom_elements) = self.custom_element_registry.get() {
-            custom_elements.teardown();
-        }
+        self.Document().teardown_custom_element_registry();
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
-
-        // If this is the currently active pipeline,
-        // nullify the window_proxy.
-        if let Some(proxy) = self.window_proxy.get() {
-            let pipeline_id = self.pipeline_id();
-            if let Some(currently_active) = proxy.currently_active() &&
-                currently_active == pipeline_id
-            {
-                self.window_proxy.set(None);
-            }
-        }
 
         if let Some(performance) = self.performance.get() {
             performance.clear_and_disable_performance_entry_buffer();
@@ -3282,12 +3274,12 @@ impl Window {
         self.gc(cx);
     }
 
-    pub(crate) fn resume(&self, can_gc: CanGc) {
+    pub(crate) fn resume(&self, cx: &mut JSContext) {
         // Resume timer events.
         self.as_global_scope().resume();
 
         // Set the window proxy to be this object.
-        self.window_proxy().set_currently_active(self, can_gc);
+        self.window_proxy().set_currently_active(cx, self);
 
         // Push the document title to `Paint` since we are
         // activating this document due to a navigation.
@@ -3530,6 +3522,7 @@ impl Window {
         pending_svg_element_for_serialization: Vec<UntrustedNodeAddress>,
     ) {
         let pipeline_id = self.pipeline_id();
+        let image_cache = self.image_cache();
         for image in pending_images {
             let id = image.id;
             let node = unsafe { from_untrusted_node_address(image.node) };
@@ -3540,7 +3533,7 @@ impl Window {
                     &node,
                     id,
                     image.is_internal_request,
-                    self.image_cache.clone(),
+                    image_cache.clone(),
                 );
             }
 
@@ -3554,8 +3547,7 @@ impl Window {
                         .pending_layout_image_notification(response);
                 });
 
-                self.image_cache
-                    .add_listener(ImageLoadListener::new(sender, pipeline_id, id));
+                image_cache.add_listener(ImageLoadListener::new(sender, pipeline_id, id));
             }
 
             let nodes = images.entry(id).or_default();
@@ -3573,7 +3565,7 @@ impl Window {
             let mut images = self.pending_images_for_rasterization.borrow_mut();
             if !images.contains_key(&(image.id, image.size)) {
                 let image_cache_sender = self.image_cache_sender.clone();
-                self.image_cache.add_rasterization_complete_listener(
+                image_cache.add_rasterization_complete_listener(
                     pipeline_id,
                     image.id,
                     image.size,
@@ -3660,14 +3652,13 @@ impl Window {
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
         image_cache_sender: Sender<ImageCacheResponseMessage>,
-        image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
         #[cfg(feature = "bluetooth")] bluetooth_thread: GenericSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
-        constellation_chan: ScriptToConstellationChan,
+        script_to_constellation_sender: ScriptToConstellationSender,
         embedder_chan: ScriptToEmbedderChan,
         control_chan: GenericSender<ScriptThreadMessage>,
         pipeline_id: PipelineId,
@@ -3698,11 +3689,10 @@ impl Window {
         let win = Box::new(Self {
             webview_id,
             globalscope: GlobalScope::new_inherited(
-                pipeline_id,
                 devtools_chan,
                 mem_profiler_chan,
                 time_profiler_chan,
-                constellation_chan,
+                script_to_constellation_sender,
                 embedder_chan,
                 resource_threads,
                 storage_threads,
@@ -3719,12 +3709,9 @@ impl Window {
             script_chan,
             layout: RefCell::new(layout),
             image_cache_sender,
-            image_cache,
             navigator: Default::default(),
             crypto: Default::default(),
             location: Default::default(),
-            history: Default::default(),
-            custom_element_registry: Default::default(),
             window_proxy: Default::default(),
             document: Default::default(),
             performance: Default::default(),
@@ -3792,8 +3779,12 @@ impl Window {
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
     }
 
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        self.Document().task_manager()
+    }
+
     pub(crate) fn pipeline_id(&self) -> PipelineId {
-        self.as_global_scope().pipeline_id()
+        self.Document().pipeline_id()
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {

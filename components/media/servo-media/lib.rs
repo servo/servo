@@ -16,9 +16,9 @@ use audio::context::{AudioContext, AudioContextOptions};
 use audio::sink::AudioSinkError;
 use player::audio::AudioRenderer;
 use player::context::PlayerGLContext;
-use player::ipc_channel::ipc::IpcSender;
 use player::video::VideoFrameRenderer;
 use player::{Player, PlayerEvent, StreamType};
+use servo_base::generic_channel::GenericCallback;
 use streams::capture::MediaTrackConstraintSet;
 use streams::device_monitor::MediaDeviceMonitor;
 use streams::registry::MediaStreamId;
@@ -43,7 +43,7 @@ pub trait Backend: Send + Sync {
         &self,
         id: &ClientContextId,
         stream_type: StreamType,
-        sender: IpcSender<PlayerEvent>,
+        sender: GenericCallback<PlayerEvent>,
         video_renderer: Option<Arc<Mutex<dyn VideoFrameRenderer>>>,
         audio_renderer: Option<Arc<Mutex<dyn AudioRenderer>>>,
         gl_context: Box<dyn PlayerGLContext>,

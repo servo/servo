@@ -14,7 +14,7 @@ name = "servo_media_dummy"
 path = "lib.rs"
 
 [dependencies]
-ipc-channel = { workspace = true }
+servo-base = { workspace = true }
 servo-media = { workspace = true }
 servo-media-audio = { workspace = true }
 servo-media-player = { workspace = true }

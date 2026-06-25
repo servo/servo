@@ -147,6 +147,7 @@ impl ScriptWindowProxies {
         );
 
         let window_proxy = WindowProxy::new(
+            cx,
             window,
             browsing_context_id,
             webview_id,

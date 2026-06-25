@@ -5,10 +5,11 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{CallArgs, JSContext};
+use js::context::JSContext;
+use js::jsapi::CallArgs;
 use js::jsval::{Int32Value, JSVal};
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
@@ -18,7 +19,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::types::GlobalScope;
-use crate::script_runtime::CanGc;
 use crate::{native_fn, native_raw_obj_fn};
 
 #[dom_struct]
@@ -36,24 +36,24 @@ impl CountQueuingStrategy {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         init: f64,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(Self::new_inherited(init)), global, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(Box::new(Self::new_inherited(init)), global, proto, cx)
     }
 }
 
 impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy {
     /// <https://streams.spec.whatwg.org/#cqs-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         init: &QueuingStrategyInit,
     ) -> DomRoot<Self> {
-        Self::new(global, proto, init.highWaterMark, can_gc)
+        Self::new(cx, global, proto, init.highWaterMark)
     }
 
     /// <https://streams.spec.whatwg.org/#cqs-high-water-mark>
@@ -62,7 +62,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
     }
 
     /// <https://streams.spec.whatwg.org/#cqs-size>
-    fn GetSize(&self, cx: &mut js::context::JSContext) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, cx: &mut JSContext) -> Fallible<Rc<Function>> {
         let global = self.global();
         // Return this's relevant global object's count queuing strategy
         // size function.
@@ -85,10 +85,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
 }
 
 /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
-pub(crate) fn count_queuing_strategy_size(
-    _cx: &mut js::context::JSContext,
-    args: CallArgs,
-) -> bool {
+pub(crate) fn count_queuing_strategy_size(_cx: &mut JSContext, args: CallArgs) -> bool {
     // Step 1.1. Return 1.
     args.rval().set(Int32Value(1));
     true
@@ -121,15 +118,14 @@ pub(crate) fn extract_high_water_mark(
 ///
 /// <https://streams.spec.whatwg.org/#make-size-algorithm-from-size-function>
 pub(crate) fn extract_size_algorithm(
+    cx: &mut JSContext,
     strategy: &QueuingStrategy,
-    _can_gc: CanGc,
 ) -> Rc<QueuingStrategySize> {
     if strategy.size.is_none() {
-        let cx = GlobalScope::get_cx();
         let fun_obj = native_raw_obj_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);
         #[expect(unsafe_code)]
         unsafe {
-            return QueuingStrategySize::new(cx, fun_obj);
+            return QueuingStrategySize::new(cx.into(), fun_obj);
         };
     }
     strategy.size.as_ref().unwrap().clone()

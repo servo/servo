@@ -665,13 +665,11 @@ impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
         promise: &Rc<Promise>,
     ) {
         match response {
-            Ok(None) | Err(PopError::Lost) => {
-                promise.resolve_native_with_cx(cx, &None::<Option<GPUError>>)
-            },
+            Ok(None) | Err(PopError::Lost) => promise.resolve_native(cx, &None::<Option<GPUError>>),
             Err(PopError::Empty) => promise.reject_error(cx, Error::Operation(None)),
             Ok(Some(error)) => {
                 let error = GPUError::from_error(cx, &self.global(), error);
-                promise.resolve_native_with_cx(cx, &error);
+                promise.resolve_native(cx, &error);
             },
         }
     }
@@ -693,7 +691,7 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                     pipeline.label.into(),
                     self,
                 );
-                promise.resolve_native_with_cx(cx, &gpu_compute_pipeline)
+                promise.resolve_native(cx, &gpu_compute_pipeline)
             },
             Err(webgpu_traits::Error::Validation(msg)) => {
                 let gpu_pipeline_error = GPUPipelineError::new(
@@ -733,7 +731,7 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                     pipeline.label.into(),
                     self,
                 );
-                promise.resolve_native_with_cx(cx, &gpu_pipeline)
+                promise.resolve_native(cx, &gpu_pipeline)
             },
             Err(webgpu_traits::Error::Validation(msg)) => {
                 let pipeline_error = GPUPipelineError::new(

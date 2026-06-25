@@ -126,7 +126,7 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
         if config.has_legacy_unforgeable_members {
             rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
             if config.is_proxy {
-                ensure_expando_object(cx.raw_cx(), obj.handle().into(), expando.handle_mut());
+                ensure_expando_object(cx, obj.handle(), expando.handle_mut());
             }
 
             let copy_fn = if config.is_global {

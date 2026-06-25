@@ -10,7 +10,6 @@ mod media_thread;
 use std::sync::Mutex;
 
 use euclid::default::Size2D;
-use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::{
@@ -18,6 +17,7 @@ use paint_api::{
     WebRenderImageHandlerType,
 };
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
 use servo_config::pref;
 pub use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 
@@ -35,7 +35,7 @@ static WINDOW_GL_CONTEXT: Mutex<WindowGLContext> = Mutex::new(WindowGLContext::i
 #[derive(Debug, Deserialize, Serialize)]
 pub enum GLPlayerMsgForward {
     PlayerId(u64),
-    Lock(IpcSender<(u32, Size2D<i32>, usize)>),
+    Lock(GenericSender<(u32, Size2D<i32>, usize)>),
     Unlock(),
 }
 
@@ -47,7 +47,7 @@ pub enum GLPlayerMsgForward {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum GLPlayerMsg {
     /// Registers an instantiated player in DOM
-    RegisterPlayer(IpcSender<GLPlayerMsgForward>),
+    RegisterPlayer(GenericCallback<GLPlayerMsgForward>),
     /// Unregisters a player's ID
     UnregisterPlayer(u64),
     /// Locks a specific texture from a player. Lock messages are used
@@ -62,7 +62,7 @@ pub enum GLPlayerMsg {
     ///
     /// Currently OpenGL Sync Objects are used to implement the
     /// synchronization mechanism.
-    Lock(u64, IpcSender<(u32, Size2D<i32>, usize)>),
+    Lock(u64, GenericSender<(u32, Size2D<i32>, usize)>),
     /// Unlocks a specific texture from a player. Unlock messages are
     /// used for a correct synchronization with WebRender external
     /// image API.
@@ -88,7 +88,7 @@ pub struct WindowGLContext {
     /// Application's native display
     pub display: NativeDisplay,
     /// A channel to the GLPlayer thread.
-    pub glplayer_thread_sender: Option<IpcSender<GLPlayerMsg>>,
+    pub glplayer_thread_sender: Option<GenericSender<GLPlayerMsg>>,
 }
 
 impl WindowGLContext {
@@ -193,20 +193,20 @@ struct GLPlayerExternalImages {
     // @FIXME(victor): this should be added when GstGLSyncMeta is
     // added
     // webrender_gl: Rc<dyn gl::Gl>,
-    glplayer_channel: IpcSender<GLPlayerMsg>,
+    glplayer_channel: GenericSender<GLPlayerMsg>,
     // Used to avoid creating a new channel on each received WebRender
     // request.
     lock_channel: (
-        IpcSender<(u32, Size2D<i32>, usize)>,
-        IpcReceiver<(u32, Size2D<i32>, usize)>,
+        GenericSender<(u32, Size2D<i32>, usize)>,
+        GenericReceiver<(u32, Size2D<i32>, usize)>,
     ),
 }
 
 impl GLPlayerExternalImages {
-    fn new(sender: IpcSender<GLPlayerMsg>) -> Self {
+    fn new(sender: GenericSender<GLPlayerMsg>) -> Self {
         Self {
             glplayer_channel: sender,
-            lock_channel: channel().unwrap(),
+            lock_channel: generic_channel::channel().unwrap(),
         }
     }
 }

@@ -18,9 +18,8 @@ use script_bindings::codegen::GenericBindings::PermissionStatusBinding::Permissi
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::domstring::DOMString;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::import::base::SafeJSContext;
@@ -69,8 +68,8 @@ impl Geolocation {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
     }
 
     /// <https://www.w3.org/TR/geolocation/#dfn-request-a-position>
@@ -94,9 +93,9 @@ impl Geolocation {
             // Step 3.2. Call back with error passing errorCallback and PERMISSION_DENIED.
             if let Some(error_callback) = error_callback {
                 let position_error = GeolocationPositionError::permission_denied(
+                    cx,
                     &self.global(),
                     DOMString::from("User denied Geolocation".to_string()),
-                    CanGc::from_cx(cx),
                 );
                 error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
             }
@@ -112,9 +111,9 @@ impl Geolocation {
             // Step 4.2. Call back with error passing errorCallback and PERMISSION_DENIED.
             if let Some(error_callback) = error_callback {
                 let position_error = GeolocationPositionError::permission_denied(
+                    cx,
                     &self.global(),
                     DOMString::from("Insecure context for Geolocation".to_string()),
-                    CanGc::from_cx(cx),
                 );
                 error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
             }
@@ -143,9 +142,9 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.
             if let Some(error_callback) = error_callback {
                 let position_error = GeolocationPositionError::position_unavailable(
+                    cx,
                     &self.global(),
                     DOMString::from("Document is not fully active".to_string()),
-                    CanGc::from_cx(cx),
                 );
                 error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
             }
@@ -170,9 +169,9 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.
             if let Some(error_callback) = error_callback {
                 let position_error = GeolocationPositionError::position_unavailable(
+                    cx,
                     &self.global(),
                     DOMString::from("Document is not fully active".to_string()),
-                    CanGc::from_cx(cx),
                 );
                 error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
             }

@@ -26,7 +26,7 @@ use pixels::PixelFormat;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::DomObject;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
-use servo_base::id::{PipelineId, WebViewId};
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style_traits::{CSSPixel, SpeculativePainter};
@@ -86,7 +86,6 @@ pub(crate) struct PaintWorkletGlobalScope {
 
 impl PaintWorkletGlobalScope {
     pub(crate) fn new(
-        webview_id: WebViewId,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         inherited_secure_context: Option<bool>,
@@ -100,7 +99,6 @@ impl PaintWorkletGlobalScope {
         );
         let global = Box::new(PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(
-                webview_id,
                 pipeline_id,
                 base_url,
                 inherited_secure_context,
@@ -151,9 +149,9 @@ impl PaintWorkletGlobalScope {
                 } else {
                     debug!("Cache miss on paint worklet {}!", name);
                     let map = StylePropertyMapReadOnly::from_iter(
+                        cx,
                         self.upcast(),
                         properties.iter().cloned(),
-                        CanGc::from_cx(cx),
                     );
                     let result = self.draw_a_paint_image(
                         cx,
@@ -183,9 +181,9 @@ impl PaintWorkletGlobalScope {
                     let size = self.cached_size.get();
                     let device_pixel_ratio = self.cached_device_pixel_ratio.get();
                     let map = StylePropertyMapReadOnly::from_iter(
+                        cx,
                         self.upcast(),
                         properties.iter().cloned(),
-                        CanGc::from_cx(cx),
                     );
                     let result = self.draw_a_paint_image(
                         cx,
@@ -332,8 +330,7 @@ impl PaintWorkletGlobalScope {
         debug!("Invoking paint function {}.", name);
         rooted_vec!(let mut arguments_values);
         for argument in arguments {
-            let style_value =
-                CSSStyleValue::new(self.upcast(), argument.clone(), CanGc::from_cx(cx));
+            let style_value = CSSStyleValue::new(cx, self.upcast(), argument.clone());
             arguments_values.push(ObjectValue(style_value.reflector().get_jsobject().get()));
         }
         let arguments_value_array = HandleValueArray::from(&arguments_values);
@@ -576,7 +573,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
         }
 
         // Step 19.
-        let Some(context) = PaintRenderingContext2D::new(self, CanGc::from_cx(cx)) else {
+        let Some(context) = PaintRenderingContext2D::new(cx, self) else {
             return Err(Error::Operation(None));
         };
         let definition = PaintDefinition::new(

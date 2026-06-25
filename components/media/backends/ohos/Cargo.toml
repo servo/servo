@@ -15,13 +15,13 @@ path = "lib.rs"
 
 [dependencies]
 crossbeam-channel = { workspace = true }
-ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 mime = { workspace = true }
 ohos-media-sys = { workspace = true, features = ["api-21"] }
 ohos-sys-opaque-types = { workspace = true }
 ohos-window-sys = { workspace = true, features = ["api-13"] }
+servo-base = { workspace = true }
 servo-media = { workspace = true }
 servo-media-audio = { workspace = true }
 servo-media-player = { workspace = true }

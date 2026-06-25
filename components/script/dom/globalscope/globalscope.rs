@@ -63,12 +63,13 @@ use servo_base::generic_channel;
 use servo_base::generic_channel::{GenericCallback, GenericSend};
 use servo_base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
-    ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
+    ServiceWorkerId, ServiceWorkerRegistrationId, TEST_WEBVIEW_ID, WebViewId,
 };
 use servo_config::pref;
 use servo_constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, ConstellationInterest, FileBlob, MessagePortImpl,
     MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ScriptToConstellationSender,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -112,6 +113,7 @@ use crate::dom::broadcastchannel::BroadcastChannel;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
+use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
@@ -214,9 +216,6 @@ impl Drop for AutoCloseWorker {
 pub(crate) struct GlobalScope {
     eventtarget: EventTarget,
 
-    /// A [`TaskManager`] for this [`GlobalScope`].
-    task_manager: OnceCell<TaskManager>,
-
     /// The message-port router id for this global, if it is managing ports.
     message_port_state: DomRefCell<MessagePortState>,
 
@@ -247,10 +246,6 @@ pub(crate) struct GlobalScope {
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>
     worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>, FxBuildHasher>>,
 
-    /// Pipeline id associated with this global.
-    #[no_trace]
-    pipeline_id: PipelineId,
-
     /// Timers (milliseconds) used by the Console API.
     console_timers: DomRefCell<HashMap<DOMString, Instant>>,
 
@@ -273,7 +268,7 @@ pub(crate) struct GlobalScope {
 
     /// A handle for communicating messages to the constellation thread.
     #[no_trace]
-    script_to_constellation_chan: ScriptToConstellationChan,
+    script_to_constellation_sender: ScriptToConstellationSender,
 
     /// A handle for communicating messages to the Embedder.
     #[no_trace]
@@ -291,10 +286,6 @@ pub(crate) struct GlobalScope {
     /// including indexeddb thread and storage_thread
     #[no_trace]
     storage_threads: StorageThreads,
-
-    /// The mechanism by which time-outs and intervals are scheduled.
-    /// <https://html.spec.whatwg.org/multipage/#timers>
-    timers: OnceCell<OneshotTimers>,
 
     /// The origin of the globalscope
     #[no_trace]
@@ -790,11 +781,10 @@ impl GlobalScope {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
-        pipeline_id: PipelineId,
         devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
-        script_to_constellation_chan: ScriptToConstellationChan,
+        script_to_constellation_sender: ScriptToConstellationSender,
         script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
@@ -807,7 +797,6 @@ impl GlobalScope {
         font_context: Option<Arc<FontContext>>,
     ) -> Self {
         Self {
-            task_manager: Default::default(),
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
             constellation_interest_counts: RefCell::new(HashMap::new()),
@@ -816,19 +805,16 @@ impl GlobalScope {
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
-            pipeline_id,
-
             console_timers: DomRefCell::new(Default::default()),
             module_map: DomRefCell::new(Default::default()),
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
-            script_to_constellation_chan,
+            script_to_constellation_sender,
             script_to_embedder_chan,
             in_error_reporting_mode: Default::default(),
             resource_threads,
             storage_threads,
-            timers: OnceCell::default(),
             origin,
             creation_url: DomRefCell::new(creation_url),
             top_level_creation_url,
@@ -876,8 +862,14 @@ impl GlobalScope {
         false
     }
 
-    fn timers(&self) -> &OneshotTimers {
-        self.timers.get_or_init(|| OneshotTimers::new(self))
+    fn with_timers<T>(&self, f: impl FnOnce(&OneshotTimers) -> T) -> T {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            f(worker.timers())
+        } else if let Some(window) = self.downcast::<Window>() {
+            window.with_timers(f)
+        } else {
+            unreachable!("Unsupported global type retrieving timers")
+        }
     }
 
     pub(crate) fn font_context(&self) -> Option<&Arc<FontContext>> {
@@ -1132,7 +1124,7 @@ impl GlobalScope {
             dom_port.upcast().fire_event(cx, atom!("close"));
         }
 
-        let chan = self.script_to_constellation_chan().clone();
+        let chan = self.script_to_constellation_chan();
         let initiator_port = *initiator_port;
         self.task_manager()
             .port_message_queue()
@@ -2499,8 +2491,12 @@ impl GlobalScope {
     }
 
     /// Get a sender to the constellation thread.
-    pub(crate) fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
-        &self.script_to_constellation_chan
+    pub(crate) fn script_to_constellation_chan(&self) -> ScriptToConstellationChan {
+        ScriptToConstellationChan {
+            sender: self.script_to_constellation_sender.clone(),
+            webview_id: self.webview_id().unwrap_or(TEST_WEBVIEW_ID),
+            pipeline_id: self.pipeline_id(),
+        }
     }
 
     pub(crate) fn script_to_embedder_chan(&self) -> &ScriptToEmbedderChan {
@@ -2513,7 +2509,19 @@ impl GlobalScope {
 
     /// Get the `PipelineId` for this global scope.
     pub(crate) fn pipeline_id(&self) -> PipelineId {
-        self.pipeline_id
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            worker.pipeline_id()
+        } else if let Some(window) = self.downcast::<Window>() {
+            window.pipeline_id()
+        } else if let Some(debugger) = self.downcast::<DebuggerGlobalScope>() {
+            debugger.pipeline_id()
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            worklet.pipeline_id()
+        } else if let Some(dissimilar) = self.downcast::<DissimilarOriginWindow>() {
+            dissimilar.pipeline_id()
+        } else {
+            unreachable!("Unsupported global type for pipeline id")
+        }
     }
 
     /// Register interest in a notification category. Sends a `RegisterInterest`
@@ -2860,7 +2868,7 @@ impl GlobalScope {
                 // Step 7.3. Otherwise, the user agent may report exception to a developer console.
                 if let Some(ref chan) = self.devtools_chan {
                     let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
-                        self.pipeline_id,
+                        self.pipeline_id(),
                         PageError {
                             error_message: error_info.message.clone(),
                             source_name: error_info.filename.clone(),
@@ -2910,17 +2918,14 @@ impl GlobalScope {
     }
 
     /// A reference to the [`TaskManager`] used to schedule tasks for this [`GlobalScope`].
-    pub(crate) fn task_manager(&self) -> &TaskManager {
-        let shared_canceller = self
-            .downcast::<WorkerGlobalScope>()
-            .map(WorkerGlobalScope::shared_task_canceller);
-        self.task_manager.get_or_init(|| {
-            TaskManager::new(
-                self.event_loop_sender(),
-                self.pipeline_id(),
-                shared_canceller,
-            )
-        })
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            worker.task_manager()
+        } else if let Some(window) = self.downcast::<Window>() {
+            window.task_manager()
+        } else {
+            unreachable!("Attempted to use task manager with unsupported global");
+        }
     }
 
     /// Evaluate JS code on this global scope.
@@ -2933,6 +2938,8 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
+        assert!(self.can_run_script());
+
         run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script();
@@ -2974,12 +2981,11 @@ impl GlobalScope {
         callback: OneshotTimerCallback,
         duration: Duration,
     ) -> OneshotTimerHandle {
-        self.timers()
-            .schedule_callback(callback, duration, self.timer_source())
+        self.with_timers(|timers| timers.schedule_callback(callback, duration, self.timer_source()))
     }
 
     pub(crate) fn unschedule_callback(&self, handle: OneshotTimerHandle) {
-        self.timers().unschedule_callback(handle);
+        self.with_timers(|timers| timers.unschedule_callback(handle));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
@@ -2991,39 +2997,41 @@ impl GlobalScope {
         timeout: Duration,
         is_interval: IsInterval,
     ) -> Fallible<i32> {
-        self.timers().set_timeout_or_interval(
-            cx,
-            self,
-            callback,
-            arguments,
-            timeout,
-            is_interval,
-            self.timer_source(),
-        )
+        self.with_timers(|timers| {
+            timers.set_timeout_or_interval(
+                cx,
+                self,
+                callback,
+                arguments,
+                timeout,
+                is_interval,
+                self.timer_source(),
+            )
+        })
     }
 
     pub(crate) fn clear_timeout_or_interval(&self, handle: i32) {
-        self.timers().clear_timeout_or_interval(self, handle);
+        self.with_timers(|timers| timers.clear_timeout_or_interval(self, handle));
     }
 
     pub(crate) fn fire_timer(&self, handle: TimerEventId, cx: &mut js::context::JSContext) {
-        self.timers().fire_timer(handle, self, cx);
+        self.with_timers(|timers| timers.fire_timer(handle, self, cx));
     }
 
     pub(crate) fn resume(&self) {
-        self.timers().resume();
+        self.with_timers(|timers| timers.resume());
     }
 
     pub(crate) fn suspend(&self) {
-        self.timers().suspend();
+        self.with_timers(|timers| timers.suspend());
     }
 
     pub(crate) fn slow_down_timers(&self) {
-        self.timers().slow_down();
+        self.with_timers(|timers| timers.slow_down());
     }
 
     pub(crate) fn speed_up_timers(&self) {
-        self.timers().speed_up();
+        self.with_timers(|timers| timers.speed_up());
     }
 
     fn timer_source(&self) -> TimerSource {
@@ -3515,32 +3523,34 @@ impl GlobalScope {
     where
         F: 'static + FnOnce(&mut js::context::JSContext, &GlobalScope),
     {
-        let timers = self.timers();
-
-        // Step 1. Let timerKey be a new unique internal value.
-        let timer_key = timers.fresh_runsteps_key();
-
-        // Step 2. Let startTime be the current high resolution time given global.
-        let start_time = timers.now_for_runsteps();
-
-        // Step 3. Set global's map of active timers[timerKey] to startTime plus milliseconds.
         let ms = milliseconds.max(0) as u64;
         let delay = std::time::Duration::from_millis(ms);
-        let deadline = start_time + delay;
-        timers.runsteps_set_active(timer_key, deadline);
 
-        // Step 4. Run the following steps in parallel:
-        //   (We schedule a oneshot that will enforce the sub-steps when it fires.)
-        let callback = crate::timers::OneshotTimerCallback::RunStepsAfterTimeout {
-            // Step 1. timerKey
-            timer_key,
-            // Step 4. orderingIdentifier
-            ordering_id: ordering_identifier,
-            // Spec: milliseconds
-            milliseconds: ms,
-            // Step 4.4 Perform completionSteps.
-            completion: Box::new(completion_steps),
-        };
+        let (callback, timer_key) = self.with_timers(|timers| {
+            // Step 1. Let timerKey be a new unique internal value.
+            let timer_key = timers.fresh_runsteps_key();
+
+            // Step 2. Let startTime be the current high resolution time given global.
+            let start_time = timers.now_for_runsteps();
+
+            // Step 3. Set global's map of active timers[timerKey] to startTime plus milliseconds.
+            let deadline = start_time + delay;
+            timers.runsteps_set_active(timer_key, deadline);
+
+            // Step 4. Run the following steps in parallel:
+            //   (We schedule a oneshot that will enforce the sub-steps when it fires.)
+            let callback = crate::timers::OneshotTimerCallback::RunStepsAfterTimeout {
+                // Step 1. timerKey
+                timer_key,
+                // Step 4. orderingIdentifier
+                ordering_id: ordering_identifier,
+                // Spec: milliseconds
+                milliseconds: ms,
+                // Step 4.4 Perform completionSteps.
+                completion: Box::new(completion_steps),
+            };
+            (callback, timer_key)
+        });
         let _ = self.schedule_callback(callback, delay);
 
         // Step 5. Return timerKey.

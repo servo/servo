@@ -56,7 +56,6 @@ use crate::dom::node::Node;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
-use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::timers::OneshotTimerCallback;
 
@@ -1034,8 +1033,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Promise::new_rejected(cx, &self.global(), v)
     }
 
-    fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
-        p.resolve(cx, v, can_gc);
+    fn PromiseResolveNative(&self, cx: &mut JSContext, p: &Promise, v: HandleValue) {
+        p.resolve(cx, v);
     }
 
     fn PromiseRejectNative(&self, cx: &mut JSContext, p: &Promise, v: HandleValue) {
@@ -1046,8 +1045,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         p.reject_error(cx, Error::Type(cformat!("{}", s.0)));
     }
 
-    fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
-        let promise = p.duplicate();
+    fn ResolvePromiseDelayed(&self, cx: &mut JSContext, p: &Promise, value: DOMString, delay: u64) {
+        let promise = p.duplicate(cx);
         let cb = TestBindingCallback {
             promise: TrustedPromise::new(promise),
             value,
@@ -1096,8 +1095,8 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
     }
 
-    fn PromiseAttribute(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        Promise::new_in_current_realm(comp, can_gc)
+    fn PromiseAttribute(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        Promise::new_in_realm(cx)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}

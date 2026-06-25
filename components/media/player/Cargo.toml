@@ -14,9 +14,9 @@ name = "servo_media_player"
 path = "lib.rs"
 
 [dependencies]
-ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+servo-base = { workspace = true }
 servo-media-streams = { workspace = true }
 servo-media-traits = { workspace = true }

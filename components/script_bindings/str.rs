@@ -10,12 +10,12 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::{fmt, ops, slice, str};
 
+use js::context::JSContext;
 use js::gc::{HandleObject, HandleValue};
-use js::rust::wrappers::ToJSON;
+use js::rust::wrappers2::ToJSON;
 
 pub use crate::domstring::DOMString;
 use crate::error::Error;
-use crate::script_runtime::JSContext;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
@@ -155,7 +155,10 @@ pub fn is_token(s: &[u8]) -> bool {
 /// but we generally do not operate on anything that is truly a WTF-16 string.
 ///
 /// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>
-pub fn serialize_jsval_to_json_utf8(cx: JSContext, data: HandleValue) -> Result<DOMString, Error> {
+pub fn serialize_jsval_to_json_utf8(
+    cx: &mut JSContext,
+    data: HandleValue,
+) -> Result<DOMString, Error> {
     #[repr(C)]
     struct ToJSONCallbackData {
         string: Option<String>,
@@ -181,7 +184,7 @@ pub fn serialize_jsval_to_json_utf8(cx: JSContext, data: HandleValue) -> Result<
     // 1. Let result be ? Call(%JSON.stringify%, undefined, « value »).
     unsafe {
         let stringify_result = ToJSON(
-            *cx,
+            cx,
             data,
             HandleObject::null(),
             HandleValue::null(),

@@ -83,8 +83,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{
-    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
-    TEST_WEBVIEW_ID, WebViewId,
+    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId, WebViewId,
 };
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
@@ -617,18 +616,12 @@ impl ScriptThread {
     ///
     /// <https://github.com/whatwg/html/issues/2591>
     fn check_load_origin(source: &LoadOrigin, target: &OriginSnapshot) -> bool {
-        match (source, target.immutable()) {
-            (LoadOrigin::Constellation, _) | (LoadOrigin::WebDriver, _) => {
+        match source {
+            LoadOrigin::Constellation | LoadOrigin::WebDriver => {
                 // Always allow loads initiated by the constellation or webdriver.
                 true
             },
-            (_, ImmutableOrigin::Opaque(_)) => {
-                // If the target is opaque, allow.
-                // This covers newly created about:blank auxiliaries, and iframe with no src.
-                // TODO: https://github.com/servo/servo/issues/22879
-                true
-            },
-            (LoadOrigin::Script(source_origin), _) => source_origin.same_origin_domain(target),
+            LoadOrigin::Script(source_origin) => source_origin.same_origin_domain(target),
         }
     }
 
@@ -796,7 +789,7 @@ impl ScriptThread {
                         mem_profiler_chan: script_thread.senders.memory_profiler_sender.clone(),
                         time_profiler_chan: script_thread.senders.time_profiler_sender.clone(),
                         devtools_chan: script_thread.senders.devtools_server_sender.clone(),
-                        to_constellation_sender: script_thread
+                        script_to_constellation_sender: script_thread
                             .senders
                             .pipeline_to_constellation_sender
                             .clone(),
@@ -971,22 +964,13 @@ impl ScriptThread {
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
-        let debugger_pipeline_id = PipelineId::new();
-        let script_to_constellation_chan = ScriptToConstellationChan {
-            sender: senders.pipeline_to_constellation_sender.clone(),
-            // This channel is not expected to be used, so the `WebViewId` that we set here
-            // does not matter.
-            // TODO: Look at ways of removing the channel entirely for debugger globals.
-            webview_id: TEST_WEBVIEW_ID,
-            pipeline_id: debugger_pipeline_id,
-        };
         let debugger_global = DebuggerGlobalScope::new(
             PipelineId::new(),
             senders.devtools_server_sender.clone(),
             senders.devtools_client_to_script_thread_sender.clone(),
             senders.memory_profiler_sender.clone(),
             senders.time_profiler_sender.clone(),
-            script_to_constellation_chan,
+            senders.pipeline_to_constellation_sender.clone(),
             senders.pipeline_to_embedder_sender.clone(),
             state.resource_threads.clone(),
             state.storage_threads.clone(),
@@ -1930,13 +1914,7 @@ impl ScriptThread {
                 metric_type,
                 metric_value,
                 first_reflow,
-            ) => self.handle_paint_metric(
-                pipeline_id,
-                metric_type,
-                metric_value,
-                first_reflow,
-                CanGc::from_cx(cx),
-            ),
+            ) => self.handle_paint_metric(cx, pipeline_id, metric_type, metric_value, first_reflow),
             ScriptThreadMessage::MediaSessionAction(pipeline_id, action) => {
                 self.handle_media_session_action(cx, pipeline_id, action)
             },
@@ -1975,7 +1953,7 @@ impl ScriptThread {
                 if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
                     window
                         .image_cache()
-                        .fill_key_cache_with_batch_of_keys(image_keys);
+                        .dispatch_fill_key_cache_with_batch_of_keys(image_keys);
                 } else {
                     warn!(
                         "Could not find window corresponding to an image cache to send image keys to pipeline {:?}",
@@ -2118,7 +2096,9 @@ impl ScriptThread {
                 violations,
             )) => {
                 if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
-                    global.report_csp_violations(violations, None, None);
+                    let mut realm = enter_auto_realm(cx, &*global);
+                    let cx = &mut realm.current_realm();
+                    global.run_worker_csp_violation_report_tasks(violations, cx);
                 }
             },
             MainThreadScriptMsg::NavigationResponse {
@@ -3471,7 +3451,6 @@ impl ScriptThread {
             self.layout_factory.create(layout_config),
             font_context,
             self.senders.image_cache_sender.clone(),
-            image_cache.clone(),
             self.resource_threads.clone(),
             self.storage_threads.clone(),
             #[cfg(feature = "bluetooth")]
@@ -3479,7 +3458,7 @@ impl ScriptThread {
             self.senders.memory_profiler_sender.clone(),
             self.senders.time_profiler_sender.clone(),
             self.senders.devtools_server_sender.clone(),
-            script_to_constellation_chan,
+            self.senders.pipeline_to_constellation_sender.clone(),
             self.senders.pipeline_to_embedder_sender.clone(),
             self.senders.constellation_sender.clone(),
             incomplete.pipeline_id,
@@ -3519,26 +3498,6 @@ impl ScriptThread {
 
         let mut realm = enter_auto_realm(cx, &*window);
         let cx = &mut realm;
-
-        // Initialize the browsing context for the window.
-        let window_proxy = self.window_proxies.local_window_proxy(
-            cx,
-            &self.senders,
-            &self.documents,
-            &window,
-            incomplete.browsing_context_id,
-            incomplete.webview_id,
-            incomplete.parent_info,
-            incomplete.opener,
-        );
-        if window_proxy.parent().is_some() {
-            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
-            // The user agent must take this nested browsing context
-            // out of the delaying load events mode
-            // when this navigation algorithm later matures.
-            window_proxy.stop_delaying_load_events_mode();
-        }
-        window.init_window_proxy(&window_proxy);
 
         // https://html.spec.whatwg.org/multipage/#resource-metadata-management
         // > The Document's source file's last modification date and time must be derived from
@@ -3609,6 +3568,8 @@ impl ScriptThread {
             incomplete.load_data.has_trustworthy_ancestor_origin,
             self.custom_element_reaction_stack.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
+            incomplete.pipeline_id,
+            image_cache,
             CanGc::from_cx(cx),
         );
 
@@ -3635,6 +3596,26 @@ impl ScriptThread {
             .insert(incomplete.pipeline_id, &document);
 
         window.init_document(&document);
+
+        // Initialize the browsing context for the window.
+        let window_proxy = self.window_proxies.local_window_proxy(
+            cx,
+            &self.senders,
+            &self.documents,
+            &window,
+            incomplete.browsing_context_id,
+            incomplete.webview_id,
+            incomplete.parent_info,
+            incomplete.opener,
+        );
+        if window_proxy.parent().is_some() {
+            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
+            // The user agent must take this nested browsing context
+            // out of the delaying load events mode
+            // when this navigation algorithm later matures.
+            window_proxy.stop_delaying_load_events_mode();
+        }
+        window.init_window_proxy(&window_proxy);
 
         // For any similar-origin iframe, ensure that the contentWindow/contentDocument
         // APIs resolve to the new window/document as soon as parsing starts.
@@ -3699,7 +3680,7 @@ impl ScriptThread {
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
-            window.resume(CanGc::from_cx(cx));
+            window.resume(cx);
         } else {
             window.suspend(cx);
         }
@@ -4252,15 +4233,15 @@ impl ScriptThread {
 
     fn handle_paint_metric(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         metric_type: ProgressiveWebMetricType,
         metric_value: CrossProcessInstant,
         first_reflow: bool,
-        can_gc: CanGc,
     ) {
         match self.documents.borrow().find_document(pipeline_id) {
             Some(document) => {
-                document.handle_paint_metric(metric_type, metric_value, first_reflow, can_gc)
+                document.handle_paint_metric(cx, metric_type, metric_value, first_reflow)
             },
             None => warn!(
                 "Received paint metric ({metric_type:?}) for unknown document: {pipeline_id:?}"

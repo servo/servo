@@ -150,7 +150,7 @@ impl TrustedPromise {
         let this = self;
         task!(resolve_promise: move |cx| {
             debug!("Resolving promise.");
-            this.root().resolve_native_with_cx(cx, &value);
+            this.root().resolve_native(cx, &value);
         })
     }
 }

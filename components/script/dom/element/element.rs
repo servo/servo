@@ -364,7 +364,7 @@ impl Element {
         self.rare_data.borrow_mut()
     }
 
-    fn ensure_rare_data(&self) -> RefMut<'_, Box<ElementRareData>> {
+    pub(crate) fn ensure_rare_data(&self) -> RefMut<'_, Box<ElementRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {
             *rare_data = Some(Default::default());
@@ -1710,11 +1710,8 @@ impl Element {
         *self.prefix.borrow_mut() = prefix;
     }
 
-    pub(crate) fn set_custom_element_registry(
-        &self,
-        registry: Option<DomRoot<CustomElementRegistry>>,
-    ) {
-        self.ensure_rare_data().custom_element_registry = registry.as_deref().map(Dom::from_ref);
+    pub(crate) fn set_custom_element_registry(&self, registry: Option<&CustomElementRegistry>) {
+        self.ensure_rare_data().custom_element_registry = registry.map(Dom::from_ref);
     }
 
     pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {

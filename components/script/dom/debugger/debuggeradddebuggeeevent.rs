@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, JSObject, Value};
 use js::rust::MutableHandleObject;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{DomObject, reflect_dom_object};
+use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerAddDebuggeeEventBinding::DebuggerAddDebuggeeEventMethods;
@@ -14,7 +15,6 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventM
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::event::Event;
 use crate::dom::types::{GlobalScope, PipelineId};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 /// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
@@ -28,11 +28,11 @@ pub(crate) struct DebuggerAddDebuggeeEvent {
 
 impl DebuggerAddDebuggeeEvent {
     pub(crate) fn new(
+        cx: &mut JSContext,
         debugger_global: &GlobalScope,
         global: &GlobalScope,
         pipeline_id: &PipelineId,
         worker_id: Option<DOMString>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
@@ -40,16 +40,15 @@ impl DebuggerAddDebuggeeEvent {
             pipeline_id: Dom::from_ref(pipeline_id),
             worker_id,
         });
-        let result = reflect_dom_object(result, debugger_global, can_gc);
+        let result = reflect_dom_object_with_cx(result, debugger_global, cx);
         result.event.init_event("addDebuggee".into(), false, false);
 
         // Convert the debuggee global’s reflector to a Value, wrapping it from its originating realm (debuggee realm)
         // into the active realm (debugger realm) so that it can be passed across compartments.
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut wrapped_global: Value);
+        rooted!(&in(cx) let mut wrapped_global: Value);
         global
             .reflector()
-            .safe_to_jsval(cx, wrapped_global.handle_mut(), can_gc);
+            .safe_to_jsval(cx, wrapped_global.handle_mut());
         result.global.set(wrapped_global.to_object());
 
         result

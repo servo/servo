@@ -60,7 +60,7 @@ impl XRTest {
             self.devices_connected
                 .borrow_mut()
                 .push(Dom::from_ref(&device));
-            promise.resolve_native_with_cx(cx, &device);
+            promise.resolve_native(cx, &device);
         } else {
             promise.reject_native(cx, &());
         }
@@ -193,7 +193,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let p = Promise::new_in_realm(cx);
         let mut devices = self.devices_connected.borrow_mut();
         if devices.is_empty() {
-            p.resolve_native_with_cx(cx, &());
+            p.resolve_native(cx, &());
         } else {
             let mut len = devices.len();
 

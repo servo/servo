@@ -222,7 +222,7 @@ fn inner_module_loading(
         // Note: mozjs defaults to the unlinked status.
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
-        state.promise.resolve_native_with_cx(cx, &());
+        state.promise.resolve_native(cx, &());
     }
 
     // Step 6. Return unused.
@@ -356,7 +356,7 @@ fn continue_dynamic_import(
             }
 
             rooted!(&in(cx) let evaluate_promise = rval.to_object());
-            let evaluate_promise = Promise::new_with_js_promise(evaluate_promise.handle(), cx.into());
+            let evaluate_promise = Promise::new_with_js_promise(cx, evaluate_promise.handle());
 
             // d. Let fulfilledClosure be a new Abstract Closure with no parameters that captures
             // module and promiseCapability and performs the following steps when called:
@@ -369,7 +369,7 @@ fn continue_dynamic_import(
                     rooted!(&in(cx) let namespace = ObjectValue(rval.get()));
 
                     // ii. Perform ! Call(promiseCapability.[[Resolve]], undefined, « namespace »).
-                    fulfilled_promise.resolve_with_cx(cx, namespace.handle());
+                    fulfilled_promise.resolve(cx, namespace.handle());
 
                     // iii. Return NormalCompletion(undefined).
             })));

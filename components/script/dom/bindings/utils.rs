@@ -59,9 +59,8 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
 ) {
     script_bindings::conversions::SafeToJSValConvertible::safe_to_jsval(
         convertibles,
-        cx.into(),
+        cx,
         rval.reborrow(),
-        CanGc::from_cx(cx),
     );
 
     rooted!(&in(cx) let obj = rval.to_object());

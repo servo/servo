@@ -23,6 +23,7 @@ num-complex = { workspace = true }
 num-traits = { workspace = true }
 petgraph = { workspace = true, features = ["stable_graph"] }
 serde = { workspace = true, features = ["derive"] }
+servo-base = { workspace = true }
 servo-media-derive = { workspace = true }
 servo-media-player = { workspace = true }
 servo-media-streams = { workspace = true }
