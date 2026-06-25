@@ -4,10 +4,13 @@
 
 use std::sync::Arc;
 
+use fonts::FontContext;
 use net_traits::image_cache::FontResolver;
 use resvg::usvg::{Font, fontdb};
 
-pub struct SvgFontResolver;
+pub struct SvgFontResolver {
+    pub context: Arc<FontContext>,
+}
 
 impl FontResolver for SvgFontResolver {
     fn resolve(&self, _: &Font, _: &mut Arc<fontdb::Database>) -> Option<fontdb::ID> {

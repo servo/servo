@@ -8615,6 +8615,7 @@ dependencies = [
  "servo-default-resources",
  "servo-devtools-traits",
  "servo-embedder-traits",
+ "servo-fonts",
  "servo-hyper-serde",
  "servo-malloc-size-of",
  "servo-net",
