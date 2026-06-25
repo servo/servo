@@ -6,6 +6,8 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
+use std::collections::HashSet;
+
 use net_traits::request::RequestBuilder;
 use net_traits::{BoxedFetchCallback, ResourceThreads, fetch_async};
 use script_bindings::cell::DomRefCell;
@@ -16,7 +18,7 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
 
-#[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum LoadType {
     Image(#[no_trace] ServoUrl),
     Script(#[no_trace] ServoUrl),
@@ -93,7 +95,7 @@ impl Drop for LoadBlocker {
 pub(crate) struct DocumentLoader {
     #[no_trace]
     resource_threads: ResourceThreads,
-    blocking_loads: Vec<LoadType>,
+    blocking_loads: HashSet<LoadType>,
     events_inhibited: bool,
     cancellers: Vec<FetchCanceller>,
 }
@@ -130,7 +132,7 @@ impl DocumentLoader {
             load,
             self.blocking_loads.len()
         );
-        self.blocking_loads.push(load);
+        self.blocking_loads.insert(load);
     }
 
     /// Initiate a new fetch given a response callback.
@@ -165,15 +167,8 @@ impl DocumentLoader {
             load,
             self.blocking_loads.len()
         );
-        let idx = self
-            .blocking_loads
-            .iter()
-            .position(|unfinished| *unfinished == *load);
-        match idx {
-            Some(i) => {
-                self.blocking_loads.remove(i);
-            },
-            None => warn!("unknown completed load {:?}", load),
+        if self.blocking_loads.remove(load) {
+            warn!("unknown completed load {:?}", load)
         }
     }
 
