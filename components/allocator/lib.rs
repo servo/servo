@@ -28,6 +28,11 @@ pub fn dump_unmeasured(_writer: impl std::io::Write) {
     ALLOC.dump_unmeasured_allocations(_writer);
 }
 
+pub struct HeapReport {
+    pub path: &'static str,
+    pub size: Option<usize>,
+}
+
 pub use crate::platform::*;
 
 type EnclosingSizeFn = unsafe extern "C" fn(*const c_void) -> usize;
@@ -55,9 +60,74 @@ pub static enclosing_size: Option<EnclosingSizeFn> = None;
 
 #[cfg(not(any(windows, feature = "use-system-allocator", target_env = "ohos")))]
 mod platform {
+    use std::ffi::CStr;
+    use std::mem::size_of_val;
     use std::os::raw::c_void;
+    use std::ptr;
 
+    use tikv_jemalloc_sys::mallctl;
     pub use tikv_jemallocator::Jemalloc as Allocator;
+
+    pub fn heap_reports() -> Vec<crate::HeapReport> {
+        vec![
+            crate::HeapReport {
+                path: "jemalloc-heap-allocated",
+                size: jemalloc_stat(c"stats.allocated"),
+            },
+            crate::HeapReport {
+                path: "jemalloc-heap-active",
+                size: jemalloc_stat(c"stats.active"),
+            },
+            crate::HeapReport {
+                path: "jemalloc-heap-mapped",
+                size: jemalloc_stat(c"stats.mapped"),
+            },
+        ]
+    }
+
+    fn jemalloc_stat(value_name: &CStr) -> Option<usize> {
+        // Before we request the measurement of interest, we first send an "epoch"
+        // request. Without that jemalloc gives cached statistics(!) which can be
+        // highly inaccurate.
+        let epoch_c_name = c"epoch";
+        let mut epoch: u64 = 0;
+        let epoch_ptr = &raw mut epoch;
+        let mut epoch_len = size_of_val(&epoch);
+
+        let mut value: usize = 0;
+        let value_ptr = &raw mut value;
+        let mut value_len = size_of_val(&value);
+
+        // Using the same values for the `old` and `new` parameters is enough
+        // to get the statistics updated.
+        let rv = unsafe {
+            mallctl(
+                epoch_c_name.as_ptr(),
+                epoch_ptr.cast(),
+                &mut epoch_len,
+                epoch_ptr.cast(),
+                epoch_len,
+            )
+        };
+        if rv != 0 {
+            return None;
+        }
+
+        let rv = unsafe {
+            mallctl(
+                value_name.as_ptr(),
+                value_ptr.cast(),
+                &mut value_len,
+                ptr::null_mut(),
+                0,
+            )
+        };
+        if rv != 0 {
+            return None;
+        }
+
+        Some(value)
+    }
 
     /// Get the size of a heap block.
     ///
@@ -111,6 +181,10 @@ mod platform {
     pub mod libc_compat {
         pub use libc::{free, malloc, realloc};
     }
+
+    pub fn heap_reports() -> Vec<crate::HeapReport> {
+        Vec::new()
+    }
 }
 
 #[cfg(windows)]
@@ -139,5 +213,9 @@ mod platform {
             crate::ALLOC.note_allocation(ptr, size);
             size
         }
+    }
+
+    pub fn heap_reports() -> Vec<crate::HeapReport> {
+        Vec::new()
     }
 }
