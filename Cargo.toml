@@ -75,13 +75,13 @@ data-url = "0.3"
 dirs = "6.0"
 dpi = "0.1"
 dwrote = "0.11.5"
-ecdsa = "=0.17.0-rc.20"
+ecdsa = "=0.17.0-rc.22"
 ed25519-dalek = { version = "=3.0.0-rc.1", features = ["alloc", "pkcs8", "rand_core", "zeroize"] }
 egui = "0.34.3"
 egui-file-dialog = "0.13.0"
 egui-winit = { version = "0.34.3", default-features = false }
 egui_glow = "0.34.3"
-elliptic-curve = { version = "=0.14.0-rc.35", features = ["pkcs8"] }
+elliptic-curve = { version = "0.14", features = ["pkcs8"] }
 encoding_rs = { version = "0.8", features = ["serde"] }
 env_filter = "0.1.4"
 env_logger = "0.11"
@@ -182,9 +182,9 @@ ohos-window-manager-sys = "0.1"
 ohos-window-sys = "0.1.7"
 once_cell = "1.21.4"
 openxr = "0.21"
-p256 = { version = "=0.14.0-rc.12", features = ["ecdh"] }
-p384 = { version = "=0.14.0-rc.12", features = ["ecdh"] }
-p521 = { version = "=0.14.0-rc.12", features = ["ecdh"] }
+p256 = { version = "=0.14.0-rc.14", features = ["ecdh"] }
+p384 = { version = "=0.14.0-rc.14", features = ["ecdh"] }
+p521 = { version = "=0.14.0-rc.14", features = ["ecdh"] }
 parking_lot = { version = "0.12", features = ["serde"] }
 peniko = "0.6"
 percent-encoding = "2.3"
