@@ -19,7 +19,7 @@ use crate::error::Error;
 use crate::realms::InRealm;
 use crate::reflector::{DomObject, DomObjectWrap};
 use crate::root::DomRoot;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::settings_stack::StackEntry;
 use crate::utils::ProtoOrIfaceArray;
 
@@ -55,7 +55,7 @@ pub trait DomHelpers<D: DomTypes> {
     fn push_new_element_queue();
     fn pop_current_element_queue(cx: &mut JSContext);
 
-    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
+    fn reflect_dom_object_with_cx<T, U>(cx: &mut JSContext, obj: Box<T>, global: &U) -> DomRoot<T>
     where
         T: DomObject + DomObjectWrap<D>,
         U: DerivedFrom<D::GlobalScope>;

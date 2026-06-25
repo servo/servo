@@ -15,7 +15,7 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_FreezeObject;
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
 use script_bindings::interfaces::{DomHelpers, Interface};
-use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
+use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_cx};
 use script_bindings::settings_stack::StackEntry;
 
 use crate::DomTypes;
@@ -28,7 +28,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxyHandler;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -170,12 +169,12 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         ScriptThread::custom_element_reaction_stack().pop_current_element_queue(cx)
     }
 
-    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
+    fn reflect_dom_object_with_cx<T, U>(cx: &mut JSContext, obj: Box<T>, global: &U) -> DomRoot<T>
     where
         T: DomObject + DomObjectWrap<crate::DomTypeHolder>,
         U: DerivedFrom<GlobalScope>,
     {
-        reflect_dom_object(obj, global, can_gc)
+        reflect_dom_object_with_cx(obj, global, cx)
     }
 
     fn report_pending_exception(cx: &mut CurrentRealm) {
