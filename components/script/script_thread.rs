@@ -3915,7 +3915,7 @@ impl ScriptThread {
                 self.handle_fetch_eof(cx, pipeline_id, request_id, eof, timing)
             },
             FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
-                self.handle_csp_violations(pipeline_id, request_id, violations)
+                self.handle_csp_violations(cx, pipeline_id, request_id, violations)
             },
             FetchResponseMsg::ProcessRequestBody(..) => {},
         }
@@ -4004,6 +4004,7 @@ impl ScriptThread {
 
     fn handle_csp_violations(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         _request_id: RequestId,
         violations: Vec<Violation>,
@@ -4018,7 +4019,7 @@ impl ScriptThread {
         // We need to report violations for navigations in iframes in the parent page
         let pipeline_id = ctxt.parent_info().unwrap_or(pipeline_id);
         if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
-            global.report_csp_violations(violations, None, None);
+            global.report_csp_violations(cx, violations, None, None);
         }
     }
 

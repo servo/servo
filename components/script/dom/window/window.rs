@@ -957,8 +957,8 @@ struct FontCspHandler {
 impl CspViolationHandler for FontCspHandler {
     fn process_violations(&self, violations: Vec<Violation>) {
         let global = self.global.clone();
-        self.task_source.queue(task!(csp_violation: move || {
-            global.root().report_csp_violations(violations, None, None);
+        self.task_source.queue(task!(csp_violation: move |cx| {
+            global.root().report_csp_violations(cx, violations, None, None);
         }));
     }
 

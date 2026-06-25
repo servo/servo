@@ -1382,6 +1382,7 @@ impl FetchResponseListener for ParserContext {
         // navigationParams's request, navigationParams's response, navigationParams's policy container's CSP list,
         // cspNavigationType, and navigable is "Blocked";
         policy_container.csp_list.should_navigation_response_to_navigation_request_be_blocked(
+            cx,
             window,
             self.url.clone().into_url(),
             &origin.immutable().clone().into_url_origin(),
@@ -1569,7 +1570,7 @@ impl FetchResponseListener for ParserContext {
         }
     }
 
-    fn process_csp_violations(&mut self, _: RequestId, _: Vec<Violation>) {
+    fn process_csp_violations(&mut self, _: &mut JSContext, _: RequestId, _: Vec<Violation>) {
         unreachable!("Script_thread should handle reporting violations for parser contexts");
     }
 }

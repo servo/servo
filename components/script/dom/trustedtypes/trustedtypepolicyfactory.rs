@@ -88,7 +88,7 @@ impl TrustedTypePolicyFactory {
             let policy_names: Vec<&str> = policy_names.iter().map(String::as_ref).collect();
             let allowed_by_csp = global
                 .get_csp_list()
-                .is_trusted_type_policy_creation_allowed(global, &policy_name, &policy_names);
+                .is_trusted_type_policy_creation_allowed(cx, global, &policy_name, &policy_names);
 
             // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
             if !allowed_by_csp {
@@ -324,6 +324,7 @@ impl TrustedTypePolicyFactory {
                 let is_blocked = global
                     .get_csp_list()
                     .should_sink_type_mismatch_violation_be_blocked_by_csp(
+                        cx,
                         global,
                         sink,
                         sink_group,

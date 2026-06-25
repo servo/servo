@@ -15,6 +15,7 @@ use content_security_policy::{
 };
 use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::describe_scripted_caller;
 use log::warn;
@@ -37,23 +38,30 @@ use crate::dom::window::Window;
 use crate::task::TaskOnce;
 
 pub(crate) trait CspReporting {
-    fn is_js_evaluation_allowed(&self, global: &GlobalScope, source: &str) -> bool;
-    fn is_wasm_evaluation_allowed(&self, global: &GlobalScope) -> bool;
+    fn is_js_evaluation_allowed(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        source: &str,
+    ) -> bool;
+    fn is_wasm_evaluation_allowed(&self, cx: &mut JSContext, global: &GlobalScope) -> bool;
     fn should_navigation_request_be_blocked(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         load_data: &mut LoadData,
         element: Option<&Element>,
     ) -> bool;
     fn should_navigation_response_to_navigation_request_be_blocked(
         &self,
+        cx: &mut JSContext,
         window: &Window,
         url: Url,
         self_origin: &url::Origin,
     ) -> bool;
     fn should_elements_inline_type_behavior_be_blocked(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         el: &Element,
         type_: InlineCheckType,
@@ -62,6 +70,7 @@ pub(crate) trait CspReporting {
     ) -> bool;
     fn is_trusted_type_policy_creation_allowed(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         policy_name: &str,
         created_policy_names: &[&str],
@@ -73,6 +82,7 @@ pub(crate) trait CspReporting {
     ) -> bool;
     fn should_sink_type_mismatch_violation_be_blocked_by_csp(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         sink: &str,
         sink_group: &str,
@@ -80,6 +90,7 @@ pub(crate) trait CspReporting {
     ) -> bool;
     fn is_base_allowed_for_document(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         base: &url::Url,
         self_origin: &url::Origin,
@@ -89,27 +100,32 @@ pub(crate) trait CspReporting {
 
 impl CspReporting for Option<CspList> {
     /// <https://www.w3.org/TR/CSP/#can-compile-strings>
-    fn is_js_evaluation_allowed(&self, global: &GlobalScope, source: &str) -> bool {
+    fn is_js_evaluation_allowed(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        source: &str,
+    ) -> bool {
         let Some(csp_list) = self else {
             return true;
         };
 
         let (is_js_evaluation_allowed, violations) = csp_list.is_js_evaluation_allowed(source);
 
-        global.report_csp_violations(violations, None, None);
+        global.report_csp_violations(cx, violations, None, None);
 
         is_js_evaluation_allowed == CheckResult::Allowed
     }
 
     /// <https://www.w3.org/TR/CSP/#can-compile-wasm-bytes>
-    fn is_wasm_evaluation_allowed(&self, global: &GlobalScope) -> bool {
+    fn is_wasm_evaluation_allowed(&self, cx: &mut JSContext, global: &GlobalScope) -> bool {
         let Some(csp_list) = self else {
             return true;
         };
 
         let (is_wasm_evaluation_allowed, violations) = csp_list.is_wasm_evaluation_allowed();
 
-        global.report_csp_violations(violations, None, None);
+        global.report_csp_violations(cx, violations, None, None);
 
         is_wasm_evaluation_allowed == CheckResult::Allowed
     }
@@ -117,7 +133,7 @@ impl CspReporting for Option<CspList> {
     /// <https://www.w3.org/TR/CSP/#should-block-navigation-request>
     fn should_navigation_request_be_blocked(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         load_data: &mut LoadData,
         element: Option<&Element>,
@@ -162,7 +178,7 @@ impl CspReporting for Option<CspList> {
         // In case trusted types processing has changed the Javascript contents
         load_data.url = request.url.into();
 
-        global.report_csp_violations(violations, element, None);
+        global.report_csp_violations(cx, violations, element, None);
 
         result == CheckResult::Blocked
     }
@@ -170,6 +186,7 @@ impl CspReporting for Option<CspList> {
     /// <https://w3c.github.io/webappsec-csp/#should-block-navigation-response>
     fn should_navigation_response_to_navigation_request_be_blocked(
         &self,
+        cx: &mut JSContext,
         window: &Window,
         url: Url,
         self_origin: &url::Origin,
@@ -222,7 +239,7 @@ impl CspReporting for Option<CspList> {
 
         window
             .as_global_scope()
-            .report_csp_violations(violations, None, None);
+            .report_csp_violations(cx, violations, None, None);
 
         is_navigation_response_blocked == CheckResult::Blocked
     }
@@ -230,6 +247,7 @@ impl CspReporting for Option<CspList> {
     /// <https://www.w3.org/TR/CSP/#should-block-inline>
     fn should_elements_inline_type_behavior_be_blocked(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         el: &Element,
         type_: InlineCheckType,
@@ -251,7 +269,7 @@ impl CspReporting for Option<CspList> {
 
         let source_position = el.compute_source_position(current_line.saturating_sub(2).max(1));
 
-        global.report_csp_violations(violations, Some(el), Some(source_position));
+        global.report_csp_violations(cx, violations, Some(el), Some(source_position));
 
         result == CheckResult::Blocked
     }
@@ -259,6 +277,7 @@ impl CspReporting for Option<CspList> {
     /// <https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy>
     fn is_trusted_type_policy_creation_allowed(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         policy_name: &str,
         created_policy_names: &[&str],
@@ -270,7 +289,7 @@ impl CspReporting for Option<CspList> {
         let (allowed_by_csp, violations) =
             csp_list.is_trusted_type_policy_creation_allowed(policy_name, created_policy_names);
 
-        global.report_csp_violations(violations, None, None);
+        global.report_csp_violations(cx, violations, None, None);
 
         allowed_by_csp == CheckResult::Allowed
     }
@@ -291,6 +310,7 @@ impl CspReporting for Option<CspList> {
     /// <https://w3c.github.io/trusted-types/dist/spec/#should-block-sink-type-mismatch>
     fn should_sink_type_mismatch_violation_be_blocked_by_csp(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         sink: &str,
         sink_group: &str,
@@ -303,7 +323,7 @@ impl CspReporting for Option<CspList> {
         let (allowed_by_csp, violations) = csp_list
             .should_sink_type_mismatch_violation_be_blocked_by_csp(sink, sink_group, source);
 
-        global.report_csp_violations(violations, None, None);
+        global.report_csp_violations(cx, violations, None, None);
 
         allowed_by_csp == CheckResult::Blocked
     }
@@ -311,6 +331,7 @@ impl CspReporting for Option<CspList> {
     /// <https://www.w3.org/TR/CSP3/#allow-base-for-document>
     fn is_base_allowed_for_document(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         base: &url::Url,
         self_origin: &url::Origin,
@@ -322,7 +343,7 @@ impl CspReporting for Option<CspList> {
         let (is_base_allowed, violations) =
             csp_list.is_base_allowed_for_document(base, self_origin);
 
-        global.report_csp_violations(violations, None, None);
+        global.report_csp_violations(cx, violations, None, None);
 
         is_base_allowed == CheckResult::Allowed
     }
@@ -351,6 +372,7 @@ pub(crate) struct SourcePosition {
 pub(crate) trait GlobalCspReporting {
     fn report_csp_violations(
         &self,
+        cx: &mut JSContext,
         violations: Vec<Violation>,
         element: Option<&Element>,
         source_position: Option<SourcePosition>,
@@ -358,8 +380,8 @@ pub(crate) trait GlobalCspReporting {
 }
 
 #[expect(unsafe_code)]
-fn compute_scripted_caller_source_position() -> SourcePosition {
-    match unsafe { describe_scripted_caller(*GlobalScope::get_cx()) } {
+fn compute_scripted_caller_source_position(cx: &mut JSContext) -> SourcePosition {
+    match unsafe { describe_scripted_caller(cx.raw_cx()) } {
         Ok(scripted_caller) => SourcePosition {
             source_file: scripted_caller.filename,
             line_number: scripted_caller.line,
@@ -401,6 +423,7 @@ fn obtain_blocked_uri_for_violation_resource_with_sample(
 }
 
 fn csp_violation_report_tasks(
+    cx: &mut JSContext,
     global: &GlobalScope,
     violations: Vec<Violation>,
     element: Option<&Element>,
@@ -410,7 +433,8 @@ fn csp_violation_report_tasks(
         return Vec::new();
     }
     warn!("Reporting CSP violations: {:?}", violations);
-    let source_position = source_position.unwrap_or_else(compute_scripted_caller_source_position);
+    let source_position =
+        source_position.unwrap_or_else(|| compute_scripted_caller_source_position(cx));
     violations
         .into_iter()
         .map(|violation| {
@@ -469,7 +493,7 @@ impl GlobalScope {
         // Worker CSP violations already crossed an event-loop boundary via
         // `CommonScriptMsg::ReportCspViolations`, so run the queued report
         // task here instead of adding another queued task on the owner global.
-        for task in csp_violation_report_tasks(self, violations, None, None) {
+        for task in csp_violation_report_tasks(cx, self, violations, None, None) {
             task.run_once(cx);
         }
     }
@@ -479,12 +503,13 @@ impl GlobalCspReporting for GlobalScope {
     /// <https://www.w3.org/TR/CSP/#report-violation>
     fn report_csp_violations(
         &self,
+        cx: &mut JSContext,
         violations: Vec<Violation>,
         element: Option<&Element>,
         source_position: Option<SourcePosition>,
     ) {
         // Step 3: Queue a task to run the following steps:
-        for task in csp_violation_report_tasks(self, violations, element, source_position) {
+        for task in csp_violation_report_tasks(cx, self, violations, element, source_position) {
             self.task_manager()
                 .dom_manipulation_task_source()
                 .queue(task);

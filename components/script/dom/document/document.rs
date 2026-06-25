@@ -1096,7 +1096,7 @@ impl Document {
     }
 
     /// Refresh the cached first base element in the DOM.
-    pub(crate) fn refresh_base_element(&self) {
+    pub(crate) fn refresh_base_element(&self, cx: &mut JSContext) {
         if let Some(base_element) = self.base_element.get() {
             base_element.clear_frozen_base_url();
         }
@@ -1110,7 +1110,7 @@ impl Document {
                     .has_attribute(&local_name!("href"))
             });
         if let Some(ref new_base_element) = new_base_element {
-            new_base_element.set_frozen_base_url();
+            new_base_element.set_frozen_base_url(cx);
         }
         self.base_element.set(new_base_element.as_deref());
 

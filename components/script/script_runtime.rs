@@ -619,7 +619,9 @@ unsafe extern "C" fn content_security_policy_allows(
                         unsafe { HandleValue::from_raw(body_arg) },
                     )
                 },
-                RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(&global),
+                RuntimeCode::WASM => global
+                    .get_csp_list()
+                    .is_wasm_evaluation_allowed(cx, &global),
             };
     });
     unsafe { *can_compile_strings = allowed };

@@ -492,9 +492,9 @@ struct ReportCSPViolationTask {
 }
 
 impl TaskOnce for ReportCSPViolationTask {
-    fn run_once(self, _cx: &mut js::context::JSContext) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let global = self.websocket.root().global();
-        global.report_csp_violations(self.violations, None, None);
+        global.report_csp_violations(cx, self.violations, None, None);
     }
 }
 

@@ -452,7 +452,7 @@ struct WorkletThreadInit {
 struct WorkletCspProcessor {}
 
 impl CspViolationsProcessor for WorkletCspProcessor {
-    fn process_csp_violations(&self, _violations: Vec<Violation>) {}
+    fn process_csp_violations(&self, _cx: &mut JSContext, _violations: Vec<Violation>) {}
 }
 
 /// A thread for executing worklets.

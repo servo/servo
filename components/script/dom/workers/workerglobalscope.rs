@@ -239,6 +239,7 @@ impl FetchResponseListener for ScriptFetchContext {
 
     fn process_csp_violations(
         &mut self,
+        _cx: &mut JSContext,
         _request_id: RequestId,
         violations: Vec<content_security_policy::Violation>,
     ) {
@@ -1066,7 +1067,7 @@ impl WorkerGlobalScope {
             },
             CommonScriptMsg::ReportCspViolations(_, violations) => {
                 self.upcast::<GlobalScope>()
-                    .report_csp_violations(violations, None, None);
+                    .report_csp_violations(cx, violations, None, None);
             },
         }
         true
@@ -1144,8 +1145,8 @@ struct WorkerCspProcessor {
 }
 
 impl CspViolationsProcessor for WorkerCspProcessor {
-    fn process_csp_violations(&self, violations: Vec<Violation>) {
+    fn process_csp_violations(&self, cx: &mut JSContext, violations: Vec<Violation>) {
         self.global_scope
-            .report_csp_violations(violations, None, None);
+            .report_csp_violations(cx, violations, None, None);
     }
 }

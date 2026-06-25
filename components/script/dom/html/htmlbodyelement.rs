@@ -190,6 +190,7 @@ impl VirtualMethods for HTMLBodyElement {
                             let evtarget = window.upcast::<EventTarget>(); // forwarded event
                             let source_line = 1; // TODO(#9604) obtain current JS execution line
                             evtarget.set_event_handler_uncompiled(
+                                cx,
                                 window.get_url(),
                                 source_line,
                                 &name[2..],

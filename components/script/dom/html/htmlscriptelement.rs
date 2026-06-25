@@ -439,10 +439,15 @@ impl FetchResponseListener for ClassicContext {
         // }
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+    fn process_csp_violations(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _request_id: RequestId,
+        violations: Vec<Violation>,
+    ) {
         let global = &self.resource_timing_global();
         let elem = self.elem.root();
-        global.report_csp_violations(violations, Some(elem.upcast()), None);
+        global.report_csp_violations(cx, violations, Some(elem.upcast()), None);
     }
 }
 
@@ -669,6 +674,7 @@ impl HTMLScriptElement {
             global
                 .get_csp_list()
                 .should_elements_inline_type_behavior_be_blocked(
+                    cx,
                     global,
                     element,
                     InlineCheckType::Script,
