@@ -16,9 +16,9 @@ use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait,
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use net_traits::image_cache::{
-    Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback, ImageCacheResponseMessage,
-    ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
-    RasterizationCompleteResponse, VectorImage,
+    FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback,
+    ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
+    ImageResponse, PendingImageId, RasterizationCompleteResponse, VectorImage,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
@@ -820,6 +820,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         paint_api: &CrossProcessPaintApi,
+        font_resolver: Arc<dyn FontResolver>,
     ) -> Arc<dyn ImageCache> {
         Arc::new(ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {

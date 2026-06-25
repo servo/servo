@@ -175,6 +175,7 @@ pub trait ImageCacheFactory: Sync + Send {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         paint_api: &CrossProcessPaintApi,
+        font_resolver: Arc<dyn FontResolver>,
     ) -> Arc<dyn ImageCache>;
 }
 
