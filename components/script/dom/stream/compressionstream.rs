@@ -18,7 +18,6 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 use js::typedarray::Uint8;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::{
@@ -150,13 +149,8 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     // Step 5. For each Uint8Array array of arrays, enqueue array in cs’s transform.
     // NOTE: We process the result in a single Uint8Array.
     rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let buffer_source = create_buffer_source::<Uint8>(
-        cx.into(),
-        &buffer,
-        js_object.handle_mut(),
-        CanGc::from_cx(cx),
-    )
-    .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
+    let buffer_source = create_buffer_source::<Uint8>(cx, &buffer, js_object.handle_mut())
+        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
     buffer_source.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
@@ -189,13 +183,8 @@ pub(crate) fn compress_flush_and_enqueue(
     // Step 4. For each Uint8Array array of arrays, enqueue array in cs’s transform.
     // NOTE: We process the result in a single Uint8Array.
     rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let buffer_source = create_buffer_source::<Uint8>(
-        cx.into(),
-        &buffer,
-        js_object.handle_mut(),
-        CanGc::from_cx(cx),
-    )
-    .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
+    let buffer_source = create_buffer_source::<Uint8>(cx, &buffer, js_object.handle_mut())
+        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
     buffer_source.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;

@@ -5,6 +5,7 @@
 use std::ptr;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -21,7 +22,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://encoding.spec.whatwg.org/#textencoder>
 #[dom_struct]
@@ -66,16 +67,11 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encode>
-    fn Encode(
-        &self,
-        cx: JSContext,
-        input: USVString,
-        can_gc: CanGc,
-    ) -> RootedTraceableBox<HeapUint8Array> {
+    fn Encode(&self, cx: &mut JSContext, input: USVString) -> RootedTraceableBox<HeapUint8Array> {
         let encoded = input.0.as_bytes();
 
-        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, encoded, js_object.handle_mut(), can_gc)
+        rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
+        create_buffer_source(cx, encoded, js_object.handle_mut())
             .expect("Converting input to uint8 array should never fail")
     }
 

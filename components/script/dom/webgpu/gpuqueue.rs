@@ -224,6 +224,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture>
     fn CopyExternalImageToTexture(
         &self,
+        cx: &mut JSContext,
         source: &GPUCopyExternalImageSourceInfo,
         destination: &GPUCopyExternalImageDestInfo,
         copy_size: GPUExtent3D,
@@ -292,7 +293,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             },
             GPUCopyExternalImageSource::ImageData(data) => {
                 // If image's [[Detached]] internal slot value is set to true, then throw an "InvalidStateError" DOMException.
-                if data.is_detached() {
+                if data.is_detached(cx) {
                     return Err(Error::InvalidState(Some(
                         "ImageData is detached".to_string(),
                     )));

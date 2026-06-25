@@ -33,7 +33,6 @@ use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::{ReadableStream, pipe_through};
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/FileAPI/#dfn-Blob>
 #[dom_struct]
@@ -379,13 +378,9 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
                 rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
                 // 4. Return the result of transforming promise by a fulfillment handler that returns a new
                 //    [ArrayBuffer]
-                let array_buffer = create_buffer_source::<ArrayBufferU8>(
-                    cx.into(),
-                    bytes,
-                    js_object.handle_mut(),
-                    CanGc::from_cx(cx),
-                )
-                .expect("Converting input to ArrayBufferU8 should never fail");
+                let array_buffer =
+                    create_buffer_source::<ArrayBufferU8>(cx, bytes, js_object.handle_mut())
+                        .expect("Converting input to ArrayBufferU8 should never fail");
                 success_promise.resolve_native(cx, &array_buffer);
             }),
             Rc::new(move |cx, value| {
@@ -420,13 +415,8 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             cx,
             Rc::new(move |cx, bytes| {
                 rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-                let arr = create_buffer_source::<Uint8>(
-                    cx.into(),
-                    bytes,
-                    js_object.handle_mut(),
-                    CanGc::from_cx(cx),
-                )
-                .expect("Converting input to uint8 array should never fail");
+                let arr = create_buffer_source::<Uint8>(cx, bytes, js_object.handle_mut())
+                    .expect("Converting input to uint8 array should never fail");
                 p_success.resolve_native(cx, &arr);
             }),
             Rc::new(move |cx, v| {

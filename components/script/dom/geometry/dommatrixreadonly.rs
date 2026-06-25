@@ -853,7 +853,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             .map(|&x| x as f32)
             .collect();
         rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx.into(), &vec, array.handle_mut(), CanGc::from_cx(cx))
+        create_buffer_source(cx, &vec, array.handle_mut())
             .expect("Converting matrix to float32 array should never fail")
     }
 
@@ -863,13 +863,8 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         cx: &mut js::context::JSContext,
     ) -> RootedTraceableBox<HeapFloat64Array> {
         rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(
-            cx.into(),
-            &self.matrix.borrow().to_array(),
-            array.handle_mut(),
-            CanGc::from_cx(cx),
-        )
-        .expect("Converting matrix to float64 array should never fail")
+        create_buffer_source(cx, &self.matrix.borrow().to_array(), array.handle_mut())
+            .expect("Converting matrix to float64 array should never fail")
     }
 
     // https://drafts.fxtf.org/geometry/#dommatrixreadonly-stringification-behavior

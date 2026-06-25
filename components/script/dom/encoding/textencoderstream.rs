@@ -29,7 +29,6 @@ use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{GlobalScope, TransformStream, TransformStreamDefaultController};
-use crate::script_runtime::CanGc;
 
 /// String converted from an input JS Value
 enum ConvertedInput<'a> {
@@ -269,13 +268,8 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     // Step 4.2.2.1 Let chunk be the result of creating a Uint8Array object
     //      given output and encoder’s relevant realm.
     rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let chunk = create_buffer_source::<Uint8>(
-        cx.into(),
-        output,
-        js_object.handle_mut(),
-        CanGc::from_cx(cx),
-    )
-    .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
+    let chunk = create_buffer_source::<Uint8>(cx, output, js_object.handle_mut())
+        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
     chunk.safe_to_jsval(cx, rval.handle_mut());
     // Step 4.2.2.2 Enqueue chunk into encoder’s transform.
@@ -295,13 +289,11 @@ pub(crate) fn encode_and_flush(
         // Step 1.1 Let chunk be the result of creating a Uint8Array object
         //      given « 0xEF, 0xBF, 0xBD » and encoder’s relevant realm.
         rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-        let chunk = create_buffer_source::<Uint8>(
-            cx.into(),
-            &[0xEF_u8, 0xBF, 0xBD],
-            js_object.handle_mut(),
-            CanGc::from_cx(cx),
-        )
-        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
+        let chunk =
+            create_buffer_source::<Uint8>(cx, &[0xEF_u8, 0xBF, 0xBD], js_object.handle_mut())
+                .map_err(|_| {
+                    Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned())
+                })?;
         rooted!(&in(cx) let mut rval = UndefinedValue());
         chunk.safe_to_jsval(cx, rval.handle_mut());
         // Step 1.2 Enqueue chunk into encoder’s transform.

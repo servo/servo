@@ -88,10 +88,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         {
             let view = self.view.borrow();
             // If ! IsDetachedBuffer(this.[[view]].[[ArrayBuffer]]) is true, throw a TypeError exception.
-            if view
-                .get_array_buffer_view_buffer(cx.into())
-                .is_detached_buffer(cx.into())
-            {
+            if view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx) {
                 return Err(Error::Type(c"buffer is detached".to_owned()));
             }
 
@@ -99,7 +96,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
             assert!(view.byte_length() > 0);
 
             // Assert: this.[[view]].[[ViewedArrayBuffer]].[[ByteLength]] > 0.
-            assert!(view.viewed_buffer_array_byte_length(cx.into()) > 0);
+            assert!(view.viewed_buffer_array_byte_length(cx) > 0);
         }
 
         // Perform ? ReadableByteStreamControllerRespond(this.[[controller]], bytesWritten).
@@ -122,7 +119,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         };
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
-        if view.is_detached_buffer(cx.into()) {
+        if view.is_detached_buffer(cx) {
             return Err(Error::Type(c"buffer is detached".to_owned()));
         }
 

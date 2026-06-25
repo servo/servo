@@ -56,7 +56,7 @@ use crate::dom::node::Node;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
@@ -228,11 +228,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         ByteStringOrLong::ByteString(ByteString::new(vec![]))
     }
     fn SetUnion9Attribute(&self, _: ByteStringOrLong) {}
-    fn ArrayAttribute(&self, cx: SafeJSContext) -> RootedTraceableBox<HeapUint8ClampedArray> {
+    fn ArrayAttribute(&self, cx: &mut JSContext) -> RootedTraceableBox<HeapUint8ClampedArray> {
         let data: [u8; 16] = [0; 16];
 
-        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, &data, array.handle_mut(), CanGc::deprecated_note())
+        rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
+        create_buffer_source(cx, &data, array.handle_mut())
             .expect("Creating ClampedU8 array should never fail")
     }
     fn AnyAttribute(&self, _: SafeJSContext, _: MutableHandleValue) {}

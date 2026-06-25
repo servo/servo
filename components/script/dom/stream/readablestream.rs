@@ -7,7 +7,6 @@ use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
 
-use script_bindings::script_runtime::CanGc;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
@@ -1154,13 +1153,8 @@ impl ReadableStream {
 
                 let controller = controller.get().expect("Stream should have controller.");
                 rooted!(&in(cx) let mut chunk_object = ptr::null_mut::<JSObject>());
-                create_buffer_source::<Uint8>(
-                    cx.into(),
-                    &bytes,
-                    chunk_object.handle_mut(),
-                    CanGc::from_cx(cx),
-                )
-                .expect("failed to create buffer source for native byte chunk.");
+                create_buffer_source::<Uint8>(cx, &bytes, chunk_object.handle_mut())
+                    .expect("failed to create buffer source for native byte chunk.");
 
                 let chunk = RootedTraceableBox::new(HeapBufferSource::<ArrayBufferViewU8>::new(
                     BufferSource::ArrayBufferView(Heap::boxed(*chunk_object.handle())),

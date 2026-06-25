@@ -15,7 +15,7 @@ use servo_media::audio::buffer_source_node::{
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
-use crate::conversions::Convert;
+use crate::conversions::ConvertWithCx;
 use crate::dom::audio::audiobuffer::AudioBuffer;
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::audioscheduledsourcenode::AudioScheduledSourceNode;
@@ -52,9 +52,10 @@ impl AudioBufferSourceNode {
         options: &AudioBufferSourceOptions,
     ) -> Fallible<AudioBufferSourceNode> {
         let node_options = Default::default();
+        let source_options = AudioNodeInit::AudioBufferSourceNode(options.convert(cx));
         let source_node = AudioScheduledSourceNode::new_inherited(
             cx,
-            AudioNodeInit::AudioBufferSourceNode(options.convert()),
+            source_options,
             context,
             node_options,
             0, /* inputs */
@@ -96,7 +97,7 @@ impl AudioBufferSourceNode {
             loop_end: Cell::new(*options.loopEnd),
         };
         if let Some(Some(ref buffer)) = options.buffer {
-            node.SetBuffer(Some(buffer))?;
+            node.SetBuffer(cx, Some(buffer))?;
         }
         Ok(node)
     }
@@ -146,7 +147,7 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer>
-    fn SetBuffer(&self, new_buffer: Option<&AudioBuffer>) -> Fallible<()> {
+    fn SetBuffer(&self, cx: &mut JSContext, new_buffer: Option<&AudioBuffer>) -> Fallible<()> {
         if new_buffer.is_some() {
             if self.buffer_set.get() {
                 // Step 2.
@@ -163,7 +164,7 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         if self.source_node.has_start() &&
             let Some(buffer) = self.buffer.get()
         {
-            let buffer = buffer.get_channels();
+            let buffer = buffer.get_channels(cx);
             if buffer.is_some() {
                 self.source_node
                     .node()
@@ -231,6 +232,7 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
     /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-start>
     fn Start(
         &self,
+        cx: &mut JSContext,
         when: Finite<f64>,
         offset: Option<Finite<f64>>,
         duration: Option<Finite<f64>>,
@@ -252,7 +254,7 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         }
 
         if let Some(buffer) = self.buffer.get() {
-            let buffer = buffer.get_channels();
+            let buffer = buffer.get_channels(cx);
             if buffer.is_some() {
                 self.source_node
                     .node()
@@ -278,13 +280,13 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
     }
 }
 
-impl Convert<AudioBufferSourceNodeOptions> for &AudioBufferSourceOptions {
-    fn convert(self) -> AudioBufferSourceNodeOptions {
+impl ConvertWithCx<AudioBufferSourceNodeOptions> for AudioBufferSourceOptions {
+    fn convert(&self, cx: &mut JSContext) -> AudioBufferSourceNodeOptions {
         AudioBufferSourceNodeOptions {
             buffer: self
                 .buffer
                 .as_ref()
-                .and_then(|b| (*b.as_ref()?.get_channels()).clone()),
+                .and_then(|b| (*b.as_ref()?.get_channels(cx)).clone()),
             detune: *self.detune,
             loop_enabled: self.loop_,
             loop_end: Some(*self.loopEnd),

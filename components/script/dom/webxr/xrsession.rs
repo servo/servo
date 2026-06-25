@@ -72,7 +72,6 @@ use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRSession {
@@ -1016,13 +1015,8 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             let framerates = session.supported_frame_rates();
             rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
             Some(
-                create_buffer_source(
-                    cx.into(),
-                    framerates,
-                    array.handle_mut(),
-                    CanGc::from_cx(cx),
-                )
-                .expect("Failed to construct supported frame rates array"),
+                create_buffer_source(cx, framerates, array.handle_mut())
+                    .expect("Failed to construct supported frame rates array"),
             )
         }
     }

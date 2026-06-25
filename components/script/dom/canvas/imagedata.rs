@@ -15,7 +15,6 @@ use js::typedarray::{ClampedU8, HeapUint8ClampedArray, TypedArray, Uint8ClampedA
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
-use script_bindings::script_runtime::CanGc;
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{ImageDataId, ImageDataIndex};
@@ -68,13 +67,9 @@ impl ImageData {
             d.resize(len as usize, 0);
 
             rooted!(&in(cx) let mut js_object = std::ptr::null_mut::<JSObject>());
-            let _buffer_source = create_buffer_source::<ClampedU8>(
-                cx.into(),
-                &d[..],
-                js_object.handle_mut(),
-                CanGc::from_cx(cx),
-            )
-            .map_err(|_| Error::JSFailed)?;
+            let _buffer_source =
+                create_buffer_source::<ClampedU8>(cx, &d[..], js_object.handle_mut())
+                    .map_err(|_| Error::JSFailed)?;
             auto_root!(&in(cx) let data = TypedArray::<ClampedU8, *mut JSObject>::from(js_object.get()).map_err(|_| Error::JSFailed)?);
 
             Self::Constructor_(cx, global, None, data, width, Some(height), &settings)
@@ -118,11 +113,7 @@ impl ImageData {
                     // The storage ArrayBuffer must have a length of 4 × rows × pixelsPerRow bytes.
                     // 3. If the storage ArrayBuffer could not be allocated,
                     // then rethrow the RangeError thrown by JavaScript, and return.
-                    create_heap_buffer_source_with_length(
-                        cx.into(),
-                        4 * rows * pixels_per_row,
-                        CanGc::from_cx(cx),
-                    )?
+                    create_heap_buffer_source_with_length(cx, 4 * rows * pixels_per_row)?
                 },
                 // 3. Otherwise, if settings["pixelFormat"] is "rgba-float16",
                 // then initialize the data attribute of imageData to a new Float16Array object.
@@ -163,8 +154,8 @@ impl ImageData {
         ))
     }
 
-    pub(crate) fn is_detached(&self) -> bool {
-        self.data.is_detached_buffer(GlobalScope::get_cx())
+    pub(crate) fn is_detached(&self, cx: &mut JSContext) -> bool {
+        self.data.is_detached_buffer(cx)
     }
 
     pub(crate) fn get_size(&self) -> Size2D<u32> {

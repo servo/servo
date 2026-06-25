@@ -430,7 +430,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         }
         // If view.[[ViewedArrayBuffer]].[[ArrayBufferByteLength]] is 0,
         // return a promise rejected with a TypeError exception.
-        if view.viewed_buffer_array_byte_length(cx.into()) == 0 {
+        if view.viewed_buffer_array_byte_length(cx) == 0 {
             promise.reject_error(
                 cx,
                 Error::Type(c"viewed buffer byte length is 0".to_owned()),
@@ -440,7 +440,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
         // return a promise rejected with a TypeError exception.
-        if view.is_detached_buffer(cx.into()) {
+        if view.is_detached_buffer(cx) {
             promise.reject_error(cx, Error::Type(c"view is detached".to_owned()));
             return promise;
         }
