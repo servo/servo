@@ -4573,7 +4573,10 @@ class CGMethodPromiseWrapper(CGAbstractExternMethod):
             if ok {
               return true;
             }
-            return exception_to_promise(cx, (*args).rval(), CanGc::deprecated_note());
+
+            let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+            let cx = &mut cx;
+            return exception_to_promise(cx, (*args).rval());
             """,
             methodName=self.method.identifier.name,
             args=", ".join(arg.name for arg in self.args),
@@ -4608,7 +4611,10 @@ class CGGetterPromiseWrapper(CGAbstractExternMethod):
             if ok {
               return true;
             }
-            return exception_to_promise(cx, args.rval(), CanGc::deprecated_note());
+
+            let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+            let cx = &mut cx;
+            return exception_to_promise(cx, args.rval());
             """,
             methodName=self.method_call,
             args=", ".join(arg.name for arg in self.args),

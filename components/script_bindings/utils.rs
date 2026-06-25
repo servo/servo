@@ -7,30 +7,27 @@ use std::os::raw::{c_char, c_void};
 use std::ptr::{self, NonNull};
 use std::slice;
 
+use js::context::{JSContext, RawJSContext};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::Handle;
-use js::glue::{
-    AppendToIdVector, CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, JS_GetReservedSlot,
-    RUST_FUNCTION_VALUE_TO_JITINFO,
-};
+use js::glue::{AppendToIdVector, JS_GetReservedSlot, RUST_FUNCTION_VALUE_TO_JITINFO};
 use js::jsapi::{
     AtomToLinearString, CallArgs, ExceptionStackBehavior, GetLinearStringCharAt,
     GetLinearStringLength, GetNonCCWObjectGlobal, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, Heap, JS_AtomizeStringN, JS_ClearPendingException,
-    JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending,
-    JS_IsGlobalObject, JS_MayResolveStandardClass, JS_NewEnumerateStandardClasses,
-    JS_ResolveStandardClass, JSAtom, JSAtomState, JSContext, JSJitInfo, JSObject, JSPROP_ENUMERATE,
-    JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
+    HandleObject as RawHandleObject, Heap, JS_AtomizeStringN, JS_DeprecatedStringHasLatin1Chars,
+    JS_GetLatin1StringCharsAndLength, JS_IsGlobalObject, JS_MayResolveStandardClass,
+    JS_NewEnumerateStandardClasses, JS_ResolveStandardClass, JSAtom, JSAtomState, JSJitInfo,
+    JSObject, JSPROP_ENUMERATE, JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleValue as RawMutableHandleValue, PropertyKey, StringIsArrayIndex, jsid,
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::wrappers::{
-    CallOriginalPromiseReject, JS_DefineProperty, JS_GetPendingException, JS_HasOwnProperty,
-    JS_SetPendingException, JS_SetProperty,
-};
+use js::rust::wrappers::JS_SetProperty;
 use js::rust::wrappers2::{
-    JS_ForwardGetPropertyTo, JS_GetProperty, JS_GetPrototype, JS_HasProperty, JS_HasPropertyById,
+    CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, CallOriginalPromiseReject,
+    JS_ClearPendingException, JS_DefineProperty, JS_ForwardGetPropertyTo, JS_GetPendingException,
+    JS_GetProperty, JS_GetPrototype, JS_HasOwnProperty, JS_HasProperty, JS_HasPropertyById,
+    JS_IsExceptionPending, JS_SetPendingException,
 };
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
@@ -48,7 +45,7 @@ use crate::interfaces::DomHelpers;
 use crate::proxyhandler::{
     is_cross_origin_object, is_platform_object_same_origin, report_cross_origin_denial,
 };
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::str::DOMString;
 use crate::trace::trace_object;
 
@@ -123,7 +120,7 @@ pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 ///
 /// Returns false on JSAPI failure.
 pub(crate) fn get_property_on_prototype(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     proxy: HandleObject,
     receiver: HandleValue,
     id: HandleId,
@@ -212,16 +209,12 @@ pub fn get_array_index_from_id(id: HandleId) -> Option<u32> {
 /// Find the enum equivelent of a string given by `v` in `pairs`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok((None, value))` if there was no matching string.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-#[allow(clippy::result_unit_err)]
 pub(crate) fn find_enum_value<'a, T>(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
 ) -> Result<(Option<&'a T>, DOMString), ()> {
-    match ptr::NonNull::new(unsafe { ToString(cx, v) }) {
+    match NonNull::new(unsafe { ToString(cx, v) }) {
         Some(jsstr) => {
             let search = unsafe { jsstr_to_string(cx, jsstr) }.into();
             Ok((
@@ -240,7 +233,7 @@ pub(crate) fn find_enum_value<'a, T>(
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(false)` if there was no property with the given name.
 pub(crate) fn get_dictionary_property(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     object: HandleObject,
     property: &CStr,
     rval: MutableHandleValue,
@@ -291,9 +284,9 @@ pub fn set_dictionary_property(
 /// Define an own enumerable data property with name `property` on `object`.
 /// Returns `Err(())` on JSAPI failure, or null object,
 /// and Ok(()) otherwise.
-#[allow(clippy::result_unit_err)]
+#[expect(clippy::result_unit_err)]
 pub fn define_dictionary_property(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     object: HandleObject,
     property: &CStr,
     value: HandleValue,
@@ -302,16 +295,16 @@ pub fn define_dictionary_property(
         return Err(());
     }
 
-    unsafe {
-        if !JS_DefineProperty(
-            *cx,
+    if unsafe {
+        !JS_DefineProperty(
+            cx,
             object,
             property.as_ptr(),
             value,
             JSPROP_ENUMERATE as u32,
-        ) {
-            return Err(());
-        }
+        )
+    } {
+        return Err(());
     }
 
     Ok(())
@@ -320,9 +313,9 @@ pub fn define_dictionary_property(
 /// Checks whether `object` has an own property named `property`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception),
 /// and `Ok(false)` for null objects or when the property is not own.
-#[allow(clippy::result_unit_err)]
+#[expect(clippy::result_unit_err)]
 pub fn has_own_property(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     object: HandleObject,
     property: &CStr,
 ) -> Result<bool, ()> {
@@ -331,10 +324,8 @@ pub fn has_own_property(
     }
 
     let mut found = false;
-    unsafe {
-        if !JS_HasOwnProperty(*cx, object, property.as_ptr(), &mut found) {
-            return Err(());
-        }
+    if unsafe { !JS_HasOwnProperty(cx, object, property.as_ptr(), &mut found) } {
+        return Err(());
     }
 
     Ok(found)
@@ -346,7 +337,7 @@ pub fn has_own_property(
 /// Returns a boolean indicating whether the check succeeded.
 /// If `false` is returned then the value of `found` is unspecified.
 pub fn has_property_on_prototype(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     proxy: HandleObject,
     id: HandleId,
     found: &mut bool,
@@ -433,24 +424,22 @@ pub struct CallPolicyInfo {
 }
 
 unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
-    cx: *mut JSContext,
+    cx: &mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
     CallPolicyInfo {
         lenient_this,
         needs_security_check_on_interface_match,
     }: CallPolicyInfo,
-    call: unsafe extern "C" fn(
+    call: unsafe fn(
         *const JSJitInfo,
-        *mut JSContext,
-        RawHandleObject,
+        &mut JSContext,
+        HandleObject,
         *mut libc::c_void,
         u32,
         *mut JSVal,
     ) -> bool,
-    can_gc: CanGc,
 ) -> bool {
-    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let args = CallArgs::from_vp(vp, argc);
 
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx.raw_cx_no_gc(), vp));
@@ -535,9 +524,9 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
         // `thisobj` is not a platform object, so the security check is not
         // invoked in this case
-        throw_invalid_this((&mut cx).into(), proto_id);
+        throw_invalid_this(cx.into(), proto_id);
         return if EXCEPTION_TO_REJECTION {
-            exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
+            exception_to_promise(cx, args.rval())
         } else {
             false
         };
@@ -565,13 +554,13 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
             //        have access to the current IDL operation's name and type
             //        and the target object's `CrossOriginProperties`.
             if lenient_this {
-                debug_assert!(!JS_IsExceptionPending(cx.raw_cx_no_gc()));
+                debug_assert!(!JS_IsExceptionPending(cx));
                 *vp = UndefinedValue();
                 return true;
             } else {
-                throw_invalid_this((&mut cx).into(), proto_id);
+                throw_invalid_this(cx.into(), proto_id);
                 return if EXCEPTION_TO_REJECTION {
-                    exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
+                    exception_to_promise(cx, args.rval())
                 } else {
                     false
                 };
@@ -582,7 +571,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     // [this_implements_operation == true]
 
     if needs_security_check_on_interface_match {
-        let mut realm = js::realm::CurrentRealm::assert(&mut cx);
+        let mut realm = js::realm::CurrentRealm::assert(cx);
         // [cross_origin_operation == false]
         if is_cross_origin_object::<D>(&mut realm, obj.handle()) &&
             !is_platform_object_same_origin(&realm, obj.handle())
@@ -591,10 +580,10 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
             // Throw a `SecurityError` `DOMException`.
             // FIXME: `Handle<jsid>` could have a default constructor
             //        like `Handle<Value>::null`
-            rooted!(&in(*realm) let mut void_jsid: js::jsapi::jsid);
+            rooted!(&in(*realm) let mut void_jsid: jsid);
             let result = report_cross_origin_denial::<D>(&mut realm, void_jsid.handle(), "call");
             return if EXCEPTION_TO_REJECTION {
-                exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
+                exception_to_promise(cx, args.rval())
             } else {
                 result
             };
@@ -604,14 +593,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
         //  || cross_origin_operation == false && this_class_cross_origin == false]
     }
 
-    call(
-        info,
-        cx.raw_cx(),
-        obj.handle().into(),
-        this as *mut libc::c_void,
-        argc,
-        vp,
-    )
+    call(info, cx, obj.handle(), this as *mut libc::c_void, argc, vp)
 }
 
 /// Generic method of IDL interface.
@@ -624,18 +606,15 @@ pub(crate) unsafe extern "C" fn generic_method<
     Policy: CallPolicy,
     const EXCEPTION_TO_REJECTION: bool,
 >(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<D, EXCEPTION_TO_REJECTION>(
-        cx,
-        argc,
-        vp,
-        Policy::INFO,
-        CallJitMethodOp,
-        CanGc::deprecated_note(),
-    )
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let cx = &mut cx;
+
+    generic_call::<D, EXCEPTION_TO_REJECTION>(cx, argc, vp, Policy::INFO, CallJitMethodOp)
 }
 
 /// Generic getter of IDL interface.
@@ -648,24 +627,21 @@ pub(crate) unsafe extern "C" fn generic_getter<
     Policy: CallPolicy,
     const EXCEPTION_TO_REJECTION: bool,
 >(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<D, EXCEPTION_TO_REJECTION>(
-        cx,
-        argc,
-        vp,
-        Policy::INFO,
-        CallJitGetterOp,
-        CanGc::deprecated_note(),
-    )
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let cx = &mut cx;
+
+    generic_call::<D, EXCEPTION_TO_REJECTION>(cx, argc, vp, Policy::INFO, CallJitGetterOp)
 }
 
-unsafe extern "C" fn call_setter(
+unsafe fn call_setter(
     info: *const JSJitInfo,
-    cx: *mut JSContext,
-    handle: RawHandleObject,
+    cx: &mut JSContext,
+    handle: HandleObject,
     this: *mut libc::c_void,
     argc: u32,
     vp: *mut JSVal,
@@ -683,18 +659,15 @@ unsafe extern "C" fn call_setter(
 /// `cx` must point to a valid, non-null JSContext.
 /// `vp` must point to a VALID, non-null JSVal.
 pub(crate) unsafe extern "C" fn generic_setter<D: DomTypes, Policy: CallPolicy>(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<D, false>(
-        cx,
-        argc,
-        vp,
-        Policy::INFO,
-        call_setter,
-        CanGc::deprecated_note(),
-    )
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let cx = &mut cx;
+
+    generic_call::<D, false>(cx, argc, vp, Policy::INFO, call_setter)
 }
 
 /// <https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300>
@@ -703,46 +676,45 @@ pub(crate) unsafe extern "C" fn generic_setter<D: DomTypes, Policy: CallPolicy>(
 /// `cx` must point to a valid, non-null JSContext.
 /// `vp` must point to a VALID, non-null JSVal.
 pub(crate) unsafe extern "C" fn generic_static_promise_method(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let cx = &mut cx;
+
     let args = CallArgs::from_vp(vp, argc);
 
-    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx.raw_cx(), vp));
     assert!(!info.is_null());
     // TODO: we need safe wrappers for this in mozjs!
     // assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
     let static_fn = (*info).__bindgen_anon_1.staticMethod.unwrap();
-    if static_fn(cx, argc, vp) {
+    if static_fn(cx.raw_cx(), argc, vp) {
         return true;
     }
-    exception_to_promise(cx, args.rval(), CanGc::deprecated_note())
+    exception_to_promise(cx, args.rval())
 }
 
 /// Coverts exception to promise rejection
 ///
 /// <https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315>
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-pub(crate) unsafe fn exception_to_promise(
-    cx: *mut JSContext,
-    rval: RawMutableHandleValue,
-    _can_gc: CanGc,
-) -> bool {
-    rooted!(in(cx) let mut exception = UndefinedValue());
-    if !JS_GetPendingException(cx, exception.handle_mut()) {
-        return false;
-    }
-    JS_ClearPendingException(cx);
-    if let Some(promise) = NonNull::new(CallOriginalPromiseReject(cx, exception.handle())) {
-        promise.to_jsval(cx, MutableHandleValue::from_raw(rval));
-        true
-    } else {
-        // We just give up.  Put the exception back.
-        JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
-        false
+pub(crate) fn exception_to_promise(cx: &mut JSContext, rval: RawMutableHandleValue) -> bool {
+    unsafe {
+        rooted!(&in(cx) let mut exception = UndefinedValue());
+        if !JS_GetPendingException(cx, exception.handle_mut()) {
+            return false;
+        }
+        JS_ClearPendingException(cx);
+        if let Some(promise) = NonNull::new(CallOriginalPromiseReject(cx, exception.handle())) {
+            promise.safe_to_jsval(cx, MutableHandleValue::from_raw(rval));
+            true
+        } else {
+            // We just give up. Put the exception back.
+            JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
+            false
+        }
     }
 }
 
@@ -767,7 +739,7 @@ pub(crate) unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
 /// Enumerate lazy properties of a global object.
 /// Modeled after <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/bindings/BindingUtils.cpp#L2814>
 pub(crate) unsafe extern "C" fn enumerate_global(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     obj: RawHandleObject,
     props: RawMutableHandleIdVector,
     enumerable_only: bool,
@@ -779,12 +751,12 @@ pub(crate) unsafe extern "C" fn enumerate_global(
 /// Enumerate lazy properties of a global object that is a Window.
 /// <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/base/nsGlobalWindowInner.cpp#3297>
 pub(crate) unsafe extern "C" fn enumerate_window<D: DomTypes>(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     obj: RawHandleObject,
     props: RawMutableHandleIdVector,
     enumerable_only: bool,
 ) -> bool {
-    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
     if !enumerate_global(cx.raw_cx(), obj, props, enumerable_only) {
         return false;
     }
@@ -844,7 +816,7 @@ pub(crate) unsafe extern "C" fn may_resolve_window<D: DomTypes>(
 
 /// Resolve a lazy global property, for interface objects and named constructors.
 pub(crate) unsafe extern "C" fn resolve_global(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     obj: RawHandleObject,
     id: RawHandleId,
     rval: *mut bool,
@@ -855,12 +827,12 @@ pub(crate) unsafe extern "C" fn resolve_global(
 
 /// Resolve a lazy global property for a Window global.
 pub(crate) unsafe extern "C" fn resolve_window<D: DomTypes>(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     obj: RawHandleObject,
     id: RawHandleId,
     rval: *mut bool,
 ) -> bool {
-    let mut cx = js::context::JSContext::from_ptr(NonNull::new(cx).unwrap());
+    let mut cx = JSContext::from_ptr(NonNull::new(cx).unwrap());
     if !resolve_global(cx.raw_cx(), obj, id, rval) {
         return false;
     }
@@ -886,7 +858,7 @@ pub(crate) unsafe extern "C" fn resolve_window<D: DomTypes>(
 /// Returns an error if the id is not a string, or the string contains non-latin1 characters.
 /// # Safety
 /// The slice is only valid as long as the original id is not garbage collected.
-unsafe fn latin1_bytes_from_id(cx: *mut JSContext, id: jsid) -> Result<&'static [u8], ()> {
+unsafe fn latin1_bytes_from_id(cx: *mut RawJSContext, id: jsid) -> Result<&'static [u8], ()> {
     if !id.is_string() {
         return Err(());
     }
