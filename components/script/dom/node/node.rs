@@ -452,6 +452,14 @@ impl Node {
                 }
             }
         }
+
+        // Make sure the node and its subtree aren't GCed until the accessibility tree has had a
+        // chance to remove them.
+        if root.owner_document().accessibility_active() {
+            root.owner_document()
+                .accessibility_data_mut()
+                .root_removed_node(cx.no_gc(), root);
+        }
     }
 
     pub(crate) fn complete_move_subtree(cx: &mut JSContext, root: &Node) {
@@ -4264,12 +4272,6 @@ impl VirtualMethods for Node {
             !weak_ranges.is_empty()
         {
             weak_ranges.drain_to_parent(context.parent, context.index(), self);
-        }
-
-        if self.owner_document().accessibility_active() {
-            self.owner_document()
-                .accessibility_data_mut()
-                .root_removed_node(cx.no_gc(), self);
         }
     }
 

@@ -371,12 +371,12 @@ impl AccessibilityTree {
 
     /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
     /// the tree.
-    fn remove_stale_nodes(&mut self, mut update: AccessibilityUpdate) {
+    fn drop_removed_nodes(&mut self, mut update: AccessibilityUpdate) {
         if let Some(rooted_nodes) = std::mem::take(&mut update.rooted_nodes) {
             self.assert_removed_nodes_were_rooted(&update, rooted_nodes);
         }
 
-        for id in update
+        let mut ids_to_remove: Vec<NodeId> = update
             .tree_changes
             .drain()
             .filter_map(|(id, change)| match change {
@@ -386,18 +386,32 @@ impl AccessibilityTree {
                     );
                 },
                 TreeChange::Removed => Some(id),
-                _ => None,
+                TreeChange::New => None,
+                TreeChange::Moved => None,
             })
-        {
-            let _node = self.nodes.remove(&id);
-            {
-                #[cfg(debug_assertions)]
-                assert!(_node.is_some(), "Node for id {id:?} was already removed");
-            }
+            .collect();
+
+        while let Some(id) = ids_to_remove.pop() {
+            update.unresolved_local_damage.remove(&id);
+            let Some(node) = self.nodes.remove(&id) else {
+                panic!("Node for id {id:?} was already removed");
+            };
             if let Some(opaque_node) = self.id_to_opaque_node.remove(&id) {
                 self.opaque_node_to_id.remove(&opaque_node);
             }
+            for child in node.borrow().children() {
+                let child_id = child.borrow().id;
+                if !update.tree_changes.contains_key(&child_id) {
+                    ids_to_remove.push(child_id);
+                }
+            }
         }
+
+        debug_assert!(
+            update.unresolved_local_damage.is_empty(),
+            "Damage not empty: {:?}",
+            update.unresolved_local_damage
+        );
 
         if self
             .debug
@@ -576,31 +590,6 @@ impl AccessibilityNode {
         local_damage
     }
 
-    /// Recursively mark this subtree as having the given `TreeChange`.
-    ///
-    /// This is used when a node is `Moved` or `Removed`, since its entire subtree will also need to
-    /// be marked accordingly. When a node is `New`, it's marked as such when it is created. We
-    /// shouldn't call this method in that case, since it may have descendants which are not being
-    /// created in this update and shouldn't have a `New` state. Any descendants which are new will
-    /// already have their `New` state set when they are created.
-    ///
-    /// Note: if a node is moved, the requested `change` must always be `Moved(Pending)`: the logic
-    /// in this method will determine whether the move is `Complete` and set the stored value
-    /// accordingly.
-    fn set_subtree_state_change(&self, change: TreeChange, update: &mut AccessibilityUpdate) {
-        assert!(
-            change != TreeChange::New,
-            "New shouldn't be set recursively"
-        );
-
-        update.set_tree_state_change(self.id, change);
-
-        for child in self.children().iter() {
-            // `new_change` might be different per node, if only some nodes were moved elsewhere.
-            child.borrow().set_subtree_state_change(change, update);
-        }
-    }
-
     /// Update this node's properties from its corresponding DOM node.
     fn update_node_from_dom_node(
         &mut self,
@@ -714,7 +703,7 @@ impl AccessibilityNode {
         for (old_id, old_child) in old_child_ids.iter().zip(self.children().iter()) {
             if !new_child_ids.contains(old_id) {
                 let mut removed_child = old_child.borrow_mut();
-                removed_child.set_subtree_state_change(TreeChange::Removed, update);
+                update.set_tree_state_change(*old_id, TreeChange::Removed);
                 if let Some(parent_node) = removed_child.parent_node.clone() &&
                     parent_node.ptr_eq(&weak_self)
                 {
@@ -728,7 +717,7 @@ impl AccessibilityNode {
                 let mut new_child = new_child.borrow_mut();
                 new_child.parent_node = Some(weak_self.clone());
                 if !update.is_new(new_id) {
-                    new_child.set_subtree_state_change(TreeChange::PendingMove, update);
+                    update.set_tree_state_change(*new_id, TreeChange::PendingMove);
                 }
             }
         }
@@ -897,30 +886,25 @@ impl AccessibilityUpdate {
             .borrow()
             .id;
 
-        debug_assert!(self.unresolved_local_damage.is_empty());
-
         if self.changed_nodes.is_empty() {
             assert!(self.tree_changes.is_empty());
             return None;
         }
 
+        let changed_nodes = std::mem::take(&mut self.changed_nodes);
+        tree.drop_removed_nodes(self);
+
         let accesskit_tree = accesskit::Tree::new(root_node_id);
         let tree_update = accesskit::TreeUpdate {
-            nodes: std::mem::take(&mut self.changed_nodes)
+            // Filter out any nodes which were both changed and removed.
+            nodes: changed_nodes
                 .into_iter()
-                .map(|id| {
-                    (
-                        id,
-                        tree.assert_node_for_id(&id).borrow().accesskit_node.clone(),
-                    )
-                })
+                .filter_map(|id| Some((id, tree.node_for_id(id)?.borrow().accesskit_node.clone())))
                 .collect(),
             tree: Some(accesskit_tree),
             focus: NodeId(1),
             tree_id: tree.tree_id,
         };
-
-        tree.remove_stale_nodes(self);
 
         Some(tree_update)
     }
