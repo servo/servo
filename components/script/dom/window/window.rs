@@ -2975,7 +2975,7 @@ impl Window {
         pseudo: Option<PseudoElement>,
         property: PropertyId,
     ) -> DOMString {
-        self.layout_reflow(QueryMsg::ResolvedStyleQuery);
+        self.layout_reflow(QueryMsg::ResolvedStyleQuery(property.clone()));
 
         let document = self.Document();
         let animations = document.animations().sets.clone();

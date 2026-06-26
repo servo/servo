@@ -550,7 +550,9 @@ pub enum QueryMsg {
     OffsetParentQuery,
     ScrollParentQuery,
     ResolvedFontStyleQuery,
-    ResolvedStyleQuery,
+    /// A style query, with an optional [`PropertyId`], used to limit the phases
+    /// of layout run before the query.
+    ResolvedStyleQuery(PropertyId),
     ScrollingAreaOrOffsetQuery,
     StyleQuery,
     TextIndexQuery,
