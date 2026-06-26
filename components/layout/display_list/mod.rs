@@ -2195,7 +2195,7 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
         rgba.components.0.clamp(0.0, 1.0),
         rgba.components.1.clamp(0.0, 1.0),
         rgba.components.2.clamp(0.0, 1.0),
-        rgba.alpha,
+        rgba.alpha.clamp(0.0, 1.0),
     )
 }
 
