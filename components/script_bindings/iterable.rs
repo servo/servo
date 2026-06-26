@@ -116,7 +116,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
         let index = self.index.get();
         rooted!(&in(cx) let mut value = UndefinedValue());
         let result = if index >= self.iterable.get_iterable_length() {
-            dict_return(cx.into(), return_value, true, value.handle())
+            dict_return(cx, return_value, true, value.handle())
         } else {
             match self.type_ {
                 IteratorType::Keys => {

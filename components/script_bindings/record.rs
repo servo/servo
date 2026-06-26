@@ -199,7 +199,8 @@ where
 {
     #[inline]
     unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {
-        // TODO https://github.com/servo/mozjs/issues/764
+        // TODO: https://github.com/servo/mozjs/issues/764
+        // This is needed until the `RawJSContext` version is removed from the trait.
         let mut cx = unsafe { crate::script_runtime::temp_cx() };
         ToJSValConvertible::safe_to_jsval(self, &mut cx, rval);
     }
