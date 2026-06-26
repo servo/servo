@@ -16,7 +16,6 @@ use crate::DomTypes;
 use crate::codegen::PrototypeList;
 use crate::conversions::DerivedFrom;
 use crate::error::Error;
-use crate::realms::InRealm;
 use crate::reflector::{DomObject, DomObjectWrap};
 use crate::root::DomRoot;
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -71,7 +70,7 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
     /// # Safety
     /// `obj` must point to a valid, non-null JSObject.
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
-    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
+    fn from_reflector(reflector: &impl DomObject) -> DomRoot<D::GlobalScope>;
 
     fn origin(&self) -> MutableOrigin;
 
