@@ -4004,7 +4004,7 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
 }
 
 fn is_named_element_with_id_attribute(elem: &Element) -> bool {
-    elem.is_html_element()
+    elem.is_html_element() || elem.is_svg_element()
 }
 
 #[expect(unsafe_code)]
