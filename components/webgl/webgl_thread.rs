@@ -8,6 +8,7 @@ use std::collections::hash_map::Entry;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::thread::JoinHandle;
 use std::{slice, thread};
 
 use bitflags::bitflags;
@@ -298,14 +299,14 @@ impl WebGLThread {
 
     /// Perform all initialization required to run an instance of WebGLThread
     /// in parallel on its own dedicated thread.
-    pub(crate) fn run_on_own_thread(init: WebGLThreadInit) {
+    pub(crate) fn run_on_own_thread(init: WebGLThreadInit) -> JoinHandle<()> {
         thread::Builder::new()
             .name("WebGL".to_owned())
             .spawn(move || {
                 let mut data = WebGLThread::new(init);
                 data.process();
             })
-            .expect("Thread spawning failed");
+            .expect("Thread spawning failed")
     }
 
     fn process(&mut self) {
@@ -391,15 +392,17 @@ impl WebGLThread {
             WebGLMsg::FinishedRenderingToContext(context_id) => {
                 self.handle_finished_rendering_to_context(context_id);
             },
-            WebGLMsg::Exit(sender) => {
+            WebGLMsg::ClearPainterResources(painter_id, sender) => {
+                self.device_map.remove(&painter_id);
+                if let Err(error) = sender.send(()) {
+                    warn!("Failed to send response to WebGLMsg::ClearPainterResources ({error})");
+                }
+            },
+            WebGLMsg::Exit => {
                 // Call remove_context functions in order to correctly delete WebRender image keys.
                 let context_ids: Vec<WebGLContextId> = self.contexts.keys().copied().collect();
                 for id in context_ids {
                     self.remove_webgl_context(id);
-                }
-
-                if let Err(e) = sender.send(()) {
-                    warn!("Failed to send response to WebGLMsg::Exit ({e})");
                 }
                 return true;
             },

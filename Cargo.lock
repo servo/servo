@@ -7808,6 +7808,7 @@ dependencies = [
  "euclid",
  "glow",
  "kurbo",
+ "log",
  "malloc_size_of_derive",
  "serde",
  "servo-base",
