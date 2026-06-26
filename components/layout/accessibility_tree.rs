@@ -242,12 +242,7 @@ impl AccessibilityTree {
             })
         {
             let node = self.nodes.remove(&id);
-            {
-                #[cfg(debug_assertions)]
-                let Some(_node) = node else {
-                    panic!("Node for id {id:?} was already removed");
-                };
-            }
+            debug_assert!(node.is_some(), "Node for id {id:?} was already removed");
             if let Some(opaque_node) = self.id_to_opaque_node.remove(&id) {
                 self.opaque_node_to_id.remove(&opaque_node);
             }
