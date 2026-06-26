@@ -80,7 +80,7 @@ impl DissimilarOriginWindow {
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
             pipeline_id: PipelineId::new(),
-            origin: global_to_clone_from.origin().clone(),
+            origin: global_to_clone_from.origin(),
         });
         DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, &win.origin(), win)
     }
