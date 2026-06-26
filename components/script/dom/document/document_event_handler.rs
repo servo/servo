@@ -1152,11 +1152,17 @@ impl DocumentEventHandler {
                 }
             },
             MouseButton::Middle => {
+                // From <https://w3c.github.io/pointerevents/#dfn-auxclick>
+                // > The auxclick event type MUST be dispatched on the topmost event target indicated by the
+                // > pointer, when the user presses down and releases the non-primary pointer button.
                 let element = &element.inclusive_ancestor_element_in_non_ua_shadow_root();
                 self.most_recently_clicked_element.set(Some(element));
 
                 let click_count = self.click_counting_info.borrow().count;
+
+                // target set to "_blank" so that middle click opens link in new tab
                 element.set_string_attribute(cx, &local_name!("target"), DOMString::from("_blank"));
+
                 element.set_click_in_progress(true);
                 MouseEvent::for_platform_button_event(
                     cx,

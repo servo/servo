@@ -368,7 +368,7 @@ impl Event {
             );
 
             // Step 6.4. Let isActivationEvent be true, if event is a MouseEvent object and
-            // event’s type attribute is "click"; otherwise false.
+            // event’s type attribute is "click" or "auxclick"; otherwise false.
             let is_activation_event = self.is::<MouseEvent>() &&
                 (self.type_() == atom!("click") || self.type_() == *"auxclick");
 
