@@ -24,11 +24,12 @@ use js::rust::wrappers2::{
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
 use script_bindings::cell::DomRefCell;
+use script_bindings::interfaces::HasOrigin;
 use script_bindings::reflector::DomObject;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
 use servo_base::id::PipelineId;
 use servo_config::pref;
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use webrender_api::units::DevicePixel;
@@ -121,7 +122,7 @@ impl PaintWorkletGlobalScope {
                 missing_image_urls: Vec::new(),
             }),
         });
-        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global)
+        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, &global.origin(), global)
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
@@ -609,5 +610,11 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
     /// check-tidy: no specs after this line
     fn Sleep(&self, ms: u64) {
         thread::sleep(Duration::from_millis(ms));
+    }
+}
+
+impl HasOrigin for PaintWorkletGlobalScope {
+    fn origin(&self) -> MutableOrigin {
+        self.upcast::<WorkletGlobalScope>().origin()
     }
 }

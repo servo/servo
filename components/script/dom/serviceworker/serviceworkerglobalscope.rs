@@ -21,13 +21,14 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
 use rand::random;
+use script_bindings::interfaces::HasOrigin;
 use servo_base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
 use servo_base::id::{PipelineId, ServiceWorkerId};
 use servo_config::pref;
 use servo_constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 
 use crate::dom::abstractworker::WorkerScriptMsg;
@@ -306,7 +307,11 @@ impl ServiceWorkerGlobalScope {
             font_context,
             worker_id,
         ));
-        let scope = ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope);
+        let scope = ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+            cx,
+            &scope.origin(),
+            scope,
+        );
         scope
             .upcast::<WorkerGlobalScope>()
             .init_debugger_global(debugger_global, cx);
@@ -600,4 +605,10 @@ impl ServiceWorkerGlobalScopeMethods<crate::DomTypeHolder> for ServiceWorkerGlob
 
     // https://w3c.github.io/ServiceWorker/#dom-serviceworkerglobalscope-onmessageerror
     event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
+}
+
+impl HasOrigin for ServiceWorkerGlobalScope {
+    fn origin(&self) -> MutableOrigin {
+        self.upcast::<WorkerGlobalScope>().origin()
+    }
 }

@@ -3400,6 +3400,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         assert not descriptor.interface.isCallback()
         assert descriptor.isGlobal()
         args = [Argument('&mut JSContext', 'cx'),
+                Argument('&servo_url::MutableOrigin', 'origin'),
                 Argument(f"Box<{descriptor.concreteType}>", 'object')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
@@ -3422,7 +3423,6 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         return CGGeneric(f"""
 unsafe {{
     let raw = Root::new(MaybeUnreflectedDom::from_box(object));
-    let origin = (*raw.as_ptr()).upcast::<D::GlobalScope>().origin();
 
     rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
     create_global_object::<D>(

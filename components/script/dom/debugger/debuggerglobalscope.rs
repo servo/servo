@@ -15,6 +15,7 @@ use js::context::JSContext;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::interfaces::HasOrigin;
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
 use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
@@ -73,6 +74,8 @@ pub(crate) struct DebuggerGlobalScope {
     get_environment_result_sender: RefCell<Option<GenericSender<String>>>,
     #[no_trace]
     pipeline_id: PipelineId,
+    #[no_trace]
+    origin: MutableOrigin,
 }
 
 impl DebuggerGlobalScope {
@@ -106,7 +109,6 @@ impl DebuggerGlobalScope {
                 script_to_embedder_chan,
                 resource_threads,
                 storage_threads,
-                MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 ServoUrl::parse_with_base(None, "about:internal/debugger")
                     .expect("Guaranteed by argument"),
                 None,
@@ -122,8 +124,10 @@ impl DebuggerGlobalScope {
             get_environment_result_sender: RefCell::new(None),
             eval_result_sender: RefCell::new(None),
             pipeline_id: debugger_pipeline_id,
+            origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
         });
-        let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global);
+        let global =
+            DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, &global.origin(), global);
 
         let mut realm = enter_auto_realm(cx, &*global);
         let mut realm = realm.current_realm();
@@ -134,6 +138,10 @@ impl DebuggerGlobalScope {
         });
 
         global
+    }
+
+    pub(crate) fn origin(&self) -> MutableOrigin {
+        self.origin.clone()
     }
 
     pub(crate) fn as_global_scope(&self) -> &GlobalScope {
@@ -697,5 +705,11 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .expect("Guaranteed by Self::fire_get_environment()");
 
         let _ = sender.send(environment_actor_id.into());
+    }
+}
+
+impl HasOrigin for DebuggerGlobalScope {
+    fn origin(&self) -> MutableOrigin {
+        DebuggerGlobalScope::origin(self)
     }
 }

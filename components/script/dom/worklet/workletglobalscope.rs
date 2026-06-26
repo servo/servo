@@ -52,6 +52,9 @@ pub(crate) struct WorkletGlobalScope {
     #[no_trace]
     /// The pipeline that created this worklet.
     pipeline_id: PipelineId,
+
+    #[no_trace]
+    origin: MutableOrigin,
 }
 
 impl WorkletGlobalScope {
@@ -109,7 +112,6 @@ impl WorkletGlobalScope {
                 init.to_embedder_sender.clone(),
                 init.resource_threads.clone(),
                 init.storage_threads.clone(),
-                MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 base_url.clone(),
                 None,
                 #[cfg(feature = "webgpu")]
@@ -122,7 +124,12 @@ impl WorkletGlobalScope {
             to_script_thread_sender: init.to_script_thread_sender.clone(),
             executor,
             pipeline_id,
+            origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
         }
+    }
+
+    pub(crate) fn origin(&self) -> MutableOrigin {
+        self.origin.clone()
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {

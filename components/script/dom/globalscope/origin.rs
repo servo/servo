@@ -72,7 +72,7 @@ impl Origin {
         // <https://html.spec.whatwg.org/multipage/#window:extract-an-origin>
         if let Ok(window_obj) = root_from_handlevalue::<Window>(value, cx) {
             let window_origin = window_obj.origin();
-            if !current_global.origin().same_origin_domain(window_origin) {
+            if !current_global.origin().same_origin_domain(&window_origin) {
                 return None;
             }
             return Some(window_origin.immutable().clone());

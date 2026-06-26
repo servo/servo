@@ -377,7 +377,7 @@ impl ImageBitmap {
                 let image_bitmap = Self::new(realm, global_scope, bitmap_data);
                 // Step 6.4. If image is not origin-clean, then set the origin-clean flag
                 // of imageBitmap's bitmap to false.
-                image_bitmap.set_origin_clean(image.same_origin(GlobalScope::entry().origin()));
+                image_bitmap.set_origin_clean(image.same_origin(&GlobalScope::entry().origin()));
 
                 // Step 6.5. Queue a global task, using the bitmap task source,
                 // to resolve promise with imageBitmap.

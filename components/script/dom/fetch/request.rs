@@ -152,7 +152,8 @@ impl Request {
         }
 
         // Step 7. Let origin be this’s relevant settings object’s origin.
-        let origin = global.origin().immutable();
+        let origin = global.origin();
+        let origin = origin.immutable();
 
         // Step 8. Let traversableForUserPrompts be "client".
         let mut traversable_for_user_prompts = TraversableForUserPrompts::Client;

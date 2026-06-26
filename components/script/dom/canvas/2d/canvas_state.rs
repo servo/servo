@@ -396,7 +396,7 @@ impl CanvasState {
     fn is_origin_clean(&self, source: CanvasImageSource) -> bool {
         match source {
             CanvasImageSource::HTMLImageElement(image) => {
-                image.same_origin(GlobalScope::entry().origin())
+                image.same_origin(&GlobalScope::entry().origin())
             },
             CanvasImageSource::HTMLVideoElement(video) => video.origin_is_clean(),
             CanvasImageSource::HTMLCanvasElement(canvas) => canvas.origin_is_clean(),

@@ -287,10 +287,6 @@ pub(crate) struct GlobalScope {
     #[no_trace]
     storage_threads: StorageThreads,
 
-    /// The origin of the globalscope
-    #[no_trace]
-    origin: MutableOrigin,
-
     /// <https://html.spec.whatwg.org/multipage/#concept-environment-creation-url>
     #[no_trace]
     creation_url: DomRefCell<ServoUrl>,
@@ -788,7 +784,6 @@ impl GlobalScope {
         script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
-        origin: MutableOrigin,
         creation_url: ServoUrl,
         top_level_creation_url: Option<ServoUrl>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
@@ -815,7 +810,6 @@ impl GlobalScope {
             in_error_reporting_mode: Default::default(),
             resource_threads,
             storage_threads,
-            origin,
             creation_url: DomRefCell::new(creation_url),
             top_level_creation_url,
             permission_state_invocation_results: Default::default(),
@@ -1908,11 +1902,11 @@ impl GlobalScope {
     }
 
     fn decrement_file_ref(&self, id: Uuid) {
-        let origin = self.origin().immutable();
+        let origin = self.origin().immutable().clone();
 
         let (tx, rx) = profile_generic_channel::channel(self.time_profiler_chan().clone()).unwrap();
 
-        let msg = FileManagerThreadMsg::DecRef(id, origin.clone(), tx);
+        let msg = FileManagerThreadMsg::DecRef(id, origin, tx);
         self.send_to_file_manager(msg);
         let _ = rx.recv();
     }
@@ -2103,11 +2097,10 @@ impl GlobalScope {
         rel_pos: &RelativePos,
         parent_len: u64,
     ) -> Uuid {
-        let origin = self.origin().immutable();
+        let origin = self.origin().immutable().clone();
 
         let (tx, rx) = profile_generic_channel::channel(self.time_profiler_chan().clone()).unwrap();
-        let msg =
-            FileManagerThreadMsg::AddSlicedURLEntry(*parent_file_id, *rel_pos, tx, origin.clone());
+        let msg = FileManagerThreadMsg::AddSlicedURLEntry(*parent_file_id, *rel_pos, tx, origin);
         self.send_to_file_manager(msg);
         match rx.recv().expect("File manager thread is down.") {
             Ok(new_id) => {
@@ -2137,7 +2130,7 @@ impl GlobalScope {
         blob_bytes: &[u8],
         set_valid: bool,
     ) -> Uuid {
-        let origin = self.origin().immutable();
+        let origin = self.origin().immutable().clone();
         let blob_buf = BlobBuf {
             filename: None,
             type_string: blob_info.blob_impl.type_string(),
@@ -2145,7 +2138,7 @@ impl GlobalScope {
             bytes: blob_bytes.to_vec(),
         };
         let id = Uuid::new_v4();
-        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin.clone());
+        let msg = FileManagerThreadMsg::PromoteMemory(id, blob_buf, set_valid, origin);
         self.send_to_file_manager(msg);
         id
     }
@@ -2170,10 +2163,10 @@ impl GlobalScope {
                         return self.promote_memory_entry(blob_info, &cached_bytes, true);
                     }
 
-                    let origin = self.origin().immutable();
+                    let origin = self.origin().immutable().clone();
                     let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
 
-                    let msg = FileManagerThreadMsg::ActivateBlobURL(f.get_id(), tx, origin.clone());
+                    let msg = FileManagerThreadMsg::ActivateBlobURL(f.get_id(), tx, origin);
                     self.send_to_file_manager(msg);
 
                     match rx.recv().unwrap() {
@@ -2279,8 +2272,8 @@ impl GlobalScope {
     fn send_msg(&self, id: Uuid) -> profile_ipc::IpcReceiver<FileManagerResult<ReadFileProgress>> {
         let resource_threads = self.resource_threads();
         let (chan, recv) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
-        let origin = self.origin().immutable();
-        let msg = FileManagerThreadMsg::ReadFile(chan, id, origin.clone());
+        let origin = self.origin().immutable().clone();
+        let msg = FileManagerThreadMsg::ReadFile(chan, id, origin);
         let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
         recv
     }
@@ -2553,8 +2546,20 @@ impl GlobalScope {
     }
 
     /// Get the origin for this global scope
-    pub(crate) fn origin(&self) -> &MutableOrigin {
-        &self.origin
+    pub(crate) fn origin(&self) -> MutableOrigin {
+        if let Some(window) = self.downcast::<Window>() {
+            window.origin()
+        } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            worker.origin()
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            worklet.origin()
+        } else if let Some(dissimilar_window) = self.downcast::<DissimilarOriginWindow>() {
+            dissimilar_window.origin()
+        } else if let Some(debugger) = self.downcast::<DebuggerGlobalScope>() {
+            debugger.origin()
+        } else {
+            unreachable!("Unexpected origin check against global")
+        }
     }
 
     /// Get the creation_url for this global scope
@@ -3608,7 +3613,7 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         GlobalScope::from_reflector(reflector, realm)
     }
 
-    fn origin(&self) -> &MutableOrigin {
+    fn origin(&self) -> MutableOrigin {
         GlobalScope::origin(self)
     }
 

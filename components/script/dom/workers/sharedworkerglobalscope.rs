@@ -24,10 +24,11 @@ use net_traits::request::{
 };
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::interfaces::HasOrigin;
 use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, ScriptEventLoopId, WebViewId};
 use servo_constellation_traits::{MessagePortImpl, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use uuid::Uuid;
@@ -350,7 +351,7 @@ impl SharedWorkerGlobalScope {
             extended_lifetime,
             registration_id,
         ));
-        SharedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
+        SharedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, &scope.origin(), scope)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -804,4 +805,10 @@ impl SharedWorkerGlobalScopeMethods<crate::DomTypeHolder> for SharedWorkerGlobal
 
     // <https://html.spec.whatwg.org/multipage/#handler-sharedworkerglobalscope-onconnect>
     event_handler!(connect, GetOnconnect, SetOnconnect);
+}
+
+impl HasOrigin for SharedWorkerGlobalScope {
+    fn origin(&self) -> MutableOrigin {
+        self.upcast::<WorkerGlobalScope>().origin()
+    }
 }
