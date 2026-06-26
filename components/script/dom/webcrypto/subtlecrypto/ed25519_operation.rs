@@ -155,15 +155,15 @@ pub(crate) fn generate_key(
         Handle::Ed25519PrivateKey(private_key),
     );
 
-    // Step 16. Let result be a new CryptoKeyPair dictionary.
-    // Step 17. Set the publicKey attribute of result to be publicKey.
-    // Step 18. Set the privateKey attribute of result to be privateKey.
+    // Step 15. Let result be a new CryptoKeyPair dictionary.
+    // Step 16. Set the publicKey attribute of result to be publicKey.
+    // Step 17. Set the privateKey attribute of result to be privateKey.
     let result = CryptoKeyPair {
         publicKey: Some(public_key),
         privateKey: Some(private_key),
     };
 
-    // Step 19. Return result.
+    // Step 18. Return result.
     Ok(result)
 }
 

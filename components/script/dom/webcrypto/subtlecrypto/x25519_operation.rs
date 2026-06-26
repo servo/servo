@@ -345,34 +345,34 @@ pub(crate) fn import_key(
                 return Err(Error::Syntax(None));
             }
 
-            // Step 2.2. If the d field is not present and if usages is not empty then throw a
+            // Step 2.3. If the d field is not present and if usages is not empty then throw a
             // SyntaxError.
             if jwk.d.is_none() && !usages.is_empty() {
                 return Err(Error::Syntax(None));
             }
 
-            // Step 2.2. If the kty field of jwk is not "OKP", then throw a DataError.
+            // Step 2.4. If the kty field of jwk is not "OKP", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "OKP") {
                 return Err(Error::Data(None));
             }
 
-            // Step 2.2. If the crv field of jwk is not "X25519", then throw a DataError.
+            // Step 2.5. If the crv field of jwk is not "X25519", then throw a DataError.
             if jwk.crv.as_ref().is_none_or(|crv| crv != "X25519") {
                 return Err(Error::Data(None));
             }
 
-            // Step 2.2. If usages is non-empty and the use field of jwk is present and is not
+            // Step 2.6. If usages is non-empty and the use field of jwk is present and is not
             // equal to "enc" then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
                 return Err(Error::Data(None));
             }
 
-            // Step 2.2. If the key_ops field of jwk is present, and is invalid according to the
+            // Step 2.7. If the key_ops field of jwk is present, and is invalid according to the
             // requirements of JSON Web Key [JWK], or it does not contain all of the specified
             // usages values, then throw a DataError.
             jwk.check_key_ops(&usages)?;
 
-            // Step 2.2. If the ext field of jwk is present and has the value false and extractable
+            // Step 2.8. If the ext field of jwk is present and has the value false and extractable
             // is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
                 return Err(Error::Data(None));
