@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::typedarray::{ArrayBuffer, CreateWith};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::domstring::DOMString;
@@ -150,7 +151,7 @@ impl MLContext {
             power_preference: options.powerPreference.clone(),
             is_lost: Cell::new(false),
             lost_promise: DomRefCell::new(None),
-            channel: webnn::WebNN::new(webnn::MockBackend::new()),
+            channel: webnn::WebNN::shared().clone(),
         }
     }
 
@@ -244,10 +245,7 @@ impl MLContextMethods<crate::DomTypeHolder> for MLContext {
         // throw a TypeError.
         for i in 0..all_tensors.len() {
             for j in (i + 1)..all_tensors.len() {
-                if std::ptr::eq(
-                    &**all_tensors[i] as *const MLTensor,
-                    &**all_tensors[j] as *const MLTensor,
-                ) {
+                if all_tensors[i] == all_tensors[j] {
                     return Err(Error::Type(
                         c"Duplicate tensors in inputs and outputs.".to_owned(),
                     ));
@@ -525,51 +523,43 @@ impl MLContextMethods<crate::DomTypeHolder> for MLContext {
         // Step 8.1. Run these steps, but abort when this is lost:
         // Step 8.1.1. Let bytes be a byte sequence containing a copy of
         // tensor.[[data]].
-        if let Some(data) = tensor.read_data() {
-            // Step 8.1.2. If that fails, then queue an ML task with global
-            // and the following steps:
-            // Step 8.1.2.1. Remove promise from tensor.[[pendingPromises]].
-            // Step 8.1.2.2. Reject promise with an "UnknownError"
-            // DOMException, and abort these steps.
-            let len = data.len();
-            if len == 0 {
+        let data = match tensor.read_data() {
+            Some(d) if !d.is_empty() => d,
+            _ => {
                 promise.reject_error(cx, Error::NotSupported(None));
                 return promise;
-            }
-            // Step 8.1.3. Otherwise, queue an ML task with global and the
-            // following steps:
-            // Step 8.1.3.1. Remove promise from tensor.[[pendingPromises]].
-            // Step 8.1.3.2. Let buffer be the result of creating an
-            // ArrayBuffer from bytes in realm.
-            // Step 8.1.3.3. Resolve promise with buffer.
-            #[allow(unsafe_code)]
-            unsafe {
-                let ptr = libc::malloc(len);
-                if ptr.is_null() {
-                    promise.reject_error(cx, Error::NotSupported(None));
-                    return promise;
-                }
-                std::ptr::copy_nonoverlapping(data.as_ptr(), ptr as *mut u8, len);
-                let obj = js::jsapi::NewArrayBufferWithContents(cx.raw_cx(), len, ptr);
-                if obj.is_null() {
-                    libc::free(ptr);
-                    promise.reject_error(cx, Error::NotSupported(None));
-                    return promise;
-                }
-                let obj_val = js::jsval::ObjectValue(obj);
-                promise.resolve_native(cx, &obj_val);
-            }
-        } else {
-            // TODO: Step 8.2. If aborted, then queue an ML task with global
-            // to reject promise with an "InvalidStateError" DOMException.
-            promise.reject_error(cx, Error::NotSupported(None));
+            },
+        };
+        // Step 8.1.2. If that fails, then queue an ML task with global
+        // and the following steps:
+        // Step 8.1.2.1. Remove promise from tensor.[[pendingPromises]].
+        // Step 8.1.2.2. Reject promise with an "UnknownError"
+        // DOMException, and abort these steps.
+        // Step 8.1.3. Otherwise, queue an ML task with global and the
+        // following steps:
+        // Step 8.1.3.1. Remove promise from tensor.[[pendingPromises]].
+        // Step 8.1.3.2. Let buffer be the result of creating an
+        // ArrayBuffer from bytes in realm.
+        // Step 8.1.3.3. Resolve promise with buffer.
+        rooted!(&in(cx) let mut array_buffer = std::ptr::null_mut::<js::jsapi::JSObject>());
+        #[allow(unsafe_code)]
+        unsafe {
+            assert!(
+                ArrayBuffer::create(
+                    cx.raw_cx(),
+                    CreateWith::Slice(&data),
+                    array_buffer.handle_mut()
+                )
+                .is_ok()
+            );
         }
+        let obj_val = js::jsval::ObjectValue(array_buffer.get());
+        promise.resolve_native(cx, &obj_val);
         // Step 9. Return promise.
         promise
     }
 
     /// <https://www.w3.org/TR/webnn/#dom-mlcontext-readtensor>
-    #[allow(unsafe_code)]
     fn ReadTensor_(
         &self,
         cx: &mut js::context::JSContext,
@@ -648,6 +638,7 @@ impl MLContextMethods<crate::DomTypeHolder> for MLContext {
         // Step 9.1.3.3. Write bytes to outputData.
         // Step 9.1.3.4. Resolve promise with undefined.
         let len = data.len();
+        #[allow(unsafe_code)]
         match output_data {
             MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer::ArrayBuffer(ref mut buf) => {
                 let slice: &mut [u8] = unsafe { buf.as_mut_slice() };
@@ -668,7 +659,6 @@ impl MLContextMethods<crate::DomTypeHolder> for MLContext {
     }
 
     /// <https://www.w3.org/TR/webnn/#dom-mlcontext-writetensor>
-    #[allow(unsafe_code)]
     fn WriteTensor(
         &self,
         _cx: &mut js::context::JSContext,
@@ -704,6 +694,7 @@ impl MLContextMethods<crate::DomTypeHolder> for MLContext {
         }
         // Step 5. Let bytes be the result of getting a copy of the bytes
         // held by the buffer source given inputData.
+        #[allow(unsafe_code)]
         let src: &[u8] = match input_data {
             MaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer::ArrayBuffer(ref data) => unsafe {
                 data.as_slice()

@@ -111,6 +111,14 @@ impl RoutedPromiseListener<webnn::BuildResponse> for MLGraph {
         response: webnn::BuildResponse,
         promise: &Rc<Promise>,
     ) {
+        // Step 18.2. If aborted, then queue an ML task with global to
+        // reject promise with an "InvalidStateError" DOMException.
+        if let Some(context) = self.context.root() {
+            if context.is_lost() {
+                promise.reject_error(cx, Error::InvalidState(Some("Context is lost.".into())));
+                return;
+            }
+        }
         match response.graph_id {
             Ok(graph_id) => {
                 self.set_graph_id(graph_id);

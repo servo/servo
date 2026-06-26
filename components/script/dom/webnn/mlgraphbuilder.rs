@@ -89,6 +89,7 @@ pub(crate) struct MLGraphBuilder {
     /// <https://www.w3.org/TR/webnn/#dom-mlgraphbuilder-context-slot>
     has_built: Cell<bool>,
     builder_id: Cell<webnn::BuilderId>,
+    next_operand_id: Cell<webnn::OperandId>,
 }
 
 impl MLGraphBuilder {
@@ -101,6 +102,7 @@ impl MLGraphBuilder {
             channel,
             has_built: Cell::new(false),
             builder_id: Cell::new(id),
+            next_operand_id: Cell::new(1),
         }
     }
 
@@ -121,6 +123,12 @@ impl MLGraphBuilder {
     #[allow(dead_code)]
     pub(crate) fn context(&self) -> &WeakRef<MLContext> {
         &self.context
+    }
+
+    fn next_operand_id(&self) -> webnn::OperandId {
+        let id = self.next_operand_id.get();
+        self.next_operand_id.set(id + 1);
+        id
     }
 
     /// <https://www.w3.org/TR/webnn/#mlgraphbuilder-can-build>
@@ -190,8 +198,10 @@ impl MLGraphBuilder {
         // Step 7.4. Set operator's inputs to a and b.
         // Step 7.5. Set operator's output to output.
         let input_ids = [a.operand_id(), b.operand_id()];
-        let operand_id = self.channel.add_operator(
+        let operand_id = self.next_operand_id();
+        self.channel.add_operator(
             self.builder_id.get(),
+            operand_id,
             operation,
             &input_ids,
             a.data_type() as u32,
@@ -265,8 +275,10 @@ impl MLGraphBuilderMethods<crate::DomTypeHolder> for MLGraphBuilder {
         // Step 5.1. Let operand = creating an MLOperand given this and descriptor.
         // Step 5.2. Set operand.[[name]] to name. (Skipped as we are not using)
         // Step 5.3. Add operand to this's graph's inputs.
-        let operand_id = self.channel.add_input(
+        let operand_id = self.next_operand_id();
+        self.channel.add_input(
             self.builder_id.get(),
+            operand_id,
             name.0.as_str(),
             descriptor.dataType as u32,
             &descriptor.shape,
@@ -318,8 +330,10 @@ impl MLGraphBuilderMethods<crate::DomTypeHolder> for MLGraphBuilder {
             },
         };
         // Step 4.3. Add operand to this's graph's constants with bytes as value.
-        let operand_id = self.channel.add_constant(
+        let operand_id = self.next_operand_id();
+        self.channel.add_constant(
             self.builder_id.get(),
+            operand_id,
             descriptor.dataType as u32,
             &descriptor.shape,
             &bytes,
@@ -438,8 +452,10 @@ impl MLGraphBuilderMethods<crate::DomTypeHolder> for MLGraphBuilder {
         );
         self.channel
             .build(self.builder_id.get(), &output_pairs, callback);
-        // TODO: Step 18.2. If aborted, then queue an ML task with global to
+        // Step 18.2. If aborted, then queue an ML task with global to
         // reject promise with an "InvalidStateError" DOMException.
+        // (Implementation: checked in MLGraph::handle_response when the
+        // async build result arrives on the script thread.)
         // Step 19. Return promise.
         Ok(promise)
     }

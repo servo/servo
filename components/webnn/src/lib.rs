@@ -5,7 +5,9 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use servo_base::generic_channel::{self, GenericCallback, GenericOneshotSender, GenericSender};
+use servo_base::generic_channel::{
+    self, GenericCallback, GenericOneshotSender, GenericReceiver, GenericSender,
+};
 
 mod mock_backend;
 
@@ -50,27 +52,30 @@ pub trait Backend: Send + 'static {
     fn add_input(
         &self,
         builder_id: BuilderId,
+        operand_id: OperandId,
         name: &str,
         data_type: u32,
         shape: &[u32],
-    ) -> OperandId;
+    );
     fn add_constant(
         &self,
         builder_id: BuilderId,
+        operand_id: OperandId,
         data_type: u32,
         shape: &[u32],
         data: &[u8],
-    ) -> OperandId;
+    );
     fn add_operator(
         &self,
         builder_id: BuilderId,
+        operand_id: OperandId,
         op: &str,
         inputs: &[OperandId],
         data_type: u32,
         shape: &[u32],
         options: &OperatorOptions,
         label: &str,
-    ) -> OperandId;
+    );
     fn build(
         &self,
         builder_id: BuilderId,
@@ -104,27 +109,27 @@ enum WebNNRequest {
     CreateBuilder(GenericOneshotSender<BuilderId>),
     AddInput {
         builder_id: BuilderId,
+        operand_id: OperandId,
         name: String,
         data_type: u32,
         shape: Vec<u32>,
-        reply: GenericOneshotSender<OperandId>,
     },
     AddConstant {
         builder_id: BuilderId,
+        operand_id: OperandId,
         data_type: u32,
         shape: Vec<u32>,
         data: Vec<u8>,
-        reply: GenericOneshotSender<OperandId>,
     },
     AddOperator {
         builder_id: BuilderId,
+        operand_id: OperandId,
         op: String,
         inputs: Vec<OperandId>,
         data_type: u32,
         shape: Vec<u32>,
         options: OperatorOptions,
         label: String,
-        reply: GenericOneshotSender<OperandId>,
     },
     Build {
         builder_id: BuilderId,
@@ -146,92 +151,101 @@ enum WebNNRequest {
 
 // ── WebNN channel ──
 
-/// Channel from script thread to the WebNN backend thread.
-/// Every `MLContext` holds a clone
+/// Channel from script thread to the shared WebNN backend thread.
+/// A single backend thread is shared across all MLContexts.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebNN(pub(crate) GenericSender<WebNNRequest>);
 
-impl WebNN {
-    /// Spawn the WebNN thread with the given backend.
-    pub fn new<B: Backend>(backend: B) -> Self {
-        let (sender, receiver) =
-            generic_channel::channel::<WebNNRequest>().expect("WebNN channel creation");
-        std::thread::Builder::new()
-            .name("WebNN".into())
-            .spawn(move || {
-                while let Ok(request) = receiver.recv() {
-                    match request {
-                        WebNNRequest::CreateBuilder(reply) => {
-                            let id = backend.create_builder();
-                            reply.send_or_warn(id);
-                        },
-                        WebNNRequest::AddInput {
-                            builder_id,
-                            name,
-                            data_type,
-                            shape,
-                            reply,
-                        } => {
-                            let id = backend.add_input(builder_id, &name, data_type, &shape);
-                            reply.send_or_warn(id);
-                        },
-                        WebNNRequest::AddConstant {
-                            builder_id,
-                            data_type,
-                            shape,
-                            data,
-                            reply,
-                        } => {
-                            let id = backend.add_constant(builder_id, data_type, &shape, &data);
-                            reply.send_or_warn(id);
-                        },
-                        WebNNRequest::AddOperator {
-                            builder_id,
-                            op,
-                            inputs,
-                            data_type,
-                            shape,
-                            options,
-                            label,
-                            reply,
-                        } => {
-                            let id = backend.add_operator(
-                                builder_id, &op, &inputs, data_type, &shape, &options, &label,
-                            );
-                            reply.send_or_warn(id);
-                        },
-                        WebNNRequest::Build {
-                            builder_id,
-                            outputs,
-                            callback,
-                        } => {
-                            let result = backend.build(builder_id, &outputs);
-                            let _ = callback.send(BuildResponse { graph_id: result });
-                        },
-                        WebNNRequest::Run {
-                            graph_id,
-                            inputs,
-                            output_labels,
-                            callback,
-                        } => {
-                            let input_refs: Vec<(String, &[u8])> = inputs
-                                .iter()
-                                .map(|(n, d)| (n.clone(), d.as_slice()))
-                                .collect();
-                            let result = backend.run(graph_id, &input_refs, &output_labels);
-                            let _ = callback.send(RunResponse { result });
-                        },
-                        WebNNRequest::DestroyGraph { graph_id } => {
-                            backend.destroy_graph(graph_id);
-                        },
-                        WebNNRequest::Shutdown => break,
-                    }
-                }
-            })
-            .expect("WebNN thread spawn");
-        WebNN(sender)
-    }
+static WEBNN_CHANNEL: std::sync::OnceLock<WebNN> = std::sync::OnceLock::new();
 
+impl WebNN {
+    /// Get the shared WebNN thread, spawning it on first call.
+    pub fn shared() -> &'static WebNN {
+        WEBNN_CHANNEL.get_or_init(|| {
+            let (sender, receiver) =
+                generic_channel::channel::<WebNNRequest>().expect("WebNN channel creation");
+            let backend = MockBackend::new();
+            std::thread::Builder::new()
+                .name("WebNN".into())
+                .spawn(move || {
+                    run_backend_thread(backend, receiver);
+                })
+                .expect("WebNN thread spawn");
+            WebNN(sender)
+        })
+    }
+}
+
+/// Run the backend thread's main loop.
+fn run_backend_thread<B: Backend>(backend: B, receiver: GenericReceiver<WebNNRequest>) {
+    while let Ok(request) = receiver.recv() {
+        match request {
+            WebNNRequest::CreateBuilder(reply) => {
+                let id = backend.create_builder();
+                reply.send_or_warn(id);
+            },
+            WebNNRequest::AddInput {
+                builder_id,
+                operand_id,
+                name,
+                data_type,
+                shape,
+            } => {
+                backend.add_input(builder_id, operand_id, &name, data_type, &shape);
+            },
+            WebNNRequest::AddConstant {
+                builder_id,
+                operand_id,
+                data_type,
+                shape,
+                data,
+            } => {
+                backend.add_constant(builder_id, operand_id, data_type, &shape, &data);
+            },
+            WebNNRequest::AddOperator {
+                builder_id,
+                operand_id,
+                op,
+                inputs,
+                data_type,
+                shape,
+                options,
+                label,
+            } => {
+                backend.add_operator(
+                    builder_id, operand_id, &op, &inputs, data_type, &shape, &options, &label,
+                );
+            },
+            WebNNRequest::Build {
+                builder_id,
+                outputs,
+                callback,
+            } => {
+                let result = backend.build(builder_id, &outputs);
+                let _ = callback.send(BuildResponse { graph_id: result });
+            },
+            WebNNRequest::Run {
+                graph_id,
+                inputs,
+                output_labels,
+                callback,
+            } => {
+                let input_refs: Vec<(String, &[u8])> = inputs
+                    .iter()
+                    .map(|(n, d)| (n.clone(), d.as_slice()))
+                    .collect();
+                let result = backend.run(graph_id, &input_refs, &output_labels);
+                let _ = callback.send(RunResponse { result });
+            },
+            WebNNRequest::DestroyGraph { graph_id } => {
+                backend.destroy_graph(graph_id);
+            },
+            WebNNRequest::Shutdown => break,
+        }
+    }
+}
+
+impl WebNN {
     pub fn create_builder(&self) -> BuilderId {
         let (tx, rx) = generic_channel::oneshot().expect("WebNN oneshot");
         self.0.send_or_warn(WebNNRequest::CreateBuilder(tx));
@@ -241,61 +255,58 @@ impl WebNN {
     pub fn add_input(
         &self,
         builder_id: BuilderId,
+        operand_id: OperandId,
         name: &str,
         data_type: u32,
         shape: &[u32],
-    ) -> OperandId {
-        let (tx, rx) = generic_channel::oneshot().expect("WebNN oneshot");
+    ) {
         self.0.send_or_warn(WebNNRequest::AddInput {
             builder_id,
+            operand_id,
             name: name.to_string(),
             data_type,
             shape: shape.to_vec(),
-            reply: tx,
         });
-        rx.recv().unwrap_or(0)
     }
 
     pub fn add_constant(
         &self,
         builder_id: BuilderId,
+        operand_id: OperandId,
         data_type: u32,
         shape: &[u32],
         data: &[u8],
-    ) -> OperandId {
-        let (tx, rx) = generic_channel::oneshot().expect("WebNN oneshot");
+    ) {
         self.0.send_or_warn(WebNNRequest::AddConstant {
             builder_id,
+            operand_id,
             data_type,
             shape: shape.to_vec(),
             data: data.to_vec(),
-            reply: tx,
         });
-        rx.recv().unwrap_or(0)
     }
 
     pub fn add_operator(
         &self,
         builder_id: BuilderId,
+        operand_id: OperandId,
         op: &str,
         inputs: &[OperandId],
         data_type: u32,
         shape: &[u32],
         options: &OperatorOptions,
         label: &str,
-    ) -> OperandId {
-        let (tx, rx) = generic_channel::oneshot().expect("WebNN oneshot");
+    ) {
         self.0.send_or_warn(WebNNRequest::AddOperator {
             builder_id,
+            operand_id,
             op: op.to_string(),
             inputs: inputs.to_vec(),
             data_type,
             shape: shape.to_vec(),
             options: options.clone(),
             label: label.to_string(),
-            reply: tx,
         });
-        rx.recv().unwrap_or(0)
     }
 
     pub fn build(

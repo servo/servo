@@ -12,6 +12,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
 use crate::dom::bindings::codegen::Bindings::WebNNBinding::{MLContextOptions, MLMethods};
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -64,9 +65,16 @@ impl MLMethods<crate::DomTypeHolder> for ML {
         //         ML task with global to reject promise with a
         //         "NotSupportedError" DOMException and abort these steps.
         let context = MLContext::new(&global, options, cx);
-        // TODO: Step 5.2. Queue an ML task with global to resolve promise with
+        let trusted_context = Trusted::new(&*context);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let task_source = self.global().task_manager().ml_task_source().to_sendable();
+        // Step 5.2. Queue an ML task with global to resolve promise with
         //         context.
-        promise.resolve_native(cx, &context);
+        task_source.queue(task!(resolve_create_context: move |cx| {
+            let context = trusted_context.root();
+            let promise = trusted_promise.root();
+            promise.resolve_native(cx, &context);
+        }));
         // Step 6. Return promise.
         promise
     }

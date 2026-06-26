@@ -33,7 +33,6 @@ pub struct MockBackend {
     graphs: Mutex<HashMap<GraphId, GraphState>>,
     next_builder_id: AtomicUsize,
     next_graph_id: AtomicUsize,
-    next_operand_id: AtomicUsize,
 }
 
 impl MockBackend {
@@ -43,12 +42,7 @@ impl MockBackend {
             graphs: Mutex::new(HashMap::new()),
             next_builder_id: AtomicUsize::new(1),
             next_graph_id: AtomicUsize::new(1),
-            next_operand_id: AtomicUsize::new(1),
         }
-    }
-
-    fn next_operand_id(&self) -> OperandId {
-        self.next_operand_id.fetch_add(1, Ordering::Relaxed)
     }
 }
 
@@ -78,11 +72,11 @@ impl Backend for MockBackend {
     fn add_input(
         &self,
         builder_id: BuilderId,
+        operand_id: OperandId,
         name: &str,
         data_type: u32,
         shape: &[u32],
-    ) -> OperandId {
-        let operand_id = self.next_operand_id();
+    ) {
         if let Some(state) = self.builders.lock().unwrap().get_mut(&builder_id) {
             state.input_names.insert(name.to_string(), operand_id);
             state.nodes.insert(
@@ -97,17 +91,16 @@ impl Backend for MockBackend {
                 },
             );
         }
-        operand_id
     }
 
     fn add_constant(
         &self,
         builder_id: BuilderId,
+        operand_id: OperandId,
         data_type: u32,
         shape: &[u32],
         data: &[u8],
-    ) -> OperandId {
-        let operand_id = self.next_operand_id();
+    ) {
         if let Some(state) = self.builders.lock().unwrap().get_mut(&builder_id) {
             state.nodes.insert(
                 operand_id,
@@ -121,20 +114,19 @@ impl Backend for MockBackend {
                 },
             );
         }
-        operand_id
     }
 
     fn add_operator(
         &self,
         builder_id: BuilderId,
+        operand_id: OperandId,
         op: &str,
         inputs: &[OperandId],
         data_type: u32,
         shape: &[u32],
         _options: &OperatorOptions,
         label: &str,
-    ) -> OperandId {
-        let operand_id = self.next_operand_id();
+    ) {
         if let Some(state) = self.builders.lock().unwrap().get_mut(&builder_id) {
             state.nodes.insert(
                 operand_id,
@@ -148,7 +140,6 @@ impl Backend for MockBackend {
                 },
             );
         }
-        operand_id
     }
 
     fn build(
