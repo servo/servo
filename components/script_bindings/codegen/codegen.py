@@ -4214,6 +4214,9 @@ class CGCallGenerator(CGThing):
                 CGGeneric("let cx = &mut realm;"),
             ]))
             args.prepend(CGGeneric("cx"))
+        # Workaround for iterators `Next` method until `safe_cx` is the default
+        elif descriptor.interface.isIteratorInterface():
+            args.prepend(CGGeneric("cx"))
         else:
             if "cx" not in argsPre and needsCx:
                 args.prepend(CGGeneric("SafeJSContext::from_ptr(cx.raw_cx())"))
@@ -7026,7 +7029,7 @@ class CGInterfaceTrait(CGThing):
                         arguments = cast(list[IDLArgument], arguments)
                         arguments = method_arguments(descriptor, rettype, arguments,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
-                                                     cx=name in descriptor.cxMethods,
+                                                     cx=name in descriptor.cxMethods or descriptor.interface.isIteratorInterface(),
                                                      realm=name in descriptor.realmMethods,
                                                      canGc=name in descriptor.canGcMethods)
                         rettype = return_type(descriptor, rettype, infallible)

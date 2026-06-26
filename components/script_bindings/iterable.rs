@@ -111,40 +111,38 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
 
     /// Return the next value from the iterable object.
     #[expect(non_snake_case)]
-    pub fn Next(&self, cx: JSContext, return_value: MutableHandleObject) -> Fallible<()> {
+    pub fn Next(
+        &self,
+        cx: &mut js::context::JSContext,
+        return_value: MutableHandleObject,
+    ) -> Fallible<()> {
         let index = self.index.get();
-        rooted!(in(*cx) let mut value = UndefinedValue());
+        rooted!(&in(cx) let mut value = UndefinedValue());
         let result = if index >= self.iterable.get_iterable_length() {
-            dict_return(cx, return_value, true, value.handle())
+            dict_return(cx.into(), return_value, true, value.handle())
         } else {
             match self.type_ {
                 IteratorType::Keys => {
-                    unsafe {
-                        self.iterable
-                            .get_key_at_index(index)
-                            .to_jsval(*cx, value.handle_mut());
-                    }
-                    dict_return(cx, return_value, false, value.handle())
+                    self.iterable
+                        .get_key_at_index(index)
+                        .safe_to_jsval(cx, value.handle_mut());
+                    dict_return(cx.into(), return_value, false, value.handle())
                 },
                 IteratorType::Values => {
-                    unsafe {
-                        self.iterable
-                            .get_value_at_index(index)
-                            .to_jsval(*cx, value.handle_mut());
-                    }
-                    dict_return(cx, return_value, false, value.handle())
+                    self.iterable
+                        .get_value_at_index(index)
+                        .safe_to_jsval(cx, value.handle_mut());
+                    dict_return(cx.into(), return_value, false, value.handle())
                 },
                 IteratorType::Entries => {
-                    rooted!(in(*cx) let mut key = UndefinedValue());
-                    unsafe {
-                        self.iterable
-                            .get_key_at_index(index)
-                            .to_jsval(*cx, key.handle_mut());
-                        self.iterable
-                            .get_value_at_index(index)
-                            .to_jsval(*cx, value.handle_mut());
-                    }
-                    key_and_value_return(cx, return_value, key.handle(), value.handle())
+                    rooted!(&in(cx) let mut key = UndefinedValue());
+                    self.iterable
+                        .get_key_at_index(index)
+                        .safe_to_jsval(cx, key.handle_mut());
+                    self.iterable
+                        .get_value_at_index(index)
+                        .safe_to_jsval(cx, value.handle_mut());
+                    key_and_value_return(cx.into(), return_value, key.handle(), value.handle())
                 },
             }
         };
