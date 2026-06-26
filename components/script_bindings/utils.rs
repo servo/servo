@@ -22,12 +22,11 @@ use js::jsapi::{
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::wrappers::JS_SetProperty;
 use js::rust::wrappers2::{
     CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, CallOriginalPromiseReject,
     JS_ClearPendingException, JS_DefineProperty, JS_ForwardGetPropertyTo, JS_GetPendingException,
     JS_GetProperty, JS_GetPrototype, JS_HasOwnProperty, JS_HasProperty, JS_HasPropertyById,
-    JS_IsExceptionPending, JS_SetPendingException,
+    JS_IsExceptionPending, JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
@@ -45,7 +44,6 @@ use crate::interfaces::DomHelpers;
 use crate::proxyhandler::{
     is_cross_origin_object, is_platform_object_same_origin, report_cross_origin_denial,
 };
-use crate::script_runtime::JSContext as SafeJSContext;
 use crate::str::DOMString;
 use crate::trace::trace_object;
 
@@ -261,9 +259,9 @@ pub(crate) fn get_dictionary_property(
 /// Set the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure, or null object,
 /// and Ok(()) otherwise
-#[allow(clippy::result_unit_err)]
+#[expect(clippy::result_unit_err)]
 pub fn set_dictionary_property(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     object: HandleObject,
     property: &CStr,
     value: HandleValue,
@@ -272,10 +270,8 @@ pub fn set_dictionary_property(
         return Err(());
     }
 
-    unsafe {
-        if !JS_SetProperty(*cx, object, property.as_ptr(), value) {
-            return Err(());
-        }
+    if unsafe { !JS_SetProperty(cx, object, property.as_ptr(), value) } {
+        return Err(());
     }
 
     Ok(())

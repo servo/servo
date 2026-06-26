@@ -4263,7 +4263,7 @@ class CGCallGenerator(CGThing):
                 "let result = match result {\n"
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
-                f"        let global = {glob};"
+                f"        let global = {glob};\n"
                 f"        <D as DomHelpers<D>>::throw_dom_exception(cx, global, e);\n"
                 f"        return{errorResult};\n"
                 "    },\n"
@@ -7686,9 +7686,9 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
 
         def varInsert(varName: str, dictionaryName: str) -> CGThing:
             insertion = (
-                f"rooted!(in(cx) let mut {varName}_js = UndefinedValue());\n"
-                f"{varName}.to_jsval(cx, {varName}_js.handle_mut());\n"
-                f'set_dictionary_property(SafeJSContext::from_ptr(cx), obj.handle(), c"{dictionaryName}", {varName}_js.handle()).unwrap();')
+                f"rooted!(&in(cx) let mut {varName}_js = UndefinedValue());\n"
+                f"{varName}.safe_to_jsval(cx, {varName}_js.handle_mut());\n"
+                f'set_dictionary_property(cx, obj.handle(), c"{dictionaryName}", {varName}_js.handle()).unwrap();')
             return CGGeneric(insertion)
 
         def memberInsert(memberInfo: tuple[IDLArgument, JSToNativeConversionInfo]) -> CGThing:
@@ -7761,13 +7761,20 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "\n"
             f"impl{self.generic} {selfName}{self.genericSuffix} {{\n"
             "    #[allow(clippy::wrong_self_convention)]\n"
-            "    pub unsafe fn to_jsobject(&self, cx: *mut RawJSContext, mut obj: MutableHandleObject) {\n"
+            "    pub fn to_jsobject(&self, cx: &mut JSContext, mut obj: MutableHandleObject) {\n"
             f"{CGIndenter(CGList(memberInserts), indentLevel=8).define()}    }}\n"
             "}\n"
             "\n"
             f"impl{self.generic} ToJSValConvertible for {selfName}{self.genericSuffix} {{\n"
-            "    unsafe fn to_jsval(&self, cx: *mut RawJSContext, mut rval: MutableHandleValue) {\n"
-            "        rooted!(in(cx) let mut obj = JS_NewObject(cx, ptr::null()));\n"
+            "    unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {\n"
+            "       // TODO: https://github.com/servo/mozjs/issues/764\n"
+            "       // This is needed until the `RawJSContext` version is removed from the trait.\n"
+            "       let mut cx = crate::script_runtime::temp_cx();\n"
+            "        self.safe_to_jsval(&mut cx, rval);\n"
+            "    }\n"
+            "\n"
+            "    fn safe_to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {\n"
+            "        rooted!(&in(cx) let mut obj = unsafe { JS_NewObject(cx, ptr::null()) });\n"
             "        self.to_jsobject(cx, obj.handle_mut());\n"
             "        rval.set(ObjectOrNullValue(obj.get()))\n"
             "    }\n"
