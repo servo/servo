@@ -81,8 +81,8 @@ pub(crate) mod module {
     };
     pub(crate) use js::rust::{CustomAutoRooterGuard, GCMethods, Handle, MutableHandle};
     pub(crate) use js::{
-        JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,
-        JSCLASS_RESERVED_SLOTS_MASK, typedarray,
+        JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_MASK,
+        typedarray,
     };
     pub(crate) use servo_config::pref;
 

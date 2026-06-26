@@ -2644,39 +2644,23 @@ class CGDOMJSClass(CGThing):
             args["slots"] = "2"
         return f"""
 static CLASS_OPS: ThreadUnsafeOnceLock<JSClassOps> = ThreadUnsafeOnceLock::new();
-
-pub(crate) fn init_class_ops<D: DomTypes>() {{
-    CLASS_OPS.set(JSClassOps {{
-        addProperty: None,
-        delProperty: None,
-        enumerate: None,
-        newEnumerate: {args['enumerateHook']},
-        resolve: {args['resolveHook']},
-        mayResolve: {args['mayResolveHook']},
-        finalize: Some({args['finalizeHook']}),
-        call: None,
-        construct: None,
-        trace: Some({args['traceHook']}),
-    }});
-}}
-
 pub static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
 
 pub(crate) fn init_domjs_class<D: DomTypes>() {{
-    init_class_ops::<D>();
-    Class.set(DOMJSClass {{
-        base: JSClass {{
-            name: {args['name']},
-            flags: JSCLASS_IS_DOMJSCLASS | {args['flags']} |
-                   ((({args['slots']}) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
-                   /* JSCLASS_HAS_RESERVED_SLOTS({args['slots']}) */,
-            cOps: unsafe {{ CLASS_OPS.get() }},
-            spec: ptr::null(),
-            ext: ptr::null(),
-            oOps: ptr::null(),
-        }},
-        dom_class: {args['domClass']},
-    }});
+    let js_class_config = crate::init::InitClassConfig {{
+            enumerate_hook: {args["enumerateHook"]},
+            resolve_hook: {args["resolveHook"]},
+            may_resolve_hook: {args["mayResolveHook"]},
+            finalize_hook: {args["finalizeHook"]},
+            trace_hook: {args["traceHook"]}
+            }};
+    let domjs_class_config = crate::init::DomJSClassConfig {{
+        name: {args['name']},
+        flags: {args['flags']},
+        slots: {args['slots']},
+        class: {args['domClass']},
+    }};
+    crate::init::init_domjs_class(&CLASS_OPS, js_class_config, &Class, domjs_class_config);
 }}
 """
 
