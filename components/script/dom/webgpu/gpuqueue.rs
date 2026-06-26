@@ -242,7 +242,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             GPUCopyExternalImageSource::ImageBitmap(inner) => inner.origin_is_clean(),
             GPUCopyExternalImageSource::ImageData(_) => true,
             GPUCopyExternalImageSource::HTMLImageElement(inner) => {
-                inner.same_origin(GlobalScope::entry().origin())
+                inner.same_origin(&GlobalScope::entry().origin())
             },
             GPUCopyExternalImageSource::HTMLVideoElement(inner) => inner.origin_is_clean(),
             GPUCopyExternalImageSource::HTMLCanvasElement(inner) => inner.origin_is_clean(),

@@ -7,7 +7,7 @@ use js::context::JSContext;
 use net_traits::request::Referrer;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
@@ -288,11 +288,6 @@ impl Location {
             NavigationHistoryBehavior::Replace,
             NavigationType::ReloadByConstellation,
         );
-    }
-
-    #[expect(dead_code)]
-    pub(crate) fn origin(&self) -> &MutableOrigin {
-        self.window.origin()
     }
 }
 

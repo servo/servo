@@ -7,11 +7,12 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use script_bindings::interfaces::HasOrigin;
 use servo_base::id::PipelineId;
 use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, StructuredSerializedData,
 };
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
@@ -48,6 +49,9 @@ pub(crate) struct DissimilarOriginWindow {
 
     #[no_trace]
     pipeline_id: PipelineId,
+
+    #[no_trace]
+    origin: MutableOrigin,
 }
 
 impl DissimilarOriginWindow {
@@ -65,7 +69,6 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.script_to_embedder_chan().clone(),
                 global_to_clone_from.resource_threads().clone(),
                 global_to_clone_from.storage_threads().clone(),
-                global_to_clone_from.origin().clone(),
                 global_to_clone_from.creation_url(),
                 global_to_clone_from.top_level_creation_url().clone(),
                 #[cfg(feature = "webgpu")]
@@ -77,8 +80,13 @@ impl DissimilarOriginWindow {
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
             pipeline_id: PipelineId::new(),
+            origin: global_to_clone_from.origin().clone(),
         });
-        DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
+        DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, &win.origin(), win)
+    }
+
+    pub(crate) fn origin(&self) -> MutableOrigin {
+        self.origin.clone()
     }
 
     pub(crate) fn window_proxy(&self) -> DomRoot<WindowProxy> {
@@ -265,5 +273,11 @@ impl DissimilarOriginWindow {
         // Step 8
         let _ = incumbent.script_to_constellation_chan().send(msg);
         Ok(())
+    }
+}
+
+impl HasOrigin for DissimilarOriginWindow {
+    fn origin(&self) -> MutableOrigin {
+        DissimilarOriginWindow::origin(self)
     }
 }

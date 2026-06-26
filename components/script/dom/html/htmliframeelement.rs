@@ -534,7 +534,7 @@ impl HTMLIFrameElement {
             (None, document.about_base_url())
         };
 
-        let propagate_encoding_to_child_document = url.origin().same_origin(window.origin());
+        let propagate_encoding_to_child_document = url.origin().same_origin(&window.origin());
         let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             url,
