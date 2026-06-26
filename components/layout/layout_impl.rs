@@ -62,7 +62,7 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::invalidation::stylesheets::StylesheetInvalidationSet;
 use style::media_queries::{MediaList, MediaType};
 use style::properties::style_structs::Font;
-use style::properties::{ComputedValues, PropertyId};
+use style::properties::{ComputedValues, LonghandId, NonCustomPropertyId, PropertyId, ShorthandId};
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::media_features::PointerCapabilities;
@@ -1855,8 +1855,38 @@ impl ReflowPhases {
     /// [`ReflowGoals`] need the basic restyle + box tree layout + fragment tree layout,
     /// so [`ReflowPhases::empty()`] implies that.
     fn necessary(reflow_goal: &ReflowGoal) -> Self {
+        let is_inset_longhand = |longhand: LonghandId| {
+            matches!(
+                longhand,
+                LonghandId::Top |
+                    LonghandId::Right |
+                    LonghandId::Bottom |
+                    LonghandId::Left |
+                    LonghandId::InsetInlineStart |
+                    LonghandId::InsetInlineEnd |
+                    LonghandId::InsetBlockStart |
+                    LonghandId::InsetBlockEnd
+            )
+        };
+
+        let is_inset_property =
+            |property: NonCustomPropertyId| match property.longhand_or_shorthand() {
+                Ok(longhand) => is_inset_longhand(longhand),
+                // Special case for the `All` shorthand as it has many longhands.
+                Err(ShorthandId::All) => true,
+                Err(shorthand) => shorthand.longhands().any(is_inset_longhand),
+            };
+
         match reflow_goal {
             ReflowGoal::LayoutQuery(query) => match query {
+                // Resolving insets requires the creation of the stacking context, but other style properties
+                // do not. This should be kept in sync with `LayoutThread::query_resolved_style()`.
+                QueryMsg::ResolvedStyleQuery(PropertyId::NonCustom(non_custom_property_id))
+                    if is_inset_property(*non_custom_property_id) =>
+                {
+                    Self::StackingContextTreeConstruction
+                },
+                QueryMsg::ResolvedStyleQuery(_) => Self::empty(),
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
@@ -1865,7 +1895,6 @@ impl ReflowPhases {
                 QueryMsg::ElementsFromPoint |
                 QueryMsg::FlushForUpdateTheRenderingQuery |
                 QueryMsg::OffsetParentQuery |
-                QueryMsg::ResolvedStyleQuery |
                 QueryMsg::ScrollingAreaOrOffsetQuery |
                 QueryMsg::TextIndexQuery => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
