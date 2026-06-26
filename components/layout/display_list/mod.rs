@@ -8,6 +8,7 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use clip::Clip;
 pub(crate) use clip::ClipId;
+use embedder_traits::{DisplayList, DisplayListItem};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
@@ -127,6 +128,22 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Statistics collected about the reflow, in order to write tests for incremental layout.
     reflow_statistics: &'a mut ReflowStatistics,
+
+    /// When `Some`, captures content display items
+    /// in paint order for delivery. Populated ONLY when the
+    /// `layout_display_list_capture_enabled` preference is set.
+    display_list_capture: Option<Vec<DisplayListItem>>,
+}
+
+/// Convert a resolved CSS [`AbsoluteColor`] to an embedder-facing [`ColorF`].
+fn display_list_color(color: &AbsoluteColor) -> ColorF {
+    let srgb = color.to_color_space(ColorSpace::Srgb);
+    ColorF {
+        r: srgb.components.0,
+        g: srgb.components.1,
+        b: srgb.components.2,
+        a: srgb.alpha,
+    }
 }
 
 struct InspectorHighlight {
@@ -178,7 +195,8 @@ impl DisplayListBuilder<'_> {
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
         reflow_statistics: &mut ReflowStatistics,
-    ) -> BuiltDisplayList {
+        capture_display_list: bool,
+    ) -> (BuiltDisplayList, Option<DisplayList>) {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
         let pipeline_id = paint_info.pipeline_id;
@@ -207,6 +225,7 @@ impl DisplayListBuilder<'_> {
             device_pixel_ratio,
             paint_timing_handler,
             reflow_statistics,
+            display_list_capture: capture_display_list.then(Vec::new),
         };
 
         // Clear any caret color from previous display list constructions.
@@ -234,11 +253,37 @@ impl DisplayListBuilder<'_> {
         PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut builder);
         builder.paint_dom_inspector_highlight();
 
-        webrender_display_list_builder.end().1
+        // Assemble the embedder-facing display list snapshot, if capture is enabled.
+        let captured_display_list = builder.display_list_capture.take().map(|items| {
+            let paint_info = &builder.paint_info;
+            let scroll_offset = paint_info
+                .scroll_tree
+                .get_node(paint_info.root_scroll_node_id)
+                .offset()
+                .unwrap_or_else(LayoutVector2D::zero);
+            DisplayList {
+                items,
+                epoch: paint_info.epoch,
+                scroll_offset,
+                viewport_size: paint_info.viewport_details.layout_size(),
+            }
+        });
+
+        (
+            webrender_display_list_builder.end().1,
+            captured_display_list,
+        )
     }
 
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
         self.webrender_display_list_builder
+    }
+
+    /// Record a content display item for the embedder snapshot, if capture is enabled.
+    fn capture_display_list_item(&mut self, item: DisplayListItem) {
+        if let Some(items) = self.display_list_capture.as_mut() {
+            items.push(item);
+        }
     }
 
     fn pipeline_id(&mut self) -> wr::PipelineId {
@@ -749,6 +794,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         let common = self.common_properties(state, clip, &style);
 
         if let Some(image_key) = fragment.image_key {
+            self.capture_display_list_item(DisplayListItem::Image { rect });
             self.wr().push_image(
                 &common,
                 rect,
@@ -1057,14 +1103,34 @@ impl Fragment {
             fragment.justification_adjustment,
         );
 
-        builder.wr().push_text(
-            &common,
-            glyph_bounds,
-            &glyphs,
-            fragment.font_key,
-            rgba(color),
-            None,
-        );
+        // Capture this run for the embedder display list snapshot, if enabled. We use
+        // the (untransformed) inline rect rather than the inflated glyph bounds so that
+        // the reported rectangle matches the text's layout box.
+        //
+        // Guard on color alpha and the CSS `opacity` property so that text the page
+        // deliberately renders invisible is not included in the capture. Like 0 opacity text...
+        if let Some(text) = fragment.text_for_display_list.as_deref() {
+            let dl_color = display_list_color(&color);
+            if dl_color.a > 0.0 && parent_style.clone_opacity() > 0.0 {
+                builder.capture_display_list_item(DisplayListItem::Text {
+                    text: text.to_owned(),
+                    rect: rect.to_webrender(),
+                    color: dl_color,
+                });
+            }
+        }
+
+        // Captured color not lost
+        if pref!(layout_text_painting_enabled) {
+            builder.wr().push_text(
+                &common,
+                glyph_bounds,
+                &glyphs,
+                fragment.font_key,
+                rgba(color),
+                None,
+            );
+        }
 
         builder.check_if_paintable(glyph_bounds, common.clip_rect, parent_style.clone_opacity());
 
@@ -1532,6 +1598,10 @@ impl<'a> BuilderForBoxFragment<'a> {
             let layer_index = b.background_image.0.len() - 1;
             let bounds = painter.painting_area(self, builder, layer_index);
             let common = painter.common_properties(self, builder, state, layer_index, bounds);
+            builder.capture_display_list_item(DisplayListItem::SolidColor {
+                rect: bounds,
+                color: display_list_color(&background_color),
+            });
             builder
                 .wr()
                 .push_rect(&common, bounds, rgba(background_color));

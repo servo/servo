@@ -301,7 +301,18 @@ pub struct Preferences {
     pub layout_grid_enabled: bool,
     pub layout_container_queries_enabled: bool,
     pub layout_css_attr_enabled: bool,
+
+    /// Capture the layout display list post build and deliver it to an
+    /// embedder via `WebViewDelegate::notify_display_list`.
+    /// An introspection API that want to do their own text
+    /// extraction or native rendering; it holds runtime cost and therefore defaulted off.
+    pub layout_display_list_capture_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
+    /// Whether the layout engine rasterizes text glyphs into the display list
+    /// painted by the renderer. Default on. Embedders that render text
+    /// themselves  can disable so the painted
+    /// output carries no glyphs.
+    pub layout_text_painting_enabled: bool,
     pub layout_threads: i64,
     /// The minimum number of parallelizable jobs required before turning on parallelism
     /// for a set of jobs.
@@ -535,8 +546,10 @@ impl Preferences {
             layout_columns_enabled: false,
             layout_container_queries_enabled: false,
             layout_css_attr_enabled: false,
+            layout_display_list_capture_enabled: false,
             layout_grid_enabled: false,
             layout_style_sharing_cache_enabled: true,
+            layout_text_painting_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
             layout_parallelism_job_count_minimum: 4,

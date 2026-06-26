@@ -601,6 +601,16 @@ impl LineItemLayout<'_, '_> {
             &self.layout.layout_context.font_context,
         );
 
+        // Resolve the captured byte range to the source text for this run, eliminating
+        // collapsible whitespace on the ledges.
+        let text_for_display_list = text_item
+            .display_list_byte_range
+            .as_ref()
+            .and_then(|range| {
+                let text = self.layout.ifc.text_content.get(range.clone())?.trim();
+                (!text.is_empty()).then(|| text.into())
+            });
+
         self.current_state.inline_advance += inline_advance;
         self.current_state.fragments.push((
             Fragment::Text(Arc::new(TextFragment {
@@ -616,6 +626,7 @@ impl LineItemLayout<'_, '_> {
                 justification_adjustment: self.justification_adjustment,
                 offsets: text_item.offsets,
                 is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
+                text_for_display_list,
             })),
             content_rect,
         ));
@@ -873,6 +884,10 @@ pub(super) struct TextRunLineItem {
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,
+    /// The byte range into the parent IFC's `text_content` covered by this item,
+    /// populated only when `LayoutContext::capture_display_list` is true. Extended
+    /// as adjacent glyph stores are merged into this item.
+    pub display_list_byte_range: Option<Range<usize>>,
 }
 
 impl TextRunLineItem {
@@ -940,6 +955,7 @@ impl TextRunLineItem {
         new_glyph_store: &Arc<ShapedTextSlice>,
         new_offsets: &Option<TextRunOffsets>,
         new_inline_styles: &SharedInlineStyles,
+        new_display_list_byte_range: &Option<Range<usize>>,
     ) -> bool {
         if !Arc::ptr_eq(&self.info.font, &new_info.font) ||
             self.info.bidi_level != new_info.bidi_level ||
@@ -952,6 +968,16 @@ impl TextRunLineItem {
         assert_eq!(self.offsets.is_some(), new_offsets.is_some());
         if let (Some(new_offsets), Some(existing_offsets)) = (new_offsets, self.offsets.as_mut()) {
             existing_offsets.character_range.end = new_offsets.character_range.end;
+        }
+
+        // Grow the captured byte range to cover the newly merged glyph store. The
+        // runs are not necessarily in byte order (e.g. with bidi), so union the ranges.
+        if let (Some(existing), Some(new_range)) = (
+            self.display_list_byte_range.as_mut(),
+            new_display_list_byte_range,
+        ) {
+            existing.start = existing.start.min(new_range.start);
+            existing.end = existing.end.max(new_range.end);
         }
 
         true

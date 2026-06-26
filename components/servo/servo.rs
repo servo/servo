@@ -742,6 +742,13 @@ impl ServoInner {
                     webview.process_accessibility_tree_update(tree_update, epoch);
                 }
             },
+            EmbedderMsg::DisplayListCaptured(webview_id, display_list) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview
+                        .delegate()
+                        .notify_display_list(webview, display_list);
+                }
+            },
         }
     }
 

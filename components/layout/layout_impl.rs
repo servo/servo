@@ -232,6 +232,11 @@ pub struct LayoutThread {
 
     /// See [Layout::needs_accessibility_update()].
     needs_accessibility_update: Cell<bool>,
+
+    /// Decides if we should catch [`embedder_traits::DisplayList`] hereafter
+    /// any display-list build. Mirrors the
+    /// `layout_display_list_capture_enabled` preference.
+    capture_display_list: bool,
 }
 
 pub struct LayoutFactoryImpl();
@@ -831,6 +836,7 @@ impl LayoutThread {
             accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
             needs_accessibility_update: Cell::new(false),
+            capture_display_list: pref!(layout_display_list_capture_enabled),
         }
     }
 
@@ -1202,6 +1208,7 @@ impl LayoutThread {
             painter_id: self.webview_id.into(),
             parallelism_job_count_minimum: pref!(layout_parallelism_job_count_minimum) as usize,
             parallelism_job_size_minimum: pref!(layout_parallelism_job_size_minimum) as usize,
+            capture_display_list: self.capture_display_list,
         };
 
         let restyle = reflow_request
@@ -1454,7 +1461,7 @@ impl LayoutThread {
             },
         };
 
-        let built_display_list = DisplayListBuilder::build(
+        let (built_display_list, captured_display_list) = DisplayListBuilder::build(
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
@@ -1463,12 +1470,21 @@ impl LayoutThread {
             &self.debug,
             paint_timing_handler,
             reflow_statistics,
+            self.capture_display_list,
         );
         self.paint_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.paint_info,
             built_display_list,
         );
+
+        // Deliver the captured display list snapshot to the embedder, if enabled.
+        if let Some(display_list) = captured_display_list {
+            let _ = self.embedder_chan.send(EmbedderMsg::DisplayListCaptured(
+                self.webview_id,
+                display_list,
+            ));
+        }
 
         if paint_timing_handler.did_lcp_candidate_update() &&
             let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()

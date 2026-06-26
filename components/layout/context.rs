@@ -56,6 +56,11 @@ pub(crate) struct LayoutContext<'a> {
     /// The minimum size a job needs to be to be counted when determining if the number of
     /// jobs exceeds [`Self::parallelism_job_count_minimum`].
     pub parallelism_job_size_minimum: usize,
+
+    /// When TRUE, each [`crate::fragment_tree::TextFragment`] retains its source
+    /// text so that a [`embedder_traits::DisplayList`] can be captured during
+    /// display-list construction. A mirror of `layout_display_list_capture_enabled`
+    pub capture_display_list: bool,
 }
 
 impl LayoutContext<'_> {

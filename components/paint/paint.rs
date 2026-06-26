@@ -44,12 +44,12 @@ use webgl::webgl_thread::WebGLContextBusyMap;
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
 use webrender::{CaptureBits, MemoryReport};
-use webrender_api::units::{DevicePixel, DevicePoint};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutVector2D};
 use webrender_api::{FontInstanceKey, FontKey, ImageKey};
 
 use crate::InitialPaintState;
 use crate::painter::Painter;
-use crate::webview_renderer::UnknownWebView;
+use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
 
 /// An option to control what kind of WebRender debugging is enabled while Servo is running.
 #[derive(Copy, Clone)]
@@ -695,6 +695,16 @@ impl Paint {
     pub fn render(&self, webview_id: WebViewId) {
         self.painter_mut(webview_id.into())
             .render(&self.time_profiler_chan);
+    }
+
+    /// The current scroll offset of the given web view's root scrolling node.
+    /// Reflects asynchronus scrolls applied by the renderer, so it stays accurate
+    /// between layout display lists. Returns `None` if the web view or its root
+    /// pipeline is not (yet) known to the renderer.
+    pub fn root_scroll_offset(&self, webview_id: WebViewId) -> Option<LayoutVector2D> {
+        self.maybe_painter(webview_id.into())?
+            .webview_renderer(webview_id)
+            .and_then(WebViewRenderer::root_scroll_offset)
     }
 
     /// Get the message receiver for this [`Paint`].
