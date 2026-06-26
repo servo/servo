@@ -752,11 +752,22 @@ impl WebViewDelegate for RunningAppState {
     fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
         let window = self.window_for_webview_id(parent_webview.id());
         let platform_window = window.platform_window();
+
+        // As part of building the WebView, we may receive WebviewDelegate calls
+        // before we have set up the association between this window and the new
+        // webview. We stash this window in a known location so we can find it
+        // when this occurs.
+        self.set_window_for_webview_construction(Some(window.clone()));
+
         let webview = request
             .builder(platform_window.rendering_context())
             .hidpi_scale_factor(platform_window.hidpi_scale_factor())
             .delegate(parent_webview.delegate())
             .build();
+
+        // This window is now associated with the WebView, so the fallback
+        // is no longer needed.
+        self.set_window_for_webview_construction(None);
 
         webview.notify_theme_change(platform_window.theme());
         window.add_webview(webview.clone());
