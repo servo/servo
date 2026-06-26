@@ -616,7 +616,7 @@ impl HTMLScriptElement {
             return;
         }
         // Step 5a. Let source text be el’s script text value.
-        let text = self.script_text.borrow().clone();
+        let text: Cow<'_, str> = Cow::Owned(String::from(self.script_text.borrow().str()));
         // Step 6. If el has no src attribute, and source text is the empty string, then return.
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return;
@@ -678,7 +678,7 @@ impl HTMLScriptElement {
                     global,
                     element,
                     InlineCheckType::Script,
-                    &text.str(),
+                    &text,
                     self.line_number as u32,
                 )
         {
@@ -849,8 +849,6 @@ impl HTMLScriptElement {
 
             assert!(!text.is_empty());
 
-            let text_rc = Rc::new(text.clone());
-
             // Step 32.2: Switch on el's type:
             match script_type {
                 ScriptType::Classic => {
@@ -858,7 +856,7 @@ impl HTMLScriptElement {
                     // using source text, settings object, base URL, and options.
                     let script = self.global().create_a_classic_script(
                         cx,
-                        std::borrow::Cow::Borrowed(&text.str()),
+                        text,
                         base_url,
                         options,
                         ErrorReporting::Unmuted,
@@ -903,7 +901,7 @@ impl HTMLScriptElement {
                     fetch_inline_module_script(
                         cx,
                         global,
-                        text_rc,
+                        text,
                         base_url,
                         options,
                         self.line_number as u32,
@@ -929,8 +927,7 @@ impl HTMLScriptElement {
                 ScriptType::ImportMap => {
                     // Step 32.1 Let result be the result of creating an import map
                     // parse result given source text and base URL.
-                    let import_map_result =
-                        parse_an_import_map_string(cx, global, Rc::clone(&text_rc), base_url);
+                    let import_map_result = parse_an_import_map_string(cx, global, text, base_url);
                     let script = Script::ImportMap(import_map_result);
 
                     // Step 34.3

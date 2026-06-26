@@ -5,6 +5,7 @@
 //! The script module mod contains common traits and structs
 //! related to `type=module` for script thread or worker threads.
 
+use std::borrow::Cow;
 use std::cell::{OnceCell, RefCell};
 use std::ffi::CStr;
 use std::fmt::Debug;
@@ -286,7 +287,7 @@ impl ModuleTree {
     /// <https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script>
     fn create_a_javascript_module_script(
         cx: &mut JSContext,
-        source: Rc<DOMString>,
+        source: Cow<'_, str>,
         global: &GlobalScope,
         url: &ServoUrl,
         options: ScriptFetchOptions,
@@ -321,22 +322,24 @@ impl ModuleTree {
             line_number,
         );
 
-        let mut module_source = ModuleSource {
-            source,
-            unminified_dir: global.unminified_js_dir(),
-            external,
-            url: url.clone(),
+        let mut source = if global.unminified_js_dir().is_some() {
+            let source = Rc::new(DOMString::from(source.into_owned()));
+            let mut module_source = ModuleSource {
+                source: source.clone(),
+                unminified_dir: global.unminified_js_dir(),
+                external,
+                url: url.clone(),
+            };
+            crate::unminify::unminify_js(&mut module_source);
+            transform_str_to_source_text(&source.str())
+        } else {
+            transform_str_to_source_text(&source)
         };
-        crate::unminify::unminify_js(&mut module_source);
 
         unsafe {
             // Step 7. Let result be ParseModule(source, settings's realm, script).
             rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
-            module_script.set(CompileModule1(
-                cx,
-                compile_options.ptr,
-                &mut transform_str_to_source_text(&module_source.source.str()),
-            ));
+            module_script.set(CompileModule1(cx, compile_options.ptr, &mut source));
 
             // Step 8. If result is a list of errors, then:
             if module_script.is_null() {
@@ -820,7 +823,7 @@ impl FetchResponseListener for ModuleContext {
 
                 let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
                     cx,
-                    Rc::new(DOMString::from(source_text.clone())),
+                    source_text,
                     &global,
                     &final_url,
                     self.options,
@@ -829,11 +832,9 @@ impl FetchResponseListener for ModuleContext {
                     self.introduction_type,
                 ));
                 module_script = Some(module_tree);
-            }
-
-            // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
-            // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
-            if MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON) {
+            } else if MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON) {
+                // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
+                // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
                 let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
                     cx,
                     &source_text,
@@ -1350,7 +1351,7 @@ pub(crate) fn fetch_a_modulepreload_module(
 pub(crate) fn fetch_inline_module_script(
     cx: &mut JSContext,
     global: &GlobalScope,
-    module_script_text: Rc<DOMString>,
+    module_script_text: Cow<'_, str>,
     url: ServoUrl,
     options: ScriptFetchOptions,
     line_number: u32,
@@ -1867,11 +1868,11 @@ fn merge_module_specifier_maps(
 pub(crate) fn parse_an_import_map_string(
     cx: &mut JSContext,
     global: &GlobalScope,
-    input: Rc<DOMString>,
+    input: Cow<'_, str>,
     base_url: ServoUrl,
 ) -> Fallible<ImportMap> {
     // Step 1. Let parsed be the result of parsing a JSON string to an Infra value given input.
-    let parsed: JsonValue = serde_json::from_str(&input.str())
+    let parsed: JsonValue = serde_json::from_str(&input)
         .map_err(|_| Error::Type(c"The value needs to be a JSON object.".to_owned()))?;
     // Step 2. If parsed is not an ordered map, then throw a TypeError indicating that the
     // top-level value needs to be a JSON object.
