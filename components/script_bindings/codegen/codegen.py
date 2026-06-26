@@ -7767,7 +7767,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "\n"
             f"impl{self.generic} ToJSValConvertible for {selfName}{self.genericSuffix} {{\n"
             "    unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {\n"
-            "        // TODO https://github.com/servo/mozjs/issues/TODO\n"
+            "        // TODO https://github.com/servo/mozjs/issues/764\n"
             "        let mut cx = crate::script_runtime::temp_cx();\n"
             "        self.safe_to_jsval(&mut cx, rval);\n"
             "    }\n"

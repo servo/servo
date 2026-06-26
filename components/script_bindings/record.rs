@@ -199,7 +199,7 @@ where
 {
     #[inline]
     unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {
-        // TODO https://github.com/servo/mozjs/issues/TODO
+        // TODO https://github.com/servo/mozjs/issues/764
         let mut cx = unsafe { crate::script_runtime::temp_cx() };
         ToJSValConvertible::safe_to_jsval(self, &mut cx, rval);
     }
