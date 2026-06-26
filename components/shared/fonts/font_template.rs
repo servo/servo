@@ -18,7 +18,6 @@ use style::font_face::{
     ComputedFontStretchRange, ComputedFontStyleDescriptor, ComputedFontWeightRange,
 };
 use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
-use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::font::FontWeight;
 use webrender_api::FontVariation;
 
@@ -156,14 +155,6 @@ impl FontTemplateDescriptor {
 pub struct FontTemplate {
     pub identifier: FontIdentifier,
     pub descriptor: FontTemplateDescriptor,
-    /// If this font is a web font, this is a reference to the stylesheet that
-    /// created it. This will be used to remove this font from caches, when the
-    /// stylesheet is removed.
-    ///
-    /// This is not serialized, as it's only useful in the [`super::FontContext`]
-    /// that it is created in.
-    #[serde(skip)]
-    pub stylesheet: Option<DocumentStyleSheet>,
 
     /// If this font is a web font, this is a reference to the `@font-face` rule that
     /// created it.
@@ -185,17 +176,11 @@ impl FontTemplate {
     pub fn new(
         identifier: FontIdentifier,
         descriptor: FontTemplateDescriptor,
-        stylesheet: Option<DocumentStyleSheet>,
         font_face_rule: Option<FontFaceRuleDescriptors>,
     ) -> FontTemplate {
-        assert!(
-            (stylesheet.is_some() && font_face_rule.is_some()) ||
-                (stylesheet.is_none() && font_face_rule.is_none())
-        );
         FontTemplate {
             identifier,
             descriptor,
-            stylesheet,
             font_face_rule,
         }
     }
@@ -206,14 +191,12 @@ impl FontTemplate {
     pub fn new_for_local_web_font(
         local_template: FontTemplateRef,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
-        stylesheet: Option<DocumentStyleSheet>,
         font_face_rule: Option<FontFaceRuleDescriptors>,
     ) -> Result<FontTemplate, &'static str> {
         let mut alias_template = local_template.borrow().clone();
         alias_template
             .descriptor
             .override_values_with_css_font_template_descriptors(css_font_template_descriptors);
-        alias_template.stylesheet = stylesheet;
         alias_template.font_face_rule = font_face_rule;
         Ok(alias_template)
     }
@@ -290,6 +273,12 @@ impl FontTemplate {
         }
 
         variations
+    }
+
+    pub fn is_defined_by_font_face_rule(&self, rule: &FontFaceRuleDescriptors) -> bool {
+        self.font_face_rule
+            .as_ref()
+            .is_some_and(|defining_rule| defining_rule == rule)
     }
 }
 

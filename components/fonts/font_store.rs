@@ -13,14 +13,12 @@ use fonts_traits::{
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
-use style::stylesheets::DocumentStyleSheet;
+use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::values::computed::{FontStyle, FontWeight};
 
 #[derive(Default, MallocSizeOf)]
 pub(crate) struct FontStore {
     pub(crate) families: HashMap<LowercaseFontFamilyName, FontTemplates>,
-    web_fonts_loading_for_stylesheets: Vec<(DocumentStyleSheet, usize)>,
-    web_fonts_loading_for_script: usize,
 }
 
 #[derive(Default, MallocSizeOf)]
@@ -38,77 +36,6 @@ impl FontStore {
         self.families.clear();
     }
 
-    pub(crate) fn font_load_cancelled_for_stylesheet(
-        &self,
-        stylesheet: &DocumentStyleSheet,
-    ) -> bool {
-        !self
-            .web_fonts_loading_for_stylesheets
-            .iter()
-            .any(|(loading_stylesheet, _)| loading_stylesheet == stylesheet)
-    }
-
-    pub(crate) fn handle_stylesheet_removed(&mut self, stylesheet: &DocumentStyleSheet) {
-        self.web_fonts_loading_for_stylesheets
-            .retain(|(loading_stylesheet, _)| loading_stylesheet != stylesheet);
-    }
-
-    pub(crate) fn handle_web_font_load_started_for_stylesheet(
-        &mut self,
-        stylesheet: &DocumentStyleSheet,
-    ) {
-        if let Some((_, count)) = self
-            .web_fonts_loading_for_stylesheets
-            .iter_mut()
-            .find(|(loading_stylesheet, _)| loading_stylesheet == stylesheet)
-        {
-            *count += 1;
-        } else {
-            self.web_fonts_loading_for_stylesheets
-                .push((stylesheet.clone(), 1))
-        }
-    }
-
-    fn remove_one_web_font_loading_for_stylesheet(&mut self, stylesheet: &DocumentStyleSheet) {
-        if let Some((_, count)) = self
-            .web_fonts_loading_for_stylesheets
-            .iter_mut()
-            .find(|(loading_stylesheet, _)| loading_stylesheet == stylesheet)
-        {
-            *count -= 1;
-        }
-        self.web_fonts_loading_for_stylesheets
-            .retain(|(_, count)| *count != 0);
-    }
-
-    pub(crate) fn handle_web_font_load_failed_for_stylesheet(
-        &mut self,
-        stylesheet: &DocumentStyleSheet,
-    ) {
-        self.remove_one_web_font_loading_for_stylesheet(stylesheet);
-    }
-
-    /// Handle a web font load finishing, adding the new font to the [`FontStore`]. If the web font
-    /// load was canceled (for instance, if the stylesheet was removed), then do nothing and return
-    /// false.
-    pub(crate) fn handle_web_font_loaded_for_stylesheet(
-        &mut self,
-        stylesheet: &DocumentStyleSheet,
-        family_name: LowercaseFontFamilyName,
-        new_template: FontTemplate,
-    ) -> bool {
-        // Abort processing this web font if the originating stylesheet was removed.
-        if self.font_load_cancelled_for_stylesheet(stylesheet) {
-            return false;
-        }
-
-        self.add_new_template(family_name, new_template);
-
-        self.remove_one_web_font_loading_for_stylesheet(stylesheet);
-
-        true
-    }
-
     pub(crate) fn add_new_template(
         &mut self,
         family_name: LowercaseFontFamilyName,
@@ -118,22 +45,6 @@ impl FontStore {
             .entry(family_name)
             .or_default()
             .add_template(new_template);
-    }
-
-    pub(crate) fn handle_web_font_load_started_for_script(&mut self) {
-        self.web_fonts_loading_for_script += 1;
-    }
-
-    pub(crate) fn handle_web_font_load_finished_for_script(&mut self) {
-        self.web_fonts_loading_for_script -= 1;
-    }
-
-    pub(crate) fn number_of_fonts_still_loading(&self) -> usize {
-        self.web_fonts_loading_for_script +
-            self.web_fonts_loading_for_stylesheets
-                .iter()
-                .map(|(_, count)| count)
-                .sum::<usize>()
     }
 }
 
@@ -169,12 +80,13 @@ impl SimpleFamily {
         preference.iter().find_map(|template| (*template).clone())
     }
 
-    fn remove_templates_for_stylesheet(&mut self, stylesheet: &DocumentStyleSheet) {
+    fn remove_templates_for_font_face_rule(&mut self, font_face_rule: &FontFaceRuleDescriptors) {
         let remove_if_template_matches = |template: &mut Option<FontTemplateRef>| {
-            if template
-                .as_ref()
-                .is_some_and(|template| template.borrow().stylesheet.as_ref() == Some(stylesheet))
-            {
+            if template.as_ref().is_some_and(|template| {
+                template
+                    .borrow()
+                    .is_defined_by_font_face_rule(font_face_rule)
+            }) {
                 *template = None;
             }
         };
@@ -327,19 +239,20 @@ impl FontTemplates {
         slot.replace(added_template);
     }
 
-    pub(crate) fn remove_templates_for_stylesheet(
+    /// Returns true if any templates were removed.
+    pub(crate) fn remove_template_for_font_face_rule(
         &mut self,
-        stylesheet: &DocumentStyleSheet,
+        removed_rule: &FontFaceRuleDescriptors,
     ) -> bool {
-        let length_before = self.templates.len();
+        let old_length = self.templates.len();
         self.templates
-            .retain(|template| template.borrow().stylesheet.as_ref() != Some(stylesheet));
+            .retain(|template| !template.borrow().is_defined_by_font_face_rule(removed_rule));
 
         if let Some(simple_family) = self.simple_family.as_mut() {
-            simple_family.remove_templates_for_stylesheet(stylesheet);
+            simple_family.remove_templates_for_font_face_rule(removed_rule);
         }
 
-        length_before != self.templates.len()
+        self.templates.len() != old_length
     }
 
     pub(crate) fn for_all_identifiers(&self, mut callback: impl FnMut(&FontIdentifier)) {

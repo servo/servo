@@ -323,8 +323,11 @@ impl Layout for LayoutThread {
         let guard = stylesheet.shared_lock.read();
         let stylesheet = DocumentStyleSheet(stylesheet.clone());
         self.stylist.remove_stylesheet(stylesheet.clone(), &guard);
-        self.font_context
-            .remove_all_web_fonts_from_stylesheet(&stylesheet);
+        self.font_context.remove_all_web_fonts_from_stylesheet(
+            &stylesheet,
+            self.stylist.device(),
+            &guard,
+        );
     }
 
     #[servo_tracing::instrument(skip_all)]

@@ -64,7 +64,6 @@ pub(crate) fn font_template_for_local_font_descriptor(
         FontIdentifier::Local(identifier),
         font_template_descriptor_from_ctfont_attributes(traits),
         None,
-        None,
     ))
 }
 
