@@ -83,7 +83,7 @@ egui-winit = { version = "0.34.3", default-features = false }
 egui_glow = "0.34.3"
 elliptic-curve = { version = "0.14", features = ["pkcs8"] }
 encoding_rs = { version = "0.8", features = ["serde"] }
-env_filter = "0.1.4"
+env_filter = "2.0.0"
 env_logger = "0.11"
 euclid = "0.22"
 flate2 = "1.1"
