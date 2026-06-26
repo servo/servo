@@ -2,28 +2,98 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::ffi::OsString;
+use std::os::windows::ffi::OsStringExt;
+use std::sync::{Arc, OnceLock};
 
-use dwrote::{Font, FontCollection, FontStretch, FontStyle};
+use dwrote::{Font, FontCollection, FontFamily, FontStretch, FontStyle};
 use fonts_traits::LocalFontIdentifier;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
 use style::values::specified::font::FontStretchKeyword;
+use winapi::um::dwrite::{IDWriteFontFamily, IDWriteLocalizedStrings};
 
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
+/// Read every localized name stored in an `IDWriteFontFamily`'s
+/// `IDWriteLocalizedStrings`. `dwrote::FontFamily::family_name()` only returns
+/// the name for the user's system locale, so on (for example) a zh-CN install
+/// it yields "微软雅黑" and hides "Microsoft YaHei" from the rest of Servo.
+/// DirectWrite's `FindFamilyName` on the system collection in turn only
+/// resolves the English WWS name, so without this both directions of lookup
+/// fail and CJK fallback silently misses Microsoft YaHei.
+unsafe fn all_family_names(family_ptr: *mut IDWriteFontFamily) -> Vec<String> {
+    let mut strings: *mut IDWriteLocalizedStrings = std::ptr::null_mut();
+    if unsafe { (*family_ptr).GetFamilyNames(&mut strings) } != 0 || strings.is_null() {
+        return Vec::new();
+    }
+    let count = unsafe { (*strings).GetCount() };
+    let mut names = Vec::with_capacity(count as usize);
+    for index in 0..count {
+        let mut len: u32 = 0;
+        if unsafe { (*strings).GetStringLength(index, &mut len) } != 0 {
+            continue;
+        }
+        let mut buf: Vec<u16> = vec![0u16; (len as usize) + 1];
+        if unsafe { (*strings).GetString(index, buf.as_mut_ptr(), len + 1) } != 0 {
+            continue;
+        }
+        buf.truncate(len as usize);
+        if let Ok(name) = OsString::from_wide(&buf).into_string() {
+            names.push(name);
+        }
+    }
+    unsafe { (*strings).Release() };
+    names
+}
+
+/// Lowercased family name (any locale) → index into the system
+/// `FontCollection`. Built once on first use so subsequent lookups are O(1).
+fn family_name_to_index_cache() -> &'static HashMap<String, u32> {
+    static CACHE: OnceLock<HashMap<String, u32>> = OnceLock::new();
+    CACHE.get_or_init(|| {
+        let system_fc = FontCollection::system();
+        let count = system_fc.get_font_family_count();
+        let mut map = HashMap::with_capacity(count as usize * 2);
+        for index in 0..count {
+            let Ok(family) = system_fc.font_family(index) else {
+                continue;
+            };
+            let names = unsafe { all_family_names(family.as_ptr()) };
+            for name in names {
+                map.entry(name.to_lowercase()).or_insert(index);
+            }
+        }
+        map
+    })
+}
+
+fn find_family_by_any_name(collection: &FontCollection, family_name: &str) -> Option<FontFamily> {
+    if let Ok(Some(family)) = collection.font_family_by_name(family_name) {
+        return Some(family);
+    }
+    let index = *family_name_to_index_cache().get(&family_name.to_lowercase())?;
+    collection.font_family(index).ok()
+}
+
 pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
     F: FnMut(String),
 {
     let system_fc = FontCollection::system();
-    for family in system_fc.families_iter() {
-        if let Ok(family_name) = family.family_name() {
-            callback(family_name);
+    let count = system_fc.get_font_family_count();
+    for index in 0..count {
+        let Ok(family) = system_fc.font_family(index) else {
+            continue;
+        };
+        let names = unsafe { all_family_names(family.as_ptr()) };
+        for name in names {
+            callback(name);
         }
     }
 }
@@ -33,23 +103,24 @@ where
     F: FnMut(FontTemplate),
 {
     let system_fc = FontCollection::system();
-    if let Ok(Some(family)) = system_fc.font_family_by_name(family_name) {
-        let count = family.get_font_count();
-        for i in 0..count {
-            let Ok(font) = family.font(i) else {
-                continue;
-            };
-            let template_descriptor = font_template_descriptor_from_font(&font);
-            let local_font_identifier = LocalFontIdentifier {
-                font_descriptor: Arc::new(font.to_descriptor()),
-            };
-            callback(FontTemplate::new(
-                FontIdentifier::Local(local_font_identifier),
-                template_descriptor,
-                None,
-                None,
-            ))
-        }
+    let Some(family) = find_family_by_any_name(&system_fc, family_name) else {
+        return;
+    };
+    let count = family.get_font_count();
+    for i in 0..count {
+        let Ok(font) = family.font(i) else {
+            continue;
+        };
+        let template_descriptor = font_template_descriptor_from_font(&font);
+        let local_font_identifier = LocalFontIdentifier {
+            font_descriptor: Arc::new(font.to_descriptor()),
+        };
+        callback(FontTemplate::new(
+            FontIdentifier::Local(local_font_identifier),
+            template_descriptor,
+            None,
+            None,
+        ))
     }
 }
 
@@ -232,8 +303,16 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
                     UnicodeBlock::CJKStrokes |
                     UnicodeBlock::KatakanaPhoneticExtensions |
                     UnicodeBlock::CJKUnifiedIdeographs => {
+                        // Simplified Chinese fonts cover these blocks most completely.
+                        // Yu Gothic is a Japanese font that omits many PRC-specific
+                        // ideographs, so keep it after the Chinese options.
                         families.push("Microsoft YaHei");
+                        families.push("Microsoft YaHei UI");
+                        families.push("SimSun");
+                        families.push("SimHei");
+                        families.push("Microsoft JhengHei");
                         families.push("Yu Gothic");
+                        families.push("Meiryo");
                     },
 
                     UnicodeBlock::EnclosedCJKLettersandMonths => {
