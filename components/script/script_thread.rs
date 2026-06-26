@@ -154,7 +154,7 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::network_listener::{FetchResponseListener, submit_timing};
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_mutation_observers::ScriptMutationObservers;
 use crate::script_runtime::{
     CanGc, IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
@@ -1466,71 +1466,86 @@ impl ScriptThread {
             debug!("Processing event {:?}.", msg);
             let category = self.categorize_msg(&msg);
             let pipeline_id = msg.pipeline_id();
-            let _realm = pipeline_id.and_then(|id| {
-                let global = self.documents.borrow().find_global(id);
-                global.map(|global| enter_realm(&*global))
-            });
+            // Define a macro to be able to handle the `cx` whether the global exists or not.
+            // That's because we need to enter the realm and take the `cx` from it. We cannot
+            // use a `match`-statement, since the `realm` would be dropped and the `cx` would
+            // outlive the branch.
+            macro_rules! handle_message(
+                ( $cx:ident ) => (
+                    if self.closing.load(Ordering::SeqCst) {
+                        // If we've received the closed signal from the BHM, only handle exit messages.
+                        match msg {
+                            MixedMessage::FromConstellation(ScriptThreadMessage::ExitScriptThread) => {
+                                self.handle_exit_script_thread_msg($cx);
+                                return false;
+                            },
+                            MixedMessage::FromConstellation(ScriptThreadMessage::ExitPipeline(
+                                webview_id,
+                                pipeline_id,
+                                discard_browsing_context,
+                            )) => {
+                                self.handle_exit_pipeline_msg(
+                                    webview_id,
+                                    pipeline_id,
+                                    discard_browsing_context,
+                                    $cx,
+                                );
+                            },
+                            _ => {},
+                        }
+                        continue;
+                    }
 
-            if self.closing.load(Ordering::SeqCst) {
-                // If we've received the closed signal from the BHM, only handle exit messages.
-                match msg {
-                    MixedMessage::FromConstellation(ScriptThreadMessage::ExitScriptThread) => {
-                        self.handle_exit_script_thread_msg(cx);
+                    let exiting = self.profile_event(category, pipeline_id, || {
+                        match msg {
+                            MixedMessage::FromConstellation(ScriptThreadMessage::ExitScriptThread) => {
+                                self.handle_exit_script_thread_msg($cx);
+                                return true;
+                            },
+                            MixedMessage::FromConstellation(inner_msg) => {
+                                self.handle_msg_from_constellation(inner_msg, $cx)
+                            },
+                            MixedMessage::FromScript(inner_msg) => {
+                                self.handle_msg_from_script(inner_msg, $cx)
+                            },
+                            MixedMessage::FromDevtools(inner_msg) => {
+                                self.handle_msg_from_devtools(inner_msg, $cx)
+                            },
+                            MixedMessage::FromImageCache(inner_msg) => {
+                                self.handle_msg_from_image_cache(inner_msg, $cx)
+                            },
+                            #[cfg(feature = "webgpu")]
+                            MixedMessage::FromWebGPUServer(inner_msg) => {
+                                self.handle_msg_from_webgpu_server(inner_msg, $cx)
+                            },
+                            MixedMessage::TimerFired => {},
+                        }
+
+                        false
+                    });
+
+                    // If an `ExitScriptThread` message was handled above, bail out now.
+                    if exiting {
                         return false;
-                    },
-                    MixedMessage::FromConstellation(ScriptThreadMessage::ExitPipeline(
-                        webview_id,
-                        pipeline_id,
-                        discard_browsing_context,
-                    )) => {
-                        self.handle_exit_pipeline_msg(
-                            webview_id,
-                            pipeline_id,
-                            discard_browsing_context,
-                            cx,
-                        );
-                    },
-                    _ => {},
-                }
-                continue;
-            }
+                    }
 
-            let exiting = self.profile_event(category, pipeline_id, || {
-                match msg {
-                    MixedMessage::FromConstellation(ScriptThreadMessage::ExitScriptThread) => {
-                        self.handle_exit_script_thread_msg(cx);
-                        return true;
-                    },
-                    MixedMessage::FromConstellation(inner_msg) => {
-                        self.handle_msg_from_constellation(inner_msg, cx)
-                    },
-                    MixedMessage::FromScript(inner_msg) => {
-                        self.handle_msg_from_script(inner_msg, cx)
-                    },
-                    MixedMessage::FromDevtools(inner_msg) => {
-                        self.handle_msg_from_devtools(inner_msg, cx)
-                    },
-                    MixedMessage::FromImageCache(inner_msg) => {
-                        self.handle_msg_from_image_cache(inner_msg, cx)
-                    },
-                    #[cfg(feature = "webgpu")]
-                    MixedMessage::FromWebGPUServer(inner_msg) => {
-                        self.handle_msg_from_webgpu_server(inner_msg, cx)
-                    },
-                    MixedMessage::TimerFired => {},
-                }
+                    // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
+                    // TODO(#32003): A microtask checkpoint is only supposed to be performed after running a task.
+                    self.perform_a_microtask_checkpoint($cx);
+                )
+            );
 
-                false
-            });
-
-            // If an `ExitScriptThread` message was handled above, bail out now.
-            if exiting {
-                return false;
-            }
-
-            // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
-            // TODO(#32003): A microtask checkpoint is only supposed to be performed after running a task.
-            self.perform_a_microtask_checkpoint(cx);
+            let global = pipeline_id.and_then(|id| self.documents.borrow().find_global(id));
+            match global {
+                None => {
+                    handle_message!(cx);
+                },
+                Some(global) => {
+                    let mut realm = enter_auto_realm(cx, &*global);
+                    let cx = &mut realm.current_realm();
+                    handle_message!(cx);
+                },
+            };
         }
 
         for (_, doc) in self.documents.borrow().iter() {
@@ -2064,6 +2079,7 @@ impl ScriptThread {
                 msg,
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
+                let _ac = enter_auto_realm(cx, &*global);
                 global.gpu_device_lost(device, reason, msg);
             },
             WebGPUMsg::UncapturedError {
@@ -2082,11 +2098,15 @@ impl ScriptThread {
     fn handle_msg_from_script(&self, msg: MainThreadScriptMsg, cx: &mut js::context::JSContext) {
         match msg {
             MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, pipeline_id, _)) => {
-                let _realm = pipeline_id.and_then(|id| {
-                    let global = self.documents.borrow().find_global(id);
-                    global.map(|global| enter_realm(&*global))
-                });
-                task.run_box(cx)
+                let global = pipeline_id.and_then(|id| self.documents.borrow().find_global(id));
+                match global {
+                    None => task.run_box(cx),
+                    Some(global) => {
+                        let mut realm = enter_auto_realm(cx, &*global);
+                        let cx = &mut realm.current_realm();
+                        task.run_box(cx)
+                    },
+                }
             },
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {
                 self.collect_reports(cx, chan)
