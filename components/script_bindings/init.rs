@@ -36,24 +36,6 @@ pub(crate) struct InitClassOpsConfig {
     pub(crate) trace_hook: unsafe extern "C" fn(*mut JSTracer, *mut JSObject),
 }
 
-pub(crate) fn init_class_ops(
-    class_ops: &ThreadUnsafeOnceLock<JSClassOps>,
-    config: InitClassOpsConfig,
-) {
-    class_ops.set(JSClassOps {
-        addProperty: None,
-        delProperty: None,
-        enumerate: None,
-        newEnumerate: config.enumerate_hook,
-        resolve: config.resolve_hook,
-        mayResolve: config.may_resolve_hook,
-        finalize: Some(config.finalize_hook),
-        call: None,
-        construct: None,
-        trace: Some(config.trace_hook),
-    })
-}
-
 pub(crate) struct DomJSClassConfig {
     pub(crate) name: *const i8,
     pub(crate) flags: u32,
@@ -67,14 +49,26 @@ pub(crate) fn init_domjs_class(
     class: &ThreadUnsafeOnceLock<DOMJSClass>,
     domjs_class_config: DomJSClassConfig,
 ) {
-    {
-        init_class_ops(js_class, js_class_config);
-        class.set(DOMJSClass {
+    js_class.set(JSClassOps {
+        addProperty: None,
+        delProperty: None,
+        enumerate: None,
+        newEnumerate: js_class_config.enumerate_hook,
+        resolve: js_class_config.resolve_hook,
+        mayResolve: js_class_config.may_resolve_hook,
+        finalize: Some(js_class_config.finalize_hook),
+        call: None,
+        construct: None,
+        trace: Some(js_class_config.trace_hook),
+    });
+
+    class.set(DOMJSClass {
         base: JSClass {
             name: domjs_class_config.name,
-            flags: JSCLASS_IS_DOMJSCLASS | domjs_class_config.flags |
-                   (((domjs_class_config.slots) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
-                   /* JSCLASS_HAS_RESERVED_SLOTS({args['slots']}) */,
+            flags: JSCLASS_IS_DOMJSCLASS |
+                domjs_class_config.flags |
+                (((domjs_class_config.slots) & JSCLASS_RESERVED_SLOTS_MASK) <<
+                    JSCLASS_RESERVED_SLOTS_SHIFT), /* JSCLASS_HAS_RESERVED_SLOTS({args['slots']}) */
             cOps: unsafe { js_class.get() },
             spec: ptr::null(),
             ext: ptr::null(),
@@ -82,5 +76,4 @@ pub(crate) fn init_domjs_class(
         },
         dom_class: domjs_class_config.class,
     });
-    }
 }
