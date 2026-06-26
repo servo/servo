@@ -546,7 +546,9 @@ impl Window {
         self.globalscope.time_profiler_chan()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#script-settings-for-window-objects:concept-settings-object-origin>
     pub(crate) fn origin(&self) -> MutableOrigin {
+        // > Return the origin of window's associated Document.
         self.Document().origin().clone()
     }
 
