@@ -9,7 +9,7 @@ use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_RESERVED_SLOTS_MASK};
 use crate::lock::ThreadUnsafeOnceLock;
 use crate::utils::{DOMClass, DOMJSClass};
 
-pub(crate) struct InitClassConfig {
+pub(crate) struct InitClassOpsConfig {
     pub(crate) enumerate_hook: Option<
         unsafe extern "C" fn(
             *mut JSContext,
@@ -34,7 +34,7 @@ pub(crate) struct InitClassConfig {
 
 pub(crate) fn init_class_ops(
     class_ops: &ThreadUnsafeOnceLock<JSClassOps>,
-    config: InitClassConfig,
+    config: InitClassOpsConfig,
 ) {
     class_ops.set(JSClassOps {
         addProperty: None,
@@ -59,7 +59,7 @@ pub(crate) struct DomJSClassConfig {
 
 pub(crate) fn init_domjs_class(
     js_class: &ThreadUnsafeOnceLock<JSClassOps>,
-    js_class_config: InitClassConfig,
+    js_class_config: InitClassOpsConfig,
     class: &ThreadUnsafeOnceLock<DOMJSClass>,
     domjs_class_config: DomJSClassConfig,
 ) {

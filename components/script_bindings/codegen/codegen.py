@@ -2647,7 +2647,7 @@ static CLASS_OPS: ThreadUnsafeOnceLock<JSClassOps> = ThreadUnsafeOnceLock::new()
 pub static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
 
 pub(crate) fn init_domjs_class<D: DomTypes>() {{
-    let js_class_config = crate::init::InitClassConfig {{
+    let js_class_config = crate::init::InitClassOpsConfig {{
             enumerate_hook: {args["enumerateHook"]},
             resolve_hook: {args["resolveHook"]},
             may_resolve_hook: {args["mayResolveHook"]},
