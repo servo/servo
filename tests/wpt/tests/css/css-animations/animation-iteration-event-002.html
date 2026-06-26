@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>CSS Animations Test: animation events - animationiteration</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#eventdef-globaleventhandlers-animationiteration">
+<link rel="help" href="https://github.com/servo/servo/issues/45989">
+
+<style>
+@keyframes anim1 {}
+@keyframes anim2 {}
+:root { animation: 1s -4s 8 anim1 paused, 1s -4s infinite anim2 paused }
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async () => {
+  let finiteElapsedTimes = [];
+  let infiniteElapsedTimes = [];
+  let element = document.documentElement;
+
+  element.style.animationPlayState = "running";
+
+  await new Promise((resolve, reject) => {
+    let listener = e => {
+      // Use requestAnimationFrame as a workaround for Servo delaying animationend.
+      requestAnimationFrame(() => {
+        if (e.animationName === "anim1") {
+          finiteElapsedTimes.push(e.elapsedTime);
+        } else if (e.animationName === "anim2") {
+          infiniteElapsedTimes.push(e.elapsedTime);
+        } else {
+          reject("Unexpected animationName");
+        }
+      });
+    };
+    element.addEventListener("animationiteration", listener);
+    element.addEventListener("animationend", () => {
+      element.removeEventListener("animationiteration", listener);
+      resolve();
+    }, { once: true });
+  });
+
+  assert_array_equals(finiteElapsedTimes, infiniteElapsedTimes);
+}, "By the time the finite animation ends, the infinite one had identical elapsedTime");
+</script>
