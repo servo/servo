@@ -33,6 +33,7 @@ webgpu = [
     "script_bindings/webgpu",
     "script_traits/webgpu",
 ]
+webnn = ["script_bindings/webnn"]
 webxr = ["gamepad", "webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
