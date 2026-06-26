@@ -223,6 +223,10 @@ pub(crate) struct RunningAppState {
     /// [`WebView::set_accessibility_active()`], in [`Self::set_accessibility_active()`] and
     /// and [`ServoShellWindow::create_toplevel_webview()`].
     accessibility_active: Cell<bool>,
+
+    /// Temporary storage to allow calling `WebviewDelegate` methods while the
+    /// `WebView` is being constructed.
+    window_of_webview_under_construction: RefCell<Option<Rc<ServoShellWindow>>>,
 }
 
 impl RunningAppState {
@@ -273,6 +277,7 @@ impl RunningAppState {
             user_content_manager,
             experimental_preferences_enabled,
             accessibility_active: Cell::new(false),
+            window_of_webview_under_construction: Default::default(),
         }
     }
 
@@ -464,7 +469,12 @@ impl RunningAppState {
 
     pub(crate) fn window_for_webview_id(&self, webview_id: WebViewId) -> Rc<ServoShellWindow> {
         self.maybe_window_for_webview_id(webview_id)
+            .or_else(|| self.window_of_webview_under_construction.borrow().clone())
             .unwrap_or_else(|| panic!("Looking for unexpected WebView: {webview_id:?}"))
+    }
+
+    pub(crate) fn set_window_for_webview_construction(&self, window: Option<Rc<ServoShellWindow>>) {
+        *self.window_of_webview_under_construction.borrow_mut() = window;
     }
 
     pub(crate) fn platform_window_for_webview_id(
@@ -742,11 +752,22 @@ impl WebViewDelegate for RunningAppState {
     fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
         let window = self.window_for_webview_id(parent_webview.id());
         let platform_window = window.platform_window();
+
+        // As part of building the WebView, we may receive WebviewDelegate calls
+        // before we have set up the association between this window and the new
+        // webview. We stash this window in a known location so we can find it
+        // when this occurs.
+        self.set_window_for_webview_construction(Some(window.clone()));
+
         let webview = request
             .builder(platform_window.rendering_context())
             .hidpi_scale_factor(platform_window.hidpi_scale_factor())
             .delegate(parent_webview.delegate())
             .build();
+
+        // This window is now associated with the WebView, so the fallback
+        // is no longer needed.
+        self.set_window_for_webview_construction(None);
 
         webview.notify_theme_change(platform_window.theme());
         window.add_webview(webview.clone());

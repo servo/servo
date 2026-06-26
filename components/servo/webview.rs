@@ -249,11 +249,17 @@ impl WebView {
         // The division by 1 represents the page's default zoom of 100%,
         // and gives us the appropriate CSSPixel type for the viewport.
         let inner = self.inner();
-        let scaled_viewport_size =
-            inner.rendering_context.size2d().to_f32() / inner.hidpi_scale_factor;
+        let viewport_size = inner.rendering_context.size2d().to_f32();
+        let scaled_viewport_size = viewport_size / inner.hidpi_scale_factor;
+        let device_size = self
+            .delegate()
+            .screen_geometry(self.clone())
+            .map(|geometry| geometry.size.to_f32())
+            .unwrap_or_else(|| viewport_size);
         ViewportDetails {
             size: scaled_viewport_size / Scale::new(1.0),
             hidpi_scale_factor: Scale::new(inner.hidpi_scale_factor.0),
+            device_size,
         }
     }
 
