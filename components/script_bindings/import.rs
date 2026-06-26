@@ -13,13 +13,13 @@ pub(crate) mod base {
     };
     pub(crate) use js::error::throw_type_error;
     pub(crate) use js::jsapi::{
-        HandleValue as RawHandleValue, HandleValueArray, Heap, IsCallable, JS_NewObject, JSObject,
+        HandleValue as RawHandleValue, HandleValueArray, Heap, IsCallable, JSObject,
     };
     pub(crate) use js::jsval::{JSVal, NullValue, ObjectOrNullValue, ObjectValue, UndefinedValue};
     pub(crate) use js::panic::maybe_resume_unwind;
     #[allow(unused_imports)]
     pub(crate) use js::realm::{AutoRealm, CurrentRealm};
-    pub(crate) use js::rust::wrappers2::Call;
+    pub(crate) use js::rust::wrappers2::{Call, JS_NewObject};
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
     pub(crate) use js::typedarray;
     pub(crate) use js::typedarray::{

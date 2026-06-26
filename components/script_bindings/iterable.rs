@@ -9,10 +9,12 @@ use std::marker::PhantomData;
 use std::ptr;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{Heap, JS_NewObject};
+use js::jsapi::Heap;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
+use js::rust::wrappers2::JS_NewObject;
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 
 use crate::codegen::GenericBindings::IterableIteratorBinding::{
@@ -23,7 +25,6 @@ use crate::error::Fallible;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::{DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector};
 use crate::root::{Dom, DomRoot, Root};
-use crate::script_runtime::JSContext;
 use crate::trace::{NoTrace, RootedTraceableBox};
 use crate::utils::DOMClass;
 use crate::{DomTypes, JSTraceable};
@@ -111,11 +112,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
 
     /// Return the next value from the iterable object.
     #[expect(non_snake_case)]
-    pub fn Next(
-        &self,
-        cx: &mut js::context::JSContext,
-        return_value: MutableHandleObject,
-    ) -> Fallible<()> {
+    pub fn Next(&self, cx: &mut JSContext, return_value: MutableHandleObject) -> Fallible<()> {
         let index = self.index.get();
         rooted!(&in(cx) let mut value = UndefinedValue());
         let result = if index >= self.iterable.get_iterable_length() {
@@ -126,13 +123,13 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
                     self.iterable
                         .get_key_at_index(index)
                         .safe_to_jsval(cx, value.handle_mut());
-                    dict_return(cx.into(), return_value, false, value.handle())
+                    dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Values => {
                     self.iterable
                         .get_value_at_index(index)
                         .safe_to_jsval(cx, value.handle_mut());
-                    dict_return(cx.into(), return_value, false, value.handle())
+                    dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Entries => {
                     rooted!(&in(cx) let mut key = UndefinedValue());
@@ -142,7 +139,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
                     self.iterable
                         .get_value_at_index(index)
                         .safe_to_jsval(cx, value.handle_mut());
-                    key_and_value_return(cx.into(), return_value, key.handle(), value.handle())
+                    key_and_value_return(cx, return_value, key.handle(), value.handle())
                 },
             }
         };
@@ -155,7 +152,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
     DomObjectWrap<D> for IterableIterator<D, T>
 {
     const WRAP: unsafe fn(
-        &mut js::context::JSContext,
+        &mut JSContext,
         &D::GlobalScope,
         Option<HandleObject>,
         Box<Self>,
@@ -163,7 +160,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
 }
 
 fn dict_return(
-    cx: JSContext,
+    cx: &mut JSContext,
     mut result: MutableHandleObject,
     done: bool,
     value: HandleValue,
@@ -172,15 +169,13 @@ fn dict_return(
     dict.done = done;
     dict.value.set(value.get());
 
-    unsafe {
-        result.set(JS_NewObject(*cx, ptr::null()));
-        dict.to_jsobject(*cx, result);
-    }
+    unsafe { result.set(JS_NewObject(cx, ptr::null())) };
+    dict.to_jsobject(cx, result);
     Ok(())
 }
 
 fn key_and_value_return(
-    cx: JSContext,
+    cx: &mut JSContext,
     mut result: MutableHandleObject,
     key: HandleValue,
     value: HandleValue,
@@ -193,9 +188,8 @@ fn key_and_value_return(
             .map(|handle| RootedTraceableBox::from_box(Heap::boxed(handle.get())))
             .collect(),
     );
-    unsafe {
-        result.set(JS_NewObject(*cx, ptr::null()));
-        dict.to_jsobject(*cx, result);
-    }
+
+    unsafe { result.set(JS_NewObject(cx, ptr::null())) };
+    dict.to_jsobject(cx, result);
     Ok(())
 }
