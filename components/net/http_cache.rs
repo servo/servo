@@ -257,6 +257,32 @@ fn get_response_expiry(response: &Response) -> Duration {
     Duration::ZERO
 }
 
+
+/// The `headers` crate's `CacheControl` does not understand `stale-while-revalidate` directive,
+/// so we need to parse the raw `Cache-Control` header values.
+/// <https://datatracker.ietf.org/doc/html/rfc5861#section-3>
+fn get_stale_while_revalidate(headers: &HeaderMap) -> Duration {
+    for value in headers.get_all(header::CACHE_CONTROL) {
+        let Ok(value) = value.to_str() else {
+            continue;
+        };
+        for directive in value.split(',') {
+            let directive = directive.trim();
+            let Some((name, argument)) = directive.split_once('=') else {
+                continue;
+            };
+            if !name.trim().eq_ignore_ascii_case("stale-while-revalidate") {
+                continue;
+            }
+            // The argument is a number of seconds, optionally quoted.
+            let argument = argument.trim().trim_matches('"');
+            if let Ok(seconds) = argument.parse::<u64>() {
+                return Duration::from_secs(seconds);
+            }
+        }
+    }
+    Duration::ZERO
+}
 /// Request Cache-Control Directives
 /// <https://tools.ietf.org/html/rfc7234#section-5.2.1>
 fn get_expiry_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
