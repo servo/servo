@@ -173,9 +173,10 @@ class HistoryFragment : Fragment() {
             currentCal.set(Calendar.SECOND, 0)
             currentCal.set(Calendar.MILLISECOND, 0)
 
-            var dayHeader = dayFormat.format(Date(entry.timestamp))
-            if (currentCal.getTimeInMillis() == todayCal.getTimeInMillis()) {
-                dayHeader = "Today – $dayHeader"
+            val dayHeader = if (currentCal.getTimeInMillis() == todayCal.getTimeInMillis()) {
+                "Today"
+            } else {
+                dayFormat.format(Date(entry.timestamp))
             }
 
             if (dayHeader != lastDay) {
