@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -17,7 +18,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::rtcdatachannel::RTCDataChannel;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct RTCDataChannelEvent {
@@ -34,30 +34,30 @@ impl RTCDataChannelEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         channel: &RTCDataChannel,
-        can_gc: CanGc,
     ) -> DomRoot<RTCDataChannelEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, channel, can_gc)
+        Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, channel)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         channel: &RTCDataChannel,
-        can_gc: CanGc,
     ) -> DomRoot<RTCDataChannelEvent> {
-        let event = reflect_dom_object_with_proto(
+        let event = reflect_dom_object_with_proto_and_cx(
             Box::new(RTCDataChannelEvent::new_inherited(channel)),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = event.upcast::<Event>();
@@ -70,20 +70,20 @@ impl RTCDataChannelEvent {
 impl RTCDataChannelEventMethods<crate::DomTypeHolder> for RTCDataChannelEvent {
     /// <https://www.w3.org/TR/webrtc/#dom-rtcdatachannelevent-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &RTCDataChannelEventInit,
     ) -> DomRoot<RTCDataChannelEvent> {
         RTCDataChannelEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
             &init.channel,
-            can_gc,
         )
     }
 

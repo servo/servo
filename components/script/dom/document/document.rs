@@ -4875,9 +4875,9 @@ impl Document {
 impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-document>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
         // The new Document() constructor steps are to set this’s origin to the origin of current global object’s associated Document. [HTML]
         let doc = window.Document();
@@ -4906,7 +4906,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.active_sandboxing_flag_set.get(),
             doc.pipeline_id(),
             doc.image_cache(),
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 

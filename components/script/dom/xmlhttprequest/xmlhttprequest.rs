@@ -37,7 +37,7 @@ use net_traits::{
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use script_bindings::trace::RootedTraceableBox;
 use script_traits::DocumentActivity;
 use servo_constellation_traits::BlobImpl;
@@ -241,13 +241,13 @@ pub(crate) struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> XMLHttpRequest {
+    fn new_inherited(global: &GlobalScope, upload: &XMLHttpRequestUpload) -> XMLHttpRequest {
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(Duration::ZERO),
             with_credentials: Cell::new(false),
-            upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global, can_gc)),
+            upload: Dom::from_ref(upload),
             response_url: DomRefCell::new(String::new()),
             status: DomRefCell::new(HttpStatus::new_error()),
             response: DomRefCell::new(vec![]),
@@ -279,15 +279,16 @@ impl XMLHttpRequest {
     }
 
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<XMLHttpRequest> {
-        reflect_dom_object_with_proto(
-            Box::new(XMLHttpRequest::new_inherited(global, can_gc)),
+        let upload = XMLHttpRequestUpload::new(cx, global);
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(XMLHttpRequest::new_inherited(global, &upload)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -299,11 +300,11 @@ impl XMLHttpRequest {
 impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#constructors>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<XMLHttpRequest>> {
-        Ok(XMLHttpRequest::new(global, proto, can_gc))
+        Ok(XMLHttpRequest::new(cx, global, proto))
     }
 
     // https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange

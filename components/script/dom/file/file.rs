@@ -191,9 +191,9 @@ impl FileMethods<crate::DomTypeHolder> for File {
     // https://w3c.github.io/FileAPI/#file-constructor
     #[expect(non_snake_case)]
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
         filename: DOMString,
         filePropertyBag: &FileBinding::FilePropertyBag,
@@ -217,7 +217,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
             filename,
             modified,
             USVString::default(),
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 

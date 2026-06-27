@@ -79,7 +79,7 @@ impl TextTrackList {
                     let this = this.root();
 
                     if let Some(track) = this.item(idx) {
-                        let event = TrackEvent::new(
+                        let event = TrackEvent::new(cx,
                             this.global().as_window(),
                             atom!("addtrack"),
                             false,
@@ -87,7 +87,6 @@ impl TextTrackList {
                             &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
                                 DomRoot::from_ref(&track)
                             )),
-                            CanGc::from_cx(cx),
                         );
 
                         event.upcast::<Event>().fire(cx, this.upcast::<EventTarget>());

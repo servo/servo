@@ -4206,13 +4206,13 @@ class CGCallGenerator(CGThing):
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
-        if nativeMethodName in descriptor.cx_no_gcMethods or nativeMethodName in descriptor.cxMethods:
-            args.prepend(CGGeneric("cx"))
-        elif nativeMethodName in descriptor.realmMethods:
+        if nativeMethodName in descriptor.realmMethods:
             self.cgRoot.append(CGList([
                 CGGeneric("let mut realm = CurrentRealm::assert(cx);"),
                 CGGeneric("let cx = &mut realm;"),
             ]))
+            args.prepend(CGGeneric("cx"))
+        elif nativeMethodName in descriptor.cx_no_gcMethods or nativeMethodName in descriptor.cxMethods or nativeMethodName.startswith("Constructor"):
             args.prepend(CGGeneric("cx"))
         # Workaround for iterators `Next` method until `safe_cx` is the default
         elif descriptor.interface.isIteratorInterface():
@@ -6929,9 +6929,6 @@ let global = D::GlobalScope::from_object(JS_CALLEE(cx.raw_cx(), vp).to_object())
                     "Some(desired_proto)",
                 ]
 
-            if nativeName not in self.descriptor.cxMethods and nativeName not in self.descriptor.realmMethods:
-                args += ['CanGc::from_cx(cx)']
-
             constructor = CGMethodCall(args, nativeName, True, self.descriptor, self.constructor)
             constructorCall = f"""
             call_default_constructor::<D>(
@@ -7147,19 +7144,13 @@ class CGInterfaceTrait(CGThing):
             infallible = 'infallible' in descriptor.getExtendedAttributes(ctor)
             for (i, (rettype, arguments)) in enumerate(ctor.signatures()):
                 name = (baseName or ctor.identifier.name) + ('_' * i)
-                cx = name in descriptor.cxMethods
                 realm = name in descriptor.realmMethods
-                args = list(method_arguments(descriptor, rettype, arguments, cx=cx, realm=realm))
+                args = list(method_arguments(descriptor, rettype, arguments, cx=True, realm=realm))
                 extra = [
                     ("global", f"&D::{exposedGlobal}"),
                     ("proto", "Option<HandleObject>"),
                 ]
-                if not cx and not realm:
-                    extra += [("can_gc", "CanGc")]
-                if args and (args[0][0] == "cx" or args[0][0] == "realm"):
-                    args = [args[0]] + extra + args[1:]
-                else:
-                    args = extra + args
+                args = [args[0]] + extra + args[1:]
                 yield CGGeneric(
                     f"fn {name}({fmt(args, leadingComma=False)}) -> "
                     f"{return_type(descriptorProvider, rettype, infallible)};\n"
@@ -8359,10 +8350,10 @@ def method_arguments(descriptorProvider: DescriptorProvider,
             pass
     if cx_no_gc:
         yield "cx", "&JSContext"
-    elif cx:
-        yield "cx", "&mut JSContext"
     elif realm:
         yield "realm", "&mut CurrentRealm"
+    elif cx:
+        yield "cx", "&mut JSContext"
 
     safe_cx = cx or cx_no_gc or realm
 
