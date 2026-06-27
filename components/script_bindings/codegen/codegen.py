@@ -8348,7 +8348,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
             old_cx = True
         case Context.No:
             pass
-    
+
     if realm:
         yield "realm", "&mut CurrentRealm"
     elif cx:
