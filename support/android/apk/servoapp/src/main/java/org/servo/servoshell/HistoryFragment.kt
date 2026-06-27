@@ -175,7 +175,7 @@ class HistoryFragment : Fragment() {
 
             var dayHeader = dayFormat.format(Date(entry.timestamp))
             if (currentCal.getTimeInMillis() == todayCal.getTimeInMillis()) {
-                dayHeader = "Today – $dayHeader"
+                dayHeader = "Today"
             }
 
             if (dayHeader != lastDay) {
