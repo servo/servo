@@ -342,15 +342,9 @@ pub(crate) fn import_key(
                 )));
             }
 
-            // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.
-            // Step 2.11. Set the name attribute of algorithm to "Ed25519".
-            let algorithm = SubtleKeyAlgorithm {
-                name: CryptoAlgorithm::Ed25519,
-            };
-
             // Step 2.9
             // If the d field is present:
-            if jwk.d.is_some() {
+            let (handle, key_type) = if jwk.d.is_some() {
                 // Step 2.9.1. If jwk does not meet the requirements of the JWK private key format
                 // described in Section 2 of [RFC8037], then throw a DataError.
                 let d = jwk.decode_required_string_field(JwkStringField::D)?;
@@ -370,16 +364,13 @@ pub(crate) fn import_key(
                 // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519
                 // private key identified by interpreting jwk according to Section
                 // 2 of [RFC8037]
+                // NOTE: CryptoKey is created in Step 2.10 - 2.12.
+                let handle = Handle::Ed25519PrivateKey(private_key);
+
                 // Step 2.9.3. Set the [[type]] internal slot of Key to "private".
-                CryptoKey::new(
-                    cx,
-                    global,
-                    KeyType::Private,
-                    extractable,
-                    KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                    usages,
-                    Handle::Ed25519PrivateKey(private_key),
-                )
+                let key_type = KeyType::Private;
+
+                (handle, key_type)
             }
             // Otherwise:
             else {
@@ -392,20 +383,30 @@ pub(crate) fn import_key(
 
                 // Step 2.9.2. Let key be a new CryptoKey object that represents the Ed25519 public
                 // key identified by interpreting jwk according to Section 2 of [RFC8037].
+                // NOTE: CryptoKey is created in Step 2.10 - 2.12.
+                let handle = Handle::Ed25519PublicKey(public_key);
+
                 // Step 2.9.3. Set the [[type]] internal slot of Key to "public".
-                CryptoKey::new(
-                    cx,
-                    global,
-                    KeyType::Public,
-                    extractable,
-                    KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                    usages,
-                    Handle::Ed25519PublicKey(public_key),
-                )
-            }
+                let key_type = KeyType::Public;
+
+                (handle, key_type)
+            };
 
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            // NOTE: Done in Step 2.9
+            // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.
+            // Step 2.11. Set the name attribute of algorithm to "Ed25519".
+            let algorithm = SubtleKeyAlgorithm {
+                name: CryptoAlgorithm::Ed25519,
+            };
+            CryptoKey::new(
+                cx,
+                global,
+                key_type,
+                extractable,
+                KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+                usages,
+                handle,
+            )
         },
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
