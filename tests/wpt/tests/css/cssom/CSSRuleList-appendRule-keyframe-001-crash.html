@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>CSSOM Test: Servo crash when modifying keyframe rules</title>
+<link rel="help" href="https://github.com/servo/servo/issues/44990">
+<style>
+  @keyframes keyframes0 {}
+</style>
+<script>
+  onload = _ =>
+    document.styleSheets[0].cssRules[0].appendRule("0% {}");
+</script>
