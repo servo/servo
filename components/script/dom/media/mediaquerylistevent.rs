@@ -5,8 +5,9 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -20,7 +21,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent
 #[dom_struct]
@@ -32,36 +32,35 @@ pub(crate) struct MediaQueryListEvent {
 
 impl MediaQueryListEvent {
     fn new_initialized(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         media: DOMString,
         matches: bool,
-        can_gc: CanGc,
     ) -> DomRoot<MediaQueryListEvent> {
         let ev = Box::new(MediaQueryListEvent {
             event: Event::new_inherited(),
             media,
             matches: Cell::new(matches),
         });
-        reflect_dom_object_with_proto(ev, global, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(ev, global, proto, cx)
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         media: DOMString,
         matches: bool,
-        can_gc: CanGc,
     ) -> DomRoot<MediaQueryListEvent> {
-        Self::new_with_proto(
-            global, None, type_, bubbles, cancelable, media, matches, can_gc,
-        )
+        Self::new_with_proto(cx, global, None, type_, bubbles, cancelable, media, matches)
     }
 
     #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -69,9 +68,8 @@ impl MediaQueryListEvent {
         cancelable: bool,
         media: DOMString,
         matches: bool,
-        can_gc: CanGc,
     ) -> DomRoot<MediaQueryListEvent> {
-        let ev = MediaQueryListEvent::new_initialized(global, proto, media, matches, can_gc);
+        let ev = MediaQueryListEvent::new_initialized(cx, global, proto, media, matches);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -83,13 +81,14 @@ impl MediaQueryListEvent {
 impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &MediaQueryListEventInit,
     ) -> Fallible<DomRoot<MediaQueryListEvent>> {
         Ok(MediaQueryListEvent::new_with_proto(
+            cx,
             window.as_global_scope(),
             proto,
             Atom::from(type_),
@@ -97,7 +96,6 @@ impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
             init.parent.cancelable,
             init.media.clone(),
             init.matches,
-            can_gc,
         ))
     }
 

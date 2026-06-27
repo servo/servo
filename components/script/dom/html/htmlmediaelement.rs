@@ -2460,12 +2460,12 @@ impl HTMLMediaElement {
             // Step 7. Fire an event named addtrack at this AudioTrackList object, using TrackEvent,
             // with the track attribute initialized to the new AudioTrack object.
             let event = TrackEvent::new(
+                cx,
                 self.global().as_window(),
                 atom!("addtrack"),
                 false,
                 false,
                 &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(audio_track)),
-                CanGc::from_cx(cx),
             );
 
             event
@@ -2528,12 +2528,12 @@ impl HTMLMediaElement {
             // Step 7. Fire an event named addtrack at this VideoTrackList object, using TrackEvent,
             // with the track attribute initialized to the new VideoTrack object.
             let event = TrackEvent::new(
+                cx,
                 self.global().as_window(),
                 atom!("addtrack"),
                 false,
                 false,
                 &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(video_track)),
-                CanGc::from_cx(cx),
             );
 
             event

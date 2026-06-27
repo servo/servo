@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, HandleValue};
 use net_traits::pub_domains::is_same_site;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::OriginBinding::OriginMethods;
@@ -21,7 +21,7 @@ use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
 use crate::dom::url::URL;
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 
 /// <https://html.spec.whatwg.org/multipage/#the-origin-interface>
 #[dom_struct]
@@ -40,16 +40,16 @@ impl Origin {
     }
 
     fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         origin: ImmutableOrigin,
-        can_gc: CanGc,
     ) -> DomRoot<Origin> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(Origin::new_inherited(origin)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -103,11 +103,11 @@ impl Origin {
 impl OriginMethods<crate::DomTypeHolder> for Origin {
     /// <https://html.spec.whatwg.org/multipage/#dom-origin-constructor>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Origin> {
-        Origin::new(global, proto, ImmutableOrigin::new_opaque(), can_gc)
+        Origin::new(cx, global, proto, ImmutableOrigin::new_opaque())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-origin-from>
@@ -116,15 +116,13 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
         global: &GlobalScope,
         value: HandleValue,
     ) -> Fallible<DomRoot<Origin>> {
-        let can_gc = CanGc::deprecated_note();
-
         // Step 1. If value is a platform object:
         //   1. Let origin be the result of executing value's extract an origin operation.
         //   2. If origin is not null, then return a new Origin object whose origin is origin.
         if let Some(origin) =
             Origin::extract_an_origin_from_platform_object(value, cx.into(), global)
         {
-            return Ok(Origin::new(global, None, origin, can_gc));
+            return Ok(Origin::new(cx, global, None, origin));
         }
 
         // Step 2. If value is a string:
@@ -138,7 +136,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
             // Step 2.2. If parsedURL is not failure, then return a new Origin object whose
             //           origin is set to parsedURL's origin.
             match ServoUrl::parse(&s.str()) {
-                Ok(url) => return Ok(Origin::new(global, None, url.origin(), can_gc)),
+                Ok(url) => return Ok(Origin::new(cx, global, None, url.origin())),
                 Err(_) => return Err(Error::Type(c"Failed to parse URL".to_owned())),
             }
         }

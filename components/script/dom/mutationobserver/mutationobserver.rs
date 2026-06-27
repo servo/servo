@@ -8,9 +8,10 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserver_Binding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
@@ -73,13 +74,13 @@ pub(crate) struct ObserverOptions {
 
 impl MutationObserver {
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
         callback: Rc<MutationCallback>,
-        can_gc: CanGc,
     ) -> DomRoot<MutationObserver> {
         let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
-        reflect_dom_object_with_proto(boxed_observer, global, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(boxed_observer, global, proto, cx)
     }
 
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {
@@ -256,13 +257,13 @@ impl MutationObserver {
 impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
     /// <https://dom.spec.whatwg.org/#dom-mutationobserver-mutationobserver>
     fn Constructor(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         callback: Rc<MutationCallback>,
     ) -> Fallible<DomRoot<MutationObserver>> {
         global.set_exists_mut_observer();
-        let observer = MutationObserver::new_with_proto(global, proto, callback, can_gc);
+        let observer = MutationObserver::new_with_proto(cx, global, proto, callback);
         ScriptThread::mutation_observers().add_mutation_observer(&observer);
         Ok(observer)
     }

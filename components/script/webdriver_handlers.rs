@@ -92,7 +92,6 @@ use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 /// <https://w3c.github.io/webdriver/#dfn-is-stale>
@@ -1377,7 +1376,7 @@ pub(crate) fn handle_get_page_source(
                     Some(element) => match element.outer_html(cx) {
                         Ok(source) => Ok(String::from(source)),
                         Err(_) => {
-                            match XMLSerializer::new(document.window(), None, CanGc::from_cx(cx))
+                            match XMLSerializer::new(cx, document.window(), None)
                                 .SerializeToString(element.upcast::<Node>())
                             {
                                 Ok(source) => Ok(String::from(source)),

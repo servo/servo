@@ -5,9 +5,10 @@
 // check-tidy: no specs after this line
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::TestBindingPairIterableBinding::TestBindingPairIterableMethods;
 use crate::dom::bindings::error::Fallible;
@@ -15,7 +16,6 @@ use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct TestBindingPairIterable {
@@ -44,29 +44,29 @@ impl Iterable for TestBindingPairIterable {
 
 impl TestBindingPairIterable {
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<TestBindingPairIterable> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(TestBindingPairIterable {
                 reflector: Reflector::new(),
                 map: DomRefCell::new(vec![]),
             }),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
 
 impl TestBindingPairIterableMethods<crate::DomTypeHolder> for TestBindingPairIterable {
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingPairIterable>> {
-        Ok(TestBindingPairIterable::new(global, proto, can_gc))
+        Ok(TestBindingPairIterable::new(cx, global, proto))
     }
 
     fn Add(&self, key: DOMString, value: u32) {

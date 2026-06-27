@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::audio::audiotrack::AudioTrack;
@@ -20,7 +21,6 @@ use crate::dom::event::Event;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -60,30 +60,30 @@ impl TrackEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
-        can_gc: CanGc,
     ) -> DomRoot<TrackEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, track, can_gc)
+        Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, track)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
-        can_gc: CanGc,
     ) -> DomRoot<TrackEvent> {
-        let te = reflect_dom_object_with_proto(
+        let te = reflect_dom_object_with_proto_and_cx(
             Box::new(TrackEvent::new_inherited(track)),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = te.upcast::<Event>();
@@ -96,20 +96,20 @@ impl TrackEvent {
 impl TrackEventMethods<crate::DomTypeHolder> for TrackEvent {
     /// <https://html.spec.whatwg.org/multipage/#trackevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &TrackEventBinding::TrackEventInit,
     ) -> Fallible<DomRoot<TrackEvent>> {
         Ok(TrackEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
             &init.track,
-            can_gc,
         ))
     }
 

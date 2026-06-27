@@ -3440,13 +3440,13 @@ impl Window {
         // Sending change events for all changed Media Queries
         for mql in mql_list.iter() {
             let event = MediaQueryListEvent::new(
+                cx,
                 &mql.global(),
                 atom!("change"),
                 false,
                 false,
                 mql.Media(),
                 mql.Matches(),
-                CanGc::from_cx(cx),
             );
             event
                 .upcast::<Event>()
