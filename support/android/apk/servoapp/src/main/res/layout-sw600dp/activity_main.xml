@@ -26,7 +26,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/history_back_menu_item"
-                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    style="@style/Widget.Material3.Button.IconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     app:icon="@drawable/arrow_back"
@@ -36,8 +36,9 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/history_forward_menu_item"
-                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    style="@style/Widget.Material3.Button.IconButton"
                     app:icon="@drawable/arrow_forward"
+                    app:iconTint="?colorOnBackground"
                     android:contentDescription="@string/history_forward"
                     android:enabled="false"
                     android:layout_width="wrap_content"
@@ -46,19 +47,21 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/refresh_menu_item"
-                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    style="@style/Widget.Material3.Button.IconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/refresh"
-                    app:icon="@drawable/refresh"/>
+                    app:icon="@drawable/refresh"
+                    app:iconTint="?colorOnBackground" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/cancel_menu_item"
-                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    style="@style/Widget.Material3.Button.IconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/cancel"
                     app:icon="@drawable/cancel"
+                    app:iconTint="?colorOnBackground"
                     android:visibility="gone"
                     />
 
@@ -113,24 +116,26 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/settings_menu_item"
-                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                style="@style/Widget.Material3.Button.IconButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/options"
                 app:layout_constraintEnd_toStartOf="@id/history_menu_item"
                 app:layout_constraintTop_toTopOf="parent"
                 app:icon="@drawable/settings"
+                app:iconTint="?colorOnBackground"
                 />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/history_menu_item"
-                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                style="@style/Widget.Material3.Button.IconButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/history_title"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:icon="@drawable/history"
+                app:iconTint="?colorOnBackground"
                 />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
