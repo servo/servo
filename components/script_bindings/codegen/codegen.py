@@ -8348,12 +8348,13 @@ def method_arguments(descriptorProvider: DescriptorProvider,
             old_cx = True
         case Context.No:
             pass
-    if cx_no_gc:
-        yield "cx", "&JSContext"
-    elif realm:
+    
+    if realm:
         yield "realm", "&mut CurrentRealm"
     elif cx:
         yield "cx", "&mut JSContext"
+    elif cx_no_gc:
+        yield "cx", "&JSContext"
 
     safe_cx = cx or cx_no_gc or realm
 
