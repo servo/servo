@@ -126,6 +126,11 @@ impl IndependentFormattingContext {
             },
             Display::GeneratingBox(display) => display.used_value_for_contents(&contents),
         };
+
+        // This ensures that the `FragmentFlags` of this `BaseFragmentInfo` reflect the
+        // current layout and not the set that was calculated during previous layouts.
+        self.base.base_fragment_info = node_and_style_info.into();
+
         self.contents = Self::construct_contents(
             layout_context,
             node_and_style_info,
