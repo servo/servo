@@ -148,7 +148,7 @@ use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord}
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
@@ -2344,7 +2344,7 @@ impl GlobalScope {
     /// Returns the global scope of the realm that the given DOM object's reflector
     /// was created in.
     #[expect(unsafe_code)]
-    pub(crate) fn from_reflector<T: DomObject>(reflector: &T, _realm: InRealm) -> DomRoot<Self> {
+    pub(crate) fn from_reflector<T: DomObject>(reflector: &T) -> DomRoot<Self> {
         unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
     }
 
@@ -3609,8 +3609,8 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         unsafe { GlobalScope::from_object(obj) }
     }
 
-    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<Self> {
-        GlobalScope::from_reflector(reflector, realm)
+    fn from_reflector(reflector: &impl DomObject) -> DomRoot<Self> {
+        GlobalScope::from_reflector(reflector)
     }
 
     fn origin(&self) -> MutableOrigin {
