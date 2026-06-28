@@ -3,8 +3,8 @@
 // (https://github.com/w3c/webref)
 // Source: WebRTC Encoded Transform (https://w3c.github.io/webrtc-encoded-transform/)
 
-typedef (RTCRtpSFrameEncrypter or RTCRtpScriptTransform) RTCRtpSenderTransform;
-typedef (RTCRtpSFrameDecrypter or RTCRtpScriptTransform) RTCRtpReceiverTransform;
+typedef (RTCRtpSFrameEncryptor or RTCRtpScriptTransform) RTCRtpSenderTransform;
+typedef (RTCRtpSFrameDecryptor or RTCRtpScriptTransform) RTCRtpReceiverTransform;
 
 // New methods for RTCRtpSender and RTCRtpReceiver
 partial interface RTCRtpSender {
@@ -36,48 +36,48 @@ enum SFrameType {
     "per-packet"
 };
 
-dictionary RTCRtpSFrameEncrypterOptions : SFrameTransformOptions {
+dictionary RTCRtpSFrameEncryptorOptions : SFrameTransformOptions {
     SFrameType type = "per-frame";
 };
 
 typedef [EnforceRange] unsigned long long SmallCryptoKeyID;
 typedef (SmallCryptoKeyID or bigint) CryptoKeyID;
 
-interface mixin SFrameEncrypterManager {
+interface mixin SFrameEncryptorManager {
     Promise<undefined> setEncryptionKey(CryptoKey key, CryptoKeyID keyId);
 };
 
-interface mixin SFrameDecrypterManager {
+interface mixin SFrameDecryptorManager {
     Promise<undefined> addDecryptionKey(CryptoKey key, CryptoKeyID keyId);
     Promise<undefined> removeDecryptionKey(CryptoKeyID keyId);
     attribute EventHandler onerror;
 };
 
 [Exposed=Window]
-interface RTCRtpSFrameEncrypter {
-    constructor(RTCRtpSFrameEncrypterOptions options);
+interface RTCRtpSFrameEncryptor {
+    constructor(RTCRtpSFrameEncryptorOptions options);
 };
-RTCRtpSFrameEncrypter includes SFrameEncrypterManager;
+RTCRtpSFrameEncryptor includes SFrameEncryptorManager;
 
 [Exposed=Window]
-interface RTCRtpSFrameDecrypter : EventTarget {
+interface RTCRtpSFrameDecryptor : EventTarget {
     constructor(SFrameTransformOptions options);
 };
-RTCRtpSFrameDecrypter includes SFrameDecrypterManager;
+RTCRtpSFrameDecryptor includes SFrameDecryptorManager;
 
 [Exposed=(Window,DedicatedWorker)]
-interface SFrameEncrypterStream {
+interface SFrameEncryptorStream {
     constructor(SFrameTransformOptions options);
 };
-SFrameEncrypterStream includes GenericTransformStream;
-SFrameEncrypterStream includes SFrameEncrypterManager;
+SFrameEncryptorStream includes GenericTransformStream;
+SFrameEncryptorStream includes SFrameEncryptorManager;
 
 [Exposed=(Window,DedicatedWorker)]
-interface SFrameDecrypterStream : EventTarget {
+interface SFrameDecryptorStream : EventTarget {
     constructor(SFrameTransformOptions options);
 };
-SFrameDecrypterStream includes GenericTransformStream;
-SFrameDecrypterStream includes SFrameDecrypterManager;
+SFrameDecryptorStream includes GenericTransformStream;
+SFrameDecryptorStream includes SFrameDecryptorManager;
 
 enum SFrameTransformErrorEventType {
     "authentication",

@@ -8,9 +8,18 @@ input:checked, input:checked + span { background-color : lime}
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 <p>
-<input type="checkbox" checked="checked"></input> <span>Everything in this paragraph should have a green background</span></p>
+<input type="checkbox" checked="checked" id="t1"></input> <span id="t2">Everything in this paragraph should have a green background</span></p>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+}, 'checked pseudo-class');
+]]></script>
 </body>
 </html>

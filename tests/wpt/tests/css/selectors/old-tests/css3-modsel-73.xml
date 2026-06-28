@@ -10,22 +10,25 @@ table.t2 td:not(:nth-child(3n+1)) { background-color : lime }
 table.t1 td, table.t2 td { border : thin black solid }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 <ul>
   <li>First list item</li>
-  <li class="red">This second list item should have a green background</li>
+  <li class="red" id="t1">This second list item should have a green background</li>
   <li>Third list</li>
-  <li class="red">This fourth list item should have a green background</li>
+  <li class="red" id="t2">This fourth list item should have a green background</li>
   <li>Fifth list item</li>
-  <li class="red">This sixth list item should have a green background</li>
+  <li class="red" id="t3">This sixth list item should have a green background</li>
 </ul>
 <ol>
-  <li class="red">This first list item should have a green background</li>
+  <li class="red" id="t4">This first list item should have a green background</li>
   <li>Second list item</li>
-  <li class="red">This third list item should have a green background</li>
+  <li class="red" id="t5">This third list item should have a green background</li>
   <li>Fourth list item</li>
-  <li class="red">This fifth list item should have a green background</li>
+  <li class="red" id="t6">This fifth list item should have a green background</li>
   <li>Sixth list item</li>
 </ol>
 <div>
@@ -50,12 +53,12 @@ table.t1 td, table.t2 td { border : thin black solid }]]></style>
 <td>4.2</td>
       <td>4.3</td>
 </tr>
-  <tr class="red">
+  <tr class="red" id="t7">
 <td>Green row : 5.1</td>
 <td>5.2</td>
 <td>5.3</td>
 </tr>
-  <tr class="red">
+  <tr class="red" id="t8">
 <td>Green row : 6.1</td>
 <td>6.2</td>
 <td>6.3</td>
@@ -65,35 +68,42 @@ table.t1 td, table.t2 td { border : thin black solid }]]></style>
 <table class="t2" border="1">
   <tr>
 <td>1.1</td>
-<td class="red">green cell</td>
-<td class="red">green cell</td>
+<td class="red" id="t9">green cell</td>
+<td class="red" id="t10">green cell</td>
       <td>1.4</td>
-<td class="red">green cell</td>
-<td class="red">green cell</td>
+<td class="red" id="t11">green cell</td>
+<td class="red" id="t12">green cell</td>
       <td>1.7</td>
-<td class="red">green cell</td>
+<td class="red" id="t13">green cell</td>
 </tr>
   <tr>
 <td>2.1</td>
-<td class="red">green cell</td>
-<td class="red">green cell</td>
+<td class="red" id="t14">green cell</td>
+<td class="red" id="t15">green cell</td>
       <td>2.4</td>
-<td class="red">green cell</td>
-<td class="red">green cell</td>
+<td class="red" id="t16">green cell</td>
+<td class="red" id="t17">green cell</td>
       <td>2.7</td>
-<td class="red">green cell</td>
+<td class="red" id="t18">green cell</td>
 </tr>
   <tr>
 <td>3.1</td>
-<td class="red">green cell</td>
-<td class="red">green cell</td>
+<td class="red" id="t19">green cell</td>
+<td class="red" id="t20">green cell</td>
       <td>3.4</td>
-<td class="red">green cell</td>
-<td class="red">green cell</td>
+<td class="red" id="t21">green cell</td>
+<td class="red" id="t22">green cell</td>
       <td>3.7</td>
-<td class="red">green cell</td>
+<td class="red" id="t23">green cell</td>
 </tr>
 </table>
 </div>
+<script><![CDATA[
+test(function() {
+  for (let i = 1; i <= 23; ++i) {
+    assert_background_color(`t${i}`, LIME, `t${i} should be green`);
+  }
+}, 'NEGATED :nth-child() pseudo-class');
+]]></script>
 </body>
 </html>

@@ -18,4 +18,12 @@ test_valid_value("text-decoration-inset", "1px 2px");
 test_valid_value("text-decoration-inset", "1ch -1ch");
 test_valid_value("text-decoration-inset", "calc(1em / 4) calc(-1ch)", "calc(0.25em) calc(-1ch)");
 test_valid_value("text-decoration-inset", "auto");
+
+// https://github.com/w3c/csswg-drafts/issues/8403
+test_valid_value("text-decoration-inset", "10%");
+test_valid_value("text-decoration-inset", "0 20%", "0px 20%");
+test_valid_value("text-decoration-inset", "10% 20%");
+test_valid_value("text-decoration-inset", "10px -20%");
+test_valid_value("text-decoration-inset", "calc(10% - 1em) 0", "calc(10% - 1em) 0px");
+test_valid_value("text-decoration-inset", "calc(10% + 1ch) calc(-20%)");
 </script>

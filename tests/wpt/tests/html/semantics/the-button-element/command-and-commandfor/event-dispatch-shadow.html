@@ -30,7 +30,7 @@
     );
     button.click();
     assert_true(event instanceof CommandEvent);
-    assert_equals(event.composed, false, "composed is false");
+    assert_equals(event.composed, true, "composed is true since source is non-null");
     assert_equals(eventTarget, invokee, "target is invokee");
     assert_equals(eventSource, host, "source is host");
   }, "cross shadow CommandEvent retargets source to host element");

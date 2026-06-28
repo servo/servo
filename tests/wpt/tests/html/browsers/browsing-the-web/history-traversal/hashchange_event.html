@@ -36,7 +36,7 @@ window.onload = t.step_func(function () {
   check_result = t.step_func(function() {
     clearTimeout(timer);
     try {
-      assert_array_equals([root, root+"#foo"], oldURLs, "e.newURL");
+      assert_array_equals([root, root+"#foo"], oldURLs, "e.oldURL");
       assert_array_equals([root+"#foo", root+"#bar"], newURLs, "e.newURL");
       t.done();
     } finally {

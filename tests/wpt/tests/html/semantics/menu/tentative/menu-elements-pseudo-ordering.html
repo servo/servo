@@ -4,16 +4,18 @@
 <link rel=match href="menu-elements-pseudo-ordering-ref.html">
 
 <menubar>
-  <menuitem id=menuitem1 command=toggle-menu commandfor=menulist1>open submenu</menuitem>
+  <submenu>
+    <menuitem id=menuitem1>open submenu</menuitem>
+    <menulist id=menulist1>
+      <submenu>
+        <menuitem id=menuitem2>open submenu</menuitem>
+        <menulist id=menulist2>
+          <menuitem>menuitem</menuitem>
+        </menulist>
+      </submenu>
+    </menulist>
+  </submenu>
 </menubar>
-
-<menulist id=menulist1>
-  <menuitem id=menuitem2 command=toggle-menu commandfor=menulist2>open submenu</menuitem>
-</menulist>
-
-<menulist id=menulist2>
-  <menuitem>menuitem</menuitem>
-</menulist>
 
 <style>
 #menuitem2::after {

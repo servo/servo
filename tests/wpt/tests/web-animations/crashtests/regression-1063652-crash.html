@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS.registerProperty with element.animate should not crash</title>
+<link rel="help" href="https://crbug.com/40123392">
+<div id="target"></div>
+<script>
+  CSS.registerProperty({
+    name: '--c',
+    syntax: '<number> | initial-value',
+    initialValue: 'initial-value',
+    inherits: false,
+  });
+  target.animate({
+    '--c': [, '300'],
+  }, {
+    duration: 1,
+  });
+</script>

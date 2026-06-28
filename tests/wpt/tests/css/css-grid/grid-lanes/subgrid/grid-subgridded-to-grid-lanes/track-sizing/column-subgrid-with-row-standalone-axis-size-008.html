@@ -17,7 +17,6 @@
   display: grid-lanes;
   grid-lanes-direction: column;
   width: min-content;
-  height: 100px;
   background: green;
   color: transparent;
   font: 25px/1 Ahem;
@@ -32,7 +31,7 @@
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <div class="wrapper">
   <div class="lanes">
-    <div class="subgrid" style="grid-template-rows: repeat(4, 1fr);">
+    <div class="subgrid" style="height: 100px; grid-template-rows: repeat(4, 1fr);">
       <div class="subgrid" style="grid-template-rows: subgrid;">
         <div style="writing-mode: vertical-lr;">X X X X</div>
       </div>

@@ -1,6 +1,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Attribute existence selector with declared namespace</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
 @namespace b url(http://www.example.org/b);
 *|p, *|q, *|r { display : block ; margin-bottom : 1em }
@@ -13,8 +16,15 @@
   <meta name="flags" content=" namespace" />
  </head>
  <body xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b">
- <p title="a paragraph">This paragraph should be unstyled.</p>
- <q xmlns="http://www.example.org/a" a:title="a paragraph">This paragraph should have a green background.</q>
- <r xmlns="http://www.example.org/b" b:title="a paragraph">This paragraph should be unstyled.</r>
-</body>
+ <p id="u1" title="a paragraph">This paragraph should be unstyled.</p>
+ <q id="t1" xmlns="http://www.example.org/a" a:title="a paragraph">This paragraph should have a green background.</q>
+ <r id="u2" xmlns="http://www.example.org/b" b:title="a paragraph">This paragraph should be unstyled.</r>
+  <script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_not_background_color('u1', LIME);
+  assert_not_background_color('u2', LIME);
+}, 'Attribute existence selector with declared namespace');
+]]></script>
+ </body>
 </html>

@@ -118,6 +118,13 @@
     <button data-next slot="d">button 4</button>
   </div>
 </template>
+<template data-wait-for-event="hashchange"
+          data-description="Focus navigation starting point should be set when scrolling to fragment (and should not be overwritten when <a> is blurred).">
+  <a href="#fragment" data-click>click here</a>
+  <button id="button-1" data-prev>button 1</button>
+  <div id="fragment">Should set starting point to this div</div>
+  <button id="button-2" data-next>button 2</button>
+</template>
 
 <script>
 "use strict";
@@ -132,16 +139,35 @@ function forEachMatching(selector, callback, root) {
     callback(element);
   }
   for (let element of root.querySelectorAll("[data-shadow]")) {
-    forEachMatching(selector, callback, element.shadowRoot);
+    if (element.shadowRoot) {
+      forEachMatching(selector, callback, element.shadowRoot);
+    }
+  }
+}
+
+async function forEachMatchingAsync(selector, callback) {
+  let elements = [];
+  forEachMatching(selector, e => elements.push(e));
+  for (let element of elements) {
+    await callback(element);
   }
 }
 
 for (let template of document.querySelectorAll("template")) {
   promise_test(async t => {
     for (let backwards of [false, true]) {
+      location.hash = '';
       container.replaceChildren();
       let test = document.importNode(template.content, true);
       container.append(test);
+      const waitForEvent = new Promise(r => {
+        let eventName = template.dataset.waitForEvent;
+        if (eventName) {
+          addEventListener(eventName, r);
+        } else {
+          r();
+        }
+      });
       forEachMatching("[data-shadow]", element => {
         let shadow = element.attachShadow({mode: "open"});
         shadow.append(element.querySelector("template").content);
@@ -149,6 +175,7 @@ for (let template of document.querySelectorAll("template")) {
       forEachMatching("[data-focus]", element => {
         element.focus();
       });
+      await forEachMatchingAsync("[data-click]", test_driver.click);
       forEachMatching("[data-blur]", element => {
         element.blur();
       });
@@ -176,6 +203,7 @@ for (let template of document.querySelectorAll("template")) {
       forEachMatching("[data-reenable]", element => {
         element.disabled = false;
       });
+      await waitForEvent;
 
       let actions = new test_driver.Actions();
       if (backwards) {

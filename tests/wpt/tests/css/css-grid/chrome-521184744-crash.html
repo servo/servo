@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/521184744">
+<style>
+span {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+}
+</style>
+<div style="display: inline-grid; grid-template-columns: auto auto; background: green;">
+  <div style="height: 100%; aspect-ratio: 1;"></div>
+  <div><span></span><span></span></div>
+</div>

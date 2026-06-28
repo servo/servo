@@ -1,17 +1,29 @@
 <!DOCTYPE html>
 <head>
-<title>CSS Borders and Box Decorations 4: 'corner-shape: notch'</title>
+<title>CSS Borders and Box Decorations 4: 'corner-shape: notch' on all corners — reference</title>
 <style>
     .target {
-        background: green;
+        position: relative;
+        background: red;
         width: 100px;
         height: 100px;
-        border-bottom-right-radius: 25px;
         box-sizing: border-box;
         clip-path: polygon(
             25px 0px, 75px 0px, 75px 25px, 100px 25px,
-            100px 100px, 25px 100px, 25px 75px, 0px 75px,
-            0px 25px, 25px 25px);
+            100px 75px, 75px 75px, 75px 100px, 25px 100px,
+            25px 75px, 0px 75px, 0px 25px, 25px 25px);
+    }
+    .target::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: green;
+        clip-path: polygon(
+            70px 5px, 70px 30px, 95px 30px,
+            95px 70px, 70px 70px, 70px 95px,
+            30px 95px, 30px 70px, 5px 70px,
+            5px 30px, 30px 30px, 30px 5px);
     }
 </style>
+</head>
 <div class=target></div>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml"
+     width="200" height="100" viewBox="0 0 200 100">
+  <g id="testmeta">
+    <title>CSS Masking: maskUnits=userSpaceOnUse preserves stroke on thin-bbox path</title>
+    <html:link rel="help" href="https://drafts.csswg.org/css-masking-1/#element-attrdef-mask-maskunits"/>
+    <html:link rel="match" href="mask-on-thin-stroked-path-userspaceonuse-ref.svg"/>
+    <html:meta name="assert" content="When a &lt;mask&gt; uses maskUnits=userSpaceOnUse with explicit x/y/width/height covering the full SVG viewport, the mask painting region is independent of the masked element's bounding box. A path with a thin geometric bounding box (height=10) and a thick stroke (stroke-width=20) renders with its full stroke shape preserved, identical to the same path without any mask."/>
+  </g>
+
+  <!-- Mask region in user space, covering the whole viewport.
+       Independent of the masked element's bbox. -->
+  <mask id="usu-mask" maskUnits="userSpaceOnUse"
+        x="0" y="0" width="200" height="100">
+    <rect x="0" y="0" width="200" height="100" fill="white"/>
+  </mask>
+
+  <!-- Same geometry as mask-on-thin-stroked-path-default.svg:
+       Path bbox (50,45,100,10), stroke-width=20, butt caps.
+       Stroke shape: union of two horizontal bands -> solid rect (50,35,100,30). -->
+  <path d="M 50 45 L 150 45 M 50 55 L 150 55"
+        stroke="green" stroke-width="20" stroke-linecap="butt"
+        fill="none" mask="url(#usu-mask)"/>
+</svg>

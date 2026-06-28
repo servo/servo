@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<body>
+<script>
+const params = new URLSearchParams(window.location.search);
+const allow = params.get("allow");
+const type = params.get("type");
+const key = params.get("key");
+const expected = allow === "true" ? "allowed" : "blocked";
+
+promise_test(async (t) => {
+  if (expected === "allowed") {
+    const value = await nextValueFromServer(key);
+    assert_equals(value, "hello", "Early Hints " + type +
+      " should be allowed by the connection allowlist");
+  } else if (expected === "blocked") {
+    const result = await Promise.race([
+      new Promise(r => t.step_timeout(r, 1500)),
+      nextValueFromServer(key)
+    ]);
+   assert_equals(result, undefined, "Early Hints " + type +
+      " should be blocked by the connection allowlist");
+  }
+}, `Early Hints ${type} connection allowlist test: ${expected}`);
+</script>
+</body>

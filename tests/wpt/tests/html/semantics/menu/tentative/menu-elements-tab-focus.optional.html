@@ -13,19 +13,21 @@
 <button id=beforemenu>before menus</button>
 
 <menubar id=menubar>
-  <menuitem id=menubaritem1 commandfor=menulist1 command=toggle-menu>open menulist1</menuitem>
+  <submenu>
+    <menuitem id=menubaritem1>open menulist1</menuitem>
+    <menulist id=menulist1>
+      <submenu>
+        <menuitem id=menulist1item1>open menulist2</menuitem>
+        <menulist id=menulist2>
+          <menuitem id=menulist2item1>menuitem one</menuitem>
+          <menuitem id=menulist2item2>menuitem two</menuitem>
+        </menulist>
+      </submenu>
+      <menuitem id=menulist1item2>menuitem two</menuitem>
+    </menulist>
+  </submenu>
   <menuitem id=menubaritem2>menuitem two</menuitem>
 </menubar>
-
-<menulist id=menulist1>
-  <menuitem id=menulist1item1 commandfor=menulist2 command=toggle-menu>open menulist2</menuitem>
-  <menuitem id=menulist1item2>menuitem two</menuitem>
-</menulist>
-
-<menulist id=menulist2>
-  <menuitem id=menulist2item1>menuitem one</menuitem>
-  <menuitem id=menulist2item2>menuitem two</menuitem>
-</menulist>
 
 <button id=aftermenu>after menus</button>
 

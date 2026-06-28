@@ -15,7 +15,7 @@ jobs:
       with:
         python-version: '3.12'
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Regenerate certs
       run: |
         python wpt make-hosts-file | sudo tee -a /etc/hosts

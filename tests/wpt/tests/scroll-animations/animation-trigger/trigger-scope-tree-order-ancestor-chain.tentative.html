@@ -89,7 +89,7 @@
         assert_element_animation_state(ancestor_chain_target, "paused");
 
         // Scroll the trigger sources into view.
-        await runAndWaitForFrameUpdate(() => {
+        await runAndWaitForTriggerResponse(() => {
           source.scrollIntoView({block: "center"});
         });
 

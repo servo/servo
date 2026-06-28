@@ -10,105 +10,90 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/popover-utils.js"></script>
+<style>
+  /* Keep popovers pinned to the bottom-right corner so an open popover never
+     overlaps the invoking buttons in normal flow (which would cause clickOn to
+     hit the popover instead of the button). */
+  [popover] {
+    inset: auto;
+    bottom: 0;
+    right: 0;
+  }
+</style>
 
 <!-- p1: button with show-popover - already-open popover stays open (no hide) -->
-<div popover id="p1">
-  <span id="inside1">inside p1</span>
-  <button id="b_show" commandfor="p1" command="show-popover">
-    show-popover
-  </button>
-</div>
+<div popover id="p1"><span id="inside1">inside p1</span></div>
+<button id="b_show" commandfor="p1" command="show-popover">show-popover</button>
 
 <!-- p2: button with toggle-popover - hides exactly once (command fires, not light dismiss) -->
-<div popover id="p2">
-  <button id="b_toggle" commandfor="p2" command="toggle-popover">
-    toggle-popover
-  </button>
-</div>
+<div popover id="p2">p2</div>
+<button id="b_toggle" commandfor="p2" command="toggle-popover">
+  toggle-popover
+</button>
 
 <!-- p3: button with hide-popover - hides exactly once -->
-<div popover id="p3">
-  <button id="b_hide" commandfor="p3" command="hide-popover">
-    hide-popover
-  </button>
-</div>
+<div popover id="p3">p3</div>
+<button id="b_hide" commandfor="p3" command="hide-popover">hide-popover</button>
 
 <!-- p4: button with show-modal (non-popover command) - should light dismiss -->
-<div popover id="p4">
-  <button id="b_show_modal" commandfor="p4" command="show-modal">
-    show-modal
-  </button>
-</div>
+<div popover id="p4">p4</div>
+<button id="b_show_modal" commandfor="p4" command="show-modal">
+  show-modal
+</button>
 
 <!-- p5: button with request-close (non-popover command) - should light dismiss -->
-<div popover id="p5">
-  <button id="b_request_close" commandfor="p5" command="request-close">
-    request-close
-  </button>
-</div>
+<div popover id="p5">p5</div>
+<button id="b_request_close" commandfor="p5" command="request-close">
+  request-close
+</button>
 
 <!-- p6: button with custom command (non-popover command) - should light dismiss -->
-<div popover id="p6">
-  <button id="b_custom" commandfor="p6" command="--my-custom-command">
-    custom command
-  </button>
-</div>
+<div popover id="p6">p6</div>
+<button id="b_custom" commandfor="p6" command="--my-custom-command">
+  custom command
+</button>
 
 <!-- p7: submit button with form owner - should light dismiss -->
+<div popover id="p7">p7</div>
 <form id="f1" action="javascript:void(0)">
-  <div popover id="p7">
-    <button id="b_submit" type="submit" commandfor="p7" command="show-popover">
-      submit
-    </button>
-  </div>
+  <button id="b_submit" type="submit" commandfor="p7" command="show-popover">
+    submit
+  </button>
 </form>
 
 <!-- p8: reset button with form owner - should light dismiss -->
+<div popover id="p8">p8</div>
 <form id="f2">
-  <div popover id="p8">
-    <button id="b_reset" type="reset" commandfor="p8" command="show-popover">
-      reset
-    </button>
-  </div>
+  <button id="b_reset" type="reset" commandfor="p8" command="show-popover">
+    reset
+  </button>
 </form>
 
 <!-- p9: auto-type (omitted) button with form owner - should light dismiss -->
+<div popover id="p9">p9</div>
 <form id="f3" action="javascript:void(0)">
-  <div popover id="p9">
-    <!-- omitted type = auto = submit -->
-    <button id="b_auto" commandfor="p9" command="show-popover">
-      auto type
-    </button>
-  </div>
+  <!-- omitted type = auto = submit -->
+  <button id="b_auto" commandfor="p9" command="show-popover">auto type</button>
 </form>
 
-<!-- p10: disabled button - should light dismiss -->
-<div popover id="p10">
-  <button id="b_disabled" commandfor="p10" command="show-popover" disabled>
-    disabled
-  </button>
-</div>
-
-<!-- p11: commandfor pointing to non-popover element - should light dismiss -->
+<!-- p10: commandfor pointing to non-popover element - should light dismiss -->
 <div id="not_a_popover">not a popover</div>
-<div popover id="p11">
-  <button id="b_no_popover" commandfor="not_a_popover" command="show-popover">
-    points to non-popover
-  </button>
-</div>
+<div popover id="p10">p10</div>
+<button id="b_no_popover" commandfor="not_a_popover" command="show-popover">
+  points to non-popover
+</button>
 
-<!-- p12: type=button with form owner + valid commandfor - should NOT light dismiss -->
+<!-- p11: type=button with form owner + valid commandfor - should NOT light dismiss -->
+<div popover id="p11">p11</div>
 <form id="f4">
-  <div popover id="p12">
-    <button
-      id="b_type_button"
-      type="button"
-      commandfor="p12"
-      command="show-popover"
-    >
-      type=button in form
-    </button>
-  </div>
+  <button
+    id="b_type_button"
+    type="button"
+    commandfor="p11"
+    command="show-popover"
+  >
+    type=button in form
+  </button>
 </form>
 
 <span id="outside">Outside all popovers</span>
@@ -174,7 +159,7 @@
 
   testNoLightDismiss(
     "commandfor with type=button in form and valid command does not light dismiss",
-    p12,
+    p11,
     b_type_button,
     0,
   );
@@ -220,14 +205,8 @@
   );
 
   testLightDismisses(
-    "commandfor on disabled button light dismisses the popover",
-    p10,
-    b_disabled,
-  );
-
-  testLightDismisses(
     "commandfor pointing to non-popover element light dismisses the popover",
-    p11,
+    p10,
     b_no_popover,
   );
 </script>

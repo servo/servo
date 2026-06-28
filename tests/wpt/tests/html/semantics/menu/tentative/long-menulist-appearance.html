@@ -3,9 +3,11 @@
 <link rel=match href="long-menulist-appearance-ref.html">
 
 <menubar>
-  <menuitem commandfor=menulist command=toggle-menu>toggle-menu</menuitem>
+  <submenu>
+    <menuitem>toggle-menu</menuitem>
+    <menulist id=menulist></menulist>
+  </submenu>
 </menubar>
-<menulist id=menulist></menulist>
 
 <script>
 const invoker = document.querySelector('menuitem');

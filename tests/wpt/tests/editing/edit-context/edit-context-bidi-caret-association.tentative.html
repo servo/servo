@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test caret association for BiDi text in EditContext</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div></div>
+<script>
+'use strict';
+
+const kLeft = '\uE012';
+const kRight = '\uE014';
+const kBackspace = '\uE003';
+const kDelete = '\uE017';
+
+/*
+ Currently these tests don't really work on Chrome, since the
+ left/right keys don't consider the directionality of the text.
+ */
+
+const host = document.querySelector('div');
+const editContext = new EditContext();
+host.editContext = editContext;
+let disableEditing = false;
+
+editContext.addEventListener("textupdate", e => {
+  if (disableEditing) {
+    // Reset EditContext text and selection to what it was before.
+    editContext.updateText(0, editContext.text.length, host.textContent);
+    editContext.updateSelection(getSelection().anchorOffset,
+                                getSelection().focusOffset);
+    return;
+  }
+  host.textContent = editContext.text;
+  getSelection().setBaseAndExtent(host.firstChild, editContext.selectionStart,
+                                  host.firstChild, editContext.selectionEnd);
+});
+
+function reset({text, caretPosition, disableEditing: disable}) {
+  disableEditing = disable;
+  host.textContent = text;
+  editContext.updateText(0, editContext.text.length, text);
+  host.focus();
+  getSelection().collapse(host.firstChild, caretPosition);
+  editContext.updateSelection(caretPosition, caretPosition);
+}
+
+function characterAfterCaret() {
+  assert_equals(getSelection().focusNode, host.firstChild,
+                'Selection should be in the <div> text node.');
+  return host.textContent[getSelection().focusOffset];
+}
+
+promise_test(async () => {
+  reset({text: 'aאבגa', caretPosition: 2});
+  // Type LTR text
+  await test_driver.send_keys(host, '123');
+  assert_equals(editContext.text, 'aא123בגa', 'Should insert 123');
+  // The caret should be to the right of the '3', so pressing left should bring it
+  // to the left of the 3 (NOT to the left of ב).
+  await test_driver.send_keys(host, kLeft);
+  assert_equals(characterAfterCaret(), '3', 'Caret should be to the left of the 3');
+}, 'EditContext caret association should be set to "before" following text insertion.');
+
+promise_test(async () => {
+  reset({text: 'aא123בגa', caretPosition: 5});
+  // Press delete. This should delete the ב.
+  await test_driver.send_keys(host, kDelete);
+  assert_equals(editContext.text, 'aא123גa', 'Should have deleted the ב with delete.');
+  // The caret should now be to the right of the ג, so pressing right should bring it
+  // to the left of the 2 (NOT to the right of א)
+  await test_driver.send_keys(host, kRight);
+  assert_equals(characterAfterCaret(), '2', 'Caret should be to the left of the 2');
+}, 'EditContext caret association should be set to "after" following forwards deletion.');
+
+promise_test(async () => {
+  reset({text: 'aא123בגa', caretPosition: 5});
+  // Press backspace. This should delete the 3.
+  await test_driver.send_keys(host, kBackspace);
+  assert_equals(editContext.text, 'aא12בגa', 'Should have deleted the 3 with backspace.');
+  // The caret should now be to the right of the 2, so pressing left should bring it
+  // to the left of the 2 (NOT to the left of ב)
+  await test_driver.send_keys(host, kLeft);
+  assert_equals(characterAfterCaret(), '2', 'Caret should be to the left of the 2');
+}, 'EditContext caret association should be set to "before" following backwards deletion.');
+
+promise_test(async () => {
+  reset({text: 'aאבגbc', caretPosition: 5, disableEditing: true});
+  await test_driver.send_keys(host, kLeft);
+  // Caret should now be between 'א' and 'b' with association = after.
+  await test_driver.send_keys(host, '123');
+  // Caret should still be in same place. Pressing right should move it back where it started.
+  await test_driver.send_keys(host, kRight);
+  assert_equals(characterAfterCaret(), 'c', 'Caret should be to the right of the b');
+}, 'EditContext caret association should not change if the insertion is reverted in the textupdate handler');
+
+promise_test(async () => {
+  reset({text: 'aאבגbc', caretPosition: 5, disableEditing: true});
+  await test_driver.send_keys(host, kLeft);
+  // Caret should now be between 'א' and 'b' with association = after.
+  await test_driver.send_keys(host, kBackspace);
+  // Caret should still be in same place. Pressing right should move it back where it started.
+  await test_driver.send_keys(host, kRight);
+  assert_equals(characterAfterCaret(), 'c', 'Caret should be to the right of the b');
+}, 'EditContext caret association should not change if the deletion is reverted in the textupdate handler');
+
+</script>

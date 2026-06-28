@@ -7,10 +7,18 @@ div.myTest *|testA { background-color : lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 <div class="myTest">
-<testA xmlns="http://www.example.org/b">This paragraph should have a green background</testA>
+<testA id="t1" xmlns="http://www.example.org/b">This paragraph should have a green background</testA>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+}, 'Type element selector with universal namespace');
+]]></script>
 </body>
 </html>

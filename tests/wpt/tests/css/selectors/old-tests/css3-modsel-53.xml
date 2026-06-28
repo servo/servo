@@ -9,6 +9,9 @@ div.stub *|*:not([test|="foo-bar"]) { color : lime }
 div.stub *|p:not([lang|="en-us"]) { color : lime }
 div.stub b|*[test|="foo2-bar"] { color : lime }
 ]]></style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
@@ -16,13 +19,23 @@ div.stub b|*[test|="foo2-bar"] { color : lime }
  <body>
 <div class="stub">
 <q xmlns="http://www.example.org/a" test="foo-bar">
-  <r test="foo-bartut">This text should be</r>
-  <r>in green characters</r>
+  <r id="t1" test="foo-bartut">This text should be</r>
+  <r id="t2">in green characters</r>
 </q>
-<s xmlns="http://www.example.org/a" test="bar tut">This text should be in green characters</s>
-<t xmlns="http://www.example.org/a">This text should be in green characters</t>
-<p class="en-uk">This text should be in green characters</p>
-<u xmlns="http://www.example.org/b" test="foo2-bar-lol">This text should be in green characters</u>
+<s xmlns="http://www.example.org/a" id="t3" test="bar tut">This text should be in green characters</s>
+<t xmlns="http://www.example.org/a" id="t4">This text should be in green characters</t>
+<p class="en-uk" id="t5">This text should be in green characters</p>
+<u xmlns="http://www.example.org/b" id="t6" test="foo2-bar-lol">This text should be in green characters</u>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('t1')).color, LIME);
+  assert_equals(getComputedStyle(document.getElementById('t2')).color, LIME);
+  assert_equals(getComputedStyle(document.getElementById('t3')).color, LIME);
+  assert_equals(getComputedStyle(document.getElementById('t4')).color, LIME);
+  assert_equals(getComputedStyle(document.getElementById('t5')).color, LIME);
+  assert_equals(getComputedStyle(document.getElementById('t6')).color, LIME);
+}, 'CSS3 Negated attribute dash-separated value selector');
+]]></script>
 </body>
 </html>

@@ -7,7 +7,7 @@
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
 
-  <path id="track" d="m 10 20 h 30"/>S
+  <path id="track" d="m 10 20 h 30"/>
 
   <script><![CDATA[
   test(function() {
@@ -169,36 +169,6 @@
 
       checkPathData(pathData, t.output, t.epsilon);
     }, "Test path.getPathData({normalize: true}) " + t.description)
-  });
-
-  let setPathDataTests = [
-    {
-      description: "lines",
-      input: [
-        { type: "M", values: [0, 0] },
-        { type: "L", values: [10, 10] },
-        { type: "Z", values: [] }
-      ],
-      output: "M 0 0 L 10 10 Z"
-    },
-    {
-      description: "empty",
-      input: [],
-      output: ""
-    },
-  ];
-
-  setPathDataTests.forEach(t => {
-    test(_ => {
-      let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
-      path.setAttribute("d", t.output);
-      let segments = path.getPathData();
-      path.removeAttribute("d");
-      path.setPathData(segments);
-
-      assert_equals(path.getAttribute("d"), t.output);
-    }, "Test path.setPathData()" + t.description);
   });
 
   ]]></script>

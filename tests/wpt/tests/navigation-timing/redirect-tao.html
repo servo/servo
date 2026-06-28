@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Navigation Timing: redirect timing exposure for cross-origin redirect chains based on Timing-Allow-Origin and the destination origin</title>
+<link rel="author" title="Yoav Weiss" href="mailto:yoav@yoav.ws">
+<link rel="help" href="https://github.com/whatwg/fetch/pull/1931">
+<link rel="help" href="https://github.com/whatwg/html/pull/12513">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/redirect-tao-helper.js"></script>
+<body>
+<script>
+const dest = DESTINATION_ORIGIN;
+
+promise_test(async () => {
+  const entry = await navigation_entry_after_redirects([dest]);
+  assert_redirect_timing_exposed(entry, 1);
+}, "Exposed when a cross-origin redirect opts in to the destination origin");
+
+promise_test(async () => {
+  const entry = await navigation_entry_after_redirects(["*"]);
+  assert_redirect_timing_exposed(entry, 1);
+}, "Exposed when a cross-origin redirect opts in with a wildcard");
+
+promise_test(async () => {
+  const entry = await navigation_entry_after_redirects([dest, dest]);
+  assert_redirect_timing_exposed(entry, 2);
+}, "Exposed when every redirect in the chain opts in to the destination origin");
+
+promise_test(async () => {
+  const entry = await navigation_entry_after_redirects([
+    "https://not-the-destination.example",
+  ]);
+  assert_redirect_timing_hidden(entry);
+}, "Hidden when the redirect opts in to a non-destination origin");
+
+promise_test(async () => {
+  // First hop sends no Timing-Allow-Origin header; second hop opts in. Every
+  // redirect in the chain must opt in for redirect timing to be exposed.
+  const entry = await navigation_entry_after_redirects([null, dest]);
+  assert_redirect_timing_hidden(entry);
+}, "Hidden when only part of the chain opts in to the destination origin");
+
+promise_test(async () => {
+  const entry = await navigation_entry_after_redirects([dest],
+      {referrerPolicy: "no-referrer"});
+  assert_redirect_timing_hidden(entry);
+}, "Hidden for a no-referrer navigation even when the redirect opts in");
+</script>
+</body>

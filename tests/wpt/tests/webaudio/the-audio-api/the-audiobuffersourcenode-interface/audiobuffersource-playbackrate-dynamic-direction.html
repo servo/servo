@@ -21,7 +21,7 @@ promise_test(async () => {
     source.playbackRate.setValueAtTime(1.0, 128 / 44100);
     source.connect(context.destination);
 
-    source.start(0, 255);
+    source.start(0, 255 / 44100);
 
     let renderedBuffer = await context.startRendering();
     let renderedData = renderedBuffer.getChannelData(0);

@@ -30,9 +30,23 @@ def handle_headers(frame, request, response):
                 header += "; fetchpriority={}".format(fetchpriority)
         preload_headers.append(header.encode())
 
+    preconnect_headers = []
+    for encoded_preconnect in request.GET.get_list(b"preconnects"):
+        preconnect = json.loads(encoded_preconnect.decode("utf-8"))
+        header = "<{}>; rel=preconnect".format(preconnect["url"])
+        if "crossorigin_attr" in preconnect:
+            crossorigin = preconnect["crossorigin_attr"]
+            if crossorigin:
+                header += "; crossorigin={}".format(crossorigin)
+            else:
+                header += "; crossorigin"
+        preconnect_headers.append(header.encode())
+
     # Send a 103 response.
     early_hints = [(b":status", b"103")]
     for header in preload_headers:
+        early_hints.append((b"link", header))
+    for header in preconnect_headers:
         early_hints.append((b"link", header))
     response.writer.write_raw_header_frame(headers=early_hints,
                                            end_headers=True)

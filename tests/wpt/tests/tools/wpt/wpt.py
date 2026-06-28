@@ -6,6 +6,7 @@ import logging
 import multiprocessing
 import os
 import sys
+import traceback
 
 from tools import localpaths  # noqa: F401
 
@@ -238,7 +239,8 @@ def main(prog=None, argv=None):
                 import pdb
                 pdb.post_mortem()
             else:
-                raise
+                traceback.print_exc()
+                sys.exit(getattr(os, "EX_SOFTWARE", 70))
     sys.exit(0)
 
 

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>audioworklet-eval-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <p>This test loads an AudioWorklet that tries to call eval().
+    The eval() call should be blocked by CSP because 'unsafe-eval'
+    is not in the script-src directive.</p>
+    <script>
+    promise_test(async t => {
+        const audioContext = new OfflineAudioContext(2, 44100, 44100);
+        await audioContext.audioWorklet.addModule(
+            '/content-security-policy/script-src/support/worklet-eval.js');
+        const node = new AudioWorkletNode(audioContext, 'eval-processor');
+        const result = await new Promise(resolve => {
+            node.port.onmessage = event => resolve(event.data);
+            node.port.postMessage('go');
+        });
+        assert_equals(result, 'eval blocked');
+    }, 'eval() in an AudioWorklet should be blocked by CSP');
+    </script>
+    <div id="log"></div>
+</body>
+</html>
