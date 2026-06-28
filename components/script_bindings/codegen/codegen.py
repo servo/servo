@@ -4241,7 +4241,7 @@ class CGCallGenerator(CGThing):
                 CGGeneric("let cx = &mut realm;"),
             ]))
             args.prepend(CGGeneric("cx"))
-        elif nativeMethodName in descriptor.cx_no_gcMethods or nativeMethodName in descriptor.cxMethods or nativeMethodName.startswith("Constructor"):
+        elif nativeMethodName in descriptor.no_gcMethods or nativeMethodName in descriptor.cx_no_gcMethods or nativeMethodName in descriptor.cxMethods or nativeMethodName.startswith("Constructor"):
             args.prepend(CGGeneric("cx"))
         # Workaround for iterators `Next` method until `safe_cx` is the default
         elif descriptor.interface.isIteratorInterface():
@@ -7015,20 +7015,23 @@ class CGInterfaceTrait(CGThing):
 
         def attribute_arguments(attribute_type: IDLType,
                                 argument: IDLType | None = None,
+                                no_gc: bool = False,
                                 cx_no_gc: bool = False,
                                 cx: bool = False,
                                 realm: bool = False,
                                 canGc: bool = False,
                                 retval: bool = False
                                 ) -> Iterable[tuple[str, str]]:
-            if cx_no_gc:
-                yield "cx", "&JSContext"
+            if realm:
+                yield "realm", "&mut CurrentRealm"
             elif cx:
                 yield "cx", "&mut JSContext"
-            elif realm:
-                yield "realm", "&mut CurrentRealm"
+            elif cx_no_gc:
+                yield "cx", "&JSContext"
+            elif no_gc:
+                yield "cx", "&NoGC"
 
-            safe_cx = cx or cx_no_gc or realm
+            safe_cx = cx or cx_no_gc or realm or no_gc
 
             if typeNeedsCx(attribute_type, retval) and not safe_cx:
                 yield "cx", "SafeJSContext"
@@ -7060,6 +7063,7 @@ class CGInterfaceTrait(CGThing):
                         rettype = cast(IDLType, rettype)
                         arguments = cast(list[IDLArgument], arguments)
                         arguments = method_arguments(descriptor, rettype, arguments,
+                                                     no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods or descriptor.interface.isIteratorInterface(),
                                                      realm=name in descriptor.realmMethods,
@@ -7079,6 +7083,7 @@ class CGInterfaceTrait(CGThing):
                     yield (name,
                            attribute_arguments(
                                m.type,
+                               no_gc=name in descriptor.no_gcMethods,
                                cx_no_gc=name in descriptor.cx_no_gcMethods,
                                cx=name in descriptor.cxMethods or isEventHandlerCallback(m),
                                realm=name in descriptor.realmMethods,
@@ -7099,6 +7104,7 @@ class CGInterfaceTrait(CGThing):
                                attribute_arguments(
                                    m.type,
                                    m.type,
+                                   no_gc=name in descriptor.no_gcMethods,
                                    cx_no_gc=name in descriptor.cx_no_gcMethods,
                                    cx=name in descriptor.cxMethods or descriptor.implicitCxSetters or isEventHandlerCallback(m),
                                    realm=name in descriptor.realmMethods,
@@ -7121,6 +7127,7 @@ class CGInterfaceTrait(CGThing):
                         if not rettype.nullable():
                             rettype = IDLNullableType(rettype.location, rettype)
                         arguments = method_arguments(descriptor, rettype, arguments,
+                                                     no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods,
@@ -7135,6 +7142,7 @@ class CGInterfaceTrait(CGThing):
                             yield "SupportedPropertyNames", [("no_gc", "&NoGC")], "Vec<DOMString>", False
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments,
+                                                     no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods,
@@ -8368,6 +8376,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      arguments: Iterable[IDLArgument | FakeArgument],
                      passJSBits: bool = True,
                      trailing: tuple[str, str] | None = None,
+                     no_gc: bool = False,
                      cx_no_gc: bool = False,
                      cx: bool = False,
                      realm: bool = False,
@@ -8390,8 +8399,10 @@ def method_arguments(descriptorProvider: DescriptorProvider,
         yield "cx", "&mut JSContext"
     elif cx_no_gc:
         yield "cx", "&JSContext"
+    elif no_gc:
+        yield "cx", "&NoGC"
 
-    safe_cx = cx or cx_no_gc or realm
+    safe_cx = cx or cx_no_gc or realm or no_gc
 
     if old_cx and not safe_cx:
         yield "cx", "SafeJSContext"

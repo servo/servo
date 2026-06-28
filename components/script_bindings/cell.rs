@@ -7,6 +7,7 @@
 use std::cell::{BorrowError, BorrowMutError};
 pub use std::cell::{Ref, RefCell, RefMut};
 
+use js::context::NoGC;
 use js::jsapi::JSTracer;
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOfOps};
 
@@ -90,6 +91,93 @@ impl<T> DomRefCell<T> {
     pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
         assert_in_layout();
         unsafe { &mut *self.value.as_ptr() }
+    }
+
+    /// Mutably borrows the wrapped value.
+    ///
+    /// The borrow lasts until the returned `RefMut` exits scope. The value
+    /// cannot be borrowed while this borrow is active.
+    ///
+    /// By passing a `&NoGC` we statically prevent GC from being run while the borrow is active,
+    /// to prevent panic when tracing (which calls `borrow`).
+    ///
+    /// # Example
+    ///
+    /// In simple cases one can use `NoGC` to statically ensure no GC can happen in the whole DOM method:
+    ///
+    /// ```
+    /// use js::context::{JSContext, NoGC};
+    /// use script_bindings::cell::DomRefCell;
+    /// fn DomMethod(no_gc: &NoGC, cell: &DomRefCell<usize>) {
+    ///     let mut mutably_borrowed = cell.safe_borrow_mut(no_gc);
+    /// }
+    /// ```
+    ///
+    /// But in more complex cases, method might trigger a GC, and thus require a `&mut JSContext`.
+    /// In that case `&JSContext` can be used in place of `NoGC`,
+    /// which will make `RefMut` bounded to the lifetime of the `&JSContext`
+    /// and thus prevent any GC from happening while it is alive.
+    ///
+    /// ```
+    /// use js::context::{JSContext, NoGC};
+    /// use script_bindings::cell::DomRefCell;
+    /// fn GC(cx: &mut JSContext) {}
+    ///
+    /// fn DomMethod(cell: &DomRefCell<usize>, cx: &mut JSContext) {
+    ///     {
+    ///         let mut mutably_borrowed = cell.safe_borrow_mut(cx);
+    ///         // do something with mutably_borrowed
+    ///
+    ///         // only &JSContext is available here
+    ///     } // mutably_borrowed goes out of scope here
+    ///     // so one can now use &mut JSContext
+    ///     GC(cx);
+    /// }
+    /// ```
+    ///
+    /// ```compile_fail
+    /// use js::context::{JSContext, NoGC};
+    /// use script_bindings::cell::DomRefCell;
+    /// fn GC(cx: &mut JSContext) {}
+    ///
+    /// fn DomMethod(cell: &DomRefCell<usize>, cx: &mut JSContext) {
+    ///     {
+    ///         let mut mutably_borrowed = cell.safe_borrow_mut(cx);
+    ///         // do something with mutably_borrowed
+    ///
+    ///         // here one cannot use anything that might trigger a GC
+    ///         // as that would require &mut JSContext
+    ///         // but there is already existing &JSContext bounded at RefMut
+    ///         GC(cx);
+    ///     } // mutably_borrowed goes out of scope here
+    /// }
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is currently borrowed.
+    #[track_caller]
+    pub fn safe_borrow_mut<'a: 'r, 'no_cx: 'r, 'r>(
+        &'a self,
+        _no_gc: &'no_cx NoGC,
+    ) -> RefMut<'r, T> {
+        self.value.borrow_mut()
+    }
+
+    /// Mutably borrows the wrapped value.
+    ///
+    /// The borrow lasts until the returned `RefMut` exits scope. The value
+    /// cannot be borrowed while this borrow is active.
+    ///
+    /// By passing a `&NoGC` we statically prevent GC from being run while the borrow is active,
+    /// to prevent panic when tracing (which calls `borrow`).
+    ///
+    /// Returns `None` if the value is currently borrowed.
+    pub fn safe_try_borrow_mut<'a: 'r, 'no_cx: 'r, 'r>(
+        &'a self,
+        _no_gc: &'no_cx NoGC,
+    ) -> Result<RefMut<'r, T>, BorrowMutError> {
+        self.value.try_borrow_mut()
     }
 }
 
