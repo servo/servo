@@ -346,6 +346,7 @@ pub struct ScriptThread {
 
     /// A list of pipelines containing documents that finished loading all their blocking
     /// resources during a turn of the event loop.
+    /// TODO(43149): Remove when document replacement is implemented
     docs_with_no_blocking_loads: DomRefCell<FxHashSet<Dom<Document>>>,
 
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
@@ -1555,6 +1556,7 @@ impl ScriptThread {
                 .perform_a_dom_garbage_collection_checkpoint();
         }
 
+        // TODO(43149): Remove when document replacement is implemented
         {
             // https://html.spec.whatwg.org/multipage/#the-end step 6
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
