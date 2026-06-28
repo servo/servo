@@ -1967,6 +1967,19 @@ where
                     "Document origin retrieval after closure",
                 );
             },
+            ScriptToConstellationMessage::GetInternalAncestorOriginObjectsList(
+                pipeline_id,
+                response_sender,
+            ) => {
+                self.send_message_to_pipeline(
+                    pipeline_id,
+                    ScriptThreadMessage::GetInternalAncestorOriginObjectsList(
+                        pipeline_id,
+                        response_sender,
+                    ),
+                    "Document ancestor origin objects list retrieval after closure",
+                );
+            },
             ScriptToConstellationMessage::ServiceWorkerAlgorithm(algorithm) => {
                 self.handle_serviceworker_algorithm(source_pipeline_id, algorithm);
             },

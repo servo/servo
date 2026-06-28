@@ -143,6 +143,7 @@ use crate::dom::documentorshadowroot::{
 use crate::dom::documenttimeline::DocumentTimeline;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
+use crate::dom::domstringlist::DOMStringList;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -705,6 +706,13 @@ pub(crate) struct Document {
 
     /// <https://html.spec.whatwg.org/multipage/#doc-history>
     history: MutNullableDom<History>,
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-ancestor-origins-list>
+    ancestor_origins_list: MutNullableDom<DOMStringList>,
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-internal-ancestor-origin-objects-list>
+    #[no_trace]
+    internal_ancestor_origin_objects_list: RefCell<Option<Vec<ImmutableOrigin>>>,
 }
 
 impl Document {
@@ -2888,6 +2896,32 @@ impl Document {
             .unwrap_or(0)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-ancestor-origins-list>
+    pub(crate) fn set_ancestor_origins_list(&self, ancestor_origins_list: &DOMStringList) {
+        self.ancestor_origins_list.set(Some(ancestor_origins_list));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-ancestor-origins-list>
+    pub(crate) fn ancestor_origins_list(&self) -> Option<DomRoot<DOMStringList>> {
+        self.ancestor_origins_list.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-internal-ancestor-origin-objects-list>
+    pub(crate) fn set_internal_ancestor_origin_objects_list(
+        &self,
+        internal_ancestor_origin_objects_list: Vec<ImmutableOrigin>,
+    ) {
+        *self.internal_ancestor_origin_objects_list.borrow_mut() =
+            Some(internal_ancestor_origin_objects_list);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-internal-ancestor-origin-objects-list>
+    pub(crate) fn internal_ancestor_origin_objects_list(
+        &self,
+    ) -> Ref<'_, Option<Vec<ImmutableOrigin>>> {
+        self.internal_ancestor_origin_objects_list.borrow()
+    }
+
     /// A reference to the [`IFrameCollection`] of this [`Document`], holding information about
     /// `<iframe>`s found within it.
     pub(crate) fn iframes(&self) -> Ref<'_, IFrameCollection> {
@@ -3772,6 +3806,8 @@ impl Document {
             current_parser: Default::default(),
             base_element: Default::default(),
             target_base_element: Default::default(),
+            ancestor_origins_list: Default::default(),
+            internal_ancestor_origin_objects_list: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
             pending_restyles: DomRefCell::new(FxHashMap::default()),
             needs_restyle: Cell::new(RestyleReason::DOMChanged),

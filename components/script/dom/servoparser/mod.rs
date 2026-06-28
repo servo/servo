@@ -39,7 +39,7 @@ use script_traits::DocumentActivity;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
 use servo_constellation_traits::{LoadOrigin, TargetSnapshotParams};
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::context::QuirksMode as ServoQuirksMode;
 use tendril::stream::LossyDecoder;
 use tendril::{ByteTendril, TendrilSink};
@@ -69,6 +69,7 @@ use crate::dom::customelementregistry::{CustomElementReactionStack, CustomElemen
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
+use crate::dom::domstringlist::DOMStringList;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
@@ -910,6 +911,8 @@ struct NavigationParams {
     resource_header: Vec<u8>,
     /// <https://html.spec.whatwg.org/multipage/#navigation-params-about-base-url>
     about_base_url: Option<ServoUrl>,
+    /// <https://html.spec.whatwg.org/multipage/#navigation-params-iframe-referrer-policy>
+    iframe_element_referrer_policy: ReferrerPolicy,
 }
 
 /// The context required for asynchronously fetching a document
@@ -963,6 +966,7 @@ impl ParserContext {
                 final_sandboxing_flag_set: creation_sandboxing_flag_set,
                 resource_header: vec![],
                 about_base_url: Default::default(),
+                iframe_element_referrer_policy: Default::default(),
             },
             target_snapshot_params,
             load_origin,
@@ -1011,11 +1015,22 @@ impl ParserContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>
-    fn initialize_document_object(&self, document: &Document) {
+    fn initialize_document_object(&self, cx: &mut JSContext, document: &Document) {
         // Step 9. Let document be a new Document, with
         document.set_policy_container(self.navigation_params.policy_container.clone());
         document.set_active_sandboxing_flag_set(self.navigation_params.final_sandboxing_flag_set);
         document.set_about_base_url(self.navigation_params.about_base_url.clone());
+        // Step 11. Set document's internal ancestor origin objects list to the result of
+        // running the internal ancestor origin objects list creation steps given
+        // document and navigationParams's iframe element referrer policy.
+        document.set_internal_ancestor_origin_objects_list(
+            document.internal_ancestor_origin_objects_list_creation_steps(
+                &self.navigation_params.iframe_element_referrer_policy,
+            ),
+        );
+        // Step 12. Set document's ancestor origins list to the result of
+        // running the ancestor origins list creation steps given document.
+        document.set_ancestor_origins_list(&document.ancestor_origins_list_creation_steps(cx));
         // Step 17. Process link headers given document, navigationParams's response, and "pre-media".
         process_link_headers(
             &self.navigation_params.link_headers,
@@ -1072,9 +1087,9 @@ impl ParserContext {
         };
         match media_type {
             // Return the result of loading an HTML document, given navigationParams.
-            MediaType::Html => self.load_html_document(parser),
+            MediaType::Html => self.load_html_document(cx, parser),
             // Return the result of loading an XML document given navigationParams and type.
-            MediaType::Xml => self.load_xml_document(parser),
+            MediaType::Xml => self.load_xml_document(cx, parser),
             // Return the result of loading a text document given navigationParams and type.
             MediaType::JavaScript | MediaType::Text | MediaType::Css => {
                 self.load_text_document(cx, parser)
@@ -1103,10 +1118,10 @@ impl ParserContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-html>
-    fn load_html_document(&mut self, parser: &ServoParser) {
+    fn load_html_document(&mut self, cx: &mut JSContext, parser: &ServoParser) {
         // Step 1. Let document be the result of creating and initializing a
         // Document object given "html", "text/html", and navigationParams.
-        self.initialize_document_object(&parser.document);
+        self.initialize_document_object(cx, &parser.document);
         // The first task that the networking task source places on the task queue while fetching
         // runs must process link headers given document, navigationParams's response, and "media",
         // after the task has been processed by the HTML parser.
@@ -1114,13 +1129,13 @@ impl ParserContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#read-xml>
-    fn load_xml_document(&mut self, parser: &ServoParser) {
+    fn load_xml_document(&mut self, cx: &mut JSContext, parser: &ServoParser) {
         // When faced with displaying an XML file inline, provided navigation params navigationParams
         // and a string type, user agents must follow the requirements defined in XML and Namespaces in XML,
         // XML Media Types, DOM, and other relevant specifications to create and initialize a
         // Document object document, given "xml", type, and navigationParams, and return that Document.
         // They must also create a corresponding XML parser. [XML] [XMLNS] [RFC7303] [DOM]
-        self.initialize_document_object(&parser.document);
+        self.initialize_document_object(cx, &parser.document);
         // The first task that the networking task source places on the task queue while fetching
         // runs must process link headers given document, navigationParams's response, and "media",
         // after the task has been processed by the XML parser.
@@ -1131,7 +1146,7 @@ impl ParserContext {
     fn load_text_document(&mut self, cx: &mut JSContext, parser: &ServoParser) {
         // Step 1. Let document be the result of creating and initializing a Document
         // object given "html", type, and navigationParams.
-        self.initialize_document_object(&parser.document);
+        self.initialize_document_object(cx, &parser.document);
         // Step 4. Create an HTML parser and associate it with the document.
         // Act as if the tokenizer had emitted a start tag token with the tag name "pre" followed by
         // a single U+000A LINE FEED (LF) character, and switch the HTML parser's tokenizer to the PLAINTEXT state.
@@ -1158,7 +1173,7 @@ impl ParserContext {
     ) {
         // Step 1. Let document be the result of creating and initializing a Document
         // object given "html", type, and navigationParams.
-        self.initialize_document_object(&parser.document);
+        self.initialize_document_object(cx, &parser.document);
         // Step 8. Act as if the user agent had stopped parsing document.
         self.is_synthesized_document = true;
         parser.last_chunk_received.set(true);
@@ -1222,7 +1237,7 @@ impl ParserContext {
 
     /// Load a JSON document with a pretty-printing, interactive viewer.
     fn load_json_document(&mut self, cx: &mut JSContext, parser: &ServoParser) {
-        self.initialize_document_object(&parser.document);
+        self.initialize_document_object(cx, &parser.document);
         parser.push_string_input_chunk(resources::read_string(Resource::JsonViewerHTML));
         parser.parse_sync(cx);
         parser.tokenizer.set_plaintext_state();
@@ -1418,6 +1433,9 @@ impl FetchResponseListener for ParserContext {
             link_headers,
             about_base_url: document.about_base_url(),
             resource_header: vec![],
+            iframe_element_referrer_policy: self
+                .target_snapshot_params
+                .iframe_element_referrer_policy,
         };
         self.submit_resource_timing(cx);
 
@@ -2247,5 +2265,73 @@ fn attach_declarative_shadow_inner(
             true
         },
         Err(_) => false,
+    }
+}
+
+impl Document {
+    /// <https://html.spec.whatwg.org/multipage/#internal-ancestor-origin-objects-list-creation-steps>
+    fn internal_ancestor_origin_objects_list_creation_steps(
+        &self,
+        referrer_policy: &ReferrerPolicy,
+    ) -> Vec<ImmutableOrigin> {
+        // Step 1. Let output be « ».
+        let mut output = vec![];
+        // Step 2. Let parentDoc be document's container document.
+        // Step 4. Assert: parentDoc is fully active.
+        // Step 5. Let ancestorOrigins be parentDoc's internal ancestor origin objects list.
+        let window_proxy = self.window().window_proxy();
+        let Some((parent_origin, ancestor_origins)) =
+            window_proxy.parent_origin_and_internal_ancestor_origin_objects_list()
+        else {
+            // Step 3. If parentDoc is null, then return output.
+            return output;
+        };
+        // Step 6. Let masked be false.
+        let mut masked =
+            // Step 7. If referrerPolicy is "no-referrer", then set masked to true.
+            *referrer_policy == ReferrerPolicy::NoReferrer ||
+            // Step 8. Otherwise, if referrerPolicy is "same-origin" and parentDoc's origin
+            // is not same origin with document's origin, then set masked to true.
+            (*referrer_policy == ReferrerPolicy::SameOrigin && !parent_origin.same_origin(&self.origin()));
+        // Step 9. If masked is true, then append a new opaque origin to output.
+        if masked {
+            output.push(ImmutableOrigin::new_opaque());
+        } else {
+            // Step 10. Otherwise, append parentDoc's origin to output.
+            output.push(parent_origin.immutable().clone());
+        }
+        // Step 11. For each ancestorOrigin of ancestorOrigins:
+        for ancestor_origin in ancestor_origins {
+            // Step 11.1. If masked is true and ancestorOrigin is same origin with parentDoc's origin,
+            // then append a new opaque origin to output and continue.
+            if masked && ancestor_origin.same_origin(&parent_origin) {
+                output.push(ImmutableOrigin::new_opaque());
+                continue;
+            }
+            // Step 11.2. Append ancestorOrigin to output and set masked to false.
+            output.push(ancestor_origin.clone());
+            masked = false;
+        }
+        // Step 12. Return output.
+        output
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#ancestor-origins-list-creation-steps>
+    fn ancestor_origins_list_creation_steps(&self, cx: &mut JSContext) -> DomRoot<DOMStringList> {
+        // Step 1. Let ancestorOrigins be document's internal ancestor origin objects list.
+        // Step 2. Assert: ancestorOrigins is not null.
+        let ancestor_origins = self.internal_ancestor_origin_objects_list();
+        let ancestor_origins = ancestor_origins
+            .as_ref()
+            .expect("Must always have initialized ancestor origin objects list");
+        // Step 3. Let output be « ».
+        let mut output = Vec::with_capacity(ancestor_origins.len());
+        // Step 4. For each origin of ancestorOrigins:
+        for origin in ancestor_origins {
+            // Step 4.1. Append the serialization of origin to output.
+            output.push(origin.ascii_serialization().into());
+        }
+        // Step 5. Return a new DOMStringList object whose associated list is output.
+        DOMStringList::new(cx, &self.global(), output)
     }
 }

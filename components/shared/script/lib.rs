@@ -46,7 +46,7 @@ use servo_constellation_traits::{
     ScriptToConstellationSender, ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams,
     WindowSizeType,
 };
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
@@ -182,7 +182,10 @@ pub enum ScriptThreadMessage {
     GetTitle(PipelineId),
     /// Retrieve the origin of a document for a pipeline, in case a child needs to retrieve the
     /// origin of a parent in a different script thread.
-    GetDocumentOrigin(PipelineId, GenericSender<Option<String>>),
+    GetDocumentOrigin(PipelineId, GenericSender<Option<OriginSnapshot>>),
+    /// Retrieve the internal ancestor origin objects list of a document for a pipeline,
+    /// in case a child needs to retrieve the origin of a parent in a different script thread.
+    GetInternalAncestorOriginObjectsList(PipelineId, GenericSender<Option<Vec<ImmutableOrigin>>>),
     /// Notifies script thread of a change to one of its document's activity
     SetDocumentActivity(PipelineId, DocumentActivity),
     /// Set whether to use less resources by running timers at a heavily limited rate.
