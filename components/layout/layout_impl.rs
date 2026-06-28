@@ -16,7 +16,7 @@ use embedder_traits::{
     EmbedderMsg, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Point2D, Rect, Scale, Size2D};
-use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
+use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
 use layout_api::{
@@ -44,7 +44,6 @@ use script::layout_dom::{
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
 use servo_base::Epoch;
-use servo_base::generic_channel::GenericSender;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::opts::{self, DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::pref;
@@ -66,10 +65,8 @@ use style::properties::{ComputedValues, LonghandId, NonCustomPropertyId, Propert
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::media_features::PointerCapabilities;
-use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
-use style::stylesheets::{
-    CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
-};
+use style::shared_lock::{SharedRwLock, StylesheetGuards};
+use style::stylesheets::{DocumentStyleSheet, Origin, Stylesheet};
 use style::stylist::Stylist;
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
@@ -138,9 +135,6 @@ pub struct LayoutThread {
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
-
-    /// The channel on which messages can be sent to the script thread.
-    script_chan: GenericSender<ScriptThreadMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -232,6 +226,9 @@ pub struct LayoutThread {
 
     /// See [Layout::needs_accessibility_update()].
     needs_accessibility_update: Cell<bool>,
+
+    /// A callback to run whenever a web font from a `@font-face` rule finishes loading.
+    web_font_finished_loading_callback: StylesheetWebFontLoadFinishedCallback,
 }
 
 pub struct LayoutFactoryImpl();
@@ -287,29 +284,14 @@ impl Layout for LayoutThread {
         true
     }
 
-    fn load_web_fonts_from_stylesheet(
-        &self,
-        stylesheet: &ServoArc<Stylesheet>,
-        document_context: &WebFontDocumentContext,
-    ) {
-        let guard = stylesheet.shared_lock.read();
-        self.load_all_web_fonts_from_stylesheet_with_guard(
-            &DocumentStyleSheet(stylesheet.clone()),
-            &guard,
-            document_context,
-        );
-    }
-
     #[servo_tracing::instrument(skip_all)]
     fn add_stylesheet(
         &mut self,
         stylesheet: ServoArc<Stylesheet>,
         before_stylesheet: Option<ServoArc<Stylesheet>>,
-        document_context: &WebFontDocumentContext,
     ) {
         let guard = stylesheet.shared_lock.read();
         let stylesheet = DocumentStyleSheet(stylesheet.clone());
-        self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard, document_context);
 
         match before_stylesheet {
             Some(insertion_point) => self.stylist.insert_stylesheet_before(
@@ -325,12 +307,7 @@ impl Layout for LayoutThread {
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
         let stylesheet = DocumentStyleSheet(stylesheet.clone());
-        self.stylist.remove_stylesheet(stylesheet.clone(), &guard);
-        self.font_context.remove_all_web_fonts_from_stylesheet(
-            &stylesheet,
-            self.stylist.device(),
-            &guard,
-        );
+        self.stylist.remove_stylesheet(stylesheet, &guard);
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -807,12 +784,21 @@ impl LayoutThread {
             PointerCapabilities::default(),
         );
 
+        let locked_script_channel = Mutex::new(config.script_chan.clone());
+        let pipeline_id = config.id;
+        let web_font_finished_loading_callback = move |succeeded: bool| {
+            if succeeded {
+                let _ = locked_script_channel
+                    .lock()
+                    .send(ScriptThreadMessage::WebFontLoaded(pipeline_id));
+            }
+        };
+
         LayoutThread {
             id: config.id,
             webview_id: config.webview_id,
             url: config.url,
             is_iframe: config.is_iframe,
-            script_chan: config.script_chan.clone(),
             time_profiler_chan: config.time_profiler_chan,
             embedder_chan: config.embedder_chan.clone(),
             registered_painters: RegisteredPaintersImpl(Default::default()),
@@ -838,6 +824,8 @@ impl LayoutThread {
             accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
             needs_accessibility_update: Cell::new(false),
+            web_font_finished_loading_callback: Arc::new(web_font_finished_loading_callback)
+                as StylesheetWebFontLoadFinishedCallback,
         }
     }
 
@@ -860,37 +848,6 @@ impl LayoutThread {
             traversal_flags,
             snapshot_map,
         }
-    }
-
-    fn load_all_web_fonts_from_stylesheet_with_guard(
-        &self,
-        stylesheet: &DocumentStyleSheet,
-        guard: &SharedRwLockReadGuard,
-        document_context: &WebFontDocumentContext,
-    ) {
-        let custom_media = &CustomMediaMap::default();
-        if !stylesheet.is_effective_for_device(self.stylist.device(), custom_media, guard) {
-            return;
-        }
-
-        let locked_script_channel = Mutex::new(self.script_chan.clone());
-        let pipeline_id = self.id;
-        let web_font_finished_loading_callback = move |succeeded: bool| {
-            if succeeded {
-                let _ = locked_script_channel
-                    .lock()
-                    .send(ScriptThreadMessage::WebFontLoaded(pipeline_id));
-            }
-        };
-
-        self.font_context.add_all_web_fonts_from_stylesheet(
-            self.webview_id,
-            stylesheet,
-            guard,
-            self.stylist.device(),
-            Arc::new(web_font_finished_loading_callback) as StylesheetWebFontLoadFinishedCallback,
-            document_context,
-        );
     }
 
     /// In some cases, if a restyle isn't necessary we can skip doing any work for layout
@@ -1100,11 +1057,6 @@ impl LayoutThread {
             for stylesheet in &ua_stylesheets.user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), guards.ua_or_user);
-                self.load_all_web_fonts_from_stylesheet_with_guard(
-                    stylesheet,
-                    guards.ua_or_user,
-                    &reflow_request.document_context,
-                );
             }
 
             if document.is_html_document() {
@@ -1112,21 +1064,11 @@ impl LayoutThread {
                     ua_stylesheets.html_mode_stylesheet.clone(),
                     guards.ua_or_user,
                 );
-                self.load_all_web_fonts_from_stylesheet_with_guard(
-                    &ua_stylesheets.html_mode_stylesheet,
-                    guards.ua_or_user,
-                    &reflow_request.document_context,
-                );
             }
 
             for user_stylesheet in self.user_stylesheets.iter() {
                 self.stylist
                     .append_stylesheet(user_stylesheet.clone(), guards.ua_or_user);
-                self.load_all_web_fonts_from_stylesheet_with_guard(
-                    user_stylesheet,
-                    guards.ua_or_user,
-                    &reflow_request.document_context,
-                );
             }
 
             if self.stylist.quirks_mode() == QuirksMode::Quirks {
@@ -1134,13 +1076,16 @@ impl LayoutThread {
                     ua_stylesheets.quirks_mode_stylesheet.clone(),
                     guards.ua_or_user,
                 );
-                self.load_all_web_fonts_from_stylesheet_with_guard(
-                    &ua_stylesheets.quirks_mode_stylesheet,
-                    guards.ua_or_user,
-                    &reflow_request.document_context,
-                );
             }
             self.have_added_user_agent_stylesheets = true;
+
+            self.font_context.rebuild_font_face_set(
+                self.webview_id,
+                &self.stylist,
+                guards,
+                self.web_font_finished_loading_callback.clone(),
+                &reflow_request.document_context,
+            );
         }
 
         if reflow_request.stylesheets_changed() {
@@ -1150,7 +1095,21 @@ impl LayoutThread {
 
         document.flush_shadow_root_stylesheets_if_necessary(&mut self.stylist, guards.author);
 
-        self.stylist.flush(guards)
+        let invalidation_set = self.stylist.flush(guards);
+
+        // Load new @font-face rules and remove old ones if necessary.
+        // TODO: Can we make the invalidation set tell us whether any @font-face rules changed?
+        if reflow_request.stylesheets_changed() {
+            self.font_context.rebuild_font_face_set(
+                self.webview_id,
+                &self.stylist,
+                guards,
+                self.web_font_finished_loading_callback.clone(),
+                &reflow_request.document_context,
+            );
+        }
+
+        invalidation_set
     }
 
     #[servo_tracing::instrument(skip_all)]

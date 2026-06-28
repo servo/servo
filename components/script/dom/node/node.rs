@@ -3608,6 +3608,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-appendchild>
     fn AppendChild(&self, cx: &mut JSContext, node: &Node) -> Fallible<DomRoot<Node>> {
+        println!("Appendchild");
         Node::pre_insert(cx, node, self, None)
     }
 

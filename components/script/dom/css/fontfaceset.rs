@@ -142,6 +142,11 @@ impl FontFaceSet {
 impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-ready>
     fn Ready(&self) -> Rc<Promise> {
+        if self.stylesheets.borrow().has_changed() {
+            self.window().flush_user_font_set();
+            self.switch
+        }
+        println!("Get ready promise which is fulfilled: {:?}", self.promise.borrow().is_fulfilled());
         self.promise.borrow().clone()
     }
 

@@ -3165,7 +3165,7 @@ impl Document {
         if !fonts.waiting_to_fullfill_promise() {
             return false;
         }
-        if self.window().font_context().web_fonts_still_loading() != 0 {
+        if dbg!(self.window().font_context().web_fonts_still_loading()) != 0 {
             return false;
         }
         if self.ReadyState() != DocumentReadyState::Complete {
@@ -3178,6 +3178,7 @@ impl Document {
             return false;
         }
 
+        println!("will fulfill font ready promise");
         let result = fonts.fulfill_ready_promise_if_needed(cx);
 
         // Add a rendering update after the `fonts.ready` promise is fulfilled just for
@@ -4538,23 +4539,18 @@ impl Document {
         );
     }
 
-    fn switch_font_face_set_to_loading_if_needed(&self, cx: &mut JSContext) {
+    pub(crate) fn switch_font_face_set_to_loading_if_needed(&self, cx: &mut JSContext) {
+        println!("switch to loading if needed");
         if self.window.font_context().web_fonts_still_loading() != 0 &&
             let Some(font_face_set) = self.fonts.get()
         {
+            println!("load now");
             font_face_set.switch_to_loading(cx);
         }
     }
 
     /// Given a stylesheet, load all web fonts from it in Layout.
-    pub(crate) fn load_web_fonts_from_stylesheet(
-        &self,
-        cx: &mut JSContext,
-        stylesheet: &Arc<Stylesheet>,
-    ) {
-        self.window
-            .layout()
-            .load_web_fonts_from_stylesheet(stylesheet, &self.window.web_font_context(cx.no_gc()));
+    pub(crate) fn load_web_fonts_from_stylesheet(&self, cx: &mut JSContext) {
         self.switch_font_face_set_to_loading_if_needed(cx);
     }
 
@@ -4564,11 +4560,9 @@ impl Document {
         stylesheet: Arc<Stylesheet>,
         before_stylesheet: Option<Arc<Stylesheet>>,
     ) {
-        self.window.layout_mut().add_stylesheet(
-            stylesheet,
-            before_stylesheet,
-            &self.window.web_font_context(cx.no_gc()),
-        );
+        self.window
+            .layout_mut()
+            .add_stylesheet(stylesheet, before_stylesheet);
         self.switch_font_face_set_to_loading_if_needed(cx);
     }
 

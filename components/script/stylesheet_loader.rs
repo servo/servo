@@ -303,10 +303,6 @@ impl StylesheetContext {
                 link.set_stylesheet(cx, stylesheet);
             },
             StylesheetContextSource::Import(import_rule) => {
-                // Layout knows about this stylesheet, because Stylo added it to the Stylist,
-                // but Layout doesn't know about any new web fonts that it contains.
-                document.load_web_fonts_from_stylesheet(cx, &stylesheet);
-
                 let mut guard = document.style_shared_author_lock().write();
                 import_rule.write_with(&mut guard).stylesheet = ImportSheet::Sheet(stylesheet);
             },
