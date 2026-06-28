@@ -102,12 +102,6 @@ impl ServoShellWindow {
         state: Rc<RunningAppState>,
         url: Url,
     ) -> WebView {
-        // As part of building the WebView, we may receive WebviewDelegate calls
-        // before we have set up the association between this window and the new
-        // webview. We stash this window in a known location so we can find it
-        // when this occurs.
-        state.set_window_for_webview_construction(Some(self.clone()));
-
         #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(unused_mut))]
         let mut webview_builder =
             WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
@@ -127,10 +121,6 @@ impl ServoShellWindow {
         let webview = webview_builder.build();
         webview.notify_theme_change(self.platform_window.theme());
         self.add_webview(webview.clone());
-
-        // This window is now associated with the WebView, so the fallback
-        // is no longer needed.
-        state.set_window_for_webview_construction(None);
 
         // If `self` is not in `state.windows`, our notify_accessibility_tree_update() will panic.
         if state.accessibility_active() {
@@ -158,10 +148,6 @@ impl ServoShellWindow {
     /// Whether or not this [`ServoShellWindow`] has any [`WebView`]s.
     pub(crate) fn should_close(&self) -> bool {
         self.webview_collection.borrow().is_empty() || self.close_scheduled.get()
-    }
-
-    pub(crate) fn contains_webview(&self, id: WebViewId) -> bool {
-        self.webview_collection.borrow().contains(id)
     }
 
     pub(crate) fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
