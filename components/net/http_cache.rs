@@ -9,6 +9,7 @@
 
 use std::ops::Bound;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc as StdArc;
 use std::time::{Duration, Instant, SystemTime};
 
 use headers::{
@@ -19,7 +20,7 @@ use log::{debug, error};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
-use net_traits::request::Request;
+use net_traits::request::{CacheMode, Request};
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{CacheEntryDescriptor, FetchMetadata, Metadata, ResourceFetchTiming};
 use parking_lot::Mutex as ParkingLotMutex;
@@ -69,6 +70,9 @@ pub struct CachedResource {
     status: HttpStatus,
     url_list: Vec<ServoUrl>,
     expires: Duration,
+    stale_while_revalidate: Duration,
+    #[conditional_malloc_size_of]
+    revalidating: StdArc<AtomicBool>,
     last_validated: Instant,
 }
 
@@ -91,8 +95,14 @@ struct CachedMetadata {
 pub(crate) struct CachedResponse {
     /// The response constructed from the cached resource
     pub response: Response,
-    /// The revalidation flag for the stored response
-    pub needs_validation: bool,
+    /// The revalidation flag for the stored response. When set, the response is
+    /// stale and must be synchronously revalidated before being used.
+    pub needs_synchronous_validation: bool,
+    /// When this is set, `needs_synchronous_validation` is `false` and the caller is responsible
+    /// for spawning the background revalidation, claiming the single-flight guard.
+    pub revalidate_in_background: bool,
+    /// Single-flight guard for the background revalidation.
+    pub revalidation_guard: StdArc<AtomicBool>,
 }
 
 type CacheEntry = std::sync::Arc<TokioRwLock<Vec<CachedResource>>>;
@@ -283,6 +293,31 @@ fn get_stale_while_revalidate(headers: &HeaderMap) -> Duration {
     }
     Duration::ZERO
 }
+
+/// Determine whether the request itself demands revalidation.
+/// <https://www.rfc-editor.org/rfc/rfc9111.html#section-5.2.1>
+fn request_demands_revalidation(request: &Request) -> bool {
+    if matches!(
+        request.cache_mode,
+        CacheMode::NoCache | CacheMode::Reload | CacheMode::NoStore
+    ) {
+        return true;
+    }
+    if let Some(directive) = request.headers.typed_get::<CacheControl>() {
+        // The request's `no-store` directive is deliberately *not* treated as
+        // demanding revalidation: https://www.rfc-editor.org/rfc/rfc9111.html#section-5.2.1.5
+        // > "does not apply to the already stored response".
+        if directive.no_cache() {
+            return true;
+        }
+
+        if directive.max_age() == Some(Duration::ZERO) {
+            return true;
+        }
+    }
+    false
+}
+
 /// Request Cache-Control Directives
 /// <https://tools.ietf.org/html/rfc7234#section-5.2.1>
 fn get_expiry_adjustment_from_request_headers(request: &Request, expires: Duration) -> Duration {
@@ -352,9 +387,27 @@ fn create_cached_response(
     // TODO: if this cache is to be considered shared, take proxy-revalidate into account
     // <https://tools.ietf.org/html/rfc7234#section-5.2.2.7>
     let has_expired = adjusted_expires <= time_since_validated;
+
+
+    // - fresh: return immediately, no validation.
+    // - stale:
+    //    - within the SWR window: return immediately + revalidate in the background
+    //    - beyond the SWR window: synchronous validation is required.
+    let stale_for = time_since_validated.saturating_sub(adjusted_expires);
+    let within_swr_window = stale_for <= cached_resource.stale_while_revalidate;
+    let revalidate_in_background = has_expired &&
+        within_swr_window &&
+        !cached_resource.stale_while_revalidate.is_zero() &&
+        !request_demands_revalidation(request);
+
     let cached_response = CachedResponse {
         response,
-        needs_validation: has_expired,
+        // When we can serve a stale response under the s-w-r window, we treat it
+        // as not needing synchronous validation, and signal the background
+        // revalidation separately.
+        needs_synchronous_validation: has_expired && !revalidate_in_background,
+        revalidate_in_background,
+        revalidation_guard: cached_resource.revalidating.clone(),
     };
     Some(cached_response)
 }
@@ -375,6 +428,8 @@ fn create_resource_with_bytes_from_resource(
         status: StatusCode::PARTIAL_CONTENT.into(),
         url_list: resource.url_list.clone(),
         expires: resource.expires,
+        stale_while_revalidate: resource.stale_while_revalidate,
+        revalidating: resource.revalidating.clone(),
         last_validated: resource.last_validated,
     }
 }
@@ -719,6 +774,9 @@ pub fn refresh(
             constructed_response.headers = stored_headers.clone();
         }
         cached_resource.expires = get_response_expiry(constructed_response);
+        cached_resource.stale_while_revalidate =
+            get_stale_while_revalidate(&constructed_response.headers);
+        cached_resource.last_validated = Instant::now();
     }
 
     constructed_response
@@ -898,6 +956,7 @@ impl<'a> CachedResourcesOrGuard<'a> {
             return;
         }
         let expiry = get_response_expiry(response);
+        let stale_while_revalidate = get_stale_while_revalidate(&response.headers);
         let cacheable_metadata = CachedMetadata {
             headers: Arc::new(ParkingLotMutex::new(response.headers.clone())),
             final_url: metadata.final_url,
@@ -915,6 +974,8 @@ impl<'a> CachedResourcesOrGuard<'a> {
             status: response.status.clone(),
             url_list: response.url_list.clone(),
             expires: expiry,
+            stale_while_revalidate,
+            revalidating: StdArc::new(AtomicBool::new(false)),
             last_validated: Instant::now(),
         };
 
