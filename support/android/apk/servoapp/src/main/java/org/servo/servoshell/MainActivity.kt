@@ -5,7 +5,6 @@
  */
 package org.servo.servoshell
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.SharedPreferences
@@ -19,6 +18,12 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.getSystemService
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
@@ -27,7 +32,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoView
 
-class MainActivity : Activity(), Servo.Client {
+class MainActivity : AppCompatActivity(), Servo.Client {
     private lateinit var servoView: ServoView
     private var bottomNav: BottomNavigationView? = null
 
@@ -84,7 +89,13 @@ class MainActivity : Activity(), Servo.Client {
             findViewById<View>(R.id.refresh_menu_item).setOnClickListener(actionClickListener)
             findViewById<View>(R.id.cancel_menu_item).setOnClickListener(actionClickListener)
             findViewById<View>(R.id.settings_menu_item).setOnClickListener(actionClickListener)
-            findViewById<View>(R.id.history_menu_item).setOnClickListener(actionClickListener)
+            findViewById<ComposeView>(R.id.history_menu_item).apply {
+                setContent {
+                    IconButton(onClick = { dispatchAction(id) }) {
+                        Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
+                    }
+                }
+            }
         }
 
         servoView.setClient(this)
