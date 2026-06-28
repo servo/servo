@@ -52,10 +52,10 @@ use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{GCReason, JS_GC, JSContext as UnsafeJSContext};
+use js::jsapi::{GCReason, JSContext as UnsafeJSContext};
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
-use js::rust::wrappers2::{JS_AddInterruptCallback, SetWindowProxyClass};
+use js::rust::wrappers2::{JS_AddInterruptCallback, JS_GC, SetWindowProxyClass};
 use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
@@ -2015,7 +2015,7 @@ impl ScriptThread {
                 self.set_accessibility_active(pipeline_id, active, epoch);
             },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
-                JS_GC(*GlobalScope::get_cx(), GCReason::API);
+                JS_GC(cx, GCReason::API);
             },
         }
     }

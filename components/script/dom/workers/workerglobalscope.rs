@@ -426,8 +426,8 @@ impl WorkerGlobalScope {
             .get_or_init(|| OneshotTimers::new(self.upcast()))
     }
 
-    pub(crate) fn enqueue_microtask(&self, job: Microtask) {
-        self.microtask_queue.enqueue(job, GlobalScope::get_cx());
+    pub(crate) fn enqueue_microtask(&self, cx: &mut JSContext, job: Microtask) {
+        self.microtask_queue.enqueue(job, cx.into());
     }
 
     /// Perform a microtask checkpoint.
@@ -947,11 +947,14 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
-    fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
-        self.enqueue_microtask(Microtask::User(UserMicrotask {
-            callback,
-            pipeline: self.pipeline_id(),
-        }));
+    fn QueueMicrotask(&self, cx: &mut JSContext, callback: Rc<VoidFunction>) {
+        self.enqueue_microtask(
+            cx,
+            Microtask::User(UserMicrotask {
+                callback,
+                pipeline: self.pipeline_id(),
+            }),
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
