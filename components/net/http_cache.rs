@@ -8,8 +8,8 @@
 //! and <http://tools.ietf.org/html/rfc7232>.
 
 use std::ops::Bound;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc as StdArc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime};
 
 use headers::{
@@ -267,7 +267,6 @@ fn get_response_expiry(response: &Response) -> Duration {
     Duration::ZERO
 }
 
-
 /// The `headers` crate's `CacheControl` does not understand `stale-while-revalidate` directive,
 /// so we need to parse the raw `Cache-Control` header values.
 /// <https://datatracker.ietf.org/doc/html/rfc5861#section-3>
@@ -387,7 +386,6 @@ fn create_cached_response(
     // TODO: if this cache is to be considered shared, take proxy-revalidate into account
     // <https://tools.ietf.org/html/rfc7234#section-5.2.2.7>
     let has_expired = adjusted_expires <= time_since_validated;
-
 
     // - fresh: return immediately, no validation.
     // - stale:
@@ -891,8 +889,12 @@ impl HttpCache {
     ) -> Option<(bool, bool)> {
         let entry = self.entries.get(&CacheKey::new(request))?;
         let cached_resources = entry.read().await;
-        construct_response(request, done_chan, cached_resources.as_slice())
-            .map(|cached| (cached.needs_synchronous_validation, cached.revalidate_in_background))
+        construct_response(request, done_chan, cached_resources.as_slice()).map(|cached| {
+            (
+                cached.needs_synchronous_validation,
+                cached.revalidate_in_background,
+            )
+        })
     }
 
     /// Invalidate cache entries referenced by Location/Content-Location headers.

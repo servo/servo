@@ -1813,8 +1813,10 @@ async fn block_for_cache_ready<'a>(
                         ),
                     };
 
-
-                if revalidate_in_background && cached_response.is_some() && !needs_synchronous_revalidation {
+                if revalidate_in_background &&
+                    cached_response.is_some() &&
+                    !needs_synchronous_revalidation
+                {
                     spawn_stale_while_revalidate(context, http_request, revalidation_guard);
                 }
 
