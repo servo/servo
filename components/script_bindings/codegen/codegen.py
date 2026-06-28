@@ -1554,15 +1554,28 @@ def returnTypeNeedsOutparam(type: IDLType | None) -> bool:
         type = type.inner
     if type.isObject():
         return True
+    if type.isSequence():
+        assert isinstance(type, IDLSequenceType)
+        return returnTypeNeedsOutparam(type.inner)
     return type.isAny()
 
 
-def outparamTypeFromReturnType(type: IDLType) -> str:
+def outparamTypeFromReturnType(type: IDLType, isInnerType: bool = False) -> str:
     if type.isAny():
-        return "MutableHandleValue"
-    if type.isObject():
-        return "MutableHandleObject"
-    raise TypeError(f"Don't know how to handle {type} as an outparam")
+        typename = "Value"
+    elif type.isObject():
+        typename = "*mut JSObject"
+    elif type.isSequence():
+        assert isinstance(type, IDLSequenceType)
+        inner_typename = outparamTypeFromReturnType(type.inner, isInnerType=True)
+        return f"&mut RootedVec<Box<Heap<{inner_typename}>>>"
+    else:
+        raise TypeError(f"Don't know how to handle {type} as an outparam")
+
+    if isInnerType:
+        return typename
+    else:
+        return f"MutableHandle<{typename}>"
 
 
 # Returns a conversion behavior suitable for a type
@@ -1603,7 +1616,7 @@ def builtin_return_type(returnType: IDLType) -> CGThing:
 
 
 # Returns a CGThing containing the type of the return value.
-def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: DescriptorProvider) -> CGThing:
+def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: DescriptorProvider, isInnerType: bool =False) -> CGThing:
     if returnType is None or returnType.isUndefined():
         # Nothing to declare
         return CGGeneric("()")
@@ -1660,10 +1673,26 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isAny():
-        return CGGeneric("JSVal")
+        valueType = CGGeneric("JSVal")
+        if isInnerType:
+            return CGWrapper(valueType, pre="Box<Heap<", post=">>")
+        else:
+            return valueType
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
-        return CGGeneric("*mut JSObject")
-    if returnType.isSequence() or returnType.isRecord():
+        objectType = CGGeneric("*mut JSObject")
+        if isInnerType:
+            return CGWrapper(objectType, pre="Box<Heap<", post=">>")
+        else:
+            return objectType
+    if returnType.isSequence():
+        result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider, isInnerType=True)
+        result = wrapInNativeContainerType(returnType, result)
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
+    # FIXME: The branches for isSequence() and isRecord() should be the same, but we don't use out-parameters for
+    # records containing unrooted JS types yet.
+    if returnType.isRecord():
         result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider)
         result = wrapInNativeContainerType(returnType, result)
         if returnType.nullable():
@@ -4178,10 +4207,10 @@ class CGCallGenerator(CGThing):
 
         result = getRetvalDeclarationForType(returnType, descriptor)
         if returnType and returnTypeNeedsOutparam(returnType):
-            rootType = result
+            outparamRootType = result
             result = CGGeneric("()")
         else:
-            rootType = None
+            outparamRootType = None
 
         if isFallible:
             result = CGWrapper(result, pre="Result<", post=", Error>")
@@ -4222,15 +4251,21 @@ class CGCallGenerator(CGThing):
                 args.prepend(CGGeneric("SafeJSContext::from_ptr(cx.raw_cx())"))
             if nativeMethodName in descriptor.canGcMethods:
                 args.append(CGGeneric("CanGc::deprecated_note()"))
-        if rootType:
-            args.append(CGGeneric("retval.handle_mut()"))
 
-        if rootType:
-            self.cgRoot.append(CGList([
-                CGGeneric("rooted!(&in(cx) let mut retval: "),
-                rootType,
-                CGGeneric(");"),
-            ]))
+        if returnType and outparamRootType:
+            if returnType.isSequence():
+                args.append(CGGeneric("&mut retval"))
+            else:
+                args.append(CGGeneric("retval.handle_mut()"))
+
+            if returnType.isSequence():
+                self.cgRoot.append(CGGeneric("rooted_vec!(let mut retval);"))
+            else:
+                self.cgRoot.append(CGList([
+                    CGGeneric("rooted!(&in(cx) let mut retval: "),
+                    outparamRootType,
+                    CGGeneric(");"),
+                ]))
 
         call = CGGeneric(nativeMethodName)
         if static:
