@@ -880,6 +880,21 @@ impl HttpCache {
             .map(|cached| cached.response)
     }
 
+    /// Like [`construct_response`](Self::construct_response), but additionally
+    /// reports the cache freshness state of the constructed response:
+    /// `(needs_validation, revalidate_in_background)`
+    #[cfg(feature = "test-util")]
+    pub async fn construct_response_freshness(
+        &self,
+        request: &Request,
+        done_chan: &mut DoneChannel,
+    ) -> Option<(bool, bool)> {
+        let entry = self.entries.get(&CacheKey::new(request))?;
+        let cached_resources = entry.read().await;
+        construct_response(request, done_chan, cached_resources.as_slice())
+            .map(|cached| (cached.needs_synchronous_validation, cached.revalidate_in_background))
+    }
+
     /// Invalidate cache entries referenced by Location/Content-Location headers.
     pub(crate) async fn invalidate_related_urls(
         &self,

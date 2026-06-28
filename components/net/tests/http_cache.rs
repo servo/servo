@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use http::header::{CONTENT_LENGTH, CONTENT_RANGE, EXPIRES, HeaderValue, RANGE};
+use http::header::{CACHE_CONTROL, CONTENT_LENGTH, CONTENT_RANGE, EXPIRES, HeaderValue, RANGE};
 use http::{HeaderMap, StatusCode};
 use net::http_cache::{CacheKey, HttpCache, refresh};
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -116,5 +116,109 @@ async fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
     assert!(
         consecutive_response.is_none(),
         "Should not construct response from incomplete response!"
+    );
+}
+
+fn build_swr_test_request() -> net_traits::request::Request {
+    let url = ServoUrl::parse("https://servo.org").unwrap();
+    RequestBuilder::new(
+        None,
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .pipeline_id(Some(TEST_PIPELINE_ID))
+    .origin(url.origin())
+    .build()
+}
+
+/// Store a response with the given `Cache-Control` value, then return the
+/// freshness state `(needs_validation, revalidate_in_background)` reported by
+/// the cache for a subsequent request.
+async fn swr_freshness_for_cache_control(cache_control: &str) -> (bool, bool) {
+    let url = ServoUrl::parse("https://servo.org").unwrap();
+    let request = build_swr_test_request();
+
+    let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
+    let mut response = Response::new(url, timing);
+    *response.body.lock() = ResponseBody::Done(vec![1, 2, 3]);
+    response
+        .headers
+        .insert(CACHE_CONTROL, HeaderValue::from_str(cache_control).unwrap());
+
+    let cache = HttpCache::default();
+    cache.store(&request, &response).await;
+
+    let mut done_chan = None;
+    cache
+        .construct_response_freshness(&request, &mut done_chan)
+        .await
+        .expect("a response should be constructable from the cache")
+}
+
+#[tokio::test]
+async fn test_stale_within_swr_window_serves_immediately_and_revalidates_in_background() {
+    let (needs_validation, revalidate_in_background) =
+        swr_freshness_for_cache_control("max-age=0, stale-while-revalidate=30").await;
+    assert!(
+        !needs_validation,
+        "stale response within the SWR window should be served immediately"
+    );
+    assert!(
+        revalidate_in_background,
+        "stale response within the SWR window should be revalidated in the background"
+    );
+}
+
+#[tokio::test]
+async fn test_stale_without_swr_requires_synchronous_validation() {
+    let (needs_validation, revalidate_in_background) =
+        swr_freshness_for_cache_control("max-age=0").await;
+    assert!(
+        needs_validation,
+        "stale response without SWR must be synchronously revalidated"
+    );
+    assert!(!revalidate_in_background);
+}
+
+#[tokio::test]
+async fn test_swr_not_used_when_request_demands_revalidation() {
+    let url = ServoUrl::parse("https://servo.org").unwrap();
+
+    let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
+    let mut response = Response::new(url.clone(), timing);
+    *response.body.lock() = ResponseBody::Done(vec![1, 2, 3]);
+    response.headers.insert(
+        CACHE_CONTROL,
+        HeaderValue::from_str("max-age=0, stale-while-revalidate=30").unwrap(),
+    );
+
+    let store_request = build_swr_test_request();
+    let cache = HttpCache::default();
+    cache.store(&store_request, &response).await;
+
+    let mut req_headers = HeaderMap::new();
+    req_headers.insert(CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+    let request = RequestBuilder::new(
+        None,
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .pipeline_id(Some(TEST_PIPELINE_ID))
+    .origin(url.origin())
+    .headers(req_headers)
+    .build();
+
+    let mut done_chan = None;
+    let (needs_validation, revalidate_in_background) = cache
+        .construct_response_freshness(&request, &mut done_chan)
+        .await
+        .expect("a response should be constructable from the cache");
+    assert!(
+        needs_validation,
+        "a no-cache request must trigger synchronous validation"
+    );
+    assert!(
+        !revalidate_in_background,
+        "a no-cache request must not use background revalidation"
     );
 }
