@@ -2878,6 +2878,13 @@ impl ScriptThread {
             activity,
             thread::current().name()
         );
+
+        // If a pipeline transitions to fully active, the next turn of the event
+        // loop will release any pending tasks targeting that pipeline. To ensure
+        // we always run those as soon as possible, not just whenever we happen to
+        // receive another event, we make sure the event loop has an event waiting.
+        let _ = self.senders.self_sender.send(MainThreadScriptMsg::Inactive);
+
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             document.set_activity(cx, activity);
