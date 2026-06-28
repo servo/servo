@@ -46,7 +46,7 @@ use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
     ScriptToConstellationMessage, TargetSnapshotParams,
 };
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 use style::attr::parse_integer;
 
@@ -63,6 +63,7 @@ use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::node::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
 use crate::event_loop::script_window_proxies::ScriptWindowProxies;
@@ -730,7 +731,7 @@ impl WindowProxy {
         result
     }
 
-    pub fn document_origin(&self) -> Option<String> {
+    pub(crate) fn document_origin(&self) -> Option<OriginSnapshot> {
         let pipeline_id = self.currently_active()?;
         let (result_sender, result_receiver) = generic_channel::channel().unwrap();
         self.global()
@@ -741,6 +742,52 @@ impl WindowProxy {
             ))
             .ok()?;
         result_receiver.recv().ok()?
+    }
+
+    pub(crate) fn internal_ancestor_origin_objects_list(&self) -> Option<Vec<ImmutableOrigin>> {
+        let pipeline_id = self.currently_active()?;
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+        self.global()
+            .script_to_constellation_chan()
+            .send(
+                ScriptToConstellationMessage::GetInternalAncestorOriginObjectsList(
+                    pipeline_id,
+                    result_sender,
+                ),
+            )
+            .ok()?;
+        result_receiver.recv().ok()?
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#internal-ancestor-origin-objects-list-creation-steps>
+    pub(crate) fn parent_origin_and_internal_ancestor_origin_objects_list(
+        &self,
+    ) -> Option<(OriginSnapshot, Vec<ImmutableOrigin>)> {
+        if let Some(frame_element) = self.frame_element() {
+            let parent_document = frame_element.owner_document();
+            // Step 4. Assert: parentDoc is fully active.
+            assert!(parent_document.is_fully_active());
+            Some((
+                parent_document.origin().snapshot(),
+                parent_document
+                    .internal_ancestor_origin_objects_list()
+                    .clone()
+                    .expect("Must always be fully active"),
+            ))
+        } else if let Some(parent_proxy) = self.parent() {
+            // Step 4. Assert: parentDoc is fully active.
+            assert!(parent_proxy.currently_active().is_some());
+
+            let origin = parent_proxy
+                .document_origin()
+                .expect("Must always be active");
+            let list = parent_proxy
+                .internal_ancestor_origin_objects_list()
+                .expect("Must always be active");
+            Some((origin, list))
+        } else {
+            None
+        }
     }
 
     #[expect(unsafe_code)]
@@ -800,6 +847,10 @@ impl WindowProxy {
             );
             self.reflector.rootable().set(new_js_proxy.get());
         }
+    }
+
+    pub(crate) fn set_pipeline_id(&self, pipeline_id: PipelineId) {
+        self.currently_active.set(Some(pipeline_id));
     }
 
     pub(crate) fn set_currently_active(&self, cx: &mut JSContext, window: &Window) {

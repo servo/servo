@@ -122,7 +122,6 @@ use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
@@ -1799,6 +1798,12 @@ impl ScriptThread {
             ScriptThreadMessage::GetDocumentOrigin(pipeline_id, result_sender) => {
                 self.handle_get_document_origin(pipeline_id, result_sender);
             },
+            ScriptThreadMessage::GetInternalAncestorOriginObjectsList(
+                pipeline_id,
+                result_sender,
+            ) => {
+                self.handle_get_internal_ancestor_origin_objects_list(pipeline_id, result_sender);
+            },
             ScriptThreadMessage::GetTitle(pipeline_id) => self.handle_get_title_msg(pipeline_id),
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
                 self.handle_set_document_activity_msg(cx, pipeline_id, activity)
@@ -2738,15 +2743,27 @@ impl ScriptThread {
     fn handle_get_document_origin(
         &self,
         id: PipelineId,
-        result_sender: GenericSender<Option<String>>,
+        result_sender: GenericSender<Option<OriginSnapshot>>,
     ) {
-        let _ = result_sender.send(self.documents.borrow().find_document(id).map(|document| {
-            document
-                .origin()
-                .immutable()
-                .ascii_serialization()
-                .into_owned()
-        }));
+        let _ = result_sender.send(
+            self.documents
+                .borrow()
+                .find_document(id)
+                .map(|document| document.origin().snapshot()),
+        );
+    }
+
+    fn handle_get_internal_ancestor_origin_objects_list(
+        &self,
+        id: PipelineId,
+        result_sender: GenericSender<Option<Vec<ImmutableOrigin>>>,
+    ) {
+        let _ = result_sender.send(
+            self.documents
+                .borrow()
+                .find_document(id)
+                .and_then(|document| document.internal_ancestor_origin_objects_list().clone()),
+        );
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
@@ -3084,11 +3101,11 @@ impl ScriptThread {
         let _ = self.window_proxies.local_window_proxy(
             cx,
             &self.senders,
-            &self.documents,
             &window,
             browsing_context_id,
             webview_id,
             Some(parent_pipeline_id),
+            Some(frame_element),
             // Any local window proxy has already been created, so there
             // is no need to pass along existing opener information that
             // will be discarded.
@@ -3684,15 +3701,39 @@ impl ScriptThread {
         // Step 10. Set window's associated Document to document.
         window.init_document(&document);
 
+        let iframe = incomplete.parent_info.and_then(|parent_id| {
+            self.documents
+                .borrow()
+                .find_iframe(parent_id, incomplete.browsing_context_id)
+        });
+        // Make sure to filter parent_info again, in the event that an iframe
+        // was removed from a document prior to the load finishing. This can
+        // happen when an iframe is appended to a document, which triggers a
+        // load, and then immediately afterwards would get removed.
+        //
+        // This means that the parent_info should be set either if the iframe
+        // could be found in the current script_thread (same-origin) or if the
+        // document is not in current script_thread (cross-origin).
+        //
+        // In the event that the iframe could no longer be found for the `parent_id`
+        // in the current script_thread, but the parent_info would have been set,
+        // then the parent-child relation was removed prior to load finishing and
+        // hence we filter it out here.
+        let iframe_in_this_script_thread = iframe.is_some();
+        let parent_info = incomplete.parent_info.filter(|parent_id| {
+            iframe_in_this_script_thread ||
+                self.documents.borrow().find_document(*parent_id).is_none()
+        });
+
         // Initialize the browsing context for the window.
         let window_proxy = self.window_proxies.local_window_proxy(
             cx,
             &self.senders,
-            &self.documents,
             &window,
             incomplete.browsing_context_id,
             incomplete.webview_id,
-            incomplete.parent_info,
+            parent_info,
+            iframe,
             incomplete.opener,
         );
         if let Some(name) = incomplete.frame_name {
@@ -3707,21 +3748,42 @@ impl ScriptThread {
         }
         window.init_window_proxy(&window_proxy);
 
-        // For any similar-origin iframe, ensure that the contentWindow/contentDocument
-        // APIs resolve to the new window/document as soon as parsing starts.
-        if let Some(frame) = window_proxy
-            .frame_element()
-            .and_then(|e| e.downcast::<HTMLIFrameElement>())
-        {
-            let parent_pipeline = frame.global().pipeline_id();
-            self.handle_update_pipeline_id(
-                parent_pipeline,
-                window_proxy.browsing_context_id(),
-                window_proxy.webview_id(),
-                incomplete.pipeline_id,
-                UpdatePipelineIdReason::Navigation,
-                cx,
-            );
+        if let Some(parent_pipeline) = parent_info {
+            if iframe_in_this_script_thread {
+                // For any similar-origin iframe, ensure that the contentWindow/contentDocument
+                // APIs resolve to the new window/document as soon as parsing starts.
+                self.handle_update_pipeline_id(
+                    parent_pipeline,
+                    window_proxy.browsing_context_id(),
+                    window_proxy.webview_id(),
+                    incomplete.pipeline_id,
+                    UpdatePipelineIdReason::Navigation,
+                    cx,
+                );
+            } else {
+                // For any cross-origin iframe, we need to ask the constellation whether the
+                // pipeline is fully active or not. This is required so that during initial
+                // document creation, the parent proxy can be queried for information such
+                // as document origin and document ancestor origin location.
+                let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+                let msg = ScriptToConstellationMessage::IsCurrentlyFullyActive(
+                    parent_pipeline,
+                    result_sender,
+                );
+                self.senders
+                    .pipeline_to_constellation_sender
+                    .send((incomplete.webview_id, incomplete.pipeline_id, msg))
+                    .expect("Failed to send to constellation.");
+                let is_parent_fully_active = result_receiver
+                    .recv()
+                    .expect("Failed to get top-level id from constellation.");
+                if is_parent_fully_active {
+                    window_proxy
+                        .parent()
+                        .expect("Must either have a frame element or remote proxy")
+                        .set_pipeline_id(parent_pipeline);
+                }
+            }
         }
 
         let refresh_header = metadata.headers.as_deref().and_then(|h| h.get(REFRESH));
