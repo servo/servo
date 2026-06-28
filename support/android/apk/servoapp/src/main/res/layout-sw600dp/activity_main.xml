@@ -115,16 +115,12 @@
                 app:layout_constraintTop_toTopOf="parent"
                 android:visibility="visible" />
 
-            <com.google.android.material.button.MaterialButton
+            <androidx.compose.ui.platform.ComposeView
                 android:id="@+id/settings_menu_item"
-                style="@style/Widget.Material3.Button.IconButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:contentDescription="@string/options"
                 app:layout_constraintEnd_toStartOf="@id/history_menu_item"
                 app:layout_constraintTop_toTopOf="parent"
-                app:icon="@drawable/settings"
-                app:iconTint="?colorOnBackground"
                 />
 
             <androidx.compose.ui.platform.ComposeView
