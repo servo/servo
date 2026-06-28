@@ -51,12 +51,6 @@ class MainActivity : Activity(), Servo.Client {
 
     private val actionClickListener = View.OnClickListener { v -> dispatchAction(v.id) }
 
-    // Binds a click listener to a View if it exists.
-    // Useful for handling buttons that only exist in the tablet+ layout
-    private fun bindClick(id: Int) {
-        findViewById<View>(id)?.setOnClickListener(actionClickListener)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -84,12 +78,14 @@ class MainActivity : Activity(), Servo.Client {
         bottomNav = findViewById(R.id.bottom_bar)
         bottomNav?.setOnItemSelectedListener { item -> dispatchAction(item.itemId) }
 
-        bindClick(R.id.history_back_menu_item)
-        bindClick(R.id.history_forward_menu_item)
-        bindClick(R.id.refresh_menu_item)
-        bindClick(R.id.cancel_menu_item)
-        bindClick(R.id.settings_menu_item)
-        bindClick(R.id.history_menu_item)
+        findViewById<View>(R.id.toolbar)?.apply {
+            findViewById<View>(R.id.history_back_menu_item).setOnClickListener(actionClickListener)
+            findViewById<View>(R.id.history_forward_menu_item).setOnClickListener(actionClickListener)
+            findViewById<View>(R.id.refresh_menu_item).setOnClickListener(actionClickListener)
+            findViewById<View>(R.id.cancel_menu_item).setOnClickListener(actionClickListener)
+            findViewById<View>(R.id.settings_menu_item).setOnClickListener(actionClickListener)
+            findViewById<View>(R.id.history_menu_item).setOnClickListener(actionClickListener)
+        }
 
         servoView.setClient(this)
         servoView.requestFocus()
