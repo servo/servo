@@ -54,10 +54,7 @@ class MainActivity : Activity(), Servo.Client {
     // Binds a click listener to a View if it exists.
     // Useful for handling buttons that only exist in the tablet+ layout
     private fun bindClick(id: Int) {
-        val v = findViewById<View>(id)
-        if (v != null) {
-            v.setOnClickListener(actionClickListener)
-        }
+        findViewById<View>(id)?.setOnClickListener(actionClickListener)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
