@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::io::{Read, Seek, Write};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crossbeam_channel::Sender;
 use cssparser::SourceLocation;
@@ -53,6 +54,18 @@ use crate::unminify::{
     BeautifyFileType, create_output_file, create_temp_files, execute_js_beautify,
 };
 
+/// An struct which is used to uniquely identify a [`StylesheetContext`] for
+/// tracking the set of script-blocking stylesheets.
+#[derive(Clone, Copy, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
+pub(crate) struct StylesheetContextId(usize);
+
+impl StylesheetContextId {
+    fn next() -> Self {
+        static NEXT_STYLESHEET_CONTEXT_INDEX: AtomicUsize = AtomicUsize::new(0);
+        Self(NEXT_STYLESHEET_CONTEXT_INDEX.fetch_add(1, Ordering::Relaxed))
+    }
+}
+
 pub(crate) trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
     /// trigger a document-load-blocking load).
@@ -82,6 +95,9 @@ pub(crate) enum StylesheetContextSource {
 
 /// The context required for asynchronously loading an external stylesheet.
 struct StylesheetContext {
+    /// The id associated with this [`StylesheetContext`]. This is used to uniquely identify
+    /// it in the `Document`'s script-blocking stylesheet set.
+    id: StylesheetContextId,
     /// The element that initiated the request.
     element: Trusted<HTMLElement>,
     source: StylesheetContextSource,
@@ -233,7 +249,7 @@ impl StylesheetContext {
         cx: &mut js::context::JSContext,
     ) {
         if self.is_script_blocking {
-            document.decrement_script_blocking_stylesheet_count();
+            document.remove_script_blocking_stylesheet(self.id);
         }
 
         if self.is_render_blocking {
@@ -481,6 +497,7 @@ impl ElementStylesheetLoader<'_> {
             .downcast::<HTMLLinkElement>()
             .map(HTMLLinkElement::get_request_generation_id);
         let mut context = StylesheetContext {
+            id: StylesheetContextId::next(),
             element: Trusted::new(element),
             source,
             media,
@@ -509,7 +526,7 @@ impl ElementStylesheetLoader<'_> {
         context.is_script_blocking =
             context.contributes_a_script_blocking_style_sheet(element, owner, &document);
         if context.is_script_blocking {
-            document.increment_script_blocking_stylesheet_count();
+            document.add_script_blocking_stylesheet(context.id);
         }
 
         // If element's media attribute's value matches the environment and

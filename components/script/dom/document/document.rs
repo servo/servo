@@ -27,6 +27,7 @@ use embedder_traits::{
 use encoding_rs::{Encoding, UTF_8};
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
+use indexmap::IndexSet;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -52,6 +53,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::trace::CustomTraceable;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -210,6 +212,7 @@ use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::script_runtime::CanGc;
 use crate::script_thread::{ScriptThread, SharedRwLocks};
+use crate::stylesheet_loader::StylesheetContextId;
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
 use crate::task_manager::TaskManager;
@@ -416,8 +419,9 @@ pub(crate) struct Document {
     current_script: MutNullableDom<HTMLScriptElement>,
     /// <https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script>
     pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
-    /// Number of stylesheets that block executing the next parser-inserted script
-    script_blocking_stylesheets_count: Cell<u32>,
+    /// <https://html.spec.whatwg.org/multipage/#script-blocking-style-sheet-set>
+    /// > A Document has a script-blocking style sheet set, which is an ordered set, initially empty.
+    script_blocking_stylesheet_set: DomRefCell<IndexSet<StylesheetContextId>>,
     /// Number of elements that block the rendering of the page.
     /// <https://html.spec.whatwg.org/multipage/#implicitly-potentially-render-blocking>
     render_blocking_element_count: Cell<u32>,
@@ -1625,19 +1629,19 @@ impl Document {
         self.current_script.set(script);
     }
 
-    pub(crate) fn get_script_blocking_stylesheets_count(&self) -> u32 {
-        self.script_blocking_stylesheets_count.get()
+    /// <https://html.spec.whatwg.org/multipage/#has-a-style-sheet-that-is-blocking-scripts>
+    pub(crate) fn has_a_stylesheet_that_is_blocking_scripts(&self) -> bool {
+        !self.script_blocking_stylesheet_set.borrow().is_empty()
     }
 
-    pub(crate) fn increment_script_blocking_stylesheet_count(&self) {
-        let count_cell = &self.script_blocking_stylesheets_count;
-        count_cell.set(count_cell.get() + 1);
+    pub(crate) fn add_script_blocking_stylesheet(&self, id: StylesheetContextId) {
+        self.script_blocking_stylesheet_set.borrow_mut().insert(id);
     }
 
-    pub(crate) fn decrement_script_blocking_stylesheet_count(&self) {
-        let count_cell = &self.script_blocking_stylesheets_count;
-        assert!(count_cell.get() > 0);
-        count_cell.set(count_cell.get() - 1);
+    pub(crate) fn remove_script_blocking_stylesheet(&self, id: StylesheetContextId) {
+        self.script_blocking_stylesheet_set
+            .borrow_mut()
+            .shift_remove(&id);
     }
 
     pub(crate) fn render_blocking_element_count(&self) -> u32 {
@@ -2401,7 +2405,7 @@ impl Document {
     }
 
     fn process_pending_parsing_blocking_script(&self, cx: &mut JSContext) {
-        if self.script_blocking_stylesheets_count.get() > 0 {
+        if self.has_a_stylesheet_that_is_blocking_scripts() {
             return;
         }
         let pair = self
@@ -2489,7 +2493,7 @@ impl Document {
         }
         // Part of substep 1.
         loop {
-            if self.script_blocking_stylesheets_count.get() > 0 {
+            if self.has_a_stylesheet_that_is_blocking_scripts() {
                 return;
             }
             if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
@@ -2672,7 +2676,7 @@ impl Document {
         // from the network for them. If this resulted in any instances of the fetch algorithm
         // being canceled or any queued tasks or any network data getting discarded,
         // then make document unsalvageable given document and "fetch".
-        self.script_blocking_stylesheets_count.set(0);
+        self.script_blocking_stylesheet_set.borrow_mut().clear();
         *self.pending_parsing_blocking_script.borrow_mut() = None;
         *self.asap_scripts_set.borrow_mut() = vec![];
         self.asap_in_order_scripts_list.clear();
@@ -3651,7 +3655,7 @@ impl Document {
 
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
-            script_blocking_stylesheets_count: Default::default(),
+            script_blocking_stylesheet_set: Default::default(),
             render_blocking_element_count: Default::default(),
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
