@@ -23,7 +23,7 @@ impl<T: DomGlobalGeneric<DomTypeHolder>> DomGlobal for T {
     #[expect(unsafe_code)]
     fn global(&self) -> DomRoot<GlobalScope> {
         // SAFETY: We only use this `cx` to enter a realm. That does not
-        // incur a gc and hence is safe to perform. We do not want to
+        // incur a GC and hence is safe to perform. We do not want to
         // pass a `cx` as parameter to this function, as this used in
         // loads of places. At the same time, it also isn't necessary in
         // nearly all cases to enter realm, since we are already in the
