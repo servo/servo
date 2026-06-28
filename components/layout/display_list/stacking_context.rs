@@ -564,6 +564,7 @@ impl BoxFragment {
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
     ) {
+        self.clear_stacking_context_tree_traversal_data();
         self.build_stacking_context_tree_maybe_creating_reference_frame(
             fragment,
             stacking_context_tree,
@@ -602,7 +603,7 @@ impl BoxFragment {
         // > If a transform function causes the current transformation matrix of an object
         // > to be non-invertible, the object and its content do not get displayed.
         if !reference_frame_data.transform.is_invertible() {
-            self.clear_spatial_tree_node_including_descendants();
+            self.clear_stacking_context_tree_traversal_data_recursively();
             return;
         }
 
@@ -1303,18 +1304,20 @@ impl BoxFragment {
         }
     }
 
-    fn clear_spatial_tree_node_including_descendants(&self) {
-        fn assign_spatial_tree_node_on_fragments(fragments: &[Fragment]) {
+    fn clear_stacking_context_tree_traversal_data_recursively(&self) {
+        fn clear_stacking_context_tree_traversal_data_on_fragments(fragments: &[Fragment]) {
             for fragment in fragments.iter() {
                 match fragment {
                     Fragment::LayoutRoot(layout_root_fragment) => layout_root_fragment
                         .inner_box_fragment()
-                        .clear_spatial_tree_node_including_descendants(),
+                        .clear_stacking_context_tree_traversal_data_recursively(),
                     Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                        box_fragment.clear_spatial_tree_node_including_descendants();
+                        box_fragment.clear_stacking_context_tree_traversal_data_recursively();
                     },
                     Fragment::Positioning(positioning_fragment) => {
-                        assign_spatial_tree_node_on_fragments(&positioning_fragment.children);
+                        clear_stacking_context_tree_traversal_data_on_fragments(
+                            &positioning_fragment.children,
+                        );
                     },
                     _ => {},
                 }
@@ -1322,7 +1325,8 @@ impl BoxFragment {
         }
 
         self.spatial_tree_node.set(None);
-        assign_spatial_tree_node_on_fragments(&self.children);
+        self.clear_stacking_context_tree_traversal_data();
+        clear_stacking_context_tree_traversal_data_on_fragments(&self.children);
     }
 }
 
