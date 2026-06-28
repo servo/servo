@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Switch
@@ -17,9 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
-import androidx.core.content.edit
 
 class SettingsFragment : Fragment() {
     private lateinit var preferences: SharedPreferences
@@ -42,19 +43,19 @@ class SettingsFragment : Fragment() {
                 title = { Text(stringResource(R.string.settings_title)) },
             )
         }
-        view.findViewById<ComposeView>(R.id.experimental).setContent {
-            SettingsItem(
-                title = stringResource(R.string.settings_experimental_title),
-                summary = stringResource(R.string.settings_experimental_summary),
-                preferenceKey = "experimental",
-            )
-        }
-        view.findViewById<ComposeView>(R.id.animating_indicator).setContent {
-            SettingsItem(
-                title = stringResource(R.string.settings_animating_title),
-                summary = stringResource(R.string.settings_animating_summary),
-                preferenceKey = "animating_indicator",
-            )
+        view.findViewById<ComposeView>(R.id.body).setContent {
+            Column {
+                SettingsItem(
+                    title = stringResource(R.string.settings_experimental_title),
+                    summary = stringResource(R.string.settings_experimental_summary),
+                    preferenceKey = "experimental",
+                )
+                SettingsItem(
+                    title = stringResource(R.string.settings_animating_title),
+                    summary = stringResource(R.string.settings_animating_summary),
+                    preferenceKey = "animating_indicator",
+                )
+            }
         }
     }
 
