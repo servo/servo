@@ -127,16 +127,12 @@
                 app:iconTint="?colorOnBackground"
                 />
 
-            <com.google.android.material.button.MaterialButton
+            <androidx.compose.ui.platform.ComposeView
                 android:id="@+id/history_menu_item"
-                style="@style/Widget.Material3.Button.IconButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:contentDescription="@string/history_title"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:icon="@drawable/history"
-                app:iconTint="?colorOnBackground"
                 />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
