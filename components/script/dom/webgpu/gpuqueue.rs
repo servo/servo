@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use pixels::{SnapshotAlphaMode, SnapshotPixelFormat};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::CanvasRenderingContext2DBinding::ImageDataMethods;
@@ -76,8 +76,8 @@ impl GPUQueue {
 }
 
 impl GPUQueue {
-    pub(crate) fn set_device(&self, device: &GPUDevice) {
-        *self.device.borrow_mut() = Some(Dom::from_ref(device));
+    pub(crate) fn set_device(&self, no_gc: &NoGC, device: &GPUDevice) {
+        *self.device.safe_borrow_mut(no_gc) = Some(Dom::from_ref(device));
     }
 
     pub(crate) fn id(&self) -> WebGPUQueue {
@@ -92,8 +92,8 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, value: USVString) {
-        *self.label.borrow_mut() = value;
+    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
+        *self.label.safe_borrow_mut(no_gc) = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit>
