@@ -1972,16 +1972,15 @@ async fn http_network_fetch(
     // Step 1: Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
 
-    // Step 2
-    // TODO be able to create connection using current url's origin and credentials
+    // TODO Step 2. If request’s client is offline, then return a network error.
 
-    // Step 3
-    // TODO be able to tell if the connection is a failure
+    // TODO Step 3. Let response be null.
 
-    // Step 4
-    // TODO: check whether the connection is HTTP/2
+    // TODO Step 4. Let timingInfo be fetchParams’s timing info.
 
-    // Step 5
+    // TODO Step 5. Let networkPartitionKey be the result of determining the network partition key
+    // given request.
+
     let url = request.current_url();
     let request_id = request.id.0.to_string();
     if log_enabled!(log::Level::Info) {
@@ -2011,7 +2010,11 @@ async fn http_network_fetch(
 
     let browsing_context_id = request.target_webview_id.map(Into::into);
 
+    // Step 6. Let newConnection be "yes" if forceNewConnection is true; otherwise "no".
+
+    // Step 7. Switch on request’s mode:
     let (res, msg) = match &request.mode {
+        // Let connection be the result of obtaining a WebSocket connection, given request’s current URL.
         RequestMode::WebSocket {
             protocols,
             original_url: _,
@@ -2059,6 +2062,8 @@ async fn http_network_fetch(
             });
             (Decoder::detect(response, url.is_secure_scheme()), None)
         },
+        // Let connection be the result of obtaining a connection, given networkPartitionKey,
+        // request’s current URL, includeCredentials, and newConnection.
         _ => {
             let response_future = obtain_response(
                 &context.state.client,
@@ -2103,6 +2108,8 @@ async fn http_network_fetch(
         _ => warn!("Failed to receive confirmation request was streamed without error."),
     }
 
+    // This seems to be https://fetch.spec.whatwg.org/#concept-tao-check
+    // which is performed as step 4.5 of https://fetch.spec.whatwg.org/#concept-http-fetch
     let header_strings: Vec<&str> = res
         .headers()
         .get_all("Timing-Allow-Origin")
