@@ -2044,7 +2044,7 @@ impl Document {
             _ => {},
         }
 
-        // TODO(43149): Remove when document replacement is implemented
+        // START TODO(43149): Remove when document replacement is implemented
 
         // Step 4 is in another castle, namely at the end of
         // process_deferred_scripts.
