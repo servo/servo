@@ -2079,7 +2079,7 @@ impl Document {
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(fire_load_event: move |cx| {
+            .queue(task!(wait_for_load_blockers: move |cx| {
                 document.root().wait_until_load_blockers_have_resolved(cx);
             }));
     }
@@ -2626,7 +2626,7 @@ impl Document {
             self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(task!(fire_load_event: move |cx| {
+                .queue(task!(transition_away_from_asap_scripts: move |cx| {
                     let document = document.root();
                     // Ensure that if this task is fired multiple times, we only progress the
                     // end of loading phase once.
