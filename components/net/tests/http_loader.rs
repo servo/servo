@@ -2145,7 +2145,7 @@ fn test_stale_while_revalidate_serves_cached_and_revalidates_in_background() {
     assert!(response.actual_response().status.code().is_success());
     assert_eq!(request_count.load(Ordering::SeqCst), 1);
 
-    // the stored response is stale but within the SWR window, so
+    // the stored response is stale but within the stale-while-revalidate window, so
     // it is served from cache immediately and a background revalidation is spawned.
     let response = fetch_with_context(build_request(), &mut context);
     assert!(response.actual_response().status.code().is_success());

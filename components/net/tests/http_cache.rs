@@ -119,7 +119,7 @@ async fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
     );
 }
 
-fn build_swr_test_request() -> net_traits::request::Request {
+fn build_stale_while_revalidate_test_request() -> net_traits::request::Request {
     let url = ServoUrl::parse("https://servo.org").unwrap();
     RequestBuilder::new(
         None,
@@ -134,9 +134,9 @@ fn build_swr_test_request() -> net_traits::request::Request {
 /// Store a response with the given `Cache-Control` value, then return the
 /// freshness state `(needs_validation, revalidate_in_background)` reported by
 /// the cache for a subsequent request.
-async fn swr_freshness_for_cache_control(cache_control: &str) -> (bool, bool) {
+async fn stale_while_revalidate_freshness_for_cache_control(cache_control: &str) -> (bool, bool) {
     let url = ServoUrl::parse("https://servo.org").unwrap();
-    let request = build_swr_test_request();
+    let request = build_stale_while_revalidate_test_request();
 
     let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
     let mut response = Response::new(url, timing);
@@ -156,32 +156,34 @@ async fn swr_freshness_for_cache_control(cache_control: &str) -> (bool, bool) {
 }
 
 #[tokio::test]
-async fn test_stale_within_swr_window_serves_immediately_and_revalidates_in_background() {
+async fn test_stale_within_stale_while_revalidate_window_serves_immediately_and_revalidates_in_background()
+ {
     let (needs_validation, revalidate_in_background) =
-        swr_freshness_for_cache_control("max-age=0, stale-while-revalidate=30").await;
+        stale_while_revalidate_freshness_for_cache_control("max-age=0, stale-while-revalidate=30")
+            .await;
     assert!(
         !needs_validation,
-        "stale response within the SWR window should be served immediately"
+        "stale response within the stale-while-revalidate window should be served immediately"
     );
     assert!(
         revalidate_in_background,
-        "stale response within the SWR window should be revalidated in the background"
+        "stale response within the stale-while-revalidate window should be revalidated in the background"
     );
 }
 
 #[tokio::test]
-async fn test_stale_without_swr_requires_synchronous_validation() {
+async fn test_stale_without_stale_while_revalidate_requires_synchronous_validation() {
     let (needs_validation, revalidate_in_background) =
-        swr_freshness_for_cache_control("max-age=0").await;
+        stale_while_revalidate_freshness_for_cache_control("max-age=0").await;
     assert!(
         needs_validation,
-        "stale response without SWR must be synchronously revalidated"
+        "stale response without stale-while-revalidate must be synchronously revalidated"
     );
     assert!(!revalidate_in_background);
 }
 
 #[tokio::test]
-async fn test_swr_not_used_when_request_demands_revalidation() {
+async fn test_stale_while_revalidate_not_used_when_request_demands_revalidation() {
     let url = ServoUrl::parse("https://servo.org").unwrap();
 
     let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
@@ -192,7 +194,7 @@ async fn test_swr_not_used_when_request_demands_revalidation() {
         HeaderValue::from_str("max-age=0, stale-while-revalidate=30").unwrap(),
     );
 
-    let store_request = build_swr_test_request();
+    let store_request = build_stale_while_revalidate_test_request();
     let cache = HttpCache::default();
     cache.store(&store_request, &response).await;
 

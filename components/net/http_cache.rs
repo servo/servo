@@ -389,18 +389,18 @@ fn create_cached_response(
 
     // - fresh: return immediately, no validation.
     // - stale:
-    //    - within the SWR window: return immediately + revalidate in the background
-    //    - beyond the SWR window: synchronous validation is required.
+    //    - within the stale-while-revalidate window: return immediately + revalidate in the background
+    //    - beyond the stale-while-revalidate window: synchronous validation is required.
     let stale_for = time_since_validated.saturating_sub(adjusted_expires);
-    let within_swr_window = stale_for <= cached_resource.stale_while_revalidate;
+    let within_stale_while_revalidate_window = stale_for <= cached_resource.stale_while_revalidate;
     let revalidate_in_background = has_expired &&
-        within_swr_window &&
+        within_stale_while_revalidate_window &&
         !cached_resource.stale_while_revalidate.is_zero() &&
         !request_demands_revalidation(request);
 
     let cached_response = CachedResponse {
         response,
-        // When we can serve a stale response under the s-w-r window, we treat it
+        // When we can serve a stale response under the stale-while-revalidate window, we treat it
         // as not needing synchronous validation, and signal the background
         // revalidation separately.
         needs_synchronous_validation: has_expired && !revalidate_in_background,
