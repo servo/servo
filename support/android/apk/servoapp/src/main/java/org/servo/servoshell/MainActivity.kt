@@ -89,7 +89,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             findViewById<View>(R.id.refresh_menu_item).setOnClickListener(actionClickListener)
             findViewById<View>(R.id.cancel_menu_item).setOnClickListener(actionClickListener)
             findViewById<View>(R.id.settings_menu_item).setOnClickListener(actionClickListener)
-            findViewById<ComposeView>(R.id.history_menu_item)?.apply {
+            findViewById<ComposeView>(R.id.history_menu_item).apply {
                 setContent {
                     IconButton(onClick = { dispatchAction(id) }) {
                         Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
