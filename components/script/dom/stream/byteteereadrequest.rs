@@ -101,6 +101,7 @@ impl ByteTeeReadRequest {
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     pub(crate) fn enqueue_chunk_steps(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: RootedTraceableBox<Heap<JSVal>>,
     ) {
@@ -109,9 +110,10 @@ impl ByteTeeReadRequest {
             chunk: Heap::boxed(*chunk.handle()),
             tee_read_request: Dom::from_ref(self),
         };
-        global.enqueue_microtask(Microtask::ReadableStreamByteTeeReadRequest(
-            byte_tee_read_request_chunk,
-        ));
+        global.enqueue_microtask(
+            cx,
+            Microtask::ReadableStreamByteTeeReadRequest(byte_tee_read_request_chunk),
+        );
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A3>

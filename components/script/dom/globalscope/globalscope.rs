@@ -3082,11 +3082,11 @@ impl GlobalScope {
     }
 
     /// Enqueue a microtask for subsequent execution.
-    pub(crate) fn enqueue_microtask(&self, job: Microtask) {
+    pub(crate) fn enqueue_microtask(&self, cx: &mut js::context::JSContext, job: Microtask) {
         if self.is::<Window>() {
             ScriptThread::enqueue_microtask(job);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            worker.enqueue_microtask(job);
+            worker.enqueue_microtask(cx, job);
         }
     }
 
@@ -3599,10 +3599,6 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
         GlobalScope::from_current_realm(realm)
-    }
-
-    fn get_cx() -> SafeJSContext {
-        GlobalScope::get_cx()
     }
 
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {

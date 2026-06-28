@@ -66,11 +66,12 @@ impl ReadIntoRequest {
             },
             ReadIntoRequest::ByteTee {
                 byte_tee_read_into_request,
-            } => byte_tee_read_into_request.enqueue_chunk_steps(RootedTraceableBox::new(
-                HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
-                    Heap::boxed(chunk.get().to_object()),
+            } => byte_tee_read_into_request.enqueue_chunk_steps(
+                cx,
+                RootedTraceableBox::new(HeapBufferSource::<ArrayBufferViewU8>::new(
+                    BufferSource::ArrayBufferView(Heap::boxed(chunk.get().to_object())),
                 )),
-            )),
+            ),
         }
     }
 

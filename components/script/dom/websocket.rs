@@ -627,7 +627,6 @@ impl TaskOnce for MessageReceivedTask {
                 },
                 BinaryType::Arraybuffer => {
                     rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-                    // GlobalScope::get_cx() returns a valid `JSContext` pointer, so this is safe.
                     unsafe {
                         assert!(
                             ArrayBuffer::create(

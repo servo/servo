@@ -109,17 +109,20 @@ impl DefaultTeeReadRequest {
     }
     /// Enqueue a microtask to perform the chunk steps
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
-    pub(crate) fn enqueue_chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
+    pub(crate) fn enqueue_chunk_steps(
+        &self,
+        cx: &mut JSContext,
+        chunk: RootedTraceableBox<Heap<JSVal>>,
+    ) {
         // Queue a microtask to perform the following steps:
         let tee_read_request_chunk = DefaultTeeReadRequestMicrotask {
             chunk: Heap::boxed(*chunk.handle()),
             tee_read_request: Dom::from_ref(self),
         };
-        self.stream
-            .global()
-            .enqueue_microtask(Microtask::ReadableStreamTeeReadRequest(
-                tee_read_request_chunk,
-            ));
+        self.stream.global().enqueue_microtask(
+            cx,
+            Microtask::ReadableStreamTeeReadRequest(tee_read_request_chunk),
+        );
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     #[expect(clippy::borrowed_box)]
