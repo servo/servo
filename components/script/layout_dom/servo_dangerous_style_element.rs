@@ -87,7 +87,7 @@ impl<'dom> DangerousStyleElement<'dom> for ServoDangerousStyleElement<'dom> {
     }
 }
 
-impl<'dom> style::dom::AttributeProvider for ServoDangerousStyleElement<'dom> {
+impl<'dom> style::dom::ElementContext for ServoDangerousStyleElement<'dom> {
     fn get_attr(&self, attr: &style::LocalName, namespace: &style::Namespace) -> Option<String> {
         // All attribute names on HTML elements in HTML docs match ASCII-case-insensitively.
         // See note in https://html.spec.whatwg.org/multipage/#custom-data-attribute
