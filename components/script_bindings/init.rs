@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ffi::c_char;
 use std::ptr;
 
 use js::jsapi::{
@@ -37,7 +38,7 @@ pub(crate) struct InitClassOpsConfig {
 }
 
 pub(crate) struct DomJSClassConfig {
-    pub(crate) name: *const i8,
+    pub(crate) name: *const c_char,
     pub(crate) flags: u32,
     pub(crate) slots: u32,
     pub(crate) class: DOMClass,
