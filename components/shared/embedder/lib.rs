@@ -811,6 +811,9 @@ pub enum LoadStatus {
     /// `document.readyState` == `complete`.
     /// See <https://developer.mozilla.org/en-US/docs/Web/API/Document/readyState>
     Complete,
+    /// The current load was stopped, either by the embedder or by script on the page
+    /// (for instance, by calling `window.stop()`).
+    Stopped,
 }
 
 /// Data that could be used to display a desktop notification to the end user

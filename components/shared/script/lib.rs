@@ -250,14 +250,18 @@ pub enum ScriptThreadMessage {
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
-    /// Cause a `load` event to be dispatched at the appropriate iframe element.
-    DispatchIFrameLoadEvent {
+    /// Notify a parent pipeline that one of its `<iframe>` children has finished loading,
+    /// either by completing or by being aborted. When completing this causes the `load` event
+    /// to be dispatched at the appropriate iframe element.
+    IFrameLoadFinished {
         /// The frame that has been marked as loaded.
         target: BrowsingContextId,
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId,
         /// The pipeline that has completed loading.
         child: PipelineId,
+        /// Whether or not the load was finished by aborting.
+        aborted: bool,
     },
     /// Cause a `storage` event to be dispatched at the appropriate window.
     /// The strings are key, old value and new value.

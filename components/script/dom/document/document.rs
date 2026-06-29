@@ -1340,6 +1340,10 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub(crate) fn set_ready_state(&self, cx: &mut JSContext, state: DocumentReadyState) {
+        if state == self.ready_state.get() {
+            return;
+        }
+
         match state {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
@@ -1351,7 +1355,7 @@ impl Document {
                 }
             },
             DocumentReadyState::Complete => {
-                if self.window().is_top_level() {
+                if self.window().is_top_level() && !self.loader().aborted() {
                     self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
                         self.webview_id(),
                         LoadStatus::Complete,
@@ -2240,7 +2244,7 @@ impl Document {
         //
         // Note: this will also result in the "iframe-load-event-steps" being run.
         // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
-        self.notify_constellation_load();
+        self.notify_constellation_that_load_finished(false /* aborted */);
 
         // Step 5. Otherwise, if container is non-null, then queue an element task on the DOM manipulation task source
         // given container to fire an event named load at container.
@@ -2533,30 +2537,34 @@ impl Document {
             return;
         }
 
-        // Step 5.1. Spin the event loop until the first script in the list of scripts that will execute when the
-        // document has finished parsing has its ready to be parser-executed set to true and the parser's Document
-        // has no style sheet that is blocking scripts.
-        loop {
+        // Step 5: While the list of scripts that will execute when the document has finished
+        // parsing is not empty:
+        while !self.deferred_scripts.is_empty() {
+            // Step 5.1. Spin the event loop until the first script in the list of scripts that
+            // will execute when the document has finished parsing has its ready to be
+            // parser-executed set to true and the parser's Document has no style sheet that is
+            // blocking scripts.
             if self.has_a_stylesheet_that_is_blocking_scripts() {
                 return;
             }
-            // Step 5.3. Remove the first script element from the list of scripts that will execute when the
-            // document has finished parsing (i.e. shift out the first entry in the list).
-            if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
-            {
-                // Step 5.2. Execute the script element given by the first script in the list of scripts that will execute when the document has finished parsing.
-                element.execute(cx, result);
-            } else {
-                break;
-            }
+            // Step 5.3. Remove the first script element from the list of scripts that will
+            // execute when the document has finished parsing (i.e. shift out the first entry
+            // in the list).
+            let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
+            else {
+                return;
+            };
+
+            // Step 5.2. Execute the script element given by the first script in the list
+            // of scripts that will execute when the document has finished parsing.
+            element.execute(cx, result);
         }
-        // Step 5. While the list of scripts that will execute when the document has finished parsing is not empty:
-        if self.deferred_scripts.is_empty() {
-            self.current_the_end_loading_phase
-                .set(TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts);
-            // TODO(43149): Use `dispatch_dom_content_loaded` when document replacement is implemented
-            self.maybe_dispatch_dom_content_loaded();
-        }
+
+        assert!(self.deferred_scripts.is_empty());
+        self.current_the_end_loading_phase
+            .set(TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts);
+        // TODO(43149): Use `dispatch_dom_content_loaded` when document replacement is implemented
+        self.maybe_dispatch_dom_content_loaded();
     }
 
     /// Step 6. of <https://html.spec.whatwg.org/multipage/#the-end>
@@ -2792,7 +2800,7 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document>
     pub(crate) fn abort(&self, cx: &mut JSContext) {
         // We need to inhibit the loader before anything else.
-        self.loader.borrow_mut().inhibit_events();
+        self.loader.borrow_mut().abort();
 
         // Step 1. Assert: this is running as part of a task queued on document's relevant agent's event loop.
         // TODO
@@ -2833,7 +2841,27 @@ impl Document {
             parser.abort(cx);
             // Step 4.3. Make document unsalvageable given document and "parser-aborted".
             self.salvageable.set(false);
+        } else if self.ready_state.get() != DocumentReadyState::Complete {
+            let document = Trusted::new(self);
+            self.owner_global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue(task!(fire_complete: move |cx| {
+                    let document = document.root();
+                    document.set_ready_state(cx, DocumentReadyState::Complete)
+                }));
         }
+
+        self.window().allow_layout_if_necessary(cx);
+
+        // This is not in the specification, but when a load is aborted in a frame, parent
+        // frames need to be notified that this frame is no londer blocking the load.
+        // TODO: Specification bug.
+        self.notify_constellation_that_load_finished(true /* aborted */);
+
+        // Prevent any further movement through "the-end" loading phases.
+        self.current_the_end_loading_phase
+            .set(TheEndLoadingPhase::Done);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document-and-its-descendants>
@@ -2869,9 +2897,9 @@ impl Document {
         self.abort(cx);
     }
 
-    pub(crate) fn notify_constellation_load(&self) {
+    pub(crate) fn notify_constellation_that_load_finished(&self, aborted: bool) {
         self.window()
-            .send_to_constellation(ScriptToConstellationMessage::LoadComplete);
+            .send_to_constellation(ScriptToConstellationMessage::LoadFinished { aborted });
     }
 
     pub(crate) fn set_current_parser(&self, script: Option<&ServoParser>) {
@@ -3170,7 +3198,7 @@ impl Document {
         if self.window().font_context().web_fonts_still_loading() != 0 {
             return false;
         }
-        if self.ReadyState() != DocumentReadyState::Complete {
+        if self.ReadyState() != DocumentReadyState::Complete && !self.loader().aborted() {
             return false;
         }
         if !self.restyle_reason().is_empty() {

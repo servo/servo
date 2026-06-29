@@ -479,24 +479,28 @@ impl ServoParser {
         self.parse_sync(cx);
     }
 
-    // https://html.spec.whatwg.org/multipage/#abort-a-parser
+    /// <https://html.spec.whatwg.org/multipage/#abort-a-parser>
     pub(crate) fn abort(&self, cx: &mut JSContext) {
         assert!(!self.aborted.get());
         self.aborted.set(true);
 
-        // Step 1.
+        // Step 1. Throw away any pending content in the input stream, and discard any future
+        // content that would have been added to it.
         self.script_input.replace_with(BufferQueue::default());
         self.network_input.replace_with(BufferQueue::default());
 
-        // Step 2.
+        // Step 2. Stop the speculative HTML parser for this HTML parser.
+        // TODO: Implement this.
+
+        // Step 3. Update the current document readiness to "interactive".
         self.document
             .set_ready_state(cx, DocumentReadyState::Interactive);
 
-        // Step 3.
+        // Step 4. Pop all the nodes off the stack of open elements.
         self.tokenizer.end(cx);
         self.document.set_current_parser(None);
 
-        // Step 4.
+        // Step 5. Update the current document readiness to "complete".
         self.document
             .set_ready_state(cx, DocumentReadyState::Complete);
     }
@@ -667,7 +671,8 @@ impl ServoParser {
             )
         });
 
-        if self.suspended.get() {
+        // Tokenizing can cause parsing to be suspended or aborted.
+        if self.suspended.get() || self.aborted.get() {
             return;
         }
 

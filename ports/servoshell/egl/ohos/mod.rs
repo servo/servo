@@ -1138,7 +1138,7 @@ impl HostTrait for HostCallbacks {
         // e.g. including webview id, perhaps URL and some additional investigation effort.
         // For now we just add a trace event here, so that we can see in the trace if we
         // successfully loaded **a** page.
-        if load_status == LoadStatus::Complete {
+        if matches!(load_status, LoadStatus::Complete | LoadStatus::Stopped) {
             #[cfg(feature = "tracing-hitrace")]
             let _scope = hitrace::ScopedTrace::start_trace(&c"PageLoadEndedPrompt");
         } else {

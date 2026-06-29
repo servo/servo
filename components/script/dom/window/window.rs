@@ -24,9 +24,9 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, JavaScriptEvaluationError, PromptResponse,
-    ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
-    WebDriverJSResult, WebDriverLoadStatus,
+    AlertResponse, ConfirmResponse, EmbedderMsg, JavaScriptEvaluationError, LoadStatus,
+    PromptResponse, ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress,
+    ViewportDetails, WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
@@ -228,6 +228,7 @@ const INITIAL_REFLOW_DELAY: Duration = Duration::from_millis(200);
 ///    to show the user that the page is loading.
 ///  - Script triggers a layout query or scroll event in which case, we want to layout
 ///    but not display the contents.
+///  - The embedder or script aborted the document load.
 ///
 /// For more information see: <https://github.com/servo/servo/pull/6028>.
 #[derive(Clone, Copy, MallocSizeOf)]
@@ -239,12 +240,12 @@ enum LayoutBlocker {
     /// The body finished parsing and the `load` event has been fired or parsing took so
     /// long, that we are going to do layout anyway. Note that subsequent changes to the body
     /// can trigger parsing again, but the `Window` stays in this state.
-    FiredLoadEventOrParsingTimerExpired,
+    FiredLoadEventOrParsingTimerExpiredOrStopped,
 }
 
 impl LayoutBlocker {
     fn layout_blocked(&self) -> bool {
-        !matches!(self, Self::FiredLoadEventOrParsingTimerExpired)
+        !matches!(self, Self::FiredLoadEventOrParsingTimerExpiredOrStopped)
     }
 }
 
@@ -829,7 +830,7 @@ impl Window {
     /// <https://html.spec.whatwg.org/multipage/#nav-stop>
     fn stop_loading(&self, cx: &mut JSContext) {
         // 1. Let document be navigable's active document.
-        let doc = self.Document();
+        let document = self.Document();
 
         // 2. If document's unload counter is 0,
         // and navigable's ongoing navigation is a navigation ID,
@@ -843,7 +844,14 @@ impl Window {
         self.set_ongoing_navigation();
 
         // 3. Abort a document and its descendants given document.
-        doc.abort_a_document_and_its_descendants(cx);
+        document.abort_a_document_and_its_descendants(cx);
+
+        if self.is_top_level() {
+            self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                self.webview_id(),
+                LoadStatus::Stopped,
+            ));
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-top-level-traversable>
@@ -2677,7 +2685,7 @@ impl Window {
         }
 
         let document = self.Document();
-        if document.ReadyState() != DocumentReadyState::Complete {
+        if document.ReadyState() != DocumentReadyState::Complete && !document.loader().aborted() {
             return;
         }
 
@@ -2761,13 +2769,13 @@ impl Window {
     pub(crate) fn allow_layout_if_necessary(&self, cx: &mut JSContext) {
         if matches!(
             self.layout_blocker.get(),
-            LayoutBlocker::FiredLoadEventOrParsingTimerExpired
+            LayoutBlocker::FiredLoadEventOrParsingTimerExpiredOrStopped
         ) {
             return;
         }
 
         self.layout_blocker
-            .set(LayoutBlocker::FiredLoadEventOrParsingTimerExpired);
+            .set(LayoutBlocker::FiredLoadEventOrParsingTimerExpiredOrStopped);
 
         // We do this immediately instead of scheduling a future task, because this can
         // happen if parsing is taking a very long time, which means that the

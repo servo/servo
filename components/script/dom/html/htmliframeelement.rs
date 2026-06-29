@@ -740,10 +740,23 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps>
-    pub(crate) fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, cx: &mut JSContext) {
+    pub(crate) fn iframe_load_event_steps(
+        &self,
+        cx: &mut JSContext,
+        loaded_pipeline: PipelineId,
+        aborted: bool,
+    ) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
+            return;
+        }
+
+        // We never execute the loading steps when a load is aborted, but we still must
+        // stop blocking the load on this `<iframe>`.
+        if aborted {
+            let blocker = &self.load_blocker;
+            LoadBlocker::terminate(blocker, cx);
             return;
         }
 

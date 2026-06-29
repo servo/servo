@@ -54,7 +54,7 @@ use crate::unminify::{
     BeautifyFileType, create_output_file, create_temp_files, execute_js_beautify,
 };
 
-/// An struct which is used to uniquely identify a [`StylesheetContext`] for
+/// A struct which is used to uniquely identify a [`StylesheetContext`] for
 /// tracking the set of script-blocking stylesheets.
 #[derive(Clone, Copy, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct StylesheetContextId(usize);

@@ -783,14 +783,20 @@ impl WebViewDelegate for RunningAppState {
     fn notify_load_status_changed(&self, webview: WebView, status: LoadStatus) {
         self.window_for_webview(&webview).set_needs_update();
 
-        if status == LoadStatus::Complete {
+        if matches!(status, LoadStatus::Complete | LoadStatus::Stopped) {
+            let status = match status {
+                LoadStatus::Complete => WebDriverLoadStatus::Complete,
+                LoadStatus::Stopped => WebDriverLoadStatus::NavigationStop,
+                _ => unreachable!("Should be prevented by matches! above"),
+            };
+
             if let Some(sender) = self
                 .webdriver_senders
                 .borrow_mut()
                 .load_status_senders
                 .remove(&webview.id())
             {
-                let _ = sender.send(WebDriverLoadStatus::Complete);
+                let _ = sender.send(status);
             }
             self.maybe_request_screenshot(webview);
         }

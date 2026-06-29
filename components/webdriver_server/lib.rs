@@ -843,7 +843,9 @@ impl Handler {
             // If the load status is blocked, it means a user prompt is shown.
             // We should handle the user prompt in the next command.
             WebDriverLoadStatus::Blocked => Ok(WebDriverResponse::Void),
-            WebDriverLoadStatus::NavigationStop | WebDriverLoadStatus::Complete => {
+            // The load was aborted before it could finish.
+            WebDriverLoadStatus::NavigationStop => Ok(WebDriverResponse::Void),
+            WebDriverLoadStatus::Complete => {
                 unreachable!("Unexpected load status received")
             },
         }

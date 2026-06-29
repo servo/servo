@@ -130,7 +130,7 @@ impl PlatformWindow for EmbeddedPlatformWindow {
             self.host.notify_load_status_changed(new_load_status);
 
             #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
-            if new_load_status == LoadStatus::Complete {
+            if matches!(new_load_status, LoadStatus::Complete | LoadStatus::Stopped) {
                 let (callback, receiver) =
                     servo_base::generic_channel::GenericCallback::new_blocking()
                         .expect("Could not create channel");

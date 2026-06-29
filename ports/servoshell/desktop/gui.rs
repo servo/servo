@@ -436,7 +436,7 @@ impl Gui {
                                         warn!("Do not support stop yet.");
                                     }
                                 },
-                                LoadStatus::Complete => {
+                                LoadStatus::Complete | LoadStatus::Stopped => {
                                     let reload_button = ui.add(Gui::toolbar_button("↻"));
                                     reload_button.widget_info(|| {
                                         let mut info = WidgetInfo::new(WidgetType::Button);

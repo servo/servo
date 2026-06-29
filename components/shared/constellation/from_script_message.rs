@@ -707,7 +707,9 @@ pub enum ScriptToConstellationMessage {
     GetDocumentOrigin(PipelineId, GenericSender<Option<String>>),
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
-    LoadComplete,
+    LoadFinished {
+        aborted: bool,
+    },
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
     LoadUrl(LoadData, NavigationHistoryBehavior, TargetSnapshotParams),

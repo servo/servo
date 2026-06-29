@@ -91,6 +91,8 @@ pub(crate) struct DocumentLoader {
     resource_threads: ResourceThreads,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
+    /// Whether or not the load was aborted via [`Document::abort`].
+    aborted: bool,
     cancellers: Vec<FetchCanceller>,
 }
 
@@ -110,6 +112,7 @@ impl DocumentLoader {
             resource_threads,
             blocking_loads: initial_loads,
             events_inhibited: false,
+            aborted: false,
             cancellers: Vec::new(),
         }
     }
@@ -190,6 +193,15 @@ impl DocumentLoader {
 
     pub(crate) fn events_inhibited(&self) -> bool {
         self.events_inhibited
+    }
+
+    pub(crate) fn abort(&mut self) {
+        self.aborted = true;
+        self.events_inhibited = true;
+    }
+
+    pub(crate) fn aborted(&self) -> bool {
+        self.aborted
     }
 
     pub(crate) fn resource_threads(&self) -> &ResourceThreads {
