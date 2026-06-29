@@ -1,0 +1,13 @@
+# Linker version script for libservoshell.so on OpenHarmony.
+#
+# The shared library is loaded by ArkTS as a NAPI module. The only symbol the
+# OpenHarmony NAPI runtime needs to resolve via the dynamic symbol table is
+# `napi_register_module_v1`, which is provided by the `napi-ohos` crate.
+#
+# See https://sourceware.org/binutils/docs/ld/VERSION.html for more information.
+{
+    global:
+        napi_register_module_v1;
+    local:
+        *;
+};

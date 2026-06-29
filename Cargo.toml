@@ -4,6 +4,7 @@ members = [
     "components/media/examples",
     "components/xpath",
     "ffi/capi",
+    "ports/ringtail",
     "ports/servoshell",
     "tests/capi",
     "tests/unit/*",

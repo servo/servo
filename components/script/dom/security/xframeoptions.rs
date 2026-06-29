@@ -19,6 +19,15 @@ pub(crate) fn check_a_navigation_response_adherence_to_x_frame_options(
     destination_origin: &MutableOrigin,
     headers: Option<&Serde<HeaderMap>>,
 ) -> bool {
+    // Step 0: Check if this is a servo or ringtail page; if so, ignore Iframe restrictions.
+    if let Some(container_element) = window.window_proxy().frame_element() {
+        if container_element.owner_document().url().scheme() == "servo" {
+            return true;
+        }
+        if container_element.owner_document().url().scheme() == "ringtail" {
+            return true;
+        }
+    }
     // Step 1. If navigable is not a child navigable, then return true.
     if window.window_proxy().parent().is_none() {
         return true;
