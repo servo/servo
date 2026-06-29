@@ -1649,13 +1649,15 @@ impl FormSubmitterElement<'_> {
 
 pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>>;
-
     fn set_form_owner(&self, form: Option<&HTMLFormElement>);
+    fn to_html_element(&self) -> &HTMLElement;
 
-    fn to_element(&self) -> &Element;
+    fn to_element(&self) -> &Element {
+        self.to_html_element().upcast::<Element>()
+    }
 
     fn is_listed(&self) -> bool {
-        true
+        self.to_html_element().is_listed_element()
     }
 
     // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
