@@ -157,6 +157,9 @@ pub(super) struct LineItemLayout<'layout_data, 'layout> {
     /// Whether this is a phantom line box.
     /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
     is_phantom_line: bool,
+
+    /// Whether this line contains only a block-level box.
+    for_block_level: bool,
 }
 
 impl LineItemLayout<'_, '_> {
@@ -167,6 +170,7 @@ impl LineItemLayout<'_, '_> {
         effective_block_advance: &LineBlockSizes,
         justification_adjustment: Au,
         is_phantom_line: bool,
+        for_block_level: bool,
     ) -> Vec<Fragment> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
@@ -183,6 +187,7 @@ impl LineItemLayout<'_, '_> {
             },
             justification_adjustment,
             is_phantom_line,
+            for_block_level,
         }
         .layout(line_items)
     }
@@ -398,7 +403,9 @@ impl LineItemLayout<'_, '_> {
         let mut padding = inline_box_state.pbm.padding;
         let mut border = inline_box_state.pbm.border;
         let mut margin = inline_box_state.pbm.margin.auto_is(Au::zero);
-        if !inline_box_state.clone_pbm {
+        // PBM must not be cloned onto lines that exist only to support a block-level box.
+        // See https://github.com/w3c/csswg-drafts/issues/14104
+        if !inline_box_state.clone_pbm || self.for_block_level {
             let mut had_start = inner_state
                 .flags
                 .contains(LineLayoutInlineContainerFlags::HAD_INLINE_START_PBM);

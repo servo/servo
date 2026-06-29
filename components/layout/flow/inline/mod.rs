@@ -221,8 +221,7 @@ impl BlockLevelBox {
     fn layout_into_line_items(&self, layout: &mut InlineFormattingContextLayout) {
         layout.process_soft_wrap_opportunity();
         layout.commit_current_segment_to_line();
-        layout.process_line_break(true);
-        layout.current_line.for_block_level = true;
+        layout.process_line_break(true, true);
 
         let fragment = layout_block_level_child(
             layout.layout_context,
@@ -251,7 +250,7 @@ impl BlockLevelBox {
         ));
 
         layout.commit_current_segment_to_line();
-        layout.process_line_break(true);
+        layout.process_line_break(true, false);
         layout.current_line.for_block_level = false;
     }
 }
@@ -1088,23 +1087,32 @@ impl InlineFormattingContextLayout<'_> {
 
         // Finally we finish the line itself and convert all of the LineItems into
         // fragments.
-        self.finish_current_line_and_reset(true /* last_line_or_forced_line_break */);
+        self.finish_current_line_and_reset(
+            true,  /* last_line_or_forced_line_break */
+            false, /* for_block_level */
+        );
     }
 
     /// Finish layout of all inline boxes for the current line. This will gather all
     /// [`LineItem`]s and turn them into [`Fragment`]s, then reset the
     /// [`InlineFormattingContextLayout`] preparing it for laying out a new line.
-    fn finish_current_line_and_reset(&mut self, last_line_or_forced_line_break: bool) {
+    fn finish_current_line_and_reset(
+        &mut self,
+        last_line_or_forced_line_break: bool,
+        for_block_level: bool,
+    ) {
         self.possibly_push_empty_text_run_to_line_for_text_caret();
 
         let whitespace_trimmed = self.current_line.trim_trailing_whitespace();
         // At the end of a line, we need to insert any paddings, borders or margins that might need to be
         // duplicated due to box-decoration-break
-        for inline_box in self.inline_box_state_stack.iter().rev() {
-            if inline_box.clone_pbm {
-                self.current_line_segment.line_items.push(
-                    LineItem::InlineEndBoxPaddingBorderMargin(inline_box.identifier),
-                );
+        if !self.current_line.for_block_level {
+            for inline_box in self.inline_box_state_stack.iter().rev() {
+                if inline_box.clone_pbm {
+                    self.current_line_segment.line_items.push(
+                        LineItem::InlineEndBoxPaddingBorderMargin(inline_box.identifier),
+                    );
+                }
             }
         }
         let (inline_start_position, justification_adjustment) = self
@@ -1172,13 +1180,17 @@ impl InlineFormattingContextLayout<'_> {
                 block: block_end_position,
             }),
         );
+        self.current_line.for_block_level = for_block_level;
+
         // At the start of the next line, we need to insert any paddings, borders or margins that might need to be
         // duplicated due to box-decoration-break
-        for inline_box in self.inline_box_state_stack.iter() {
-            if inline_box.clone_pbm {
-                self.current_line_segment.line_items.push(
-                    LineItem::InlineStartBoxPaddingBorderMargin(inline_box.identifier),
-                );
+        if !for_block_level {
+            for inline_box in self.inline_box_state_stack.iter() {
+                if inline_box.clone_pbm {
+                    self.current_line_segment.line_items.push(
+                        LineItem::InlineStartBoxPaddingBorderMargin(inline_box.identifier),
+                    );
+                }
             }
         }
 
@@ -1204,6 +1216,7 @@ impl InlineFormattingContextLayout<'_> {
             &effective_block_advance,
             justification_adjustment,
             is_phantom_line,
+            line_to_layout.for_block_level,
         );
 
         if !is_phantom_line {
@@ -1554,7 +1567,10 @@ impl InlineFormattingContextLayout<'_> {
         // If the current portion of the unbreakable segment does not fit on the current line
         // we need to put it on a new line *before* actually triggering the hard line break.
         if !self.unbreakable_segment_fits_on_line() {
-            self.process_line_break(false /* forced_line_break */);
+            self.process_line_break(
+                false, /* forced_line_break */
+                false, /* for_block_level */
+            );
         }
 
         // Defer the actual line break until we've cleared all ending inline boxes.
@@ -1589,7 +1605,10 @@ impl InlineFormattingContextLayout<'_> {
         };
 
         self.commit_current_segment_to_line();
-        self.process_line_break(true /* forced_line_break */);
+        self.process_line_break(
+            true,  /* forced_line_break */
+            false, /* for_block_level */
+        );
 
         self.current_line.starting_character_offset = line_break_character_offset + 1;
     }
@@ -1750,9 +1769,9 @@ impl InlineFormattingContextLayout<'_> {
         self.propagate_current_nesting_level_white_space_style();
     }
 
-    fn process_line_break(&mut self, forced_line_break: bool) {
+    fn process_line_break(&mut self, forced_line_break: bool, for_block_level: bool) {
         self.current_line_segment.trim_leading_whitespace();
-        self.finish_current_line_and_reset(forced_line_break);
+        self.finish_current_line_and_reset(forced_line_break, for_block_level);
     }
 
     fn potential_line_size(&self) -> LogicalVec2<Au> {
@@ -1787,7 +1806,10 @@ impl InlineFormattingContextLayout<'_> {
             return;
         }
         if !self.unbreakable_segment_fits_on_line() {
-            self.process_line_break(false /* forced_line_break */);
+            self.process_line_break(
+                false, /* forced_line_break */
+                false, /* for_block_level */
+            );
         }
         self.commit_current_segment_to_line();
     }

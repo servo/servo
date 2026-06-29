@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>box-decoration-break: clone should not insert decorations around a block-level box that has split the inline.</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<link rel="help" href="https://www.w3.org/Style/css2-updates/css2/visuren.html#:~:text=When%20an%20inline%20box%20contains%20an%20in-flow%20block-level%20box">
+<link rel="match" href="box-decoration-break-clone-split-inline-ref.html">
+<meta name="assert" content="box-decoration-break: clone should not insert decorations around an in-flow block-level box that has split the inline.">
+<style>
+  span {
+    border-inline: 25px solid magenta;
+    box-decoration-break: clone;
+  }
+  div {
+    border: solid cyan;
+    width: 200px;
+  }
+</style>
+<span>
+  inline before split
+  <div>There should be no magenta around this.</div>
+  inline after split
+</span>
