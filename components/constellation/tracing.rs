@@ -169,7 +169,7 @@ mod from_script {
                 },
                 Self::GetChildBrowsingContextCount(..) => target!("GetChildBrowsingContextCount"),
                 Self::GetChildBrowsingContextId(..) => target!("GetChildBrowsingContextId"),
-                Self::LoadComplete => target!("LoadComplete"),
+                Self::LoadFinished { .. } => target!("LoadFinished"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::AbortLoadUrl => target!("AbortLoadUrl"),
                 Self::PostMessage { .. } => target!("PostMessage"),

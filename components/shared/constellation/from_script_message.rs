@@ -776,9 +776,12 @@ pub enum ScriptToConstellationMessage {
         PipelineId,
         GenericSender<Option<(OriginSnapshot, Vec<ImmutableOrigin>)>>,
     ),
-    /// All pending loads are complete, and the `load` event for this pipeline
-    /// has been dispatched.
-    LoadComplete,
+    /// Inform the constellation that this pipeline's pending loads are finished, either because
+    /// they were completed or because the load has been aborted. In the case it has not been
+    /// aborted this indicates that the pipeline's `load` event has already been dispatched.
+    LoadFinished {
+        aborted: bool,
+    },
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
     LoadUrl(LoadData, NavigationHistoryBehavior, TargetSnapshotParams),
