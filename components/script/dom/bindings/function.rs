@@ -11,9 +11,10 @@
 macro_rules! native_fn {
     ($cx:expr, $call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
         let fun_obj = $crate::native_raw_obj_fn!($cx, $call, $name, $nargs, $flags);
+        let cx = $cx;
         #[expect(unsafe_code)]
         unsafe {
-            Function::new($cx, fun_obj)
+            Function::new(cx, fun_obj)
         }
     }};
 }

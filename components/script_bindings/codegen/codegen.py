@@ -1002,7 +1002,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGWrapper(CGGeneric(f"{name}<D>"), pre="Rc<", post=">")
-            template = f"{name}::new(&cx, ${{val}}.get().to_object())"
+            template = f"{name}::new(cx, ${{val}}.get().to_object())"
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
                 template = wrapObjectTemplate(f"Some({template})", "None",
@@ -2862,7 +2862,7 @@ class CGGeneric(CGThing):
 
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name: str) -> None:
-        CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(&cx, ${{val}}.get().to_object())")
+        CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object())")
 
 
 def getAllTypes(
