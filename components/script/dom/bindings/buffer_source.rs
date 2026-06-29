@@ -43,6 +43,7 @@ use js::typedarray::{
     TypedArrayElementCreator,
 };
 
+use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::trace::RootedTraceableBox;
 
@@ -73,6 +74,33 @@ impl Clone for BufferSource {
             },
             BufferSource::ArrayBuffer(heap) => BufferSource::ArrayBuffer(Heap::boxed(heap.get())),
         }
+    }
+}
+
+/// <https://webidl.spec.whatwg.org/#dfn-get-buffer-source-copy>
+///
+/// Spec steps and how they're covered:
+///
+/// - **Convert to JS value**: Handled by WebIDL bindings before this function
+///   receives the typed `ArrayBufferViewOrArrayBuffer` union.
+///
+/// - **ArrayBufferView offset/length**: `view.to_vec()` (mozjs) calls
+///   `GetArrayBufferViewLengthAndData`, which respects the view's
+///   `[[ByteOffset]]` and `[[ByteLength]]` — only the viewed bytes are copied.
+///
+/// - **ArrayBuffer**: `buffer.to_vec()` (mozjs) calls
+///   `GetArrayBufferLengthAndData`, copying the entire buffer contents.
+///
+/// - **Detached buffer**: When a buffer is detached, SpiderMonkey's
+///   `GetArrayBuffer(LengthAndData|ViewLengthAndData)` returns a null pointer
+///   and zero length. `to_vec()` thus produces an empty `Vec<u8>`.
+///
+/// - **SharedArrayBuffer**: Not applicable — `ArrayBufferViewOrArrayBuffer`
+///   does not include a SharedArrayBuffer variant.
+pub(crate) fn get_buffer_source_copy(source: &ArrayBufferViewOrArrayBuffer) -> Vec<u8> {
+    match source {
+        ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+        ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
     }
 }
 

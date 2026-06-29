@@ -13,6 +13,7 @@ use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 
+use crate::dom::bindings::buffer_source::get_buffer_source_copy;
 use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::BluetoothCharacteristicPropertiesMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::BluetoothRemoteGATTCharacteristicMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
@@ -203,10 +204,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
         }
 
         // Step 2 - 3.
-        let vec = match value {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(avb) => avb.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(ab) => ab.to_vec(),
-        };
+        let vec = get_buffer_source_copy(&value);
 
         if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
             p.reject_error(cx, InvalidModification(None));

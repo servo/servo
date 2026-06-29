@@ -19,6 +19,7 @@ use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::conversions::{Convert, TryConvert};
+use crate::dom::bindings::buffer_source::get_buffer_source_copy;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCopyExternalImageDestInfo, GPUCopyExternalImageSourceInfo, GPUExtent3D, GPUQueueMethods,
     GPUSize64, GPUTexelCopyBufferLayout, GPUTexelCopyTextureInfo,
@@ -110,7 +111,6 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer>
-    #[expect(unsafe_code, deprecated)]
     fn WriteBuffer(
         &self,
         buffer: &GPUBuffer,
@@ -149,17 +149,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         // Step 5&6
         let byte_start = (data_offset as usize) * sizeof_element;
         let byte_end = ((data_offset + content_size) as usize) * sizeof_element;
-        let contents = match &data {
-            BufferSource::ArrayBufferView(data) => {
-                // SAFETY: The subslice is immediately copied into GenericSharedMemory,
-                // hence there is no opportunity for the slice to invalidated.
-                GenericSharedMemory::from_bytes(unsafe { &data.as_slice()[byte_start..byte_end] })
-            },
-            BufferSource::ArrayBuffer(data) => {
-                // SAFETY: The subslice is immediately copied into GenericSharedMemory,
-                // hence there is no opportunity for the slice to invalidated.
-                GenericSharedMemory::from_bytes(unsafe { &data.as_slice()[byte_start..byte_end] })
-            },
+        let contents = {
+            let all_bytes = get_buffer_source_copy(&data);
+            GenericSharedMemory::from_bytes(&all_bytes[byte_start..byte_end])
         };
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
             device_id: self.device.borrow().as_ref().unwrap().id().0,
@@ -183,10 +175,8 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         data_layout: &GPUTexelCopyBufferLayout,
         size: GPUExtent3D,
     ) -> Fallible<()> {
-        let (bytes, len) = match data {
-            BufferSource::ArrayBufferView(d) => (d.to_vec(), d.len() as u64),
-            BufferSource::ArrayBuffer(d) => (d.to_vec(), d.len() as u64),
-        };
+        let bytes = get_buffer_source_copy(&data);
+        let len = bytes.len() as u64;
         let valid = data_layout.offset <= len;
 
         if !valid {
