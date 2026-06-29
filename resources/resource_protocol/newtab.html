@@ -1,20 +1,129 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Servo - New Tab</title>
-    <link rel="stylesheet" href="resource:///newtab.css" />
-  </head>
-  <body>
-    <a href="https://servo.org">
-      <img class="light" src="resource:///servo-color-positive-no-container.svg" draggable="false"/>
-      <img class="dark" src="resource:///servo-color-negative-no-container.svg" draggable="false"/>
-    </a>
-    <form action="https://duckduckgo.com/html/">
-      <input name="q" placeholder="Search the web…" autofocus />
-      <button type="submit">Go!</button>
-    </form>
-    <a href="https://servo.org">Home</a>
-  </body>
+    <title>New Tab</title>
+    <style>
+        :root {
+            --bg-main: #202124;
+            --bg-header: #303134;
+            --text-primary: #e8eaed;
+            --shadow-focus: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: Roboto, arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .home-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 584px;
+            padding: 20px;
+            box-sizing: border-box;
+            transform: translateY(-40px);
+        }
+
+        .home-logo {
+            margin-bottom: 30px;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .home-logo img {
+            height: 64px;
+            width: auto;
+        }
+
+        .home-search-form {
+            width: 100%;
+            display: flex;
+            background: var(--bg-header);
+            border: 1px solid transparent;
+            border-radius: 24px;
+            height: 44px;
+            padding: 0 14px;
+            align-items: center;
+            box-sizing: border-box;
+            box-shadow: var(--shadow-focus);
+        }
+
+        .home-search-form input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 0 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+        }
+
+        .icon-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="home-view">
+        <div class="home-logo">
+            <img src="resource:///logo-white.png" alt="Ringtail Logo">
+        </div>
+        <form class="home-search-form" id="homeForm">
+            <input type="text" id="homeQuery" required autocomplete="off" placeholder="Search the web…">
+            <button type="submit" class="icon-btn" aria-label="Search">
+                <svg viewBox="0 0 24 24"><path fill="#8ab4f8" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const homeForm = document.getElementById('homeForm');
+        const homeQuery = document.getElementById('homeQuery');
+
+        // Check if a query already exists in the initial URL string on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const query = params.get('q');
+            if (query && query.trim()) {
+                redirectSearch(query.trim()); 
+            }
+        });
+
+        // Intercept form submissions
+        homeForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = homeQuery.value.trim();
+            if (val) redirectSearch(val);
+        });
+
+        function redirectSearch(query) {
+            window.location.href = `https://voxelite.neocities.org/Service?q=${encodeURIComponent(query)}`;
+        }
+    </script>
+</body>
 </html>

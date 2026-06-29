@@ -7103,6 +7103,68 @@ dependencies = [
 ]
 
 [[package]]
+name = "ringtail"
+version = "0.3.0"
+dependencies = [
+ "accesskit",
+ "android_logger",
+ "backtrace",
+ "bpaf",
+ "cc",
+ "cfg-if",
+ "crossbeam-channel",
+ "dirs",
+ "dpi",
+ "egui",
+ "egui-file-dialog",
+ "egui-winit",
+ "egui_glow",
+ "env_filter",
+ "euclid",
+ "gilrs",
+ "glow",
+ "headers",
+ "hilog",
+ "hitrace",
+ "image",
+ "ipc-channel",
+ "jni 0.22.4",
+ "keyboard-types",
+ "libc",
+ "log",
+ "mime_guess",
+ "napi-derive-ohos",
+ "napi-ohos",
+ "nix",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "ohos-abilitykit-sys",
+ "ohos-deviceinfo",
+ "ohos-ime",
+ "ohos-ime-sys",
+ "ohos-vsync",
+ "ohos-window-manager-sys",
+ "raw-window-handle",
+ "rustls",
+ "serde_json",
+ "servo",
+ "servo-allocator",
+ "servo-base",
+ "servo-webdriver-server",
+ "signal-hook-registry",
+ "surfman",
+ "tokio",
+ "tracing",
+ "tracing-perfetto",
+ "tracing-subscriber",
+ "url",
+ "windows-sys 0.61.2",
+ "winit",
+ "winresource",
+ "xcomponent-sys",
+]
+
+[[package]]
 name = "ron"
 version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

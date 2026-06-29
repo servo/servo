@@ -1,0 +1,77 @@
+[package]
+name = "ringtail"
+build = "build.rs"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish = false
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "ringtail"
+path = "lib.rs"
+bench = false
+
+[[bin]]
+name = "ringtail"
+path = "main.rs"
+bench = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)', 'cfg(llvm_pgo)'] }
+
+[build-dependencies]
+cc = { workspace = true }
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = { workspace = true }
+
+[package.metadata.winresource]
+FileDescription = "Ringtail"
+LegalCopyright = "© SpinningCubes"
+OriginalFilename = "ringtail.exe"
+ProductName = "Ringtail"
+
+[features]
+default = ["baked-in-resources", "js_jit", "max_log_level"]
+baked-in-resources = ["servo/baked-in-resources"]
+js_jit = ["servo/js_jit"]
+max_log_level = ["log/release_max_level_info"]
+
+[dependencies]
+cfg-if = { workspace = true }
+headers = { workspace = true }
+log = { workspace = true }
+mime_guess = { workspace = true }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
+servo = { workspace = true, default-features = false }
+tokio = { workspace = true }
+url = { workspace = true }
+
+[target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
+backtrace = { workspace = true }
+dirs = { workspace = true }
+surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
+winit = { workspace = true }
+
+[target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
+signal-hook-registry = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+servo = { workspace = true, features = ["no-wgl"] }
+windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi", "Win32_System_Console"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-app-kit = { workspace = true, features = [
+    "std",
+    "NSColorSpace",
+    "NSResponder",
+    "NSView",
+    "NSWindow",
+] }
+objc2-foundation = { workspace = true, features = [
+    "std",
+] }
