@@ -91,6 +91,7 @@ fn cascade(
         &mut rule_cache_conditions,
         ContainerSizeQuery::none(),
         RuleCascadeFlags::empty(),
+        None, /* tree_counting_info */
     );
     let mut builder = CustomPropertiesBuilder::new(&stylist, &mut context);
     let priority = CascadePriority::new(

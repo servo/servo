@@ -246,6 +246,7 @@ impl ReplacedContents {
             rule_cache_conditions,
             ContainerSizeQuery::none(),
             RuleCascadeFlags::empty(),
+            None, /* tree_counting_info */
         );
 
         let attr_to_computed = |attr_val: &AttrValue| {
