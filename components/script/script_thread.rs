@@ -589,18 +589,12 @@ impl ScriptThread {
     ///
     /// <https://github.com/whatwg/html/issues/2591>
     fn check_load_origin(source: &LoadOrigin, target: &OriginSnapshot) -> bool {
-        match (source, target.immutable()) {
-            (LoadOrigin::Constellation, _) | (LoadOrigin::WebDriver, _) => {
+        match source {
+            LoadOrigin::Constellation | LoadOrigin::WebDriver => {
                 // Always allow loads initiated by the constellation or webdriver.
                 true
             },
-            (_, ImmutableOrigin::Opaque(_)) => {
-                // If the target is opaque, allow.
-                // This covers newly created about:blank auxiliaries, and iframe with no src.
-                // TODO: https://github.com/servo/servo/issues/22879
-                true
-            },
-            (LoadOrigin::Script(source_origin), _) => source_origin.same_origin_domain(target),
+            LoadOrigin::Script(source_origin) => source_origin.same_origin_domain(target),
         }
     }
 
