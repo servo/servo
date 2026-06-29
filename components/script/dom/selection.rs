@@ -547,13 +547,13 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-stringifier>
-    fn Stringifier(&self) -> DOMString {
+    fn Stringifier(&self, cx: &JSContext) -> DOMString {
         // The spec as of Jan 31 2020 just says
         // "See W3C bug 10583." for this method.
         // Stringifying the range seems at least approximately right
         // and passes the non-style-dependent case in the WPT tests.
         if let Some(range) = self.range.get() {
-            range.Stringifier()
+            range.Stringifier(cx)
         } else {
             DOMString::from("")
         }

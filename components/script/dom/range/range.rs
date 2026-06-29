@@ -13,6 +13,7 @@ use js::context::JSContext;
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use style_traits::CSSPixel;
 
@@ -1104,7 +1105,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-stringifier>
-    fn Stringifier(&self) -> DOMString {
+    fn Stringifier(&self, cx: &JSContext) -> DOMString {
         let start_node = self.start_container();
         let end_node = self.end_container();
 
@@ -1140,8 +1141,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // in tree order, to string.
         let ancestor = self.CommonAncestorContainer();
         let iter = start_node
-            .following_nodes(&ancestor, ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Text>);
+            .following_nodes_unrooted(&cx, &ancestor, ShadowIncluding::No)
+            .filter_map(UnrootedDom::downcast::<Text>);
 
         for child in iter {
             if self.contains(child.upcast()) {
