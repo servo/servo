@@ -7,9 +7,10 @@ use js::context::JSContext;
 use js::gc::HandleObject;
 use num_traits::ToPrimitive;
 use script_bindings::codegen::GenericBindings::DocumentTimelineBinding::DocumentTimelineOptions;
-use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{
+    reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+};
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_config::pref;
 use time::Duration;
@@ -52,19 +53,19 @@ impl DocumentTimeline {
         )
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<DocumentTimeline> {
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<DocumentTimeline> {
         let duration = if pref!(layout_animations_test_enabled) {
             Duration::ZERO
         } else {
             CrossProcessInstant::now() - window.navigation_start()
         };
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self {
                 animation_timeline: AnimationTimeline::new_inherited(duration),
                 origin_offset: Duration::ZERO,
             }),
             window,
-            can_gc,
+            cx,
         )
     }
 

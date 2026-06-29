@@ -52,7 +52,7 @@ use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use script_bindings::trace::CustomTraceable;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
@@ -3969,6 +3969,7 @@ impl Document {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
@@ -3991,9 +3992,9 @@ impl Document {
         creation_sandboxing_flag_set: SandboxingFlagSet,
         pipeline_id: PipelineId,
         image_cache: StdArc<dyn ImageCache>,
-        can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
+            cx,
             window,
             None,
             has_browsing_context,
@@ -4017,12 +4018,12 @@ impl Document {
             creation_sandboxing_flag_set,
             pipeline_id,
             image_cache,
-            can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         has_browsing_context: HasBrowsingContext,
@@ -4046,10 +4047,9 @@ impl Document {
         creation_sandboxing_flag_set: SandboxingFlagSet,
         pipeline_id: PipelineId,
         image_cache: StdArc<dyn ImageCache>,
-        can_gc: CanGc,
     ) -> DomRoot<Document> {
-        let timeline = DocumentTimeline::new(window, can_gc);
-        let document = reflect_dom_object_with_proto(
+        let timeline = DocumentTimeline::new(cx, window);
+        let document = reflect_dom_object_with_proto_and_cx(
             Box::new(Document::new_inherited(
                 window,
                 has_browsing_context,
@@ -4077,7 +4077,7 @@ impl Document {
             )),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let node = document.upcast::<Node>();
@@ -4243,7 +4243,7 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     pub(crate) fn appropriate_template_contents_owner_document(
         &self,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) -> DomRoot<Document> {
         self.appropriate_template_contents_owner_document
             .or_init(|| {
@@ -4253,6 +4253,7 @@ impl Document {
                     IsHTMLDocument::NonHTMLDocument
                 };
                 let new_doc = Document::new(
+                    cx,
                     self.window(),
                     HasBrowsingContext::No,
                     None,
@@ -4276,7 +4277,6 @@ impl Document {
                     self.creation_sandboxing_flag_set(),
                     self.pipeline_id(),
                     self.image_cache.clone(),
-                    can_gc,
                 );
                 new_doc
                     .appropriate_template_contents_owner_document
@@ -5013,6 +5013,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let doc = window.Document();
         let docloader = DocumentLoader::new(&doc.loader());
         Ok(Document::new_with_proto(
+            cx,
             window,
             proto,
             HasBrowsingContext::No,
@@ -5036,7 +5037,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.active_sandboxing_flag_set.get(),
             doc.pipeline_id(),
             doc.image_cache(),
-            CanGc::from_cx(cx),
         ))
     }
 
@@ -5067,6 +5067,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 2. Let document be a new Document, whose content type is "text/html".
         // Step 3. Set document's allow declarative shadow roots to true.
         let document = Document::new(
+            cx,
             window,
             HasBrowsingContext::No,
             Some(ServoUrl::parse("about:blank").unwrap()),
@@ -5089,7 +5090,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.creation_sandboxing_flag_set(),
             doc.pipeline_id(),
             doc.image_cache(),
-            CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
         ServoParser::parse_html_document(cx, &document, Some(compliant_html), url, None, None);
@@ -5122,6 +5122,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .parse()
             .expect("Supported type is not a MIME type");
         let document = Document::new(
+            cx,
             window,
             HasBrowsingContext::No,
             Some(ServoUrl::parse("about:blank").unwrap()),
@@ -5144,7 +5145,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.creation_sandboxing_flag_set(),
             doc.pipeline_id(),
             doc.image_cache(),
-            CanGc::from_cx(cx),
         );
 
         // Step 3. Parse HTML from a string given document and html.

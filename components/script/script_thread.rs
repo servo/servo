@@ -3587,6 +3587,7 @@ impl ScriptThread {
         let is_initial_about_blank = final_url.as_str() == "about:blank";
 
         let document = Document::new(
+            cx,
             &window,
             HasBrowsingContext::Yes,
             Some(final_url.clone()),
@@ -3609,7 +3610,6 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.pipeline_id,
             image_cache,
-            CanGc::from_cx(cx),
         );
 
         let referrer_policy = metadata
