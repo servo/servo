@@ -22,7 +22,6 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::servoparser::ServoParser;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DOMParser {
@@ -91,6 +90,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                 // Step 2. Let document be a new Document, whose content type is type
                 // and URL is this's relevant global object's associated Document's URL.
                 let document = Document::new(
+                    cx,
                     &self.window,
                     HasBrowsingContext::No,
                     Some(url.clone()),
@@ -113,7 +113,6 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.creation_sandboxing_flag_set(),
                     doc.pipeline_id(),
                     doc.image_cache(),
-                    CanGc::from_cx(cx),
                 );
                 // Step switch-1. Parse HTML from a string given document and compliantString.
                 ServoParser::parse_html_document(
@@ -130,6 +129,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                 // Step 2. Let document be a new Document, whose content type is type
                 // and URL is this's relevant global object's associated Document's URL.
                 let document = Document::new(
+                    cx,
                     &self.window,
                     HasBrowsingContext::No,
                     Some(url.clone()),
@@ -152,7 +152,6 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.creation_sandboxing_flag_set(),
                     doc.pipeline_id(),
                     doc.image_cache(),
-                    CanGc::from_cx(cx),
                 );
                 // Step switch-1. Create an XML parser parser, associated with document,
                 // and with XML scripting support disabled.

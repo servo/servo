@@ -249,6 +249,7 @@ impl ServoParser {
             Some(url.clone()),
         );
         let document = Document::new(
+            cx,
             window,
             HasBrowsingContext::No,
             Some(url.clone()),
@@ -271,7 +272,6 @@ impl ServoParser {
             context_document.creation_sandboxing_flag_set(),
             context_document.pipeline_id(),
             context_document.image_cache(),
-            CanGc::from_cx(cx),
         );
 
         // Step 2. If context's node document is in quirks mode, then set document's mode to "quirks".

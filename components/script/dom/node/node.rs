@@ -2938,6 +2938,7 @@ impl Node {
                 let window = document.window();
                 let loader = DocumentLoader::new(&document.loader());
                 let document = Document::new(
+                    cx,
                     window,
                     HasBrowsingContext::No,
                     Some(document.url()),
@@ -2961,7 +2962,6 @@ impl Node {
                     document.creation_sandboxing_flag_set(),
                     document.pipeline_id(),
                     document.image_cache(),
-                    CanGc::from_cx(cx),
                 );
                 // Step 2. If node’s custom element registry’s is scoped is true,
                 // then set copy’s custom element registry to node’s custom element registry.

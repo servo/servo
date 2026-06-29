@@ -11,7 +11,7 @@ use js::context::{JSContext, NoGC};
 use net_traits::image_cache::ImageCache;
 use net_traits::request::InsecureRequestsPolicy;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
@@ -29,7 +29,6 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::location::Location;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
@@ -87,6 +86,7 @@ impl XMLDocument {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
@@ -101,10 +101,9 @@ impl XMLDocument {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         image_cache: Arc<dyn ImageCache>,
-        can_gc: CanGc,
     ) -> DomRoot<XMLDocument> {
-        let timeline = DocumentTimeline::new(window, can_gc);
-        let doc = reflect_dom_object(
+        let timeline = DocumentTimeline::new(cx, window);
+        let doc = reflect_dom_object_with_cx(
             Box::new(XMLDocument::new_inherited(
                 window,
                 has_browsing_context,
@@ -123,7 +122,7 @@ impl XMLDocument {
                 image_cache,
             )),
             window,
-            can_gc,
+            cx,
         );
         {
             let node = doc.upcast::<Node>();
