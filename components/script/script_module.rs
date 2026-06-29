@@ -47,7 +47,6 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
-use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_callback;
@@ -252,24 +251,24 @@ impl ModuleTree {
     }
 }
 
-pub(crate) struct ModuleSource {
-    pub source: Rc<DOMString>,
+pub(crate) struct ModuleSource<'a> {
+    pub source: Cow<'a, str>,
     pub unminified_dir: Option<String>,
     pub external: bool,
     pub url: ServoUrl,
 }
 
-impl crate::unminify::ScriptSource for ModuleSource {
+impl<'a> crate::unminify::ScriptSource for ModuleSource<'a> {
     fn unminified_dir(&self) -> Option<String> {
         self.unminified_dir.clone()
     }
 
-    fn extract_bytes(&self) -> BytesView<'_> {
+    fn extract_bytes(&self) -> &[u8] {
         self.source.as_bytes()
     }
 
-    fn rewrite_source(&mut self, source: Rc<DOMString>) {
-        self.source = source;
+    fn rewrite_source(&mut self, source: String) {
+        self.source = source.into();
     }
 
     fn url(&self) -> ServoUrl {
@@ -323,15 +322,14 @@ impl ModuleTree {
         );
 
         let mut source = if global.unminified_js_dir().is_some() {
-            let source = Rc::new(DOMString::from(source.into_owned()));
             let mut module_source = ModuleSource {
-                source: source.clone(),
+                source,
                 unminified_dir: global.unminified_js_dir(),
                 external,
                 url: url.clone(),
             };
             crate::unminify::unminify_js(&mut module_source);
-            transform_str_to_source_text(&source.str())
+            transform_str_to_source_text(&module_source.source)
         } else {
             transform_str_to_source_text(&source)
         };
@@ -1868,11 +1866,11 @@ fn merge_module_specifier_maps(
 pub(crate) fn parse_an_import_map_string(
     cx: &mut JSContext,
     global: &GlobalScope,
-    input: Cow<'_, str>,
+    input: &str,
     base_url: ServoUrl,
 ) -> Fallible<ImportMap> {
     // Step 1. Let parsed be the result of parsing a JSON string to an Infra value given input.
-    let parsed: JsonValue = serde_json::from_str(&input)
+    let parsed: JsonValue = serde_json::from_str(input)
         .map_err(|_| Error::Type(c"The value needs to be a JSON object.".to_owned()))?;
     // Step 2. If parsed is not an ordered map, then throw a TypeError indicating that the
     // top-level value needs to be a JSON object.

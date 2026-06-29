@@ -28,7 +28,6 @@ use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
@@ -90,15 +89,14 @@ impl GlobalScope {
         external: bool,
     ) -> ClassicScript {
         let mut source = if self.unminified_js_dir().is_some() {
-            let source = Rc::new(DOMString::from(source.into_owned()));
             let mut script_source = ModuleSource {
-                source: source.clone(),
+                source,
                 unminified_dir: self.unminified_js_dir(),
                 external,
                 url: url.clone(),
             };
             unminify_js(&mut script_source);
-            transform_str_to_source_text(&source.str())
+            transform_str_to_source_text(&script_source.source)
         } else {
             transform_str_to_source_text(&source)
         };

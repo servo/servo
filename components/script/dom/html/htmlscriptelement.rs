@@ -927,7 +927,7 @@ impl HTMLScriptElement {
                 ScriptType::ImportMap => {
                     // Step 32.1 Let result be the result of creating an import map
                     // parse result given source text and base URL.
-                    let import_map_result = parse_an_import_map_string(cx, global, text, base_url);
+                    let import_map_result = parse_an_import_map_string(cx, global, &text, base_url);
                     let script = Script::ImportMap(import_map_result);
 
                     // Step 34.3
