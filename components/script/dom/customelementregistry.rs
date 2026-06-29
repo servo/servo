@@ -11,7 +11,7 @@ use std::{mem, ptr};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::conversions::FromJSValConvertible;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSObject};
@@ -623,15 +623,25 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade>
-    fn Upgrade(&self, node: &Node) {
-        // Spec says to make a list first and then iterate the list, but
-        // try-to-upgrade only queues upgrade reactions and doesn't itself
-        // modify the tree, so that's not an observable distinction.
-        node.traverse_preorder(ShadowIncluding::Yes).for_each(|n| {
-            if let Some(element) = n.downcast::<Element>() {
-                try_upgrade_element(element);
+    fn Upgrade(&self, no_gc: &NoGC, node: &Node) {
+        // Step 1. For each shadow-including inclusive descendant candidate of
+        // root, in shadow-including tree order:
+        for node in node.traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes) {
+            // Step 1.1. If candidate is not an Element node, then continue.
+            let Some(element) = node.downcast::<Element>() else {
+                continue;
+            };
+            // Step 1.2. If candidate's custom element registry is not this,
+            // then continue.
+            if element
+                .custom_element_registry()
+                .is_some_and(|registry| *registry != *self)
+            {
+                continue;
             }
-        });
+            // Step 1.3. Try to upgrade candidate.
+            try_upgrade_element(element);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-initialize>
