@@ -80,7 +80,7 @@ impl Tokenizer {
             insecure_requests_policy: document.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
             policy_container: global.policy_container(),
-            request_client: global.request_client(),
+            request_client: global.request_client(None),
         };
         let options = Default::default();
         let inner = TraceableTokenizer(HtmlTokenizer::new(sink, options));

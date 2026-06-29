@@ -64,6 +64,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
 use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
@@ -914,11 +915,11 @@ impl Window {
         self.script_thread().perform_a_microtask_checkpoint(cx);
     }
 
-    pub(crate) fn web_font_context(&self) -> WebFontDocumentContext {
+    pub(crate) fn web_font_context(&self, no_gc: &NoGC) -> WebFontDocumentContext {
         let global = self.as_global_scope();
         WebFontDocumentContext {
             policy_container: global.policy_container(),
-            request_client: global.request_client(),
+            request_client: global.request_client(Some(no_gc)),
             document_url: global.api_base_url(),
             has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
             insecure_requests_policy: global.insecure_requests_policy(),
@@ -2563,7 +2564,8 @@ impl Window {
             return Default::default();
         }
 
-        self.Document().ensure_safe_to_run_script_or_layout();
+        self.document_unrooted(cx.no_gc())
+            .ensure_safe_to_run_script_or_layout();
 
         // If layouts are blocked, we block all layouts that are for display only. Other
         // layouts (for queries and scrolling) are not blocked, as they do not display
@@ -2614,7 +2616,7 @@ impl Window {
         // layout runs, so that the map can gather their elements in DOM order.
         document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
-        let document_context = self.web_font_context();
+        let document_context = self.web_font_context(cx.no_gc());
 
         let rooted_nodes_for_accessibility_integrity_check =
             document.rooted_nodes_for_accessibility_integrity_check();
@@ -2908,6 +2910,13 @@ impl Window {
         self.layout
             .borrow()
             .query_current_css_zoom(node.to_trusted_node_address())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-2>
+    pub(crate) fn document_unrooted<'a>(&self, no_gc: &'a NoGC) -> UnrootedDom<'a, Document> {
+        self.document
+            .get_unrooted(no_gc)
+            .expect("Document accessed before initialization.")
     }
 
     /// Find the scroll area of the given node, if it is not None. If the node

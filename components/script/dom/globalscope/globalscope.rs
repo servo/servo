@@ -26,6 +26,7 @@ use embedder_traits::{
 use fonts::FontContext;
 use indexmap::IndexSet;
 use ipc_channel::router::ROUTER;
+use js::context::NoGC;
 use js::jsapi::{
     CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap, JSContext, JSObject,
 };
@@ -2629,12 +2630,21 @@ impl GlobalScope {
     }
 
     /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
-    pub(crate) fn request_client(&self) -> RequestClient {
+    pub(crate) fn request_client(&self, no_gc: Option<&NoGC>) -> RequestClient {
         // Step 1.2.2. If global is a Window object and global’s navigable is not null,
         // then set request’s traversable for user prompts to global’s navigable’s traversable navigable.
         let window = self.downcast::<Window>();
         let preloaded_resources = window
-            .map(|window: &Window| window.Document().preloaded_resources().clone())
+            .map(|window: &Window| {
+                if let Some(no_gc) = no_gc {
+                    window
+                        .document_unrooted(no_gc)
+                        .preloaded_resources()
+                        .clone()
+                } else {
+                    window.Document().preloaded_resources().clone()
+                }
+            })
             .unwrap_or_default();
         let is_nested_browsing_context = window.is_some_and(|window| !window.is_top_level());
         RequestClient {
