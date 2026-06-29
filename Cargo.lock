@@ -4562,9 +4562,9 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "itertools"
-version = "0.10.5"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
 dependencies = [
  "either",
 ]
@@ -5189,9 +5189,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs"
-version = "0.16.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8d7e5cba578bc71ec962623e1bfffa5aaaa7665c54fa236d6f930c492807f7d"
+version = "0.16.5"
+source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#0fdaa65e4c102a970c70a1df2fa5a1d8b5a941e8"
 dependencies = [
  "bindgen",
  "cc",
@@ -5204,9 +5203,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "140.12.0-0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f78cdbe11d0dba944f54f21f0f2b8c3ffb24b94170c0c075fadc24cc3e947dc4"
+version = "140.12.0-1"
+source = "git+https://github.com/Gae24/mozjs.git?branch=offthread#0fdaa65e4c102a970c70a1df2fa5a1d8b5a941e8"
 dependencies = [
  "bindgen",
  "cc",
@@ -6715,7 +6713,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn",

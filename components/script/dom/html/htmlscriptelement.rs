@@ -8,11 +8,13 @@ use std::ffi::CStr;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
+use js::offthread::compile_to_stencil_offthread;
 use js::rust::HandleObject;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
@@ -21,6 +23,7 @@ use net_traits::request::{
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use servo_base::id::WebViewId;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
@@ -51,7 +54,9 @@ use crate::dom::element::{
 };
 use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::script_execution::{
+    ClassicScript, ErrorReporting, RethrowErrors, fill_compile_options,
+};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
@@ -389,7 +394,50 @@ impl FetchResponseListener for ClassicContext {
         }
 
         // Step 5.6. Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
-        let muted_errors = self.response_was_cors_cross_origin;
+        let muted_errors = ErrorReporting::from(self.response_was_cors_cross_origin);
+
+        let fetch_options = self.fetch_options.clone();
+
+        if pref!(dom_script_asynch) {
+            let options = fill_compile_options(
+                cx,
+                final_url.as_str(),
+                Some(IntroductionType::SRC_SCRIPT),
+                muted_errors,
+                true,
+                1,
+            );
+
+            let src = Arc::new(source_text.to_string());
+
+            let task_source = global
+                .task_manager()
+                .dom_manipulation_task_source()
+                .to_sendable();
+
+            let trusted = self.elem.clone();
+
+            let _offthread_token = compile_to_stencil_offthread(options.ptr, src, move |result| {
+                task_source.queue(task!(instantiate_stencil: move |cx| {
+                    let script_element = trusted.root();
+
+                    let script = ClassicScript::from_stencil(
+                        cx,
+                        result,
+                        final_url,
+                        fetch_options,
+                        muted_errors,
+                    );
+
+                    *script_element.result.borrow_mut() = Some(Ok(Script::Classic(script)));
+                    finish_fetching_a_script(&script_element, self.kind, cx);
+                }));
+
+                None
+            });
+
+            return;
+        }
 
         // Step 5.7. Let script be the result of creating a classic script given
         // sourceText, settingsObject, response's URL, options, mutedErrors, and url.
@@ -397,46 +445,15 @@ impl FetchResponseListener for ClassicContext {
             cx,
             source_text,
             final_url,
-            self.fetch_options.clone(),
-            ErrorReporting::from(muted_errors),
+            fetch_options,
+            muted_errors,
             Some(IntroductionType::SRC_SCRIPT),
             1,
             true,
         );
 
-        /*
-        let options = unsafe { CompileOptionsWrapper::new(*cx, final_url.as_str(), 1) };
-
-        let can_compile_off_thread = pref!(dom_script_asynch) &&
-            unsafe { CanCompileOffThread(*cx, options.ptr as *const _, source_text.len()) };
-
-        if can_compile_off_thread {
-            let source_string = source_text.to_string();
-
-            let context = Box::new(OffThreadCompilationContext {
-                script_element: self.elem.clone(),
-                script_kind: self.kind,
-                final_url,
-                url: self.url.clone(),
-                task_source: elem.owner_global().task_manager().dom_manipulation_task_source(),
-                script_text: source_string,
-                fetch_options: self.fetch_options.clone(),
-            });
-
-            unsafe {
-                assert!(!CompileToStencilOffThread1(
-                    *cx,
-                    options.ptr as *const _,
-                    &mut transform_str_to_source_text(&context.script_text) as *mut _,
-                    Some(off_thread_compilation_callback),
-                    Box::into_raw(context) as *mut c_void,
-                )
-                .is_null());
-            }
-        } else {*/
         *elem.result.borrow_mut() = Some(Ok(Script::Classic(script)));
         finish_fetching_a_script(&elem, self.kind, cx);
-        // }
     }
 
     fn process_csp_violations(

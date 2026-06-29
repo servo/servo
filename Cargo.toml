@@ -138,7 +138,7 @@ inventory = "0.3.24"
 ipc-channel = "0.22"
 itertools = "0.15"
 jni = "0.22"
-js = { package = "mozjs", version = "=0.16.4", default-features = false, features = ["intl", "libz-sys"] }
+js = { package = "mozjs", version = "=0.16.5", default-features = false, features = ["intl", "libz-sys"] }
 k12 = "0.5"
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.13.1", features = ["euclid"] }
@@ -441,8 +441,8 @@ codegen-units = 1
 #
 # Or for mozjs:
 #
-# mozjs = { path = "../mozjs/mozjs" }
-# mozjs_sys = { path = "../mozjs/mozjs-sys" }
+mozjs = { git = "https://github.com/Gae24/mozjs.git", branch = "offthread" }
+mozjs_sys = { git = "https://github.com/Gae24/mozjs.git", branch = "offthread" }
 #
 # Or for CSP crate:
 # content-security-policy = { path = "../rust-content-security-policy" }

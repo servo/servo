@@ -9,12 +9,16 @@ use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
-use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
+use js::jsapi::{
+    ExceptionStackBehavior, HadFrontendErrors, Heap, InstantiateOptions, JSScript, SetScriptPrivate,
+};
 use js::jsval::{PrivateValue, UndefinedValue};
+use js::offthread::CompilationResult;
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
-    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
-    JS_IsExceptionPending, JS_SetPendingException,
+    Compile1, ConvertFrontendErrorsToRuntimeErrors, InstantiateGlobalStencil,
+    JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate, JS_IsExceptionPending,
+    JS_SetPendingException,
 };
 use js::rust::{
     CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
@@ -51,6 +55,54 @@ pub(crate) struct ClassicScript {
     url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#muted-errors>
     muted_errors: ErrorReporting,
+}
+
+impl ClassicScript {
+    #[expect(unsafe_code)]
+    pub(crate) fn from_stencil(
+        cx: &mut JSContext,
+        compilation_result: CompilationResult,
+        url: ServoUrl,
+        fetch_options: ScriptFetchOptions,
+        muted_errors: ErrorReporting,
+    ) -> ClassicScript {
+        let CompilationResult {
+            stencil,
+            mut storage,
+            fc,
+            compile_options,
+        } = compilation_result;
+
+        let options = compile_options.read_only();
+
+        let record = if unsafe { HadFrontendErrors(*fc) } {
+            unsafe { ConvertFrontendErrorsToRuntimeErrors(cx, *fc, options) };
+            Err(RethrowError::from_pending_exception(cx))
+        } else {
+            debug_assert!(!stencil.is_null());
+            let instantiate_options = InstantiateOptions {
+                skipFilenameValidation: options._base.skipFilenameValidation_,
+                hideScriptFromDebugger: options._base.hideScriptFromDebugger_,
+                deferDebugMetadata: options._base.deferDebugMetadata_,
+                eagerDelazificationStrategy_: options._base.eagerDelazificationStrategy_,
+            };
+
+            rooted!(&in(cx) let script = unsafe { InstantiateGlobalStencil(
+                cx,
+                &instantiate_options,
+                *stencil,
+                storage.as_mut_ptr(),
+            )});
+            Ok(RootedTraceableBox::from_box(Heap::boxed(script.get())))
+        };
+
+        ClassicScript {
+            record,
+            url,
+            fetch_options,
+            muted_errors,
+        }
+    }
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
