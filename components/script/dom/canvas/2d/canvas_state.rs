@@ -322,6 +322,8 @@ impl CanvasState {
 
         // Step 2. Resize the output bitmap to the new width and height.
         self.size.replace(adjust_canvas_size(size));
+        // Discard buffered commands targeting the old canvas.
+        self.buffered_sender.discard();
         // Flushing is not required for correctness, but optimization heuristics for heavy command.
         self.send_canvas_command_immediate(CanvasCommand::Recreate(Some(self.size.get())));
     }
@@ -335,6 +337,8 @@ impl CanvasState {
         }
 
         // Step 1. Clear canvas's bitmap to transparent black.
+        // Discard buffered commands targeting the old canvas.
+        self.buffered_sender.discard();
         // Flushing is not required for correctness, but optimization heuristics for heavy command.
         self.send_canvas_command_immediate(CanvasCommand::Recreate(None));
     }
