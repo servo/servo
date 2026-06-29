@@ -1141,7 +1141,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // in tree order, to string.
         let ancestor = self.CommonAncestorContainer();
         let iter = start_node
-            .following_nodes_unrooted(&cx, &ancestor, ShadowIncluding::No)
+            .following_nodes_unrooted(cx, &ancestor, ShadowIncluding::No)
             .filter_map(UnrootedDom::downcast::<Text>);
 
         for child in iter {
