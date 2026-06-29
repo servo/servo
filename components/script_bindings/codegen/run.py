@@ -36,7 +36,6 @@ def main() -> None:
     config_file = "Bindings.conf"
 
     import WebIDL
-    from codegen import CGBindingRoot, CGConcreteBindingRoot
     from configuration import Configuration
 
     parser = WebIDL.Parser(make_dir(os.path.join(out_dir, "cache")))
