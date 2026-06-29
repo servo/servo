@@ -196,7 +196,7 @@ impl FormControl for HTMLLabelElement {
         // form owner. Therefore it doesn't hold form owner itself.
     }
 
-    fn to_element(&self) -> &Element {
-        self.upcast::<Element>()
+    fn to_html_element(&self) -> &HTMLElement {
+        self.upcast::<HTMLElement>()
     }
 }
