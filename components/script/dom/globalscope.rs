@@ -2877,6 +2877,8 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
+        assert!(self.can_run_script());
+
         let in_realm_proof = cx.into();
         let in_realm = InRealm::Already(&in_realm_proof);
 
