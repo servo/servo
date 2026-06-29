@@ -76,13 +76,13 @@ impl MediaList {
         // FIXME(emilio): This looks somewhat fishy, since we use the context
         // only to parse the media query list, CssRuleType::Media doesn't make
         // much sense.
-        let context = parser_context_for_document(
+        let mut context = parser_context_for_document(
             &document,
             CssRuleType::Media,
             ParsingMode::DEFAULT,
             &url_data,
         );
-        StyleMediaList::parse(&context, &mut parser)
+        StyleMediaList::parse(&mut context, &mut parser)
     }
 
     /// <https://drafts.csswg.org/cssom/#parse-a-media-query>
@@ -121,7 +121,7 @@ impl MediaList {
         // matter right now...
         //
         // Also, ParsingMode::all() is wrong, and should be DEFAULT.
-        let context = ParserContext::new(
+        let mut context = ParserContext::new(
             Origin::Author,
             &url_data,
             Some(CssRuleType::Style),
@@ -134,7 +134,7 @@ impl MediaList {
         );
         let mut parser_input = ParserInput::new(media_query);
         let mut parser = Parser::new(&mut parser_input);
-        let media_list = StyleMediaList::parse(&context, &mut parser);
+        let media_list = StyleMediaList::parse(&mut context, &mut parser);
         media_list.evaluate(
             document.window().layout().device(),
             quirks_mode,
