@@ -5,7 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
@@ -547,13 +547,13 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-stringifier>
-    fn Stringifier(&self, cx: &JSContext) -> DOMString {
+    fn Stringifier(&self, no_gc: &NoGC) -> DOMString {
         // The spec as of Jan 31 2020 just says
         // "See W3C bug 10583." for this method.
         // Stringifying the range seems at least approximately right
         // and passes the non-style-dependent case in the WPT tests.
         if let Some(range) = self.range.get() {
-            range.Stringifier(cx)
+            range.Stringifier(no_gc)
         } else {
             DOMString::from("")
         }

@@ -9,7 +9,7 @@ use std::iter;
 use app_units::Au;
 use dom_struct::dom_struct;
 use euclid::Rect;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
@@ -1105,7 +1105,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-stringifier>
-    fn Stringifier(&self, cx: &JSContext) -> DOMString {
+    fn Stringifier(&self, no_gc: &NoGC) -> DOMString {
         let start_node = self.start_container();
         let end_node = self.end_container();
 
@@ -1141,7 +1141,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // in tree order, to string.
         let ancestor = self.CommonAncestorContainer();
         let iter = start_node
-            .following_nodes_unrooted(cx, &ancestor, ShadowIncluding::No)
+            .following_nodes_unrooted(no_gc, &ancestor, ShadowIncluding::No)
             .filter_map(UnrootedDom::downcast::<Text>);
 
         for child in iter {
