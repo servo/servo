@@ -611,7 +611,7 @@ impl HostTrait for HostCallbacks {
                     )
                     .map(|_| ()),
                 LoadStatus::HeadParsed => Ok(()),
-                LoadStatus::Complete => env
+                LoadStatus::Complete | LoadStatus::Stopped => env
                     .call_method(
                         callback_ref(),
                         jni_str!("onLoadEnded"),

@@ -134,7 +134,7 @@ impl WebViewDelegate for WebViewDelegateImpl {
     }
 
     fn notify_load_status_changed(&self, _webview: WebView, status: LoadStatus) {
-        if status == LoadStatus::Complete {
+        if matches!(status, LoadStatus::Complete | LoadStatus::Stopped) {
             self.load_status_changed.set(true);
         }
     }
@@ -216,7 +216,12 @@ pub(crate) fn evaluate_javascript(
     webview: WebView,
     script: impl ToString,
 ) -> Result<JSValue, JavaScriptEvaluationError> {
-    let _ = servo_test.spin(|| webview.load_status() != LoadStatus::Complete);
+    let _ = servo_test.spin(|| {
+        !matches!(
+            webview.load_status(),
+            LoadStatus::Complete | LoadStatus::Stopped,
+        )
+    });
 
     let saved_result = Rc::new(RefCell::new(None));
     let callback_result = saved_result.clone();
@@ -239,7 +244,12 @@ pub(crate) fn show_webview_and_wait_for_rendering_to_be_ready(
     webview: &WebView,
     delegate: &Rc<WebViewDelegateImpl>,
 ) {
-    servo_test.spin(|| webview.load_status() != LoadStatus::Complete);
+    servo_test.spin(|| {
+        !matches!(
+            webview.load_status(),
+            LoadStatus::Complete | LoadStatus::Stopped,
+        )
+    });
 
     delegate.reset();
 

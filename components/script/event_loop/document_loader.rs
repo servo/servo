@@ -94,6 +94,8 @@ pub(crate) struct DocumentLoader {
     /// reaches zero, it is removed from the map and no longer blocks the load.
     blocking_loads: HashMap<LoadType, u32>,
     events_inhibited: bool,
+    /// Whether or not the load was aborted via [`Document::abort`].
+    aborted: bool,
 }
 
 impl DocumentLoader {
@@ -116,6 +118,7 @@ impl DocumentLoader {
             resource_threads,
             blocking_loads: initial_loads,
             events_inhibited: false,
+            aborted: false,
         }
     }
 
@@ -168,6 +171,15 @@ impl DocumentLoader {
 
     pub(crate) fn events_inhibited(&self) -> bool {
         self.events_inhibited
+    }
+
+    pub(crate) fn abort(&mut self) {
+        self.aborted = true;
+        self.events_inhibited = true;
+    }
+
+    pub(crate) fn aborted(&self) -> bool {
+        self.aborted
     }
 
     pub(crate) fn resource_threads(&self) -> &ResourceThreads {

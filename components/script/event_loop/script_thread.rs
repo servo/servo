@@ -1888,11 +1888,18 @@ impl ScriptThread {
                     self.handle_web_font_loaded(cx.no_gc(), pipeline_id)
                 }
             },
-            ScriptThreadMessage::DispatchIFrameLoadEvent {
+            ScriptThreadMessage::IFrameLoadFinished {
                 target: browsing_context_id,
                 parent: parent_id,
                 child: child_id,
-            } => self.handle_iframe_load_event(cx, parent_id, browsing_context_id, child_id),
+                aborted,
+            } => self.handle_iframe_finished_loading(
+                cx,
+                parent_id,
+                browsing_context_id,
+                child_id,
+                aborted,
+            ),
             ScriptThreadMessage::DispatchStorageEvent(
                 pipeline_id,
                 storage,
@@ -3431,19 +3438,20 @@ impl ScriptThread {
     }
 
     /// Notify the containing document of a child iframe that has completed loading.
-    fn handle_iframe_load_event(
+    fn handle_iframe_finished_loading(
         &self,
         cx: &mut JSContext,
         parent_id: PipelineId,
         browsing_context_id: BrowsingContextId,
         child_id: PipelineId,
+        aborted: bool,
     ) {
         let iframe = self
             .documents
             .borrow()
             .find_iframe(parent_id, browsing_context_id);
         match iframe {
-            Some(iframe) => iframe.iframe_load_event_steps(cx, child_id),
+            Some(iframe) => iframe.load_finished(cx, child_id, aborted),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }
