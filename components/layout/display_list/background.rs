@@ -74,7 +74,7 @@ impl<'a> BackgroundPainter<'a> {
         match get_cyclic(&background.background_clip.0, layer_index) {
             Clip::ContentBox => *fragment_builder.content_rect(),
             Clip::PaddingBox => *fragment_builder.padding_rect(),
-            Clip::BorderBox => fragment_builder.border_rect,
+            Clip::BorderBox | Clip::BorderArea => fragment_builder.border_rect,
         }
     }
 
@@ -107,6 +107,7 @@ impl<'a> BackgroundPainter<'a> {
             Clip::BorderBox => {
                 fragment_builder.border_edge_clip(builder, state, force_clip_creation)
             },
+            Clip::BorderArea => unreachable!("Should be disabled behind a pref"),
         }
     }
 
