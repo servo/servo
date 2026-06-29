@@ -32,7 +32,7 @@ rust-version = "1.88.0"
 accesskit = { version = "0.24.0", features = ["serde"] }
 accesskit_consumer = "0.35.0"
 aes = { version = "0.9", features = ["zeroize"] }
-aes-gcm = { version = "=0.11.0-rc.4", features = ["hazmat", "zeroize"] }
+aes-gcm = { version = "0.11", features = ["hazmat", "zeroize"] }
 aes-kw = { version = "0.3", features = ["zeroize"] }
 android_logger = "0.15"
 app_units = "0.7"
@@ -60,7 +60,7 @@ bytes = "1.0"
 cbc = { version = "0.2", features = ["alloc", "zeroize"] }
 cc = "1.2"
 cfg-if = "1.0.4"
-chacha20poly1305 = { version = "=0.11.0-rc.3", features = ["rand_core", "zeroize"] }
+chacha20poly1305 = { version = "0.11", features = ["rand_core", "zeroize"] }
 chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 content-security-policy = { version = "0.8.0", features = ["serde"] }
