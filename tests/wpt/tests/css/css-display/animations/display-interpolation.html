@@ -9,12 +9,12 @@
 <script src="/css/support/interpolation-testcommon.js"></script>
 
 <body>
-<script>
-test_not_animatable({
-  property: 'display',
-  from: 'none',
-  to: 'flex',
-  underlying: 'block'
-});
-</script>
+  <script>
+    test_no_interpolation({
+      property: 'display',
+      from: 'grid',
+      to: 'flex',
+      underlying: 'block'
+    });
+  </script>
 </body>

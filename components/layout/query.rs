@@ -104,7 +104,7 @@ pub(crate) fn process_box_area_request(
             !exclude_transform_and_inline ||
                 fragment
                     .retrieve_box_fragment()
-                    .is_none_or(|fragment| !fragment.is_inline_box())
+                    .is_none_or(|fragment| !fragment.with_style().is_inline_box())
         })
         .filter_map(|node| node.cumulative_box_area_rect(area, layout_thread.into()))
         .peekable();
@@ -433,7 +433,7 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
         Fragment::LayoutRoot(layout_root) => {
             resolved_size_should_be_used_value(&layout_root.inner())
         },
-        Fragment::Box(box_fragment) => !box_fragment.is_inline_box(),
+        Fragment::Box(box_fragment) => !box_fragment.with_style().is_inline_box(),
         Fragment::Float(_) |
         Fragment::Positioning(_) |
         Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |

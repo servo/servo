@@ -1,0 +1,335 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+//! DOM bindings for `CharacterData`.
+use std::cell::LazyCell;
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
+
+use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::cdatasection::CDATASection;
+use crate::dom::comment::Comment;
+use crate::dom::document::Document;
+use crate::dom::element::Element;
+use crate::dom::mutationobserver::{Mutation, MutationObserver};
+use crate::dom::node::virtualmethods::vtable_for;
+use crate::dom::node::{ChildrenMutation, Node, NodeDamage};
+use crate::dom::processinginstruction::ProcessingInstruction;
+use crate::dom::text::Text;
+
+// https://dom.spec.whatwg.org/#characterdata
+#[dom_struct]
+pub(crate) struct CharacterData {
+    node: Node,
+    data: DomRefCell<String>,
+}
+
+impl CharacterData {
+    pub(crate) fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
+        CharacterData {
+            node: Node::new_inherited(document),
+            data: DomRefCell::new(String::from(data)),
+        }
+    }
+
+    pub(crate) fn clone_with_data(
+        &self,
+        cx: &mut js::context::JSContext,
+        data: DOMString,
+        document: &Document,
+    ) -> DomRoot<Node> {
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                DomRoot::upcast(Comment::new(cx, data, document, None))
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                let pi = self.downcast::<ProcessingInstruction>().unwrap();
+                DomRoot::upcast(ProcessingInstruction::new(cx, pi.Target(), data, document))
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
+                DomRoot::upcast(CDATASection::new(cx, data, document))
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
+                DomRoot::upcast(Text::new(cx, data, document))
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn data(&self) -> Ref<'_, String> {
+        self.data.borrow()
+    }
+
+    #[inline]
+    pub(crate) fn append_data(&self, cx: &mut JSContext, data: &str) {
+        self.queue_mutation_record();
+        self.data.borrow_mut().push_str(data);
+        self.content_changed(cx);
+    }
+
+    fn content_changed(&self, cx: &mut JSContext) {
+        let node = self.upcast::<Node>();
+        node.dirty(NodeDamage::Other);
+
+        // If this is a Text node, we might need to re-parse (say, if our parent
+        // is a <style> element.) We don't need to if this is a Comment or
+        // ProcessingInstruction.
+        if self.is::<Text>() &&
+            let Some(parent_node) = node.GetParentNode()
+        {
+            let mutation = ChildrenMutation::ChangeText;
+            vtable_for(&parent_node).children_changed(cx, &mutation);
+        }
+    }
+
+    // Queue a MutationObserver record before changing the content.
+    fn queue_mutation_record(&self) {
+        let mutation = LazyCell::new(|| Mutation::CharacterData {
+            old_value: self.data.borrow().clone(),
+        });
+        MutationObserver::queue_a_mutation_record(self.upcast::<Node>(), mutation);
+    }
+}
+
+impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-data>
+    fn Data(&self) -> DOMString {
+        DOMString::from(self.data.borrow().clone())
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-data>
+    fn SetData(&self, cx: &mut JSContext, data: DOMString) {
+        self.queue_mutation_record();
+        let old_length = self.Length();
+        let new_length = data.str().encode_utf16().count() as u32;
+        *self.data.borrow_mut() = String::from(data.str());
+        self.content_changed(cx);
+        let node = self.upcast::<Node>();
+        node.ranges()
+            .replace_code_units(node, 0, old_length, new_length);
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
+    fn Length(&self) -> u32 {
+        self.data.borrow().encode_utf16().count() as u32
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-substringdata>
+    fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
+        let data = self.data.borrow();
+        // Step 1.
+        let mut substring = String::new();
+        let remaining = match split_at_utf16_code_unit_offset(&data, offset) {
+            Ok((_, astral, s)) => {
+                // As if we had split the UTF-16 surrogate pair in half
+                // and then transcoded that to UTF-8 lossily,
+                // since our DOMString is currently strict UTF-8.
+                if astral.is_some() {
+                    substring += "\u{FFFD}";
+                }
+                s
+            },
+            // Step 2.
+            Err(()) => return Err(Error::IndexSize(None)),
+        };
+        match split_at_utf16_code_unit_offset(remaining, count) {
+            // Steps 3.
+            Err(()) => substring += remaining,
+            // Steps 4.
+            Ok((s, astral, _)) => {
+                substring += s;
+                // As if we had split the UTF-16 surrogate pair in half
+                // and then transcoded that to UTF-8 lossily,
+                // since our DOMString is currently strict UTF-8.
+                if astral.is_some() {
+                    substring += "\u{FFFD}";
+                }
+            },
+        };
+        Ok(DOMString::from(substring))
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddata>
+    fn AppendData(&self, cx: &mut JSContext, data: DOMString) {
+        // > The appendData(data) method steps are to replace data of this with this’s length, 0, and data.
+        //
+        // FIXME(ajeffrey): Efficient append on DOMStrings?
+        self.append_data(cx, &data.str());
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdata>
+    fn InsertData(&self, cx: &mut JSContext, offset: u32, arg: DOMString) -> ErrorResult {
+        // > The insertData(offset, data) method steps are to replace data of this with offset, 0, and data.
+        self.ReplaceData(cx, offset, 0, arg)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedata>
+    fn DeleteData(&self, cx: &mut JSContext, offset: u32, count: u32) -> ErrorResult {
+        // > The deleteData(offset, count) method steps are to replace data of this with offset, count, and the empty string.
+        self.ReplaceData(cx, offset, count, DOMString::new())
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-replacedata>
+    fn ReplaceData(
+        &self,
+        cx: &mut JSContext,
+        offset: u32,
+        count: u32,
+        arg: DOMString,
+    ) -> ErrorResult {
+        let mut new_data;
+        {
+            let data = self.data.borrow();
+            let prefix;
+            let replacement_before;
+            let remaining;
+            match split_at_utf16_code_unit_offset(&data, offset) {
+                Ok((p, astral, r)) => {
+                    prefix = p;
+                    // As if we had split the UTF-16 surrogate pair in half
+                    // and then transcoded that to UTF-8 lossily,
+                    // since our DOMString is currently strict UTF-8.
+                    replacement_before = if astral.is_some() { "\u{FFFD}" } else { "" };
+                    remaining = r;
+                },
+                // Step 2.
+                Err(()) => return Err(Error::IndexSize(None)),
+            };
+            let replacement_after;
+            let suffix;
+            match split_at_utf16_code_unit_offset(remaining, count) {
+                // Steps 3.
+                Err(()) => {
+                    replacement_after = "";
+                    suffix = "";
+                },
+                Ok((_, astral, s)) => {
+                    // As if we had split the UTF-16 surrogate pair in half
+                    // and then transcoded that to UTF-8 lossily,
+                    // since our DOMString is currently strict UTF-8.
+                    replacement_after = if astral.is_some() { "\u{FFFD}" } else { "" };
+                    suffix = s;
+                },
+            };
+            // Step 4: Mutation observers.
+            self.queue_mutation_record();
+
+            // Step 5 to 7.
+            new_data = String::with_capacity(
+                prefix.len() +
+                    replacement_before.len() +
+                    arg.len() +
+                    replacement_after.len() +
+                    suffix.len(),
+            );
+            new_data.push_str(prefix);
+            new_data.push_str(replacement_before);
+            new_data.push_str(&arg.str());
+            new_data.push_str(replacement_after);
+            new_data.push_str(suffix);
+        }
+        *self.data.borrow_mut() = new_data;
+        self.content_changed(cx);
+        // Steps 8-11.
+        let node = self.upcast::<Node>();
+        node.ranges().replace_code_units(
+            node,
+            offset,
+            count,
+            arg.str().encode_utf16().count() as u32,
+        );
+        Ok(())
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-childnode-before>
+    fn Before(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().before(cx, nodes)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-childnode-after>
+    fn After(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().after(cx, nodes)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
+    fn ReplaceWith(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_with(cx, nodes)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
+    fn Remove(&self, cx: &mut JSContext) {
+        self.upcast::<Node>().remove_self(cx);
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling>
+    fn GetPreviousElementSibling(&self) -> Option<DomRoot<Element>> {
+        self.upcast::<Node>()
+            .preceding_siblings()
+            .find_map(DomRoot::downcast)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling>
+    fn GetNextElementSibling(&self) -> Option<DomRoot<Element>> {
+        self.upcast::<Node>()
+            .following_siblings()
+            .find_map(DomRoot::downcast)
+    }
+}
+
+impl<'dom> LayoutDom<'dom, CharacterData> {
+    #[expect(unsafe_code)]
+    #[inline]
+    pub(crate) fn data_for_layout(self) -> &'dom str {
+        unsafe { self.unsafe_get().data.borrow_for_layout() }
+    }
+}
+
+/// Split the given string at the given position measured in UTF-16 code units from the start.
+///
+/// * `Err(())` indicates that `offset` if after the end of the string
+/// * `Ok((before, None, after))` indicates that `offset` is between Unicode code points.
+///   The two string slices are such that:
+///   `before == s.to_utf16()[..offset].to_utf8()` and
+///   `after == s.to_utf16()[offset..].to_utf8()`
+/// * `Ok((before, Some(ch), after))` indicates that `offset` is "in the middle"
+///   of a single Unicode code point that would be represented in UTF-16 by a surrogate pair
+///   of two 16-bit code units.
+///   `ch` is that code point.
+///   The two string slices are such that:
+///   `before == s.to_utf16()[..offset - 1].to_utf8()` and
+///   `after == s.to_utf16()[offset + 1..].to_utf8()`
+fn split_at_utf16_code_unit_offset(s: &str, offset: u32) -> Result<(&str, Option<char>, &str), ()> {
+    let mut code_units = 0;
+    for (i, c) in s.char_indices() {
+        if code_units == offset {
+            let (a, b) = s.split_at(i);
+            return Ok((a, None, b));
+        }
+        code_units += 1;
+        if c > '\u{FFFF}' {
+            if code_units == offset {
+                debug_assert_eq!(c.len_utf8(), 4);
+                warn!("Splitting a surrogate pair in CharacterData API.");
+                return Ok((&s[..i], Some(c), &s[i + c.len_utf8()..]));
+            }
+            code_units += 1;
+        }
+    }
+    if code_units == offset {
+        Ok((s, None, ""))
+    } else {
+        Err(())
+    }
+}

@@ -22,6 +22,7 @@ malloc_size_of_derive = { workspace = true }
 paint_api = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
+servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-media = { workspace = true }
 webrender_api = { workspace = true }

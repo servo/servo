@@ -7,7 +7,7 @@ use std::thread::LocalKey;
 
 use js::context::JSContext;
 use js::glue::JSPrincipalsCallbacks;
-use js::jsapi::{CallArgs, HandleObject as RawHandleObject, JSContext as RawJSContext, JSObject};
+use js::jsapi::{CallArgs, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleObject};
 use servo_url::{MutableOrigin, ServoUrl};
@@ -16,10 +16,8 @@ use crate::DomTypes;
 use crate::codegen::PrototypeList;
 use crate::conversions::DerivedFrom;
 use crate::error::Error;
-use crate::realms::InRealm;
 use crate::reflector::{DomObject, DomObjectWrap};
 use crate::root::DomRoot;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::settings_stack::StackEntry;
 use crate::utils::ProtoOrIfaceArray;
 
@@ -50,14 +48,12 @@ pub trait DomHelpers<D: DomTypes> {
 
     fn principals_callbacks() -> &'static JSPrincipalsCallbacks;
 
-    fn is_platform_object_same_origin(cx: &CurrentRealm, obj: RawHandleObject) -> bool;
-
     fn interface_map() -> &'static phf::Map<&'static [u8], Interface>;
 
     fn push_new_element_queue();
     fn pop_current_element_queue(cx: &mut JSContext);
 
-    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
+    fn reflect_dom_object_with_cx<T, U>(cx: &mut JSContext, obj: Box<T>, global: &U) -> DomRoot<T>
     where
         T: DomObject + DomObjectWrap<D>,
         U: DerivedFrom<D::GlobalScope>;
@@ -69,16 +65,13 @@ pub trait DomHelpers<D: DomTypes> {
 #[expect(unsafe_code)]
 pub trait GlobalScopeHelpers<D: DomTypes> {
     fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<D::GlobalScope>;
-    /// # Safety
-    /// `cx` must point to a valid, non-null RawJSContext.
-    unsafe fn from_context(cx: *mut RawJSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;
-    fn get_cx() -> SafeJSContext;
+
     /// # Safety
     /// `obj` must point to a valid, non-null JSObject.
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
-    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
+    fn from_reflector(reflector: &impl DomObject) -> DomRoot<D::GlobalScope>;
 
-    fn origin(&self) -> &MutableOrigin;
+    fn origin(&self) -> MutableOrigin;
 
     fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
 
@@ -112,4 +105,8 @@ pub trait WindowHelpers {
         proto: HandleObject,
         object: MutableHandleObject,
     );
+}
+
+pub trait HasOrigin {
+    fn origin(&self) -> MutableOrigin;
 }

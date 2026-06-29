@@ -708,9 +708,13 @@ impl WGPU {
                                     }
                                 });
                                 global.device_set_device_lost_closure(device_id, callback);
+                                let mut descriptor = descriptor;
+                                descriptor.required_limits = global.device_limits(device_id);
+                                descriptor.required_features = global.device_features(device_id);
                                 descriptor
                             })
                             .map_err(Into::into);
+
                         if let Err(e) = sender.send((device, queue, result)) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestDevice ({})",
@@ -722,6 +726,7 @@ impl WGPU {
                         command_encoder_id,
                         compute_pass_id,
                         label,
+                        timestamp_writes,
                         device_id,
                     } => {
                         let global = &self.global;
@@ -729,7 +734,7 @@ impl WGPU {
                             command_encoder_id,
                             &ComputePassDescriptor {
                                 label,
-                                timestamp_writes: None,
+                                timestamp_writes,
                             },
                         );
                         assert!(
@@ -853,6 +858,7 @@ impl WGPU {
                         label,
                         color_attachments,
                         depth_stencil_attachment,
+                        timestamp_writes,
                         device_id,
                     } => {
                         let global = &self.global;
@@ -860,7 +866,7 @@ impl WGPU {
                             label,
                             color_attachments: color_attachments.into(),
                             depth_stencil_attachment: depth_stencil_attachment.as_ref(),
-                            timestamp_writes: None,
+                            timestamp_writes: timestamp_writes.as_ref(),
                             occlusion_query_set: None,
                             multiview_mask: None,
                         };
@@ -1215,6 +1221,39 @@ impl WGPU {
                             Some(id),
                         );
                         self.maybe_dispatch_wgpu_error(device_id, error);
+                    },
+                    WebGPURequest::CreateQuerySet {
+                        device_id,
+                        query_set_id,
+                        descriptor,
+                    } => {
+                        let global = &self.global;
+                        let (_, error) = global.device_create_query_set(
+                            device_id,
+                            &descriptor,
+                            Some(query_set_id),
+                        );
+                        self.maybe_dispatch_wgpu_error(device_id, error);
+                    },
+                    WebGPURequest::ResolveQuerySet {
+                        device_id,
+                        command_encoder_id,
+                        query_set_id,
+                        start_query,
+                        query_count,
+                        destination,
+                        destination_offset,
+                    } => {
+                        let global = &self.global;
+                        let result = global.command_encoder_resolve_query_set(
+                            command_encoder_id,
+                            query_set_id,
+                            start_query,
+                            query_count,
+                            destination,
+                            destination_offset,
+                        );
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                 }
             }

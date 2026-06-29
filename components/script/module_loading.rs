@@ -49,7 +49,7 @@ struct OnRejectedHandler {
 impl Callback for OnRejectedHandler {
     fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
         // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « reason »).
-        self.promise.reject_with_cx(cx, v);
+        self.promise.reject(cx, v);
     }
 }
 
@@ -222,7 +222,7 @@ fn inner_module_loading(
         // Note: mozjs defaults to the unlinked status.
 
         // c. Perform ! Call(state.[[PromiseCapability]].[[Resolve]], undefined, « undefined »).
-        state.promise.resolve_native_with_cx(cx, &());
+        state.promise.resolve_native(cx, &());
     }
 
     // Step 6. Return unused.
@@ -250,7 +250,7 @@ fn continue_module_loading(
             state.is_loading.set(false);
 
             // b. Perform ! Call(state.[[PromiseCapability]].[[Reject]], undefined, « moduleCompletion.[[Value]] »).
-            state.promise.reject_with_cx(cx, exception.handle());
+            state.promise.reject(cx, exception.handle());
         },
     }
 
@@ -297,7 +297,7 @@ fn continue_dynamic_import(
     // Step 1. If moduleCompletion is an abrupt completion, then
     if let Err(exception) = module_completion {
         // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « moduleCompletion.[[Value]] »).
-        promise.reject_with_cx(cx, exception.handle());
+        promise.reject(cx, exception.handle());
 
         // b. Return unused.
         return;
@@ -339,7 +339,7 @@ fn continue_dynamic_import(
             if !link {
                 // i. Perform ! Call(promiseCapability.[[Reject]], undefined, « link.[[Value]] »).
                 let exception = RethrowError::from_pending_exception(cx);
-                inner_promise.reject_with_cx(cx, exception.handle());
+                inner_promise.reject(cx, exception.handle());
 
                 // ii. Return NormalCompletion(undefined).
                 return;
@@ -352,11 +352,11 @@ fn continue_dynamic_import(
 
             if !rval.is_object() {
                 let error = RethrowError::from_pending_exception(cx);
-                return inner_promise.reject_with_cx(cx, error.handle());
+                return inner_promise.reject(cx, error.handle());
             }
 
             rooted!(&in(cx) let evaluate_promise = rval.to_object());
-            let evaluate_promise = Promise::new_with_js_promise(evaluate_promise.handle(), cx.into());
+            let evaluate_promise = Promise::new_with_js_promise(cx, evaluate_promise.handle());
 
             // d. Let fulfilledClosure be a new Abstract Closure with no parameters that captures
             // module and promiseCapability and performs the following steps when called:
@@ -369,7 +369,7 @@ fn continue_dynamic_import(
                     rooted!(&in(cx) let namespace = ObjectValue(rval.get()));
 
                     // ii. Perform ! Call(promiseCapability.[[Resolve]], undefined, « namespace »).
-                    fulfilled_promise.resolve_with_cx(cx, namespace.handle());
+                    fulfilled_promise.resolve(cx, namespace.handle());
 
                     // iii. Return NormalCompletion(undefined).
             })));

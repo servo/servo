@@ -31,7 +31,6 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
@@ -48,7 +47,7 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
         // If v is a DOMString, then follow the below steps:
         // Resolve p with v.
         // Return p.
-        self.promise.resolve_with_cx(cx, v);
+        self.promise.resolve(cx, v);
 
         // NOTE: Since we ask text from arboard, v can't be a Blob
         // If v is a Blob, then follow the below steps:
@@ -72,7 +71,7 @@ impl Callback for RepresentationDataPromiseRejectionHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
         // Reject p with "NotFoundError" DOMException in realm.
         // Return p.
-        self.promise.reject_error_with_cx(cx, Error::NotFound(None));
+        self.promise.reject_error(cx, Error::NotFound(None));
     }
 }
 
@@ -169,7 +168,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
                 write_blobs_and_option_to_the_clipboard(global.as_window(), item_list, option);
 
                 // Step 3.3.6 Resolve p.
-                promise.resolve_native_with_cx(cx, &());
+                promise.resolve_native(cx, &());
             }),
         );
 
@@ -204,12 +203,7 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
         let representation = Representation {
             mime_type,
             is_custom: false,
-            data: Promise::new_resolved(
-                &global,
-                GlobalScope::get_cx(),
-                DOMString::from(text),
-                CanGc::from_cx(cx),
-            ),
+            data: Promise::new_resolved(cx, &global, DOMString::from(text)),
         };
 
         // Step 3.4.1.1.4 If representation’s MIME type essence is "text/plain", then:

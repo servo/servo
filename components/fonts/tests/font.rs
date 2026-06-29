@@ -35,7 +35,7 @@ fn make_font(path: PathBuf) -> Font {
     let platform_font =
         PlatformFont::new_from_data(identifier.clone(), &data, None, &[], false).unwrap();
 
-    let template = FontTemplate::new(identifier, platform_font.descriptor(), None, None);
+    let template = FontTemplate::new(identifier, platform_font.descriptor(), None);
     let descriptor = FontDescriptor {
         weight: FontWeight::normal(),
         stretch: FontStretch::hundred(),

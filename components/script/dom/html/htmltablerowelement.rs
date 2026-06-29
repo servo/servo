@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::color::AbsoluteColor;
@@ -25,8 +25,8 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltablecellelement::HTMLTableCellElement;
 use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLTableRowElement {
@@ -68,9 +68,9 @@ impl HTMLTableRowElement {
 
     /// Determine the index for this `HTMLTableRowElement` within the given
     /// `HTMLCollection`. Returns `-1` if not found within collection.
-    fn row_index(&self, collection: DomRoot<HTMLCollection>) -> i32 {
+    fn row_index(&self, no_gc: &NoGC, collection: DomRoot<HTMLCollection>) -> i32 {
         collection
-            .elements_iter()
+            .elements_iter(no_gc)
             .position(|elem| (&elem as &Element) == self.upcast())
             .map_or(-1, |i| i as i32)
     }
@@ -138,7 +138,8 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
             None => return -1,
         };
         if let Some(table) = parent.downcast::<HTMLTableElement>() {
-            return self.row_index(table.Rows(cx));
+            let rows = table.Rows(cx);
+            return self.row_index(cx.no_gc(), rows);
         }
         if !parent.is::<HTMLTableSectionElement>() {
             return -1;
@@ -149,7 +150,10 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         };
         grandparent
             .downcast::<HTMLTableElement>()
-            .map_or(-1, |table| self.row_index(table.Rows(cx)))
+            .map_or(-1, |table| {
+                let rows = table.Rows(cx);
+                self.row_index(cx.no_gc(), rows)
+            })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-sectionrowindex>
@@ -165,7 +169,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         } else {
             return -1;
         };
-        self.row_index(collection)
+        self.row_index(cx.no_gc(), collection)
     }
 }
 

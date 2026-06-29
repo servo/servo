@@ -197,6 +197,23 @@ promise_test(async (t) => {
 }, `readTensor() rejects when the MLTensor is destroyed`);
 
 promise_test(async (t) => {
+  const tensor = await mlContext.createTensor({
+    dataType: 'int32',
+    shape: [2, 2],
+    writable: true,  // Not readable.
+  });
+  const arrayBufferView = new Int32Array(2 * 2);
+  const arrayBuffer = arrayBufferView.buffer;
+
+  await promise_rejects_js(
+      t, TypeError, mlContext.readTensor(tensor, arrayBuffer));
+  await promise_rejects_js(
+      t, TypeError, mlContext.readTensor(tensor, arrayBufferView));
+
+  tensor.destroy();
+}, `readTensor() rejects on an MLTensor without read access`);
+
+promise_test(async (t) => {
   const tensorA = await mlContext.createTensor({
     dataType: 'int32',
     shape: [32, 1024],  // Use large tensor to trigger crbug.com/511826204.

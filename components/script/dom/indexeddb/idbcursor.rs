@@ -10,8 +10,7 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_bindings::script_runtime::CanGc;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use storage_traits::indexeddb::{IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord};
 
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::{
@@ -106,6 +105,7 @@ impl IDBCursor {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         transaction: &IDBTransaction,
         direction: IDBCursorDirection,
@@ -113,9 +113,8 @@ impl IDBCursor {
         source: ObjectStoreOrIndex,
         range: IndexedDBKeyRange,
         key_only: bool,
-        can_gc: CanGc,
     ) -> DomRoot<IDBCursor> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(IDBCursor::new_inherited(
                 transaction,
                 direction,
@@ -125,7 +124,7 @@ impl IDBCursor {
                 key_only,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 

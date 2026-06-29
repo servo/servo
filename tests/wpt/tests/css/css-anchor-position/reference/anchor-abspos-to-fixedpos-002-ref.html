@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<style>
+body {
+  margin: 0;
+  height: 2000px;
+}
+
+div {
+  width: 100px;
+  height: 100px;
+}
+
+#anchor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: orange;
+}
+
+#anchored {
+  position: fixed;
+  left: 100px;
+  top: 100px;
+  background: green;
+}
+</style>
+
+<div id="anchor"></div>
+<div id="anchored"></div>
+
+<script>
+document.documentElement.scrollTop = 200;
+</script>

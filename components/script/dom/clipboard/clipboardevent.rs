@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use script_bindings::str::DOMString;
 use style::Atom;
 
@@ -17,7 +18,6 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// The types of clipboard events in the Clipboard APIs specification:
 /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>.
@@ -56,19 +56,19 @@ impl ClipboardEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         clipboard_data: Option<&DataTransfer>,
-        can_gc: CanGc,
     ) -> DomRoot<ClipboardEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(ClipboardEvent::new_inherited()),
             window,
             proto,
-            can_gc,
+            cx,
         );
         ev.upcast::<Event>()
             .init_event(event_type, bool::from(can_bubble), bool::from(cancelable));
@@ -88,22 +88,22 @@ impl ClipboardEvent {
 impl ClipboardEventMethods<crate::DomTypeHolder> for ClipboardEvent {
     /// <https://www.w3.org/TR/clipboard-apis/#dom-clipboardevent-clipboardevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         event_type: DOMString,
         init: &ClipboardEventInit,
     ) -> DomRoot<ClipboardEvent> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         let event = ClipboardEvent::new(
+            cx,
             window,
             proto,
             event_type.into(),
             bubbles,
             cancelable,
             init.clipboardData.as_deref(),
-            can_gc,
         );
         event.upcast::<Event>().set_composed(init.parent.composed);
         event

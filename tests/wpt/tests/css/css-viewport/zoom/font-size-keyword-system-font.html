@@ -26,6 +26,6 @@ test(function() {
 
   const unzoomedWidth = ref.getBoundingClientRect().width;
   const zoomedWidth = target.getBoundingClientRect().width;
-  assert_approx_equals(zoomedWidth, 2 * unzoomedWidth, 0.01);
+  assert_approx_equals(zoomedWidth, 2 * unzoomedWidth, 0.1);
 }, "zoom scales font-size set via system font keyword");
 </script>

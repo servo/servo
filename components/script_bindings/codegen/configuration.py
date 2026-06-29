@@ -289,6 +289,7 @@ class Descriptor(DescriptorProvider):
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
 
+        self.no_gcMethods = [name for name in desc.get('no_gc', [])]
         self.cx_no_gcMethods = [name for name in desc.get('cx_no_gc', [])]
         self.cxMethods = [name for name in desc.get('cx', [])]
         self.realmMethods = [name for name in desc.get('realm', [])]

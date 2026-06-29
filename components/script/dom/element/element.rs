@@ -104,7 +104,6 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::create::create_element;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementRegistry,
@@ -118,6 +117,7 @@ use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::attributes::storage::{
     AttrRef, AttrValueRef, AttributeEntry, AttributeStorage, ContentAttributeData,
 };
+use crate::dom::element::create::create_element;
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -156,6 +156,7 @@ use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserve
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
+use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, IsShadowTree, Node, NodeDamage, NodeFlags,
     NodeTraits, UnbindContext,
@@ -174,7 +175,6 @@ use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
-use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::layout_dom::ServoDangerousStyleElement;
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
@@ -364,7 +364,7 @@ impl Element {
         self.rare_data.borrow_mut()
     }
 
-    fn ensure_rare_data(&self) -> RefMut<'_, Box<ElementRareData>> {
+    pub(crate) fn ensure_rare_data(&self) -> RefMut<'_, Box<ElementRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {
             *rare_data = Some(Default::default());
@@ -577,6 +577,13 @@ impl Element {
         // The CSS computed value has made sure that either both axes are scrollable or none are scrollable.
         self.upcast::<Node>()
             .effective_overflow()
+            .is_some_and(|overflow| overflow.establishes_scroll_container())
+    }
+
+    /// Like [`Self::establishes_scroll_container`], but without forcing a reflow.
+    pub(crate) fn establishes_scroll_container_without_reflow(&self) -> bool {
+        self.upcast::<Node>()
+            .effective_overflow_without_reflow()
             .is_some_and(|overflow| overflow.establishes_scroll_container())
     }
 
@@ -974,7 +981,7 @@ impl Element {
     ) -> DomRoot<Range> {
         self.ensure_rare_data()
             .contenteditable_selection_range
-            .or_init(|| Range::new_with_doc(document, None, CanGc::from_cx(cx)))
+            .or_init(|| Range::new_with_doc(cx, document, None))
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
@@ -1018,6 +1025,23 @@ impl Element {
                 .display
                 .is_none()
         })
+    }
+
+    pub(crate) fn check_style_on_self_or_eager_pseudos(
+        &self,
+        check_styles_fn: impl Fn(&ComputedValues) -> bool,
+    ) -> bool {
+        let style_data = self.style_data.borrow();
+        let Some(data) = style_data.as_ref().map(|data| data.element_data.borrow()) else {
+            return false;
+        };
+
+        if check_styles_fn(data.styles.primary()) {
+            return true;
+        }
+
+        let mut pseudo_styles = data.styles.pseudos.as_array().iter();
+        pseudo_styles.any(|style| style.as_deref().is_some_and(&check_styles_fn))
     }
 }
 
@@ -1677,11 +1701,8 @@ impl Element {
         *self.prefix.borrow_mut() = prefix;
     }
 
-    pub(crate) fn set_custom_element_registry(
-        &self,
-        registry: Option<DomRoot<CustomElementRegistry>>,
-    ) {
-        self.ensure_rare_data().custom_element_registry = registry.as_deref().map(Dom::from_ref);
+    pub(crate) fn set_custom_element_registry(&self, registry: Option<&CustomElementRegistry>) {
+        self.ensure_rare_data().custom_element_registry = registry.map(Dom::from_ref);
     }
 
     pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
@@ -1981,7 +2002,7 @@ impl Element {
                 new_value,
                 attr.namespace().clone(),
             );
-            ScriptThread::enqueue_callback_reaction(self, reaction, None);
+            ScriptThread::enqueue_callback_reaction(cx, self, reaction, None);
         }
 
         // Step 3. Run the attribute change steps with element, attribute’s local name, oldValue, newValue, and attribute’s namespace.
@@ -2302,7 +2323,12 @@ impl Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
-    fn update_style_attribute(&self, attr: AttrRef<'_>, mutation: AttributeMutation) {
+    fn update_style_attribute(
+        &self,
+        cx: &mut JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         let doc = self.upcast::<Node>().owner_doc();
         // Modifying the `style` attribute might change style.
         *self.style_attribute.borrow_mut() = match mutation {
@@ -2325,6 +2351,7 @@ impl Element {
                         if global
                             .get_csp_list()
                             .should_elements_inline_type_behavior_be_blocked(
+                                cx,
                                 global,
                                 self,
                                 InlineCheckType::StyleAttribute,
@@ -3175,16 +3202,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             .into_iter()
             .map(|rect| {
                 DOMRect::new(
+                    cx,
                     win.upcast(),
                     rect.origin.x.to_f64_px(),
                     rect.origin.y.to_f64_px(),
                     rect.size.width.to_f64_px(),
                     rect.size.height.to_f64_px(),
-                    CanGc::from_cx(cx),
                 )
             })
             .collect();
-        DOMRectList::new(&win, rects, CanGc::from_cx(cx))
+        DOMRectList::new(cx, &win, rects)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect>
@@ -3193,12 +3220,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let rect = self.upcast::<Node>().border_box().unwrap_or_default();
         debug_assert!(rect.size.width.to_f64_px() >= 0.0 && rect.size.height.to_f64_px() >= 0.0);
         DOMRect::new(
+            cx,
             win.upcast(),
             rect.origin.x.to_f64_px(),
             rect.origin.y.to_f64_px(),
             rect.size.width.to_f64_px(),
             rect.size.height.to_f64_px(),
-            CanGc::from_cx(cx),
         )
     }
 
@@ -4467,12 +4494,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-slotable-assignedslot>
-    fn GetAssignedSlot(&self) -> Option<DomRoot<HTMLSlotElement>> {
-        let cx = GlobalScope::get_cx();
-
+    fn GetAssignedSlot(&self, cx: &JSContext) -> Option<DomRoot<HTMLSlotElement>> {
         // > The assignedSlot getter steps are to return the result of
         // > find a slot given this and with the open flag set.
-        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
+        rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
         slottable.find_a_slot(true)
     }
 
@@ -4572,6 +4597,7 @@ impl VirtualMethods for Element {
                         let source = &**attr.value();
                         let source_line = 1; // TODO(#9604) get current JS execution line
                         evtarget.set_event_handler_uncompiled(
+                            cx,
                             self.owner_window().get_url(),
                             source_line,
                             event_name,
@@ -4585,7 +4611,7 @@ impl VirtualMethods for Element {
                     },
                 }
             },
-            local_name!("style") => self.update_style_attribute(attr, mutation),
+            local_name!("style") => self.update_style_attribute(cx, attr, mutation),
             local_name!("id") => {
                 // https://dom.spec.whatwg.org/#ref-for-concept-element-attributes-change-ext%E2%91%A2
                 *self.id_attribute.borrow_mut() = mutation.new_value(attr).and_then(|value| {
@@ -4674,9 +4700,9 @@ impl VirtualMethods for Element {
 
                 // Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
                 if let Some(assigned_slot) = slottable.assigned_slot() {
-                    assigned_slot.assign_slottables(cx.no_gc());
+                    assigned_slot.assign_slottables(cx);
                 }
-                slottable.assign_a_slot(cx.no_gc());
+                slottable.assign_a_slot(cx);
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in

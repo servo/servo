@@ -402,7 +402,7 @@ impl Selection {
             if parent.block_node_of().is_some_and(|block_node| {
                 block_node
                     .children_unrooted(cx.no_gc())
-                    .all(|child| child.is_invisible())
+                    .all(|child| child.is_invisible(cx.no_gc()))
             }) && parent.is_editable_or_editing_host()
             {
                 let br = context_object.create_element(cx, "br");
@@ -494,7 +494,7 @@ impl Selection {
             let Some(child) = start_block.children().nth(0) else {
                 unreachable!("Must always have a single child");
             };
-            if child.is_collapsed_block_prop() {
+            if child.is_collapsed_block_prop(cx.no_gc()) {
                 assert!(child.has_parent());
                 child.remove_self(cx);
             }
@@ -508,7 +508,7 @@ impl Selection {
             loop {
                 if start_block
                     .children_unrooted(cx.no_gc())
-                    .all(|child| child != &reference_node)
+                    .all(|child| **child != *reference_node)
                 {
                     reference_node = reference_node
                         .GetParentNode()
@@ -788,7 +788,10 @@ impl Selection {
         // Passed as argument
 
         // Step 2. If there is no formattable node effectively contained in the active range:
-        if active_range.first_formattable_contained_node().is_none() {
+        if active_range
+            .first_formattable_contained_node(cx.no_gc())
+            .is_none()
+        {
             // Step 2.1. If command has inline command activated values, set the state override to true if new value is among them and false if it's not.
             let inline_command_activated_values = command.inline_command_activated_values();
             if !inline_command_activated_values.is_empty() {

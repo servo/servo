@@ -13,7 +13,7 @@
   <div id="edit-context-top-0">Text in EditContext-associated element, should be editable</div>
 
   <div id="edit-context-top-1">
-    <div id="default-1">
+    <div id="default-1" tabindex="0">
       Element child of EditContext, should be editable
     </div>
   </div>
@@ -33,7 +33,7 @@
   <div id="edit-context-top-3">
     <div id="noteditable-3" contenteditable="false">
       <div id="editable-in-noteditable-3" contenteditable="">
-        <div id="contenteditable-in-contenteditable-3" contenteditable="">
+        <div id="contenteditable-in-contenteditable-3" contenteditable="" tabindex="0">
           This is an contenteditable="" child of a contenteditable="". Since this is the child of an
           editable element, when the user types here, it's the parent contenteditable="" that gets
           input/beforeinput events, and this doesn't. Basically the child contenteditable="" attribute
@@ -55,7 +55,7 @@
   </div>
 
   <div id="edit-context-top-5">
-    <div id="contenteditable-in-ec-5" contenteditable="">
+    <div id="contenteditable-in-ec-5" contenteditable="" tabindex="0">
       This is a contenteditable="" child of EditContext.
       It inherits editability from the parent and it should not be the target of beforeinput/input events.
       Setting contenteditable="" on this node is basically a no-op.
@@ -67,7 +67,7 @@
   </div>
 
   <div id="edit-context-top-7">
-    <div id="edit-context-in-ec-7">
+    <div id="edit-context-in-ec-7" tabindex="0">
       EditContext child of EditContext. When user types here,
       events are fired only against the parent EditContext, not this one.
       Since the parent element was editable, the EditContext association is basically a no-op.

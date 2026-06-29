@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 
+use js::context::JSContext;
 use js::jsapi::{AddAssociatedMemory, Heap, JSObject, MemoryUse, RemoveAssociatedMemory};
 use js::rust::HandleObject;
 use malloc_size_of_derive::MallocSizeOf;
@@ -11,7 +12,6 @@ use malloc_size_of_derive::MallocSizeOf;
 use crate::conversions::DerivedFrom;
 use crate::interfaces::GlobalScopeHelpers;
 use crate::iterable::{Iterable, IterableIterator};
-use crate::realms::InRealm;
 use crate::root::{Dom, DomRoot, Root};
 use crate::script_runtime::{CanGc, temp_cx};
 use crate::{DomTypes, JSTraceable};
@@ -218,11 +218,11 @@ pub trait DomGlobalGeneric<D: DomTypes>: DomObject {
     /// Returns the [`GlobalScope`] of the realm that the [`DomObject`] was created in.  If this
     /// object is a `Node`, this will be different from it's owning `Document` if adopted by. For
     /// `Node`s it's almost always better to use `NodeTraits::owning_global`.
-    fn global_(&self, realm: InRealm) -> DomRoot<D::GlobalScope>
+    fn global_from_reflector(&self) -> DomRoot<D::GlobalScope>
     where
         Self: Sized,
     {
-        D::GlobalScope::from_reflector(self, realm)
+        D::GlobalScope::from_reflector(self)
     }
 }
 
@@ -233,7 +233,7 @@ pub trait DomObjectWrap<D: DomTypes>: Sized + DomObject + DomGlobalGeneric<D> {
     /// Function pointer to the general wrap function type
     #[expect(clippy::type_complexity)]
     const WRAP: unsafe fn(
-        &mut js::context::JSContext,
+        &mut JSContext,
         &D::GlobalScope,
         Option<HandleObject>,
         Box<Self>,
@@ -246,7 +246,7 @@ pub trait DomObjectIteratorWrap<D: DomTypes>: DomObjectWrap<D> + JSTraceable + I
     /// Function pointer to the wrap function for `IterableIterator<T>`
     #[expect(clippy::type_complexity)]
     const ITER_WRAP: unsafe fn(
-        &mut js::context::JSContext,
+        &mut JSContext,
         &D::GlobalScope,
         Option<HandleObject>,
         Box<IterableIterator<D, Self>>,
@@ -287,7 +287,7 @@ where
 pub fn reflect_dom_object_with_cx<D, T, U>(
     obj: Box<T>,
     global: &U,
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
 ) -> DomRoot<T>
 where
     D: DomTypes,
@@ -304,7 +304,7 @@ pub fn reflect_dom_object_with_proto_and_cx<D, T, U>(
     obj: Box<T>,
     global: &U,
     proto: Option<HandleObject>,
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
 ) -> DomRoot<T>
 where
     D: DomTypes,

@@ -60,9 +60,9 @@ impl XRTest {
             self.devices_connected
                 .borrow_mut()
                 .push(Dom::from_ref(&device));
-            promise.resolve_native_with_cx(cx, &device);
+            promise.resolve_native(cx, &device);
         } else {
-            promise.reject_native_with_cx(cx, &());
+            promise.reject_native(cx, &());
         }
     }
 }
@@ -80,7 +80,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
-                    p.reject_error_with_cx(cx, e);
+                    p.reject_error(cx, e);
                     return p;
                 },
             }
@@ -92,7 +92,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
-                    p.reject_error_with_cx(cx, e);
+                    p.reject_error(cx, e);
                     return p;
                 },
             }
@@ -103,7 +103,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let views = match get_views(&init.views) {
             Ok(views) => views,
             Err(e) => {
-                p.reject_error_with_cx(cx, e);
+                p.reject_error(cx, e);
                 return p;
             },
         };
@@ -118,7 +118,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             let w = match get_world(w) {
                 Ok(w) => w,
                 Err(e) => {
-                    p.reject_error_with_cx(cx, e);
+                    p.reject_error(cx, e);
                     return p;
                 },
             };
@@ -193,7 +193,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let p = Promise::new_in_realm(cx);
         let mut devices = self.devices_connected.borrow_mut();
         if devices.is_empty() {
-            p.resolve_native_with_cx(cx, &());
+            p.resolve_native(cx, &());
         } else {
             let mut len = devices.len();
 

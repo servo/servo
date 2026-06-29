@@ -8,8 +8,8 @@ use stylo_dom::ElementState;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::document::Document;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::svg::svgelement::SVGElement;
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct SVGGraphicsElement {

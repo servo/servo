@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test offline HRTF PannerNode is effective before rendering</title>
+  </head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+// Implementations prepare HRTF kernels on a separate thread.
+// Check that offline rendering waits until these are prepared.
+promise_test(async () => {
+  // Choose an unusual sample rate so that a previous test is unlikely to have
+  // triggered initialization of HRTF kernels for this rate.
+  const sampleRate = 16523;
+  // Render enough frames to allow some latency in the HRTF panner.
+  const renderFrames = 256;
+  const ctx = new OfflineAudioContext(2, renderFrames, sampleRate);
+  const merger = new ChannelMergerNode(ctx, { numberOfInputs: 2 });
+  merger.connect(ctx.destination);
+  // Two panners with positions equidistant from the listener but different
+  // elevations.
+  const pannerUp =
+        new PannerNode(ctx, { panningModel: 'HRTF',
+                              positionX: 0, positionY: 1, positionZ: -1 });
+  const pannerDown =
+        new PannerNode(ctx, { panningModel: 'HRTF',
+                              positionX: 0, positionY: -1, positionZ: -1 });
+  const osc = new OscillatorNode(ctx);
+  osc.start();
+  // Connect the left output of each panner to the merger.
+  osc.connect(pannerUp)
+    .connect(new ChannelSplitterNode(ctx, { numberOfOutputs: 2 }))
+    .connect(merger, 0, 0);
+  osc.connect(pannerDown)
+    .connect(new ChannelSplitterNode(ctx, { numberOfOutputs: 2 }))
+    .connect(merger, 0, 1);
+
+  const rendered = await ctx.startRendering();
+  const up = rendered.getChannelData(0);
+  const down = rendered.getChannelData(1);
+  assert_true(up.some(el => el != 0), 'up non-zero');
+  assert_true(down.some(el => el != 0), 'down non-zero');
+  // An HRTF Panner should render up and down differently.
+  assert_true(up.keys().some(i => up[i] != down[i]), 'up and down differ');
+});
+  </script>
+</html>

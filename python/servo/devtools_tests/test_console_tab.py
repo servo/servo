@@ -17,24 +17,6 @@ from geckordp.actors.web_console import WebConsoleActor
 from .utils import Devtools
 
 
-def evaluate(js: str, timeout: float = 1) -> dict:
-    with Devtools.connect() as devtools:
-        console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
-        evaluation_result = Future()
-        result_id = ""
-
-        def on_evaluation(data):
-            assert result_id == data["resultID"]
-            evaluation_result.set_result(data)
-
-        devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
-
-        evaluation_result = Future()
-        result = console.evaluate_js_async(js)
-        result_id = result["resultID"]
-        return evaluation_result.result(timeout)
-
-
 def evaluate_and_capture_console_log_output(js: str, timeout: float = 1) -> dict:
     with Devtools.connect() as devtools:
         devtools.watcher.watch_resources([Resources.CONSOLE_MESSAGE])
@@ -125,6 +107,18 @@ class TestConsoleTab:
         assert preview["length"] == 3
         assert preview["items"] == [1, 2, 3]
 
+    def test_console_log_map(self, run_servoshell):
+        script_tag = "<script>let log_map = () => console.log(new Map([['a', 1], ['b', true]]));</script>"
+        run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = evaluate_and_capture_console_log_output("log_map();")
+        object = result["arguments"][0]
+        assert object["class"] == "Map"
+        preview = object["preview"]
+        assert preview["kind"] == "MapLike"
+        assert preview["size"] == 2
+        assert preview["entries"] == [["a", 1], ["b", True]]
+
     def test_console_log_function(self, run_servoshell):
         script_tag = "<script>function test_function() { }let log_function = () => console.log(test_function);</script>"
         run_servoshell(url=f"data:text/html,{script_tag}")
@@ -181,7 +175,18 @@ class TestConsoleTab:
     def test_console_throw_exception(self, run_servoshell):
         run_servoshell(url="data:text/html,")
 
-        result = evaluate("document.head.insertBefore(document.documentElement);")
-        assert not result["result"]
-        assert result["exception"]
-        assert "Not enough arguments" in result["exceptionMessage"]
+        with Devtools.connect() as devtools:
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            evaluation_result = Future()
+
+            def on_evaluation(data):
+                evaluation_result.set_result(data)
+
+            devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
+
+            console.evaluate_js_async("document.head.insertBefore(document.documentElement);")
+            result = evaluation_result.result(1)
+
+            assert not result["result"]
+            assert result["exception"]
+            assert "Not enough arguments" in result["exceptionMessage"]

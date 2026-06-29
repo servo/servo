@@ -23,33 +23,33 @@ use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
-    CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun,
-    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
+    CreateJobQueue, DeleteJobQueue, DispatchablePointer, JS_GetReservedSlot, JobQueueTraps,
+    RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
     RunScriptEnvironmentPreparerClosure, SetBuildId, StreamConsumerConsumeChunk,
     StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, CompilationType, Dispatchable_MaybeShuttingDown, GCDescription,
     GCOptions, GCProgress, GCReason, GetPromiseUserInputEventHandlingState, Handle as RawHandle,
-    HandleObject, HandleString, HandleValue as RawHandleValue, Heap, JS_NewObject,
-    JS_NewStringCopyUTF8N, JS_SetReservedSlot, JSCLASS_RESERVED_SLOTS_MASK,
-    JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps, JSContext as RawJSContext, JSGCParamKey,
-    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, JobQueue,
-    MimeType, MutableHandleObject, MutableHandleString, PromiseRejectionHandlingState,
-    PromiseUserInputEventHandlingState, RuntimeCode, ScriptEnvironmentPreparer_Closure,
-    SetProcessBuildIdOp, StreamConsumer as JSStreamConsumer,
+    HandleObject, HandleString, HandleValue as RawHandleValue, Heap, JS_NewStringCopyUTF8N,
+    JS_SetReservedSlot, JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass,
+    JSClassOps, JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
+    JSSecurityCallbacks, JSString, JSTracer, JobQueue, MimeType, MutableHandleObject,
+    MutableHandleString, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
+    RuntimeCode, ScriptEnvironmentPreparer_Closure, SetProcessBuildIdOp,
+    StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
 use js::realm::CurrentRealm;
 pub(crate) use js::rust::ThreadSafeJSContext;
-use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::wrappers2::{
-    ContextOptionsRef, InitConsumeStreamCallback, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_SetGCCallback,
-    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetSecurityCallbacks, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue,
-    SetPreserveWrapperCallbacks, SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
+    CollectServoSizes, ContextOptionsRef, DispatchableRun, InitConsumeStreamCallback,
+    JS_AddExtraGCRootsTracer, JS_GetPromiseResult, JS_InitDestroyPrincipalsCallback,
+    JS_InitReadPrincipalsCallback, JS_NewObject, JS_SetGCCallback, JS_SetGCParameter,
+    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetSecurityCallbacks,
+    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
 };
 use js::rust::{
     Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle, JSEngine, JSEngineHandle,
@@ -95,7 +95,7 @@ use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
-use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
@@ -283,15 +283,22 @@ unsafe extern "C" fn get_host_defined_data(
     cx: *mut RawJSContext,
     data: MutableHandleObject,
 ) -> bool {
+    let mut cx = unsafe {
+        // SAFETY: We are in SM hook
+        js::context::JSContext::from_ptr(
+            NonNull::new(cx).expect("JSContext should not be null in SM hook"),
+        )
+    };
     wrap_panic(&mut || {
         let Some(incumbent_global) = GlobalScope::incumbent() else {
             data.set(ptr::null_mut());
             return;
         };
 
-        let _realm = enter_realm(&*incumbent_global);
+        let mut realm = enter_auto_realm(&mut cx, &*incumbent_global);
+        let cx = &mut realm.current_realm();
 
-        rooted!(in(cx) let result = unsafe { JS_NewObject(cx, &HOST_DEFINED_DATA_CLASS)});
+        rooted!(&in(cx) let result = unsafe { JS_NewObject(cx, &HOST_DEFINED_DATA_CLASS)});
         assert!(!result.is_null());
 
         unsafe {
@@ -383,7 +390,10 @@ unsafe extern "C" fn enqueue_promise_job(
     _allocation_site: HandleObject,
     host_defined_data: HandleObject,
 ) -> bool {
-    let cx = unsafe { JSContext::from_ptr(cx) };
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
+
     let mut result = false;
     wrap_panic(&mut || {
         let microtask_queue = unsafe { &*(extra as *const MicrotaskQueue) };
@@ -398,8 +408,8 @@ unsafe extern "C" fn enqueue_promise_job(
                 GlobalScope::from_object(incumbent_global.to_object())
             }
         } else {
-            let realm = AlreadyInRealm::assert_for_cx(cx);
-            unsafe { GlobalScope::from_context(*cx, InRealm::already(&realm)) }
+            let realm = CurrentRealm::assert(cx);
+            GlobalScope::from_current_realm(&realm)
         };
         let pipeline = global.pipeline_id();
         let interaction = if promise.get().is_null() {
@@ -411,11 +421,11 @@ unsafe extern "C" fn enqueue_promise_job(
             interaction == PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
         microtask_queue.enqueue(
             Microtask::Promise(EnqueuedPromiseCallback {
-                callback: unsafe { PromiseJobCallback::new(cx, job.get()) },
+                callback: unsafe { PromiseJobCallback::new(cx.into(), job.get()) },
                 pipeline,
                 is_user_interacting,
             }),
-            cx,
+            cx.into(),
         );
         result = true
     });
@@ -438,9 +448,12 @@ unsafe extern "C" fn promise_rejection_tracker(
     }
 
     // Step 3.
-    let cx = unsafe { JSContext::from_ptr(cx) };
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-    let global = unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let mut realm = CurrentRealm::assert(&mut cx);
+
+    let global = GlobalScope::from_current_realm(&realm);
+    let cx = &mut realm;
 
     wrap_panic(&mut || {
         match state {
@@ -474,7 +487,7 @@ unsafe extern "C" fn promise_rejection_tracker(
 
                 let target = Trusted::new(global.upcast::<EventTarget>());
                 let promise =
-                    Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx);
+                    Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise) });
                 let trusted_promise = TrustedPromise::new(promise);
 
                 // Step 5-4.
@@ -484,21 +497,23 @@ unsafe extern "C" fn promise_rejection_tracker(
                     let root_promise = trusted_promise.root();
 
                     rooted!(&in(cx) let mut reason = UndefinedValue());
-                    unsafe{JS_GetPromiseResult(root_promise.reflector().get_jsobject(), reason.handle_mut())};
+                    unsafe {
+                        JS_GetPromiseResult(root_promise.reflector().get_jsobject(), reason.handle_mut());
+                    }
 
                     let event = PromiseRejectionEvent::new(
+                        cx,
                         &target.global(),
                         atom!("rejectionhandled"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable,
                         root_promise,
                         reason.handle(),
-                        CanGc::from_cx(cx),
                     );
 
                     event.upcast::<Event>().fire(cx, &target);
                 })
-            );
+                );
             },
         };
     })
@@ -611,7 +626,9 @@ unsafe extern "C" fn content_security_policy_allows(
                         unsafe { HandleValue::from_raw(body_arg) },
                     )
                 },
-                RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(&global),
+                RuntimeCode::WASM => global
+                    .get_csp_list()
+                    .is_wasm_evaluation_allowed(cx, &global),
             };
     });
     unsafe { *can_compile_strings = allowed };
@@ -620,9 +637,10 @@ unsafe extern "C" fn content_security_policy_allows(
 
 #[expect(unsafe_code)]
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
-pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
-    let cx = GlobalScope::get_cx();
-
+pub(crate) fn notify_about_rejected_promises(
+    cx: &mut js::context::JSContext,
+    global: &GlobalScope,
+) {
     // Step 1. Let list be a clone of global's about-to-be-notified rejected promises list.
     let uncaught_rejections: Vec<TrustedPromise> = global
         .get_uncaught_rejections()
@@ -630,7 +648,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
         .drain(..)
         .map(|promise| {
             let promise =
-                Promise::new_with_js_promise(unsafe { Handle::from_raw(promise.handle()) }, cx);
+                Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise.handle()) });
 
             TrustedPromise::new(promise)
         })
@@ -655,8 +673,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
                 let promise = promise.root();
 
                 // 4.1.1 If p.[[PromiseIsHandled]] is true, then continue.
-                let promise_is_handled = unsafe { GetPromiseIsHandled(promise.reflector().get_jsobject()) };
-                if promise_is_handled {
+                if promise.get_promise_is_handled() {
                     continue;
                 }
 
@@ -674,13 +691,13 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
                 );
 
                 let event = PromiseRejectionEvent::new(
+                    cx,
                     &target.global(),
                     atom!("unhandledrejection"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
                     promise.clone(),
                     reason.handle(),
-                    CanGc::from_cx(cx)
                 );
                 event.upcast::<Event>().fire(cx, &target);
 
@@ -689,7 +706,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
 
                 // Step 4.1.4 If p.[[PromiseIsHandled]] is false, then append p to global's outstanding
                 // rejected promises weak set.
-                if !promise_is_handled {
+                if !promise.get_promise_is_handled() {
                     target.global().add_consumed_rejection(promise.reflector().get_jsobject().into_handle());
                 }
             }
@@ -831,10 +848,8 @@ impl Runtime {
             };
 
             let runnable = Runnable(dispatchable);
-            let task = task!(dispatch_to_event_loop_message: move || {
-                if let Some(cx) = RustRuntime::get() {
-                    runnable.run(cx.as_ptr(), Dispatchable_MaybeShuttingDown::NotShuttingDown);
-                }
+            let task = task!(dispatch_to_event_loop_message: move |cx| {
+                runnable.run(cx, Dispatchable_MaybeShuttingDown::NotShuttingDown);
             });
 
             script_event_loop_sender
@@ -1226,73 +1241,69 @@ unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
 pub(crate) use script_bindings::script_runtime::JSContext;
 
-/// Extra methods for the JSContext type defined in script_bindings, when
-/// the methods are only called by code in the script crate.
-pub(crate) trait JSContextHelper {
-    fn get_reports(&self, path_seg: String, ops: &mut MallocSizeOfOps) -> Vec<Report>;
-}
+#[expect(unsafe_code)]
+pub(crate) fn get_reports(
+    cx: &mut js::context::JSContext,
+    path_seg: String,
+    ops: &mut MallocSizeOfOps,
+) -> Vec<Report> {
+    MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
+    let stats = unsafe {
+        let mut stats = ::std::mem::zeroed();
+        if !CollectServoSizes(cx, &mut stats, Some(get_size)) {
+            return vec![];
+        }
+        stats
+    };
+    MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
 
-impl JSContextHelper for JSContext {
-    #[expect(unsafe_code)]
-    fn get_reports(&self, path_seg: String, ops: &mut MallocSizeOfOps) -> Vec<Report> {
-        MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
-        let stats = unsafe {
-            let mut stats = ::std::mem::zeroed();
-            if !CollectServoSizes(**self, &mut stats, Some(get_size)) {
-                return vec![];
-            }
-            stats
-        };
-        MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
+    let mut reports = vec![];
+    let mut report = |mut path_suffix, kind, size| {
+        let mut path = path![path_seg, "js"];
+        path.append(&mut path_suffix);
+        reports.push(Report { path, kind, size })
+    };
 
-        let mut reports = vec![];
-        let mut report = |mut path_suffix, kind, size| {
-            let mut path = path![path_seg, "js"];
-            path.append(&mut path_suffix);
-            reports.push(Report { path, kind, size })
-        };
+    // A note about possibly confusing terminology: the JS GC "heap" is allocated via
+    // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
+    // `ExplicitNonHeapSize` as its kind.
+    report(
+        path!["gc-heap", "used"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.gcHeapUsed,
+    );
 
-        // A note about possibly confusing terminology: the JS GC "heap" is allocated via
-        // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
-        // `ExplicitNonHeapSize` as its kind.
-        report(
-            path!["gc-heap", "used"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.gcHeapUsed,
-        );
+    report(
+        path!["gc-heap", "unused"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.gcHeapUnused,
+    );
 
-        report(
-            path!["gc-heap", "unused"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.gcHeapUnused,
-        );
+    report(
+        path!["gc-heap", "admin"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.gcHeapAdmin,
+    );
 
-        report(
-            path!["gc-heap", "admin"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.gcHeapAdmin,
-        );
+    report(
+        path!["gc-heap", "decommitted"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.gcHeapDecommitted,
+    );
 
-        report(
-            path!["gc-heap", "decommitted"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.gcHeapDecommitted,
-        );
+    // SpiderMonkey uses the system heap, not jemalloc.
+    report(
+        path!["malloc-heap"],
+        ReportKind::ExplicitSystemHeapSize,
+        stats.mallocHeap,
+    );
 
-        // SpiderMonkey uses the system heap, not jemalloc.
-        report(
-            path!["malloc-heap"],
-            ReportKind::ExplicitSystemHeapSize,
-            stats.mallocHeap,
-        );
-
-        report(
-            path!["non-heap"],
-            ReportKind::ExplicitNonHeapSize,
-            stats.nonHeap,
-        );
-        reports
-    }
+    report(
+        path!["non-heap"],
+        ReportKind::ExplicitNonHeapSize,
+        stats.nonHeap,
+    );
+    reports
 }
 
 pub(crate) struct StreamConsumer(*mut JSStreamConsumer);
@@ -1448,10 +1459,11 @@ unsafe extern "C" fn invoke_script_environment_preparer(
     let mut cx = unsafe { temp_cx() };
     let global = unsafe { GlobalScope::from_object(global.get()) };
     let mut realm = enter_auto_realm(&mut cx, &*global);
+    let cx = &mut realm.current_realm();
 
-    run_a_script::<DomTypeHolder, _>(&global, || {
-        if unsafe { !RunScriptEnvironmentPreparerClosure(realm.raw_cx(), closure) } {
-            report_pending_exception(&mut realm.current_realm());
+    run_a_script::<DomTypeHolder, _, _>(cx, &global, |cx| {
+        if unsafe { !RunScriptEnvironmentPreparerClosure(cx.raw_cx(), closure) } {
+            report_pending_exception(cx);
         };
     });
 }
@@ -1465,7 +1477,11 @@ unsafe impl Send for Runnable {}
 
 #[expect(unsafe_code)]
 impl Runnable {
-    fn run(&self, cx: *mut RawJSContext, maybe_shutting_down: Dispatchable_MaybeShuttingDown) {
+    fn run(
+        &self,
+        cx: &mut js::context::JSContext,
+        maybe_shutting_down: Dispatchable_MaybeShuttingDown,
+    ) {
         unsafe {
             DispatchableRun(cx, self.0, maybe_shutting_down);
         }

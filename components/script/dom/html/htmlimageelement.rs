@@ -74,10 +74,10 @@ use crate::dom::html::htmlsourceelement::HTMLSourceElement;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
 use crate::dom::mouseevent::MouseEvent;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, MoveContext, Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::microtask::{Microtask, MicrotaskRunnable};
@@ -324,13 +324,18 @@ impl FetchResponseListener for ImageContext {
         network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+    fn process_csp_violations(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _request_id: RequestId,
+        violations: Vec<Violation>,
+    ) {
         let global = &self.resource_timing_global();
         let elem = self.element.root();
         let source_position = elem
             .upcast::<Element>()
             .compute_source_position(elem.line_number as u32);
-        global.report_csp_violations(violations, None, Some(source_position));
+        global.report_csp_violations(cx, violations, None, Some(source_position));
     }
 }
 
@@ -1347,13 +1352,13 @@ impl HTMLImageElement {
         if !self.owner_document().is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
-            promise.reject_error_with_cx(cx, Error::Encoding(None));
+            promise.reject_error(cx, Error::Encoding(None));
         } else if matches!(
             self.current_request.borrow().state,
             State::CompletelyAvailable
         ) {
             // this doesn't follow the spec, but it's been discussed in <https://github.com/whatwg/html/issues/4217>
-            promise.resolve_native_with_cx(cx, &());
+            promise.resolve_native(cx, &());
         } else if matches!(self.current_request.borrow().state, State::Unavailable) &&
             self.current_request.borrow().source_url.is_none()
         {
@@ -1361,7 +1366,7 @@ impl HTMLImageElement {
             // request's state is unavailable and current URL is empty string (<img> without "src"
             // and "srcset" attributes) then reject promise with an "EncodingError" DOMException.
             // <https://github.com/whatwg/html/issues/11769>
-            promise.reject_error_with_cx(cx, Error::Encoding(None));
+            promise.reject_error(cx, Error::Encoding(None));
         } else {
             self.image_decode_promises.borrow_mut().push(promise);
         }
@@ -1389,7 +1394,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(fulfill_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().resolve_native_with_cx(cx, &());
+                    trusted_promise.root().resolve_native(cx, &());
                 }
             }));
     }
@@ -1416,7 +1421,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error_with_cx(cx, Error::Encoding(None));
+                    trusted_promise.root().reject_error(cx, Error::Encoding(None));
                 }
             }));
     }
@@ -1925,7 +1930,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn Decode(&self, cx: &mut JSContext) -> Rc<Promise> {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new2(cx, &self.global());
+        let promise = Promise::new(cx, &self.global());
 
         // Step 2. Queue a microtask to perform the following steps:
         let task = ImageElementMicrotask::Decode {

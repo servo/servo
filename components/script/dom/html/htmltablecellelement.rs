@@ -20,8 +20,8 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage};
-use crate::dom::virtualmethods::VirtualMethods;
 
 const DEFAULT_COLSPAN: u32 = 1;
 const DEFAULT_ROWSPAN: u32 = 1;

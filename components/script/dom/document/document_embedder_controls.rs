@@ -453,10 +453,10 @@ impl ContextMenuNodes {
 
         match action {
             ContextMenuAction::GoBack => {
-                let _ = window.History().Back();
+                let _ = window.History(cx).Back();
             },
             ContextMenuAction::GoForward => {
-                let _ = window.History().Forward();
+                let _ = window.History(cx).Forward();
             },
             ContextMenuAction::Reload => {
                 window.Location(cx).reload_without_origin_check(cx);

@@ -1,0 +1,44 @@
+<!doctype html>
+<title>XRMediaBinding::createQuadLayer</title>
+<link rel="help" href="https://immersive-web.github.io/layers/#dom-xrmediabinding-createquadlayer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="./xr_layer_promise_test.js"></script>
+
+<script>
+    function testCreateQuadLayer(xrSession, deviceController, t, { gl, xrSpace }) {
+        return new Promise((resolve, reject) => {
+            const mediaBinding = new XRMediaBinding(xrSession);
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgb(0, 255, 0)';
+            ctx.fillRect(0, 0, 64, 64);
+
+            const video = document.createElement('video');
+            video.srcObject = canvas.captureStream();
+            video.play();
+
+            const valid_init = {
+                space: xrSpace
+            };
+
+            video.onloadedmetadata = () => {
+                // Test that a valid init works.
+                t.step(() => {
+                    const layer = mediaBinding.createQuadLayer(video, valid_init);
+                    assert_true(layer instanceof XRQuadLayer, "Valid init parameters must create an XRQuadLayer");
+                });
+
+                resolve();
+            };
+        });
+    }
+
+    xr_layer_promise_test("Ensure XRMediaBinding::createQuadLayer works.",
+        testCreateQuadLayer, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', { requiredFeatures: ['layers'] });
+
+</script>

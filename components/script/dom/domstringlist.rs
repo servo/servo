@@ -4,13 +4,13 @@
 
 use dom_struct::dom_struct;
 use itertools::Itertools;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DOMStringList {
@@ -27,22 +27,18 @@ impl DOMStringList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         strings: Vec<DOMString>,
-        can_gc: CanGc,
     ) -> DomRoot<DOMStringList> {
-        reflect_dom_object(
-            Box::new(DOMStringList::new_inherited(strings)),
-            global,
-            can_gc,
-        )
+        reflect_dom_object_with_cx(Box::new(DOMStringList::new_inherited(strings)), global, cx)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#sorted-name-list>
     pub(crate) fn new_sorted<'a>(
+        cx: &mut JSContext,
         global: &GlobalScope,
         strings: impl IntoIterator<Item = &'a DOMString>,
-        can_gc: CanGc,
     ) -> DomRoot<DOMStringList> {
         let sorted = strings
             .into_iter()
@@ -54,7 +50,7 @@ impl DOMStringList {
                     .into()
             })
             .collect();
-        Self::new(global, sorted, can_gc)
+        Self::new(cx, global, sorted)
     }
 }
 

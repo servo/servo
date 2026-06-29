@@ -144,6 +144,7 @@ skip = [
     "rand",
     "rand_chacha",
     "rand_core",
+    "sha1",
 
     # duplicated by blurz/blurmock
     "hex",
@@ -186,30 +187,19 @@ skip = [
     "tiny-skia",
     "tiny-skia-path",
 
-    # Duplicated by RustCrypto crates. We are upgrading RustCrypto
-    # dependencies in multiple rounds (issue #42206). During the
-    # upgrading process, we might have some duplicated dependencies due
-    # to partial upgrade, temporarily.
-    "const-oid",
+    # Duplicated by content-security-policy
+    "sha2",
+
+    # Duplicated by sha1 and sha2, which are duplicated by tungstenite
+    # and content-security-policy.
     "cpufeatures",
     "crypto-common",
     "digest",
-    "sha3",
-    "der",
-    "pkcs8",
-    "spki",
-    "signature",
     "block-buffer",
-    "hkdf",
-    "hmac",
-    "sha1",
-    "sha2",
-    "crypto-bigint",
-    "pem-rfc7468",
-    "aead",
-    "cipher",
-    "inout",
-    "universal-hash",
+
+    # Duplicated by ml-kem. This should be gone in next version (>0.3.2)
+    # of ml-kem.
+    "sha3",
 ]
 
 # github.com organizations to allow git sources for

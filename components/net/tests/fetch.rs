@@ -180,7 +180,7 @@ fn test_fetch_blob() {
 
     let bytes = b"content";
     let blob_buf = BlobBuf {
-        filename: Some("test.txt".into()),
+        filename: Some("test .txt".into()),
         type_string: "text/plain".into(),
         size: bytes.len() as u64,
         bytes: bytes.to_vec(),

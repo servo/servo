@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>window.event is restored after a throwing window.onerror handler</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+setup({ allow_uncaught_exception: true });
+
+test(t => {
+    let onerrorCalls = 0;
+    window.onerror = () => {
+        // Throw on the first invocation, leaving window.event set to the error event mid-dispatch.
+        // Only throw once so reporting the exception cannot recurse without bound.
+        if (++onerrorCalls === 1)
+            throw new Error("onerror throws");
+    };
+
+    let outerEvent;
+    window.addEventListener("outer", t.step_func(event => {
+        outerEvent = event;
+        assert_equals(window.event, outerEvent, "window.event is the outer event before the nested dispatch");
+
+        // Synchronously dispatch an error event whose onerror handler throws.
+        window.dispatchEvent(new ErrorEvent("error", { error: new Error("boom") }));
+
+        assert_equals(window.event, outerEvent,
+            "window.event must be restored to the outer event after a throwing onerror handler");
+    }));
+
+    window.dispatchEvent(new Event("outer"));
+}, "window.event is restored after a throwing window.onerror handler");
+</script>

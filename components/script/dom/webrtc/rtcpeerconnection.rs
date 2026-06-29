@@ -11,7 +11,7 @@ use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
@@ -30,7 +30,7 @@ use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
     RTCSignalingState,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
-    RTCSdpType, RTCSessionDescriptionInit, RTCSessionDescriptionMethods,
+    RTCSdpType, RTCSessionDescriptionInit,
 };
 use crate::dom::bindings::codegen::UnionTypes::{MediaStreamTrackOrString, StringOrStringSequence};
 use crate::dom::bindings::error::{Error, Fallible};
@@ -179,16 +179,16 @@ impl RTCPeerConnection {
     }
 
     fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         config: &RTCConfiguration,
-        can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnection> {
-        let this = reflect_dom_object_with_proto(
+        let this = reflect_dom_object_with_proto_and_cx(
             Box::new(RTCPeerConnection::new_inherited()),
             window,
             proto,
-            can_gc,
+            cx,
         );
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().create_webrtc(signaller));
@@ -227,39 +227,39 @@ impl RTCPeerConnection {
         })
     }
 
-    fn on_ice_candidate(&self, cx: &mut js::context::JSContext, candidate: IceCandidate) {
+    fn on_ice_candidate(&self, cx: &mut JSContext, candidate: IceCandidate) {
         if self.closed.get() {
             return;
         }
         let candidate = RTCIceCandidate::new(
+            cx,
             self.global().as_window(),
             candidate.candidate.into(),
             None,
             Some(candidate.sdp_mline_index as u16),
             None,
-            CanGc::from_cx(cx),
         );
         let event = RTCPeerConnectionIceEvent::new(
+            cx,
             self.global().as_window(),
             atom!("icecandidate"),
             Some(&candidate),
             None,
             true,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
     }
 
-    fn on_negotiation_needed(&self, cx: &mut js::context::JSContext) {
+    fn on_negotiation_needed(&self, cx: &mut JSContext) {
         if self.closed.get() {
             return;
         }
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("negotiationneeded"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
     }
@@ -302,12 +302,12 @@ impl RTCPeerConnection {
                 );
 
                 let event = RTCDataChannelEvent::new(
+                    cx,
                     self.global().as_window(),
                     atom!("datachannel"),
                     false,
                     false,
                     &channel,
-                    CanGc::from_cx(cx),
                 );
                 event.upcast::<Event>().fire(cx, self.upcast());
             },
@@ -351,7 +351,7 @@ impl RTCPeerConnection {
     }
 
     /// <https://www.w3.org/TR/webrtc/#update-ice-gathering-state>
-    fn update_gathering_state(&self, cx: &mut js::context::JSContext, state: GatheringState) {
+    fn update_gathering_state(&self, cx: &mut JSContext, state: GatheringState) {
         // step 1
         if self.closed.get() {
             return;
@@ -370,23 +370,23 @@ impl RTCPeerConnection {
 
         // step 5
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("icegatheringstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
 
         // step 6
         if state == RTCIceGatheringState::Complete {
             let event = RTCPeerConnectionIceEvent::new(
+                cx,
                 self.global().as_window(),
                 atom!("icecandidate"),
                 None,
                 None,
                 true,
-                CanGc::from_cx(cx),
             );
             event.upcast::<Event>().fire(cx, self.upcast());
         }
@@ -412,16 +412,16 @@ impl RTCPeerConnection {
 
         // step 5
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("iceconnectionstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
     }
 
-    fn update_signaling_state(&self, cx: &mut js::context::JSContext, state: SignalingState) {
+    fn update_signaling_state(&self, cx: &mut JSContext, state: SignalingState) {
         if self.closed.get() {
             return;
         }
@@ -435,11 +435,11 @@ impl RTCPeerConnection {
         self.signaling_state.set(state);
 
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("signalingstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
     }
@@ -457,7 +457,7 @@ impl RTCPeerConnection {
             .as_ref()
             .unwrap()
             .create_offer(Box::new(move |desc: SessionDescription| {
-                task_source.queue(task!(offer_created: move || {
+                task_source.queue(task!(offer_created: move |cx| {
                     let this = this.root();
                     if this.offer_answer_generation.get() != generation {
                         // the state has changed since we last created the offer,
@@ -466,7 +466,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.offer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init, CanGc::deprecated_note());
+                            promise.resolve_native(cx, &init);
                         }
                     }
                 }));
@@ -486,7 +486,7 @@ impl RTCPeerConnection {
             .as_ref()
             .unwrap()
             .create_answer(Box::new(move |desc: SessionDescription| {
-                task_source.queue(task!(answer_created: move || {
+                task_source.queue(task!(answer_created: move |cx| {
                     let this = this.root();
                     if this.offer_answer_generation.get() != generation {
                         // the state has changed since we last created the offer,
@@ -495,7 +495,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.answer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init, CanGc::deprecated_note());
+                            promise.resolve_native(cx, &init);
                         }
                     }
                 }));
@@ -506,12 +506,12 @@ impl RTCPeerConnection {
 impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     /// <https://w3c.github.io/webrtc-pc/#dom-peerconnection>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
-        Ok(RTCPeerConnection::new(window, proto, config, can_gc))
+        Ok(RTCPeerConnection::new(cx, window, proto, config))
     }
 
     // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
@@ -559,7 +559,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> Rc<Promise> {
         let p = Promise::new_in_realm(current_realm);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
-            p.reject_error_with_cx(
+            p.reject_error(
                 current_realm,
                 Error::Type(c"one of sdpMid and sdpMLineIndex must be set".to_owned()),
             );
@@ -568,7 +568,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
 
         // XXXManishearth add support for sdpMid
         if candidate.sdpMLineIndex.is_none() {
-            p.reject_error_with_cx(
+            p.reject_error(
                 current_realm,
                 Error::Type(c"servo only supports sdpMLineIndex right now".to_owned()),
             );
@@ -588,7 +588,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             });
 
         // XXXManishearth add_ice_candidate should have a callback
-        p.resolve_native_with_cx(current_realm, &());
+        p.resolve_native(current_realm, &());
         p
     }
 
@@ -600,7 +600,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> Rc<Promise> {
         let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
-            p.reject_error_with_cx(current_realm, Error::InvalidState(None));
+            p.reject_error(current_realm, Error::InvalidState(None));
             return p;
         }
         self.offer_promises.borrow_mut().push(p.clone());
@@ -616,7 +616,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     ) -> Rc<Promise> {
         let p = Promise::new_in_realm(current_realm);
         if self.closed.get() {
-            p.reject_error_with_cx(current_realm, Error::InvalidState(None));
+            p.reject_error(current_realm, Error::InvalidState(None));
             return p;
         }
         self.answer_promises.borrow_mut().push(p.clone());
@@ -662,14 +662,15 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                         // dance between pending/current local/remote descriptions
                         let this = this.root();
                         let desc = desc.convert();
-                        let desc = RTCSessionDescription::Constructor(
+                        let desc = RTCSessionDescription::new(
+                            current_realm,
                             this.global().as_window(),
                             None,
-                            CanGc::deprecated_note(),
-                            &desc,
-                        ).unwrap();
+                            desc.type_,
+                            desc.sdp,
+                        );
                         this.local_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native_with_cx(current_realm, &())
+                        trusted_promise.root().resolve_native(current_realm, &())
                     }));
                 }),
             );
@@ -704,14 +705,15 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                         // dance between pending/current local/remote descriptions
                         let this = this.root();
                         let desc = desc.convert();
-                        let desc = RTCSessionDescription::Constructor(
+                        let desc = RTCSessionDescription::new(
+                            current_realm,
                             this.global().as_window(),
                             None,
-                            CanGc::from_cx(current_realm),
-                            &desc,
-                        ).unwrap();
+                            desc.type_,
+                            desc.sdp,
+                        );
                         this.remote_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native_with_cx(current_realm, &())
+                        trusted_promise.root().resolve_native(current_realm, &())
                     }));
                 }),
             );
@@ -745,7 +747,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     }
 
     /// <https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close>
-    fn Close(&self, cx: &mut js::context::JSContext) {
+    fn Close(&self, cx: &mut JSContext) {
         // Step 1
         if self.closed.get() {
             return;

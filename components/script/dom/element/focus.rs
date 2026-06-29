@@ -80,7 +80,8 @@ impl Element {
         // > ...
         // > Modulo platform conventions, it is suggested that the following elements should be
         // > considered as focusable areas and be sequentially focusable:
-        let is_focusable_area_due_to_type = match node.type_id() {
+        let type_id = node.type_id();
+        let is_focusable_area_due_to_type = match type_id {
             // >  - a elements that have an href attribute
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLAnchorElement,
@@ -136,7 +137,14 @@ impl Element {
             return FocusableAreaKind::Sequential;
         }
 
-        Default::default()
+        // > Any other element or part of an element determined by the user agent to be a focusable
+        // > area, especially to aid with accessibility or to better match platform conventions.
+        match type_id {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLDialogElement,
+            )) => FocusableAreaKind::Click,
+            _ => Default::default(),
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#sequentially-focusable>.

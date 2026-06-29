@@ -6,10 +6,11 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use euclid::Point2D;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use style::Atom;
 use style_traits::CSSPixel;
 
@@ -24,7 +25,6 @@ use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/pointerevents/#dom-pointerevent-pointerid>
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
@@ -73,25 +73,26 @@ impl PointerEvent {
         }
     }
 
-    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<PointerEvent> {
-        Self::new_uninitialized_with_proto(window, None, can_gc)
+    pub(crate) fn new_uninitialized(cx: &mut JSContext, window: &Window) -> DomRoot<PointerEvent> {
+        Self::new_uninitialized_with_proto(cx, window, None)
     }
 
     fn new_uninitialized_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<PointerEvent> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(PointerEvent::new_inherited()),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         event_type: Atom,
         can_bubble: EventBubbles,
@@ -120,9 +121,9 @@ impl PointerEvent {
         is_primary: bool,
         coalesced_events: Vec<DomRoot<PointerEvent>>,
         predicted_events: Vec<DomRoot<PointerEvent>>,
-        can_gc: CanGc,
     ) -> DomRoot<PointerEvent> {
         Self::new_with_proto(
+            cx,
             window,
             None,
             event_type,
@@ -152,12 +153,12 @@ impl PointerEvent {
             is_primary,
             coalesced_events,
             predicted_events,
-            can_gc,
         )
     }
 
     #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
@@ -187,9 +188,8 @@ impl PointerEvent {
         is_primary: bool,
         coalesced_events: Vec<DomRoot<PointerEvent>>,
         predicted_events: Vec<DomRoot<PointerEvent>>,
-        can_gc: CanGc,
     ) -> DomRoot<PointerEvent> {
-        let ev = PointerEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        let ev = PointerEvent::new_uninitialized_with_proto(cx, window, proto);
         ev.mouseevent.initialize_mouse_event(
             event_type,
             can_bubble,
@@ -226,9 +226,9 @@ impl PointerEvent {
 impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
     /// <https://w3c.github.io/pointerevents/#dom-pointerevent-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         event_type: DOMString,
         init: &PointerEventInit,
     ) -> DomRoot<PointerEvent> {
@@ -240,6 +240,7 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
             scroll_offset.y as i32 + init.parent.clientY,
         );
         PointerEvent::new_with_proto(
+            cx,
             window,
             proto,
             event_type.into(),
@@ -269,7 +270,6 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
             init.isPrimary,
             init.coalescedEvents.clone(),
             init.predictedEvents.clone(),
-            can_gc,
         )
     }
 

@@ -22,9 +22,9 @@ use crate::dom::document::Document;
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct SVGElement {

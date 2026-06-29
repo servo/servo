@@ -11,9 +11,9 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node};
 use crate::dom::userscripts::load_script;
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLHeadElement {

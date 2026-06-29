@@ -12,7 +12,7 @@ use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::StyleSheetBinding::StyleSheetMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto_and_cx};
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
@@ -131,6 +131,7 @@ impl CSSStyleSheet {
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         owner: Option<&Element>,
@@ -139,9 +140,8 @@ impl CSSStyleSheet {
         title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
-        can_gc: CanGc,
     ) -> DomRoot<CSSStyleSheet> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(CSSStyleSheet::new_inherited(
                 owner,
                 type_,
@@ -152,7 +152,7 @@ impl CSSStyleSheet {
             )),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -345,9 +345,9 @@ impl CSSStyleSheet {
 impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssstylesheet>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         options: &CSSStyleSheetInit,
     ) -> DomRoot<Self> {
         let doc = window.Document();
@@ -374,6 +374,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             stylesheet.set_disabled(true);
         }
         Self::new_with_proto(
+            cx,
             window,
             proto,
             None, // owner
@@ -382,7 +383,6 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             None, // title
             stylesheet,
             Some(&window.Document()), // constructor_document
-            can_gc,
         )
     }
 
@@ -516,7 +516,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
                 sheet.disallow_modification.set(false);
 
                 // Step 4.5. Resolve promise with sheet.
-                trusted_promise.root().resolve_native_with_cx(cx, &sheet);
+                trusted_promise.root().resolve_native(cx, &sheet);
             }));
 
         Ok(promise)

@@ -50,14 +50,14 @@ use crate::dom::element::{
     reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::eventtarget::EventTarget;
-use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
@@ -439,10 +439,15 @@ impl FetchResponseListener for ClassicContext {
         // }
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+    fn process_csp_violations(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _request_id: RequestId,
+        violations: Vec<Violation>,
+    ) {
         let global = &self.resource_timing_global();
         let elem = self.elem.root();
-        global.report_csp_violations(violations, Some(elem.upcast()), None);
+        global.report_csp_violations(cx, violations, Some(elem.upcast()), None);
     }
 }
 
@@ -669,6 +674,7 @@ impl HTMLScriptElement {
             global
                 .get_csp_list()
                 .should_elements_inline_type_behavior_be_blocked(
+                    cx,
                     global,
                     element,
                     InlineCheckType::Script,
@@ -865,7 +871,7 @@ impl HTMLScriptElement {
                     if was_parser_inserted &&
                         doc.get_current_parser()
                             .is_some_and(|parser| parser.script_nesting_level() <= 1) &&
-                        doc.get_script_blocking_stylesheets_count() > 0
+                        doc.has_a_stylesheet_that_is_blocking_scripts()
                     {
                         // Step 34.2: classic, has no src, was parser-inserted, is blocked on stylesheet.
                         doc.set_pending_parsing_blocking_script(self, Some(result));

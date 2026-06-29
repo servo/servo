@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use super::performance::PerformanceEntryList;
 use super::performanceentry::{EntryType, PerformanceEntry};
@@ -12,7 +13,6 @@ use crate::dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct PerformanceObserverEntryList {
@@ -30,12 +30,12 @@ impl PerformanceObserverEntryList {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         entries: PerformanceEntryList,
-        can_gc: CanGc,
     ) -> DomRoot<PerformanceObserverEntryList> {
         let observer_entry_list = PerformanceObserverEntryList::new_inherited(entries);
-        reflect_dom_object(Box::new(observer_entry_list), global, can_gc)
+        reflect_dom_object_with_cx(Box::new(observer_entry_list), global, cx)
     }
 }
 

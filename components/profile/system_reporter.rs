@@ -2,21 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(not(any(target_os = "windows", target_env = "ohos")))]
-use std::ffi::CString;
-#[cfg(not(any(target_os = "windows", target_env = "ohos")))]
-use std::mem::size_of;
-#[cfg(not(any(target_os = "windows", target_env = "ohos")))]
-use std::ptr::null_mut;
+#[cfg(target_os = "macos")]
+use std::ptr;
 
 #[cfg(all(target_os = "linux", target_env = "gnu"))]
 use libc::c_int;
-#[cfg(not(any(target_os = "windows", target_env = "ohos")))]
-use libc::{c_void, size_t};
 use profile_traits::mem::{ProcessReports, Report, ReportKind, ReporterRequest};
 use profile_traits::path;
 
-const JEMALLOC_HEAP_ALLOCATED_STR: &str = "jemalloc-heap-allocated";
 const SYSTEM_HEAP_ALLOCATED_STR: &str = "system-heap-allocated";
 const SYSTEM_HEAP_RESERVED_STR: &str = "system-heap-reserved";
 
@@ -52,29 +45,18 @@ pub fn collect_reports(request: ReporterRequest) {
         }
 
         // Total number of bytes allocated by the application on the system
-        // heap.
+        // heap. Even if we use a custom global allocator, this doesn't affect
+        // everything, e.g. C/C++ libraries might still use the default system allocator
+        // unless we explicitly patch  / configure them.
+        // Hence we always check system-heap info, since it allows us to know
+        // how much memory bypasses the global allocator we defined.
         let system_heap = system_heap_info();
         report(path![SYSTEM_HEAP_ALLOCATED_STR], system_heap.allocated);
         report(path![SYSTEM_HEAP_RESERVED_STR], system_heap.reserved);
 
-        // The descriptions of the following jemalloc measurements are taken
-        // directly from the jemalloc documentation.
-
-        // "Total number of bytes allocated by the application."
-        report(
-            path![JEMALLOC_HEAP_ALLOCATED_STR],
-            jemalloc_stat("stats.allocated"),
-        );
-
-        // "Total number of bytes in active pages allocated by the application.
-        // This is a multiple of the page size, and greater than or equal to
-        // |stats.allocated|."
-        report(path!["jemalloc-heap-active"], jemalloc_stat("stats.active"));
-
-        // "Total number of bytes in chunks mapped on behalf of the application.
-        // This is a multiple of the chunk size, and is at least as large as
-        // |stats.active|. This does not include inactive chunks."
-        report(path!["jemalloc-heap-mapped"], jemalloc_stat("stats.mapped"));
+        for heap_report in servo_allocator::heap_reports() {
+            report(path![heap_report.path], heap_report.size);
+        }
     }
 
     request.reports_channel.send(ProcessReports::new(reports));
@@ -142,7 +124,7 @@ fn macos_malloc_statistics() -> libc::malloc_statistics_t {
     };
     unsafe {
         // A null zone aggregates statistics across all malloc zones.
-        libc::malloc_zone_statistics(null_mut(), &mut stats);
+        libc::malloc_zone_statistics(ptr::null_mut(), &mut stats);
     }
     stats
 }
@@ -162,61 +144,6 @@ fn system_heap_info() -> SystemHeapInfo {
         allocated: None,
         reserved: None,
     }
-}
-
-#[cfg(not(any(target_os = "windows", target_env = "ohos")))]
-use tikv_jemalloc_sys::mallctl;
-
-#[cfg(not(any(target_os = "windows", target_env = "ohos")))]
-fn jemalloc_stat(value_name: &str) -> Option<usize> {
-    // Before we request the measurement of interest, we first send an "epoch"
-    // request. Without that jemalloc gives cached statistics(!) which can be
-    // highly inaccurate.
-    let epoch_name = "epoch";
-    let epoch_c_name = CString::new(epoch_name).unwrap();
-    let mut epoch: u64 = 0;
-    let epoch_ptr = &mut epoch as *mut _ as *mut c_void;
-    let mut epoch_len = size_of::<u64>() as size_t;
-
-    let value_c_name = CString::new(value_name).unwrap();
-    let mut value: size_t = 0;
-    let value_ptr = &mut value as *mut _ as *mut c_void;
-    let mut value_len = size_of::<size_t>() as size_t;
-
-    // Using the same values for the `old` and `new` parameters is enough
-    // to get the statistics updated.
-    let rv = unsafe {
-        mallctl(
-            epoch_c_name.as_ptr(),
-            epoch_ptr,
-            &mut epoch_len,
-            epoch_ptr,
-            epoch_len,
-        )
-    };
-    if rv != 0 {
-        return None;
-    }
-
-    let rv = unsafe {
-        mallctl(
-            value_c_name.as_ptr(),
-            value_ptr,
-            &mut value_len,
-            null_mut(),
-            0,
-        )
-    };
-    if rv != 0 {
-        return None;
-    }
-
-    Some(value as usize)
-}
-
-#[cfg(any(target_os = "windows", target_env = "ohos"))]
-fn jemalloc_stat(_value_name: &str) -> Option<usize> {
-    None
 }
 
 #[cfg(target_os = "linux")]

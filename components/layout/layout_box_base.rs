@@ -4,10 +4,10 @@
 
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use euclid::Point2D;
 use layout_api::LayoutDamage;
 use malloc_size_of_derive::MallocSizeOf;
@@ -56,9 +56,12 @@ pub(crate) struct LayoutBoxBase {
     /// layout, but cannot be reused directly.
     cached_layout_result_dirty: AtomicBool,
 
+    /// A count of the number of boxes are in this box's subtree (including itself).
+    /// This is used as a heuristic to know when to perform parallel layout.
+    subtree_size: AtomicUsize,
+
     pub fragments: AtomicRefCell<Vec<Fragment>>,
     pub parent_box: Option<WeakLayoutBox>,
-    only_descendants_changed: AtomicBool,
 }
 
 impl LayoutBoxBase {
@@ -73,10 +76,20 @@ impl LayoutBoxBase {
             outer_inline_content_sizes_depend_on_content: AtomicBool::new(true),
             cached_layout_result: AtomicRefCell::default(),
             cached_layout_result_dirty: AtomicBool::default(),
+            subtree_size: AtomicUsize::default(),
             fragments: AtomicRefCell::default(),
             parent_box: None,
-            only_descendants_changed: AtomicBool::default(),
         }
+    }
+
+    /// Set the subtree size on this [`LayoutBoxBase`]. This should be done once
+    /// box construction knows how many boxes are in this box's subtree.
+    pub(crate) fn set_subtree_size(&self, size: usize) {
+        self.subtree_size.store(size, Ordering::Relaxed);
+    }
+
+    pub(crate) fn subtree_size(&self) -> usize {
+        self.subtree_size.load(Ordering::Relaxed)
     }
 
     /// Get the inline content sizes of a box tree node that extends this [`LayoutBoxBase`], fetch
@@ -104,25 +117,15 @@ impl LayoutBoxBase {
         result
     }
 
-    pub(crate) fn fragments(&self) -> Vec<Fragment> {
-        self.fragments.borrow().clone()
+    pub(crate) fn fragments(&self) -> AtomicRef<'_, Vec<Fragment>> {
+        self.fragments.borrow()
     }
 
     pub(crate) fn add_fragment(&self, fragment: Fragment) {
-        if self.only_descendants_changed.load(Ordering::Relaxed) &&
-            let Some(base) = fragment.base()
-        {
-            base.set_status(FragmentStatus::OnlyDescendantsChanged)
-        }
         self.fragments.borrow_mut().push(fragment);
     }
 
     pub(crate) fn set_fragment(&self, fragment: Fragment) {
-        if self.only_descendants_changed.load(Ordering::Relaxed) &&
-            let Some(base) = fragment.base()
-        {
-            base.set_status(FragmentStatus::OnlyDescendantsChanged)
-        }
         *self.fragments.borrow_mut() = vec![fragment];
     }
 
@@ -133,7 +136,7 @@ impl LayoutBoxBase {
     /// Clear all resulting fragments and dirty and fragment caches. Resulting fragments are
     /// used for layout queries and fragment caches are used for incremental layout.
     pub(crate) fn clear_fragments_and_dirty_fragment_cache(&self) {
-        self.fragments.borrow_mut().clear();
+        self.clear_fragments();
         self.cached_layout_result_dirty
             .store(true, Ordering::Relaxed);
     }
@@ -152,21 +155,15 @@ impl LayoutBoxBase {
         self.parent_box.as_ref().and_then(WeakLayoutBox::upgrade)
     }
 
-    pub(crate) fn add_damage(&self, damage_set: &ElementDamageSet) -> LayoutDamage {
-        let only_descendants_changed = !damage_set.on_element.contains(LayoutDamage::Relayout) &&
-            !damage_set.from_parent.contains(LayoutDamage::Relayout) &&
-            !damage_set
-                .from_children
-                .contains(LayoutDamage::LayoutAffectedByInflowDescendant) &&
-            self.fragments.borrow().iter().all(|fragment| {
-                fragment
-                    .base()
-                    .is_some_and(|base| base.status() == FragmentStatus::Clean)
-            });
-        self.only_descendants_changed
-            .store(only_descendants_changed, Ordering::Relaxed);
-        self.clear_fragments_and_dirty_fragment_cache();
-
+    /// Clear fragment layout caches on this base, depending on upward flowing damage, but
+    /// *do not* clear its resulting fragment. The layout cache itself is always cleared,
+    /// but the inline content size cache is cleared conditionally.
+    ///
+    /// Returns true is this [`LayoutBoxBase`] propagates `RecomputeInlineContentSizes`
+    /// and false otherwise.
+    pub(crate) fn invalidate_caches(&self, damage_set: &ElementDamageSet) -> bool {
+        self.cached_layout_result_dirty
+            .store(true, Ordering::Relaxed);
         if !damage_set.on_element.is_empty() ||
             damage_set
                 .from_children
@@ -174,8 +171,6 @@ impl LayoutBoxBase {
         {
             *self.cached_inline_content_size.borrow_mut() = None;
         }
-
-        let mut damage_for_parent = damage_set.on_element | damage_set.from_children;
 
         // When a block container has a mix of inline-level and block-level contents, the
         // inline-level ones are wrapped inside an anonymous block associated with the
@@ -187,15 +182,23 @@ impl LayoutBoxBase {
         // clear the cached intrinsic sizes of the parent. But if the contributions are
         // purely extrinsic, then the intrinsic sizes of the ancestors won't be affected,
         // and we can keep the cache.
-        damage_for_parent.set(
-            LayoutDamage::RecomputeInlineContentSizes,
-            !damage_set.on_element.is_empty() ||
-                (!self.base_fragment_info.is_anonymous() &&
-                    self.outer_inline_content_sizes_depend_on_content
-                        .load(Ordering::Relaxed)),
-        );
+        !self.base_fragment_info.is_anonymous() &&
+            self.outer_inline_content_sizes_depend_on_content
+                .load(Ordering::Relaxed)
+    }
 
-        damage_for_parent
+    /// Clear fragment layout caches on this base, depending on upward flowing damage, and
+    /// also clear its resulting fragment. The layout cache itself is always cleared, but
+    /// the inline content size cache is cleared conditionally.
+    ///
+    /// Returns true is this [`LayoutBoxBase`] propagates `RecomputeInlineContentSizes`
+    /// and false otherwise.
+    pub(crate) fn invalidate_caches_for_fragment_tree_layout(
+        &self,
+        damage_set: &ElementDamageSet,
+    ) -> bool {
+        self.clear_fragments();
+        self.invalidate_caches(damage_set)
     }
 
     pub(crate) fn cached_independent_formatting_context_layout_if_applicable(
@@ -333,6 +336,14 @@ impl LayoutBoxBase {
     pub(crate) fn clear_scrollable_overflow_all_on_fragments(&self) {
         for fragment in self.fragments.borrow().iter() {
             fragment.clear_scrollable_overflow();
+        }
+    }
+
+    pub(crate) fn mark_fragments_as_descendants_changed(&self) {
+        for fragment in self.fragments.borrow().iter() {
+            if let Some(base) = fragment.base() {
+                base.set_status(FragmentStatus::OnlyDescendantsChanged);
+            }
         }
     }
 }

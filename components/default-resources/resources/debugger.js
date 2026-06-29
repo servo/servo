@@ -102,10 +102,13 @@ function createValueGrip(value, depth) {
         case "object":
             // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#153>
             if (value === null) {
-                return "NullValue";
+                return { NullValue: false };
             }
-            if (value.optimizedOut || value.uninitialized || value.missingArguments) {
-                return "NullValue";
+            if (value.uninitialized) {
+                return { NullValue: true };
+            }
+            if (value.optimizedOut || value.missingArguments) {
+                return { NullValue: false };
             }
             // TODO: handle typed arrays and storage independently
             const ownPropertyLength = value.getOwnPropertyNamesLength();
@@ -291,13 +294,9 @@ previewers.Array = [ function ArrayPreviewer(obj, depth) {
 
     preview.items = [];
     for (let i = 0; i < arrayLength; i++) {
-        try {
-            const desc = obj.getOwnPropertyDescriptor(i);
-            if (desc && desc.value !== undefined) {
-                preview.items.push(createValueGrip(desc.value, depth + 1));
-            }
-        } catch (e) {
-            // For now skip properties that throw on access
+        const desc = obj.getOwnPropertyDescriptor(i);
+        if (desc && desc.value !== undefined) {
+            preview.items.push(createValueGrip(desc.value, depth + 1));
         }
     }
 
@@ -332,12 +331,8 @@ previewers.Map = [ function MapPreviewer(object, depth) {
     }
 
     preview.entries = [];
-    try {
-        for (const entry of enumMapEntries(object, depth)) {
-            preview.entries.push(entry);
-        }
-    } catch (e) {
-        return undefined;
+    for (const entry of enumMapEntries(object, depth)) {
+        preview.entries.push(entry);
     }
 
     return preview;
@@ -364,8 +359,12 @@ function getPreview(obj, depth) {
     // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object.js#295>
     const typePreviewers = previewers[className] || previewers.Object;
     for (const previewer of typePreviewers) {
-        const result = previewer(obj, depth);
-        if (result) return result;
+        try {
+            const result = previewer(obj, depth);
+            if (result) return result;
+        } catch (e) {
+            console.error(`[debugger] Couldn't populate ${className} preview: ${e}`);
+        }
     }
 
     return undefined;
@@ -396,7 +395,6 @@ addEventListener("eval", event => {
     let resultValue;
     if (completionValue === null) {
         resultValue = {
-            completionType: "terminated",
             value: createValueGrip(undefined, 0),
             hasException: false,
         };
@@ -407,21 +405,18 @@ addEventListener("eval", event => {
         // let value = dbg.adoptDebuggeeValue(completionValue.throw);
         let realError = completionValue.throw.unsafeDereference();
         resultValue = {
-            completionType: "throw",
             value: createValueGrip(completionValue.throw, 0),
             exceptionMessage: realError.message,
             hasException: true,
         };
     } else if ("return" in completionValue) {
         resultValue = {
-            completionType: "return",
             value: createValueGrip(completionValue.return, 0),
             hasException: false,
         };
     }
 
     evalResult(event, {
-        completionType: resultValue.completionType,
         serializedValue: JSON.stringify(resultValue.value),
         exceptionMessage: resultValue.hasException ? resultValue.exceptionMessage : null,
         hasException: resultValue.hasException,

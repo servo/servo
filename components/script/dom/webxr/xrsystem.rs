@@ -172,13 +172,13 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                         "The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR."
                     );
                 } else {
-                    promise.reject_error_with_cx(realm, Error::Security(None));
+                    promise.reject_error(realm, Error::Security(None));
                     return promise;
                 }
             }
 
             if self.pending_or_active_session() {
-                promise.reject_error_with_cx(realm, Error::InvalidState(None));
+                promise.reject_error(realm, Error::InvalidState(None));
                 return promise;
             }
 
@@ -199,7 +199,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     if mode != XRSessionMode::Inline {
                         self.pending_immersive_session.set(false);
                     }
-                    promise.reject_error_with_cx(realm, Error::NotSupported(None));
+                    promise.reject_error(realm, Error::NotSupported(None));
                     return promise;
                 }
             }
@@ -286,7 +286,7 @@ impl XRSystem {
                 if mode != XRSessionMode::Inline {
                     self.pending_immersive_session.set(false);
                 }
-                promise.reject_error_with_cx(cx, Error::NotSupported(None));
+                promise.reject_error(cx, Error::NotSupported(None));
                 return;
             },
         };
@@ -298,7 +298,7 @@ impl XRSystem {
         } else {
             self.set_active_immersive_session(&session);
         }
-        promise.resolve_native_with_cx(cx, &session);
+        promise.resolve_native(cx, &session);
         // https://github.com/immersive-web/webxr/issues/961
         // This must be called _after_ the promise is resolved
         session.setup_initial_inputs();

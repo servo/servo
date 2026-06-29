@@ -169,7 +169,9 @@ interface GPUDevice : EventTarget {
     GPUCommandEncoder createCommandEncoder(optional GPUCommandEncoderDescriptor descriptor = {});
     [Throws]
     GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
-    //GPUQuerySet createQuerySet(GPUQuerySetDescriptor descriptor);
+
+    [Throws]
+    GPUQuerySet createQuerySet(GPUQuerySetDescriptor descriptor);
 };
 GPUDevice includes GPUObjectBase;
 
@@ -965,6 +967,13 @@ interface GPUCommandEncoder {
         GPUExtent3D copySize);
     */
 
+    undefined resolveQuerySet(
+        GPUQuerySet querySet,
+        GPUSize32 firstQuery,
+        GPUSize32 queryCount,
+        GPUBuffer destination,
+        GPUSize64 destinationOffset);
+
     GPUCommandBuffer finish(optional GPUCommandBufferDescriptor descriptor = {});
 };
 GPUCommandEncoder includes GPUObjectBase;
@@ -1006,7 +1015,14 @@ GPUComputePassEncoder includes GPUCommandsMixin;
 GPUComputePassEncoder includes GPUDebugCommandsMixin;
 GPUComputePassEncoder includes GPUBindingCommandsMixin;
 
+dictionary GPUComputePassTimestampWrites {
+    required GPUQuerySet querySet;
+    GPUSize32 beginningOfPassWriteIndex;
+    GPUSize32 endOfPassWriteIndex;
+};
+
 dictionary GPUComputePassDescriptor : GPUObjectDescriptorBase {
+    GPUComputePassTimestampWrites timestampWrites;
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
@@ -1034,11 +1050,17 @@ GPURenderPassEncoder includes GPUDebugCommandsMixin;
 GPURenderPassEncoder includes GPUBindingCommandsMixin;
 GPURenderPassEncoder includes GPURenderCommandsMixin;
 
+dictionary GPURenderPassTimestampWrites {
+    required GPUQuerySet querySet;
+    GPUSize32 beginningOfPassWriteIndex;
+    GPUSize32 endOfPassWriteIndex;
+};
+
 dictionary GPURenderPassDescriptor : GPUObjectDescriptorBase {
     required sequence<GPURenderPassColorAttachment> colorAttachments;
     GPURenderPassDepthStencilAttachment depthStencilAttachment;
     GPUQuerySet occlusionQuerySet;
-    //GPURenderPassTimestampWrites timestampWrites;
+    GPURenderPassTimestampWrites timestampWrites;
     //GPUSize64 maxDrawCount = 50000000;
 };
 
@@ -1167,6 +1189,9 @@ GPUQueue includes GPUObjectBase;
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
 interface GPUQuerySet {
     undefined destroy();
+
+    readonly attribute GPUQueryType type;
+    readonly attribute GPUSize32Out count;
 };
 GPUQuerySet includes GPUObjectBase;
 

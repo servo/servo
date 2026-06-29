@@ -224,7 +224,7 @@ impl HeadedWindow {
     fn handle_keyboard_input(
         &self,
         state: Rc<RunningAppState>,
-        window: &ServoShellWindow,
+        window: &Rc<ServoShellWindow>,
         winit_event: KeyEvent,
     ) {
         // First, handle servoshell key bindings that are not overridable by, or visible to, the page.
@@ -330,7 +330,7 @@ impl HeadedWindow {
     fn handle_intercepted_key_bindings(
         &self,
         state: Rc<RunningAppState>,
-        window: &ServoShellWindow,
+        window: &Rc<ServoShellWindow>,
         key_event: &KeyboardEvent,
     ) -> bool {
         let Some(active_webview) = window.active_webview() else {

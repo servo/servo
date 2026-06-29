@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#auto-safety-position">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.container {
+  position: relative;
+  overflow: scroll;
+  scrollbar-width: none;
+  width: 100px;
+  height: 100px;
+  border: solid 2px;
+  margin: 10px;
+}
+.vrl {
+  writing-mode: vertical-rl;
+  direction: rtl;
+}
+
+.abspos {
+  position: absolute;
+  background: green;
+  width: 150px;
+  height: 150px;
+  /* Creates an IMCB which is 0x0 in the middle of the container. */
+  inset: 50px;
+}
+</style>
+<body onload="checkLayout('.container')">
+
+<div class="container" data-expected-scroll-width="200" data-expected-scroll-height="200">
+  <div class="abspos" style="place-self: start;"></div>
+</div>
+<div class="container" data-expected-scroll-width="150" data-expected-scroll-height="150">
+  <div class="abspos" style="place-self: center;"></div>
+</div>
+<div class="container" data-expected-scroll-width="150" data-expected-scroll-height="150">
+  <div class="abspos" style="place-self: end;"></div>
+</div>
+
+<div class="container vrl" data-expected-scroll-width="200" data-expected-scroll-height="200">
+  <div class="abspos" style="place-self: start;"></div>
+</div>
+<div class="container vrl" data-expected-scroll-width="150" data-expected-scroll-height="150">
+  <div class="abspos" style="place-self: center;"></div>
+</div>
+<div class="container vrl" data-expected-scroll-width="150" data-expected-scroll-height="150">
+  <div class="abspos" style="place-self: end;"></div>
+</div>
+
+<div id=log></div>
+

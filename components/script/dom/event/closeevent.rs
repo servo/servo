@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CloseEventBinding;
@@ -16,7 +17,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CloseEvent {
@@ -39,6 +39,7 @@ impl CloseEvent {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         type_: Atom,
         bubbles: EventBubbles,
@@ -46,15 +47,15 @@ impl CloseEvent {
         wasClean: bool,
         code: u16,
         reason: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<CloseEvent> {
         Self::new_with_proto(
-            global, None, type_, bubbles, cancelable, wasClean, code, reason, can_gc,
+            cx, global, None, type_, bubbles, cancelable, wasClean, code, reason,
         )
     }
 
     #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -63,10 +64,9 @@ impl CloseEvent {
         wasClean: bool,
         code: u16,
         reason: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<CloseEvent> {
         let event = Box::new(CloseEvent::new_inherited(wasClean, code, reason));
-        let ev = reflect_dom_object_with_proto(event, global, proto, can_gc);
+        let ev = reflect_dom_object_with_proto_and_cx(event, global, proto, cx);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -78,15 +78,16 @@ impl CloseEvent {
 impl CloseEventMethods<crate::DomTypeHolder> for CloseEvent {
     /// <https://websockets.spec.whatwg.org/#the-closeevent-interface>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &CloseEventBinding::CloseEventInit,
     ) -> Fallible<DomRoot<CloseEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(CloseEvent::new_with_proto(
+            cx,
             global,
             proto,
             Atom::from(type_),
@@ -95,7 +96,6 @@ impl CloseEventMethods<crate::DomTypeHolder> for CloseEvent {
             init.wasClean,
             init.code,
             init.reason.clone(),
-            can_gc,
         ))
     }
 

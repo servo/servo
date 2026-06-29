@@ -138,7 +138,7 @@ impl TrustedPromise {
         let this = self;
         task!(reject_promise: move |cx| {
             debug!("Rejecting promise.");
-            this.root().reject_error_with_cx(cx, error);
+            this.root().reject_error(cx, error);
         })
     }
 
@@ -150,7 +150,7 @@ impl TrustedPromise {
         let this = self;
         task!(resolve_promise: move |cx| {
             debug!("Resolving promise.");
-            this.root().resolve_native_with_cx(cx, &value);
+            this.root().resolve_native(cx, &value);
         })
     }
 }

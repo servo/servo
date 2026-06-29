@@ -73,6 +73,7 @@ fn cascade(
         MediaType::screen(),
         QuirksMode::NoQuirks,
         Size2D::new(800., 600.),
+        Size2D::new(800., 600.),
         Scale::new(1.0),
         Box::new(DummyMetricsProvider),
         initial_style,

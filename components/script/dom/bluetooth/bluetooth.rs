@@ -129,7 +129,7 @@ where
             Ok(response) => self.receiver.root().handle_response(cx, response, &promise),
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
             // Step 3 - 4.
-            Err(error) => promise.reject_error_with_cx(cx, error.convert()),
+            Err(error) => promise.reject_error(cx, error.convert()),
         }
     }
 }
@@ -178,7 +178,7 @@ impl Bluetooth {
         if let Some(filters) = filters {
             // Step 2.1.
             if filters.is_empty() {
-                p.reject_error_with_cx(cx, Type(FILTER_EMPTY_ERROR.to_owned()));
+                p.reject_error(cx, Type(FILTER_EMPTY_ERROR.to_owned()));
                 return;
             }
 
@@ -191,7 +191,7 @@ impl Bluetooth {
                     // Step 2.4.2.
                     Ok(f) => uuid_filters.push(f),
                     Err(e) => {
-                        p.reject_error_with_cx(cx, e);
+                        p.reject_error(cx, e);
                         return;
                     },
                 }
@@ -205,7 +205,7 @@ impl Bluetooth {
             let uuid = match BluetoothUUID::service(opt_service.clone()) {
                 Ok(u) => String::from(u),
                 Err(e) => {
-                    p.reject_error_with_cx(cx, e);
+                    p.reject_error(cx, e);
                     return;
                 },
             };
@@ -228,7 +228,7 @@ impl Bluetooth {
         if let PermissionState::Denied =
             descriptor_permission_state(PermissionName::Bluetooth, None)
         {
-            return p.reject_error_with_cx(cx, Error::NotFound(None));
+            return p.reject_error(cx, Error::NotFound(None));
         }
 
         // Note: Step 3, 6 - 8 are implemented in
@@ -301,13 +301,13 @@ where
         let canonicalized = match uuid_canonicalizer(u) {
             Ok(canonicalized_uuid) => String::from(canonicalized_uuid),
             Err(e) => {
-                p.reject_error_with_cx(cx, e);
+                p.reject_error(cx, e);
                 return p;
             },
         };
         // Step 2.
         if uuid_is_blocklisted(canonicalized.as_ref(), Blocklist::All) {
-            p.reject_error_with_cx(cx, Security(None));
+            p.reject_error(cx, Security(None));
             return p;
         }
         Some(canonicalized)
@@ -317,7 +317,7 @@ where
 
     // Step 3 - 4.
     if !connected {
-        p.reject_error_with_cx(cx, Network(None));
+        p.reject_error(cx, Network(None));
         return p;
     }
 
@@ -539,7 +539,7 @@ impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
         {
-            p.reject_error_with_cx(cx, Error::Type(OPTIONS_ERROR.to_owned()));
+            p.reject_error(cx, Error::Type(OPTIONS_ERROR.to_owned()));
             return p;
         }
 
@@ -583,7 +583,7 @@ impl AsyncBluetoothListener for Bluetooth {
             BluetoothResponse::RequestDevice(device) => {
                 let mut device_instance_map = self.device_instance_map.borrow_mut();
                 if let Some(existing_device) = device_instance_map.get(&device.id) {
-                    return promise.resolve_native_with_cx(cx, &**existing_device);
+                    return promise.resolve_native(cx, &**existing_device);
                 }
                 let bt_device = BluetoothDevice::new(
                     cx,
@@ -603,16 +603,14 @@ impl AsyncBluetoothListener for Bluetooth {
                     });
                 // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
                 // Step 5.
-                promise.resolve_native_with_cx(cx, &bt_device);
+                promise.resolve_native(cx, &bt_device);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
             // Step 2 - 3.
             BluetoothResponse::GetAvailability(is_available) => {
-                promise.resolve_native_with_cx(cx, &is_available);
+                promise.resolve_native(cx, &is_available);
             },
-            _ => {
-                promise.reject_error_with_cx(cx, Error::Type(c"Something went wrong...".to_owned()))
-            },
+            _ => promise.reject_error(cx, Error::Type(c"Something went wrong...".to_owned())),
         }
     }
 }
@@ -651,7 +649,7 @@ impl PermissionAlgorithm for Bluetooth {
         // Step 3.
         if let PermissionState::Denied = status.get_state() {
             status.set_devices(Vec::new());
-            return promise.resolve_native_with_cx(cx, status);
+            return promise.resolve_native(cx, status);
         }
 
         // Step 4.
@@ -685,7 +683,7 @@ impl PermissionAlgorithm for Bluetooth {
                 for filter in filters {
                     match canonicalize_filter(filter) {
                         Ok(f) => scan_filters.push(f),
-                        Err(error) => return promise.reject_error_with_cx(cx, error),
+                        Err(error) => return promise.reject_error(cx, error),
                     }
                 }
 
@@ -706,7 +704,7 @@ impl PermissionAlgorithm for Bluetooth {
                 match receiver.recv().unwrap() {
                     Ok(true) => (),
                     Ok(false) => continue,
-                    Err(error) => return promise.reject_error_with_cx(cx, error.convert()),
+                    Err(error) => return promise.reject_error(cx, error.convert()),
                 };
             }
 
@@ -723,7 +721,7 @@ impl PermissionAlgorithm for Bluetooth {
 
         // https://w3c.github.io/permissions/#dom-permissions-query
         // Step 7.
-        promise.resolve_native_with_cx(cx, status);
+        promise.resolve_native(cx, status);
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission>
@@ -735,7 +733,7 @@ impl PermissionAlgorithm for Bluetooth {
     ) {
         // Step 1.
         if descriptor.filters.is_some() == descriptor.acceptAllDevices {
-            return promise.reject_error_with_cx(cx, Error::Type(OPTIONS_ERROR.to_owned()));
+            return promise.reject_error(cx, Error::Type(OPTIONS_ERROR.to_owned()));
         }
 
         // Step 2.

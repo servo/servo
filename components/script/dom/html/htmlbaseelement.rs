@@ -18,9 +18,9 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::security::csp::CspReporting;
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLBaseElement {
@@ -63,7 +63,7 @@ impl HTMLBaseElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-frozen-base-url>
-    pub(crate) fn set_frozen_base_url(&self) {
+    pub(crate) fn set_frozen_base_url(&self, cx: &mut JSContext) {
         // Step 1. Let document be element's node document.
         let document = self.owner_document();
         // Step 2. Let urlRecord be the result of parsing the value of element's href content attribute
@@ -84,6 +84,7 @@ impl HTMLBaseElement {
             || !document
                 .get_csp_list()
                 .is_base_allowed_for_document(
+                    cx,
                     document.window().upcast::<GlobalScope>(),
                     &url_record.clone().into_url(),
                     &document.origin().immutable().clone().into_url_origin(),
@@ -160,11 +161,11 @@ impl VirtualMethods for HTMLBaseElement {
             // > The base element is the first base element in tree order with an href content attribute in its Document,
             // > and its href content attribute is changed.
             if self.frozen_base_url.borrow().is_some() && !mutation.is_removal() {
-                self.set_frozen_base_url();
+                self.set_frozen_base_url(cx);
             } else {
                 // > The base element becomes the first base element in tree order with an href content attribute in its Document.
                 let document = self.owner_document();
-                document.refresh_base_element();
+                document.refresh_base_element(cx);
             }
         }
     }
@@ -174,7 +175,7 @@ impl VirtualMethods for HTMLBaseElement {
         // https://html.spec.whatwg.org/multipage/#frozen-base-url
         // > The base element becomes the first base element in tree order with an href content attribute in its Document.
         let document = self.owner_document();
-        document.refresh_base_element();
+        document.refresh_base_element(cx);
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
@@ -182,6 +183,6 @@ impl VirtualMethods for HTMLBaseElement {
         // https://html.spec.whatwg.org/multipage/#frozen-base-url
         // > The base element becomes the first base element in tree order with an href content attribute in its Document.
         let document = self.owner_document();
-        document.refresh_base_element();
+        document.refresh_base_element(cx);
     }
 }

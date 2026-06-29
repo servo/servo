@@ -15,10 +15,11 @@ use js::context::JSContext;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::interfaces::HasOrigin;
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
 use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
-use servo_constellation_traits::ScriptToConstellationChan;
+use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
@@ -50,7 +51,7 @@ use crate::dom::types::{
 };
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
-use crate::realms::{enter_auto_realm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::with_script_thread;
 
@@ -71,6 +72,10 @@ pub(crate) struct DebuggerGlobalScope {
     get_list_frame_result_sender: RefCell<Option<GenericSender<Vec<String>>>>,
     #[no_trace]
     get_environment_result_sender: RefCell<Option<GenericSender<String>>>,
+    #[no_trace]
+    pipeline_id: PipelineId,
+    #[no_trace]
+    origin: MutableOrigin,
 }
 
 impl DebuggerGlobalScope {
@@ -88,7 +93,7 @@ impl DebuggerGlobalScope {
         devtools_to_script_sender: GenericSender<DevtoolScriptControlMsg>,
         mem_profiler_chan: mem::ProfilerChan,
         time_profiler_chan: time::ProfilerChan,
-        script_to_constellation_chan: ScriptToConstellationChan,
+        script_to_constellation_sender: ScriptToConstellationSender,
         script_to_embedder_chan: ScriptToEmbedderChan,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
@@ -97,15 +102,13 @@ impl DebuggerGlobalScope {
     ) -> DomRoot<Self> {
         let global = Box::new(Self {
             global_scope: GlobalScope::new_inherited(
-                debugger_pipeline_id,
                 script_to_devtools_sender,
                 mem_profiler_chan,
                 time_profiler_chan,
-                script_to_constellation_chan,
+                script_to_constellation_sender,
                 script_to_embedder_chan,
                 resource_threads,
                 storage_threads,
-                MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 ServoUrl::parse_with_base(None, "about:internal/debugger")
                     .expect("Guaranteed by argument"),
                 None,
@@ -120,8 +123,11 @@ impl DebuggerGlobalScope {
             get_list_frame_result_sender: RefCell::new(None),
             get_environment_result_sender: RefCell::new(None),
             eval_result_sender: RefCell::new(None),
+            pipeline_id: debugger_pipeline_id,
+            origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
         });
-        let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global);
+        let global =
+            DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, &global.origin(), global);
 
         let mut realm = enter_auto_realm(cx, &*global);
         let mut realm = realm.current_realm();
@@ -132,6 +138,10 @@ impl DebuggerGlobalScope {
         });
 
         global
+    }
+
+    pub(crate) fn origin(&self) -> MutableOrigin {
+        self.origin.clone()
     }
 
     pub(crate) fn as_global_scope(&self) -> &GlobalScope {
@@ -166,11 +176,11 @@ impl DebuggerGlobalScope {
             CanGc::from_cx(cx),
         );
         let event = DomRoot::upcast::<Event>(DebuggerAddDebuggeeEvent::new(
+            cx,
             self.upcast(),
             debuggee_global,
             &debuggee_pipeline_id,
             debuggee_worker_id.map(|id| id.to_string().into()),
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -224,7 +234,8 @@ impl DebuggerGlobalScope {
                 .replace(Some(result_sender))
                 .is_none()
         );
-        let _realm = enter_realm(self);
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         let event = DomRoot::upcast::<Event>(DebuggerGetPossibleBreakpointsEvent::new(
             self.upcast(),
             spidermonkey_id,
@@ -280,7 +291,8 @@ impl DebuggerGlobalScope {
                 .replace(Some(result_sender))
                 .is_none()
         );
-        let _realm = enter_realm(self);
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         let pipeline_id =
             crate::dom::pipelineid::PipelineId::new(self.upcast(), pipeline_id, CanGc::from_cx(cx));
         let event = DomRoot::upcast::<Event>(DebuggerFrameEvent::new(
@@ -307,7 +319,8 @@ impl DebuggerGlobalScope {
                 .replace(Some(result_sender))
                 .is_none()
         );
-        let _realm = enter_realm(self);
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         let event = DomRoot::upcast::<Event>(DebuggerGetEnvironmentEvent::new(
             self.upcast(),
             frame_actor_id.into(),
@@ -391,6 +404,10 @@ impl DebuggerGlobalScope {
             event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerUnblackboxEvent::new"
         );
+    }
+
+    pub(crate) fn pipeline_id(&self) -> PipelineId {
+        self.pipeline_id
     }
 }
 
@@ -688,5 +705,11 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .expect("Guaranteed by Self::fire_get_environment()");
 
         let _ = sender.send(environment_actor_id.into());
+    }
+}
+
+impl HasOrigin for DebuggerGlobalScope {
+    fn origin(&self) -> MutableOrigin {
+        DebuggerGlobalScope::origin(self)
     }
 }

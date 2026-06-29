@@ -2,10 +2,11 @@ import java.util.regex.Pattern
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
-    compileSdk = 34
+    compileSdk = 37
     buildToolsVersion = "36.0.0"
 
     namespace = "org.servo.servoshell"
@@ -145,6 +146,7 @@ dependencies {
     }
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.13.0")
+    implementation("androidx.compose.material3:material3:1.4.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.3")
     implementation("androidx.preference:preference-ktx:1.2.0")
 }

@@ -27,8 +27,8 @@ use crate::dom::html::htmltablecaptionelement::HTMLTableCaptionElement;
 use crate::dom::html::htmltablecolelement::HTMLTableColElement;
 use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLTableElement {
@@ -347,7 +347,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-table-insertrow>
     fn InsertRow(&self, cx: &mut JSContext, index: i32) -> Fallible<DomRoot<HTMLTableRowElement>> {
         let rows = self.Rows(cx);
-        let number_of_row_elements = rows.Length();
+        let number_of_row_elements = rows.Length(cx);
 
         if index < -1 || index > number_of_row_elements as i32 {
             return Err(Error::IndexSize(None));
@@ -391,7 +391,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         } else if index == number_of_row_elements as i32 || index == -1 {
             // append new row to parent of last row in table
             let last_row = rows
-                .Item(number_of_row_elements - 1)
+                .Item(cx, number_of_row_elements - 1)
                 .expect("InsertRow failed to find last row in table.");
 
             let last_row_parent = last_row
@@ -406,7 +406,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         } else {
             // insert new row before the index-th row in rows using the same parent
             let ith_row = rows
-                .Item(index as u32)
+                .Item(cx, index as u32)
                 .expect("InsertRow failed to find a row in table.");
 
             let ith_row_parent = ith_row
@@ -426,7 +426,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-table-deleterow>
     fn DeleteRow(&self, cx: &mut JSContext, mut index: i32) -> Fallible<()> {
         let rows = self.Rows(cx);
-        let num_rows = rows.Length() as i32;
+        let num_rows = rows.Length(cx) as i32;
 
         // Step 1: If index is less than −1 or greater than or equal to the number of elements
         // in the rows collection, then throw an "IndexSizeError".
@@ -434,7 +434,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             return Err(Error::IndexSize(None));
         }
 
-        let num_rows = rows.Length() as i32;
+        let num_rows = rows.Length(cx) as i32;
 
         // Step 2: If index is −1, then remove the last element in the rows collection from its
         // parent, or do nothing if the rows collection is empty.
@@ -447,7 +447,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         }
 
         // Step 3: Otherwise, remove the indexth element in the rows collection from its parent.
-        DomRoot::upcast::<Node>(rows.Item(index as u32).unwrap()).remove_self(cx);
+        DomRoot::upcast::<Node>(rows.Item(cx, index as u32).unwrap()).remove_self(cx);
 
         Ok(())
     }

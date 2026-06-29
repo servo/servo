@@ -13,9 +13,9 @@
   <script>
     test(() => {
       assert_equals(getComputedStyle(remElement).width, "160px");
-      document.documentElement.style.fontSize = "16.1px";
-      assert_equals(getComputedStyle(remElement).width, "161px");
-    }, "Check that a 0.1px change in root font-size affect rem units.");
+      document.documentElement.style.fontSize = "16.125px";
+      assert_equals(getComputedStyle(remElement).width, "161.25px");
+    }, "Check that a 0.125px change in root font-size affect rem units.");
   </script>
 <body>
 </html>

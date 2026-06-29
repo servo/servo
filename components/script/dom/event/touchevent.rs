@@ -5,7 +5,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::reflect_dom_object;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::TouchEventBinding::TouchEventMethods;
@@ -16,7 +17,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::touchlist::TouchList;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/touch-events/#dom-touchevent>
 #[dom_struct]
@@ -64,25 +64,26 @@ impl TouchEvent {
     }
 
     pub(crate) fn new_uninitialized(
+        cx: &mut JSContext,
         window: &Window,
         touches: &TouchList,
         changed_touches: &TouchList,
         target_touches: &TouchList,
-        can_gc: CanGc,
     ) -> DomRoot<TouchEvent> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(TouchEvent::new_inherited(
                 touches,
                 changed_touches,
                 target_touches,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         event_type: Atom,
         can_bubble: EventBubbles,
@@ -97,10 +98,9 @@ impl TouchEvent {
         alt_key: bool,
         shift_key: bool,
         meta_key: bool,
-        can_gc: CanGc,
     ) -> DomRoot<TouchEvent> {
         let ev =
-            TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches, can_gc);
+            TouchEvent::new_uninitialized(cx, window, touches, changed_touches, target_touches);
         ev.upcast::<UIEvent>().init_event(
             event_type,
             bool::from(can_bubble),

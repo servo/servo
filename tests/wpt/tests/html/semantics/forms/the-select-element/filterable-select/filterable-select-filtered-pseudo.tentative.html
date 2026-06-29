@@ -8,42 +8,40 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 
-<input filter=select>
-<select id=select size=4 style="appearance:base-select">
-  <option class=one>one</option>
-  <option class=two>two</option>
-  <option class=three>three</option>
-</select>
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<div class=test data-description="sibling idref">
+  <input filter=select1>
+  <select id=select1 size=4>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+</div>
+
+<div class=test data-description="nested listbox">
+  <select size=4>
+    <input>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+</div>
+
+<div class="test dropdown" data-description="nested dropdown">
+  <select>
+    <input>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+</div>
 
 <script>
-const input = document.querySelector('input');
-const select = document.querySelector('select');
-const optionOne = document.querySelector('.one');
-const optionTwo = document.querySelector('.two');
-const optionThree = document.querySelector('.three');
-
-function checkOptions(includedOptions, message) {
-  for (const option of select.options) {
-    if (includedOptions.includes(option)) {
-      assert_false(
-        option.matches(':filtered'),
-        `${message}: option ${option.className} should not match :filtered.`);
-      assert_not_equals(
-        getComputedStyle(option).display,
-        'none',
-        `${message}: option ${option.className} should not be display:none.`);
-    } else {
-      assert_true(
-        option.matches(':filtered'),
-        `${message}: option ${option.className} should match :filtered.`);
-      assert_equals(
-        getComputedStyle(option).display,
-        'none',
-        `${message}: option ${option.className} should be display:none.`);
-    }
-  }
-}
-
 function pressKey(keyCode) {
   return (new test_driver.Actions()
     .keyDown(keyCode)
@@ -51,71 +49,139 @@ function pressKey(keyCode) {
     .send();
 }
 
-promise_test(async () => {
-  checkOptions([optionOne, optionTwo, optionThree],
-    'No options should be filtered out at the start of the test');
+document.querySelectorAll('.test').forEach(testContainer => {
+  const input = testContainer.querySelector('input');
+  const select = testContainer.querySelector('select');
+  const optionOne = testContainer.querySelector('.one');
+  const optionTwo = testContainer.querySelector('.two');
+  const optionThree = testContainer.querySelector('.three');
+  const description = testContainer.getAttribute('data-description');
+  const dropdown = testContainer.classList.contains('dropdown');
 
-  input.focus();
-  await pressKey('t');
-  checkOptions([optionTwo, optionThree],
-    'First option should be filtered out after typing "t"');
-
-  await pressKey('w');
-  checkOptions([optionTwo],
-    'Third option should be filtered out after typing "tw"');
-
-  await pressKey('z');
-  checkOptions([],
-    'All options should be filtered out after typing "twz"');
-
-  const backspace = '\uE003';
-  await pressKey(backspace);
-  checkOptions([optionTwo],
-    'Second option should become unfiltered after pressing backspace.');
-
-  input.value = '';
-  checkOptions([optionOne, optionTwo, optionThree],
-    'No options should be filtered out after setting input.value to the empty string.');
-
-  input.value = 'tw';
-  checkOptions([optionTwo],
-    'Only option two should match when setting input.value to "tw".');
-}, 'Filterable select option:filtered behavior');
-
-promise_test(async () => {
-  input.value = '';
-  optionTwo.remove();
-  optionThree.remove();
-  checkOptions([optionOne],
-    'options should not be filtered out at the start of the test.');
-
-  function testCombination(one, two) {
-    if (typeof one === 'number') {
-      one = String.fromCodePoint(one);
+  function checkOptions(includedOptions, message) {
+    for (const option of select.options) {
+      if (includedOptions.includes(option)) {
+        assert_false(
+          option.matches(':filtered'),
+          `${message}: option ${option.className} should not match :filtered.`);
+        assert_not_equals(
+          getComputedStyle(option).display,
+          'none',
+          `${message}: option ${option.className} should not be display:none.`);
+      } else {
+        assert_true(
+          option.matches(':filtered'),
+          `${message}: option ${option.className} should match :filtered.`);
+        assert_equals(
+          getComputedStyle(option).display,
+          'none',
+          `${message}: option ${option.className} should be display:none.`);
+      }
     }
-    if (typeof two === 'number') {
-      two = String.fromCodePoint(two);
-    }
-
-    optionOne.textContent = 'foo';
-    input.value = 'bar';
-    checkOptions([], `'bar' should not find 'foo'.`);
-
-    optionOne.textContent = two;
-    input.value = one;
-    checkOptions([optionOne], `'${one}' should find '${two}'`);
-
-    optionOne.textContent = one;
-    input.value = two;
-    checkOptions([optionOne], `'${two}' should find '${one}'`);
   }
 
-  // u_strFoldCase from ICU is used to do case folding.
-  testCombination('a', 'A');
-  testCombination(0xe7, 0xc7); // ç Ç
-  testCombination(0xff, 0x178); // ÿ Ÿ
-  testCombination(0x188, 0x187); // ƈ Ƈ
-  testCombination(0xa727, 0xa726); // ꜧ Ꜧ
-  testCombination(0x10428, 0x10400); // 𐐨 𐐀
-}, 'Case folding');
+  promise_test(async () => {
+    if (dropdown) {
+      await test_driver.bless();
+      select.showPicker();
+      assert_true(select.matches(':open'),
+        'select should open after calling showPicker.');
+    }
+
+    checkOptions([optionOne, optionTwo, optionThree],
+      'No options should be filtered out at the start of the test');
+
+    input.focus();
+    assert_equals(document.activeElement, input,
+      'input should be focused after calling focus.');
+    await pressKey('t');
+    checkOptions([optionTwo, optionThree],
+      'First option should be filtered out after typing "t"');
+
+    await pressKey('w');
+    checkOptions([optionTwo],
+      'Third option should be filtered out after typing "tw"');
+
+    await pressKey('z');
+    checkOptions([],
+      'All options should be filtered out after typing "twz"');
+
+    const backspace = '\uE003';
+    await pressKey(backspace);
+    checkOptions([optionTwo],
+      'Second option should become unfiltered after pressing backspace.');
+
+    input.value = '';
+    checkOptions([optionOne, optionTwo, optionThree],
+      'No options should be filtered out after setting input.value to the empty string.');
+
+    input.value = 'tw';
+    checkOptions([optionTwo],
+      'Only option two should match when setting input.value to "tw".');
+  }, `${description}: Filterable select option:filtered behavior`);
+
+  promise_test(async () => {
+    input.value = '';
+    optionTwo.remove();
+    optionThree.remove();
+    checkOptions([optionOne],
+      'options should not be filtered out at the start of the test.');
+
+    function testCombination(one, two) {
+      if (typeof one === 'number') {
+        one = String.fromCodePoint(one);
+      }
+      if (typeof two === 'number') {
+        two = String.fromCodePoint(two);
+      }
+
+      optionOne.textContent = 'foo';
+      input.value = 'bar';
+      checkOptions([], `'bar' should not find 'foo'.`);
+
+      optionOne.textContent = two;
+      input.value = one;
+      checkOptions([optionOne], `'${one}' should find '${two}'`);
+
+      optionOne.textContent = one;
+      input.value = two;
+      checkOptions([optionOne], `'${two}' should find '${one}'`);
+    }
+
+    // u_strFoldCase from ICU is used to do case folding.
+    testCombination('a', 'A');
+    testCombination(0xe7, 0xc7); // ç Ç
+    testCombination(0xff, 0x178); // ÿ Ÿ
+    testCombination(0x188, 0x187); // ƈ Ƈ
+    testCombination(0xa727, 0xa726); // ꜧ Ꜧ
+    testCombination(0x10428, 0x10400); // 𐐨 𐐀
+  }, `${description}: Case folding`);
+});
+</script>
+
+<input id=dropdowninput filter=dropdown>
+<select id=dropdown>
+  <option class=one>one</option>
+  <option class=two>two</option>
+  <option class=three>three</option>
+</select>
+<script>
+promise_test(async () => {
+  const input = document.getElementById('dropdowninput');
+  const select = document.getElementById('dropdown');
+  const options = select.querySelectorAll('option');
+
+  for (const option of options) {
+    assert_false(option.matches(':filtered'),
+      `option ${option.className} should not match :filtered at the start of the test.`);
+  }
+
+  input.value = 'foo';
+  await test_driver.bless();
+  select.showPicker();
+  for (const option of options) {
+    assert_false(option.matches(':filtered'),
+      `option ${option.className} should not match :filtered after typing in input and opening picker.`);
+  }
+}, 'Sibling input and select pattern should not support dropdown select elements.');
 </script>

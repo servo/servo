@@ -183,7 +183,7 @@ impl Fragment {
             || self.scrollable_overflow_for_parent(),
             |box_fragment| {
                 box_fragment.offset_by_containing_block(
-                    &box_fragment.scrollable_overflow(),
+                    &box_fragment.with_style().scrollable_overflow(),
                     layout_thread.into(),
                 )
             },
@@ -212,7 +212,7 @@ impl Fragment {
                 layout_root.inner().scrollable_overflow_for_parent()
             },
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.scrollable_overflow_for_parent()
+                fragment.with_style().scrollable_overflow_for_parent()
             },
             Fragment::Positioning(fragment) => fragment.scrollable_overflow_for_parent(),
             Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
@@ -291,6 +291,7 @@ impl Fragment {
         let Some(fragment) = self.retrieve_box_fragment() else {
             return Rect::zero();
         };
+        let fragment = fragment.with_style();
 
         // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
         // " If the element has no associated CSS layout box or if the

@@ -5,15 +5,28 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.stringResource
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
-import com.google.android.material.switchmaterial.SwitchMaterial
-import androidx.core.content.edit
 
 class SettingsFragment : Fragment() {
     private lateinit var preferences: SharedPreferences
-    private lateinit var experimentalSwitch: SwitchMaterial
-    private lateinit var animatingSwitch: SwitchMaterial
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,50 +37,51 @@ class SettingsFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View = inflater.inflate(R.layout.fragment_settings, container, false)
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        experimentalSwitch = view.findViewById(R.id.experimental_switch)
-        animatingSwitch = view.findViewById(R.id.animating_switch)
-        val experimentalContainer = view.findViewById<View>(R.id.experimental_container)
-        val animatingContainer = view.findViewById<View>(R.id.animating_container)
-
-        loadPreferences()
-
-        experimentalContainer.setOnClickListener {
-            val newValue = !experimentalSwitch.isChecked
-            experimentalSwitch.isChecked = newValue
-            savePreference("experimental", newValue)
-        }
-
-        animatingContainer.setOnClickListener {
-            val newValue = !animatingSwitch.isChecked
-            animatingSwitch.isChecked = newValue
-            savePreference("animating_indicator", newValue)
-        }
-
-        experimentalSwitch.setOnCheckedChangeListener { buttonView, isChecked ->
-            if (buttonView.isPressed) {
-                savePreference("experimental", isChecked)
-            }
-        }
-
-        animatingSwitch.setOnCheckedChangeListener { buttonView, isChecked ->
-            if (buttonView.isPressed) {
-                savePreference("animating_indicator", isChecked)
+    ): View = ComposeView(requireContext()).apply {
+        setContent {
+            Scaffold(
+                topBar = {
+                    @OptIn(ExperimentalMaterial3Api::class)
+                    TopAppBar(
+                        title = { Text(stringResource(R.string.settings_title)) },
+                    )
+                },
+            ) { innerPadding ->
+                Column(modifier = Modifier.padding(innerPadding)) {
+                    SettingsItem(
+                        title = stringResource(R.string.settings_experimental_title),
+                        summary = stringResource(R.string.settings_experimental_summary),
+                        preferenceKey = "experimental",
+                    )
+                    SettingsItem(
+                        title = stringResource(R.string.settings_animating_title),
+                        summary = stringResource(R.string.settings_animating_summary),
+                        preferenceKey = "animating_indicator",
+                    )
+                }
             }
         }
     }
 
-    private fun loadPreferences() {
-        val experimental = preferences.getBoolean("experimental", false)
-        val animatingIndicator = preferences.getBoolean("animating_indicator", false)
-
-        experimentalSwitch.isChecked = experimental
-        animatingSwitch.isChecked = animatingIndicator
-    }
-
-    private fun savePreference(key: String, value: Boolean) {
-        preferences.edit { putBoolean(key, value) }
+    @Composable
+    private fun SettingsItem(title: String, summary: String, preferenceKey: String) {
+        ListItem(
+            headlineContent = {
+                Text(title)
+            },
+            supportingContent = {
+                Text(summary)
+            },
+            trailingContent = {
+                var checked by remember { mutableStateOf(preferences.getBoolean(preferenceKey, false)) }
+                Switch(
+                    checked = checked,
+                    onCheckedChange = {
+                        checked = it
+                        preferences.edit { putBoolean(preferenceKey, it) }
+                    },
+                )
+            },
+        )
     }
 }

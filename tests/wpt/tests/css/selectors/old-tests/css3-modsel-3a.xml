@@ -2,6 +2,8 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Universal selector (no namespaces)</title>
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
   <style type="text/css"><![CDATA[* { color : lime }
 ul, p { color : red }
 *.t1 { color : lime }
@@ -12,11 +14,17 @@ ul, p { color : red }
  </head>
  <body>
 <p>
-<span class="t1">This paragraph, and all textual contents in the document,
+<span class="t1" id="t1">This paragraph, and all textual contents in the document,
       should be green.</span>
 </p>
 <ul>
-  <li class="t1">This item should be green.</li>
+  <li class="t1" id="t2">This item should be green.</li>
 </ul>
+<script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('t1')).color, "rgb(0, 255, 0)");
+  assert_equals(getComputedStyle(document.getElementById('t2')).color, "rgb(0, 255, 0)");
+}, "Universal selector matches elements");
+]]></script>
 </body>
 </html>

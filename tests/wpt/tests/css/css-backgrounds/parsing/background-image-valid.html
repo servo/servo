@@ -38,11 +38,6 @@ test_valid_value("background-image", "cross-fade( 1% red, green)", "cross-fade(r
 test_valid_value("background-image", "cross-fade(1% red , green)", "cross-fade(red 1%, green)");
 test_valid_value("background-image", "cross-fade(1% red, green )", "cross-fade(red 1%, green)");
 test_valid_value("background-image", "cross-fade(red 1%, cross-fade(red 2%, green))");
-
-// image()
-test_valid_value("background-image", "image(red)");
-test_valid_value("background-image", "image(color-mix(in srgb, red, green))");
-test_valid_value("background-image", "image(currentcolor)");
 </script>
 </body>
 </html>

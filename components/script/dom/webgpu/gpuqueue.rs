@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use pixels::{SnapshotAlphaMode, SnapshotPixelFormat};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::CanvasRenderingContext2DBinding::ImageDataMethods;
@@ -76,8 +76,8 @@ impl GPUQueue {
 }
 
 impl GPUQueue {
-    pub(crate) fn set_device(&self, device: &GPUDevice) {
-        *self.device.borrow_mut() = Some(Dom::from_ref(device));
+    pub(crate) fn set_device(&self, no_gc: &NoGC, device: &GPUDevice) {
+        *self.device.safe_borrow_mut(no_gc) = Some(Dom::from_ref(device));
     }
 
     pub(crate) fn id(&self) -> WebGPUQueue {
@@ -92,8 +92,8 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, value: USVString) {
-        *self.label.borrow_mut() = value;
+    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
+        *self.label.safe_borrow_mut(no_gc) = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit>
@@ -224,6 +224,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture>
     fn CopyExternalImageToTexture(
         &self,
+        cx: &mut JSContext,
         source: &GPUCopyExternalImageSourceInfo,
         destination: &GPUCopyExternalImageDestInfo,
         copy_size: GPUExtent3D,
@@ -241,7 +242,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             GPUCopyExternalImageSource::ImageBitmap(inner) => inner.origin_is_clean(),
             GPUCopyExternalImageSource::ImageData(_) => true,
             GPUCopyExternalImageSource::HTMLImageElement(inner) => {
-                inner.same_origin(GlobalScope::entry().origin())
+                inner.same_origin(&GlobalScope::entry().origin())
             },
             GPUCopyExternalImageSource::HTMLVideoElement(inner) => inner.origin_is_clean(),
             GPUCopyExternalImageSource::HTMLCanvasElement(inner) => inner.origin_is_clean(),
@@ -292,7 +293,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             },
             GPUCopyExternalImageSource::ImageData(data) => {
                 // If image's [[Detached]] internal slot value is set to true, then throw an "InvalidStateError" DOMException.
-                if data.is_detached() {
+                if data.is_detached(cx) {
                     return Err(Error::InvalidState(Some(
                         "ImageData is detached".to_string(),
                     )));
@@ -385,8 +386,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone>
     fn OnSubmittedWorkDone(&self, cx: &mut JSContext) -> Rc<Promise> {
         let global = self.global();
-        let promise = Promise::new2(cx, &global);
-        let task_source = global.task_manager().dom_manipulation_task_source();
+        let promise = Promise::new(cx, &global);
+        let task_manager = global.task_manager();
+        let task_source = task_manager.dom_manipulation_task_source();
         let callback = callback_promise(&promise, self, task_source);
 
         if let Err(e) = self
@@ -410,6 +412,6 @@ impl RoutedPromiseListener<()> for GPUQueue {
         _response: (),
         promise: &Rc<Promise>,
     ) {
-        promise.resolve_native_with_cx(cx, &());
+        promise.resolve_native(cx, &());
     }
 }

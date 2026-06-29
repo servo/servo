@@ -17,26 +17,45 @@ promise_test(async t => {
   }
 }, 'LanguageModel.availability() accepts all valid sampling modes');
 
-promise_test(async t => {
-  await promise_rejects_js(
-    t,
-    TypeError,
-    LanguageModel.availability({ samplingMode: 'balanced', temperature: 0.8 })
-  );
-}, 'LanguageModel.availability() rejects when both samplingMode and temperature are provided');
+const legacyParamsEnabled = ('params' in LanguageModel);
 
-promise_test(async t => {
-  await promise_rejects_js(
-    t,
-    TypeError,
-    LanguageModel.availability({ samplingMode: 'balanced', topK: 10 })
-  );
-}, 'LanguageModel.availability() rejects when both samplingMode and topK are provided');
+if (legacyParamsEnabled) {
+  promise_test(async t => {
+    await promise_rejects_js(
+      t,
+      TypeError,
+      LanguageModel.availability({ samplingMode: 'balanced', temperature: 0.8 })
+    );
+  }, 'LanguageModel.availability() rejects when both samplingMode and temperature are provided');
 
-promise_test(async t => {
-  await promise_rejects_js(
-    t,
-    TypeError,
-    LanguageModel.availability({ samplingMode: 'balanced', temperature: 0.8, topK: 10 })
-  );
-}, 'LanguageModel.availability() rejects when samplingMode, temperature and topK are provided');
+  promise_test(async t => {
+    await promise_rejects_js(
+      t,
+      TypeError,
+      LanguageModel.availability({ samplingMode: 'balanced', topK: 10 })
+    );
+  }, 'LanguageModel.availability() rejects when both samplingMode and topK are provided');
+
+  promise_test(async t => {
+    await promise_rejects_js(
+      t,
+      TypeError,
+      LanguageModel.availability({ samplingMode: 'balanced', temperature: 0.8, topK: 10 })
+    );
+  }, 'LanguageModel.availability() rejects when samplingMode, temperature and topK are provided');
+} else {
+  promise_test(async t => {
+    const result = await LanguageModel.availability({ samplingMode: 'balanced', temperature: 0.8 });
+    assert_true(kValidAvailabilities.includes(result));
+  }, 'LanguageModel.availability() accepts a sampling mode and ignores unsupported legacy temperature sampling option');
+
+  promise_test(async t => {
+    const result = await LanguageModel.availability({ samplingMode: 'balanced', topK: 10 });
+    assert_true(kValidAvailabilities.includes(result));
+  }, 'LanguageModel.availability() accepts a sampling mode and ignores unsupported legacy topK sampling option');
+
+  promise_test(async t => {
+    const result = await LanguageModel.availability({ samplingMode: 'balanced', temperature: 0.8, topK: 10 });
+    assert_true(kValidAvailabilities.includes(result));
+  }, 'LanguageModel.availability() accepts a sampling mode and ignores unsupported legacy sampling options');
+}

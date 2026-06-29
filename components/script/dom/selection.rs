@@ -21,7 +21,6 @@ use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
-use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 enum Direction {
@@ -298,14 +297,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             }
 
             // Steps 4-5
-            let range = Range::new(
-                &self.document,
-                node,
-                offset,
-                node,
-                offset,
-                CanGc::from_cx(cx),
-            );
+            let range = Range::new(cx, &self.document, node, offset, node, offset);
 
             // Step 6
             self.set_range(&range);
@@ -368,14 +360,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             // Step 4
             if !self.is_same_root(&range.start_container()) {
                 // Step 5, and its following 8 and 9
-                self.set_range(&Range::new(
-                    &self.document,
-                    node,
-                    offset,
-                    node,
-                    offset,
-                    CanGc::from_cx(cx),
-                ));
+                self.set_range(&Range::new(cx, &self.document, node, offset, node, offset));
                 self.direction.set(Direction::Forwards);
             } else {
                 let old_anchor_node = &*self.GetAnchorNode().unwrap(); // has range, therefore has anchor node
@@ -390,23 +375,23 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                 if is_old_anchor_before_or_equal {
                     // Step 6, and its following 8 and 9
                     self.set_range(&Range::new(
+                        cx,
                         &self.document,
                         old_anchor_node,
                         old_anchor_offset,
                         node,
                         offset,
-                        CanGc::from_cx(cx),
                     ));
                     self.direction.set(Direction::Forwards);
                 } else {
                     // Step 7, and its following 8 and 9
                     self.set_range(&Range::new(
+                        cx,
                         &self.document,
                         node,
                         offset,
                         old_anchor_node,
                         old_anchor_offset,
-                        CanGc::from_cx(cx),
                     ));
                     self.direction.set(Direction::Backwards);
                 }
@@ -452,22 +437,22 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         };
         if is_focus_before_anchor {
             self.set_range(&Range::new(
+                cx,
                 &self.document,
                 focus_node,
                 focus_offset,
                 anchor_node,
                 anchor_offset,
-                CanGc::from_cx(cx),
             ));
             self.direction.set(Direction::Backwards);
         } else {
             self.set_range(&Range::new(
+                cx,
                 &self.document,
                 anchor_node,
                 anchor_offset,
                 focus_node,
                 focus_offset,
-                CanGc::from_cx(cx),
             ));
             self.direction.set(Direction::Forwards);
         }
@@ -488,12 +473,12 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // wants number of children (the main difference is that it's 0
         // for cdata).
         self.set_range(&Range::new(
+            cx,
             &self.document,
             node,
             0,
             node,
             node.children_count(),
-            CanGc::from_cx(cx),
         ));
 
         self.direction.set(Direction::Forwards);

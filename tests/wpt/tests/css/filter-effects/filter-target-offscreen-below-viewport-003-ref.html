@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>CSS Filter Effects reference: empty viewport, target stays below</title>
+<style>
+  html, body { margin: 0; background: white; }
+  .spacer { height: calc(100vh + 50px); }
+  .target { padding: 10px; background: black; color: white; }
+</style>
+<div class="spacer"></div>
+<div class="target">Filter target — should not contribute to viewport pixels.</div>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values: random() with an argument that is invalid at computed-value time</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-size-fn">
+<meta name="assert" content="When an argument of random() cannot be resolved at computed-value time (here anchor-size() used on a non-out-of-flow element), the declaration is invalid at computed-value time and the property falls back to its initial value. random() with resolvable arguments still produces a value within [min, max].">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+/* The container fixes the containing block width, so a child whose 'width'
+   becomes invalid at computed-value time (falls back to the initial 'auto')
+   has a deterministic used width of 400px. */
+#container { width: 400px; }
+
+/* anchor-size() resolves to nothing on a statically-positioned element, so the
+   argument it appears in fails to evaluate, making the whole random() invalid
+   at computed-value time.
+
+   The earlier 'width: 50px' declaration disambiguates two outcomes that would
+   otherwise both produce the initial 'auto':
+     - If random() is supported and the argument fails at computed-value time,
+       the property is invalid at computed-value time and reverts to the initial
+       value 'auto' (400px in this container), NOT to the earlier 50px.
+     - If random() is not supported at all, its declaration is dropped at parse
+       time and the earlier 'width: 50px' wins. */
+#max-unresolvable { width: 50px; width: random(0px, anchor-size(width), 100px); }
+#min-unresolvable { width: 50px; width: random(anchor-size(width), 100px, 1px); }
+
+/* Control: all arguments resolve, so random() produces a value in [10px, 20px]. */
+#resolvable { width: random(10px, 20px); }
+</style>
+<div id="container">
+  <div id="max-unresolvable"></div>
+  <div id="min-unresolvable"></div>
+  <div id="resolvable"></div>
+</div>
+<script>
+function computedWidth(id) {
+  return getComputedStyle(document.getElementById(id)).width;
+}
+
+test(() => {
+  assert_equals(computedWidth('max-unresolvable'), '400px');
+}, "random() whose 'max' argument fails to resolve is invalid at computed-value time (falls back to initial 'auto')");
+
+test(() => {
+  assert_equals(computedWidth('min-unresolvable'), '400px');
+}, "random() whose 'min' argument fails to resolve is invalid at computed-value time (falls back to initial 'auto')");
+
+test(() => {
+  const width = parseFloat(computedWidth('resolvable'));
+  assert_greater_than_equal(width, 10, 'resolved width is >= min');
+  assert_less_than_equal(width, 20, 'resolved width is <= max');
+}, "random() with resolvable arguments produces a value within [min, max]");
+</script>

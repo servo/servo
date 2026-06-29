@@ -987,8 +987,11 @@ pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerVa
             v.insert("type".to_owned(), Value::String("undefined".to_owned()));
             Value::Object(v)
         },
-        DebuggerValue::NullValue => {
+        DebuggerValue::NullValue(uninitialized) => {
             v.insert("type".to_owned(), Value::String("null".to_owned()));
+            if uninitialized {
+                v.insert("uninitialized".to_owned(), Value::Bool(true));
+            }
             Value::Object(v)
         },
         DebuggerValue::BooleanValue(boolean) => Value::Bool(boolean),

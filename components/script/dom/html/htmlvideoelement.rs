@@ -39,9 +39,9 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlmediaelement::{HTMLMediaElement, NetworkState, ReadyState};
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
@@ -480,9 +480,14 @@ impl FetchResponseListener for PosterFrameFetchContext {
         network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+    fn process_csp_violations(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _request_id: RequestId,
+        violations: Vec<Violation>,
+    ) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
+        global.report_csp_violations(cx, violations, None, None);
     }
 }
 

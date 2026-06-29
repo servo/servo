@@ -19,10 +19,10 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
-use crate::dom::virtualmethods::VirtualMethods;
 
 /// <https://html.spec.whatwg.org/multipage/#htmloptgroupelement>
 #[dom_struct]

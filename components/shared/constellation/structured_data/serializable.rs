@@ -146,6 +146,7 @@ pub struct SerializableFile {
     pub blob_impl: BlobImpl,
     pub name: String,
     pub modified: i64,
+    pub webkit_relative_path: String,
 }
 
 impl BroadcastClone for SerializableFile {
@@ -165,6 +166,7 @@ impl BroadcastClone for SerializableFile {
             blob_impl,
             name: self.name.clone(),
             modified: self.modified,
+            webkit_relative_path: self.webkit_relative_path.clone(),
         })
     }
 }
@@ -662,8 +664,8 @@ pub enum SerializableCryptoKeyHandle {
     P256PublicKey(Vec<u8>),
     P384PublicKey(Vec<u8>),
     P521PublicKey(Vec<u8>),
-    Ed25519PrivateKey(Vec<u8>),
-    Ed25519PublicKey(Vec<u8>),
+    Ed25519PrivateKey([u8; 32]),
+    Ed25519PublicKey([u8; 32]),
     X25519PrivateKey([u8; 32]),
     X25519PublicKey([u8; 32]),
     Aes128Key(Vec<u8>),

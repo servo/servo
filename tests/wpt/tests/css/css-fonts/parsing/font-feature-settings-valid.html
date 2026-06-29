@@ -22,6 +22,11 @@ test_valid_value('font-feature-settings', '"tnum", \'hist\'', '"tnum", "hist"');
 
 test_valid_value('font-feature-settings', '"PKRN"');
 
+// A feature tag may contain any byte in 0x20-0x7E per OpenType; quotes and
+// backslashes must be escaped on serialization.
+test_valid_value('font-feature-settings', '"\\22\\7d\\2f\\2a"', '"\\"}/*"');
+test_valid_value('font-feature-settings', '"\\22\\22\\22\\22"', '"\\"\\"\\"\\""');
+
 test_valid_value('font-feature-settings', '"dlig" 1, "smcp" on, "dlig" 0', '"dlig", "smcp", "dlig" 0');
 </script>
 </body>

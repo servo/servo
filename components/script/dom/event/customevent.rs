@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CustomEventBinding;
@@ -18,7 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]
@@ -36,33 +37,36 @@ impl CustomEvent {
         }
     }
 
-    pub(crate) fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<CustomEvent> {
-        Self::new_uninitialized_with_proto(global, None, can_gc)
+    pub(crate) fn new_uninitialized(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> DomRoot<CustomEvent> {
+        Self::new_uninitialized_with_proto(cx, global, None)
     }
 
     fn new_uninitialized_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<CustomEvent> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(CustomEvent::new_inherited()),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         detail: HandleValue,
-        can_gc: CanGc,
     ) -> DomRoot<CustomEvent> {
-        let ev = CustomEvent::new_uninitialized_with_proto(global, proto, can_gc);
+        let ev = CustomEvent::new_uninitialized_with_proto(cx, global, proto);
         ev.init_custom_event(type_, bubbles, cancelable, detail);
         ev
     }
@@ -87,34 +91,34 @@ impl CustomEvent {
 impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
     /// <https://dom.spec.whatwg.org/#dom-customevent-customevent>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<CustomEventBinding::CustomEventInit>,
     ) -> DomRoot<CustomEvent> {
         let event = CustomEvent::new(
+            cx,
             global,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
             init.detail.handle(),
-            can_gc,
         );
         event.upcast::<Event>().set_composed(init.parent.composed);
         event
     }
 
     /// <https://dom.spec.whatwg.org/#dom-customevent-detail>
-    fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+    fn Detail(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.detail.get())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-customevent-initcustomevent>
     fn InitCustomEvent(
         &self,
-        _cx: JSContext,
+        _cx: SafeJSContext,
         type_: DOMString,
         can_bubble: bool,
         cancelable: bool,

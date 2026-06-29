@@ -655,6 +655,10 @@
         return create_context_action("reset_fedcm_cooldown", context, {});
     };
 
+    window.test_driver_internal.set_virtual_wallet_behavior = function(action, protocol=null, response=null, context=null) {
+        return create_context_action("set_virtual_wallet_behavior", context, {action, protocol, response});
+    };
+
     window.test_driver_internal.create_virtual_sensor = function(sensor_type, sensor_params={}, context=null) {
         return create_context_action("create_virtual_sensor", context, {sensor_type, sensor_params});
     };

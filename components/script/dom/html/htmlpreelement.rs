@@ -14,7 +14,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
-use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::node::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLPreElement {

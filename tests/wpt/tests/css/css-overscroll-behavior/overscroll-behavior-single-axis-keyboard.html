@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<title>Overscroll Behavior: single-axis scrollers ignore keyboard overscroll-behavior on their cross axis</title>
+<link rel="help" href="https://drafts.csswg.org/css-overscroll-behavior/">
+<!--
+  #scroller-x can only be manually scrolled along the x-axis and #scroller-y
+  only along the y-axis. overscroll-behavior set on the other (cross) axis must
+  be ignored: it neither produces a local overscroll effect nor blocks scroll
+  chaining on that axis.
+-->
+<style>
+  #parent {
+    width: 200px;
+    height: 200px;
+    overflow: scroll;
+  }
+  #parent > .content {
+    width: 400px;
+    height: 400px;
+    display: flex;
+  }
+  .scroller {
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+  }
+  .content {
+    width: 200px;   /* Forces scrollable overflow on the scroll axis. */
+    height: 200px;
+  }
+  #scroller-x {
+    overflow-x: scroll;
+    overflow-y: clip;
+    overscroll-behavior-y: contain;
+  }
+  #scroller-y {
+    overflow-x: clip;
+    overflow-y: scroll;
+    overscroll-behavior-x: contain;
+  }
+</style>
+
+<div id="parent">
+  <div class="content">
+    <div id="scroller-x" class="scroller"><div class="content"></div></div>
+    <div id="scroller-y" class="scroller"><div class="content"></div></div>
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
+<script>
+  const parent = document.getElementById('parent');
+
+  async function focusAndPress(el, key) {
+    await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: el})
+        .pointerDown().pointerUp().send();
+    await scrollElementByKeyboard(key);
+  }
+
+  promise_test(async () => {
+    await waitForCompositorCommit();
+    assert_equals(parent.scrollTop, 0);
+    const scrolled = waitForScrollEvent(parent);
+    await focusAndPress(document.getElementById('scroller-x'), 'ArrowDown');
+    await scrolled;
+    assert_greater_than(parent.scrollTop, 0, "vertical key chains to parent");
+  }, "Keyboard: overscroll-behavior-y:contain on an x-only scroller does not block vertical chaining");
+
+  promise_test(async () => {
+    await waitForCompositorCommit();
+    assert_equals(parent.scrollLeft, 0);
+    const scrolled = waitForScrollEvent(parent);
+    await focusAndPress(document.getElementById('scroller-y'), 'ArrowRight');
+    await scrolled;
+    assert_greater_than(parent.scrollLeft, 0, "horizontal key chains to parent");
+  }, "Keyboard: overscroll-behavior-x:contain on a y-only scroller does not block horizontal chaining");
+</script>

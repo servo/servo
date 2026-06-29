@@ -92,7 +92,6 @@ use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 /// <https://w3c.github.io/webdriver/#dfn-is-stale>
@@ -374,7 +373,7 @@ pub(crate) fn jsval_to_webdriver(
     global_scope: &GlobalScope,
     val: HandleValue,
 ) -> WebDriverJSResult {
-    run_a_script::<DomTypeHolder, _>(global_scope, || {
+    run_a_script::<DomTypeHolder, _, _>(cx, global_scope, |cx| {
         let mut seen = HashSet::new();
         let result = jsval_to_webdriver_inner(cx, global_scope, val, &mut seen);
 
@@ -842,7 +841,7 @@ pub(crate) fn handle_find_elements_tag_name(
         Ok(document) => reply
             .send(Ok(document
                 .GetElementsByTagName(cx, DOMString::from(selector))
-                .elements_iter()
+                .elements_iter(cx.no_gc())
                 .map(|x| x.upcast::<Node>().unique_id(pipeline))
                 .collect::<Vec<String>>()))
             .unwrap(),
@@ -988,7 +987,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
             get_known_element(documents, pipeline, element_id).map(|element| {
                 element
                     .GetElementsByTagName(cx, DOMString::from(selector))
-                    .elements_iter()
+                    .elements_iter(cx.no_gc())
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()
             }),
@@ -1377,7 +1376,7 @@ pub(crate) fn handle_get_page_source(
                     Some(element) => match element.outer_html(cx) {
                         Ok(source) => Ok(String::from(source)),
                         Err(_) => {
-                            match XMLSerializer::new(document.window(), None, CanGc::from_cx(cx))
+                            match XMLSerializer::new(cx, document.window(), None)
                                 .SerializeToString(element.upcast::<Node>())
                             {
                                 Ok(source) => Ok(String::from(source)),

@@ -377,6 +377,19 @@
       {}
      ]
     ],
+    "text-decoration-continuity.html": [
+     "6178982a1b35c2d6e745ca02dcf73d58fd862a5c",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/text-decoration-continuity-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "textarea-caret-following-linebreak-blank-line.html": [
      "c6cfb2563e8fa736bf85dcadb7d20e862a4b5d52",
      [
@@ -8447,6 +8460,10 @@
      "af9ec609b175040a66756fb6ce00d81a2e5707ec",
      []
     ],
+    "text-decoration-continuity-ref.html": [
+     "4aa04e8e28e7170955ac5b2844db3e5f73d865d2",
+     []
+    ],
     "textarea-caret-following-linebreak-blank-line-ref.html": [
      "5e70ba743b12012fe3b1116414107cf50ef6a8ab",
      []
@@ -13158,6 +13175,13 @@
       {}
      ]
     ],
+    "box-tree-layout-under-layout-root.html": [
+     "e834b71e65d1630ebbb3b89ec685064407525520",
+     [
+      null,
+      {}
+     ]
+    ],
     "isolating-change-within-abspos.html": [
      "371111400c32c65af53d8ea55d87b22b27faf25c",
      [
@@ -14428,7 +14452,7 @@
      ]
     ],
     "interfaces.https.html": [
-     "cdfa3234b0ffe917c616d890a95a69322224a8c5",
+     "d162d1ce0cf0a893f9ba6fd230ee7b518dfcf6f8",
      [
       null,
       {}

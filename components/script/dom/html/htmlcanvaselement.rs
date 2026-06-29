@@ -54,15 +54,15 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::imagebitmaprenderingcontext::ImageBitmapRenderingContext;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::values::UNSIGNED_LONG_MAX;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -225,12 +225,7 @@ impl HTMLCanvasElement {
 
         let window = self.owner_window();
         let size = self.get_size();
-        let context = CanvasRenderingContext2D::new(
-            window.as_global_scope(),
-            self,
-            size,
-            CanGc::from_cx(cx),
-        )?;
+        let context = CanvasRenderingContext2D::new(cx, window.as_global_scope(), self, size)?;
         self.set_rendering_context(|| RenderingContext::Context2d(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -256,8 +251,7 @@ impl HTMLCanvasElement {
             RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
 
         // Step 2. Set this's context mode to bitmaprenderer.
-        let context =
-            ImageBitmapRenderingContext::new(&self.owner_global(), &canvas, CanGc::from_cx(cx));
+        let context = ImageBitmapRenderingContext::new(cx, &self.owner_global(), &canvas);
         self.set_rendering_context(|| RenderingContext::BitmapRenderer(Dom::from_ref(&*context)));
 
         // Step 3. Return context.

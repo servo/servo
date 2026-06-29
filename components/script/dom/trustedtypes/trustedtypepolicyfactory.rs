@@ -32,7 +32,7 @@ use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypes::trustedtypepolicy::{TrustedType, TrustedTypePolicy};
 use crate::dom::types::WorkerGlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub struct TrustedTypePolicyFactory {
@@ -88,7 +88,7 @@ impl TrustedTypePolicyFactory {
             let policy_names: Vec<&str> = policy_names.iter().map(String::as_ref).collect();
             let allowed_by_csp = global
                 .get_csp_list()
-                .is_trusted_type_policy_creation_allowed(global, &policy_name, &policy_names);
+                .is_trusted_type_policy_creation_allowed(cx, global, &policy_name, &policy_names);
 
             // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
             if !allowed_by_csp {
@@ -259,14 +259,12 @@ impl TrustedTypePolicyFactory {
         // Step 2: Let policyValue be the result of executing Get Trusted Type policy value,
         // with the following arguments:
         rooted!(&in(cx) let mut trusted_type_name_value = NullValue());
-        expected_type.as_ref().safe_to_jsval(
-            cx.into(),
-            trusted_type_name_value.handle_mut(),
-            CanGc::from_cx(cx),
-        );
+        expected_type
+            .as_ref()
+            .safe_to_jsval(cx, trusted_type_name_value.handle_mut());
 
         rooted!(&in(cx) let mut sink_value = NullValue());
-        sink.safe_to_jsval(cx.into(), sink_value.handle_mut(), CanGc::from_cx(cx));
+        sink.safe_to_jsval(cx, sink_value.handle_mut());
 
         let arguments = vec![trusted_type_name_value.handle(), sink_value.handle()];
         let policy_value = default_policy.get_trusted_type_policy_value(
@@ -326,6 +324,7 @@ impl TrustedTypePolicyFactory {
                 let is_blocked = global
                     .get_csp_list()
                     .should_sink_type_mismatch_violation_be_blocked_by_csp(
+                        cx,
                         global,
                         sink,
                         sink_group,

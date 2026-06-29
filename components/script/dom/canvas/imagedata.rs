@@ -14,7 +14,7 @@ use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, HeapUint8ClampedArray, TypedArray, Uint8ClampedArray};
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{ImageDataId, ImageDataIndex};
@@ -31,7 +31,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ImageData {
@@ -47,11 +46,11 @@ pub(crate) struct ImageData {
 
 impl ImageData {
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         width: u32,
         height: u32,
         mut data: Option<Vec<u8>>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         let len =
             pixels::compute_rgba8_byte_length_if_within_limit(width as usize, height as usize)
@@ -67,22 +66,22 @@ impl ImageData {
         if let Some(ref mut d) = data {
             d.resize(len as usize, 0);
 
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut js_object = std::ptr::null_mut::<JSObject>());
+            rooted!(&in(cx) let mut js_object = std::ptr::null_mut::<JSObject>());
             let _buffer_source =
-                create_buffer_source::<ClampedU8>(cx, &d[..], js_object.handle_mut(), can_gc)
+                create_buffer_source::<ClampedU8>(cx, &d[..], js_object.handle_mut())
                     .map_err(|_| Error::JSFailed)?;
             auto_root!(&in(cx) let data = TypedArray::<ClampedU8, *mut JSObject>::from(js_object.get()).map_err(|_| Error::JSFailed)?);
 
-            Self::Constructor_(global, None, can_gc, data, width, Some(height), &settings)
+            Self::Constructor_(cx, global, None, data, width, Some(height), &settings)
         } else {
-            Self::Constructor(global, None, can_gc, width, height, &settings)
+            Self::Constructor(cx, global, None, width, height, &settings)
         }
     }
 
     #[allow(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#initialize-an-imagedata-object>
     fn initialize(
+        cx: &mut JSContext,
         pixels_per_row: u32,
         rows: u32,
         settings: &ImageDataSettings,
@@ -90,7 +89,6 @@ impl ImageData {
         default_color_space: Option<PredefinedColorSpace>,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         // 1. If source was given:
         let data = if let Some(source) = source {
@@ -115,11 +113,7 @@ impl ImageData {
                     // The storage ArrayBuffer must have a length of 4 × rows × pixelsPerRow bytes.
                     // 3. If the storage ArrayBuffer could not be allocated,
                     // then rethrow the RangeError thrown by JavaScript, and return.
-                    create_heap_buffer_source_with_length(
-                        GlobalScope::get_cx(),
-                        4 * rows * pixels_per_row,
-                        can_gc,
-                    )?
+                    create_heap_buffer_source_with_length(cx, 4 * rows * pixels_per_row)?
                 },
                 // 3. Otherwise, if settings["pixelFormat"] is "rgba-float16",
                 // then initialize the data attribute of imageData to a new Float16Array object.
@@ -145,7 +139,7 @@ impl ImageData {
             // 8. Otherwise, initialize the colorSpace attribute of imageData to "srgb".
             .unwrap_or(PredefinedColorSpace::Srgb);
 
-        Ok(reflect_dom_object_with_proto(
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(ImageData {
                 reflector_: Reflector::new(),
                 width,
@@ -156,12 +150,12 @@ impl ImageData {
             }),
             global,
             proto,
-            can_gc,
+            cx,
         ))
     }
 
-    pub(crate) fn is_detached(&self) -> bool {
-        self.data.is_detached_buffer(GlobalScope::get_cx())
+    pub(crate) fn is_detached(&self, cx: &mut JSContext) -> bool {
+        self.data.is_detached_buffer(cx)
     }
 
     pub(crate) fn get_size(&self) -> Size2D<u32> {
@@ -265,11 +259,11 @@ impl Serializable for ImageData {
         // Step 4 Initialize value's colorSpace attribute to serialized.[[ColorSpace]].
         // Step 5 Initialize value's pixelFormat attribute to serialized.[[PixelFormat]].
         ImageData::new(
+            cx,
             owner,
             serialized.width,
             serialized.height,
             Some(serialized.data),
-            CanGc::from_cx(cx),
         )
         .map_err(|_| ())
     }
@@ -287,9 +281,9 @@ impl Serializable for ImageData {
 impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         sw: u32,
         sh: u32,
         settings: &ImageDataSettings,
@@ -306,14 +300,14 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
 
         // 2. Initialize this given sw, sh, and settings.
         // 3. Initialize the image data of this to transparent black.
-        Self::initialize(sw, sh, settings, None, None, global, proto, can_gc)
+        Self::initialize(cx, sw, sh, settings, None, None, global, proto)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-with-data>
     fn Constructor_(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         data: CustomAutoRooterGuard<Uint8ClampedArray>,
         sw: u32,
         sh: Option<u32>,
@@ -347,6 +341,7 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
         }
         // 8. Initialize this given sw, sh, settings, and source set to data.
         Self::initialize(
+            cx,
             sw,
             height as u32,
             settings,
@@ -354,7 +349,6 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
             None,
             global,
             proto,
-            can_gc,
         )
     }
 

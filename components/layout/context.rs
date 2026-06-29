@@ -25,13 +25,12 @@ use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
 use style::values::computed::color::Color;
 use style::values::computed::image::{Gradient, Image};
+use style_traits::DevicePixel;
 use webrender_api::units::{DeviceIntSize, DeviceSize};
 
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
 
 pub(crate) struct LayoutContext<'a> {
-    pub use_rayon: bool,
-
     /// Bits shared by the layout and style system.
     pub style_context: SharedStyleContext<'a>,
 
@@ -47,6 +46,33 @@ pub(crate) struct LayoutContext<'a> {
 
     /// The [`PainterId`] that identifies which `RenderingContext` that this layout targets.
     pub painter_id: PainterId,
+
+    /// Whether or not parallel layout should be allowed for this layout.
+    pub allow_parallel_layout: bool,
+
+    /// The minimum number of jobs that need to be larger than
+    /// [`Self::parallelism_job_size_minimum`] in order to enable parallelism.
+    pub parallelism_job_count_minimum: usize,
+
+    /// The minimum size a job needs to be to be counted when determining if the number of
+    /// jobs exceeds [`Self::parallelism_job_count_minimum`].
+    pub parallelism_job_size_minimum: usize,
+
+    /// The device dimensions on which this layout is running, in device pixels.
+    pub device_size: Size2D<f32, DevicePixel>,
+}
+
+impl LayoutContext<'_> {
+    pub(crate) fn should_parallelize(&self, number_of_jobs: usize) -> bool {
+        self.allow_parallel_layout && number_of_jobs >= self.parallelism_job_count_minimum
+    }
+
+    pub(crate) fn should_parallelize_layout(&self, jobs: impl Iterator<Item = usize>) -> bool {
+        self.allow_parallel_layout &&
+            jobs.filter(|job| *job >= self.parallelism_job_size_minimum)
+                .count() >=
+                self.parallelism_job_count_minimum
+    }
 }
 
 pub enum ResolvedImage<'a> {

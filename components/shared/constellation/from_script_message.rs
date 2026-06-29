@@ -518,7 +518,7 @@ pub struct WorkerGlobalScopeInit {
     /// From devtools sender
     pub from_devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     /// Messages to send to constellation
-    pub script_to_constellation_chan: ScriptToConstellationChan,
+    pub script_to_constellation_chan: ScriptToConstellationSender,
     /// Messages to send to the Embedder
     pub script_to_embedder_chan: ScriptToEmbedderChan,
     /// The worker id
@@ -634,7 +634,7 @@ pub enum ScriptToConstellationMessage {
     /// A global has started managing broadcast-channels.
     NewBroadcastChannelRouter(
         BroadcastChannelRouterId,
-        IpcSender<BroadcastChannelMsg>,
+        GenericCallback<BroadcastChannelMsg>,
         ImmutableOrigin,
     ),
     /// A global has stopped managing broadcast-channels.

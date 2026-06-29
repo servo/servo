@@ -3,8 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
+use script_bindings::reflector::{
+    reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+};
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CompositionEventBinding::{
@@ -16,7 +19,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CompositionEvent {
@@ -32,12 +34,16 @@ impl CompositionEvent {
         }
     }
 
-    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<CompositionEvent> {
-        reflect_dom_object(Box::new(CompositionEvent::new_inherited()), window, can_gc)
+    pub(crate) fn new_uninitialized(
+        cx: &mut JSContext,
+        window: &Window,
+    ) -> DomRoot<CompositionEvent> {
+        reflect_dom_object_with_cx(Box::new(CompositionEvent::new_inherited()), window, cx)
     }
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         event_type: Atom,
         can_bubble: bool,
@@ -45,15 +51,15 @@ impl CompositionEvent {
         view: Option<&Window>,
         detail: i32,
         data: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<CompositionEvent> {
         Self::new_with_proto(
-            window, None, event_type, can_bubble, cancelable, view, detail, data, can_gc,
+            cx, window, None, event_type, can_bubble, cancelable, view, detail, data,
         )
     }
 
     #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
@@ -62,16 +68,15 @@ impl CompositionEvent {
         view: Option<&Window>,
         detail: i32,
         data: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<CompositionEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(CompositionEvent {
                 uievent: UIEvent::new_inherited(),
                 data,
             }),
             window,
             proto,
-            can_gc,
+            cx,
         );
         ev.uievent
             .init_event(event_type, can_bubble, cancelable, view, detail);
@@ -86,13 +91,14 @@ impl CompositionEvent {
 impl CompositionEventMethods<crate::DomTypeHolder> for CompositionEvent {
     /// <https://w3c.github.io/uievents/#dom-compositionevent-compositionevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         event_type: DOMString,
         init: &CompositionEventBinding::CompositionEventInit,
     ) -> Fallible<DomRoot<CompositionEvent>> {
         let event = CompositionEvent::new_with_proto(
+            cx,
             window,
             proto,
             event_type.into(),
@@ -101,7 +107,6 @@ impl CompositionEventMethods<crate::DomTypeHolder> for CompositionEvent {
             init.parent.view.as_deref(),
             init.parent.detail,
             init.data.clone(),
-            can_gc,
         );
         Ok(event)
     }

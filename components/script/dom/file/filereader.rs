@@ -16,7 +16,7 @@ use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
 use script_bindings::cell::DomRefCell;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -37,8 +37,8 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
-use crate::realms::enter_realm;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::realms::enter_auto_realm;
+use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 
 pub(crate) enum FileReadingTask {
@@ -205,11 +205,16 @@ impl FileReader {
     }
 
     fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<FileReader> {
-        reflect_dom_object_with_proto(Box::new(FileReader::new_inherited()), global, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(FileReader::new_inherited()),
+            global,
+            proto,
+            cx,
+        )
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error-steps
@@ -234,7 +239,7 @@ impl FileReader {
         fr.change_ready_state(FileReaderReadyState::Done);
         *fr.result.borrow_mut() = None;
 
-        let exception = DOMException::new(&fr.global(), error, CanGc::from_cx(cx));
+        let exception = DOMException::new(cx, &fr.global(), error);
         fr.error.set(Some(&exception));
 
         fr.dispatch_progress_event(cx, atom!("error"), 0, None);
@@ -320,12 +325,9 @@ impl FileReader {
                 FileReader::perform_readastext(&fr.result, data, &blob_contents)
             },
             FileReaderFunction::ArrayBuffer => {
-                let _ac = enter_realm(&*fr);
-                FileReader::perform_readasarraybuffer(
-                    &fr.result,
-                    GlobalScope::get_cx(),
-                    &blob_contents,
-                )
+                let mut realm = enter_auto_realm(cx, &*fr);
+                let cx = &mut realm.current_realm();
+                FileReader::perform_readasarraybuffer(cx, &fr.result, &blob_contents)
             },
             FileReaderFunction::BinaryString => {
                 FileReader::perform_readasbinarystring(&fr.result, &blob_contents)
@@ -381,15 +383,19 @@ impl FileReader {
     /// > Return a new ArrayBuffer whose contents are bytes.
     #[expect(unsafe_code)]
     fn perform_readasarraybuffer(
+        cx: &mut js::context::JSContext,
         result: &DomRefCell<Option<FileReaderResult>>,
-        cx: JSContext,
         bytes: &[u8],
     ) {
         unsafe {
-            rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+            rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
             assert!(
-                ArrayBuffer::create(*cx, CreateWith::Slice(bytes), array_buffer.handle_mut())
-                    .is_ok()
+                ArrayBuffer::create(
+                    cx.raw_cx(),
+                    CreateWith::Slice(bytes),
+                    array_buffer.handle_mut()
+                )
+                .is_ok()
             );
 
             *result.borrow_mut() =
@@ -405,11 +411,11 @@ impl FileReader {
 impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
     /// <https://w3c.github.io/FileAPI/#filereaderConstrctr>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<FileReader>> {
-        Ok(FileReader::new(global, proto, can_gc))
+        Ok(FileReader::new(cx, global, proto))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-onloadstart
@@ -472,8 +478,7 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         // Steps 1 & 3
         *self.result.borrow_mut() = None;
 
-        let exception =
-            DOMException::new(&self.global(), DOMErrorName::AbortError, CanGc::from_cx(cx));
+        let exception = DOMException::new(cx, &self.global(), DOMErrorName::AbortError);
         self.error.set(Some(&exception));
 
         self.terminate_ongoing_reading();
@@ -517,6 +522,7 @@ impl FileReader {
         total: Option<u64>,
     ) {
         let progressevent = ProgressEvent::new(
+            cx,
             &self.global(),
             type_,
             EventBubbles::DoesNotBubble,
@@ -524,7 +530,6 @@ impl FileReader {
             total.is_some(),
             Finite::wrap(loaded as f64),
             Finite::wrap(total.unwrap_or(0) as f64),
-            CanGc::from_cx(cx),
         );
         progressevent.upcast::<Event>().fire(cx, self.upcast());
     }

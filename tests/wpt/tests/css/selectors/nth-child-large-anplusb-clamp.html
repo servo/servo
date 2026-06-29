@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Selectors: large An+B coefficients in :nth-child() are clamped to the int range</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-nth-child-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-syntax-3/#anb-microsyntax">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// An+B coefficients in :nth-child() that overflow a 32-bit int must be clamped to
+// the int range, not converted via an undefined double-to-int conversion. With
+// clamping, huge positive values serialize to INT_MAX (2147483647). Without it the
+// behavior is implementation-defined: on some architectures the value wraps to
+// INT_MIN (-2147483648).
+
+const INT_MAX = "2147483647";
+
+function selectorTextFor(selector)
+{
+    const sheet = document.head.appendChild(document.createElement("style")).sheet;
+    sheet.insertRule(selector + " { color: green; }", 0);
+    return sheet.cssRules[0].selectorText;
+}
+
+test(() => {
+    assert_equals(selectorTextFor(":nth-child(99999999999999999999)"), ":nth-child(" + INT_MAX + ")");
+}, "b term (NumberToken path) is clamped to INT_MAX");
+
+test(() => {
+    assert_equals(selectorTextFor(":nth-child(99999999999999999999n)"), ":nth-child(" + INT_MAX + "n)");
+}, "a term (DimensionToken path) is clamped to INT_MAX");
+
+test(() => {
+    assert_equals(selectorTextFor(":nth-child(2n+99999999999999999999)"), ":nth-child(2n+" + INT_MAX + ")");
+}, "b term following an a coefficient is clamped to INT_MAX");
+</script>
+</body>
+</html>

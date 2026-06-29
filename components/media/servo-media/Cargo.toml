@@ -14,6 +14,7 @@ name = "servo_media"
 path = "lib.rs"
 
 [dependencies]
+servo-base = { workspace = true }
 servo-media-audio = { workspace = true }
 servo-media-player = { workspace = true }
 servo-media-streams = { workspace = true }

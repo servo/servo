@@ -407,7 +407,6 @@ where
             FontIdentifier::Local(local_font_identifier),
             descriptor,
             None,
-            None,
         ));
     };
 

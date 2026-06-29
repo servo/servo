@@ -4,8 +4,8 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, ns};
-use js::context::NoGC;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::{JSContext, NoGC};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -16,7 +16,6 @@ use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::NodeTraits;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DOMStringMap {
@@ -123,11 +122,11 @@ impl DOMStringMap {
         }
     }
 
-    pub(crate) fn new(element: &HTMLElement, can_gc: CanGc) -> DomRoot<DOMStringMap> {
-        reflect_dom_object(
+    pub(crate) fn new(cx: &mut JSContext, element: &HTMLElement) -> DomRoot<DOMStringMap> {
+        reflect_dom_object_with_cx(
             Box::new(DOMStringMap::new_inherited(element)),
             &*element.owner_window(),
-            can_gc,
+            cx,
         )
     }
 
@@ -139,7 +138,7 @@ impl DOMStringMap {
 // https://html.spec.whatwg.org/multipage/#domstringmap
 impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem>
-    fn NamedDeleter(&self, cx: &mut js::context::JSContext, name: DOMString) {
+    fn NamedDeleter(&self, cx: &mut JSContext, name: DOMString) {
         // Step 1. For each ASCII upper alpha in name, insert a U+002D HYPHEN-MINUS character (-) before the character
         // and replace the character with the same character converted to ASCII lowercase.
         // Step 2. Insert the string data- at the front of name.
@@ -150,12 +149,7 @@ impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-setitem>
-    fn NamedSetter(
-        &self,
-        cx: &mut js::context::JSContext,
-        name: DOMString,
-        value: DOMString,
-    ) -> ErrorResult {
+    fn NamedSetter(&self, cx: &mut JSContext, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 2. For each ASCII upper alpha in name, insert a U+002D HYPHEN-MINUS character (-)
         // before the character and replace the character with the same character converted to ASCII lowercase.
         // Step 3. Insert the string data- at the front of name.

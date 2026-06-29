@@ -4,13 +4,13 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct WebGLActiveInfo {
@@ -32,16 +32,16 @@ impl WebGLActiveInfo {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         size: i32,
         ty: u32,
         name: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<WebGLActiveInfo> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(WebGLActiveInfo::new_inherited(size, ty, name)),
             window,
-            can_gc,
+            cx,
         )
     }
 }

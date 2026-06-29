@@ -6,10 +6,11 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
+use js::context::JSContext;
 use paint_api::SerializableImageData;
 use pixels::Snapshot;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::Epoch;
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{ImageDescriptor, ImageFormat, ImageKey};
@@ -24,7 +25,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::node::node::NodeTraits;
-use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#imagebitmaprenderingcontext>
 #[dom_struct]
@@ -60,16 +60,16 @@ impl ImageBitmapRenderingContext {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         canvas: &RootedHTMLCanvasElementOrOffscreenCanvas,
-        can_gc: CanGc,
     ) -> DomRoot<ImageBitmapRenderingContext> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ImageBitmapRenderingContext::new_inherited(
                 HTMLCanvasElementOrOffscreenCanvas::from(canvas),
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 

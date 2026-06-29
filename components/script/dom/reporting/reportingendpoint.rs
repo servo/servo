@@ -341,7 +341,13 @@ impl FetchResponseListener for CSPReportEndpointFetchListener {
         submit_timing(cx, &self, &response, &timing);
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, _violations: Vec<Violation>) {}
+    fn process_csp_violations(
+        &mut self,
+        _cx: &mut js::context::JSContext,
+        _request_id: RequestId,
+        _violations: Vec<Violation>,
+    ) {
+    }
 }
 
 impl ResourceTimingListener for CSPReportEndpointFetchListener {

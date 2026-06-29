@@ -8,8 +8,8 @@ use std::str;
 
 use devtools_traits::{
     AncestorData, AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty,
-    EventListenerInfo, MatchedRule, NodeInfo, NodeStyle, RuleModification, StyleSheetInfo,
-    TimelineMarker, TimelineMarkerType,
+    EventListenerInfo, GetHTMLType, MatchedRule, NodeInfo, NodeStyle, RuleModification,
+    StyleSheetInfo, TimelineMarker, TimelineMarkerType,
 };
 use js::context::JSContext;
 use markup5ever::{LocalName, ns};
@@ -23,6 +23,7 @@ use servo_config::pref;
 use style::attr::AttrValue;
 use style::stylesheets::Origin;
 
+use crate::conversions::Convert;
 use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use crate::dom::bindings::codegen::Bindings::CSSLayerBlockRuleBinding::CSSLayerBlockRuleMethods;
@@ -46,8 +47,10 @@ use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::types::{CSSGroupingRule, CSSLayerBlockRule, EventTarget, HTMLElement};
-use crate::realms::enter_realm;
+use crate::dom::types::{
+    CSSGroupingRule, CSSLayerBlockRule, EventTarget, HTMLElement, TrustedHTML,
+};
+use crate::realms::enter_auto_realm;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable)]
@@ -467,7 +470,8 @@ pub(crate) fn handle_get_selectors(
         let node = state.find_node_by_unique_id(pipeline, node_id)?;
         let elem = node.downcast::<Element>()?;
         let document = documents.find_document(pipeline)?;
-        let _realm = enter_realm(document.window());
+        let mut realm = enter_auto_realm(cx, document.window());
+        let cx = &mut realm.current_realm();
         let owner = node.stylesheet_list_owner();
 
         let mut decl_map = HashMap::new();
@@ -516,7 +520,8 @@ pub(crate) fn handle_get_stylesheet_style(
     let msg = (|| {
         let node = state.find_node_by_unique_id(pipeline, node_id)?;
         let document = documents.find_document(pipeline)?;
-        let _realm = enter_realm(document.window());
+        let mut realm = enter_auto_realm(cx, document.window());
+        let cx = &mut realm.current_realm();
         let owner = node.stylesheet_list_owner();
 
         let stylesheet = owner.stylesheet_at(matched_rule.stylesheet_index)?;
@@ -680,6 +685,46 @@ pub(crate) fn handle_get_xpath(
     reply.send(selector).unwrap();
 }
 
+pub(crate) fn handle_get_inner_or_outer_html(
+    cx: &mut JSContext,
+    state: &DevtoolsState,
+    pipeline_id: PipelineId,
+    node_id: &str,
+    reply: GenericSender<Option<String>>,
+    html_type: GetHTMLType,
+) {
+    let node = state.find_node_by_unique_id(pipeline_id, node_id);
+
+    let selector = node.and_then(|node| {
+        let element = node.downcast::<Element>();
+
+        if let Some(element) = element {
+            let inner_or_outer_html = match html_type {
+                GetHTMLType::InnerHTML => element.GetInnerHTML(cx),
+                GetHTMLType::OuterHTML => element.GetOuterHTML(cx),
+            };
+
+            if let Ok(trusted_html) = inner_or_outer_html {
+                let trusted_html_or_string = trusted_html.convert();
+
+                let Ok(html_dom_string) = TrustedHTML::get_trusted_type_compliant_string(
+                    cx,
+                    &element.owner_global(),
+                    trusted_html_or_string,
+                    "Devtools GetInnerOrOuterHTML",
+                ) else {
+                    return None;
+                };
+
+                return Some(html_dom_string.to_string());
+            };
+        }
+        Some("".to_owned())
+    });
+
+    reply.send(selector).unwrap();
+}
+
 pub(crate) fn handle_modify_attribute(
     cx: &mut JSContext,
     state: &DevtoolsState,
@@ -691,7 +736,8 @@ pub(crate) fn handle_modify_attribute(
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("document for pipeline id {} is not found", &pipeline);
     };
-    let _realm = enter_realm(document.window());
+    let mut realm = enter_auto_realm(cx, document.window());
+    let cx = &mut realm.current_realm();
 
     let node = match state.find_node_by_unique_id(pipeline, node_id) {
         None => {
@@ -732,7 +778,8 @@ pub(crate) fn handle_modify_rule(
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("Document for pipeline id {} is not found", &pipeline);
     };
-    let _realm = enter_realm(document.window());
+    let mut realm = enter_auto_realm(cx, document.window());
+    let cx = &mut realm.current_realm();
 
     let Some(node) = state.find_node_by_unique_id(pipeline, node_id) else {
         return warn!(

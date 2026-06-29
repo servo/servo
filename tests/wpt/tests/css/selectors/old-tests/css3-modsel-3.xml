@@ -8,16 +8,25 @@ ul, p { color : red }
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
  </head>
  <body>
 <p>
-<span class="t1">This paragraph, and all textual contents in the document,
+<span class="t1" id="t1">This paragraph, and all textual contents in the document,
       should be green.</span>
 </p>
 <ul>
-  <li class="t1">This item should be green.</li>
+  <li class="t1" id="t2">This item should be green.</li>
 </ul>
-<foo xmlns="http://www.example.org/a">And this element, part of a non-HTML namespace,
+<foo id="t3" xmlns="http://www.example.org/a">And this element, part of a non-HTML namespace,
       should be green too</foo>
+<script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('t1')).color, 'rgb(0, 255, 0)');
+  assert_equals(getComputedStyle(document.getElementById('t2')).color, 'rgb(0, 255, 0)');
+  assert_equals(getComputedStyle(document.getElementById('t3')).color, 'rgb(0, 255, 0)');
+}, "Universal selector matches expected elements");
+]]></script>
 </body>
 </html>

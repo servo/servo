@@ -1,0 +1,50 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<style></style>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  const plaintextOnlyEditingHost =
+    document.querySelector("div[contenteditable=plaintext-only]");
+  const ol = document.querySelector("ol");
+  ol.addEventListener("input", () => {
+    getSelection().collapse(
+      document.querySelector("track")
+    );
+    requestAnimationFrame(() => {
+      const range = document.createRange();
+      range.setStart(dialog, 0);
+      getSelection().addRange(range);
+      const style = document.querySelector("style");
+      style.appendChild(plaintextOnlyEditingHost);
+      document.documentElement.removeAttribute("class");
+    });
+  });
+  const video = document.querySelector("video");
+  ol.appendChild(video);
+  const dialog = document.querySelector("dialog");
+  dialog.showModal();
+  document.execCommand("insertUnorderedList");
+  getSelection().collapse(plaintextOnlyEditingHost);
+});
+</script>
+</head>
+<body>
+  <ol>
+    <li contenteditable="true">
+      <dialog></dialog>
+    </li>
+    <li>
+      <!-- The following editing host should have only a Text and an HTMLVideoElement,
+           DO NOT EDIT the content -->
+      <div contenteditable="plaintext-only">
+<video>
+  <track>
+</video></div>
+    </li>
+  </ol>
+</body>
+</html>

@@ -86,7 +86,7 @@ impl ServoShellWindow {
 
     /// Must be called *after* `self` is in `state.windows`, otherwise it will panic.
     pub(crate) fn create_and_activate_toplevel_webview(
-        &self,
+        self: &Rc<Self>,
         state: Rc<RunningAppState>,
         url: Url,
     ) -> WebView {
@@ -97,7 +97,11 @@ impl ServoShellWindow {
 
     /// Must be called *after* `self` is in `state.windows`, otherwise it will panic.
     #[servo::servo_tracing::instrument(skip(self, state))]
-    pub(crate) fn create_toplevel_webview(&self, state: Rc<RunningAppState>, url: Url) -> WebView {
+    pub(crate) fn create_toplevel_webview(
+        self: &Rc<Self>,
+        state: Rc<RunningAppState>,
+        url: Url,
+    ) -> WebView {
         #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(unused_mut))]
         let mut webview_builder =
             WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
@@ -117,6 +121,7 @@ impl ServoShellWindow {
         let webview = webview_builder.build();
         webview.notify_theme_change(self.platform_window.theme());
         self.add_webview(webview.clone());
+
         // If `self` is not in `state.windows`, our notify_accessibility_tree_update() will panic.
         if state.accessibility_active() {
             // Activate accessibility in the WebView.
@@ -143,10 +148,6 @@ impl ServoShellWindow {
     /// Whether or not this [`ServoShellWindow`] has any [`WebView`]s.
     pub(crate) fn should_close(&self) -> bool {
         self.webview_collection.borrow().is_empty() || self.close_scheduled.get()
-    }
-
-    pub(crate) fn contains_webview(&self, id: WebViewId) -> bool {
-        self.webview_collection.borrow().contains(id)
     }
 
     pub(crate) fn webview_by_id(&self, id: WebViewId) -> Option<WebView> {
@@ -308,7 +309,7 @@ impl ServoShellWindow {
 
     /// Takes any events generated during UI updates and performs their actions.
     pub(crate) fn handle_interface_commands(
-        &self,
+        self: &Rc<Self>,
         state: &Rc<RunningAppState>,
         create_platform_window: Option<&dyn Fn(Url) -> Rc<dyn PlatformWindow>>,
     ) {

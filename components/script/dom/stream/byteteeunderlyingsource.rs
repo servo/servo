@@ -11,7 +11,7 @@ use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
 use js::jsval::ObjectValue;
 use js::rust::HandleValue as SafeHandleValue;
 use js::typedarray::ArrayBufferViewU8;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use super::byteteereadintorequest::ByteTeeReadIntoRequest;
 use super::readablestream::ReaderType;
@@ -25,7 +25,6 @@ use crate::dom::promise::Promise;
 use crate::dom::stream::byteteereadrequest::ByteTeeReadRequest;
 use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
 use crate::dom::types::ReadableStream;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum ByteTeeCancelAlgorithm {
@@ -74,6 +73,7 @@ impl ByteTeeUnderlyingSource {
     #[allow(clippy::too_many_arguments)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut JSContext,
         reader: Rc<RefCell<ReaderType>>,
         stream: &ReadableStream,
         reading: Rc<Cell<bool>>,
@@ -87,9 +87,8 @@ impl ByteTeeUnderlyingSource {
         reader_version: Rc<Cell<u64>>,
         tee_cancel_algorithm: ByteTeeCancelAlgorithm,
         byte_tee_pull_algorithm: ByteTeePullAlgorithm,
-        can_gc: CanGc,
     ) -> DomRoot<ByteTeeUnderlyingSource> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ByteTeeUnderlyingSource {
                 reflector_: Reflector::new(),
                 reader,
@@ -109,7 +108,7 @@ impl ByteTeeUnderlyingSource {
                 byte_tee_pull_algorithm,
             }),
             &*stream.global(),
-            can_gc,
+            cx,
         )
     }
 
@@ -204,6 +203,7 @@ impl ByteTeeUnderlyingSource {
             },
             ReaderType::Default(reader) => {
                 let byte_tee_read_request = ByteTeeReadRequest::new(
+                    cx,
                     &self.branch_1.get().expect("Branch 1 should be set."),
                     &self.branch_2.get().expect("Branch 2 should be set."),
                     &self.stream,
@@ -215,7 +215,6 @@ impl ByteTeeUnderlyingSource {
                     self.cancel_promise.clone(),
                     self,
                     global,
-                    CanGc::from_cx(cx),
                 );
 
                 let read_request = ReadRequest::ByteTee {
@@ -258,6 +257,7 @@ impl ByteTeeUnderlyingSource {
 
                 // Let readIntoRequest be a read-into request with the following items:
                 let byte_tee_read_into_request = ByteTeeReadIntoRequest::new(
+                    cx,
                     for_branch2,
                     &byob_branch,
                     &other_branch,
@@ -270,7 +270,6 @@ impl ByteTeeUnderlyingSource {
                     self.cancel_promise.clone(),
                     self,
                     global,
-                    CanGc::from_cx(cx),
                 );
 
                 let read_into_request = ReadIntoRequest::ByteTee {
@@ -338,12 +337,7 @@ impl ByteTeeUnderlyingSource {
                     // Set readAgainForBranch1 to true.
                     self.read_again_for_branch_1.set(true);
                     // Return a promise resolved with undefined.
-                    return Promise::new_resolved(
-                        &self.stream.global(),
-                        cx.into(),
-                        (),
-                        CanGc::from_cx(cx),
-                    );
+                    return Promise::new_resolved(cx, &self.stream.global(), ());
                 }
 
                 // Set reading to true.
@@ -374,7 +368,7 @@ impl ByteTeeUnderlyingSource {
                 }
 
                 // Return a promise resolved with undefined.
-                Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx))
+                Promise::new_resolved(cx, &self.stream.global(), ())
             },
             ByteTeePullAlgorithm::Pull2Algorithm => {
                 // If reading is true,
@@ -383,12 +377,7 @@ impl ByteTeeUnderlyingSource {
                     self.read_again_for_branch_2.set(true);
 
                     // Return a promise resolved with undefined.
-                    return Promise::new_resolved(
-                        &self.stream.global(),
-                        cx.into(),
-                        (),
-                        CanGc::from_cx(cx),
-                    );
+                    return Promise::new_resolved(cx, &self.stream.global(), ());
                 }
 
                 // Set reading to true.
@@ -418,7 +407,7 @@ impl ByteTeeUnderlyingSource {
                 }
 
                 // Return a promise resolved with undefined.
-                Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx))
+                Promise::new_resolved(cx, &self.stream.global(), ())
             },
         }
     }
@@ -482,7 +471,6 @@ impl ByteTeeUnderlyingSource {
             .cancel(cx, &self.stream.global(), reasons_value.handle());
 
         // Resolve cancelPromise with cancelResult.
-        self.cancel_promise
-            .resolve_native_with_cx(cx, &cancel_result);
+        self.cancel_promise.resolve_native(cx, &cancel_result);
     }
 }

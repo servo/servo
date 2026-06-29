@@ -189,11 +189,11 @@ impl URLMethods<crate::DomTypeHolder> for URL {
     fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
         // XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         //      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
-        let origin = global.origin().immutable();
+        let origin = global.origin();
 
         let id = blob.get_blob_url_id();
 
-        DOMString::from(URL::unicode_serialization_blob_url(origin, &id))
+        DOMString::from(URL::unicode_serialization_blob_url(origin.immutable(), &id))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-revokeObjectURL>
@@ -201,7 +201,7 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         // If the value provided for the url argument is not a Blob URL OR
         // if the value provided for the url argument does not have an entry in the Blob URL Store,
         // this method call does nothing. User agents may display a message on the error console.
-        let origin = global.origin().immutable();
+        let origin = global.origin().immutable().clone();
 
         if let Ok(url) = ServoUrl::parse(&url.str()) &&
             url.fragment().is_none() &&
@@ -209,7 +209,7 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         {
             let resource_threads = global.resource_threads();
             let (tx, rx) = generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
-            let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin.clone(), tx);
+            let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
             let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 
             let _ = rx.recv().unwrap();

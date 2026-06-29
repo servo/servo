@@ -20,8 +20,8 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits};
-use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
 pub(crate) struct HTMLBodyElement {
@@ -190,6 +190,7 @@ impl VirtualMethods for HTMLBodyElement {
                             let evtarget = window.upcast::<EventTarget>(); // forwarded event
                             let source_line = 1; // TODO(#9604) obtain current JS execution line
                             evtarget.set_event_handler_uncompiled(
+                                cx,
                                 window.get_url(),
                                 source_line,
                                 &name[2..],

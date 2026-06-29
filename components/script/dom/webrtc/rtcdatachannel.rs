@@ -152,22 +152,22 @@ impl RTCDataChannel {
 
     pub(crate) fn on_open(&self, cx: &mut JSContext) {
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("open"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
     }
 
     pub(crate) fn on_close(&self, cx: &mut JSContext) {
         let event = Event::new(
+            cx,
             &self.global(),
             atom!("close"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
         );
         event.upcast::<Event>().fire(cx, self.upcast());
 
@@ -189,15 +189,8 @@ impl RTCDataChannel {
         let message = match error {
             WebRtcError::Backend(message) => DOMString::from(message),
         };
-        let error = RTCError::new(window, &init, message, CanGc::from_cx(cx));
-        let event = RTCErrorEvent::new(
-            window,
-            atom!("error"),
-            false,
-            false,
-            &error,
-            CanGc::from_cx(cx),
-        );
+        let error = RTCError::new(cx, window, &init, message);
+        let event = RTCErrorEvent::new(cx, window, atom!("error"), false, false, &error);
         event.upcast::<Event>().fire(cx, self.upcast());
     }
 
@@ -254,11 +247,11 @@ impl RTCDataChannel {
     pub(crate) fn on_state_change(&self, cx: &mut JSContext, state: DataChannelState) {
         if let DataChannelState::Closing = state {
             let event = Event::new(
+                cx,
                 &self.global(),
                 atom!("closing"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
-                CanGc::from_cx(cx),
             );
             event.upcast::<Event>().fire(cx, self.upcast());
         };

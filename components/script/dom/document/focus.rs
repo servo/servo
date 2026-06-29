@@ -15,7 +15,6 @@ use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMeth
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
 use servo_base::id::BrowsingContextId;
 use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, SequentialFocusDirection,
@@ -28,7 +27,7 @@ use crate::dom::types::{
     Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, KeyboardEvent, Window,
 };
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 
 /// The kind of focusable area a [`FocusableArea`] is. A [`FocusableArea`] may be click focusable,
 /// sequentially focusable, or both.
@@ -494,6 +493,7 @@ impl DocumentFocusHandler {
         };
 
         let event = FocusEvent::new(
+            cx,
             &self.window,
             event_name,
             EventBubbles::DoesNotBubble,
@@ -501,7 +501,6 @@ impl DocumentFocusHandler {
             Some(&self.window),
             0i32,
             related_target,
-            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
@@ -748,7 +747,8 @@ impl DocumentFocusHandler {
         browsing_context_id: Option<BrowsingContextId>,
         direction: SequentialFocusDirection,
     ) {
-        let _realm = enter_realm(&*self.window);
+        let mut realm = enter_auto_realm(cx, &*self.window);
+        let cx = &mut realm.current_realm();
         let starting_point = browsing_context_id.and_then(|browsing_context_id| {
             self.window
                 .Document()

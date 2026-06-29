@@ -10,9 +10,10 @@ use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
     QuotaExceededErrorMethods, QuotaExceededErrorOptions,
 };
 use script_bindings::num::Finite;
-use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
+use script_bindings::reflector::{
+    reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+};
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use servo_base::id::{QuotaExceededErrorId, QuotaExceededErrorIndex};
 use servo_constellation_traits::SerializableQuotaExceededError;
@@ -47,16 +48,16 @@ impl QuotaExceededError {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         message: DOMString,
         quota: Option<Finite<f64>>,
         requested: Option<Finite<f64>>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(message, quota, requested)),
             global,
-            can_gc,
+            cx,
         )
     }
 }
@@ -64,9 +65,9 @@ impl QuotaExceededError {
 impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
     /// <https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quotaexceedederror>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         message: DOMString,
         options: &QuotaExceededErrorOptions,
     ) -> Result<DomRoot<Self>, Error> {
@@ -95,7 +96,7 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
         {
             return Err(Error::Range(c"requested is less than quota".to_owned()));
         }
-        Ok(reflect_dom_object_with_proto(
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(QuotaExceededError::new_inherited(
                 message,
                 options.quota,
@@ -103,7 +104,7 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
             )),
             global,
             proto,
-            can_gc,
+            cx,
         ))
     }
 
@@ -145,6 +146,7 @@ impl Serializable for QuotaExceededError {
         Self: Sized,
     {
         Ok(Self::new(
+            cx,
             owner,
             DOMString::from(serialized.dom_exception.message),
             serialized
@@ -155,7 +157,6 @@ impl Serializable for QuotaExceededError {
                 .requested
                 .map(|val| Finite::new(val).ok_or(()))
                 .transpose()?,
-            CanGc::from_cx(cx),
         ))
     }
 

@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use aes::{Aes128, Aes192, Aes256};
+use cbc::cipher::block_padding::Pkcs7;
+use cbc::cipher::{BlockModeDecrypt, BlockModeEncrypt, KeyIvInit};
 use cbc::{Decryptor, Encryptor};
-use cipher::block_padding::Pkcs7;
-use cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
@@ -38,19 +38,23 @@ pub(crate) fn encrypt(
     // Step 3. Let ciphertext be the result of performing the CBC Encryption operation described in
     // Section 6.2 of [NIST-SP800-38A] using AES as the block cipher, the iv member of
     // normalizedAlgorithm as the IV input parameter and paddedPlaintext as the input plaintext.
-    let iv = normalized_algorithm.iv.as_slice();
+    let iv = normalized_algorithm
+        .iv
+        .as_slice()
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-CBC IV".into())))?;
     let ciphertext = match key.handle() {
         Handle::Aes128Key(key) => {
-            let encryptor = Encryptor::<Aes128>::new(key, iv.into());
-            encryptor.encrypt_padded_vec_mut::<Pkcs7>(plaintext)
+            let encryptor = Encryptor::<Aes128>::new(key, &iv);
+            encryptor.encrypt_padded_vec::<Pkcs7>(plaintext)
         },
         Handle::Aes192Key(key) => {
-            let encryptor = Encryptor::<Aes192>::new(key, iv.into());
-            encryptor.encrypt_padded_vec_mut::<Pkcs7>(plaintext)
+            let encryptor = Encryptor::<Aes192>::new(key, &iv);
+            encryptor.encrypt_padded_vec::<Pkcs7>(plaintext)
         },
         Handle::Aes256Key(key) => {
-            let encryptor = Encryptor::<Aes256>::new(key, iv.into());
-            encryptor.encrypt_padded_vec_mut::<Pkcs7>(plaintext)
+            let encryptor = Encryptor::<Aes256>::new(key, &iv);
+            encryptor.encrypt_padded_vec::<Pkcs7>(plaintext)
         },
         _ => {
             return Err(Error::Operation(Some(
@@ -95,38 +99,32 @@ pub(crate) fn decrypt(
     // Step 5. If p is zero or greater than 16, or if any of the last p octets of paddedPlaintext
     // have a value which is not p, then throw an OperationError.
     // Step 6. Let plaintext be the result of removing p octets from the end of paddedPlaintext.
-    let iv = normalized_algorithm.iv.as_slice();
+    let iv = normalized_algorithm
+        .iv
+        .as_slice()
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-CBC IV".into())))?;
     let plaintext = match key.handle() {
         Handle::Aes128Key(key) => {
-            let decryptor = Decryptor::<Aes128>::new(key, iv.into());
-            decryptor
-                .decrypt_padded_vec_mut::<Pkcs7>(ciphertext)
-                .map_err(|_| {
-                    Error::Operation(Some("Failed to perform AES-CBC decryption".to_string()))
-                })?
+            let decryptor = Decryptor::<Aes128>::new(key, &iv);
+            decryptor.decrypt_padded_vec::<Pkcs7>(ciphertext)
         },
         Handle::Aes192Key(key) => {
-            let decryptor = Decryptor::<Aes192>::new(key, iv.into());
-            decryptor
-                .decrypt_padded_vec_mut::<Pkcs7>(ciphertext)
-                .map_err(|_| {
-                    Error::Operation(Some("Failed to perform AES-CBC decryption".to_string()))
-                })?
+            let decryptor = Decryptor::<Aes192>::new(key, &iv);
+            decryptor.decrypt_padded_vec::<Pkcs7>(ciphertext)
         },
         Handle::Aes256Key(key) => {
-            let decryptor = Decryptor::<Aes256>::new(key, iv.into());
-            decryptor
-                .decrypt_padded_vec_mut::<Pkcs7>(ciphertext)
-                .map_err(|_| {
-                    Error::Operation(Some("Failed to perform AES-CBC decryption".to_string()))
-                })?
+            let decryptor = Decryptor::<Aes256>::new(key, &iv);
+            decryptor.decrypt_padded_vec::<Pkcs7>(ciphertext)
         },
         _ => {
             return Err(Error::Operation(Some(
                 "The key handle is not representing an AES key".to_string(),
             )));
         },
-    };
+    }
+    .map_err(|_| Error::Operation(Some("Failed to perform AES-CBC decryption".into())))?;
+
     // Step 7. Return plaintext.
     Ok(plaintext)
 }

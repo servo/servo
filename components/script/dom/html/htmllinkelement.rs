@@ -52,13 +52,13 @@ use crate::dom::element::{
 };
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::processingoptions::{
     LinkFetchContext, LinkFetchContextType, LinkProcessingOptions,
 };
 use crate::dom::types::{EventTarget, GlobalScope};
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::LinkRelations;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
@@ -1298,9 +1298,14 @@ impl FetchResponseListener for FaviconFetchContext {
         submit_timing(cx, &self, &response, &timing);
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
+    fn process_csp_violations(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _request_id: RequestId,
+        violations: Vec<Violation>,
+    ) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
+        global.report_csp_violations(cx, violations, None, None);
     }
 }
 

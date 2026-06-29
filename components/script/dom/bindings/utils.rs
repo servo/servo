@@ -10,12 +10,12 @@ use std::thread::LocalKey;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectStatic};
-use js::jsapi::{CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JSObject};
+use js::jsapi::{CallArgs, DOMCallbacks, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_FreezeObject;
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
 use script_bindings::interfaces::{DomHelpers, Interface};
-use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
+use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_cx};
 use script_bindings::settings_stack::StackEntry;
 
 use crate::DomTypes;
@@ -24,12 +24,10 @@ use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
-use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxyHandler;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -59,9 +57,8 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
 ) {
     script_bindings::conversions::SafeToJSValConvertible::safe_to_jsval(
         convertibles,
-        cx.into(),
+        cx,
         rval.reborrow(),
-        CanGc::from_cx(cx),
     );
 
     rooted!(&in(cx) let obj = rval.to_object());
@@ -161,10 +158,6 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         &PRINCIPALS_CALLBACKS
     }
 
-    fn is_platform_object_same_origin(cx: &CurrentRealm, obj: RawHandleObject) -> bool {
-        unsafe { is_platform_object_same_origin(cx, obj) }
-    }
-
     fn interface_map() -> &'static phf::Map<&'static [u8], Interface> {
         &InterfaceObjectMap::MAP
     }
@@ -176,12 +169,12 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         ScriptThread::custom_element_reaction_stack().pop_current_element_queue(cx)
     }
 
-    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
+    fn reflect_dom_object_with_cx<T, U>(cx: &mut JSContext, obj: Box<T>, global: &U) -> DomRoot<T>
     where
         T: DomObject + DomObjectWrap<crate::DomTypeHolder>,
         U: DerivedFrom<GlobalScope>,
     {
-        reflect_dom_object(obj, global, can_gc)
+        reflect_dom_object_with_cx(obj, global, cx)
     }
 
     fn report_pending_exception(cx: &mut CurrentRealm) {

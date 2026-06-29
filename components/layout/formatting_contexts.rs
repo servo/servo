@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::{ServoDangerousStyleElement, ServoLayoutNode};
@@ -19,7 +20,7 @@ use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
-use crate::positioned::PositioningContext;
+use crate::positioned::{LayoutRootLayoutInputs, PositioningContext};
 use crate::replaced::ReplacedContents;
 use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize,
@@ -42,6 +43,9 @@ pub(crate) struct IndependentFormattingContext {
     /// Data that was originally propagated down to this [`IndependentFormattingContext`]
     /// during creation. This is used during incremental layout.
     pub propagated_data: PropagatedBoxTreeData,
+    /// If this [`IndependentFormattingContext`] was a layout root, this stores the data
+    /// necessary to lay it out again.
+    pub layout_root_layout_inputs: AtomicRefCell<Option<Box<LayoutRootLayoutInputs>>>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -56,6 +60,26 @@ pub(crate) enum IndependentFormattingContextContents {
     Grid(TaffyContainer),
     Table(Table),
     // Other layout modes go here
+}
+
+impl IndependentFormattingContextContents {
+    fn subtree_size(&self) -> usize {
+        match self {
+            IndependentFormattingContextContents::Replaced(_, widget) => widget
+                .as_ref()
+                .map_or(0, |widget| widget.borrow().subtree_size()),
+            IndependentFormattingContextContents::Flow(block_formatting_context) => {
+                block_formatting_context.contents.subtree_size()
+            },
+            IndependentFormattingContextContents::Flex(flex_container) => {
+                flex_container.subtree_size()
+            },
+            IndependentFormattingContextContents::Grid(taffy_container) => {
+                taffy_container.subtree_size()
+            },
+            IndependentFormattingContextContents::Table(table) => table.subtree_size(),
+        }
+    }
 }
 
 /// The baselines of a layout or a [`crate::fragment_tree::BoxFragment`]. Some layout
@@ -81,10 +105,12 @@ impl IndependentFormattingContext {
         contents: IndependentFormattingContextContents,
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {
+        base.set_subtree_size(contents.subtree_size() + 1);
         Self {
             base,
             contents,
             propagated_data,
+            layout_root_layout_inputs: None.into(),
         }
     }
 
@@ -130,10 +156,15 @@ impl IndependentFormattingContext {
             contents,
             propagated_data,
         );
+
+        let base = LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone());
+        base.set_subtree_size(contents.subtree_size() + 1);
+
         Self {
-            base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
+            base,
             contents,
             propagated_data,
+            layout_root_layout_inputs: None.into(),
         }
     }
 
@@ -561,6 +592,10 @@ impl IndependentFormattingContext {
                 contents.attached_to_tree(layout_box)
             },
         }
+    }
+
+    pub(crate) fn subtree_size(&self) -> usize {
+        self.base.subtree_size()
     }
 }
 

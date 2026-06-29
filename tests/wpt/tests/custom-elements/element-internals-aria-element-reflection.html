@@ -88,6 +88,14 @@
     }, "Setting ARIA element reflection properties to an empty array should work as expected.");
 
     test(t => {
+      for (const [property, id] of array_properties) {
+        const custom = document.createElement('custom-element');
+        custom.i[property] = [];
+        assert_array_equals(custom.i[property], []);
+      }
+    }, "Reading an ARIA element reflection array property that was set to an empty array, on an ElementInternals with no previously cached value, should return an empty array.");
+
+    test(t => {
       const custom = document.getElementById('custom1');
       for (const [property, id] of element_properties) {
         const related = document.getElementById(id);

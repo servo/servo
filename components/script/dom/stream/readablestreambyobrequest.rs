@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
@@ -16,7 +16,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::stream::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::types::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablestreambyobrequest>
 #[dom_struct]
@@ -36,8 +36,11 @@ impl ReadableStreamBYOBRequest {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ReadableStreamBYOBRequest> {
-        reflect_dom_object(Box::new(Self::new_inherited()), global, can_gc)
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> DomRoot<ReadableStreamBYOBRequest> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
     }
 
     pub(crate) fn set_controller(&self, controller: Option<&ReadableByteStreamController>) {
@@ -85,10 +88,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         {
             let view = self.view.borrow();
             // If ! IsDetachedBuffer(this.[[view]].[[ArrayBuffer]]) is true, throw a TypeError exception.
-            if view
-                .get_array_buffer_view_buffer(cx.into())
-                .is_detached_buffer(cx.into())
-            {
+            if view.get_array_buffer_view_buffer(cx).is_detached_buffer(cx) {
                 return Err(Error::Type(c"buffer is detached".to_owned()));
             }
 
@@ -96,7 +96,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
             assert!(view.byte_length() > 0);
 
             // Assert: this.[[view]].[[ViewedArrayBuffer]].[[ByteLength]] > 0.
-            assert!(view.viewed_buffer_array_byte_length(cx.into()) > 0);
+            assert!(view.viewed_buffer_array_byte_length(cx) > 0);
         }
 
         // Perform ? ReadableByteStreamControllerRespond(this.[[controller]], bytesWritten).
@@ -119,7 +119,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         };
 
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true, throw a TypeError exception.
-        if view.is_detached_buffer(cx.into()) {
+        if view.is_detached_buffer(cx) {
             return Err(Error::Type(c"buffer is detached".to_owned()));
         }
 

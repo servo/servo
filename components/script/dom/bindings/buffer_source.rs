@@ -13,23 +13,25 @@ use std::ptr;
 #[cfg(feature = "webgpu")]
 use std::sync::Arc;
 
+use js::context::JSContext;
 use js::jsapi::{
-    ArrayBufferClone, ArrayBufferCopyData, GetArrayBufferByteLength,
-    HasDefinedArrayBufferDetachKey, Heap, IsArrayBufferObject, IsDetachedArrayBufferObject,
-    JS_ClearPendingException, JS_GetArrayBufferViewBuffer, JS_GetArrayBufferViewByteLength,
-    JS_GetArrayBufferViewByteOffset, JS_GetArrayBufferViewType, JS_GetPendingException,
-    JS_GetTypedArrayLength, JS_IsArrayBufferViewObject, JS_IsTypedArrayObject,
+    GetArrayBufferByteLength, Heap, IsArrayBufferObject, IsDetachedArrayBufferObject,
+    JS_GetArrayBufferViewByteLength, JS_GetArrayBufferViewByteOffset, JS_GetArrayBufferViewType,
+    JS_GetTypedArrayLength, JS_IsArrayBufferViewObject, JS_IsTypedArrayObject, JSObject, Type,
+};
+use js::jsval::{ObjectValue, UndefinedValue};
+#[cfg(feature = "webgpu")]
+use js::rust::wrappers2::NewExternalArrayBuffer;
+use js::rust::wrappers2::{
+    ArrayBufferClone, ArrayBufferCopyData, DetachArrayBuffer, HasDefinedArrayBufferDetachKey,
+    JS_ClearPendingException, JS_GetArrayBufferViewBuffer, JS_GetPendingException,
     JS_NewBigInt64ArrayWithBuffer, JS_NewBigUint64ArrayWithBuffer, JS_NewDataView,
     JS_NewFloat16ArrayWithBuffer, JS_NewFloat32ArrayWithBuffer, JS_NewFloat64ArrayWithBuffer,
     JS_NewInt8ArrayWithBuffer, JS_NewInt16ArrayWithBuffer, JS_NewInt32ArrayWithBuffer,
     JS_NewUint8ArrayWithBuffer, JS_NewUint8ClampedArrayWithBuffer, JS_NewUint16ArrayWithBuffer,
-    JS_NewUint32ArrayWithBuffer, JSObject, NewArrayBuffer, NewArrayBufferWithContents,
-    StealArrayBufferContents, Type,
+    JS_NewUint32ArrayWithBuffer, NewArrayBuffer, NewArrayBufferWithContents,
+    StealArrayBufferContents,
 };
-use js::jsval::{ObjectValue, UndefinedValue};
-use js::rust::wrappers::DetachArrayBuffer;
-#[cfg(feature = "webgpu")]
-use js::rust::wrappers2::NewExternalArrayBuffer;
 use js::rust::{
     CustomAutoRooterGuard, Handle, MutableHandleObject,
     MutableHandleValue as SafeMutableHandleValue,
@@ -45,7 +47,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::trace::RootedTraceableBox;
 #[cfg(feature = "webgpu")]
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
 
 pub(crate) type RootedTypedArray<T> = RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>;
 
@@ -78,17 +79,16 @@ impl Clone for BufferSource {
 }
 
 pub(crate) fn create_heap_buffer_source_with_length<T>(
-    cx: JSContext,
+    cx: &mut JSContext,
     len: u32,
-    can_gc: CanGc,
 ) -> Fallible<RootedTraceableBox<HeapBufferSource<T>>>
 where
     T: TypedArrayElement + TypedArrayElementCreator + 'static,
     T::Element: Clone + Copy,
 {
-    rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+    rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
     let typed_array_result =
-        create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut(), can_gc);
+        create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut());
     if typed_array_result.is_err() {
         return Err(Error::JSFailed);
     }
@@ -181,12 +181,12 @@ where
 
     pub(crate) fn get_buffer_view_value(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         mut handle_mut: SafeMutableHandleValue,
     ) {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
-                rooted!(in(*cx) let value = ObjectValue(buffer.get()));
+                rooted!(&in(cx) let value = ObjectValue(buffer.get()));
                 handle_mut.set(*value);
             },
             BufferSource::ArrayBuffer(_) => {
@@ -197,13 +197,13 @@ where
 
     pub(crate) fn get_array_buffer_view_buffer(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
     ) -> RootedTraceableBox<HeapBufferSource<ArrayBufferU8>> {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => unsafe {
                 let mut is_shared = false;
-                rooted!(in (*cx) let view_buffer =
-                         JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
+                rooted!(&in(cx) let view_buffer =
+                         JS_GetArrayBufferViewBuffer(cx, Handle::from_raw(buffer.handle()), &mut is_shared));
 
                 RootedTraceableBox::new(HeapBufferSource::<ArrayBufferU8>::new(
                     BufferSource::ArrayBuffer(Heap::boxed(*view_buffer.handle())),
@@ -216,7 +216,7 @@ where
     }
 
     /// <https://tc39.es/ecma262/#sec-detacharraybuffer>
-    pub(crate) fn detach_buffer(&self, cx: JSContext) -> bool {
+    pub(crate) fn detach_buffer(&self, cx: &mut JSContext) -> bool {
         assert!(self.is_initialized());
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
@@ -224,16 +224,16 @@ where
                 unsafe {
                     // assert buffer is an ArrayBuffer view
                     assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
-                    rooted!(in (*cx) let view_buffer =
-                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
+                    rooted!(&in(cx) let view_buffer =
+                            JS_GetArrayBufferViewBuffer(cx, Handle::from_raw(buffer.handle()), &mut is_shared));
                     // This buffer is always created unshared
                     debug_assert!(!is_shared);
                     // Detach the ArrayBuffer
-                    DetachArrayBuffer(*cx, view_buffer.handle())
+                    DetachArrayBuffer(cx, view_buffer.handle())
                 }
             },
             BufferSource::ArrayBuffer(buffer) => unsafe {
-                DetachArrayBuffer(*cx, Handle::from_raw(buffer.handle()))
+                DetachArrayBuffer(cx, Handle::from_raw(buffer.handle()))
             },
         }
     }
@@ -247,15 +247,15 @@ where
         }
     }
 
-    pub(crate) fn is_detached_buffer(&self, cx: JSContext) -> bool {
+    pub(crate) fn is_detached_buffer(&self, cx: &mut JSContext) -> bool {
         assert!(self.is_initialized());
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
                 unsafe {
                     assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
-                    rooted!(in (*cx) let view_buffer =
-                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
+                    rooted!(&in(cx) let view_buffer =
+                            JS_GetArrayBufferViewBuffer(cx, Handle::from_raw(buffer.handle()), &mut is_shared));
                     debug_assert!(!is_shared);
                     IsDetachedArrayBufferObject(*view_buffer.handle())
                 }
@@ -266,15 +266,15 @@ where
         }
     }
 
-    pub(crate) fn viewed_buffer_array_byte_length(&self, cx: JSContext) -> usize {
+    pub(crate) fn viewed_buffer_array_byte_length(&self, cx: &mut JSContext) -> usize {
         assert!(self.is_initialized());
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
                 unsafe {
                     assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
-                    rooted!(in (*cx) let view_buffer =
-                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
+                    rooted!(&in(cx) let view_buffer =
+                            JS_GetArrayBufferViewBuffer(cx, Handle::from_raw(buffer.handle()), &mut is_shared));
                     debug_assert!(!is_shared);
                     GetArrayBufferByteLength(*view_buffer.handle())
                 }
@@ -348,7 +348,7 @@ where
     /// <https://tc39.es/ecma262/#sec-clonearraybuffer>
     pub(crate) fn clone_array_buffer(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         byte_offset: usize,
         byte_length: usize,
     ) -> Fallible<RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>> {
@@ -356,20 +356,18 @@ where
             BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
                 rooted!(&in(cx) let view_buffer =
-                    unsafe { JS_GetArrayBufferViewBuffer(cx.raw_cx(), buffer.handle(), &mut is_shared) });
+                    unsafe { JS_GetArrayBufferViewBuffer(cx, Handle::from_raw(buffer.handle()), &mut is_shared) });
                 debug_assert!(!is_shared);
 
-                unsafe {
-                    ArrayBufferClone(
-                        cx.raw_cx(),
-                        view_buffer.handle().into(),
-                        byte_offset,
-                        byte_length,
-                    )
-                }
+                unsafe { ArrayBufferClone(cx, view_buffer.handle(), byte_offset, byte_length) }
             },
             BufferSource::ArrayBuffer(buffer) => unsafe {
-                ArrayBufferClone(cx.raw_cx(), buffer.handle(), byte_offset, byte_length)
+                ArrayBufferClone(
+                    cx,
+                    Handle::from_raw(buffer.handle()),
+                    byte_offset,
+                    byte_length,
+                )
             },
         };
 
@@ -379,8 +377,8 @@ where
             rooted!(&in(cx) let mut _ex = UndefinedValue());
             unsafe {
                 // If SpiderMonkey set an exception, clear it so callers see a clean cx.
-                if JS_GetPendingException(cx.raw_cx(), _ex.handle_mut().into()) {
-                    JS_ClearPendingException(cx.raw_cx());
+                if JS_GetPendingException(cx, _ex.handle_mut()) {
+                    JS_ClearPendingException(cx);
                 }
             }
 
@@ -397,7 +395,7 @@ where
     #[expect(unsafe_code)]
     pub(crate) fn clone_as_uint8_array(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) -> Fallible<RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>>> {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
@@ -406,7 +404,7 @@ where
                 assert!(unsafe { JS_IsArrayBufferViewObject(*buffer.handle()) });
 
                 // Assert: ! IsDetachedBuffer(O.[[ViewedArrayBuffer]]) is false.
-                assert!(!self.is_detached_buffer(cx.into()));
+                assert!(!self.is_detached_buffer(cx));
 
                 // Let buffer be ? CloneArrayBuffer(O.[[ViewedArrayBuffer]],
                 // O.[[ByteOffset]], O.[[ByteLength]], %ArrayBuffer%).
@@ -439,10 +437,10 @@ where
     T: TypedArrayElement + TypedArrayElementCreator + 'static,
     T::Element: Clone + Copy,
 {
-    pub(crate) fn acquire_data(&self, cx: JSContext) -> Result<Vec<T::Element>, ()> {
+    pub(crate) fn acquire_data(&self, cx: &mut JSContext) -> Result<Vec<T::Element>, ()> {
         assert!(self.is_initialized());
 
-        typedarray!(in(*cx) let array: TypedArray = match &self.buffer_source {
+        typedarray!(&in(cx) let array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer)
             => {
                 buffer.get()
@@ -468,13 +466,13 @@ where
 
     pub(crate) fn copy_data_to(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         dest: &mut [T::Element],
         source_start: usize,
         length: usize,
     ) -> Result<(), ()> {
         assert!(self.is_initialized());
-        typedarray!(in(*cx) let array: TypedArray = match &self.buffer_source {
+        typedarray!(&in(cx) let array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) |  BufferSource::ArrayBuffer(buffer)
             => {
                 buffer.get()
@@ -494,13 +492,13 @@ where
 
     pub(crate) fn copy_data_from(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         source: CustomAutoRooterGuard<TypedArray<T, *mut JSObject>>,
         dest_start: usize,
         length: usize,
     ) -> Result<(), ()> {
         assert!(self.is_initialized());
-        typedarray!(in(*cx) let mut array: TypedArray = match &self.buffer_source {
+        typedarray!(&in(cx) let mut array: TypedArray = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer)
             => {
                 buffer.get()
@@ -519,13 +517,9 @@ where
         Ok(())
     }
 
-    pub(crate) fn set_data(
-        &self,
-        cx: &mut js::context::JSContext,
-        data: &[T::Element],
-    ) -> Result<(), ()> {
+    pub(crate) fn set_data(&self, cx: &mut JSContext, data: &[T::Element]) -> Result<(), ()> {
         rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
-        let _ = create_buffer_source::<T>(cx.into(), data, array.handle_mut(), CanGc::from_cx(cx))?;
+        let _ = create_buffer_source::<T>(cx, data, array.handle_mut())?;
 
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
@@ -539,7 +533,7 @@ where
     // CanCopyDataBlockBytes(descriptorBuffer, destStart, queueBuffer, queueByteOffset, bytesToCopy)
     pub(crate) fn can_copy_data_block_bytes(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         to_index: usize,
         from_buffer: &HeapBufferSource<ArrayBufferU8>,
         from_index: usize,
@@ -593,7 +587,7 @@ where
 
     pub(crate) fn copy_data_block_bytes(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         dest_start: usize,
         from_buffer: &HeapBufferSource<ArrayBufferU8>,
         from_byte_offset: usize,
@@ -604,10 +598,10 @@ where
                 match &from_buffer.buffer_source {
                     BufferSource::ArrayBufferView(from_heap) |
                     BufferSource::ArrayBuffer(from_heap) => ArrayBufferCopyData(
-                        *cx,
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         dest_start,
-                        from_heap.handle(),
+                        Handle::from_raw(from_heap.handle()),
                         from_byte_offset,
                         bytes_to_copy,
                     ),
@@ -617,7 +611,7 @@ where
     }
 
     /// <https://streams.spec.whatwg.org/#can-transfer-array-buffer>
-    pub(crate) fn can_transfer_array_buffer(&self, cx: JSContext) -> bool {
+    pub(crate) fn can_transfer_array_buffer(&self, cx: &mut JSContext) -> bool {
         // Assert: O is an Object.
         // Assert: O has an [[ArrayBufferData]] internal slot.
         assert!(self.is_array_buffer_object());
@@ -632,7 +626,11 @@ where
         let mut is_defined = false;
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
-                if !HasDefinedArrayBufferDetachKey(*cx, heap.handle(), &mut is_defined) {
+                if !HasDefinedArrayBufferDetachKey(
+                    cx,
+                    Handle::from_raw(heap.handle()),
+                    &mut is_defined,
+                ) {
                     return false;
                 }
             },
@@ -644,7 +642,7 @@ where
     /// <https://streams.spec.whatwg.org/#transfer-array-buffer>
     pub(crate) fn transfer_array_buffer(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
     ) -> Fallible<RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>> {
         assert!(self.is_array_buffer_object());
 
@@ -659,7 +657,7 @@ where
         // Step 2 (Reordered)
         let buffer_data = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => unsafe {
-                StealArrayBufferContents(*cx, buffer.handle())
+                StealArrayBufferContents(cx, Handle::from_raw(buffer.handle()))
             },
         };
 
@@ -667,10 +665,10 @@ where
         // This will throw an exception if O has an [[ArrayBufferDetachKey]] that is not undefined,
         // such as a WebAssembly.Memory’s buffer. [WASM-JS-API-1]
         if !self.detach_buffer(cx) {
-            rooted!(in(*cx) let mut rval = UndefinedValue());
+            rooted!(&in(cx) let mut rval = UndefinedValue());
             unsafe {
-                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
-                JS_ClearPendingException(*cx)
+                assert!(JS_GetPendingException(cx, rval.handle_mut()));
+                JS_ClearPendingException(cx)
             };
 
             Err(Error::Type(c"can't transfer array buffer".to_owned()))
@@ -680,7 +678,7 @@ where
             // whose [[ArrayBufferByteLength]] internal slot value is arrayBufferByteLength.
             Ok(RootedTraceableBox::new(
                 HeapBufferSource::<ArrayBufferU8>::new(BufferSource::ArrayBuffer(Heap::boxed(
-                    unsafe { NewArrayBufferWithContents(*cx, buffer_length, buffer_data) },
+                    unsafe { NewArrayBufferWithContents(cx, buffer_length, buffer_data) },
                 ))),
             ))
         }
@@ -700,16 +698,19 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> 
 
 /// <https://webidl.spec.whatwg.org/#arraybufferview-create>
 pub(crate) fn create_buffer_source<T>(
-    cx: JSContext,
+    cx: &mut JSContext,
     data: &[T::Element],
     mut dest: MutableHandleObject,
-    _can_gc: CanGc,
 ) -> Result<RootedTypedArray<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
     let res = unsafe {
-        TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Slice(data), dest.reborrow())
+        TypedArray::<T, *mut JSObject>::create(
+            cx.raw_cx(),
+            CreateWith::Slice(data),
+            dest.reborrow(),
+        )
     };
 
     if res.is_err() {
@@ -720,16 +721,19 @@ where
 }
 
 fn create_buffer_source_with_length<T>(
-    cx: JSContext,
+    cx: &mut JSContext,
     len: usize,
     mut dest: MutableHandleObject,
-    _can_gc: CanGc,
 ) -> Result<RootedTypedArray<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
     let res = unsafe {
-        TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Length(len), dest.reborrow())
+        TypedArray::<T, *mut JSObject>::create(
+            cx.raw_cx(),
+            CreateWith::Length(len),
+            dest.reborrow(),
+        )
     };
 
     if res.is_err() {
@@ -761,7 +765,7 @@ pub(crate) enum Constructor {
 }
 
 pub(crate) fn create_buffer_source_with_constructor(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     constructor: &Constructor,
     buffer_source: &HeapBufferSource<ArrayBufferU8>,
     byte_offset: usize,
@@ -771,7 +775,12 @@ pub(crate) fn create_buffer_source_with_constructor(
         BufferSource::ArrayBuffer(heap) => match constructor {
             Constructor::DataView => Ok(RootedTraceableBox::new(HeapBufferSource::new(
                 BufferSource::ArrayBufferView(Heap::boxed(unsafe {
-                    JS_NewDataView(cx.raw_cx(), heap.handle(), byte_offset, byte_length)
+                    JS_NewDataView(
+                        cx,
+                        Handle::from_raw(heap.handle()),
+                        byte_offset,
+                        byte_length,
+                    )
                 })),
             ))),
             Constructor::Name(name_type) => construct_typed_array(
@@ -790,7 +799,7 @@ pub(crate) fn create_buffer_source_with_constructor(
 
 /// Helper function to construct different TypedArray views
 fn construct_typed_array(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     name_type: &Type,
     buffer_source: &HeapBufferSource<ArrayBufferU8>,
     byte_offset: usize,
@@ -801,74 +810,74 @@ fn construct_typed_array(
             let array_view = unsafe {
                 match name_type {
                     Type::Int8 => JS_NewInt8ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint8 => JS_NewUint8ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint16 => JS_NewUint16ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Int16 => JS_NewInt16ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Int32 => JS_NewInt32ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint32 => JS_NewUint32ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Float32 => JS_NewFloat32ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Float64 => JS_NewFloat64ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint8Clamped => JS_NewUint8ClampedArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::BigInt64 => JS_NewBigInt64ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::BigUint64 => JS_NewBigUint64ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Float16 => JS_NewFloat16ArrayWithBuffer(
-                        cx.raw_cx(),
-                        heap.handle(),
+                        cx,
+                        Handle::from_raw(heap.handle()),
                         byte_offset,
                         byte_length,
                     ),
@@ -889,18 +898,15 @@ fn construct_typed_array(
 }
 
 pub(crate) fn create_array_buffer_with_size(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     size: usize,
 ) -> Fallible<RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>> {
-    let result = unsafe { NewArrayBuffer(cx.raw_cx(), size) };
+    let result = unsafe { NewArrayBuffer(cx, size) };
     if result.is_null() {
         rooted!(&in(cx) let mut rval = UndefinedValue());
         unsafe {
-            assert!(JS_GetPendingException(
-                cx.raw_cx(),
-                rval.handle_mut().into()
-            ));
-            JS_ClearPendingException(cx.raw_cx())
+            assert!(JS_GetPendingException(cx, rval.handle_mut()));
+            JS_ClearPendingException(cx)
         };
 
         Err(Error::Type(c"can't create array buffer".to_owned()))
@@ -957,7 +963,7 @@ impl DataBlock {
     /// Returns error if requested range is already mapped
     pub(crate) fn view(
         &mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         range: Range<usize>,
     ) -> Result<&DataView, ()> {
         if self

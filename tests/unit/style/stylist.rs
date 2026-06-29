@@ -258,6 +258,7 @@ fn mock_stylist() -> Stylist {
         MediaType::screen(),
         QuirksMode::NoQuirks,
         Size2D::new(0f32, 0f32),
+        Size2D::new(0f32, 0f32),
         Scale::new(1.0),
         Box::new(DummyMetricsProvider),
         initial_style,

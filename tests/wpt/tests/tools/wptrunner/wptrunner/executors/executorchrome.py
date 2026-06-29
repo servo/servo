@@ -1,12 +1,13 @@
 # mypy: allow-untyped-defs
 
 import collections
+import copy
 import json
 import os
 import re
 import time
 import uuid
-from typing import Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Optional
 
 from webdriver import error
 
@@ -27,6 +28,30 @@ from .protocol import LeakProtocolPart, ProtocolPart
 
 here = os.path.dirname(__file__)
 
+def _update_capabilities_if_extension_test(
+    browser: Any, capabilities: Optional[MutableMapping[str, Any]]
+) -> Optional[MutableMapping[str, Any]]:
+    """Updates ChromeDriver capabilities if the browser is running an extension test."""
+    if getattr(browser, "is_extension_test", False):
+        if capabilities is None:
+            capabilities = {}
+        else:
+            capabilities = copy.deepcopy(capabilities)
+        chrome_options = capabilities.setdefault("goog:chromeOptions", {})
+        args = chrome_options.setdefault("args", [])
+
+        def add_arg(arg: str) -> None:
+            if arg not in args:
+                args.append(arg)
+        # Enabled `browser` JS namespace on <test_name>.<api>.html test page.
+        add_arg("--enable-features=ExtensionBrowserNamespaceOnWebPages")
+        # Enables `chrome.test` JS API (and by extension `browser.test`) on <test_name>.<api>.html test page.
+        add_arg("--extension-test-api-on-web-pages")
+        # Modifies the `chrome.test` JS API to behave per the `browser.test` API proposal:
+        # https://github.com/w3c/webextensions/blob/main/proposals/browser_test_api.md
+        add_arg("--extension-test-api-standardized-behavior")
+
+    return capabilities
 
 class ChromeDriverBaseProtocolPart(WebDriverBaseProtocolPart):
     def create_window(self, type="tab", **kwargs):
@@ -237,6 +262,8 @@ class ChromeDriverProtocol(WebDriverProtocol):
         self.implements = list(ChromeDriverProtocol.implements)
         if getattr(browser, "leak_check", False):
             self.implements.append(ChromeDriverLeakProtocolPart)
+        capabilities = _update_capabilities_if_extension_test(
+            browser, capabilities)
         super().__init__(executor, browser, capabilities, **kwargs)
 
 
@@ -259,6 +286,8 @@ class ChromeDriverBidiProtocol(WebDriverBidiProtocol):
         self.implements = list(ChromeDriverBidiProtocol.implements)
         if getattr(browser, "leak_check", False):
             self.implements.append(ChromeDriverLeakProtocolPart)
+        capabilities = _update_capabilities_if_extension_test(
+            browser, capabilities)
         super().__init__(executor, browser, capabilities, **kwargs)
 
 

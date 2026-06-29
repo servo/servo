@@ -62,13 +62,13 @@ use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::input_element::input_type::InputType;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
 };
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -178,6 +178,20 @@ impl HTMLElement {
         // > or a child HTML element of a Document whose design mode enabled is true.
         // TODO
     }
+
+    pub(crate) fn previously_focused_element(&self) -> Option<DomRoot<Element>> {
+        self.upcast::<Element>()
+            .ensure_rare_data()
+            .previously_focused_element
+            .get()
+    }
+
+    pub(crate) fn set_previously_focused_element(&self, element: Option<&Element>) {
+        self.upcast::<Element>()
+            .ensure_rare_data()
+            .previously_focused_element
+            .set(element);
+    }
 }
 
 impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
@@ -227,8 +241,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dataset>
     fn Dataset(&self, cx: &mut JSContext) -> DomRoot<DOMStringMap> {
-        self.dataset
-            .or_init(|| DOMStringMap::new(self, CanGc::from_cx(cx)))
+        self.dataset.or_init(|| DOMStringMap::new(cx, self))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
@@ -708,7 +721,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Note: the element can pass this check without yet being a custom
         // element, as long as there is a registered definition
         // that could upgrade it to one later.
-        let registry = self.owner_window().CustomElements();
+        let registry = self.owner_window().CustomElements(cx);
         let definition = registry.lookup_definition(self.as_element().local_name(), None);
 
         // Step 3: If definition is null, then throw an "NotSupportedError" DOMException
@@ -1223,6 +1236,7 @@ impl VirtualMethods for HTMLElement {
                 element.set_disabled_state(true);
                 element.set_enabled_state(false);
                 ScriptThread::enqueue_callback_reaction(
+                    cx,
                     element,
                     CallbackReaction::FormDisabled(true),
                     None,
@@ -1238,6 +1252,7 @@ impl VirtualMethods for HTMLElement {
                 element.check_ancestors_disabled_state_for_form_control();
                 if element.enabled_state() {
                     ScriptThread::enqueue_callback_reaction(
+                        cx,
                         element,
                         CallbackReaction::FormDisabled(false),
                         None,
@@ -1279,6 +1294,7 @@ impl VirtualMethods for HTMLElement {
             element.check_ancestors_disabled_state_for_form_control();
             if element.disabled_state() {
                 ScriptThread::enqueue_callback_reaction(
+                    cx,
                     element,
                     CallbackReaction::FormDisabled(true),
                     None,
@@ -1342,6 +1358,7 @@ impl VirtualMethods for HTMLElement {
             element.check_ancestors_disabled_state_for_form_control();
             if element.enabled_state() {
                 ScriptThread::enqueue_callback_reaction(
+                    cx,
                     element,
                     CallbackReaction::FormDisabled(false),
                     None,

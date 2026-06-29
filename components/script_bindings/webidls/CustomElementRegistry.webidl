@@ -5,6 +5,8 @@
 // https://html.spec.whatwg.org/multipage/#customelementregistry
 [Exposed=Window]
 interface CustomElementRegistry {
+  constructor();
+
   [Throws, CEReactions]
   undefined define(
     DOMString name,
@@ -13,12 +15,10 @@ interface CustomElementRegistry {
   );
 
   any get(DOMString name);
-
   DOMString? getName(CustomElementConstructor constructor);
-
   Promise<CustomElementConstructor> whenDefined(DOMString name);
-
   [CEReactions] undefined upgrade(Node root);
+  [CEReactions, Throws] undefined initialize(Node root);
 };
 
 callback CustomElementConstructor = HTMLElement();

@@ -1,4 +1,4 @@
 features:
 - name: fetch-priority
   files:
-  - attr-image-fetchpriority.html
+  - attr-image-fetchpriority.optional.html

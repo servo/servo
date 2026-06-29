@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -20,7 +21,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::Node;
 use crate::dom::types::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ToggleEvent {
@@ -49,6 +49,7 @@ impl ToggleEvent {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: EventBubbles,
@@ -56,15 +57,15 @@ impl ToggleEvent {
         old_state: DOMString,
         new_state: DOMString,
         source: Option<DomRoot<Element>>,
-        can_gc: CanGc,
     ) -> DomRoot<ToggleEvent> {
         Self::new_with_proto(
-            window, None, type_, bubbles, cancelable, old_state, new_state, source, can_gc,
+            cx, window, None, type_, bubbles, cancelable, old_state, new_state, source,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -73,10 +74,9 @@ impl ToggleEvent {
         old_state: DOMString,
         new_state: DOMString,
         source: Option<DomRoot<Element>>,
-        can_gc: CanGc,
     ) -> DomRoot<ToggleEvent> {
         let event = Box::new(ToggleEvent::new_inherited(old_state, new_state, source));
-        let event = reflect_dom_object_with_proto(event, window, proto, can_gc);
+        let event = reflect_dom_object_with_proto_and_cx(event, window, proto, cx);
         {
             let event = event.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -88,15 +88,17 @@ impl ToggleEvent {
 impl ToggleEventMethods<crate::DomTypeHolder> for ToggleEvent {
     /// <https://html.spec.whatwg.org/multipage/#toggleevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
+
         type_: DOMString,
         init: &ToggleEventBinding::ToggleEventInit,
     ) -> Fallible<DomRoot<ToggleEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(ToggleEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
@@ -105,7 +107,6 @@ impl ToggleEventMethods<crate::DomTypeHolder> for ToggleEvent {
             init.oldState.clone(),
             init.newState.clone(),
             init.source.as_ref().map(|s| DomRoot::from_ref(&**s)),
-            can_gc,
         ))
     }
 

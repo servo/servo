@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: bidi handling of ellipsis in plaintext content</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-bidi-003-ref.html">
+<meta name="assert" content="The (internal) direction of the block ellipsis is based on that of the paragraph rather than the containing block when they differ, which can happen with unicode-bidi: plaintext">
+<style>
+body {
+    max-width: 80ch;
+}
+div {
+    font-family: monospace;
+    unicode-bidi: plaintext;
+    width: 25ch;
+}
+.test {
+    line-clamp: 2 "… (continued)";
+}
+.red { color: red; }
+.test { border: solid blue 5px; }
+.ref { border: solid orange 5px; }
+
+</style>
+
+<p>Test passes if the text in the blue box matches the one in the orange box.
+
+<div class=test>
+    Story time:<br>
+    روزی روزگاری <span class=red>بد بد بد بد بد بد بد بد</span>
+</div>
+<div class=ref>
+    Story time:<br>
+    روزی روزگاری… (continued)
+</div>

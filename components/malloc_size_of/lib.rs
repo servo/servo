@@ -50,7 +50,7 @@ use std::cell::OnceCell;
 use std::collections::BinaryHeap;
 use std::ffi::CString;
 use std::hash::{BuildHasher, Hash};
-use std::ops::Range;
+use std::ops::{Range, RangeInclusive};
 use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
 
@@ -457,6 +457,12 @@ impl<T: MallocSizeOf> MallocSizeOf for Range<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for RangeInclusive<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.start().size_of(ops) + self.end().size_of(ops)
+    }
+}
+
 macro_rules! malloc_size_of_hash_set {
     ($ty:ty) => {
         impl<T, S> MallocShallowSizeOf for $ty
@@ -732,6 +738,12 @@ impl<T: MallocSizeOf> MallocSizeOf for std::sync::Weak<T> {
 impl<T: MallocSizeOf> MallocSizeOf for std::sync::Mutex<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         (*self.lock().unwrap()).size_of(ops)
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for std::sync::RwLock<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        (*self.read().unwrap()).size_of(ops)
     }
 }
 
@@ -1300,6 +1312,14 @@ impl<T: MallocSizeOf> MallocSizeOf for atomic_refcell::AtomicRefCell<T> {
     }
 }
 
+impl<T: stylo_malloc_size_of::MallocSizeOf, const FRACTION_BITS: u16> MallocSizeOf
+    for style::values::computed::font::FixedPoint<T, FRACTION_BITS>
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        <Self as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}
+
 malloc_size_of_is_stylo_malloc_size_of!(style::animation::DocumentAnimationSet);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrIdentifier);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrValue);
@@ -1309,9 +1329,14 @@ malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_pos
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_style::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_rendering::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
+malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontStretchRange);
+malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontStyleDescriptor);
+malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontWeightRange);
+malloc_size_of_is_stylo_malloc_size_of!(style::font_face::Source);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
 malloc_size_of_is_stylo_malloc_size_of!(style::logical_geometry::WritingMode);
 malloc_size_of_is_stylo_malloc_size_of!(style::media_queries::MediaList);
+malloc_size_of_is_stylo_malloc_size_of!(style::properties::generated::font_face::Descriptors);
 malloc_size_of_is_stylo_malloc_size_of!(
     style::properties::longhands::align_items::computed_value::T
 );

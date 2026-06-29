@@ -72,7 +72,6 @@ use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRSession {
@@ -288,7 +287,7 @@ impl XRSession {
                 // Step 6 is happening n the XR session
                 // https://immersive-web.github.io/webxr/#dom-xrsession-end step 3
                 for promise in self.end_promises.borrow_mut().drain(..) {
-                    promise.resolve_native_with_cx(cx, &());
+                    promise.resolve_native(cx, &());
                 }
                 // Step 7
                 let event = XRSessionEvent::new(
@@ -590,7 +589,7 @@ impl XRSession {
                 if let Some(promise) = self.pending_hit_test_promises.borrow_mut().remove(&id) {
                     let hit_test_source =
                         XRHitTestSource::new(cx, self.global().as_window(), id, self);
-                    promise.resolve_native_with_cx(cx, &hit_test_source);
+                    promise.resolve_native(cx, &hit_test_source);
                 } else {
                     warn!(
                         "received hit test add request for unknown hit test {:?}",
@@ -843,14 +842,14 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         if !self.is_immersive() &&
             (ty == XRReferenceSpaceType::Bounded_floor || ty == XRReferenceSpaceType::Unbounded)
         {
-            p.reject_error_with_cx(cx, Error::NotSupported(None));
+            p.reject_error(cx, Error::NotSupported(None));
             return p;
         }
 
         match ty {
             XRReferenceSpaceType::Unbounded => {
                 // XXXmsub2 figure out how to support this
-                p.reject_error_with_cx(cx, Error::NotSupported(None))
+                p.reject_error(cx, Error::NotSupported(None))
             },
             ty => {
                 if ty != XRReferenceSpaceType::Viewer &&
@@ -864,7 +863,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                         .iter()
                         .any(|f| *f == s)
                     {
-                        p.reject_error_with_cx(cx, Error::NotSupported(None));
+                        p.reject_error(cx, Error::NotSupported(None));
                         return p;
                     }
                 }
@@ -873,13 +872,13 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(space.reference_space()));
-                    p.resolve_native_with_cx(cx, &space);
+                    p.resolve_native(cx, &space);
                 } else {
                     let space = XRReferenceSpace::new(cx, self.global().as_window(), self, ty);
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(&*space));
-                    p.resolve_native_with_cx(cx, &space);
+                    p.resolve_native(cx, &space);
                 }
             },
         }
@@ -904,7 +903,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             //
             // However, if end_promises is empty, then all end() promises have already resolved,
             // so the session has completely shut down and we should not queue up more promises
-            p.resolve_native_with_cx(cx, &());
+            p.resolve_native(cx, &());
             return p;
         }
         self.end_promises.borrow_mut().push(p.clone());
@@ -941,7 +940,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             .iter()
             .any(|f| f == "hit-test")
         {
-            p.reject_error_with_cx(cx, Error::NotSupported(None));
+            p.reject_error(cx, Error::NotSupported(None));
             return p;
         }
 
@@ -1016,13 +1015,8 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             let framerates = session.supported_frame_rates();
             rooted!(&in(cx) let mut array = ptr::null_mut::<JSObject>());
             Some(
-                create_buffer_source(
-                    cx.into(),
-                    framerates,
-                    array.handle_mut(),
-                    CanGc::from_cx(cx),
-                )
-                .expect("Failed to construct supported frame rates array"),
+                create_buffer_source(cx, framerates, array.handle_mut())
+                    .expect("Failed to construct supported frame rates array"),
             )
         }
     }
@@ -1052,15 +1046,12 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                 supported_frame_rates.is_empty() ||
                 self.ended.get()
             {
-                promise.reject_error_with_cx(cx, Error::InvalidState(None));
+                promise.reject_error(cx, Error::InvalidState(None));
                 return promise;
             }
 
             if !supported_frame_rates.contains(&*rate) {
-                promise.reject_error_with_cx(
-                    cx,
-                    Error::Type(c"Provided framerate not supported".into()),
-                );
+                promise.reject_error(cx, Error::Type(c"Provided framerate not supported".into()));
                 return promise;
             }
         }
@@ -1081,7 +1072,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                     let session = this.root();
                     session.apply_nominal_framerate(cx, message.unwrap());
                     if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
-                        promise.resolve_native_with_cx(cx, &());
+                        promise.resolve_native(cx, &());
                     };
                 }));
             })

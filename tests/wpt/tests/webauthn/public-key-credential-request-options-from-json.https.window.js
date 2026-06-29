@@ -51,11 +51,6 @@ test(() => {
         read: true,
       },
       getCredBlob: true,
-      supplementalPubKeys: {
-        scopes: ["spk scope"],
-        attestation: "directest",
-        attestationFormats: ["asn2"],
-      },
       prf: {
         eval: {
           first: test_b64,
@@ -78,11 +73,6 @@ test(() => {
         read: true,
       },
       getCredBlob: true,
-      supplementalPubKeys: {
-        scopes: ["spk scope"],
-        attestation: "directest",
-        attestationFormats: ["asn2"],
-      },
       prf: {
         eval: {
           first: test_bytes,
@@ -107,11 +97,6 @@ test(() => {
   if (actual.extensions.hasOwnProperty('getCredBlob')) {
     assert_equals(
       actual.extensions.getCredBlob, expected.extensions.getCredBlob);
-  }
-  if (actual.extensions.hasOwnProperty('supplementalPubKeys')) {
-    assertJsonEquals(
-      actual.extensions.supplementalPubKeys,
-      expected.extensions.supplementalPubKeys);
   }
   if (actual.extensions.hasOwnProperty('prf')) {
     let prfValuesEquals = (a, b) => {

@@ -183,7 +183,7 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         env:
-          RUSTFLAGS: "-D warnings"
+          RUSTFLAGS: ${{ inputs.profile == 'checked-release' && '-D warnings' || '' }}
         run: |
           ./mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
           mv target/cargo-timings target/cargo-timings-linux

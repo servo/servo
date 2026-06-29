@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Testcases for Sanitizer API + SVG animate</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// Test cases for Sanitizer + SVG animations, which are specially treated in
+// https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#built-in-animating-url-attributes-list
+
+const config = { sanitizer: {
+  elements: [
+    { name: "svg", namespace: "http://www.w3.org/2000/svg" },
+    { name: "a", namespace: "http://www.w3.org/2000/svg" },
+    { name: "set", namespace: "http://www.w3.org/2000/svg" },
+  ],
+  attributes: [
+    "href", "hreflang", "xlink:href", "xmlns:zlink", "attributeName", "to", "begin",
+  ],
+}};
+
+// We're testing handling of SVG animation attributes. There's three possible
+// behaviours:
+// * attributeName attribute is removed and no animation should occur;
+// * attributeName remains, but no animation should occur;
+// * attributeName remains, and animation should occur as usual.
+//
+// In the test data, we denote these as "remove", "inert", "animate".
+
+for(const [testcase, safe, unsafe] of [
+  // Regular case, targeting href or xlink:href. Should work in "unsafe" methods.
+  [ `<svg><a href="about:blank"><set attributeName="href" to="https://example.org/" begin="0s">`,
+    "remove", "animate" ],
+  [ `<svg ><a href="about:blank"><set attributeName="xlink:href" to="https://example.org/" begin="0s">`,
+    "remove", "inert" ],
+
+  // Harmless target attribute: hreflang
+  [ `<svg><a href="about:blank" hreflang="en"><set attributeName="hreflang" to="https://example.org/" begin="0s">`,
+    "inert", "inert" ],
+
+  // Non-existant target attribute: xref
+  [ `<svg><a href="about:blank"><set attributeName="xref" to="https://example.org/" begin="0s">`,
+    "inert", "inert" ],
+
+  // Unknown namespace prefix: ylink
+  [ `<svg><a href="about:blank"><set attributeName="ylink:href" to="https://example.org/" begin="0s">`,
+    "remove", "inert" ],
+
+  // Declared namespace with its own prefix: zlink, with xmlns:zlink decl.
+  [ `<svg><a xmlns:zlink="https://www.w3.org/1999/xlink" href="about:blank"><set attributeName="zlink:href" to="https://example.org/" begin="0s">`,
+    "remove", "inert" ],
+
+  // Same, but at parent element.
+  [ `<svg xmlns:zlink="https://www.w3.org/1999/xlink"><a href="about:blank"><set attributeName="zlink:href" to="https://example.org/" begin="0s">`,
+    "remove", "inert" ],
+
+  // Declared namespace with its own prefix: zlink, with xmlns:zlink decl, referencing xlink:href.
+  [ `<svg><a xmlns:zlink="https://www.w3.org/1999/xlink" xlink:href="about:blank"><set attributeName="zlink:href" to="https://example.org/" begin="0s">`,
+    "remove", "inert" ],
+
+  // Same, but at parent element.
+  [ `<svg xmlns:zlink="https://www.w3.org/1999/xlink"><a xlink:href="about:blank"><set attributeName="zlink:href" to="https://example.org/" begin="0s">`,
+    "remove", "inert" ],
+
+  // Name with multiple colons:
+  [ `<svg><a href="about:blank"><set attributeName="xlink:href:x" to="https://example.org/" begin="0s">`,
+    "inert", "inert" ],
+
+  // Use an actual javascript:-URL.
+  [ `<svg xmlns:xlink="http://www.w3.org/1999/xlink"><a id="foo"><set attributeName="xlink:href:x" to="javascript:alert()" begin="0s"></set></a></svg>`,
+  "inert", "inert" ],
+]) {
+  for (const method of ["setHTML", "setHTMLUnsafe"]) {
+
+    // Determine the expectations for this test.
+    const expectation = (method == "setHTML" ? safe : unsafe);
+    const expect_retain = (expectation != "remove");
+    const expect_animate = (expectation == "animate");
+
+    const test_name =
+        `${method} testcase should ${expect_retain ? "" : "not "}retain attributeName and should ${expect_animate ? "" : "not "}animate: "${testcase}".`;
+
+    promise_test(async (t) => {
+      const div = document.createElement("div");
+      t.add_cleanup(_ => div.remove());
+      div[method](testcase, config);
+
+      // Did Sanitizer retain <set attributeName= > ?
+      (expect_retain ? assert_not_equals : assert_equals)(
+          div.querySelector("set[attributeName]"), null,
+          `Sanitizer should ${expect_retain ? "" : "not "}retain attributeName.`);
+
+      // Before the animation, href base + anim values should be identical.
+      // After the animation, it depends on expect_animate whether they should
+      // be identical or not.
+      assert_equals(
+        div.querySelector("a").href.baseVal,
+        div.querySelector("a").href.animVal,
+        "The SVG a element should not have animated (yet).");
+
+      // Inserting into the document should trigger the animation, because of
+      // begin="0s".
+      document.body.appendChild(div);
+
+      // Wait for animation to commence.
+      await new Promise(resolve => {
+        div.querySelector("set").addEventListener("beginEvent", resolve);
+      });
+
+      (expect_animate ? assert_not_equals : assert_equals)(
+          div.querySelector("a").href.baseVal,
+          div.querySelector("a").href.animVal,
+          `The SVG a element should ${expect_animate ? "" : "not "}have animated.`);
+    }, test_name);
+  }
+}
+</script>
+</body>
+</html>

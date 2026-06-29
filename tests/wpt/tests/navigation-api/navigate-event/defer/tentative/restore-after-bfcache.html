@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name=timeout content=long>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
@@ -19,7 +20,7 @@
       funcBeforeNavigation: async () => {
         window.events = [];
         await navigation.navigate("#1").finished;
-        await navigation.back();
+        await navigation.back().finished;
         window.originalEntry1 = navigation.entries()[1];
         window.originalEntry1.ondispose = () => events.push("dispose");
         window.onpageshow = () => events.push("pageshow");

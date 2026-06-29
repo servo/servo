@@ -12,7 +12,6 @@
   
   <!-- Settings -->
   <string name="settings_title">Settings</string>
-  <string name="settings_section_features">Features</string>
   <string name="settings_experimental_title">Experimental features</string>
   <string name="settings_experimental_summary">Enable experimental web platform features</string>
   <string name="settings_animating_title">Idle/animating indicator</string>

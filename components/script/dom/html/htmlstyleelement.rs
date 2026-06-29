@@ -36,8 +36,8 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
+use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
-use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::StylesheetOwner;
 
@@ -137,6 +137,7 @@ impl HTMLStyleElement {
         if global
             .get_csp_list()
             .should_elements_inline_type_behavior_be_blocked(
+                cx,
                 global,
                 self.upcast(),
                 InlineCheckType::Style,

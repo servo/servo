@@ -11,7 +11,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
@@ -29,7 +29,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ReportingObserver {
@@ -56,18 +55,18 @@ impl ReportingObserver {
         }
     }
 
-    pub(crate) fn new_with_proto(
+    fn new_with_proto(
+        cx: &mut JSContext,
         callback: Rc<ReportingObserverCallback>,
         options: &ReportingObserverOptions,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(Self::new_inherited(callback, options)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -236,9 +235,9 @@ impl ReportingObserver {
 impl ReportingObserverMethods<crate::DomTypeHolder> for ReportingObserver {
     /// <https://w3c.github.io/reporting/#dom-reportingobserver-reportingobserver>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         callback: Rc<ReportingObserverCallback>,
         options: &ReportingObserverOptions,
     ) -> DomRoot<ReportingObserver> {
@@ -246,7 +245,7 @@ impl ReportingObserverMethods<crate::DomTypeHolder> for ReportingObserver {
         // Step 2. Set observer’s callback to callback.
         // Step 3. Set observer’s options to options.
         // Step 4. Return observer.
-        ReportingObserver::new_with_proto(callback, options, global, proto, can_gc)
+        ReportingObserver::new_with_proto(cx, callback, options, global, proto)
     }
 
     /// <https://w3c.github.io/reporting/#dom-reportingobserver-observe>

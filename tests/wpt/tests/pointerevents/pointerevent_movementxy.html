@@ -44,11 +44,22 @@
             var expectedPointerId = NaN;
             var lastScreenX = null;
             var lastScreenY = null;
+            var lastEventDocument = null;
             var actionsPromise;
 
             function resetTestState() {
                 lastScreenX = null;
                 lastScreenY = null;
+                lastEventDocument = null;
+            }
+
+            function loadFrame() {
+                return new Promise(resolve => {
+                    const frame = document.getElementById('innerFrame');
+                    frame.onload = resolve;
+                    frame.srcdoc = `<!doctype html>
+                      <meta name='viewport' content='width=device-width'>`;
+                });
             }
 
             var nonPointermoveEventList = [
@@ -67,56 +78,80 @@
                                      .addPointer(pointerId, pointerType)
                                      .pointerMove(0, 0, {origin: box1})
                                      .pointerDown()
-                                     .pointerMove(20, 30, {origin: box1})
+                                     // Moves in top frame (before iframe)
+                                     .pointerMove(15, 20, {origin: box1})
+                                     .addTick()
+                                     .pointerMove(30, 30, {origin: box1})
+                                     .addTick()
+                                     // Move entering iframe
                                      .pointerMove(50, 40, {origin: box1})
+                                     .addTick()
+                                     // Moves inside iframe
                                      .pointerMove(80, 30, {origin: box1})
+                                     .addTick()
                                      .pointerMove(110, 20, {origin: box1})
+                                     .addTick()
+                                     // Move exiting iframe
                                      .pointerMove(0, 0, {origin: box2})
+                                     .addTick()
+                                     // Moves in top frame (after iframe)
+                                     .pointerMove(5, 5, {origin: box2})
+                                     .addTick()
+                                     .pointerMove(-5, -5, {origin: box2})
                                      .pointerUp()
                                      .send();
             }
 
-            function run() {
-                var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", [inputSource]);
+            async function run() {
+                var test_pointerEvent = setup_pointerevent_test(
+                      "pointerevent attributes", [inputSource]);
 
-                [document, document.getElementById('innerFrame').contentDocument].forEach(function(element) {
+                await loadFrame();
+
+                [
+                  document,
+                  document.getElementById('innerFrame').contentDocument
+                ].forEach(function(element) {
                   nonPointermoveEventList.forEach(function(eventName) {
                     on_event(element, eventName, function (event) {
                       if (lastScreenX && lastScreenY) {
                         test_pointerEvent.step(function() {
-                          assert_equals(event.movementX, 0, "movementX should be 0 for event other than pointermove.");
-                          assert_equals(event.movementY, 0, "movementY should be 0 for event other than pointermove.");
+                          assert_equals(event.movementX, 0,
+                                "movementX should be 0 for event other than pointermove.");
+                          assert_equals(event.movementY, 0,
+                                "movementY should be 0 for event other than pointermove.");
                         });
-                        // Reset when entering the new frame.
-                        if (event.type == "pointerenter") {
-                          lastScreenX = null;
-                          lastScreenY = null;
-                        }
                       }
                     });
                   });
 
                   on_event(element, 'pointermove', function (event) {
                     test_pointerEvent.step(function() {
-                      if (lastScreenX && lastScreenY) {
-                        assert_equals(event.movementX, event.screenX - lastScreenX, "movementX should be the delta between current event's and last event's screenX");
-                        assert_equals(event.movementY, event.screenY - lastScreenY, "movementY should be the delta between current event's and last event's screenY");
+                      if (lastScreenX && lastScreenY &&
+                            lastEventDocument === event.view.document) {
+                        assert_equals(event.movementX, event.screenX - lastScreenX,
+                              "movementX should be the delta between current event's and last event's screenX");
+                        assert_equals(event.movementY, event.screenY - lastScreenY,
+                              "movementY should be the delta between current event's and last event's screenY");
                       }
                     });
                     lastScreenX = event.screenX;
                     lastScreenY = event.screenY;
+                    lastEventDocument = event.view.document;
                   });
                 });
-                on_event(document.querySelector('#box1'), 'pointerdown', function(event) {
+                on_event(document.querySelector('#box1'), 'pointerdown', event => {
                   event.target.releasePointerCapture(event.pointerId);
                   test_pointerEvent.step(function() {
-                      assert_equals(event.pointerType, expectedPointerType, "Use the instructed pointer type.");
+                      assert_equals(event.pointerType, expectedPointerType,
+                            "Use the instructed pointer type.");
                   });
                   lastScreenX = event.screenX;
                   lastScreenY = event.screenY;
+                  lastEventDocument = event.view.document;
                 });
-                on_event(document.querySelector('#box2'), 'pointerup', function(event) {
-                  // Make sure the test finishes after all the input actions are completed.
+                on_event(document.querySelector('#box2'), 'pointerup', event => {
+                  // Make sure the test finishes after all the input actions.
                   actionsPromise.then( () => {
                     test_pointerEvent.done();
                   });
@@ -144,9 +179,8 @@
         <div id="testContainer">
             <div id="box1" class="square"></div>
             <div id="box2" class="square"></div>
-            <iframe id="innerFrame" src="resources/pointerevent_movementxy-iframe.html"></iframe>
+            <iframe id="innerFrame"></iframe>
         </div>
         <div class="spacer"></div>
     </body>
 </html>
-

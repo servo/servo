@@ -1,0 +1,15 @@
+<!doctype html>
+<title>SVG media fragment: percent-based spatial clipping on SVG with viewBox but no width/height</title>
+<link rel="help" href="https://www.w3.org/TR/media-frags/#naming-space">
+<link rel="help" href="https://svgwg.org/svg2-draft/linking.html#SVGFragmentIdentifiers">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1113">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background-repeat: no-repeat;
+    background-image: url("support/red-green-viewbox-no-size.svg#xywh=percent:50,0,50,100");
+  }
+</style>
+<div></div>

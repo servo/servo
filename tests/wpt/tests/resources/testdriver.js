@@ -1986,6 +1986,25 @@
         },
 
         /**
+         * Sets the behavior for the virtual wallet.
+         *
+         * Matches the `Set Virtual Wallet Behavior
+         * <https://w3c-fedid.github.io/digital-credentials/#automated-testing>`_
+         * WebDriver command.
+         *
+         * @param {String} action - The action to take ("decline", "respond", "wait", "clear").
+         * @param {String} [protocol=null] - The protocol requested (required for "respond").
+         * @param {Object} [response=null] - The response data (optional for "respond").
+         * @param {WindowProxy} [context=null] - Browsing context in which to run the call.
+         *
+         * @returns {Promise} Fulfilled after the behavior has been set.
+         */
+        set_virtual_wallet_behavior: function(action, protocol=null, response=null, context=null) {
+          return window.test_driver_internal.set_virtual_wallet_behavior(action, protocol, response, context);
+        },
+
+
+        /**
          * Creates a virtual sensor for use with the Generic Sensors APIs.
          *
          * Matches the `Create Virtual Sensor
@@ -2694,6 +2713,11 @@
         async reset_fedcm_cooldown(context=null) {
             throw new Error("reset_fedcm_cooldown() is not implemented by testdriver-vendor.js");
         },
+
+        async set_virtual_wallet_behavior(action, protocol=null, response=null, context=null) {
+            throw new Error("set_virtual_wallet_behavior() is not implemented by testdriver-vendor.js");
+        },
+
 
         async create_virtual_sensor(sensor_type, sensor_params, context=null) {
             throw new Error("create_virtual_sensor() is not implemented by testdriver-vendor.js");

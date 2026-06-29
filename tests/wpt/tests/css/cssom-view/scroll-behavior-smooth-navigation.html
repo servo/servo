@@ -50,7 +50,7 @@
       window.onhashchange = function() {
         instantHistoryNavigationTest.step(function() {
           assert_equals(location.hash, "", "Shouldn't be scrolled to a fragment.");
-          assert_equals(window.scrollY, 0, "Shouldn't be scrolled back to top yet.");
+          assert_equals(window.scrollY, 0, "Should be scrolled to top.");
         });
         p.remove();
         instantHistoryNavigationTest.done();

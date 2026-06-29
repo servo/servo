@@ -1273,34 +1273,6 @@ pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
     slice
 }
 
-pub fn http_percent_encode(bytes: &[u8]) -> String {
-    // This encode set is used for HTTP header values and is defined at
-    // https://tools.ietf.org/html/rfc5987#section-3.2
-    const HTTP_VALUE: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
-        .add(b' ')
-        .add(b'"')
-        .add(b'%')
-        .add(b'\'')
-        .add(b'(')
-        .add(b')')
-        .add(b'*')
-        .add(b',')
-        .add(b'/')
-        .add(b':')
-        .add(b';')
-        .add(b'<')
-        .add(b'-')
-        .add(b'>')
-        .add(b'?')
-        .add(b'[')
-        .add(b'\\')
-        .add(b']')
-        .add(b'{')
-        .add(b'}');
-
-    percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
-}
-
 /// Returns the cached current system locale, or en-US by default.
 pub fn get_current_locale() -> &'static (String, HeaderValue) {
     static CURRENT_LOCALE: OnceLock<(String, HeaderValue)> = OnceLock::new();

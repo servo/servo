@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Filter Effects test: SVG filter applied to element below initial viewport must not paint at viewport origin</title>
+<link rel="author" title="Karl Dubost" href="mailto:karlcow@apple.com">
+<link rel="help" href="https://drafts.csswg.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=314999">
+<link rel="match" href="filter-target-offscreen-below-viewport-001-ref.html">
+<meta name="assert" content="An element placed entirely below the initial viewport with a CSS filter: url(#…) reference to an SVG filter must not produce any painted pixels inside the initial viewport.">
+<style>
+  html, body { margin: 0; background: white; }
+  .spacer { height: calc(100vh + 50px); }
+  .target { padding: 10px; background: black; color: white;
+            filter: url(#blur); }
+</style>
+<div class="spacer"></div>
+<div class="target">Filter target — should not contribute to viewport pixels.</div>
+<svg width="0" height="0" color-interpolation-filters="sRGB" aria-hidden="true"
+     style="position: absolute">
+  <defs>
+    <filter id="blur">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"></feGaussianBlur>
+    </filter>
+  </defs>
+</svg>

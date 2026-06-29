@@ -5,12 +5,13 @@
 use std::ptr;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray;
 use js::typedarray::HeapUint8Array;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -21,7 +22,6 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
 
 /// <https://encoding.spec.whatwg.org/#textencoder>
 #[dom_struct]
@@ -37,15 +37,15 @@ impl TextEncoder {
     }
 
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<TextEncoder> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(TextEncoder::new_inherited()),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -53,11 +53,11 @@ impl TextEncoder {
 impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
     /// <https://encoding.spec.whatwg.org/#dom-textencoder>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TextEncoder>> {
-        Ok(TextEncoder::new(global, proto, can_gc))
+        Ok(TextEncoder::new(cx, global, proto))
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encoding>
@@ -66,16 +66,11 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encode>
-    fn Encode(
-        &self,
-        cx: JSContext,
-        input: USVString,
-        can_gc: CanGc,
-    ) -> RootedTraceableBox<HeapUint8Array> {
+    fn Encode(&self, cx: &mut JSContext, input: USVString) -> RootedTraceableBox<HeapUint8Array> {
         let encoded = input.0.as_bytes();
 
-        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, encoded, js_object.handle_mut(), can_gc)
+        rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
+        create_buffer_source(cx, encoded, js_object.handle_mut())
             .expect("Converting input to uint8 array should never fail")
     }
 

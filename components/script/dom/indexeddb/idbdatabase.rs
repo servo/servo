@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use profile_traits::generic_channel::channel;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
@@ -31,7 +31,6 @@ use crate::dom::indexeddb::idbobjectstore::{IDBObjectStore, IDBObjectStoreAbortS
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
 use crate::indexeddb::is_valid_key_path;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct IDBDatabase {
@@ -55,29 +54,42 @@ pub struct IDBDatabase {
 }
 
 impl IDBDatabase {
-    pub fn new_inherited(name: DOMString, id: Uuid, version: u64) -> IDBDatabase {
+    pub fn new_inherited(
+        name: DOMString,
+        id: Uuid,
+        version: u64,
+        object_store_names: Vec<String>,
+    ) -> IDBDatabase {
         IDBDatabase {
             eventtarget: EventTarget::new_inherited(),
             name,
             id,
             version: Cell::new(version),
-            object_store_names: Default::default(),
+            object_store_names: DomRefCell::new(
+                object_store_names.into_iter().map(Into::into).collect(),
+            ),
             upgrade_transaction: Default::default(),
             close_pending: Cell::new(false),
         }
     }
 
     pub fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         name: DOMString,
         id: Uuid,
         version: u64,
-        can_gc: CanGc,
+        object_store_names: Vec<String>,
     ) -> DomRoot<IDBDatabase> {
-        reflect_dom_object(
-            Box::new(IDBDatabase::new_inherited(name, id, version)),
+        reflect_dom_object_with_cx(
+            Box::new(IDBDatabase::new_inherited(
+                name,
+                id,
+                version,
+                object_store_names,
+            )),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -89,12 +101,8 @@ impl IDBDatabase {
         self.name.clone()
     }
 
-    pub fn object_stores(&self) -> DomRoot<DOMStringList> {
-        DOMStringList::new(
-            &self.global(),
-            self.object_store_names.borrow().clone(),
-            CanGc::deprecated_note(),
-        )
+    pub fn object_stores(&self, cx: &mut JSContext) -> DomRoot<DOMStringList> {
+        DOMStringList::new(cx, &self.global(), self.object_store_names.borrow().clone())
     }
 
     pub(crate) fn object_store_names_snapshot(&self) -> Vec<DOMString> {
@@ -102,12 +110,6 @@ impl IDBDatabase {
         // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
         // or the empty set if database was newly created.
         self.object_store_names.borrow().clone()
-    }
-
-    pub(crate) fn set_object_store_names_from_backend(&self, names: Vec<String>) {
-        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-        // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
-        *self.object_store_names.borrow_mut() = names.into_iter().map(Into::into).collect();
     }
 
     pub(crate) fn restore_object_store_names(&self, names: Vec<DOMString>) {
@@ -181,6 +183,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
     /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction>
     fn Transaction(
         &self,
+        cx: &mut JSContext,
         store_names: StringOrStringSequence,
         mode: IDBTransactionMode,
         options: &IDBTransactionOptions,
@@ -228,15 +231,8 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // connection, mode, options’ durability member, and the set of object
         // stores named in scope.
         let durability = options.durability;
-        let scope = DOMStringList::new(&self.global(), scope, CanGc::deprecated_note());
-        let transaction = IDBTransaction::new(
-            &self.global(),
-            self,
-            mode,
-            durability,
-            &scope,
-            CanGc::deprecated_note(),
-        );
+        let scope = DOMStringList::new(cx, &self.global(), scope);
+        let transaction = IDBTransaction::new(cx, &self.global(), self, mode, durability, &scope);
 
         // Step 8. Set transaction’s cleanup event loop to the current event loop.
         transaction.set_cleanup_event_loop();
@@ -247,7 +243,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction optionally has a cleanup event loop which is an event loop.
         self.global()
-            .get_indexeddb()
+            .get_indexeddb(cx)
             .register_indexeddb_transaction(&transaction);
 
         // Step 9. Return an IDBTransaction object representing transaction.
@@ -316,6 +312,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // created object store uses a key generator. If keyPath is not null,
         // set the created object store’s key path to keyPath.
         let object_store = IDBObjectStore::new(
+            cx,
             &self.global(),
             self.name.clone(),
             name.clone(),
@@ -325,7 +322,6 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                 rollback_indexes_on_abort: vec![],
                 key_generator_current_number: if auto_increment { Some(1_i64) } else { None },
             },
-            CanGc::from_cx(cx),
             &transaction,
         );
 
@@ -429,8 +425,8 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-objectstorenames>
-    fn ObjectStoreNames(&self, can_gc: CanGc) -> DomRoot<DOMStringList> {
-        DOMStringList::new_sorted(&self.global(), &*self.object_store_names.borrow(), can_gc)
+    fn ObjectStoreNames(&self, cx: &mut JSContext) -> DomRoot<DOMStringList> {
+        DOMStringList::new_sorted(cx, &self.global(), &*self.object_store_names.borrow())
     }
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-close>

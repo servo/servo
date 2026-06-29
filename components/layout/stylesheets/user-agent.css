@@ -1,30 +1,44 @@
-/*
-https://html.spec.whatwg.org/multipage/#form-controls
-*/
-
 @namespace url(http://www.w3.org/1999/xhtml);
 
-[hidden], area, base, basefont, datalist, head, link, menu[type=popup i], meta,
-noembed, noframes, param, rp, script, source, style, template, track, title {
+/* https://html.spec.whatwg.org/multipage#hidden-elements */
+area, base, basefont, datalist, head, link, meta, noembed,
+noframes, param, rp, script, style, template, title {
+  display: none;
+}
+
+/* The final `not()` here contains some table parts that aren't in the specification.
+   This is necessary because this rule would otherwise override the specified
+   `visibility: collapse` rule specified in the table section for these parts when hidden.
+   Adding them here prevents that issue. See: <https://github.com/whatwg/html/issues/12589> */
+[hidden]:not([hidden=until-found i]):not(embed, colgroup, col, thead, tbody, tfoot, tr) {
+  display: none;
+}
+
+/* TODO: This should be `content-visibility: hidden`, once Servo supports that feature */
+[hidden=until-found i]:not(embed, colgroup, col, thead, tbody, tfoot, tr) {
   display: none;
 }
 
 embed[hidden] { display: inline; height: 0; width: 0; }
-
-/* FIXME: only if scripting is enabled */
-noscript { display: none !important; }
-
 input[type=hidden i] { display: none !important; }
 
+/* TODO: This should be guarded by `@media (scripting)` once Servo supports that feature. */
+noscript { display: none !important; }
 
+menu[type=popup i] {
+    display: none;
+}
+
+/* https://html.spec.whatwg.org/multipage/rendering.html#the-page */
 html, body { display: block; }
 
+/* > For each property in the table below, given a body element, the first attribute that
+ * > exists maps to the pixel length property on the body element. If none of the attributes for
+ * > a property are found, or if the value of the attribute that was found cannot be parsed
+ * > successfully, then a default value of 8px is expected to be used for that property instead. */
 body { margin: 8px; }
 
-/*
-https://html.spec.whatwg.org/multipage/#flow-content-3
-*/
-
+/* https://html.spec.whatwg.org/multipage/#flow-content-3 */
 address, blockquote, center, div, figure, figcaption, footer, form, header, hr,
 legend, listing, main, p, plaintext, pre, summary, xmp {
   display: block;
@@ -255,7 +269,7 @@ tr, tr[hidden] { display: table-row; }
 td, th, td[hidden], th[hidden] { display: table-cell; }
 
 colgroup[hidden], col[hidden], thead[hidden], tbody[hidden],
-tfoot[hidden], tr[hidden], td[hidden], th[hidden] {
+tfoot[hidden], tr[hidden] {
   visibility: collapse;
 }
 

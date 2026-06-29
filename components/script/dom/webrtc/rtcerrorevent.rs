@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -17,7 +18,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct RTCErrorEvent {
@@ -34,30 +34,30 @@ impl RTCErrorEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         error: &RTCError,
-        can_gc: CanGc,
     ) -> DomRoot<RTCErrorEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, error, can_gc)
+        Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, error)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         error: &RTCError,
-        can_gc: CanGc,
     ) -> DomRoot<RTCErrorEvent> {
-        let event = reflect_dom_object_with_proto(
+        let event = reflect_dom_object_with_proto_and_cx(
             Box::new(RTCErrorEvent::new_inherited(error)),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = event.upcast::<Event>();
@@ -70,20 +70,20 @@ impl RTCErrorEvent {
 impl RTCErrorEventMethods<crate::DomTypeHolder> for RTCErrorEvent {
     /// <https://www.w3.org/TR/webrtc/#dom-rtcerrorevent-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &RTCErrorEventInit,
     ) -> DomRoot<RTCErrorEvent> {
         RTCErrorEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
             &init.error,
-            can_gc,
         )
     }
 

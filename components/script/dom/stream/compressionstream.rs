@@ -31,7 +31,6 @@ use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{
     GlobalScope, ReadableStream, TransformStream, TransformStreamDefaultController, WritableStream,
 };
-use crate::script_runtime::CanGc;
 
 pub(crate) const BROTLI_BUFFER_SIZE: usize = 4096;
 const BROTLI_QUALITIY_LEVEL: u32 = 5;
@@ -92,7 +91,7 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
 
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
-        let transform = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
+        let transform = TransformStream::new_with_proto(cx, global, None);
         let compression_stream =
             CompressionStream::new_with_proto(cx, global, proto, &transform, format);
 
@@ -150,15 +149,10 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     // Step 5. For each Uint8Array array of arrays, enqueue array in cs’s transform.
     // NOTE: We process the result in a single Uint8Array.
     rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let buffer_source = create_buffer_source::<Uint8>(
-        cx.into(),
-        &buffer,
-        js_object.handle_mut(),
-        CanGc::from_cx(cx),
-    )
-    .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
+    let buffer_source = create_buffer_source::<Uint8>(cx, &buffer, js_object.handle_mut())
+        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    buffer_source.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+    buffer_source.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
 
     Ok(())
@@ -189,15 +183,10 @@ pub(crate) fn compress_flush_and_enqueue(
     // Step 4. For each Uint8Array array of arrays, enqueue array in cs’s transform.
     // NOTE: We process the result in a single Uint8Array.
     rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let buffer_source = create_buffer_source::<Uint8>(
-        cx.into(),
-        &buffer,
-        js_object.handle_mut(),
-        CanGc::from_cx(cx),
-    )
-    .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
+    let buffer_source = create_buffer_source::<Uint8>(cx, &buffer, js_object.handle_mut())
+        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    buffer_source.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+    buffer_source.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
 
     Ok(())

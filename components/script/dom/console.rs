@@ -20,13 +20,13 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     GetArrayLength, GetBuiltinClass, GetPropertyKeys, GetSavedFrameColumn,
     GetSavedFrameFunctionDisplayName, GetSavedFrameLine, GetSavedFrameSource,
-    JS_ClearPendingException, JS_GetFunctionDisplayId, JS_GetFunctionId,
+    JS_ClearPendingException, JS_GetElement, JS_GetFunctionDisplayId, JS_GetFunctionId,
     JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IdToValue, JS_Stringify,
-    JS_ValueToFunction, JS_ValueToSource,
+    JS_ValueToFunction, JS_ValueToSource, MapEntries, MapSize,
 };
 use js::rust::{
     CapturedJSStack, HandleObject, HandleValue, IdVector, ToNumber, ToString,
-    describe_scripted_caller,
+    describe_scripted_caller, for_of,
 };
 use script_bindings::conversions::get_dom_class;
 
@@ -252,6 +252,58 @@ fn accessor_value_from_property_descriptor(descriptor: &PropertyDescriptor) -> D
 }
 
 #[expect(unsafe_code)]
+fn console_map_object_from_handle_value(
+    cx: &mut JSContext,
+    handle_object: HandleObject,
+    seen: &mut Vec<u64>,
+) -> Option<(String, ObjectPreview)> {
+    rooted!(&in(cx) let mut iterator = UndefinedValue());
+    if !unsafe { MapEntries(cx, handle_object, iterator.handle_mut()) } {
+        return None;
+    }
+
+    let mut entries = Vec::new();
+    for_of(unsafe { cx.raw_cx() }, iterator.handle(), |entry| {
+        if !entry.is_object() {
+            return Err(().into());
+        }
+
+        rooted!(&in(cx) let entry_object = entry.to_object());
+        rooted!(&in(cx) let mut key = UndefinedValue());
+        rooted!(&in(cx) let mut value = UndefinedValue());
+
+        // Each map entry is a [key, value] pair.
+        if !unsafe { JS_GetElement(cx, entry_object.handle(), 0, key.handle_mut()) } ||
+            !unsafe { JS_GetElement(cx, entry_object.handle(), 1, value.handle_mut()) }
+        {
+            return Err(().into());
+        }
+
+        entries.push((
+            console_argument_from_handle_value(cx, key.handle(), seen),
+            console_argument_from_handle_value(cx, value.handle(), seen),
+        ));
+
+        Ok(std::ops::ControlFlow::Continue(()))
+    })
+    .ok()?;
+
+    Some((
+        "Map".into(),
+        ObjectPreview {
+            kind: "MapLike".into(),
+            size: Some(unsafe { MapSize(cx, handle_object) }),
+            entries: Some(entries),
+            own_properties_length: Some(0),
+            own_properties: None,
+            function: None,
+            array_length: None,
+            items: None,
+        },
+    ))
+}
+
+#[expect(unsafe_code)]
 fn console_object_from_handle_value(
     cx: &mut JSContext,
     handle_value: HandleValue,
@@ -264,9 +316,14 @@ fn console_object_from_handle_value(
     }
     if object_class != ESClass::Object &&
         object_class != ESClass::Array &&
+        object_class != ESClass::Map &&
         object_class != ESClass::Function
     {
         return None;
+    }
+
+    if object_class == ESClass::Map {
+        return console_map_object_from_handle_value(cx, object.handle(), seen);
     }
 
     let mut own_properties = Vec::new();
@@ -718,7 +775,7 @@ fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMS
 fn stringify_debugger_value(value: &DebuggerValue) -> String {
     match value {
         DebuggerValue::VoidValue => "undefined".into(),
-        DebuggerValue::NullValue => "null".into(),
+        DebuggerValue::NullValue(_) => "null".into(),
         DebuggerValue::BooleanValue(value) => value.to_string(),
         DebuggerValue::NumberValue(value) => value.to_string(),
         DebuggerValue::StringValue(value) => value.clone(),

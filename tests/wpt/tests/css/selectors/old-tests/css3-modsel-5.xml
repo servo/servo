@@ -6,9 +6,15 @@
 p[title] { background-color : lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
  </head>
  <body>
-<p title="title">This paragraph should have a green background because its TITLE
-      attribute is set.</p>
-</body>
+  <p id="t1" title="title">This paragraph should have a green background because its TITLE attribute is set.</p>
+  <script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('t1')).backgroundColor, 'rgb(0, 255, 0)');
+}, "Attribute existence selector");
+]]></script>
+ </body>
 </html>

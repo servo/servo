@@ -11,7 +11,7 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::typedarray::ArrayBufferViewU8;
 use script_bindings::error::Fallible;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
 use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource};
@@ -24,7 +24,6 @@ use crate::dom::promise::Promise;
 use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::microtask::Microtask;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -66,6 +65,7 @@ pub(crate) struct ByteTeeReadRequest {
 impl ByteTeeReadRequest {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         branch_1: &ReadableStream,
         branch_2: &ReadableStream,
         stream: &ReadableStream,
@@ -77,9 +77,8 @@ impl ByteTeeReadRequest {
         cancel_promise: Rc<Promise>,
         tee_underlying_source: &ByteTeeUnderlyingSource,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ByteTeeReadRequest {
                 reflector_: Reflector::new(),
                 branch_1: Dom::from_ref(branch_1),
@@ -94,7 +93,7 @@ impl ByteTeeReadRequest {
                 tee_underlying_source: Dom::from_ref(tee_underlying_source),
             }),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -102,6 +101,7 @@ impl ByteTeeReadRequest {
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     pub(crate) fn enqueue_chunk_steps(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: RootedTraceableBox<Heap<JSVal>>,
     ) {
@@ -110,9 +110,10 @@ impl ByteTeeReadRequest {
             chunk: Heap::boxed(*chunk.handle()),
             tee_read_request: Dom::from_ref(self),
         };
-        global.enqueue_microtask(Microtask::ReadableStreamByteTeeReadRequest(
-            byte_tee_read_request_chunk,
-        ));
+        global.enqueue_microtask(
+            cx,
+            Microtask::ReadableStreamByteTeeReadRequest(byte_tee_read_request_chunk),
+        );
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A3>
@@ -142,8 +143,7 @@ impl ByteTeeReadRequest {
             let cancel_result = self
                 .stream
                 .cancel(cx, &self.stream.global(), error_value.handle());
-            self.cancel_promise
-                .resolve_native_with_cx(cx, &cancel_result);
+            self.cancel_promise.resolve_native(cx, &cancel_result);
         };
 
         // Prepare per branch chunks ahead of the spec enqueue steps.
@@ -249,7 +249,7 @@ impl ByteTeeReadRequest {
 
         // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native_with_cx(cx, &());
+            self.cancel_promise.resolve_native(cx, &());
         }
 
         Ok(())

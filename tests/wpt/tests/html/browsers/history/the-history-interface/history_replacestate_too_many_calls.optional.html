@@ -9,11 +9,14 @@
     <div id="log"></div>
     <script>
     test(function () {
-      assert_throws_dom("SecurityError", function () {
-        for (let i = 0; i < 5000; i++) {
-          window.history.replaceState(null, null, i);
+      for (let i = 0; i < 500; i++) {
+        let prev = location.href;
+        window.history.replaceState(null, null, i);
+        if (location.href === prev) {
+          return;
         }
-      });
+      }
+      assert_unreached("No rate limit reached.");
     });
     </script>
   </body>
