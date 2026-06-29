@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/46023">
+<style>
+html { rotate: z 360deg; }
+span { display: inline-flex; }
+.class0 { content: radial-gradient(blue); scale: 0; }
+</style>
+<script>
+  onload = _ => {
+    document.scrollingElement.className = "class0";
+    img.height;
+  }
+</script>
+<span><img id="img"></span>
