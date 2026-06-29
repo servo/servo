@@ -2532,7 +2532,8 @@ impl CanvasState {
 
 impl Drop for CanvasState {
     fn drop(&mut self) {
-        // Flush any buffered commands before closing the canvas.
+        // Discard buffered commands before closing the canvas.
+        self.buffered_sender.discard();
         if let Err(err) = self.buffered_sender.send_immediate(CanvasCommand::Destroy) {
             warn!("Could not close canvas: {}", err)
         }
