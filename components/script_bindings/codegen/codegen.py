@@ -1002,7 +1002,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGWrapper(CGGeneric(f"{name}<D>"), pre="Rc<", post=">")
-            template = f"{name}::new(SafeJSContext::from_ptr(cx.raw_cx()), ${{val}}.get().to_object())"
+            template = f"{name}::new(cx, ${{val}}.get().to_object())"
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
                 template = wrapObjectTemplate(f"Some({template})", "None",
@@ -2862,7 +2862,7 @@ class CGGeneric(CGThing):
 
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name: str) -> None:
-        CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(SafeJSContext::from_ptr(cx.raw_cx()), ${{val}}.get().to_object())")
+        CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object())")
 
 
 def getAllTypes(
@@ -8487,7 +8487,7 @@ class CGCallback(CGClass):
 
     def getConstructors(self) -> list[ClassConstructor]:
         return [ClassConstructor(
-            [Argument("SafeJSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
+            [Argument("&JSContext", "cx"), Argument("*mut JSObject", "aCallback")],
             bodyInHeader=True,
             visibility="pub",
             explicit=False,
@@ -8580,7 +8580,7 @@ class CGCallbackFunctionImpl(CGGeneric):
         type = f"{callback.identifier.name}<D>"
         impl = (f"""
 impl<D: DomTypes> CallbackContainer<D> for {type} {{
-    unsafe fn new(cx: SafeJSContext, callback: *mut JSObject) -> Rc<{type}> {{
+    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> Rc<{type}> {{
         {type.replace('<D>', '')}::new(cx, callback)
     }}
 

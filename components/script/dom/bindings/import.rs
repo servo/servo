@@ -9,8 +9,6 @@ pub(crate) mod base {
     #[expect(unused_imports)]
     pub(crate) use js::realm::CurrentRealm;
     pub(crate) use js::rust::{HandleObject, MutableHandleObject};
-
-    pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
 }
 
 pub(crate) mod module {
