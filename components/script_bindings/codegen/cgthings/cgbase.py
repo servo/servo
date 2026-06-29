@@ -4,39 +4,13 @@
 
 from __future__ import annotations
 
-import functools
-import operator
-import os
 import re
-import string
-import textwrap
 from abc import abstractmethod
-from collections import defaultdict
-from collections.abc import Callable, Generator, Iterable, Iterator
-from enum import IntEnum
-from itertools import groupby
-from re import Match
-from typing import Any, Generic, Optional, TypeGuard, TypeVar, cast
 
-# We'll want to insert the indent at the beginnings of lines, but we
-# don't want to indent empty lines.  So only indent lines that have a
-# non-newline character on them.
-lineStartDetector = re.compile("^(?=[^\n#])", re.MULTILINE)
-
-
-# We'll want to insert the indent at the beginnings of lines, but we
-# don't want to indent empty lines.  So only indent lines that have a
-# non-newline character on them.
-lineStartDetector = re.compile("^(?=[^\n])", re.MULTILINE)
-
-
-def stripTrailingWhitespace(text: str) -> str:
-    tail = "\n" if text.endswith("\n") else ""
-    lines = text.splitlines()
-    for i in range(len(lines)):
-        lines[i] = lines[i].rstrip()
-    joined_lines = "\n".join(lines)
-    return f"{joined_lines}{tail}"
+from cgthings.helpers import lineStartDetector, stripTrailingWhitespace
+from WebIDL import (
+    IDLType,
+)
 
 
 class CGThing:
@@ -51,6 +25,31 @@ class CGThing:
     def define(self) -> str:
         """Produce code for a Rust file."""
         raise NotImplementedError
+
+
+class CGRecord(CGThing):
+    """
+    CGThing that wraps value CGThing in record with key type equal to keyType parameter
+    """
+
+    def __init__(self, keyType: IDLType, value: CGThing) -> None:
+        CGThing.__init__(self)
+        assert keyType.isString()
+        self.keyType = keyType
+        self.value = value
+
+    def define(self) -> str:
+        if self.keyType.isByteString():
+            keyDef = "ByteString"
+        elif self.keyType.isDOMString():
+            keyDef = "DOMString"
+        elif self.keyType.isUSVString():
+            keyDef = "USVString"
+        else:
+            assert False
+
+        defn = f"{keyDef}, {self.value.define()}"
+        return f"Record<{defn}>"
 
 
 class CGIndenter(CGThing):

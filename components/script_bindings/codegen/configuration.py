@@ -7,25 +7,22 @@
 from __future__ import annotations
 
 import functools
-import os
 from typing import Any, TypeVar
 
+from cgthings.utils import MakeNativeName, getIdlFileName, getModuleFromObject
 from WebIDL import (
-    IDLExternalInterface,
-    IDLSequenceType,
-    IDLWrapperType,
-    WebIDLError,
+    IDLAttribute,
+    IDLCallback,
+    IDLDictionary,
     IDLEnum,
-    IDLObject,
+    IDLExternalInterface,
+    IDLInterfaceMember,
+    IDLInterfaceOrNamespace,
+    IDLMethod,
     IDLObjectWithIdentifier,
     IDLType,
     IDLTypedef,
-    IDLInterfaceOrNamespace,
-    IDLDictionary,
-    IDLCallback,
-    IDLAttribute,
-    IDLMethod,
-    IDLInterfaceMember,
+    WebIDLError,
 )
 
 TargetType = TypeVar('TargetType')
@@ -530,20 +527,21 @@ class Descriptor(DescriptorProvider):
         return bool(self.interface.getExtendedAttribute("Global")
                     or self.interface.getExtendedAttribute("PrimaryGlobal"))
 
+# util functions
 
-# Some utility methods
-
-
-def MakeNativeName(name: str) -> str:
-    return name[0].upper() + name[1:]
-
-
-def getIdlFileName(object: IDLObject) -> str:
-    return os.path.basename(object.location.filename).split('.webidl')[0]
-
-
-def getModuleFromObject(object: IDLObject) -> str:
-    return ('crate::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
+def iteratorNativeType(descriptor: Descriptor, infer: bool = False) -> str:
+    assert descriptor.interface.maplikeOrSetlikeOrIterable is not None
+    iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
+    assert (
+        (iterableDecl.isIterable() and iterableDecl.isPairIterator())
+        or iterableDecl.isSetlike()
+        or iterableDecl.isMaplike()
+    )
+    res = "IterableIterator%s" % ("" if infer else "<D, D::%s>" % descriptor.interface.identifier.name)
+    # todo: this hack is telling us that something is still wrong in codegen
+    if iterableDecl.isSetlike() or iterableDecl.isMaplike():
+        res = f"crate::iterable::{res}"
+    return res
 
 
 def getTypesFromDescriptor(descriptor: Descriptor) -> list[IDLType]:
@@ -564,47 +562,3 @@ def getTypesFromDescriptor(descriptor: Descriptor) -> list[IDLType]:
 
     types.extend(a.type for a in members if a.isAttr())
     return types
-
-
-def getTypesFromDictionary(dictionary: IDLWrapperType | IDLDictionary) -> list[IDLType]:
-    """
-    Get all member types for this dictionary
-    """
-    if isinstance(dictionary, IDLWrapperType):
-        dictionary = dictionary.inner
-    types = []
-    curDict = dictionary
-    while curDict:
-        assert isinstance(curDict, IDLDictionary)
-        types.extend([getUnwrappedType(m.type) for m in curDict.members])
-        curDict = curDict.parent
-    return types
-
-
-def getTypesFromCallback(callback: IDLCallback) -> list[IDLType]:
-    """
-    Get the types this callback depends on: its return type and the
-    types of its arguments.
-    """
-    sig = callback.signatures()[0]
-    types = [sig[0]]  # Return type
-    types.extend(arg.type for arg in sig[1])  # Arguments
-    return types
-
-
-def getUnwrappedType(type: IDLType) -> IDLType:
-    while isinstance(type, IDLSequenceType):
-        type = type.inner
-    return type
-
-
-def iteratorNativeType(descriptor: Descriptor, infer: bool = False) -> str:
-    assert descriptor.interface.maplikeOrSetlikeOrIterable is not None
-    iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
-    assert (iterableDecl.isIterable() and iterableDecl.isPairIterator()) \
-        or iterableDecl.isSetlike() or iterableDecl.isMaplike()
-    res = "IterableIterator%s" % ("" if infer else '<D, D::%s>' % descriptor.interface.identifier.name)
-    # todo: this hack is telling us that something is still wrong in codegen
-    if iterableDecl.isSetlike() or iterableDecl.isMaplike():
-        res = f"crate::iterable::{res}"
-    return res
