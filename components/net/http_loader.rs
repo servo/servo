@@ -1813,13 +1813,6 @@ async fn block_for_cache_ready<'a>(
                         ),
                     };
 
-                if revalidate_in_background &&
-                    cached_response.is_some() &&
-                    !needs_synchronous_revalidation
-                {
-                    spawn_stale_while_revalidate(context, http_request, revalidation_guard);
-                }
-
                 if needs_synchronous_revalidation {
                     *revalidating_flag = true;
                     // Substep 5
@@ -1836,6 +1829,10 @@ async fn block_for_cache_ready<'a>(
                     }
                 } else {
                     // Substep 6
+                    // If it's a stale-while-revalidate response, also refresh it in the background.
+                    if revalidate_in_background && cached_response.is_some() {
+                        spawn_stale_while_revalidate(context, http_request, revalidation_guard);
+                    }
                     *response = cached_response;
                     if let Some(response) = response {
                         response.cache_state = CacheState::Local;
