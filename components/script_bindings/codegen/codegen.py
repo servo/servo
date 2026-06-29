@@ -8068,64 +8068,7 @@ class CGConcreteBindingRoot(CGThing):
 
         cgthings += [CGGeneric(f"pub(crate) use {originalBinding} as GenericBindings;")]
         for d in descriptors:
-            ifaceName = d.interface.identifier.name
-            cgthings += [
-                CGGeneric(
-                    f"pub(crate) use {originalBinding}::{firstCap(ifaceName)}_Binding as {firstCap(ifaceName)}_Binding;"
-                ),
-            ]
-
-            for marker in ["Serializable", "Transferable"]:
-                if d.interface.getExtendedAttribute(marker):
-                    cgthings += [CGStructuredCloneMarker(d, marker)]
-
-            if d.concrete:
-                if not d.interface.isIteratorInterface():
-                    cgthings.append(CGAssertInheritance(d))
-                else:
-                    cgthings.append(CGIteratorDerives(d))
-
-            if (
-                (d.concrete or d.hasDescendants())
-                and not d.interface.isIteratorInterface()
-            ):
-                cgthings.append(CGIDLInterface(d))
-
-            if d.interface.isIteratorInterface():
-                cgthings.append(CGDomObjectIteratorWrap(d))
-            elif d.concrete and not d.isGlobal():
-                cgthings.append(CGDomObjectWrap(d))
-
-            if d.weakReferenceable:
-                cgthings.append(CGWeakReferenceableTrait(d))
-
-            if (
-                not d.interface.isIteratorInterface() and
-                not d.interface.isCallback() and
-                not d.allowDropImpl
-            ):
-                cgthings.append(CGForbidDrop(d))
-
-            if not d.interface.isCallback():
-                traitName = f"{ifaceName}Methods"
-                cgthings += [
-                    CGGeneric(f"pub(crate) use self::{firstCap(ifaceName)}_Binding::{traitName} as {traitName};"),
-                ]
-                if len(descriptors) == 1 and d.concrete:
-                    cgthings += [CGGeneric(f"pub(crate) use self::{firstCap(ifaceName)}_Binding::Wrap;")]
-                    if d.interface.hasInterfaceObject() and d.shouldHaveGetConstructorObjectMethod():
-                        cgthings += [CGGeneric(f"""
-pub(crate) fn GetConstructorObject(
-    cx: &mut JSContext, global: HandleObject, rval: MutableHandleObject
-) {{
-    self::{firstCap(ifaceName)}_Binding::GetConstructorObject::<crate::DomTypeHolder>(cx, global, rval)
-}}
-""")]
-
-            constMembers = [m for m in d.interface.members if m.isConst()]
-            if constMembers:
-                constants = f"{ifaceName}Constants"
-                cgthings += [CGGeneric(f"pub(crate) use {originalBinding}::{constants} as {constants};")]
+            self.make_descriptors_(d, descriptors, originalBinding, cgthings)
 
         for c in callbackDescriptors:
             ifaceName = c.interface.identifier.name
@@ -8150,6 +8093,67 @@ pub(crate) fn GetConstructorObject(
 
         # Store the final result.
         self.root = curr
+
+    def make_descriptors_(self, d: Descriptor, descriptors: list[Descriptor], originalBinding: str, cgthings: list[Any]) -> None:
+        ifaceName = d.interface.identifier.name
+        cgthings += [
+            CGGeneric(
+                f"pub(crate) use {originalBinding}::{firstCap(ifaceName)}_Binding as {firstCap(ifaceName)}_Binding;"
+            ),
+        ]
+
+        for marker in ["Serializable", "Transferable"]:
+            if d.interface.getExtendedAttribute(marker):
+                cgthings += [CGStructuredCloneMarker(d, marker)]
+
+        if d.concrete:
+            if not d.interface.isIteratorInterface():
+                cgthings.append(CGAssertInheritance(d))
+            else:
+                cgthings.append(CGIteratorDerives(d))
+
+        if (
+            (d.concrete or d.hasDescendants())
+            and not d.interface.isIteratorInterface()
+        ):
+            cgthings.append(CGIDLInterface(d))
+
+        if d.interface.isIteratorInterface():
+            cgthings.append(CGDomObjectIteratorWrap(d))
+        elif d.concrete and not d.isGlobal():
+            cgthings.append(CGDomObjectWrap(d))
+
+        if d.weakReferenceable:
+            cgthings.append(CGWeakReferenceableTrait(d))
+
+        if (
+            not d.interface.isIteratorInterface() and
+            not d.interface.isCallback() and
+            not d.allowDropImpl
+        ):
+            cgthings.append(CGForbidDrop(d))
+
+        if not d.interface.isCallback():
+            traitName = f"{ifaceName}Methods"
+            cgthings += [
+                CGGeneric(f"pub(crate) use self::{firstCap(ifaceName)}_Binding::{traitName} as {traitName};"),
+            ]
+            if len(descriptors) == 1 and d.concrete:
+                cgthings += [CGGeneric(f"pub(crate) use self::{firstCap(ifaceName)}_Binding::Wrap;")]
+                if d.interface.hasInterfaceObject() and d.shouldHaveGetConstructorObjectMethod():
+                    cgthings += [CGGeneric(f"""
+pub(crate) fn GetConstructorObject(
+cx: &mut JSContext, global: HandleObject, rval: MutableHandleObject
+) {{
+self::{firstCap(ifaceName)}_Binding::GetConstructorObject::<crate::DomTypeHolder>(cx, global, rval)
+}}
+""")]
+
+        constMembers = [m for m in d.interface.members if m.isConst()]
+        if constMembers:
+            constants = f"{ifaceName}Constants"
+            cgthings += [CGGeneric(f"pub(crate) use {originalBinding}::{constants} as {constants};")]
+
 
     def define(self) -> str:
         if not self.root:
