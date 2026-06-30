@@ -863,9 +863,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dfn-Crypto>
-    fn Crypto(&self) -> DomRoot<Crypto> {
+    fn Crypto(&self, cx: &mut JSContext) -> DomRoot<Crypto> {
         self.crypto
-            .or_init(|| Crypto::new(self.upcast::<GlobalScope>(), CanGc::deprecated_note()))
+            .or_init(|| Crypto::new(cx, self.upcast::<GlobalScope>()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>

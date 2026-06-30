@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding::DissimilarOriginLocationMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
-use crate::script_runtime::CanGc;
 
 /// Represents a dissimilar-origin `Location` that exists in another script thread.
 ///
@@ -37,13 +37,13 @@ impl DissimilarOriginLocation {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &DissimilarOriginWindow,
-        can_gc: CanGc,
     ) -> DomRoot<DissimilarOriginLocation> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(DissimilarOriginLocation::new_inherited(window)),
             window,
-            can_gc,
+            cx,
         )
     }
 }
