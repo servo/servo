@@ -12,8 +12,8 @@ use net_traits::fetch::headers::get_decode_and_split_header_name;
 use net_traits::mime_classifier::{MediaType, MimeClassifier};
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CorsSettings, Destination, Initiator, InsecureRequestsPolicy, PreloadId, PreloadKey, Referrer,
-    RequestBuilder, RequestClient, RequestId,
+    CorsSettings, Destination, Initiator, PreloadId, PreloadKey, Referrer, RequestBuilder,
+    RequestClient, RequestId,
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{
@@ -84,7 +84,6 @@ pub(crate) struct LinkProcessingOptions {
     pub(crate) base_url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#link-options-origin>
     pub(crate) origin: ImmutableOrigin,
-    pub(crate) insecure_requests_policy: InsecureRequestsPolicy,
     pub(crate) referrer: Referrer,
     // https://html.spec.whatwg.org/multipage/#link-options-environment
     pub(crate) request_client: RequestClient,
@@ -206,7 +205,6 @@ impl LinkProcessingOptions {
             None,
             self.referrer,
         )
-        .insecure_requests_policy(self.insecure_requests_policy)
         .policy_container(self.policy_container)
         .client(self.request_client)
         .initiator(Initiator::Link)
@@ -409,7 +407,6 @@ pub(crate) fn process_link_headers(
             source_set: None,
             origin: document.origin().immutable().to_owned(),
             base_url: document.base_url(),
-            insecure_requests_policy: document.insecure_requests_policy(),
             request_client: global.request_client(None),
             referrer: global.get_referrer(),
         };

@@ -169,7 +169,6 @@ fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) ->
     .parser_metadata(request.parser_metadata)
     .initiator(request.initiator)
     .client(global.request_client(None))
-    .insecure_requests_policy(request.insecure_requests_policy)
     .response_tainting(request.response_tainting);
     builder.id = request.id;
     builder
@@ -770,8 +769,7 @@ pub(crate) trait RequestWithGlobalScope {
 
 impl RequestWithGlobalScope for RequestBuilder {
     fn with_global_scope(self, global: &GlobalScope) -> Self {
-        self.insecure_requests_policy(global.insecure_requests_policy())
-            .policy_container(global.policy_container())
+        self.policy_container(global.policy_container())
             .client(global.request_client(None))
             .pipeline_id(Some(global.pipeline_id()))
             .origin(global.origin().immutable().clone())

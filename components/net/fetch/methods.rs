@@ -467,11 +467,15 @@ pub async fn main_fetch(
                 .unwrap();
         }
     } else {
+        let insecure_requests_policy = request
+            .client
+            .as_ref()
+            .map(|client| client.insecure_requests_policy);
         trace!(
             "not upgrading {} targeting {:?} with {:?}",
             request.current_url(),
             request.destination,
-            request.insecure_requests_policy
+            insecure_requests_policy
         );
     }
     if let Some(csp_request) = csp_request.as_ref() {

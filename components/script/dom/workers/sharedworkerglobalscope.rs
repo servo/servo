@@ -521,7 +521,6 @@ impl SharedWorkerGlobalScope {
                 let _registration_cleanup = SharedWorkerRegistrationCleanup { registration_id };
 
                 let fetch_client = ModuleFetchClient {
-                    insecure_requests_policy,
                     policy_container,
                     client: request_client,
                     pipeline_id,

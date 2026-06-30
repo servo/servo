@@ -15,8 +15,7 @@ use js::jsapi::JSTracer;
 use markup5ever::TokenizerResult;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer,
-    RequestClient,
+    CorsSettings, CredentialsMode, Destination, ParserMetadata, Referrer, RequestClient,
 };
 use net_traits::{CoreResourceMsg, FetchChannels, ReferrerPolicy, ResourceThreads};
 use servo_base::generic_channel::GenericSend;
@@ -77,7 +76,6 @@ impl Tokenizer {
             // true after the first script tag, since that is what will
             // block the main parser.
             prefetching: Cell::new(false),
-            insecure_requests_policy: document.insecure_requests_policy(),
             policy_container: global.policy_container(),
             request_client: global.request_client(None),
         };
@@ -110,8 +108,6 @@ struct PrefetchSink {
     #[no_trace]
     resource_threads: ResourceThreads,
     prefetching: Cell<bool>,
-    #[no_trace]
-    insecure_requests_policy: InsecureRequestsPolicy,
     #[no_trace]
     policy_container: PolicyContainer,
     #[no_trace]
@@ -156,7 +152,6 @@ impl TokenSink for PrefetchSink {
                         },
                         self.referrer.clone(),
                     )
-                    .insecure_requests_policy(self.insecure_requests_policy)
                     .policy_container(self.policy_container.clone())
                     .client(self.request_client.clone())
                     .origin(self.origin.clone())
@@ -178,7 +173,6 @@ impl TokenSink for PrefetchSink {
                         None,
                         self.referrer.clone(),
                     )
-                    .insecure_requests_policy(self.insecure_requests_policy)
                     .policy_container(self.policy_container.clone())
                     .client(self.request_client.clone())
                     .origin(self.origin.clone())
@@ -214,7 +208,6 @@ impl TokenSink for PrefetchSink {
                         None,
                         self.referrer.clone(),
                     )
-                    .insecure_requests_policy(self.insecure_requests_policy)
                     .policy_container(self.policy_container.clone())
                     .client(self.request_client.clone())
                     .origin(self.origin.clone())

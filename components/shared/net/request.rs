@@ -482,7 +482,6 @@ pub struct RequestBuilder {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
-    pub insecure_requests_policy: InsecureRequestsPolicy,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-referrer>
     pub referrer: Referrer,
@@ -542,7 +541,6 @@ impl RequestBuilder {
             origin: Origin::Client,
             client: None,
             policy_container: RequestPolicyContainer::default(),
-            insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
@@ -702,14 +700,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn insecure_requests_policy(
-        mut self,
-        insecure_requests_policy: InsecureRequestsPolicy,
-    ) -> RequestBuilder {
-        self.insecure_requests_policy = insecure_requests_policy;
-        self
-    }
-
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
     pub fn service_workers_mode(
         mut self,
@@ -773,7 +763,6 @@ impl RequestBuilder {
         request.crash = self.crash;
         request.client = self.client;
         request.policy_container = self.policy_container;
-        request.insecure_requests_policy = self.insecure_requests_policy;
         request.is_internal_request = self.is_internal_request;
         request
     }
@@ -853,8 +842,6 @@ pub struct Request {
     pub parser_metadata: ParserMetadata,
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
-    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
-    pub insecure_requests_policy: InsecureRequestsPolicy,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
     /// Servo internal: whether this request originates from Servo internal implementation
@@ -903,7 +890,6 @@ impl Request {
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
             policy_container: RequestPolicyContainer::Client,
-            insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
             is_internal_request: Default::default(),
             crash: None,
         }

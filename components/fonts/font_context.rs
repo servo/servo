@@ -20,8 +20,8 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestClient,
-    RequestMode, ServiceWorkersMode,
+    CredentialsMode, Destination, Referrer, RequestBuilder, RequestClient, RequestMode,
+    ServiceWorkersMode,
 };
 use net_traits::{
     CoreResourceThread, FetchResponseMsg, ResourceFetchTiming, ResourceThreads, fetch_async,
@@ -133,7 +133,6 @@ pub struct WebFontDocumentContext {
     pub policy_container: PolicyContainer,
     pub request_client: RequestClient,
     pub document_url: ServoUrl,
-    pub insecure_requests_policy: InsecureRequestsPolicy,
     pub csp_handler: Box<dyn CspViolationHandler>,
     pub network_timing_handler: Box<dyn NetworkTimingHandler>,
 }
@@ -144,7 +143,6 @@ impl Clone for WebFontDocumentContext {
             policy_container: self.policy_container.clone(),
             request_client: self.request_client.clone(),
             document_url: self.document_url.clone(),
-            insecure_requests_policy: self.insecure_requests_policy,
             csp_handler: self.csp_handler.clone(),
             network_timing_handler: self.network_timing_handler.clone(),
         }
@@ -1080,8 +1078,7 @@ impl RemoteWebFontDownloader {
         .credentials_mode(CredentialsMode::CredentialsSameOrigin)
         .service_workers_mode(ServiceWorkersMode::All)
         .policy_container(document_context.policy_container.clone())
-        .client(document_context.request_client.clone())
-        .insecure_requests_policy(document_context.insecure_requests_policy);
+        .client(document_context.request_client.clone());
 
         let core_resource_thread_clone = font_context.resource_threads.lock().clone();
 

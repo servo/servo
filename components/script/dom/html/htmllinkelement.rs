@@ -518,7 +518,6 @@ impl HTMLLinkElement {
             source_set: None, // FIXME
             origin: document.borrow().origin().immutable().to_owned(),
             base_url: document.borrow().base_url(),
-            insecure_requests_policy: document.insecure_requests_policy(),
             request_client: global.request_client(None),
             referrer: global.get_referrer(),
         };

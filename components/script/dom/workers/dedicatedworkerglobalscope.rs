@@ -511,7 +511,6 @@ impl DedicatedWorkerGlobalScope {
                 let global_scope = global.upcast::<GlobalScope>();
 
                 let fetch_client = ModuleFetchClient {
-                    insecure_requests_policy,
                     policy_container,
                     client: request_client,
                     pipeline_id,
@@ -800,7 +799,6 @@ pub(crate) fn fetch_a_classic_worker_script(
     // Step 1. Let request be a new request whose URL is url,
     let request = RequestBuilder::new(webview_id, url_with_blob_lock.clone(), referrer)
         // client is fetchClient,
-        .insecure_requests_policy(fetch_client.insecure_requests_policy)
         .policy_container(fetch_client.policy_container.clone())
         .client(fetch_client.client)
         .pipeline_id(Some(fetch_client.pipeline_id))

@@ -921,7 +921,6 @@ impl Window {
             policy_container: global.policy_container(),
             request_client: global.request_client(Some(no_gc)),
             document_url: global.api_base_url(),
-            insecure_requests_policy: global.insecure_requests_policy(),
             csp_handler: Box::new(FontCspHandler {
                 global: Trusted::new(global),
                 task_source: global

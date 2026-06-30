@@ -41,8 +41,8 @@ use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
-    RequestClient, RequestId, RequestMode,
+    CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestClient,
+    RequestId, RequestMode,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
@@ -647,7 +647,6 @@ impl Callback for QueueTaskHandler {
 
 #[derive(Clone)]
 pub(crate) struct ModuleFetchClient {
-    pub insecure_requests_policy: InsecureRequestsPolicy,
     pub policy_container: PolicyContainer,
     pub client: RequestClient,
     pub pipeline_id: PipelineId,
@@ -657,7 +656,6 @@ pub(crate) struct ModuleFetchClient {
 impl ModuleFetchClient {
     pub(crate) fn from_global_scope(global: &GlobalScope) -> Self {
         Self {
-            insecure_requests_policy: global.insecure_requests_policy(),
             policy_container: global.policy_container(),
             client: global.request_client(None),
             pipeline_id: global.pipeline_id(),
@@ -1605,7 +1603,6 @@ pub(crate) fn fetch_a_single_module_script(
         .referrer_policy(options.referrer_policy)
         .mode(mode)
         .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
-        .insecure_requests_policy(fetch_client.insecure_requests_policy)
         .policy_container(fetch_client.policy_container)
         .client(fetch_client.client)
         .pipeline_id(Some(fetch_client.pipeline_id))
