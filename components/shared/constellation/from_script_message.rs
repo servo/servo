@@ -135,6 +135,9 @@ pub struct LoadData {
     /// If this is a load operation for an `<iframe>` whose origin is same-origin with its
     /// container documents origin then this is the encoding of the container document.
     pub container_document_encoding: Option<&'static Encoding>,
+
+    /// If this request is for the initial about:blank document.
+    pub is_initial_about_blank: bool,
 }
 
 impl LoadData {
@@ -172,6 +175,7 @@ impl LoadData {
             destination: Destination::Document,
             creation_sandboxing_flag_set,
             container_document_encoding: None,
+            is_initial_about_blank: false,
         }
     }
 

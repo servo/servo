@@ -1330,57 +1330,8 @@ where
             EmbedderToConstellationMessage::Exit => {
                 self.handle_exit();
             },
-            // Perform a navigation previously requested by script, if approved by the embedder.
-            // If there is already a pending page (self.pending_changes), it will not be overridden;
-            // However, if the id is not encompassed by another change, it will be.
             EmbedderToConstellationMessage::AllowNavigationResponse(pipeline_id, allowed) => {
-                let pending = self.pending_approval_navigations.remove(&pipeline_id);
-
-                let webview_id = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.webview_id,
-                    None => return warn!("{}: Attempted to navigate after closure", pipeline_id),
-                };
-
-                match pending {
-                    Some(pending) => {
-                        if allowed {
-                            self.load_url(
-                                webview_id,
-                                pipeline_id,
-                                pending.load_data,
-                                pending.history_behaviour,
-                                pending.target_snapshot_params,
-                            );
-                        } else {
-                            if let Some((sender, id)) = &self.webdriver_load_status_sender &&
-                                pipeline_id == *id
-                            {
-                                let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                            }
-
-                            let pipeline_is_top_level_pipeline = self
-                                .browsing_contexts
-                                .get(&BrowsingContextId::from(webview_id))
-                                .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
-                            // If the navigation is refused, and this concerns an iframe,
-                            // we need to take it out of it's "delaying-load-events-mode".
-                            // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
-                            if !pipeline_is_top_level_pipeline {
-                                self.send_message_to_pipeline(
-                                    pipeline_id,
-                                    ScriptThreadMessage::StopDelayingLoadEventsMode(pipeline_id),
-                                    "Attempted to navigate after closure",
-                                );
-                            }
-                        }
-                    },
-                    None => {
-                        warn!(
-                            "{}: AllowNavigationResponse for unknown request",
-                            pipeline_id
-                        )
-                    },
-                }
+                self.handle_allow_navigation_response(pipeline_id, allowed);
             },
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
@@ -3799,14 +3750,75 @@ where
                 });
             },
         };
-        // Allow the embedder to handle the url itself
-        self.constellation_to_embedder_proxy.send(
-            ConstellationToEmbedderMsg::AllowNavigationRequest(
-                webview_id,
-                source_id,
-                load_data.url,
-            ),
-        );
+
+        if load_data.is_initial_about_blank {
+            assert_eq!(load_data.as_str(), "about:blank");
+            // The initial about:blank is not a navigation; the embedder only
+            // cares about a navigation that follows it.
+            self.handle_allow_navigation_response(source_id, true);
+        } else {
+            // Allow the embedder to handle the url itself
+            self.constellation_to_embedder_proxy.send(
+                ConstellationToEmbedderMsg::AllowNavigationRequest(
+                    webview_id,
+                    source_id,
+                    load_data.url,
+                ),
+            );
+        }
+    }
+
+    /// Perform a navigation previously requested by script, if approved by the embedder.
+    /// If there is already a pending page (self.pending_changes), it will not be overridden;
+    /// However, if the id is not encompassed by another change, it will be.
+    fn handle_allow_navigation_response(&mut self, pipeline_id: PipelineId, allowed: bool) {
+        let pending = self.pending_approval_navigations.remove(&pipeline_id);
+
+        let webview_id = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.webview_id,
+            None => return warn!("{}: Attempted to navigate after closure", pipeline_id),
+        };
+
+        match pending {
+            Some(pending) => {
+                if allowed {
+                    self.load_url(
+                        webview_id,
+                        pipeline_id,
+                        pending.load_data,
+                        pending.history_behaviour,
+                        pending.target_snapshot_params,
+                    );
+                } else {
+                    if let Some((sender, id)) = &self.webdriver_load_status_sender &&
+                        pipeline_id == *id
+                    {
+                        let _ = sender.send(WebDriverLoadStatus::NavigationStop);
+                    }
+
+                    let pipeline_is_top_level_pipeline = self
+                        .browsing_contexts
+                        .get(&BrowsingContextId::from(webview_id))
+                        .is_some_and(|ctx| ctx.pipeline_id == pipeline_id);
+                    // If the navigation is refused, and this concerns an iframe,
+                    // we need to take it out of it's "delaying-load-events-mode".
+                    // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+                    if !pipeline_is_top_level_pipeline {
+                        self.send_message_to_pipeline(
+                            pipeline_id,
+                            ScriptThreadMessage::StopDelayingLoadEventsMode(pipeline_id),
+                            "Attempted to navigate after closure",
+                        );
+                    }
+                }
+            },
+            None => {
+                warn!(
+                    "{}: AllowNavigationResponse for unknown request",
+                    pipeline_id
+                )
+            },
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
