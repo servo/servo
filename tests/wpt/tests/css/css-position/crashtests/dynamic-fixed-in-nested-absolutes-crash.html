@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/46109">
+<style>
+  html, #parent_abs, #child_abs { position: absolute; }
+  #fixed { position: fixed; }
+</style>
+<script>
+  onload = _ => {
+    parent_abs.appendChild(document.createElement("div"));
+    document.body.scrollHeight;
+    select.appendChild(document.createElement("div"));
+    document.body.scrollHeight;
+    fixed_child.style.width = "200px";
+  }
+</script>
+
+<select id="select">text</select>
+
+<div id="parent_abs">
+    <div id="child_abs">
+        <div id="fixed">
+            <div id="fixed_child"></div>
+        </div>
+    </div>
+</div>
