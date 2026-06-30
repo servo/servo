@@ -62,6 +62,10 @@ pub fn set(preferences: Preferences) {
         preferences.layout_css_attr_enabled
     );
     stylo_static_prefs::set_pref!(
+        "layout.css.ellipse-corners.enabled",
+        preferences.layout_css_ellipse_corners_enabled
+    );
+    stylo_static_prefs::set_pref!(
         "layout.writing-mode.enabled",
         preferences.layout_writing_mode_enabled
     );
@@ -311,6 +315,7 @@ pub struct Preferences {
     pub layout_container_queries_enabled: bool,
     pub layout_css_alpha_color_function_enabled: bool,
     pub layout_css_attr_enabled: bool,
+    pub layout_css_ellipse_corners_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
     pub layout_threads: i64,
     /// The minimum number of parallelizable jobs required before turning on parallelism
@@ -546,6 +551,7 @@ impl Preferences {
             layout_container_queries_enabled: false,
             layout_css_alpha_color_function_enabled: false,
             layout_css_attr_enabled: false,
+            layout_css_ellipse_corners_enabled: false,
             layout_grid_enabled: false,
             layout_style_sharing_cache_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.
