@@ -6,14 +6,14 @@ use cssparser::{Parser, ParserInput};
 use euclid::{Scale, Size2D};
 use servo_arc::Arc;
 use style::applicable_declarations::CascadePriority;
-use style::context::QuirksMode;
+use style::context::{QuirksMode, TreeCountingCaches};
 use style::custom_properties::{
     ComputedCustomProperties, CustomPropertiesBuilder, DeferFontRelativeCustomPropertyResolution,
     Name, SpecifiedValue,
 };
 use style::device::Device;
 use style::device::servo::FontMetricsProvider;
-use style::dom::AttributeTracker;
+use style::dom::{AttributeTracker, DummyElementContext};
 use style::font_metrics::FontMetrics;
 use style::media_queries::MediaType;
 use style::properties::style_structs::Font;
@@ -85,13 +85,15 @@ fn cascade(
     let mut builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
     builder.substitution_functions.custom_properties = inherited.clone();
     let mut rule_cache_conditions = RuleCacheConditions::default();
+    let mut tree_counting_caches = TreeCountingCaches::default();
     let mut context = Context::new(
         builder,
         stylist.quirks_mode(),
         &mut rule_cache_conditions,
         ContainerSizeQuery::none(),
         RuleCascadeFlags::empty(),
-        None, /* tree_counting_info */
+        &DummyElementContext,
+        &mut tree_counting_caches,
     );
     let mut builder = CustomPropertiesBuilder::new(&stylist, &mut context);
     let priority = CascadePriority::new(
