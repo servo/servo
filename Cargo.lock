@@ -823,7 +823,7 @@ dependencies = [
  "bitflags 2.13.0",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "regex",
@@ -9005,6 +9005,7 @@ dependencies = [
  "servo-profile-traits",
  "servo-script-bindings",
  "servo-script-traits",
+ "servo-script-webgpu",
  "servo-storage-traits",
  "servo-timers",
  "servo-tracing",
@@ -9118,6 +9119,19 @@ dependencies = [
  "stylo_atoms",
  "stylo_traits",
  "webrender_api",
+]
+
+[[package]]
+name = "servo-script-webgpu"
+version = "0.4.0"
+dependencies = [
+ "malloc_size_of_derive",
+ "mozjs",
+ "servo-deny-public-fields",
+ "servo-dom-struct",
+ "servo-jstraceable-derive",
+ "servo-malloc-size-of",
+ "servo-script-bindings",
 ]
 
 [[package]]

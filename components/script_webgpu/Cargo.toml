@@ -1,0 +1,27 @@
+[package]
+name = "servo-script-webgpu"
+build = "build.rs"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "script_webgpu"
+path = "lib.rs"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
+
+[dependencies]
+deny_public_fields = { workspace = true }
+dom_struct = { workspace = true }
+js = { workspace = true }
+jstraceable_derive = { workspace = true }
+script_bindings = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }

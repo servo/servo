@@ -2,17 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use jstraceable_derive::JSTraceable;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUAdapterInfoMethods, GPUAdapterInfoWrap,
+};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx_and_wrap};
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUAdapterInfoMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
-pub(crate) struct GPUAdapterInfo {
+pub struct GPUAdapterInfo<D: DomTypes> {
     reflector_: Reflector,
     vendor: DOMString,
     architecture: DOMString,
@@ -21,9 +27,14 @@ pub(crate) struct GPUAdapterInfo {
     subgroup_min_size: u32,
     subgroup_max_size: u32,
     is_fallback_adapter: bool,
+    #[no_trace = "Phantom data is not real"]
+    phantom: PhantomData<D>,
 }
 
-impl GPUAdapterInfo {
+impl<D> GPUAdapterInfo<D>
+where
+    D: DomTypes<GPUAdapterInfo = GPUAdapterInfo<D>>,
+{
     fn new_inherited(
         vendor: DOMString,
         architecture: DOMString,
@@ -42,13 +53,14 @@ impl GPUAdapterInfo {
             subgroup_min_size,
             subgroup_max_size,
             is_fallback_adapter,
+            phantom: PhantomData,
         }
     }
 
     #[expect(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    pub fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         vendor: DOMString,
         architecture: DOMString,
         device: DOMString,
@@ -57,7 +69,7 @@ impl GPUAdapterInfo {
         subgroup_max_size: u32,
         is_fallback_adapter: bool,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object_with_cx_and_wrap::<D, _, _>(
             Box::new(Self::new_inherited(
                 vendor,
                 architecture,
@@ -69,13 +81,14 @@ impl GPUAdapterInfo {
             )),
             global,
             cx,
+            GPUAdapterInfoWrap::<D>,
         )
     }
 
-    pub(crate) fn clone_from(
+    pub fn clone_from(
         cx: &mut JSContext,
-        global: &GlobalScope,
-        info: &GPUAdapterInfo,
+        global: &D::GlobalScope,
+        info: &GPUAdapterInfo<D>,
     ) -> DomRoot<Self> {
         Self::new(
             cx,
@@ -91,7 +104,7 @@ impl GPUAdapterInfo {
     }
 }
 
-impl GPUAdapterInfoMethods<crate::DomTypeHolder> for GPUAdapterInfo {
+impl<D: DomTypes> GPUAdapterInfoMethods<D> for GPUAdapterInfo<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-vendor>
     fn Vendor(&self) -> DOMString {
         self.vendor.clone()

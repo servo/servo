@@ -2696,9 +2696,10 @@ class CGAssertInheritance(CGThing):
     """
     Generate a type assertion for inheritance
     """
-    def __init__(self, descriptor: Descriptor) -> None:
+    def __init__(self, descriptor: Descriptor, generic: bool = False) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
+        self.generic = generic
 
     def define(self) -> str:
         parent = self.descriptor.interface.parent
@@ -2723,16 +2724,18 @@ class CGAssertInheritance(CGThing):
             "selfName": selfName,
         }
 
+        genericsDecl = "<D: DomTypes>" if self.generic else ""
+        generics = "<D>" if self.generic else ""
         return f"""
-impl {args['selfName']} {{
-    fn __assert_parent_type(&self) {{
-        use crate::dom::bindings::inheritance::HasParent;
-        // If this type assertion fails, make sure the first field of your
-        // DOM struct is of the correct type -- it must be the parent class.
-        let _: &{args['parentName']} = self.as_parent();
+    impl{genericsDecl} {args['selfName']}{generics} {{
+        fn __assert_parent_type(&self) {{
+            use crate::dom::bindings::inheritance::HasParent;
+            // If this type assertion fails, make sure the first field of your
+            // DOM struct is of the correct type -- it must be the parent class.
+            let _: &{args['parentName']} = self.as_parent();
+        }}
     }}
-}}
-"""
+    """
 
 
 def str_to_cstr(s: str) -> str:
@@ -3479,9 +3482,10 @@ class CGIDLInterface(CGThing):
     """
     Class for codegen of an implementation of the IDLInterface trait.
     """
-    def __init__(self, descriptor: Descriptor) -> None:
+    def __init__(self, descriptor: Descriptor, generic: bool = False) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
+        self.generic = generic
 
     def define(self) -> str:
         interface = self.descriptor.interface
@@ -3497,7 +3501,20 @@ class CGIDLInterface(CGThing):
             check = f"ptr::eq(class, unsafe {{ &{bindingModule}::Class.get().dom_class }})"
         # Get DFS-ordered ID range for this interface (set by PrototypeList generation).
         proto_first, proto_last = _proto_ranges.get(name, (0, 65535))
-        return f"""
+
+        if self.generic:
+            return f"""
+    impl<D: DomTypes> IDLInterface for {name}<D> {{
+        #[inline]
+        fn derives(class: &'static DOMClass) -> bool {{
+            {check}
+        }}
+        const PROTO_FIRST: u16 = {proto_first};
+        const PROTO_LAST: u16 = {proto_last};
+    }}
+    """
+        else:
+            return f"""
 impl IDLInterface for {name} {{
     #[inline]
     fn derives(class: &'static DOMClass) -> bool {{
@@ -3536,14 +3553,27 @@ class CGDomObjectWrap(CGThing):
     """
     Class for codegen of an implementation of the DomObjectWrap trait.
     """
-    def __init__(self, descriptor: Descriptor) -> None:
+    def __init__(self, descriptor: Descriptor, generic: bool = False) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
+        self.generic = generic
 
     def define(self) -> str:
         ifaceName = self.descriptor.interface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
-        return f"""
+        if self.generic:
+            return f"""
+    impl<D: DomTypes> DomObjectWrap<D> for {firstCap(ifaceName)}<D> {{
+        const WRAP: unsafe fn(
+            &mut JSContext,
+            &D::GlobalScope,
+            Option<HandleObject>,
+            Box<Self>,
+        ) -> Root<Dom<Self>> = {bindingModule}::Wrap::<D>;
+    }}
+    """
+        else:
+            return f"""
 impl DomObjectWrap<crate::DomTypeHolder> for {firstCap(ifaceName)} {{
     const WRAP: unsafe fn(
         &mut JSContext,
@@ -3559,14 +3589,28 @@ class CGWeakReferenceableDomObjectWrap(CGThing):
     """
     Class for codegen of an implementation of the WeakReferenceableDomObjectWrap trait.
     """
-    def __init__(self, descriptor: Descriptor) -> None:
+    def __init__(self, descriptor: Descriptor, generic: bool = False) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
+        self.generic = generic
 
     def define(self) -> str:
         ifaceName = self.descriptor.interface.identifier.name
         bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
-        return f"""
+
+        if self.generic:
+            return f"""
+impl<D: DomTypes> WeakReferenceableDomObjectWrap<D> for {firstCap(ifaceName)}<D> {{
+    const WRAP: unsafe fn(
+        &mut JSContext,
+        &GlobalScope,
+        Option<HandleObject>,
+        Rc<Self>,
+    ) -> Root<Dom<Self>> = {bindingModule}::Wrap::<crate::DomTypeHolder>;
+}}
+"""
+        else:
+            return f"""
 impl WeakReferenceableDomObjectWrap<crate::DomTypeHolder> for {firstCap(ifaceName)} {{
     const WRAP: unsafe fn(
         &mut JSContext,
@@ -7209,10 +7253,18 @@ class CGWeakReferenceableTrait(CGThing):
 
 
 class CGForbidDrop(CGThing):
-    def __init__(self, descriptor: Descriptor) -> None:
+    def __init__(self, descriptor: Descriptor, generic: bool = False) -> None:
         CGThing.__init__(self)
         assert not descriptor.allowDropImpl
-        self.code = f"""
+        if generic:
+            self.code = f"""
+    impl<D: DomTypes> Drop for {firstCap(descriptor.interface.identifier.name)}<D> {{
+        fn drop(&mut self) {{
+        }}
+    }}
+    """
+        else:
+            self.code = f"""
 impl Drop for {firstCap(descriptor.interface.identifier.name)} {{
     fn drop(&mut self) {{
     }}
@@ -8003,7 +8055,7 @@ class CGConcreteBindingRoot(CGThing):
     the generic bindings with type specialization applied.
     """
     root: CGThing | None
-    def __init__(self, config: Configuration, prefix: str, webIDLFile: str) -> None:
+    def __init__(self, config: Configuration, prefix: str, webIDLFile: str, only_interfaces: set[str], generic: bool = False) -> None:
         descriptors = config.getDescriptors(webIDLFile=webIDLFile,
                                             hasInterfaceObject=True)
         # We also want descriptors that have an interface prototype object
@@ -8031,38 +8083,55 @@ class CGConcreteBindingRoot(CGThing):
         originalBinding = f"crate::dom::bindings::codegen::{prefix.replace('/', '::').replace('Concrete', 'Generic')}"
 
         cgthings = []
-        for e in enums:
-            enumName = e.identifier.name
-            cgthings += [
-                CGGeneric(f"pub(crate) use {originalBinding}::{enumName} as {enumName};"),
-                CGGeneric(f"pub(crate) use {originalBinding}::{enumName}Values as {enumName}Values;"),
-            ]
+        if not generic:
+            for e in enums:
+                enumName = e.identifier.name
+                cgthings += [
+                    CGGeneric(f"pub(crate) use {originalBinding}::{enumName} as {enumName};"),
+                    CGGeneric(f"pub(crate) use {originalBinding}::{enumName}Values as {enumName}Values;"),
+                ]
 
-        cgthings += [CGGeneric(
-            f"pub(crate) type {t.identifier.name} = "
-            f"{originalBinding}::{t.identifier.name}"
-            f"{'::<crate::DomTypeHolder>' if containsDomInterface(t.innerType) else ''};"
-        ) for t in typedefs]
+            cgthings += [CGGeneric(
+                f"pub(crate) type {t.identifier.name} = "
+                f"{originalBinding}::{t.identifier.name}"
+                f"{'::<crate::DomTypeHolder>' if containsDomInterface(t.innerType) else ''};"
+            ) for t in typedefs]
 
-        cgthings += [CGGeneric(
-            f"pub(crate) type {d.identifier.name} = "
-            f"{originalBinding}::{d.identifier.name}"
-            f"{'::<crate::DomTypeHolder>' if containsDomInterface(d) else ''};"
-        ) for d in dictionaries]
+            cgthings += [CGGeneric(
+                f"pub(crate) type {d.identifier.name} = "
+                f"{originalBinding}::{d.identifier.name}"
+                f"{'::<crate::DomTypeHolder>' if containsDomInterface(d) else ''};"
+            ) for d in dictionaries]
 
-        cgthings += [CGGeneric(
-            f"pub(crate) type {c.identifier.name} = "
-            f"{originalBinding}::{c.identifier.name}<crate::DomTypeHolder>;"
-        ) for c in mainCallbacks]
+            cgthings += [CGGeneric(
+                f"pub(crate) type {c.identifier.name} = "
+                f"{originalBinding}::{c.identifier.name}<crate::DomTypeHolder>;"
+            ) for c in mainCallbacks]
 
         cgthings += [CGGeneric(f"pub(crate) use {originalBinding} as GenericBindings;")]
+
+
         for d in descriptors:
             ifaceName = d.interface.identifier.name
+            should_skip = ifaceName not in only_interfaces
+
+
             cgthings += [
-                CGGeneric(
-                    f"pub(crate) use {originalBinding}::{firstCap(ifaceName)}_Binding as {firstCap(ifaceName)}_Binding;"
-                ),
+                    CGGeneric(
+                        f"pub(crate) use {originalBinding}::{firstCap(ifaceName)}_Binding as {firstCap(ifaceName)}_Binding;"
+                    ),
             ]
+
+            if should_skip:
+                if not generic:
+                    if d.interface.isIteratorInterface():
+                        cgthings.append(CGDomObjectIteratorWrap(d))
+                    elif d.concrete and not d.isGlobal():
+                        if d.weakReferenceable:
+                            cgthings.append(CGWeakReferenceableDomObjectWrap(d, generic=generic))
+                        else:
+                            cgthings.append(CGDomObjectWrap(d, generic=generic))
+                continue
 
             for marker in ["Serializable", "Transferable"]:
                 if d.interface.getExtendedAttribute(marker):
@@ -8070,23 +8139,27 @@ class CGConcreteBindingRoot(CGThing):
 
             if d.concrete:
                 if not d.interface.isIteratorInterface():
-                    cgthings.append(CGAssertInheritance(d))
+                    cgthings.append(CGAssertInheritance(d, generic =generic))
                 else:
                     cgthings.append(CGIteratorDerives(d))
+
+
 
             if (
                 (d.concrete or d.hasDescendants())
                 and not d.interface.isIteratorInterface()
             ):
-                cgthings.append(CGIDLInterface(d))
+                cgthings.append(CGIDLInterface(d, generic=generic))
 
-            if d.interface.isIteratorInterface():
-                cgthings.append(CGDomObjectIteratorWrap(d))
-            elif d.concrete and not d.isGlobal():
-                if d.weakReferenceable:
-                    cgthings.append(CGWeakReferenceableDomObjectWrap(d))
-                else:
-                    cgthings.append(CGDomObjectWrap(d))
+            if not generic:
+                if d.interface.isIteratorInterface():
+                    cgthings.append(CGDomObjectIteratorWrap(d))
+                elif d.concrete and not d.isGlobal():
+                    if d.weakReferenceable:
+                        cgthings.append(CGWeakReferenceableDomObjectWrap(d))
+                    else:
+                        cgthings.append(CGDomObjectWrap(d, generic = generic))
+
 
             if d.weakReferenceable:
                 cgthings.append(CGWeakReferenceableTrait(d))
@@ -8096,7 +8169,7 @@ class CGConcreteBindingRoot(CGThing):
                 not d.interface.isCallback() and
                 not d.allowDropImpl
             ):
-                cgthings.append(CGForbidDrop(d))
+                cgthings.append(CGForbidDrop(d, generic=generic))
 
             if not d.interface.isCallback():
                 traitName = f"{ifaceName}Methods"
@@ -8104,7 +8177,8 @@ class CGConcreteBindingRoot(CGThing):
                     CGGeneric(f"pub(crate) use self::{firstCap(ifaceName)}_Binding::{traitName} as {traitName};"),
                 ]
                 if len(descriptors) == 1 and d.concrete:
-                    cgthings += [CGGeneric(f"pub(crate) use self::{firstCap(ifaceName)}_Binding::Wrap;")]
+                    if not generic:
+                        cgthings += [CGGeneric(f"pub(crate) use self::{firstCap(ifaceName)}_Binding::Wrap;")]
                     if d.interface.hasInterfaceObject() and d.shouldHaveGetConstructorObjectMethod():
                         cgthings += [CGGeneric(f"""
 pub(crate) fn GetConstructorObject(
@@ -8119,26 +8193,27 @@ pub(crate) fn GetConstructorObject(
                 constants = f"{ifaceName}Constants"
                 cgthings += [CGGeneric(f"pub(crate) use {originalBinding}::{constants} as {constants};")]
 
-        for c in callbackDescriptors:
-            ifaceName = c.interface.identifier.name
-            cgthings += [CGGeneric(
-                f"pub(crate) type {ifaceName} = {originalBinding}::{ifaceName}<crate::DomTypeHolder>;"
-            )]
+        if not generic:
+            for c in callbackDescriptors:
+                ifaceName = c.interface.identifier.name
+                cgthings += [CGGeneric(
+                    f"pub(crate) type {ifaceName} = {originalBinding}::{ifaceName}<crate::DomTypeHolder>;"
+                )]
 
         # And make sure we have the right number of newlines at the end
         curr = CGWrapper(CGList(cgthings, "\n\n"), post="\n\n")
 
         # Add imports
         # These are the global imports (outside of the generated module)
-        curr = CGImports(curr, descriptors=[], callbacks=[],
+        if not generic:
+            curr = CGImports(curr, descriptors=[], callbacks=[],
                          dictionaries=[], enums=[], typedefs=[],
                          imports=[
                              'crate::dom::bindings::import::module::*',
                              'crate::dom::types::*'],
                          config=config)
-
         # Add the auto-generated comment.
-        curr = CGWrapper(curr, pre=f"{AUTOGENERATED_WARNING_COMMENT}{ALLOWED_WARNINGS}")
+        curr = CGWrapper(curr, pre=f"{AUTOGENERATED_WARNING_COMMENT}")
 
         # Store the final result.
         self.root = curr

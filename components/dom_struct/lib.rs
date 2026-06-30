@@ -23,8 +23,9 @@ fn dom_struct_impl(
     input: proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     let associated_memory = args.to_string().contains("associated_memory");
-    if !associated_memory && !args.is_empty() {
-        panic!("#[dom_struct] only takes 'associated_memory' as an argument");
+    let no_has_parent = args.to_string().contains("no_has_parent");
+    if !associated_memory && !no_has_parent && !args.is_empty() {
+        panic!("#[dom_struct] only takes 'associated_memory' or 'no_has_parent' as an argument");
     }
     let attributes = quote! {
         #[derive(deny_public_fields::DenyPublicFields, JSTraceable, MallocSizeOf)]
@@ -42,7 +43,7 @@ fn dom_struct_impl(
     if let Item::Struct(s) = item {
         let expanded_dom_object = expand_dom_object(s.clone(), associated_memory);
         let s2 = quote! { #s #expanded_dom_object };
-        if !s.generics.params.is_empty() {
+        if no_has_parent {
             return s2;
         }
         if let Fields::Named(ref f) = s.fields {
@@ -51,18 +52,32 @@ fn dom_struct_impl(
             let name = &s.ident;
             let ty = &f.ty;
 
-            quote! (
-                #s2
+            if !s.generics.params.is_empty() {
+                quote! (
+                    #s2
 
-                impl crate::HasParent for #name {
-                    type Parent = #ty;
-                    /// This is used in a type assertion to ensure that
+                    impl<D: DomTypes> crate::HasParent for #name<D> {
+                        type Parent = #ty;
+                        /// This is used in a type assertion to ensure that
                     /// the source and webidls agree as to what the parent type is
                     fn as_parent(&self) -> &#ty {
                         &self.#ident
                     }
-                }
-            )
+                })
+            } else {
+                quote! (
+                    #s2
+
+                    impl crate::HasParent for #name {
+                        type Parent = #ty;
+                        /// This is used in a type assertion to ensure that
+                        /// the source and webidls agree as to what the parent type is
+                        fn as_parent(&self) -> &#ty {
+                            &self.#ident
+                        }
+                    }
+                )
+            }
         } else {
             panic!("#[dom_struct] only applies to structs with named fields");
         }

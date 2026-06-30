@@ -64,7 +64,7 @@ pub trait IteratorDerives {
 }
 
 /// An iterator over the iterable entries of a given DOM interface.
-#[dom_struct]
+#[dom_struct(no_has_parent)]
 pub struct IterableIterator<
     D: DomTypes,
     T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobalGeneric<D>,
