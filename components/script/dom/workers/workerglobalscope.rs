@@ -1116,7 +1116,7 @@ impl WorkerGlobalScope {
             DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
                 let debugger_global_handle = rooted_heap_handle(self, |this| &this.debugger_global);
                 let debugger_global =
-                    root_from_handlevalue::<DebuggerGlobalScope>(debugger_global_handle, cx.into())
+                    root_from_handlevalue::<DebuggerGlobalScope>(cx, debugger_global_handle)
                         .expect("must be a debugger global scope");
 
                 debugger_global.fire_eval(
