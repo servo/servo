@@ -224,6 +224,11 @@ class AndroidTarget(CrossBuildTarget):
 
         env["TARGET_AR"] = to_ndk_bin("llvm-ar")
         env["TARGET_RANLIB"] = to_ndk_bin("llvm-ranlib")
+        # Needed for tikv-jemalloc, which doesn't respect TARGET_AR and co.
+        # On macos this lead to it falling back to `ar` and missing jemalloc
+        # symbols in libservoshell.so.
+        env["AR"] = to_ndk_bin("llvm-ar")
+        env["RANLIB"] = to_ndk_bin("llvm-ranlib")
         env["TARGET_OBJCOPY"] = to_ndk_bin("llvm-objcopy")
         env["TARGET_YASM"] = to_ndk_bin("yasm")
         env["TARGET_STRIP"] = to_ndk_bin("llvm-strip")
