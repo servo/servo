@@ -68,7 +68,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::html::htmlobjectelement::HTMLObjectElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
@@ -1950,9 +1949,6 @@ impl FormControlElementHelpers for Element {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
             )) => Some(self.downcast::<HTMLInputElement>().unwrap() as &dyn FormControl),
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLLabelElement,
-            )) => Some(self.downcast::<HTMLLabelElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLegendElement,
             )) => Some(self.downcast::<HTMLLegendElement>().unwrap() as &dyn FormControl),
