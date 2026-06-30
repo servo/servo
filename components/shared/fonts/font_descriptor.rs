@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_variant_caps;
 use style::font_face::{
-    ComputedFontStretchRange, ComputedFontStyleDescriptor, ComputedFontWeightRange, Descriptors,
-    FontStretchRange, FontStyle as FontFaceStyle, FontWeightRange,
+    ComputedFontStretchRange, ComputedFontStyleRange, ComputedFontWeightRange, Descriptors,
+    FontStretchRange, FontStyleRange, FontWeightRange,
 };
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::stylesheets::FontFaceRule;
@@ -78,7 +78,7 @@ pub struct CSSFontFaceDescriptors {
     pub family_name: LowercaseFontFamilyName,
     pub weight: Option<ComputedFontWeightRange>,
     pub stretch: Option<ComputedFontStretchRange>,
-    pub style: Option<ComputedFontStyleDescriptor>,
+    pub style: Option<ComputedFontStyleRange>,
     pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
 }
 
@@ -110,7 +110,7 @@ impl From<&Descriptors> for CSSFontFaceDescriptors {
         let style = descriptors
             .font_style
             .as_ref()
-            .and_then(FontFaceStyle::compute);
+            .and_then(FontStyleRange::compute);
         let unicode_range = descriptors
             .unicode_range
             .as_ref()
