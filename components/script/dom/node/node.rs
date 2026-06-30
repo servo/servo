@@ -1637,7 +1637,7 @@ impl Node {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn query_selector_all(
         &self,
-        no_gc: &NoGC,
+        cx: &mut JSContext,
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
         // > The querySelectorAll(selectors) method steps are to return the static result of running scope-match
@@ -1648,10 +1648,9 @@ impl Node {
         // layout runs, so that the map can gather their elements in DOM order.
         self.owner_document()
             .id_map()
-            .resolve_all(no_gc, self.owner_doc().upcast());
+            .resolve_all(cx.no_gc(), self.owner_doc().upcast());
 
-        // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
-        let traced_node = Dom::from_ref(self);
+        let traced_node = UnrootedDom::from_dom(Dom::from_ref(self), cx.no_gc());
         let matching_elements = with_layout_state(|| {
             let layout_node: LayoutDom<'_, _> = unsafe { traced_node.to_layout() };
             ServoDangerousStyleNode::from(layout_node)
@@ -1667,7 +1666,7 @@ impl Node {
         Ok(NodeList::new_simple_list(
             &self.owner_window(),
             iter,
-            CanGc::deprecated_note(),
+            CanGc::from_cx(cx),
         ))
     }
 

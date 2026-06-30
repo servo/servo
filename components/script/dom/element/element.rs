@@ -3827,7 +3827,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
-        root.query_selector_all(cx.no_gc(), selectors)
+        root.query_selector_all(cx, selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
