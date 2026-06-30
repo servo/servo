@@ -122,6 +122,21 @@ impl Node {
             .unwrap_or(FocusableArea::Viewport)
     }
 
+    /// This is a helper function for `get_the_focusable_area` that handles `<iframe>`.
+    fn focusable_area(&self, kind: FocusableAreaKind) -> FocusableArea {
+        if let Some(iframe_element) = self.downcast::<HTMLIFrameElement>() {
+            return FocusableArea::IFrameViewport {
+                iframe_element: DomRoot::from_ref(iframe_element),
+                kind,
+            };
+        }
+
+        FocusableArea::Node {
+            node: DomRoot::from_ref(self),
+            kind,
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#get-the-focusable-area>
     ///
     /// There seems to be hole in the specification here. It describes how to get the focusable
@@ -140,17 +155,7 @@ impl Node {
             .map(|element| Element::focusable_area_kind(element, no_gc))
             .unwrap_or_default();
         if !kind.is_empty() {
-            if let Some(iframe_element) = self.downcast::<HTMLIFrameElement>() {
-                return Some(FocusableArea::IFrameViewport {
-                    iframe_element: DomRoot::from_ref(iframe_element),
-                    kind,
-                });
-            }
-
-            return Some(FocusableArea::Node {
-                node: DomRoot::from_ref(self),
-                kind,
-            });
+            return Some(self.focusable_area(kind));
         }
         self.get_the_focusable_area_if_not_a_focusable_area(Some(focus_trigger), no_gc)
     }
@@ -331,10 +336,7 @@ impl Node {
                 .map(|e| e.focusable_area_kind(no_gc))
                 .unwrap_or_default();
             let focusable_area = if !kind.is_empty() {
-                return Some(FocusableArea::Node {
-                    node: descendant,
-                    kind,
-                });
+                Some(descendant.focusable_area(kind))
             } else {
                 descendant.get_the_focusable_area(Some(focus_trigger), no_gc)
             };
