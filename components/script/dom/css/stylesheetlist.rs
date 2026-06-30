@@ -16,7 +16,6 @@ use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::element::Element;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]

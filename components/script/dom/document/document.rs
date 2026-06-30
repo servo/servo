@@ -5173,9 +5173,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-implementation>
-    fn Implementation(&self, can_gc: CanGc) -> DomRoot<DOMImplementation> {
+    fn Implementation(&self, cx: &mut JSContext) -> DomRoot<DOMImplementation> {
         self.implementation
-            .or_init(|| DOMImplementation::new(self, can_gc))
+            .or_init(|| DOMImplementation::new(cx, self))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-url>
@@ -5750,12 +5750,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter>
     fn CreateNodeIterator(
         &self,
+        cx: &mut js::context::JSContext,
         root: &Node,
         what_to_show: u32,
         filter: Option<Rc<NodeFilter>>,
-        can_gc: CanGc,
     ) -> DomRoot<NodeIterator> {
-        NodeIterator::new(self, root, what_to_show, filter, can_gc)
+        NodeIterator::new(cx, self, root, what_to_show, filter)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createtreewalker>
