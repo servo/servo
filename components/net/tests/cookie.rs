@@ -538,3 +538,76 @@ fn test_parse_date() {
         Some(datetime!(2024-06-26 15:35:10).assume_utc())
     );
 }
+
+#[test]
+fn test_clear_storage_for_url_expires_matching_cookies() {
+    let mut storage = CookieStorage::new(5);
+    let source = CookieSource::HTTP;
+    let url = ServoUrl::parse("http://example.com/").unwrap();
+
+    add_cookie_to_storage(&mut storage, &url, "foo=bar");
+    assert_eq!(
+        storage.cookies_for_url(&url, source).as_deref(),
+        Some("foo=bar")
+    );
+
+    storage.clear_storage(Some(&url));
+
+    storage.remove_expired_cookies_for_url(&url);
+    assert_eq!(storage.cookies_for_url(&url, source), None);
+}
+
+#[test]
+fn test_clear_storage_without_url_clears_everything() {
+    let mut storage = CookieStorage::new(5);
+    let source = CookieSource::HTTP;
+    let url = ServoUrl::parse("http://example.com/").unwrap();
+    let other_url = ServoUrl::parse("http://example.org/").unwrap();
+
+    add_cookie_to_storage(&mut storage, &url, "foo=bar");
+    add_cookie_to_storage(&mut storage, &other_url, "baz=qux");
+
+    storage.clear_storage(None);
+
+    assert!(storage.cookie_site_descriptors().is_empty());
+    assert_eq!(storage.cookies_for_url(&url, source), None);
+    assert_eq!(storage.cookies_for_url(&other_url, source), None);
+}
+
+#[test]
+fn test_delete_cookie_with_name_expires_only_matching_cookie() {
+    let mut storage = CookieStorage::new(5);
+    let source = CookieSource::HTTP;
+    let url = ServoUrl::parse("http://example.com/").unwrap();
+
+    add_cookie_to_storage(&mut storage, &url, "foo=bar");
+    add_cookie_to_storage(&mut storage, &url, "baz=qux");
+
+    storage.delete_cookie_with_name(&url, "foo".to_owned());
+
+    storage.remove_expired_cookies_for_url(&url);
+    assert_eq!(
+        storage.cookies_for_url(&url, source).as_deref(),
+        Some("baz=qux")
+    );
+}
+
+#[test]
+fn test_delete_cookie_with_name_does_not_affect_other_domains() {
+    let mut storage = CookieStorage::new(5);
+    let source = CookieSource::HTTP;
+    let url = ServoUrl::parse("http://example.com/").unwrap();
+    let other_url = ServoUrl::parse("http://example.org/").unwrap();
+
+    add_cookie_to_storage(&mut storage, &url, "foo=bar");
+    add_cookie_to_storage(&mut storage, &other_url, "foo=bar");
+
+    storage.delete_cookie_with_name(&url, "foo".to_owned());
+
+    storage.remove_all_expired_cookies();
+    assert_eq!(storage.cookies_for_url(&url, source), None);
+    assert_eq!(
+        storage.cookies_for_url(&other_url, source).as_deref(),
+        Some("foo=bar")
+    );
+}
