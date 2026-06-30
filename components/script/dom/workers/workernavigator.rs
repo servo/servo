@@ -19,6 +19,8 @@ use crate::dom::permissions::Permissions;
 use crate::dom::storagemanager::StorageManager;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
+#[cfg(feature = "webnn")]
+use crate::dom::webnn::ml::ML;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -30,6 +32,8 @@ pub(crate) struct WorkerNavigator {
     storage: MutNullableDom<StorageManager>,
     #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
+    #[cfg(feature = "webnn")]
+    ml: MutNullableDom<ML>,
 }
 
 impl WorkerNavigator {
@@ -40,6 +44,8 @@ impl WorkerNavigator {
             storage: Default::default(),
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
+            #[cfg(feature = "webnn")]
+            ml: Default::default(),
         }
     }
 
@@ -130,6 +136,12 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     #[cfg(feature = "webgpu")]
     fn Gpu(&self, cx: &mut JSContext) -> DomRoot<GPU> {
         self.gpu.or_init(|| GPU::new(cx, &self.global()))
+    }
+
+    /// <https://www.w3.org/TR/webnn/#api-navigatorml>
+    #[cfg(feature = "webnn")]
+    fn Ml(&self, cx: &mut JSContext) -> DomRoot<ML> {
+        self.ml.or_init(|| ML::new(&self.global(), cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>

@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "components/media/examples",
+    "components/webnn",
     "components/xpath",
     "ffi/capi",
     "ports/servoshell",
@@ -360,6 +361,7 @@ webdriver_server = { package = "servo-webdriver-server", version = "=0.3.0", pat
 webgl = { package = "servo-webgl", version = "=0.3.0", path = "components/webgl", default-features = false }
 webgpu = { package = "servo-webgpu", version = "=0.3.0", path = "components/webgpu" }
 webgpu_traits = { package = "servo-webgpu-traits", version = "=0.3.0", path = "components/shared/webgpu" }
+webnn = { package = "servo-webnn", version = "=0.3.0", path = "components/webnn" }
 webxr = { package = "servo-webxr", version = "=0.3.0", path = "components/webxr" }
 webxr-api = { package = "servo-webxr-api", version = "=0.3.0", path = "components/shared/webxr" }
 xpath = { package = "servo-xpath", version = "=0.3.0", path = "components/xpath" }
