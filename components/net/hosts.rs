@@ -56,11 +56,21 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
         .collect()
 }
 
+fn lookup_host_replacement(table: &HashMap<String, IpAddr>, host: &str) -> Option<IpAddr> {
+    table.get(host).copied().or_else(|| {
+        // <https://www.w3.org/TR/CSP/#grammardef-host-part>
+        // host-part   = "*" / [ "*." ] 1*host-char *( "." 1*host-char ) [ "." ]
+        host.strip_suffix('.')
+            .filter(|host_without_trailing_dot| !host_without_trailing_dot.is_empty())
+            .and_then(|host_without_trailing_dot| table.get(host_without_trailing_dot).copied())
+    })
+}
+
 pub fn replace_host(host: &str) -> Cow<'_, str> {
     HOST_TABLE
         .lock()
         .as_ref()
-        .and_then(|table| table.get(host))
+        .and_then(|table| lookup_host_replacement(table, host))
         .map_or(host.into(), |replaced_host| {
             replaced_host.to_string().into()
         })

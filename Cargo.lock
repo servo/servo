@@ -1481,8 +1481,7 @@ checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
 [[package]]
 name = "content-security-policy"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d348c3856ad6a6b957d69dc8cf93e66fe9be5a7657fdd7028b1a56d2775e3fce"
+source = "git+https://github.com/Taym95/rust-content-security-policy?branch=fix-csp-trailing-dot-host-source#97e13eeac10be0e24213e66dd0f95416989cfa86"
 dependencies = [
  "base64",
  "bitflags 2.13.0",
