@@ -1012,6 +1012,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             return handleOptional(template, declType, handleDefault("None"))
 
         conversionFunction = "root_from_handlevalue"
+        maybeCx = ", SafeJSContext::from_ptr(cx.raw_cx())"
         descriptorType = descriptor.returnType
         if isMember == "Variadic":
             conversionFunction = "native_from_handlevalue"
@@ -1020,6 +1021,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             descriptorType = descriptor.argumentType
         elif descriptor.interface.identifier.name == "WindowProxy":
             conversionFunction = "windowproxy_from_handlevalue::<D>"
+            maybeCx = ""
 
         if failureCode is None:
             unwrapFailureCode = (
@@ -1031,7 +1033,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         templateBody = fill(
             """
-            match ${function}($${val}, SafeJSContext::from_ptr(cx.raw_cx())) {
+            match ${function}($${val}${maybeCx}) {
                 Ok(val) => val,
                 Err(()) => {
                     $*{failureCode}
@@ -1039,7 +1041,8 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             }
             """,
             failureCode=unwrapFailureCode + "\n",
-            function=conversionFunction)
+            function=conversionFunction,
+            maybeCx=maybeCx)
 
 
         declType = CGGeneric(descriptorType)
@@ -4206,14 +4209,11 @@ class CGCallGenerator(CGThing):
                 name = f"&{name}"
             args.append(CGGeneric(name))
 
-        needsCx = False
         match max([needCx(returnType, (a for (a, _) in arguments), True), Context.Cx if is_implicit_cx_attribute else Context.No]):
             case Context.Cx:
                 descriptor.cxMethods.append(nativeMethodName)
             case Context.CurrentRealm:
                 descriptor.realmMethods.append(nativeMethodName)
-            case Context.OldCx:
-                needsCx = True
             case Context.No:
                 pass
 
@@ -4231,8 +4231,6 @@ class CGCallGenerator(CGThing):
         elif descriptor.interface.isIteratorInterface():
             args.prepend(CGGeneric("cx"))
         else:
-            if "cx" not in argsPre and needsCx:
-                args.prepend(CGGeneric("SafeJSContext::from_ptr(cx.raw_cx())"))
             if nativeMethodName in descriptor.canGcMethods:
                 args.append(CGGeneric("CanGc::deprecated_note()"))
 
@@ -7017,9 +7015,6 @@ class CGInterfaceTrait(CGThing):
 
             safe_cx = cx or cx_no_gc or realm or no_gc
 
-            if typeNeedsCx(attribute_type, retval) and not safe_cx:
-                yield "cx", "SafeJSContext"
-
             if argument:
                 yield "value", argument_type(descriptor, argument)
 
@@ -8366,14 +8361,12 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      realm: bool = False,
                      canGc: bool = False
                      ) -> Iterator[tuple[str, str]]:
-    old_cx = False
+
     match needCx(returnType, arguments, passJSBits):
         case Context.Cx:
             cx = True
         case Context.CurrentRealm:
             realm = True
-        case Context.OldCx:
-            old_cx = True
         case Context.No:
             pass
 
@@ -8387,9 +8380,6 @@ def method_arguments(descriptorProvider: DescriptorProvider,
         yield "cx", "&NoGC"
 
     safe_cx = cx or cx_no_gc or realm or no_gc
-
-    if old_cx and not safe_cx:
-        yield "cx", "SafeJSContext"
 
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,

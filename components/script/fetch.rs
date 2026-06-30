@@ -241,7 +241,7 @@ pub(crate) fn Fetch(
     if signal.aborted() {
         // Step 4.1. Abort the fetch() call with p, request, null, and requestObject’s signal’s abort reason.
         rooted!(&in(cx) let mut abort_reason = UndefinedValue());
-        signal.Reason(cx.into(), abort_reason.handle_mut());
+        signal.Reason(abort_reason.handle_mut());
         abort_fetch_call(
             promise.clone(),
             &request_object,
@@ -362,7 +362,7 @@ pub(crate) fn FetchLater(
     let signal = request_object.Signal();
     if signal.aborted() {
         rooted!(&in(cx) let mut abort_reason = UndefinedValue());
-        signal.Reason(cx.into(), abort_reason.handle_mut());
+        signal.Reason(abort_reason.handle_mut());
         unsafe {
             assert!(!JS_IsExceptionPending(cx));
             JS_SetPendingException(cx, abort_reason.handle(), ExceptionStackBehavior::Capture)

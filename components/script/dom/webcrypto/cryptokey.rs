@@ -25,7 +25,6 @@ use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::KeyAlgorithmAndDerivatives;
-use crate::script_runtime::JSContext;
 
 pub(crate) enum CryptoKeyOrCryptoKeyPair {
     CryptoKey(DomRoot<CryptoKey>),
@@ -207,13 +206,13 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
     }
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm>
-    fn Algorithm(&self, _cx: JSContext, mut return_value: MutableHandleObject) {
+    fn Algorithm(&self, mut return_value: MutableHandleObject) {
         // Returns the cached ECMAScript object associated with the [[algorithm]] internal slot.
         return_value.set(self.algorithm_cached.get())
     }
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
-    fn Usages(&self, _cx: JSContext, mut return_value: MutableHandleObject) {
+    fn Usages(&self, mut return_value: MutableHandleObject) {
         // Returns the cached ECMAScript object associated with the [[usages]] internal slot, which
         // indicates which cryptographic operations are permissible to be used with this key.
         return_value.set(self.usages_cached.get())

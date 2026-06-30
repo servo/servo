@@ -38,7 +38,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::JSContext;
 use crate::task::TaskOnce;
 
 pub(crate) enum FileReadingTask {
@@ -494,7 +493,7 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
 
     #[expect(unsafe_code)]
     /// <https://w3c.github.io/FileAPI/#dfn-result>
-    fn GetResult(&self, _: JSContext) -> Option<StringOrObject> {
+    fn GetResult(&self) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
             FileReaderResult::String(ref string) => StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {

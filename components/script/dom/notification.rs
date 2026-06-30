@@ -58,7 +58,7 @@ use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 // TODO: Service Worker API (persistent notification)
 // https://notifications.spec.whatwg.org/#service-worker-api
 
@@ -515,7 +515,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-data>
-    fn Data(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
+    fn Data(&self, mut retval: MutableHandleValue) {
         retval.set(self.data.get());
     }
 

@@ -16,7 +16,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct PerformanceMeasure {
@@ -64,7 +64,7 @@ impl PerformanceMeasure {
 
 impl PerformanceMeasureMethods<crate::DomTypeHolder> for PerformanceMeasure {
     /// <https://w3c.github.io/user-timing/#dom-performancemeasure-detail>
-    fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+    fn Detail(&self, mut retval: MutableHandleValue) {
         retval.set(self.detail.get())
     }
 }
