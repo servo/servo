@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
 from urllib.parse import urlparse
 
+from packaging.version import Version
+
 from aioquic.buffer import Buffer
 from aioquic.asyncio import QuicConnectionProtocol, serve
 from aioquic.asyncio.client import connect
@@ -381,10 +383,15 @@ class WebTransportSession:
         """
         stream_id = self._http.create_webtransport_stream(
             session_id=self.session_id, is_unidirectional=False)
-        if aioquic.__version__ <= "1.2.0":
-            # TODO(bashi): Remove this workaround when aioquic supports receiving
-            # data on server-initiated bidirectional streams.
-            stream = self._http._get_or_create_stream(stream_id)
+        # TODO(bashi): Remove this workaround when aioquic supports receiving
+        # data on server-initiated bidirectional streams.
+        stream_cm = self._http._get_or_create_stream(stream_id)
+        if Version(aioquic.__version__) <= Version("1.2.0"):
+            # Older aioquic returns the stream directly rather than a context
+            # manager. The stream is freshly created here and not yet ended, so
+            # the seeded state persists for incoming client data.
+            stream_cm = contextlib.nullcontext(stream_cm)
+        with stream_cm as stream:
             assert stream.frame_type is None
             assert stream.session_id is None
             stream.frame_type = FrameType.WEBTRANSPORT_STREAM
