@@ -1507,15 +1507,15 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://cookiestore.spec.whatwg.org/#Window>
-    fn CookieStore(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
+    fn CookieStore(&self, cx: &mut JSContext) -> DomRoot<CookieStore> {
         self.cookie_store
-            .or_init(|| CookieStore::new(self.upcast::<GlobalScope>(), can_gc))
+            .or_init(|| CookieStore::new(cx, self.upcast::<GlobalScope>()))
     }
 
     /// <https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto>
-    fn Crypto(&self) -> DomRoot<Crypto> {
+    fn Crypto(&self, cx: &mut JSContext) -> DomRoot<Crypto> {
         self.crypto
-            .or_init(|| Crypto::new(self.as_global_scope(), CanGc::deprecated_note()))
+            .or_init(|| Crypto::new(cx, self.as_global_scope()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-frameelement>
