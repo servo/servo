@@ -168,7 +168,7 @@ fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) ->
     .cryptographic_nonce_metadata(request.cryptographic_nonce_metadata)
     .parser_metadata(request.parser_metadata)
     .initiator(request.initiator)
-    .client(global.request_client())
+    .client(global.request_client(None))
     .insecure_requests_policy(request.insecure_requests_policy)
     .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
     .response_tainting(request.response_tainting);
@@ -306,7 +306,7 @@ fn queue_deferred_fetch(
     let trusted_global = Trusted::new(global);
     let mut request = request;
     // Step 1. Populate request from client given request.
-    request.client = Some(global.request_client());
+    request.client = Some(global.request_client(None));
     request.populate_request_from_client();
     // Step 2. Set request’s service-workers mode to "none".
     request.service_workers_mode = ServiceWorkersMode::None;
@@ -774,7 +774,7 @@ impl RequestWithGlobalScope for RequestBuilder {
         self.insecure_requests_policy(global.insecure_requests_policy())
             .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
             .policy_container(global.policy_container())
-            .client(global.request_client())
+            .client(global.request_client(None))
             .pipeline_id(Some(global.pipeline_id()))
             .origin(global.origin().immutable().clone())
     }

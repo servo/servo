@@ -4566,7 +4566,7 @@ impl Document {
     ) {
         self.window
             .layout()
-            .load_web_fonts_from_stylesheet(stylesheet, &self.window.web_font_context());
+            .load_web_fonts_from_stylesheet(stylesheet, &self.window.web_font_context(cx.no_gc()));
         self.switch_font_face_set_to_loading_if_needed(cx);
     }
 
@@ -4579,7 +4579,7 @@ impl Document {
         self.window.layout_mut().add_stylesheet(
             stylesheet,
             before_stylesheet,
-            &self.window.web_font_context(),
+            &self.window.web_font_context(cx.no_gc()),
         );
         self.switch_font_face_set_to_loading_if_needed(cx);
     }

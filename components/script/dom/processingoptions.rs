@@ -413,7 +413,7 @@ pub(crate) fn process_link_headers(
             base_url: document.base_url(),
             insecure_requests_policy: document.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
-            request_client: global.request_client(),
+            request_client: global.request_client(None),
             referrer: global.get_referrer(),
         };
         // Step 2.7. Apply link options from parsed header attributes to options given attribs and rel.
