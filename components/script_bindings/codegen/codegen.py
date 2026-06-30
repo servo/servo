@@ -1012,7 +1012,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             return handleOptional(template, declType, handleDefault("None"))
 
         conversionFunction = "root_from_handlevalue"
-        maybeCx = ", SafeJSContext::from_ptr(cx.raw_cx())"
+        maybeCx = "cx, "
         descriptorType = descriptor.returnType
         if isMember == "Variadic":
             conversionFunction = "native_from_handlevalue"
@@ -1033,7 +1033,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         templateBody = fill(
             """
-            match ${function}($${val}${maybeCx}) {
+            match ${function}(${maybeCx}$${val}) {
                 Ok(val) => val,
                 Err(()) => {
                     $*{failureCode}
@@ -8490,7 +8490,7 @@ class CGCallback(CGClass):
         args = list(method.args)
         # Strip out the JSContext*/JSObject* args
         # that got added.
-        assert args[0].name == "cx" and args[0].argType == "SafeJSContext"
+        assert args[0].name == "cx" and args[0].argType == "&mut JSContext"
         assert args[1].name == "aThisObj" and args[1].argType == "HandleValue"
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
@@ -8772,7 +8772,7 @@ class CallbackMember(CGNativeMember):
             return args
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
-        return [Argument("SafeJSContext", "cx"),
+        return [Argument("&mut JSContext", "cx"),
                 Argument("HandleValue", "aThisObj")] + args
 
     def getCallSetup(self) -> str:

@@ -32,7 +32,6 @@ use crate::inheritance::Castable;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
-use crate::script_runtime::JSContext as SafeJSContext;
 use crate::str::{ByteString, DOMString, USVString};
 use crate::trace::RootedTraceableBox;
 use crate::utils::{DOMClass, DOMJSClass};
@@ -232,7 +231,7 @@ impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
         value: HandleValue,
         _config: Self::Config,
     ) -> Result<ConversionResult<DomRoot<T>>, ()> {
-        Ok(match root_from_handlevalue(value, cx.into()) {
+        Ok(match root_from_handlevalue(cx, value) {
             Ok(result) => ConversionResult::Success(result),
             Err(()) => ConversionResult::Failure(c"value is not an object".into()),
         })
@@ -401,7 +400,10 @@ where
 /// # Safety
 /// cx must point to a valid, non-null JS context.
 #[allow(clippy::result_unit_err)]
-pub fn root_from_handlevalue<T>(v: HandleValue, cx: SafeJSContext) -> Result<DomRoot<T>, ()>
+pub fn root_from_handlevalue<T>(
+    cx: &mut js::context::JSContext,
+    v: HandleValue,
+) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -410,7 +412,7 @@ where
     }
     #[expect(unsafe_code)]
     unsafe {
-        root_from_object(v.get().to_object(), *cx)
+        root_from_object(v.get().to_object(), cx.raw_cx())
     }
 }
 
@@ -521,7 +523,10 @@ where
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 #[allow(clippy::result_unit_err)]
-pub fn native_from_handlevalue<T>(v: HandleValue, cx: SafeJSContext) -> Result<*const T, ()>
+pub fn native_from_handlevalue<T>(
+    cx: &mut js::context::JSContext,
+    v: HandleValue,
+) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
@@ -531,7 +536,7 @@ where
 
     #[expect(unsafe_code)]
     unsafe {
-        native_from_object(v.get().to_object(), *cx)
+        native_from_object(v.get().to_object(), cx.raw_cx())
     }
 }
 
