@@ -622,7 +622,6 @@ pub fn is_array_like<D: crate::DomTypes>(
 /// Caller is responsible for throwing a JS exception if needed in case of error.
 pub(crate) unsafe fn windowproxy_from_handlevalue<D: crate::DomTypes>(
     v: HandleValue,
-    _cx: SafeJSContext,
 ) -> Result<DomRoot<D::WindowProxy>, ()> {
     if !v.get().is_object() {
         return Err(());

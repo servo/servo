@@ -23,7 +23,6 @@ use crate::dom::window::Window;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrsession::XRSession;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::JSContext as SafeJSContext;
 
 #[dom_struct]
 pub(crate) struct XRInputSourcesChangeEvent {
@@ -122,12 +121,12 @@ impl XRInputSourcesChangeEventMethods<crate::DomTypeHolder> for XRInputSourcesCh
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-added>
-    fn Added(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
+    fn Added(&self, mut retval: MutableHandleValue) {
         retval.set(self.added.get())
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-removed>
-    fn Removed(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
+    fn Removed(&self, mut retval: MutableHandleValue) {
         retval.set(self.removed.get())
     }
 

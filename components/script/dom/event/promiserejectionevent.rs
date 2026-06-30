@@ -23,7 +23,6 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::JSContext as SafeJSContext;
 
 #[dom_struct]
 pub(crate) struct PromiseRejectionEvent {
@@ -120,12 +119,12 @@ impl PromiseRejectionEventMethods<crate::DomTypeHolder> for PromiseRejectionEven
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-promise>
-    fn Promise(&self, _cx: SafeJSContext, mut return_value: MutableHandleObject) {
+    fn Promise(&self, mut return_value: MutableHandleObject) {
         return_value.set(self.promise.get());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-reason>
-    fn Reason(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
+    fn Reason(&self, mut retval: MutableHandleValue) {
         retval.set(self.reason.get())
     }
 

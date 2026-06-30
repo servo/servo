@@ -223,7 +223,7 @@ impl CompiledEventListener {
                             (object.is::<Window>() || object.is::<WorkerGlobalScope>())
                         {
                             rooted!(&in(cx) let mut error: JSVal);
-                            event.Error(cx.into(), error.handle_mut());
+                            event.Error(error.handle_mut());
                             rooted!(&in(cx) let mut rooted_return_value: JSVal);
                             let return_value = handler.Call_(
                                 cx,
