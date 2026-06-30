@@ -155,6 +155,7 @@ impl Selection {
         }
     }
 
+    /// <https://w3c.github.io/selection-api/#dfn-anchor>
     pub(crate) fn anchor_node(&self) -> Option<DomRoot<Node>> {
         self.range.get().map(|range| match self.direction.get() {
             Direction::Forwards => range.start_container(),
@@ -162,6 +163,7 @@ impl Selection {
         })
     }
 
+    /// <https://w3c.github.io/selection-api/#dfn-anchor>
     pub(crate) fn anchor_offset(&self) -> u32 {
         self.range
             .get()
@@ -172,6 +174,7 @@ impl Selection {
             .unwrap_or(0)
     }
 
+    /// <https://w3c.github.io/selection-api/#dfn-focus>
     pub(crate) fn focus_node(&self) -> Option<DomRoot<Node>> {
         self.range.get().map(|range| match self.direction.get() {
             Direction::Forwards => range.end_container(),
@@ -179,6 +182,7 @@ impl Selection {
         })
     }
 
+    /// <https://w3c.github.io/selection-api/#dfn-focus>
     pub(crate) fn focus_offset(&self) -> u32 {
         self.range
             .get()
@@ -367,6 +371,9 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 4. If document associated with this is not a shadow-including inclusive
         // ancestor of node, abort these steps.
+        //
+        // TODO: `is_same_root` does reach beyond shadow root boundaries, so this check is
+        // wrong.
         if !self.is_same_root(node) {
             return Ok(());
         }
@@ -419,6 +426,9 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     fn Extend(&self, cx: &mut JSContext, node: &Node, offset: u32) -> ErrorResult {
         // Step 1. If the document associated with this is not a shadow-including
         // inclusive ancestor of node, abort these steps.
+        //
+        // TODO: `is_same_root` does reach beyond shadow root boundaries, so this check is
+        // wrong.
         if !self.is_same_root(node) {
             return Ok(());
         }
@@ -527,6 +537,9 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 2. If document associated with this is not a shadow-including inclusive
         // ancestor of anchorNode or focusNode, abort these steps.
+        //
+        // TODO: `is_same_root` does reach beyond shadow root boundaries, so this check is
+        // wrong.
         if !self.is_same_root(anchor_node) || !self.is_same_root(focus_node) {
             return Ok(());
         }
