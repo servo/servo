@@ -39,6 +39,10 @@ ignore = [
     # We can't upgrade yet due to MSRV. However, we do not use the vulnerable API at all.
     # As per <https://github.com/advisories/GHSA-r6v5-fh4h-64xc> this can be verified with clippy.
     "RUSTSEC-2026-0009",
+    # The crate `ttf-parser` is unmaintained.
+    # This is a dependency of `usvg`, `rustybuzz`, `fontdb`.
+    # We will need to wait for upstream actions.
+    "RUSTSEC-2026-0192",
 ]
 
 # This section is considered when running `cargo deny check licenses`
