@@ -149,26 +149,16 @@ pub(crate) fn validate_and_extract(
     let mut local_name = qualified_name.as_str();
     // Step 4. If qualifiedName contains a U+003A (:):
     if let Some(idx) = qualified_name.find(':') {
-        //     Step 4.1. Let splitResult be the result of running
-        //          strictly split given qualifiedName and U+003A (:).
+        // Step 4.1 Set prefix to the part of qualifiedName before the first U+003A (:).
         let p = &qualified_name[..idx];
-
-        // Step 5. If prefix is not a valid namespace prefix,
-        // then throw an "InvalidCharacterError" DOMException.
+        prefix = Some(p);
+        // Step 4.2 Set localName to the part of qualifiedName after the first U+003A (:).
+        local_name = &qualified_name.as_str()[(idx + 1).min(qualified_name.len())..];
+        // Step 4.3 If prefix is not a valid namespace prefix, then throw an "InvalidCharacterError" DOMException.
         if !is_valid_namespace_prefix(p) {
             debug!("Not a valid namespace prefix");
             return Err(Error::InvalidCharacter(None));
         }
-
-        //     Step 4.2. Set prefix to splitResult[0].
-        prefix = Some(p);
-
-        //     Step 4.3. Set localName to splitResult[1].
-        let remaining = &qualified_name.as_str()[(idx + 1).min(qualified_name.len())..];
-        match remaining.find(':') {
-            Some(end) => local_name = &remaining[..end],
-            None => local_name = remaining,
-        };
     }
 
     if let Some(p) = prefix {
