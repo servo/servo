@@ -6053,8 +6053,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         cx: &mut JSContext,
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
-        self.upcast::<Node>()
-            .query_selector_all(cx.no_gc(), selectors)
+        self.upcast::<Node>().query_selector_all(cx, selectors)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-readystate>
