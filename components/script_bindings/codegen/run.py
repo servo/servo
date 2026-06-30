@@ -122,6 +122,7 @@ def add_css_properties_attributes(css_properties_json: str, parser: Parser) -> N
             ["layout.css.alpha-color-function.enabled", "layout_css_alpha_color_function_enabled"],
             ["layout.css.attr.enabled", "layout_css_attr_enabled"],
             ["layout.css.ellipse-corners.enabled", "layout_css_ellipse_corners_enabled"],
+            ["layout.css.progress-function.enabled", "layout_css_progress_function_enabled"],
             ["layout.writing-mode.enabled", "layout_writing_mode_enabled"],
             ["layout.container-queries.enabled", "layout_container_queries_enabled"],
             ["layout.variable_fonts.enabled", "layout_variable_fonts_enabled"]

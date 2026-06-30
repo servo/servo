@@ -48,6 +48,7 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "layout_css_alpha_color_function_enabled",
     "layout_css_attr_enabled",
     "layout_css_ellipse_corners_enabled",
+    "layout_css_progress_function_enabled",
     "layout_columns_enabled",
     "layout_container_queries_enabled",
     "layout_grid_enabled",
