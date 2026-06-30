@@ -322,6 +322,8 @@ impl CanvasState {
 
         // Step 2. Resize the output bitmap to the new width and height.
         self.size.replace(adjust_canvas_size(size));
+        // Discard buffered commands targeting the old canvas.
+        self.buffered_sender.discard();
         // Flushing is not required for correctness, but optimization heuristics for heavy command.
         self.send_canvas_command_immediate(CanvasCommand::Recreate(Some(self.size.get())));
     }
@@ -335,6 +337,8 @@ impl CanvasState {
         }
 
         // Step 1. Clear canvas's bitmap to transparent black.
+        // Discard buffered commands targeting the old canvas.
+        self.buffered_sender.discard();
         // Flushing is not required for correctness, but optimization heuristics for heavy command.
         self.send_canvas_command_immediate(CanvasCommand::Recreate(None));
     }
@@ -2528,7 +2532,8 @@ impl CanvasState {
 
 impl Drop for CanvasState {
     fn drop(&mut self) {
-        // Flush any buffered commands before closing the canvas.
+        // Discard buffered commands before closing the canvas.
+        self.buffered_sender.discard();
         if let Err(err) = self.buffered_sender.send_immediate(CanvasCommand::Destroy) {
             warn!("Could not close canvas: {}", err)
         }
