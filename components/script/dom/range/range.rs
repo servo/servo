@@ -319,8 +319,8 @@ impl Range {
     }
 
     pub(crate) fn start_and_end_are_in_document_tree(&self) -> bool {
-        self.start_container().containing_shadow_root().is_none() &&
-            self.end_container().containing_shadow_root().is_none()
+        self.start_container().is_in_a_document_tree() &&
+            self.end_container().is_in_a_document_tree()
     }
 
     pub(crate) fn start_container(&self) -> DomRoot<Node> {

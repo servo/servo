@@ -162,11 +162,31 @@ impl Selection {
         })
     }
 
+    pub(crate) fn anchor_offset(&self) -> u32 {
+        self.range
+            .get()
+            .map(|range| match self.direction.get() {
+                Direction::Forwards => range.start_offset(),
+                _ => range.end_offset(),
+            })
+            .unwrap_or(0)
+    }
+
     pub(crate) fn focus_node(&self) -> Option<DomRoot<Node>> {
         self.range.get().map(|range| match self.direction.get() {
             Direction::Forwards => range.end_container(),
             _ => range.start_container(),
         })
+    }
+
+    pub(crate) fn focus_offset(&self) -> u32 {
+        self.range
+            .get()
+            .map(|range| match self.direction.get() {
+                Direction::Forwards => range.end_offset(),
+                _ => range.start_offset(),
+            })
+            .unwrap_or(0)
     }
 }
 
@@ -176,7 +196,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > The attribute must return the anchor node of this, or null if the anchor is
         // > null or anchor is not in the document tree.
         let anchor_node = self.anchor_node()?;
-        if anchor_node.containing_shadow_root().is_some() {
+        if anchor_node.is_in_a_document_tree() {
             return None;
         }
         Some(anchor_node)
@@ -186,20 +206,13 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     fn AnchorOffset(&self) -> u32 {
         // > The attribute must return the anchor offset of this, or 0 if the anchor is null
         // > or anchor is not in the document tree.
-        let Some(range) = self.range.get() else {
-            return 0;
-        };
         if self
             .anchor_node()
-            .is_none_or(|anchor_node| anchor_node.containing_shadow_root().is_some())
+            .is_none_or(|anchor_node| anchor_node.is_in_a_document_tree())
         {
             return 0;
         }
-
-        match self.direction.get() {
-            Direction::Forwards => range.start_offset(),
-            _ => range.end_offset(),
-        }
+        self.anchor_offset()
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-focusnode>
@@ -207,7 +220,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > The attribute must return the focus node of this, or null if the focus is
         // > null or focus is not in the document tree.
         let focus_node = self.focus_node()?;
-        if focus_node.containing_shadow_root().is_some() {
+        if focus_node.is_in_a_document_tree() {
             return None;
         }
         Some(focus_node)
@@ -217,20 +230,13 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     fn FocusOffset(&self) -> u32 {
         // > The attribute must return the focus offset of this, or 0 if the focus is null
         // > or focus is not in the document tree.
-        let Some(range) = self.range.get() else {
-            return 0;
-        };
         if self
             .focus_node()
-            .is_none_or(|focus_node| focus_node.containing_shadow_root().is_some())
+            .is_none_or(|focus_node| focus_node.is_in_a_document_tree())
         {
             return 0;
         }
-
-        match self.direction.get() {
-            Direction::Forwards => range.end_offset(),
-            _ => range.start_offset(),
-        }
+        self.focus_offset()
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-iscollapsed>
@@ -439,9 +445,9 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         //
         // Note: oldFocus is unused, so we do not set it here.
         let old_anchor_node = &*self
-            .GetAnchorNode()
+            .anchor_node()
             .expect("has range, therefore has anchor node");
-        let old_anchor_offset = self.AnchorOffset();
+        let old_anchor_offset = self.anchor_offset();
 
         // Step 4. Let newRange be a new range.
         let new_range;
