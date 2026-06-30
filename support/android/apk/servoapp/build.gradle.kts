@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "org.servo.servoshell"
-        minSdk = 30
+        minSdk = 33
         targetSdk = 34
         versionCode = generatedVersionCode
         versionName = "0.3.0"
