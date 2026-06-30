@@ -200,7 +200,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > The attribute must return the anchor node of this, or null if the anchor is
         // > null or anchor is not in the document tree.
         let anchor_node = self.anchor_node()?;
-        if anchor_node.is_in_a_document_tree() {
+        if !anchor_node.is_in_a_document_tree() {
             return None;
         }
         Some(anchor_node)
@@ -212,7 +212,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > or anchor is not in the document tree.
         if self
             .anchor_node()
-            .is_none_or(|anchor_node| anchor_node.is_in_a_document_tree())
+            .is_none_or(|anchor_node| !anchor_node.is_in_a_document_tree())
         {
             return 0;
         }
@@ -224,7 +224,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > The attribute must return the focus node of this, or null if the focus is
         // > null or focus is not in the document tree.
         let focus_node = self.focus_node()?;
-        if focus_node.is_in_a_document_tree() {
+        if !focus_node.is_in_a_document_tree() {
             return None;
         }
         Some(focus_node)
@@ -236,7 +236,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > or focus is not in the document tree.
         if self
             .focus_node()
-            .is_none_or(|focus_node| focus_node.is_in_a_document_tree())
+            .is_none_or(|focus_node| !focus_node.is_in_a_document_tree())
         {
             return 0;
         }
