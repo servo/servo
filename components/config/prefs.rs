@@ -54,6 +54,10 @@ pub fn set(preferences: Preferences) {
     stylo_static_prefs::set_pref!("layout.columns.enabled", preferences.layout_columns_enabled);
     stylo_static_prefs::set_pref!("layout.grid.enabled", preferences.layout_grid_enabled);
     stylo_static_prefs::set_pref!(
+        "layout.css.alpha-color-function.enabled",
+        preferences.layout_css_alpha_color_function_enabled
+    );
+    stylo_static_prefs::set_pref!(
         "layout.css.attr.enabled",
         preferences.layout_css_attr_enabled
     );
@@ -305,6 +309,7 @@ pub struct Preferences {
     // feature: CSS Grid | #34479 | Web/CSS/Guides/Grid_layout
     pub layout_grid_enabled: bool,
     pub layout_container_queries_enabled: bool,
+    pub layout_css_alpha_color_function_enabled: bool,
     pub layout_css_attr_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
     pub layout_threads: i64,
@@ -539,6 +544,7 @@ impl Preferences {
             layout_animations_test_enabled: false,
             layout_columns_enabled: false,
             layout_container_queries_enabled: false,
+            layout_css_alpha_color_function_enabled: false,
             layout_css_attr_enabled: false,
             layout_grid_enabled: false,
             layout_style_sharing_cache_enabled: true,
