@@ -148,14 +148,13 @@ pub(crate) fn validate_and_extract(
     // Step 3. Let localName be qualifiedName.
     let mut local_name = qualified_name.as_str();
     // Step 4. If qualifiedName contains a U+003A (:):
-    if let Some(idx) = qualified_name.find(':') {
+    if let Some((pre, name)) = qualified_name.split_once(':') {
         // Step 4.1 Set prefix to the part of qualifiedName before the first U+003A (:).
-        let p = &qualified_name[..idx];
-        prefix = Some(p);
+        prefix = Some(pre);
         // Step 4.2 Set localName to the part of qualifiedName after the first U+003A (:).
-        local_name = &qualified_name.as_str()[(idx + 1).min(qualified_name.len())..];
+        local_name = name;
         // Step 4.3 If prefix is not a valid namespace prefix, then throw an "InvalidCharacterError" DOMException.
-        if !is_valid_namespace_prefix(p) {
+        if !is_valid_namespace_prefix(pre) {
             debug!("Not a valid namespace prefix");
             return Err(Error::InvalidCharacter(None));
         }
