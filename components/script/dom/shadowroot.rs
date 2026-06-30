@@ -469,9 +469,9 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
         self.stylesheet_list.or_init(|| {
             StyleSheetList::new(
+                cx,
                 &self.window,
                 StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
-                CanGc::deprecated_note(),
             )
         })
     }

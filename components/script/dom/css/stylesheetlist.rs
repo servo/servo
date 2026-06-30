@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
 
@@ -108,14 +108,14 @@ impl StyleSheetList {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         doc_or_sr: StyleSheetListOwner,
-        can_gc: CanGc,
     ) -> DomRoot<StyleSheetList> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(StyleSheetList::new_inherited(doc_or_sr)),
             window,
-            can_gc,
+            cx,
         )
     }
 }
