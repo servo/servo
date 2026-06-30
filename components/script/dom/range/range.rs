@@ -318,6 +318,11 @@ impl Range {
         self.abstract_range().end()
     }
 
+    pub(crate) fn start_and_end_are_in_document_tree(&self) -> bool {
+        self.start_container().containing_shadow_root().is_none() &&
+            self.end_container().containing_shadow_root().is_none()
+    }
+
     pub(crate) fn start_container(&self) -> DomRoot<Node> {
         self.abstract_range().StartContainer()
     }
