@@ -223,6 +223,8 @@ pub struct RequestClient {
     pub is_nested_browsing_context: bool,
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     pub insecure_requests_policy: InsecureRequestsPolicy,
+    /// <https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin>
+    pub has_trustworthy_ancestor_origin: bool,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#system-visibility-state>
@@ -481,7 +483,6 @@ pub struct RequestBuilder {
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
     pub insecure_requests_policy: InsecureRequestsPolicy,
-    pub has_trustworthy_ancestor_origin: bool,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-referrer>
     pub referrer: Referrer,
@@ -542,7 +543,6 @@ impl RequestBuilder {
             client: None,
             policy_container: RequestPolicyContainer::default(),
             insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
-            has_trustworthy_ancestor_origin: false,
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
@@ -710,14 +710,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn has_trustworthy_ancestor_origin(
-        mut self,
-        has_trustworthy_ancestor_origin: bool,
-    ) -> RequestBuilder {
-        self.has_trustworthy_ancestor_origin = has_trustworthy_ancestor_origin;
-        self
-    }
-
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
     pub fn service_workers_mode(
         mut self,
@@ -782,7 +774,6 @@ impl RequestBuilder {
         request.client = self.client;
         request.policy_container = self.policy_container;
         request.insecure_requests_policy = self.insecure_requests_policy;
-        request.has_trustworthy_ancestor_origin = self.has_trustworthy_ancestor_origin;
         request.is_internal_request = self.is_internal_request;
         request
     }
@@ -864,7 +855,6 @@ pub struct Request {
     pub policy_container: RequestPolicyContainer,
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     pub insecure_requests_policy: InsecureRequestsPolicy,
-    pub has_trustworthy_ancestor_origin: bool,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
     /// Servo internal: whether this request originates from Servo internal implementation
@@ -914,7 +904,6 @@ impl Request {
             response_tainting: ResponseTainting::Basic,
             policy_container: RequestPolicyContainer::Client,
             insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
-            has_trustworthy_ancestor_origin: false,
             is_internal_request: Default::default(),
             crash: None,
         }

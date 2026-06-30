@@ -419,6 +419,7 @@ impl SharedWorkerGlobalScope {
                     origin: Origin::Origin(origin.clone()),
                     is_nested_browsing_context,
                     insecure_requests_policy,
+                    has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
                 };
 
                 let event_loop_sender = ScriptEventLoopSender::SharedWorker(own_sender.clone());
@@ -521,7 +522,6 @@ impl SharedWorkerGlobalScope {
 
                 let fetch_client = ModuleFetchClient {
                     insecure_requests_policy,
-                    has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
                     policy_container,
                     client: request_client,
                     pipeline_id,

@@ -648,7 +648,6 @@ impl Callback for QueueTaskHandler {
 #[derive(Clone)]
 pub(crate) struct ModuleFetchClient {
     pub insecure_requests_policy: InsecureRequestsPolicy,
-    pub has_trustworthy_ancestor_origin: bool,
     pub policy_container: PolicyContainer,
     pub client: RequestClient,
     pub pipeline_id: PipelineId,
@@ -659,7 +658,6 @@ impl ModuleFetchClient {
     pub(crate) fn from_global_scope(global: &GlobalScope) -> Self {
         Self {
             insecure_requests_policy: global.insecure_requests_policy(),
-            has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_or_current_origin(),
             policy_container: global.policy_container(),
             client: global.request_client(None),
             pipeline_id: global.pipeline_id(),
@@ -1608,7 +1606,6 @@ pub(crate) fn fetch_a_single_module_script(
         .mode(mode)
         .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
         .insecure_requests_policy(fetch_client.insecure_requests_policy)
-        .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
         .policy_container(fetch_client.policy_container)
         .client(fetch_client.client)
         .pipeline_id(Some(fetch_client.pipeline_id))

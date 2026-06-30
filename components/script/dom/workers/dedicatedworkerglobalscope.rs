@@ -420,6 +420,7 @@ impl DedicatedWorkerGlobalScope {
                     origin: Origin::Origin(origin.clone()),
                     is_nested_browsing_context,
                     insecure_requests_policy,
+                    has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
                 };
 
                 let event_loop_sender = ScriptEventLoopSender::DedicatedWorker {
@@ -511,7 +512,6 @@ impl DedicatedWorkerGlobalScope {
 
                 let fetch_client = ModuleFetchClient {
                     insecure_requests_policy,
-                    has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
                     policy_container,
                     client: request_client,
                     pipeline_id,
@@ -801,7 +801,6 @@ pub(crate) fn fetch_a_classic_worker_script(
     let request = RequestBuilder::new(webview_id, url_with_blob_lock.clone(), referrer)
         // client is fetchClient,
         .insecure_requests_policy(fetch_client.insecure_requests_policy)
-        .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
         .policy_container(fetch_client.policy_container.clone())
         .client(fetch_client.client)
         .pipeline_id(Some(fetch_client.pipeline_id))

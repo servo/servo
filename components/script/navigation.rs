@@ -229,6 +229,7 @@ impl InProgressLoad {
             origin: Origin::Origin(client_origin),
             is_nested_browsing_context: self.parent_info.is_some(),
             insecure_requests_policy,
+            has_trustworthy_ancestor_origin: self.load_data.has_trustworthy_ancestor_origin,
         };
 
         let mut request_builder = RequestBuilder::new(
@@ -245,7 +246,6 @@ impl InProgressLoad {
         .referrer_policy(self.load_data.referrer_policy)
         .policy_container(self.load_data.policy_container.clone().unwrap_or_default())
         .insecure_requests_policy(insecure_requests_policy)
-        .has_trustworthy_ancestor_origin(self.load_data.has_trustworthy_ancestor_origin)
         .headers(self.load_data.headers.clone())
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)

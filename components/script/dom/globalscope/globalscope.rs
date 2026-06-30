@@ -2653,6 +2653,7 @@ impl GlobalScope {
             origin: RequestOrigin::Origin(self.origin().immutable().clone()),
             is_nested_browsing_context,
             insecure_requests_policy: self.insecure_requests_policy(),
+            has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_or_current_origin(),
         }
     }
 

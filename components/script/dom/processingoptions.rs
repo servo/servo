@@ -85,7 +85,6 @@ pub(crate) struct LinkProcessingOptions {
     /// <https://html.spec.whatwg.org/multipage/#link-options-origin>
     pub(crate) origin: ImmutableOrigin,
     pub(crate) insecure_requests_policy: InsecureRequestsPolicy,
-    pub(crate) has_trustworthy_ancestor_origin: bool,
     pub(crate) referrer: Referrer,
     // https://html.spec.whatwg.org/multipage/#link-options-environment
     pub(crate) request_client: RequestClient,
@@ -208,7 +207,6 @@ impl LinkProcessingOptions {
             self.referrer,
         )
         .insecure_requests_policy(self.insecure_requests_policy)
-        .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
         .policy_container(self.policy_container)
         .client(self.request_client)
         .initiator(Initiator::Link)
@@ -412,7 +410,6 @@ pub(crate) fn process_link_headers(
             origin: document.origin().immutable().to_owned(),
             base_url: document.base_url(),
             insecure_requests_policy: document.insecure_requests_policy(),
-            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
             request_client: global.request_client(None),
             referrer: global.get_referrer(),
         };

@@ -78,7 +78,6 @@ impl Tokenizer {
             // block the main parser.
             prefetching: Cell::new(false),
             insecure_requests_policy: document.insecure_requests_policy(),
-            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
             policy_container: global.policy_container(),
             request_client: global.request_client(None),
         };
@@ -113,7 +112,6 @@ struct PrefetchSink {
     prefetching: Cell<bool>,
     #[no_trace]
     insecure_requests_policy: InsecureRequestsPolicy,
-    has_trustworthy_ancestor_origin: bool,
     #[no_trace]
     policy_container: PolicyContainer,
     #[no_trace]
@@ -159,7 +157,6 @@ impl TokenSink for PrefetchSink {
                         self.referrer.clone(),
                     )
                     .insecure_requests_policy(self.insecure_requests_policy)
-                    .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
                     .policy_container(self.policy_container.clone())
                     .client(self.request_client.clone())
                     .origin(self.origin.clone())
@@ -182,7 +179,6 @@ impl TokenSink for PrefetchSink {
                         self.referrer.clone(),
                     )
                     .insecure_requests_policy(self.insecure_requests_policy)
-                    .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
                     .policy_container(self.policy_container.clone())
                     .client(self.request_client.clone())
                     .origin(self.origin.clone())
@@ -219,7 +215,6 @@ impl TokenSink for PrefetchSink {
                         self.referrer.clone(),
                     )
                     .insecure_requests_policy(self.insecure_requests_policy)
-                    .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
                     .policy_container(self.policy_container.clone())
                     .client(self.request_client.clone())
                     .origin(self.origin.clone())

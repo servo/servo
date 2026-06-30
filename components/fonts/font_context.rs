@@ -133,7 +133,6 @@ pub struct WebFontDocumentContext {
     pub policy_container: PolicyContainer,
     pub request_client: RequestClient,
     pub document_url: ServoUrl,
-    pub has_trustworthy_ancestor_origin: bool,
     pub insecure_requests_policy: InsecureRequestsPolicy,
     pub csp_handler: Box<dyn CspViolationHandler>,
     pub network_timing_handler: Box<dyn NetworkTimingHandler>,
@@ -145,7 +144,6 @@ impl Clone for WebFontDocumentContext {
             policy_container: self.policy_container.clone(),
             request_client: self.request_client.clone(),
             document_url: self.document_url.clone(),
-            has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_origin,
             insecure_requests_policy: self.insecure_requests_policy,
             csp_handler: self.csp_handler.clone(),
             network_timing_handler: self.network_timing_handler.clone(),
@@ -1083,8 +1081,7 @@ impl RemoteWebFontDownloader {
         .service_workers_mode(ServiceWorkersMode::All)
         .policy_container(document_context.policy_container.clone())
         .client(document_context.request_client.clone())
-        .insecure_requests_policy(document_context.insecure_requests_policy)
-        .has_trustworthy_ancestor_origin(document_context.has_trustworthy_ancestor_origin);
+        .insecure_requests_policy(document_context.insecure_requests_policy);
 
         let core_resource_thread_clone = font_context.resource_threads.lock().clone();
 
