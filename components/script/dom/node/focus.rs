@@ -341,17 +341,17 @@ impl Node {
                 descendant.get_the_focusable_area(Some(focus_trigger), no_gc)
             };
 
-            // > 6.3. If focusable area is null, then continue.
+            // > 1.3. If focusable area is null, then continue.
             if focusable_area.is_none() {
                 continue;
             }
 
-            // > 6.4. If focusable area is not click focusable and focus trigger is "click", then continue.
+            // > 1.4. If focusable area is not click focusable and focus trigger is "click", then continue.
             if !kind.contains(FocusableAreaKind::Click) && focus_trigger == FocusTrigger::Click {
                 continue;
             }
 
-            // > 6.5. Return focusable area.
+            // > 1.5. Return focusable area.
             return focusable_area;
         }
 
