@@ -88,7 +88,6 @@ pub(crate) struct CustomElementRegistry {
     /// <https://html.spec.whatwg.org/multipage/#is-scoped>
     is_scoped: Cell<bool>,
 
-    #[ignore_malloc_size_of = "Dom"]
     /// <https://html.spec.whatwg.org/multipage/#scoped-document-set>
     scoped_document_set: DomRefCell<Vec<Dom<Document>>>,
 
