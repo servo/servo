@@ -104,6 +104,7 @@ impl CanvasPaintThread {
         fields(message = message.to_string())
     )]
     fn process_command(&mut self, message: CanvasCommand, canvas_id: CanvasId) {
+        // println!("CanvasCommand[{canvas_id:?}]: {message}");
         match message {
             CanvasCommand::Recreate(size) => self.canvas(canvas_id).recreate(size),
             CanvasCommand::Destroy => {
@@ -291,6 +292,7 @@ impl CanvasPaintThread {
             },
             CanvasCommand::PopClips(clips) => self.canvas(canvas_id).pop_clips(clips),
             CanvasCommand::ProcessBatchMessages(messages) => {
+                // println!("CanvasCommand[{canvas_id:?}]: Batch({} messages)", messages.len());
                 for message in messages {
                     self.process_command(message, canvas_id);
                 }
