@@ -72,14 +72,10 @@
         android:layout_weight="2"
         android:focusable="true" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <androidx.compose.ui.platform.ComposeView
         android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:itemIconTint="@color/bottom_menu_colors"
-        app:itemTextColor="@color/bottom_menu_colors"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/bottom_menu" />
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </LinearLayout>
