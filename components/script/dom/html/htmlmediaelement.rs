@@ -2736,7 +2736,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_position_changed(&self, position: f64, cx: &mut JSContext) {
+    fn playback_position_changed(&self, cx: &mut JSContext, position: f64) {
         // Abort the following steps of the current time update if seeking is in progress.
         if self.seeking.get() {
             return;
@@ -2757,8 +2757,8 @@ impl HTMLMediaElement {
             media_position_state
         );
         self.send_media_session_event(
-            MediaSessionEvent::SetPositionState(media_position_state),
             cx,
+            MediaSessionEvent::SetPositionState(media_position_state),
         );
     }
 
@@ -2780,7 +2780,7 @@ impl HTMLMediaElement {
         ScriptThread::await_stable_state(Microtask::MediaElement(task));
     }
 
-    fn playback_state_changed(&self, state: &PlaybackState, cx: &mut JSContext) {
+    fn playback_state_changed(&self, cx: &mut JSContext, state: &PlaybackState) {
         let mut media_session_playback_state = MediaSessionPlaybackState::None_;
         match *state {
             PlaybackState::Paused => {
@@ -2808,8 +2808,8 @@ impl HTMLMediaElement {
             media_session_playback_state
         );
         self.send_media_session_event(
-            MediaSessionEvent::PlaybackStateChange(media_session_playback_state),
             cx,
+            MediaSessionEvent::PlaybackStateChange(media_session_playback_state),
         );
     }
 
@@ -2954,7 +2954,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn send_media_session_event(&self, event: MediaSessionEvent, cx: &mut JSContext) {
+    fn send_media_session_event(&self, cx: &mut JSContext, event: MediaSessionEvent) {
         let global = self.global();
         let media_session = global.as_window().Navigator().MediaSession(cx);
 
@@ -4065,13 +4065,13 @@ impl HTMLMediaElementEventHandler {
             },
             PlayerEvent::NeedData => element.playback_need_data(),
             PlayerEvent::PositionChanged(position) => {
-                element.playback_position_changed(position, cx)
+                element.playback_position_changed(cx, position)
             },
             PlayerEvent::SeekData(offset, seek_lock) => {
                 element.fetch_request(Some(offset), Some(seek_lock))
             },
             PlayerEvent::SeekDone(position) => element.playback_seek_done(position),
-            PlayerEvent::StateChanged(ref state) => element.playback_state_changed(state, cx),
+            PlayerEvent::StateChanged(ref state) => element.playback_state_changed(cx, state),
             PlayerEvent::VideoFrameUpdated => element.playback_video_frame_updated(),
         }
     }
