@@ -426,8 +426,8 @@ impl WorkerGlobalScope {
             .get_or_init(|| OneshotTimers::new(self.upcast()))
     }
 
-    pub(crate) fn enqueue_microtask(&self, cx: &mut JSContext, job: Microtask) {
-        self.microtask_queue.enqueue(job, cx.into());
+    pub(crate) fn enqueue_microtask(&self, cx: &JSContext, job: Microtask) {
+        self.microtask_queue.enqueue(cx, job);
     }
 
     /// Perform a microtask checkpoint.

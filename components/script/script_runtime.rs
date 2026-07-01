@@ -420,12 +420,12 @@ unsafe extern "C" fn enqueue_promise_job(
         let is_user_interacting =
             interaction == PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
         microtask_queue.enqueue(
+            cx,
             Microtask::Promise(EnqueuedPromiseCallback {
                 callback: unsafe { PromiseJobCallback::new(cx, job.get()) },
                 pipeline,
                 is_user_interacting,
             }),
-            cx.into(),
         );
         result = true
     });
