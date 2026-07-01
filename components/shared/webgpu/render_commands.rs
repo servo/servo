@@ -42,7 +42,7 @@ pub enum RenderCommand {
     },
     SetVertexBuffer {
         slot: u32,
-        buffer_id: BufferId,
+        buffer_id: Option<BufferId>,
         offset: u64,
         size: Option<wgpu_types::BufferSize>,
     },

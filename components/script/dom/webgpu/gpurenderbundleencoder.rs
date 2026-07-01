@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(deprecated)]
 use std::borrow::Cow;
 use std::ffi::CString;
 
@@ -118,7 +119,7 @@ impl GPURenderBundleEncoder {
         };
 
         // Handle error gracefully
-        let render_bundle_encoder = RenderBundleEncoder::new(&desc, device.id().0).unwrap();
+        let render_bundle_encoder = RenderBundleEncoder::new(&desc, None, device.id().0).unwrap();
 
         Ok(GPURenderBundleEncoder::new(
             cx,
@@ -195,12 +196,12 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
-    fn SetVertexBuffer(&self, no_gc: &NoGC, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
+    fn SetVertexBuffer(&self, no_gc: &NoGC, slot: u32, buffer: Option<&GPUBuffer>, offset: u64, size: u64) {
         if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_vertex_buffer(
                 encoder,
                 slot,
-                buffer.id().0,
+                buffer.map(|b| b.id().0),
                 offset,
                 wgpu_types::BufferSize::new(size),
             );

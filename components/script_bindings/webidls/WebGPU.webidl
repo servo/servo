@@ -1127,7 +1127,7 @@ interface mixin GPURenderCommandsMixin {
                              optional GPUSize64 offset = 0,
                              optional GPUSize64 size = 0);
     undefined setVertexBuffer(GPUIndex32 slot,
-                             GPUBuffer buffer,
+                             GPUBuffer? buffer,
                              optional GPUSize64 offset = 0,
                              optional GPUSize64 size = 0);
 

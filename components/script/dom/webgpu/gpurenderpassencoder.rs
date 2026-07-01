@@ -206,10 +206,10 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
-    fn SetVertexBuffer(&self, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
+    fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer>, offset: u64, size: u64) {
         self.send_render_command(RenderCommand::SetVertexBuffer {
             slot,
-            buffer_id: buffer.id().0,
+            buffer_id: buffer.map(|b| b.id().0),
             offset,
             size: wgpu_types::BufferSize::new(size),
         })

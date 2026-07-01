@@ -289,7 +289,9 @@ impl GPUDevice {
                         .vertex
                         .buffers
                         .iter()
-                        .map(|buffer| wgpu_pipe::VertexBufferLayout {
+                        // FIXME: webidl has `sequence<GPUVertexBufferLayout?> buffers`
+                        // but we get no option here so it must be eaten by codegen
+                        .map(|buffer| Some(wgpu_pipe::VertexBufferLayout {
                             array_stride: buffer.arrayStride,
                             step_mode: match buffer.stepMode {
                                 GPUVertexStepMode::Vertex => wgpu_types::VertexStepMode::Vertex,
@@ -306,7 +308,7 @@ impl GPUDevice {
                                     })
                                     .collect::<Vec<_>>(),
                             ),
-                        })
+                        }))
                         .collect::<Vec<_>>(),
                 ),
             },
