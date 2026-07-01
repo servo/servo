@@ -568,6 +568,25 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let _ = sender.send(reply);
     }
 
+    fn RegisterObjectActor(&self, serialized_value: DOMString) -> Option<DOMString> {
+        let chan = self.upcast::<GlobalScope>().devtools_chan()?;
+        let (tx, rx) = channel::<String>().unwrap();
+
+        let value =
+            match serde_json::from_str::<devtools_traits::DebuggerValue>(&serialized_value.str()) {
+                Ok(value) => value,
+                Err(error) => {
+                    warn!("Failed to parse serialized debugger object value: {error}");
+                    return None;
+                },
+            };
+
+        let msg = ScriptToDevtoolsControlMsg::CreateObjectActor(tx, value);
+        let _ = chan.send(msg);
+
+        rx.recv().ok().map(DOMString::from)
+    }
+
     fn PauseAndRespond(
         &self,
         pipeline_id: &PipelineIdInit,
