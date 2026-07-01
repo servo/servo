@@ -5,9 +5,9 @@
 //! Render pass commands
 
 use serde::{Deserialize, Serialize};
-use wgpu_core::command::{PassStateError, RenderPass};
+use wgpu_core::command::{PassStateError};
 use wgpu_core::global::Global;
-use wgpu_core::id::{BindGroupId, BufferId, RenderBundleId, RenderPipelineId};
+use wgpu_core::id::{BindGroupId, BufferId, RenderBundleId, RenderPassEncoderId, RenderPipelineId};
 
 /// <https://github.com/gfx-rs/wgpu/blob/f25e07b984ab391628d9568296d5970981d79d8b/wgpu-core/src/command/render_command.rs#L17>
 #[derive(Debug, Deserialize, Serialize)]
@@ -75,18 +75,18 @@ pub enum RenderCommand {
 
 pub fn apply_render_command(
     global: &Global,
-    pass: &mut RenderPass,
+    render_pass_id: RenderPassEncoderId,
     command: RenderCommand,
 ) -> Result<(), PassStateError> {
     match command {
         RenderCommand::SetPipeline(pipeline_id) => {
-            global.render_pass_set_pipeline(pass, pipeline_id)
+            global.render_pass_set_pipeline_with_id(render_pass_id, pipeline_id)
         },
         RenderCommand::SetBindGroup {
             index,
             bind_group_id,
             offsets,
-        } => global.render_pass_set_bind_group(pass, index, Some(bind_group_id), &offsets),
+        } => global.render_pass_set_bind_group_with_id(render_pass_id, index, Some(bind_group_id), &offsets),
         RenderCommand::SetViewport {
             x,
             y,
@@ -94,51 +94,45 @@ pub fn apply_render_command(
             height,
             min_depth,
             max_depth,
-        } => global.render_pass_set_viewport(pass, x, y, width, height, min_depth, max_depth),
+        } => global.render_pass_set_viewport_with_id(render_pass_id, x, y, width, height, min_depth, max_depth),
         RenderCommand::SetScissorRect {
             x,
             y,
             width,
             height,
-        } => global.render_pass_set_scissor_rect(pass, x, y, width, height),
+        } => global.render_pass_set_scissor_rect_with_id(render_pass_id, x, y, width, height),
         RenderCommand::SetBlendConstant(color) => {
-            global.render_pass_set_blend_constant(pass, color)
+            global.render_pass_set_blend_constant_with_id(render_pass_id, color)
         },
         RenderCommand::SetStencilReference(reference) => {
-            global.render_pass_set_stencil_reference(pass, reference)
+            global.render_pass_set_stencil_reference_with_id(render_pass_id, reference)
         },
         RenderCommand::SetIndexBuffer {
             buffer_id,
             index_format,
             offset,
             size,
-        } => global.render_pass_set_index_buffer(pass, buffer_id, index_format, offset, size),
+        } => global.render_pass_set_index_buffer_with_id(render_pass_id, buffer_id, index_format, offset, size),
         RenderCommand::SetVertexBuffer {
             slot,
             buffer_id,
             offset,
             size,
-        } => global.render_pass_set_vertex_buffer(pass, slot, buffer_id, offset, size),
+        } => global.render_pass_set_vertex_buffer_with_id(render_pass_id, slot, buffer_id, offset, size),
         RenderCommand::Draw {
             vertex_count,
             instance_count,
             first_vertex,
             first_instance,
-        } => global.render_pass_draw(
-            pass,
-            vertex_count,
-            instance_count,
-            first_vertex,
-            first_instance,
-        ),
+        } => global.render_pass_draw_with_id(render_pass_id, vertex_count, instance_count, first_vertex, first_instance),
         RenderCommand::DrawIndexed {
             index_count,
             instance_count,
             first_index,
             base_vertex,
             first_instance,
-        } => global.render_pass_draw_indexed(
-            pass,
+        } => global.render_pass_draw_indexed_with_id(
+            render_pass_id,
             index_count,
             instance_count,
             first_index,
@@ -146,20 +140,20 @@ pub fn apply_render_command(
             first_instance,
         ),
         RenderCommand::DrawIndirect { buffer_id, offset } => {
-            global.render_pass_draw_indirect(pass, buffer_id, offset)
+            global.render_pass_draw_indirect_with_id(render_pass_id, buffer_id, offset)
         },
         RenderCommand::DrawIndexedIndirect { buffer_id, offset } => {
-            global.render_pass_draw_indexed_indirect(pass, buffer_id, offset)
+            global.render_pass_draw_indexed_indirect_with_id(render_pass_id, buffer_id, offset)
         },
         RenderCommand::ExecuteBundles(bundles) => {
-            global.render_pass_execute_bundles(pass, &bundles)
+            global.render_pass_execute_bundles_with_id(render_pass_id, &bundles)
         },
         RenderCommand::PushDebugGroup(label) => {
-            global.render_pass_push_debug_group(pass, &label, 0)
+            global.render_pass_push_debug_group_with_id(render_pass_id, &label, 0)
         },
-        RenderCommand::PopDebugGroup => global.render_pass_pop_debug_group(pass),
+        RenderCommand::PopDebugGroup => global.render_pass_pop_debug_group_with_id(render_pass_id),
         RenderCommand::InsertDebugMarker(label) => {
-            global.render_pass_insert_debug_marker(pass, &label, 0)
+            global.render_pass_insert_debug_marker_with_id(render_pass_id, &label, 0)
         },
     }
 }

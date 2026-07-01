@@ -16,11 +16,11 @@ use servo_base::id::PipelineId;
 use servo_config::pref;
 use webgpu_traits::{
     Adapter, ComputePassId, DeviceLostReason, Error, ErrorScope, Mapping, Pipeline, PopError,
-    RenderPassId, ShaderCompilationInfo, WebGPU, WebGPUAdapter, WebGPUContextId, WebGPUDevice,
+    ShaderCompilationInfo, WebGPU, WebGPUAdapter, WebGPUContextId, WebGPUDevice,
     WebGPUMsg, WebGPUQueue, WebGPURequest, apply_render_command,
 };
 use webrender_api::ExternalImageId;
-use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
+use wgc::command::{ComputePass, ComputePassDescriptor};
 use wgc::device::DeviceDescriptor;
 use wgc::id;
 use wgc::id::DeviceId;
@@ -80,8 +80,6 @@ pub(crate) struct WGPU {
     pub(crate) poller: Poller,
     /// Store compute passes
     compute_passes: FxHashMap<ComputePassId, ComputePass>,
-    /// Store render passes
-    render_passes: FxHashMap<RenderPassId, RenderPass>,
 }
 
 impl WGPU {
@@ -142,7 +140,6 @@ impl WGPU {
             webrender_external_image_id_manager,
             wgpu_image_map,
             compute_passes: FxHashMap::default(),
-            render_passes: FxHashMap::default(),
         }
     }
 
@@ -877,12 +874,8 @@ impl WGPU {
                             occlusion_query_set: None,
                             multiview_mask: None,
                         };
-                        let (pass, error) =
-                            global.command_encoder_begin_render_pass(command_encoder_id, desc);
-                        assert!(
-                            self.render_passes.insert(render_pass_id, pass).is_none(),
-                            "RenderPass should not exist yet."
-                        );
+                        let (_, error) =
+                            global.command_encoder_begin_render_pass_with_id(command_encoder_id, desc, Some(render_pass_id));
                         self.maybe_dispatch_wgpu_error(device_id, error);
                     },
                     WebGPURequest::RenderPassCommand {
@@ -890,11 +883,7 @@ impl WGPU {
                         render_command,
                         device_id,
                     } => {
-                        let pass = self
-                            .render_passes
-                            .get_mut(&render_pass_id)
-                            .expect("RenderPass should exists");
-                        let result = apply_render_command(&self.global, pass, render_command);
+                        let result = apply_render_command(&self.global, render_pass_id, render_command);
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::EndRenderPass {
@@ -902,11 +891,7 @@ impl WGPU {
                         device_id,
                     } => {
                         // https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpurenderpassencoder-end
-                        let pass = self
-                            .render_passes
-                            .get_mut(&render_pass_id)
-                            .expect("RenderPass should exists");
-                        let result = self.global.render_pass_end(pass);
+                        let result = self.global.render_pass_end_with_id(render_pass_id);
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::Submit {
@@ -1096,9 +1081,7 @@ impl WGPU {
                         };
                     },
                     WebGPURequest::DropRenderPass(id) => {
-                        self.render_passes
-                            .remove(&id)
-                            .expect("RenderPass should exists");
+                        self.global.render_pass_drop(id);
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeRenderPass(id)) {
                             warn!("Unable to send FreeRenderPass({:?}) ({:?})", id, e);
                         };
