@@ -41,6 +41,7 @@ pub enum WebGPUMsg {
     FreeComputePass(ComputePassEncoderId),
     FreeRenderPass(RenderPassEncoderId),
     FreeExternalTexture(ExternalTextureId),
+    FreeRenderBundleEncoder(RenderBundleEncoderId),
     UncapturedError {
         device: WebGPUDevice,
         pipeline_id: PipelineId,

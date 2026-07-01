@@ -15,9 +15,7 @@ use servo_base::generic_channel::{GenericReceiver, GenericSender, GenericSharedM
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use webgpu_traits::{
-    Adapter, DeviceLostReason, Error, ErrorScope, Mapping, Pipeline, PopError,
-    ShaderCompilationInfo, WebGPU, WebGPUAdapter, WebGPUContextId, WebGPUDevice,
-    WebGPUMsg, WebGPUQueue, WebGPURequest, apply_render_command,
+    Adapter, DeviceLostReason, Error, ErrorScope, Mapping, Pipeline, PopError, ShaderCompilationInfo, WebGPU, WebGPUAdapter, WebGPUContextId, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, apply_render_bundle_command, apply_render_command,
 };
 use webrender_api::ExternalImageId;
 use wgc::command::{ComputePassDescriptor};
@@ -598,21 +596,6 @@ impl WGPU {
                             warn!("Unable to send FreeDevice({:?}) ({:?})", device_id, e);
                         };
                     },
-                    WebGPURequest::RenderBundleEncoderFinish {
-                        mut render_bundle_encoder,
-                        descriptor,
-                        render_bundle_id,
-                        device_id,
-                    } => {
-                        let global = &self.global;
-                        let (_, error) = global.render_bundle_encoder_finish(
-                            &mut render_bundle_encoder,
-                            &descriptor,
-                            Some(render_bundle_id),
-                        );
-
-                        self.maybe_dispatch_wgpu_error(device_id, error);
-                    },
                     WebGPURequest::RequestAdapter {
                         sender,
                         options,
@@ -1091,6 +1074,19 @@ impl WGPU {
                             warn!("Unable to send FreeShaderModule({:?}) ({:?})", id, e);
                         };
                     },
+                    WebGPURequest::DropRenderBundleEncoder(id) => {
+                        let global = &self.global;
+                        global.render_bundle_encoder_drop(id);
+                        if let Err(e) = self
+                            .script_sender
+                            .send(WebGPUMsg::FreeRenderBundleEncoder(id))
+                        {
+                            warn!(
+                                "Unable to send FreeRenderBundleEncoder({:?}) ({:?})",
+                                id, e
+                            );
+                        };
+                    },
                     WebGPURequest::DropRenderBundle(id) => {
                         let global = &self.global;
                         global.render_bundle_drop(id);
@@ -1372,6 +1368,29 @@ impl WGPU {
                     },
                     WebGPURequest::DestroyQuerySet(query_set_id) => {
                         self.global.query_set_destroy(query_set_id);
+                    },
+                    WebGPURequest::RenderBundleEncoderFinish {
+                        render_bundle_encoder_id,
+                        descriptor,
+                        render_bundle_id,
+                        device_id,
+                    } => {
+                        let global = &self.global;
+                        let (_, error) = global.render_bundle_encoder_finish_with_id(
+                            render_bundle_encoder_id,
+                            &descriptor,
+                            Some(render_bundle_id),
+                        );
+
+                        self.maybe_dispatch_wgpu_error(device_id, error);
+                    },
+                    WebGPURequest::CreateRenderBundleEncoder { device_id, render_bundle_encoder_id, desc } => {
+                        let (_, error) = self.global.device_create_render_bundle_encoder_with_id(device_id, &desc, Some(render_bundle_encoder_id));
+                        self.maybe_dispatch_wgpu_error(device_id, error);
+                    },
+                    WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id, render_command, device_id } => {
+                        let result = apply_render_bundle_command(&self.global, render_bundle_encoder_id, render_command);
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                 }
             }

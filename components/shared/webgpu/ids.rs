@@ -54,3 +54,4 @@ webgpu_resource!(WebGPURenderPass, RenderPassId);
 webgpu_resource!(WebGPUContextId, u64);
 webgpu_resource!(WebGPUQuerySet, QuerySetId);
 webgpu_resource!(WebGPUExternalTexture, ExternalTextureId);
+webgpu_resource!(WebGPURenderBundleEncoder, RenderBundleEncoderId);

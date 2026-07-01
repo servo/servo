@@ -37,6 +37,7 @@ pub(crate) struct IdentityHub {
     render_passes: IdentityManager<RenderPass>,
     query_sets: IdentityManager<QuerySet>,
     external_textures: IdentityManager<ExternalTexture>,
+    render_bundle_encoders: IdentityManager<RenderBundleEncoder>,
 }
 
 impl Default for IdentityHub {
@@ -62,6 +63,7 @@ impl Default for IdentityHub {
             render_passes: IdentityManager::new(),
             query_sets: IdentityManager::new(),
             external_textures: IdentityManager::new(),
+            render_bundle_encoders: IdentityManager::new(),
         }
     }
 }
@@ -225,5 +227,13 @@ impl IdentityHub {
 
     pub(crate) fn free_external_texture_id(&self, id: ExternalTextureId) {
         self.external_textures.free(id);
+    }
+    
+    pub(crate) fn create_render_bundle_encoder_id(&self) -> RenderBundleEncoderId {
+        self.render_bundle_encoders.process()
+    }
+
+    pub(crate) fn free_render_bundle_encoder_id(&self, id: RenderBundleEncoderId) {
+        self.render_bundle_encoders.free(id);
     }
 }
