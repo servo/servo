@@ -924,14 +924,11 @@ impl Node {
     }
 
     /// Iterates over this node and all its descendants, in preorder. We take &NoGC to prevent GC which allows us to avoid rooting.
-    pub(crate) fn traverse_preorder_non_rooting<'a, 'b>(
-        &'a self,
+    pub(crate) fn traverse_preorder_non_rooting<'b>(
+        &self,
         no_gc: &'b NoGC,
         shadow_including: ShadowIncluding,
-    ) -> UnrootedTreeIterator<'a, 'b>
-    where
-        'b: 'a,
-    {
+    ) -> UnrootedTreeIterator<'b> {
         UnrootedTreeIterator::new(self, shadow_including, no_gc)
     }
 
@@ -1051,15 +1048,12 @@ impl Node {
         )
     }
 
-    pub(crate) fn following_nodes_unrooted<'a, 'b>(
-        &'a self,
+    pub(crate) fn following_nodes_unrooted<'b>(
+        &self,
         no_gc: &'b NoGC,
         root: &Node,
         shadow_including: ShadowIncluding,
-    ) -> UnrootedFollowingNodeIterator<'a, 'b>
-    where
-        'b: 'a,
-    {
+    ) -> UnrootedFollowingNodeIterator<'b> {
         UnrootedFollowingNodeIterator::new(
             Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
             UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
@@ -1072,14 +1066,11 @@ impl Node {
         PrecedingNodeIterator::new(Some(DomRoot::from_ref(self)), DomRoot::from_ref(root))
     }
 
-    pub(crate) fn preceding_nodes_unrooted<'a, 'b>(
+    pub(crate) fn preceding_nodes_unrooted<'b>(
         &self,
         no_gc: &'b NoGC,
-        root: &'a Node,
-    ) -> UnrootedPrecedingNodeIterator<'a, 'b>
-    where
-        'b: 'a,
-    {
+        root: &Node,
+    ) -> UnrootedPrecedingNodeIterator<'b> {
         UnrootedPrecedingNodeIterator::new(
             Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
             UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
