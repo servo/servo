@@ -286,6 +286,19 @@ impl<'a> ElementDamageSet<'a> {
             self.from_parent.remove(LayoutDamage::Relayout);
         }
 
+        // When an ancestor needs a box tree rebuild and this element isolates damage,
+        // children's boxes need to be cleaned up even though fragment tree layout is isolated.
+        // Otherwise, children's stale layout data will persist after the box tree is rebuilt.
+        // See <https://github.com/servo/servo/issues/46023>.
+        if self
+            .from_parent
+            .contains(LayoutDamage::DescendantHasBoxDamage) &&
+            self.node.isolates_damage_for_damage_propagation() &&
+            damage_for_children.is_empty()
+        {
+            damage_for_children.insert(LayoutDamage::DescendantHasBoxDamage);
+        }
+
         damage_for_children
     }
 
