@@ -12,7 +12,6 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOrUnregister};
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
-#[cfg(feature = "webgpu")]
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
 use net_traits::blob_url_store::UrlWithBlobClaim;
