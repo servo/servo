@@ -1,0 +1,444 @@
+<!--
+  ============================================================
+  IMAGE & URL CONFIGURATION
+  ============================================================
+  
+  Hero Image (browser screenshot/illustration):
+    Replace src in the hero <img> tag with your image path
+    URL: YOUR_HERO_IMAGE_URL_HERE
+  
+  Linux Download URL:
+    Replace href in the Linux download button
+    URL: YOUR_LINUX_DOWNLOAD_URL_HERE
+  
+  Windows Download URL (currently disabled/Coming Soon):
+    URL: YOUR_WINDOWS_DOWNLOAD_URL_HERE
+  
+  Android Download URL (currently disabled/Coming Soon):
+    URL: YOUR_ANDROID_DOWNLOAD_URL_HERE
+  
+  Favicon:
+    Replace href in the <link rel="icon"> tag
+    URL: YOUR_FAVICON_URL_HERE
+  ============================================================
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ringtail</title>
+  <link rel="icon" href="YOUR_FAVICON_URL_HERE" type="image/png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background: #0a0a0f; font-family: 'Inter', sans-serif; }
+
+    /* Noise overlay */
+    .noise-overlay {
+      position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* Glow effects */
+    .glow-top {
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 500px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(96, 165, 250, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .glow-download {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 600px; height: 400px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(96, 165, 250, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Subtle grid */
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* Button glow on hover */
+    .btn-primary {
+      position: relative; overflow: hidden;
+      background: #ffffff; color: #000000;
+      transition: all 0.2s ease;
+    }
+    .btn-primary::before {
+      content: ''; position: absolute; inset: -2px; border-radius: inherit;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      opacity: 0; z-index: -1; transition: opacity 0.3s;
+      filter: blur(12px);
+    }
+    .btn-primary:hover::before { opacity: 0.6; }
+    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(255,255,255,0.15); }
+
+    .btn-disabled {
+      background: rgba(255,255,255,0.04); color: #52525b;
+      border: 1px solid rgba(255,255,255,0.06);
+      cursor: not-allowed; position: relative;
+    }
+
+    /* Feature card hover */
+    .feature-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.3s ease;
+    }
+    .feature-card:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.1);
+      transform: translateY(-2px);
+    }
+
+    /* Download card */
+    .download-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: all 0.3s ease;
+    }
+    .download-card:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .download-card.disabled-card:hover {
+      background: rgba(255,255,255,0.02);
+      border-color: rgba(255,255,255,0.06);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    /* Hero image styling */
+    .hero-image {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      box-shadow: 0 25px 80px -20px rgba(0,0,0,0.7), 0 0 60px rgba(96,165,250,0.05);
+    }
+
+    /* Badge */
+    .badge {
+      background: rgba(96, 165, 250, 0.1);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      color: #60a5fa;
+    }
+
+    /* Coming soon badge */
+    .badge-soon {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #52525b;
+    }
+
+    /* Fade in animation */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up {
+      animation: fadeUp 0.7s ease forwards;
+      opacity: 0;
+    }
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-200 { animation-delay: 0.2s; }
+    .delay-300 { animation-delay: 0.3s; }
+    .delay-400 { animation-delay: 0.4s; }
+    .delay-500 { animation-delay: 0.5s; }
+  </style>
+</head>
+<body class="text-white antialiased overflow-x-hidden grid-bg">
+
+  <div class="noise-overlay"></div>
+
+  <!-- Navigation -->
+  <nav class="fixed top-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-3xl">
+    <div class="flex items-center justify-between px-5 py-3 rounded-full"
+         style="background: rgba(18,18,26,0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-2.5">
+        <img src="logo-white.png" style="height: 32px">
+      </a>
+      <!-- Links -->
+      <div class="hidden md:flex items-center gap-6">
+        <a href="#features" class="text-zinc-400 text-xs font-medium tracking-wide hover:text-white transition-colors">Features</a>
+        <a href="#download" class="text-zinc-400 text-xs font-medium tracking-wide hover:text-white transition-colors">Download</a>
+      </div>
+      <a href="#download"
+         class="bg-white text-black text-xs font-semibold px-4 py-2 rounded-full hover:scale-105 transition-transform">
+        Get Ringtail
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="relative pt-40 pb-20 lg:pt-48 lg:pb-28">
+    <div class="glow-top"></div>
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <!-- Text -->
+        <div>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1] mb-6 animate-fade-up delay-100">
+            Browse without<br>
+            <span class="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">being watched.</span>
+          </h1>
+          <p class="text-lg text-zinc-400 font-light leading-relaxed max-w-lg mb-8 animate-fade-up delay-200">
+            Ringtail is a fast, privacy-centered browser built with Rust. No tracking or telemetry. Built upon Servo's source code, Ringtail is lightweight and embeddable.
+          </p>
+          <div class="flex flex-wrap items-center gap-4 animate-fade-up delay-300">
+            <a href="#download" class="btn-primary inline-flex items-center gap-2 text-sm font-semibold px-7 py-3.5 rounded-full">
+              <i data-lucide="download" class="w-4 h-4"></i>
+             Download for <b><span id="os">(Loading)</span></b>
+             <script>document.getElementById("os").innerHTML = (/CrOS/.test(navigator.userAgent)) ? "ChromeOS" : "Linux"</script>
+            </a>
+            <a href="#features" class="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-white px-5 py-3.5 rounded-full border border-white/10 hover:border-white/20 transition-all">
+              Learn more
+              <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+            </a>
+          </div>
+        </div>
+        <!-- Hero Image -->
+        <div class="animate-fade-up delay-300" style="border: none;">
+          <!-- REPLACE: Change the src below to your hero image URL -->
+          <img src="logo.png"
+               alt="Ringtail Browser Logo"
+               class="hero-image w-full object-cover"
+               style="border: none;">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="relative py-24 lg:py-32">
+    <div class="max-w-6xl mx-auto px-6">
+      <!-- Section header -->
+      <div class="text-center max-w-2xl mx-auto mb-16">
+        <h2 class="text-3xl md:text-4xl font-medium tracking-tight mb-4">
+          Features
+        </h2>
+      </div>
+      <!-- Feature grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Feature 1 -->
+        <div class="feature-card rounded-2xl p-7">
+          <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-5">
+            <i data-lucide="shield" class="w-5 h-5 text-blue-400"></i>
+          </div>
+          <h3 class="text-base font-medium mb-2">Strict Privacy</h3>
+          <p class="text-sm text-zinc-400 font-light leading-relaxed">
+            No trackers, fingerprinting, or data collection. Browsing history is not logged at all.
+          </p>
+        </div>
+        <!-- Feature 2 -->
+        <div class="feature-card rounded-2xl p-7">
+          <div class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mb-5">
+            <i data-lucide="zap" class="w-5 h-5 text-orange-400"></i>
+          </div>
+          <h3 class="text-base font-medium mb-2">Performance</h3>
+          <p class="text-sm text-zinc-400 font-light leading-relaxed">
+            Built with Rust, Ringtail is memory-safe and optimized.
+          </p>
+        </div>
+        <!-- Feature 3 -->
+        <div class="feature-card rounded-2xl p-7">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5">
+            <i data-lucide="eye-off" class="w-5 h-5 text-emerald-400"></i>
+          </div>
+          <h3 class="text-base font-medium mb-2">Zero Telemetry</h3>
+          <p class="text-sm text-zinc-400 font-light leading-relaxed">
+            No usage stats or no crash reports get sent to our servers.
+          </p>
+        </div>
+        <!-- Feature 4 -->
+        <div class="feature-card rounded-2xl p-7">
+          <div class="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-5">
+            <i data-lucide="git-branch" class="w-5 h-5 text-violet-400"></i>
+          </div>
+          <h3 class="text-base font-medium mb-2">Open Source</h3>
+          <p class="text-sm text-zinc-400 font-light leading-relaxed">
+            Ringtail's souce code is available for free publicly on GitHub. Built upon Servo, an open-source web browser engine.
+          </p>
+        </div>
+        <!-- Feature 5 -->
+        <div class="feature-card rounded-2xl p-7">
+          <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center mb-5">
+            <i data-lucide="puzzle" class="w-5 h-5 text-pink-400"></i>
+          </div>
+          <h3 class="text-base font-medium mb-2">JavaScript Extension Support (beta)</h3>
+          <p class="text-sm text-zinc-400 font-light leading-relaxed">
+            Add new features to Ringtail with JavaScript-powered extensions.
+          </p>
+        </div>
+        <!-- Feature 6 -->
+        <div class="feature-card rounded-2xl p-7">
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-5">
+            <i data-lucide="settings-2" class="w-5 h-5 text-cyan-400"></i>
+          </div>
+          <h3 class="text-base font-medium mb-2">Simple GUI</h3>
+          <p class="text-sm text-zinc-400 font-light leading-relaxed">
+            Clean interface with no bloat; only what you need, nothing you don't. Fast to load and easy to use.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Section -->
+  <section id="download" class="relative py-24 lg:py-32">
+    <div class="glow-download"></div>
+    <div class="max-w-3xl mx-auto px-6 relative z-10">
+      <!-- Section header -->
+      <div class="text-center mb-14">
+        <span class="text-[11px] font-semibold tracking-widest uppercase text-zinc-500 mb-4 block">Download</span>
+        <h2 class="text-3xl md:text-4xl font-medium tracking-tight mb-4">
+          Get Ringtail now
+        </h2>
+        <p class="text-zinc-400 font-light leading-relaxed">
+          Available on Linux and ChromeOS. Windows and Android support arriving soon.
+        </p>
+      </div>
+      <!-- Download cards -->
+      <div class="space-y-4">
+        
+        <!-- Linux — Active -->
+        <a href="YOUR_LINUX_DOWNLOAD_URL_HERE"
+           class="download-card group rounded-2xl p-6 flex items-center gap-5 block">
+          <div class="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-blue-500/30 group-hover:bg-blue-500/5 transition-all">
+            <!-- Linux / Tux icon -->
+            
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24.90937" height="29.24454" viewBox="0,0,24.90937,29.24454"><g transform="translate(-227.54532,-165.37773)"><g stroke="none" stroke-miterlimit="10"><g><g fill="#ffffff"><path d="M251.58888,191.27492c-1.22653,0.68339 -3.40801,1.77264 -4.22868,2.63807c-0.81768,0.86245 -2.09196,0.81768 -2.68284,0.49837c-0.59088,-0.31633 -0.9102,-1.04449 -0.9102,-1.04449c0,0 -1.63537,-0.40884 -3.36325,-0.36408c-1.72788,0.04178 -3.36325,0.40884 -3.36325,0.40884c0,0 -0.45361,1.18176 -1.90693,0.99972c-1.45631,-0.17905 -3.18419,-1.17878 -4.73003,-1.3638c-1.54584,-0.17905 -3.13644,-0.50135 -2.81713,-1.54286c0.31633,-1.0415 0.59088,-1.49809 0.31633,-2.31578c-0.27157,-0.81768 -0.27157,-1.54882 0.86543,-1.77563c1.137,-0.2268 1.77264,-0.54313 2.09196,-1.22354c0.31931,-0.68638 0.72816,-0.82067 0.72816,-0.82067c0,0 -0.40884,-0.95496 0.18204,-1.99945c0.59387,-1.04747 1.18475,-3.59303 2.00243,-4.81956c0.82067,-1.22653 2.05018,-2.69179 2.22923,-3.09168c0.17607,-0.39989 0.2268,-1.50108 0.13429,-3.04393c-0.08953,-1.54584 -0.68041,-4.81956 1.22951,-6.13561c1.90992,-1.31904 5.45222,-1.49809 6.81901,1.5906c1.36082,3.0887 0.08953,5.49997 1.58762,7.59193c1.49809,2.09196 3.45277,4.86134 4.04366,6.5922c0.59088,1.72788 -0.04476,3.81984 -0.04476,3.81984c0,0 0.72816,0.63266 0.68339,1.58762c-0.04476,0.95496 0.59088,1.45631 1.3638,1.77264c0.77292,0.31633 0.99972,1.36082 -0.22979,2.04123zM239.77126,170.91042c0,0.27754 0.05372,0.54015 0.14921,0.77292c0.17607,0.06864 0.39989,0.15817 0.64161,0.25366c-0.08057,-0.15518 -0.12832,-0.34617 -0.12832,-0.54612c0,-0.53716 0.33424,-0.97286 0.74009,-0.97286c0.41183,0 0.74308,0.4357 0.74308,0.97286c0,0.41481 -0.19696,0.76695 -0.4745,0.90423c0.13131,0.0567 0.25665,0.11042 0.37303,0.16115c0.45957,-0.2835 0.7759,-0.86543 0.7759,-1.54286c0,-0.95197 -0.62968,-1.7249 -1.40856,-1.7249c-0.78187,0 -1.41155,0.77292 -1.41155,1.72191zM239.24603,172.16082c-0.38795,-0.07162 -1.02957,0.47748 -1.28323,0.70727c-0.25068,0.22979 -0.82067,0.66549 -0.82067,0.66549c-0.18502,0.31931 0.54612,0.91616 0.93705,1.16983c0.39094,0.25068 0.59685,0.45659 0.96391,0.41183c0.36706,-0.04476 1.51003,-0.75501 2.03824,-1.07433c0.52821,-0.3223 0.73412,-0.3223 0.77889,-0.57596c0.04476,-0.25068 -0.38795,-0.50434 -0.77889,-0.63863c-0.39094,-0.13728 -1.44438,-0.59685 -1.83531,-0.66549zM236.44681,171.09544c0,0.73412 0.32827,1.35485 0.77889,1.56375c0.14921,-0.11042 0.29544,-0.24172 0.45361,-0.39392c-0.01791,0.00597 -0.03581,0.01194 -0.05372,0.01492c-0.3223,0.05372 -0.65057,-0.30738 -0.73412,-0.80276c-0.08356,-0.49837 0.1134,-0.94004 0.43868,-0.99674c0.32528,-0.05073 0.65355,0.31036 0.73711,0.80276c0.04476,0.27455 0.00597,0.53418 -0.09251,0.71622c0.06565,-0.0567 0.13131,-0.1134 0.20591,-0.17607c0.14921,-0.12534 0.30141,-0.2089 0.45062,-0.25963c0.03283,-0.14921 0.04775,-0.30141 0.04775,-0.46853c0,-0.90423 -0.49837,-1.63537 -1.11312,-1.63537c-0.61177,0 -1.11014,0.73114 -1.11909,1.63537zM235.52766,190.50797c-0.50732,-0.54612 -1.7428,-2.7276 -2.06808,-3.23194c-0.32827,-0.51329 -1.12506,-1.4205 -1.56076,-1.16386c-0.4357,0.25366 -0.54313,1.19668 -1.08925,1.52495c-0.54313,0.32528 -1.95767,0.32528 -2.06808,0.79679c-0.10743,0.4745 0.21785,0.90721 0.11042,1.59956c-0.11042,0.68638 -0.54612,1.41453 -0.25665,1.7428c0.29246,0.3223 2.50677,0.4357 3.37817,0.79679c0.8714,0.36408 2.79326,1.19967 3.4856,0.98182c0,0 0.76098,-0.4745 0.90721,-1.12506c0.14623,-0.65355 -0.32528,-1.38171 -0.83857,-1.92186zM245.58159,185.73317c0,0 0.45659,-1.45631 0.18204,-3.36325c-0.27157,-1.90992 -2.99917,-7.90826 -3.3155,-8.18281c-0.31335,-0.27455 -2.45305,1.31605 -3.40801,1.5906c-0.95197,0.27157 -2.31578,-1.36679 -2.31578,-1.36679c0.2268,0.68339 -0.27157,2.22923 -0.90721,2.95441c-0.63863,0.73114 -1.04449,2.90964 -1.68013,3.90936c-0.63564,1.00271 -1.04449,3.00514 -0.54612,4.18391c0.49837,1.18176 3.27074,2.5008 3.40801,3.45576c0.13429,0.95496 -0.81768,1.09223 -0.81768,1.09223l1.22653,1.40558c0,0 1.09223,0.22979 3.27372,-0.08953c2.18447,-0.31931 3.59303,-2.27101 3.59303,-2.27101c0,0 0,-2.31578 0.13131,-2.95739c0.13429,-0.63564 1.17579,-0.36109 1.17579,-0.36109zM250.46979,189.32024c-0.53418,-0.28052 -0.8147,-1.09522 -0.77889,-1.65924c0.03581,-0.56402 -0.31633,-0.74308 -0.31633,-0.74308c0,0 -0.24769,0.52821 -0.60282,0.88035c-0.35513,0.35811 -1.51898,0.84753 -2.3307,0.49837c-0.80873,-0.35513 -0.67146,-1.69505 -0.67146,-1.69505c0,0 -0.28052,-0.06864 -0.45659,0.06864c-0.17905,0.14026 -0.03581,1.09522 0,1.80249c0.03581,0.70727 -0.17905,1.94275 -0.42376,3.07079c-0.24769,1.13103 0.24471,1.90693 0.81172,2.08599c0.56402,0.17607 1.48317,-0.42675 2.18745,-1.16386c0.70727,-0.74606 3.07079,-1.69804 3.49455,-2.08897c0.42376,-0.38497 -0.38795,-0.7759 -0.91318,-1.05642z"/></g><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/></g><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/></g></g></svg><!--rotationCenter:12.454684473907776:14.62227238609313-->
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2.5 mb-0.5">
+              <h3 class="text-sm font-medium">Linux / WSL</h3>
+              <span class="badge text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded-full">x86_64</span>
+            </div>
+            <p class="text-xs text-zinc-500 font-light">Binary distribution</p>
+          </div>
+          <div class="flex-shrink-0">
+            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform">
+              <i data-lucide="download" class="w-4 h-4 text-black"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Linux — Active -->
+        <a href="YOUR_LINUX_DOWNLOAD_URL_HERE"
+           class="download-card group rounded-2xl p-6 flex items-center gap-5 block">
+          <div class="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:border-blue-500/30 group-hover:bg-blue-500/5 transition-all">
+            <!-- Linux / Tux icon -->
+            
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24.90937" height="29.24454" viewBox="0,0,24.90937,29.24454"><g transform="translate(-227.54532,-165.37773)"><g stroke="none" stroke-miterlimit="10"><g><g fill="#ffffff"><path d="M251.58888,191.27492c-1.22653,0.68339 -3.40801,1.77264 -4.22868,2.63807c-0.81768,0.86245 -2.09196,0.81768 -2.68284,0.49837c-0.59088,-0.31633 -0.9102,-1.04449 -0.9102,-1.04449c0,0 -1.63537,-0.40884 -3.36325,-0.36408c-1.72788,0.04178 -3.36325,0.40884 -3.36325,0.40884c0,0 -0.45361,1.18176 -1.90693,0.99972c-1.45631,-0.17905 -3.18419,-1.17878 -4.73003,-1.3638c-1.54584,-0.17905 -3.13644,-0.50135 -2.81713,-1.54286c0.31633,-1.0415 0.59088,-1.49809 0.31633,-2.31578c-0.27157,-0.81768 -0.27157,-1.54882 0.86543,-1.77563c1.137,-0.2268 1.77264,-0.54313 2.09196,-1.22354c0.31931,-0.68638 0.72816,-0.82067 0.72816,-0.82067c0,0 -0.40884,-0.95496 0.18204,-1.99945c0.59387,-1.04747 1.18475,-3.59303 2.00243,-4.81956c0.82067,-1.22653 2.05018,-2.69179 2.22923,-3.09168c0.17607,-0.39989 0.2268,-1.50108 0.13429,-3.04393c-0.08953,-1.54584 -0.68041,-4.81956 1.22951,-6.13561c1.90992,-1.31904 5.45222,-1.49809 6.81901,1.5906c1.36082,3.0887 0.08953,5.49997 1.58762,7.59193c1.49809,2.09196 3.45277,4.86134 4.04366,6.5922c0.59088,1.72788 -0.04476,3.81984 -0.04476,3.81984c0,0 0.72816,0.63266 0.68339,1.58762c-0.04476,0.95496 0.59088,1.45631 1.3638,1.77264c0.77292,0.31633 0.99972,1.36082 -0.22979,2.04123zM239.77126,170.91042c0,0.27754 0.05372,0.54015 0.14921,0.77292c0.17607,0.06864 0.39989,0.15817 0.64161,0.25366c-0.08057,-0.15518 -0.12832,-0.34617 -0.12832,-0.54612c0,-0.53716 0.33424,-0.97286 0.74009,-0.97286c0.41183,0 0.74308,0.4357 0.74308,0.97286c0,0.41481 -0.19696,0.76695 -0.4745,0.90423c0.13131,0.0567 0.25665,0.11042 0.37303,0.16115c0.45957,-0.2835 0.7759,-0.86543 0.7759,-1.54286c0,-0.95197 -0.62968,-1.7249 -1.40856,-1.7249c-0.78187,0 -1.41155,0.77292 -1.41155,1.72191zM239.24603,172.16082c-0.38795,-0.07162 -1.02957,0.47748 -1.28323,0.70727c-0.25068,0.22979 -0.82067,0.66549 -0.82067,0.66549c-0.18502,0.31931 0.54612,0.91616 0.93705,1.16983c0.39094,0.25068 0.59685,0.45659 0.96391,0.41183c0.36706,-0.04476 1.51003,-0.75501 2.03824,-1.07433c0.52821,-0.3223 0.73412,-0.3223 0.77889,-0.57596c0.04476,-0.25068 -0.38795,-0.50434 -0.77889,-0.63863c-0.39094,-0.13728 -1.44438,-0.59685 -1.83531,-0.66549zM236.44681,171.09544c0,0.73412 0.32827,1.35485 0.77889,1.56375c0.14921,-0.11042 0.29544,-0.24172 0.45361,-0.39392c-0.01791,0.00597 -0.03581,0.01194 -0.05372,0.01492c-0.3223,0.05372 -0.65057,-0.30738 -0.73412,-0.80276c-0.08356,-0.49837 0.1134,-0.94004 0.43868,-0.99674c0.32528,-0.05073 0.65355,0.31036 0.73711,0.80276c0.04476,0.27455 0.00597,0.53418 -0.09251,0.71622c0.06565,-0.0567 0.13131,-0.1134 0.20591,-0.17607c0.14921,-0.12534 0.30141,-0.2089 0.45062,-0.25963c0.03283,-0.14921 0.04775,-0.30141 0.04775,-0.46853c0,-0.90423 -0.49837,-1.63537 -1.11312,-1.63537c-0.61177,0 -1.11014,0.73114 -1.11909,1.63537zM235.52766,190.50797c-0.50732,-0.54612 -1.7428,-2.7276 -2.06808,-3.23194c-0.32827,-0.51329 -1.12506,-1.4205 -1.56076,-1.16386c-0.4357,0.25366 -0.54313,1.19668 -1.08925,1.52495c-0.54313,0.32528 -1.95767,0.32528 -2.06808,0.79679c-0.10743,0.4745 0.21785,0.90721 0.11042,1.59956c-0.11042,0.68638 -0.54612,1.41453 -0.25665,1.7428c0.29246,0.3223 2.50677,0.4357 3.37817,0.79679c0.8714,0.36408 2.79326,1.19967 3.4856,0.98182c0,0 0.76098,-0.4745 0.90721,-1.12506c0.14623,-0.65355 -0.32528,-1.38171 -0.83857,-1.92186zM245.58159,185.73317c0,0 0.45659,-1.45631 0.18204,-3.36325c-0.27157,-1.90992 -2.99917,-7.90826 -3.3155,-8.18281c-0.31335,-0.27455 -2.45305,1.31605 -3.40801,1.5906c-0.95197,0.27157 -2.31578,-1.36679 -2.31578,-1.36679c0.2268,0.68339 -0.27157,2.22923 -0.90721,2.95441c-0.63863,0.73114 -1.04449,2.90964 -1.68013,3.90936c-0.63564,1.00271 -1.04449,3.00514 -0.54612,4.18391c0.49837,1.18176 3.27074,2.5008 3.40801,3.45576c0.13429,0.95496 -0.81768,1.09223 -0.81768,1.09223l1.22653,1.40558c0,0 1.09223,0.22979 3.27372,-0.08953c2.18447,-0.31931 3.59303,-2.27101 3.59303,-2.27101c0,0 0,-2.31578 0.13131,-2.95739c0.13429,-0.63564 1.17579,-0.36109 1.17579,-0.36109zM250.46979,189.32024c-0.53418,-0.28052 -0.8147,-1.09522 -0.77889,-1.65924c0.03581,-0.56402 -0.31633,-0.74308 -0.31633,-0.74308c0,0 -0.24769,0.52821 -0.60282,0.88035c-0.35513,0.35811 -1.51898,0.84753 -2.3307,0.49837c-0.80873,-0.35513 -0.67146,-1.69505 -0.67146,-1.69505c0,0 -0.28052,-0.06864 -0.45659,0.06864c-0.17905,0.14026 -0.03581,1.09522 0,1.80249c0.03581,0.70727 -0.17905,1.94275 -0.42376,3.07079c-0.24769,1.13103 0.24471,1.90693 0.81172,2.08599c0.56402,0.17607 1.48317,-0.42675 2.18745,-1.16386c0.70727,-0.74606 3.07079,-1.69804 3.49455,-2.08897c0.42376,-0.38497 -0.38795,-0.7759 -0.91318,-1.05642z"/></g><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/></g><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/><g fill="none" font-family="sans-serif" font-weight="normal" font-size="12" text-anchor="start"/></g></g></svg><!--rotationCenter:12.454684473907776:14.62227238609313-->
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2.5 mb-0.5">
+              <h3 class="text-sm font-medium">Linux and ChromeOS</h3>
+              <span class="badge text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded-full">Aarch64 (ARM)</span>
+            </div>
+            <p class="text-xs text-zinc-500 font-light">Binary distribution</p>
+          </div>
+          <div class="flex-shrink-0">
+            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform">
+              <i data-lucide="download" class="w-4 h-4 text-black"></i>
+            </div>
+          </div>
+        </a>
+
+        <!-- Windows — Disabled 
+        <div class="download-card disabled-card rounded-2xl p-6 flex items-center gap-5 opacity-60">
+          <div class="w-12 h-12 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-zinc-600" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 12.5V5.5l7-1V12.5H3zm8-8.25L21 3v9.5h-10V4.25zM3 13h7v7l-7-1V13zm8 .5h10V21l-10-1.25V13.5z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2.5 mb-0.5">
+              <h3 class="text-sm font-medium text-zinc-500">Windows 10/11</h3>
+              <span class="badge-soon text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full">Coming Soon</span>
+            </div>
+            <p class="text-xs text-zinc-600 font-light">.msi installer · 64-bit</p>
+          </div>
+          <div class="flex-shrink-0">
+            <div class="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+              <i data-lucide="download" class="w-4 h-4 text-zinc-700"></i>
+            </div>
+          </div>
+        </div>-->
+
+        <!-- Android — Disabled
+        <div class="download-card disabled-card rounded-2xl p-6 flex items-center gap-5 opacity-60">
+          <div class="w-12 h-12 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-zinc-600" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48C13.85 1.23 12.95 1 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.31 1.31C6.97 3.26 6 5.01 6 7h12c0-1.99-.97-3.75-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2.5 mb-0.5">
+              <h3 class="text-sm font-medium text-zinc-500">Android</h3>
+              <span class="badge-soon text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full">Coming Soon</span>
+            </div>
+            <p class="text-xs text-zinc-600 font-light">.apk · ARM64</p>
+          </div>
+          <div class="flex-shrink-0">
+            <div class="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+              <i data-lucide="download" class="w-4 h-4 text-zinc-700"></i>
+            </div>
+          </div>
+        </div>
+        -->
+
+      </div>
+
+      <!-- System requirements note -->
+      <p class="text-center text-xs text-zinc-600 mt-8 font-light">
+        View source at
+        <a href="#" class="text-zinc-500 hover:text-zinc-300 underline underline-offset-2 transition-colors">GitHub</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/[0.05] py-10">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2.5">
+        <img src="logo-white.png" style="height: 24px">
+      </div>
+      <p class="text-xs text-zinc-600 font-light">
+        Built with Rust. Designed for privacy. Open source forever.
+      </p>
+      <div class="flex items-center gap-4">
+        <a href="#" class="text-zinc-600 hover:text-zinc-400 transition-colors">
+          <i data-lucide="github" class="w-4 h-4"></i>
+        </a>
+        <a href="#" class="text-zinc-600 hover:text-zinc-400 transition-colors">
+          <i data-lucide="twitter" class="w-4 h-4"></i>
+        </a>
+        <a href="#" class="text-zinc-600 hover:text-zinc-400 transition-colors">
+          <i data-lucide="rss" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
