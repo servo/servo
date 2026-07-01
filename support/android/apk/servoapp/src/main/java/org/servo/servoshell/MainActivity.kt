@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     private lateinit var idleText: TextView
     private var canGoBackState = mutableStateOf(false)
     private var canGoForwardState = mutableStateOf(false)
+    private var isRefreshingState = mutableStateOf(false)
     private var mediaSession: MediaSession? = null
     private lateinit var historyManager: HistoryManager
     private var currentUrl = ""
@@ -55,8 +56,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     }
 
     private lateinit var settings: Settings
-
-    private val actionClickListener = View.OnClickListener { v -> dispatchAction(v.id) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,8 +99,17 @@ class MainActivity : AppCompatActivity(), Servo.Client {
                     }
                 }
             }
-            findViewById<View>(R.id.refresh_menu_item).setOnClickListener(actionClickListener)
-            findViewById<View>(R.id.cancel_menu_item).setOnClickListener(actionClickListener)
+            findViewById<ComposeView>(R.id.refresh_menu_item).apply {
+                setContent {
+                    IconButton(onClick = { dispatchAction(if (isRefreshingState.value) R.id.cancel_menu_item else R.id.refresh_menu_item) }) {
+                        if (isRefreshingState.value) {
+                            Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
+                        } else {
+                            Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
+                        }
+                    }
+                }
+            }
             findViewById<ComposeView>(R.id.settings_menu_item).apply {
                 setContent {
                     IconButton(onClick = { dispatchAction(id) }) {
@@ -239,9 +247,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             bottomNav.menu.findItem(R.id.cancel_menu_item).isVisible = true
             bottomNav.menu.findItem(R.id.refresh_menu_item).isVisible = false
         }
-        // tablet view
-        findViewById<View>(R.id.cancel_menu_item).isVisible = true
-        findViewById<View>(R.id.refresh_menu_item).isVisible = false
+        isRefreshingState.value = true
 
         progressBar.isVisible = true
     }
@@ -260,9 +266,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             bottomNav.menu.findItem(R.id.cancel_menu_item).isVisible = false
             bottomNav.menu.findItem(R.id.refresh_menu_item).isVisible = true
         }
-        // tablet view
-        findViewById<View>(R.id.cancel_menu_item).isVisible = false
-        findViewById<View>(R.id.refresh_menu_item).isVisible = true
+        isRefreshingState.value = false
         progressBar.isVisible = false
     }
 
