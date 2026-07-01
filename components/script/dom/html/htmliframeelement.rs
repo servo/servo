@@ -10,6 +10,7 @@ use content_security_policy::sandboxing_directive::{
 };
 use dom_struct::dom_struct;
 use embedder_traits::ViewportDetails;
+use embedder_traits::webview_preferences::WebViewPreferencesId;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
@@ -309,6 +310,7 @@ impl HTMLIFrameElement {
                     user_content_manager_id: None,
                     theme: window.theme(),
                     target_snapshot_params,
+                    webview_preferences_id: WebViewPreferencesId::DEFAULT,
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));

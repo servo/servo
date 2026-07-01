@@ -19,6 +19,7 @@ mod gamepad_delegate;
 mod gstreamer_plugins;
 mod javascript_evaluator;
 mod network_manager;
+mod preferences;
 mod proxies;
 mod responders;
 mod servo;
@@ -78,6 +79,7 @@ pub use crate::gamepad_delegate::{
     GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
 };
 pub use crate::network_manager::{CacheEntry, NetworkManager};
+pub use crate::preferences::WebViewPreferences;
 pub use crate::servo::{Servo, ServoBuilder, run_content_process};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};

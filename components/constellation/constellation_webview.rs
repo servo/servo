@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use embedder_traits::user_contents::UserContentManagerId;
-use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
+use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme, WebViewPreferencesId};
 use euclid::Point2D;
 use log::warn;
 use rustc_hash::FxHashMap;
@@ -59,6 +59,12 @@ pub(crate) struct ConstellationWebView {
     /// via [`ScriptThreadMessage::SetAccessibilityActive`] in `set_accessibility_active()`
     /// and [`crate::Constellation::set_frame_tree_for_webview()`].
     pub accessibility_active: bool,
+
+    /// The [`WebViewPreferencesId`] for all pipelines in this `WebView`.
+    ///
+    ///  This will be [`WebViewPreferencesId::DEFAULT`] if the embedder has not set a different
+    /// `WebViewPreferences` using the `WebViewBuilder` API.
+    pub webview_preferences_id: WebViewPreferencesId,
 }
 
 impl ConstellationWebView {
@@ -66,10 +72,12 @@ impl ConstellationWebView {
         webview_id: WebViewId,
         focused_browsing_context_id: BrowsingContextId,
         user_content_manager_id: Option<UserContentManagerId>,
+        webview_preferences_id: WebViewPreferencesId,
     ) -> Self {
         Self {
             webview_id,
             user_content_manager_id,
+            webview_preferences_id,
             active_top_level_pipeline_id: None,
             active_top_level_pipeline_epoch: Epoch::default(),
             focused_browsing_context_id,

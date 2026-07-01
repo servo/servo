@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
@@ -67,6 +68,14 @@ pub(crate) struct FontParameters {
 
 pub type FontGroupRef = Arc<FontGroup>;
 
+/// The default font size settings derived from per-WebView preferences
+/// which can be updated at runtime.
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf)]
+pub struct DefaultFontSettings {
+    pub default_font_size: i64,
+    pub default_monospace_font_size: i64,
+}
+
 /// The FontContext represents the per-thread/thread state necessary for
 /// working with fonts. It is the public API used by the layout and
 /// paint code. It talks directly to the system font service where
@@ -106,10 +115,13 @@ pub struct FontContext {
     font_data: RwLock<HashMap<FontIdentifier, FontData>>,
 
     have_removed_web_fonts: AtomicBool,
-
     /// Maps from a URL to all the `@font-face` rules that are currently waiting for the load to
     /// finish.
     currently_downloading_fonts: Mutex<HashMap<ServoUrl, Vec<WebFontDownloadState>>>,
+
+    /// The default font size settings derived from `WebViewPreferences`
+    /// which can be updated at runtime.
+    default_font_settings: AtomicRefCell<DefaultFontSettings>,
 }
 
 /// A callback that will be invoked on the Fetch thread if a web font download
@@ -158,6 +170,7 @@ impl FontContext {
         system_font_service_proxy: Arc<SystemFontServiceProxy>,
         paint_api: CrossProcessPaintApi,
         resource_threads: ResourceThreads,
+        default_font_settings: DefaultFontSettings,
     ) -> Self {
         Self {
             system_font_service_proxy,
@@ -171,7 +184,16 @@ impl FontContext {
             have_removed_web_fonts: AtomicBool::new(false),
             font_data: RwLock::default(),
             currently_downloading_fonts: Default::default(),
+            default_font_settings: AtomicRefCell::new(default_font_settings),
         }
+    }
+
+    pub fn set_default_font_settings(&self, settings: DefaultFontSettings) {
+        *self.default_font_settings.borrow_mut() = settings;
+    }
+
+    pub fn default_font_settings(&self) -> DefaultFontSettings {
+        *self.default_font_settings.borrow()
     }
 
     pub fn web_fonts_still_loading(&self) -> usize {

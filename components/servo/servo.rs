@@ -83,6 +83,7 @@ use crate::clipboard_delegate::StringRequest;
 use crate::gamepad_delegate::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::network_manager::NetworkManager;
+use crate::preferences::WebViewPreferences;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
@@ -249,6 +250,9 @@ struct ServoInner {
     pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
+    /// The default [`WebViewPreferences`] instance shared by all [`WebView`]s that
+    /// don't set a custom [`WebViewPreferences`] during creation via `WebViewBuilder`.
+    default_preferences: Rc<WebViewPreferences>,
 }
 
 impl ServoInner {
@@ -1002,6 +1006,11 @@ impl Servo {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
         }
 
+        let default_preferences = Rc::new(WebViewPreferences::new_with_proxy(
+            &constellation_proxy,
+            WebViewPreferencesId::DEFAULT,
+        ));
+
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             paint,
@@ -1028,6 +1037,7 @@ impl Servo {
             _js_engine_setup: js_engine_setup,
             pending_handled_input_events: Default::default(),
             event_loop_waker,
+            default_preferences,
         }))
     }
 
@@ -1113,6 +1123,10 @@ impl Servo {
 
     pub(crate) fn constellation_proxy(&self) -> &ConstellationProxy {
         &self.0.constellation_proxy
+    }
+
+    pub(crate) fn default_preferences(&self) -> Rc<WebViewPreferences> {
+        self.0.default_preferences.clone()
     }
 
     pub(crate) fn javascript_evaluator_mut<'a>(&'a self) -> RefMut<'a, JavaScriptEvaluator> {

@@ -23,6 +23,7 @@ use cssparser::SourceLocation;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
+use embedder_traits::webview_preferences::WebViewPreferencesId;
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, JavaScriptEvaluationError, PromptResponse,
     ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
@@ -283,6 +284,13 @@ pub(crate) struct Window {
     /// This may not be the top-level [`Window`], in the case of frames.
     #[no_trace]
     webview_id: WebViewId,
+
+    /// The ID of the `WebViewPreferences` associated with this [`Window`].
+    /// This is used to filter preference change notifications to only
+    /// affect documents belonging to the correct webview.
+    #[no_trace]
+    webview_preferences_id: WebViewPreferencesId,
+
     script_chan: Sender<MainThreadScriptMsg>,
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
@@ -490,6 +498,10 @@ impl Window {
 
     pub(crate) fn webview_id(&self) -> WebViewId {
         self.webview_id
+    }
+
+    pub(crate) fn webview_preferences_id(&self) -> WebViewPreferencesId {
+        self.webview_preferences_id
     }
 
     pub(crate) fn as_global_scope(&self) -> &GlobalScope {
@@ -3659,6 +3671,7 @@ impl Window {
     pub(crate) fn new(
         cx: &mut JSContext,
         webview_id: WebViewId,
+        webview_preferences_id: WebViewPreferencesId,
         runtime: Rc<Runtime>,
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
@@ -3700,6 +3713,7 @@ impl Window {
 
         let win = Box::new(Self {
             webview_id,
+            webview_preferences_id,
             globalscope: GlobalScope::new_inherited(
                 devtools_chan,
                 mem_profiler_chan,

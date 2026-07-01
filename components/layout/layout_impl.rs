@@ -14,9 +14,10 @@ use app_units::Au;
 use bitflags::bitflags;
 use embedder_traits::{
     EmbedderMsg, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
+    WebViewPreference, WebViewPreferencesData,
 };
 use euclid::{Point2D, Rect, Scale, Size2D};
-use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
+use fonts::{DefaultFontSettings, FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
 use layout_api::{
@@ -775,6 +776,44 @@ impl Layout for LayoutThread {
     fn set_needs_accessibility_update(&self) {
         self.needs_accessibility_update.set(true);
     }
+
+    fn on_preferences_changed(
+        &mut self,
+        preference_updates: &[WebViewPreference],
+        preferences: &WebViewPreferencesData,
+    ) -> bool {
+        if !preference_updates.iter().any(|preference| {
+            matches!(
+                preference,
+                WebViewPreference::DefaultFontSize(..) |
+                    WebViewPreference::DefaultMonospaceFontSize(..)
+            )
+        }) {
+            return false;
+        }
+
+        // Update `FontContext` instance that is used by Stylo as `FontMetricsProvider`.
+        let settings = DefaultFontSettings {
+            default_font_size: preferences.default_font_size,
+            default_monospace_font_size: preferences.default_monospace_font_size,
+        };
+        self.font_context.set_default_font_settings(settings);
+
+        // Update the device's default computed values so that Stylo uses
+        // the new font size as the initial value for `font-size: medium`.
+        let mut font = Font::initial_values();
+        font.font_size = FontSize {
+            computed_size: NonNegativeLength::new(preferences.default_font_size as f32),
+            used_size: NonNegativeLength::new(preferences.default_font_size as f32),
+            keyword_info: KeywordInfo::medium(),
+        };
+        let device = self.stylist.device_mut();
+        device.set_default_computed_values(ComputedValues::initial_values_with_font_override(font));
+        // Ensure that a relayout is triggered.
+        self.device_has_changed = true;
+        // Return true so the document is marked as needing a restyle.
+        true
+    }
 }
 
 impl LayoutThread {
@@ -785,7 +824,7 @@ impl LayoutThread {
             .send_initial_transaction(config.webview_id, config.id.into());
 
         let mut font = Font::initial_values();
-        let default_font_size = pref!(fonts_default_size);
+        let default_font_size = config.default_font_size;
         font.font_size = FontSize {
             computed_size: NonNegativeLength::new(default_font_size as f32),
             used_size: NonNegativeLength::new(default_font_size as f32),
@@ -1784,9 +1823,10 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
     }
 
     fn base_size_for_generic(&self, generic: GenericFontFamily) -> Length {
+        let default_font_settings = self.0.default_font_settings();
         Length::new(match generic {
-            GenericFontFamily::Monospace => pref!(fonts_default_monospace_size),
-            _ => pref!(fonts_default_size),
+            GenericFontFamily::Monospace => default_font_settings.default_monospace_font_size,
+            _ => default_font_settings.default_font_size,
         } as f32)
         .max(Length::new(0.0))
     }

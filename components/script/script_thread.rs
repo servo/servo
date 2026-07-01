@@ -40,13 +40,14 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg, WorkerId,
 };
 use embedder_traits::user_contents::{UserContentManagerId, UserContents, UserScript};
+use embedder_traits::webview_preferences::{WebViewPreferencesData, WebViewPreferencesId};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
     InputEventOutcome, JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType,
     Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use encoding_rs::Encoding;
-use fonts::{FontContext, SystemFontServiceProxy};
+use fonts::{DefaultFontSettings, FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
 use hyper_serde::Serde;
@@ -422,6 +423,12 @@ pub struct ScriptThread {
     privileged_urls: Vec<ServoUrl>,
 
     devtools_state: DevtoolsState,
+
+    /// A map from [`WebViewPreferencesId`] to its [`WebViewPreferencesData`].
+    /// Initially populated from [`InitialScriptState`] and updated via
+    /// constellation messages when preferences are changed.
+    #[no_trace]
+    webview_preferences_for_id: RefCell<FxHashMap<WebViewPreferencesId, WebViewPreferencesData>>,
 }
 
 struct BHMExitSignal {
@@ -1044,6 +1051,9 @@ impl ScriptThread {
                     privileged_urls: state.privileged_urls,
                     this: weak_script_thread.clone(),
                     devtools_state: Default::default(),
+                    webview_preferences_for_id: RefCell::new(FxHashMap::from_iter(
+                        state.webview_preferences_for_id,
+                    )),
                 }
             }),
             cx,
@@ -2018,6 +2028,31 @@ impl ScriptThread {
             },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(cx, GCReason::API);
+            },
+            ScriptThreadMessage::SetWebViewPreferences(id, preference_updates) => {
+                self.webview_preferences_for_id
+                    .borrow_mut()
+                    .entry(id)
+                    .or_default()
+                    .apply_preference_updates(&preference_updates);
+
+                let preferences_for_id = self.webview_preferences_for_id.borrow();
+                let preferences = preferences_for_id.get(&id).unwrap();
+                for (_, document) in self.documents.borrow().iter() {
+                    if document.window().webview_preferences_id() != id {
+                        continue;
+                    }
+                    let needs_restyle = document
+                        .window()
+                        .layout_mut()
+                        .on_preferences_changed(&preference_updates, preferences);
+                    if needs_restyle {
+                        document.add_restyle_reason(RestyleReason::PreferencesChanged);
+                    }
+                }
+            },
+            ScriptThreadMessage::DestroyWebViewPreferences(id) => {
+                self.webview_preferences_for_id.borrow_mut().remove(&id);
             },
         }
     }
@@ -3438,10 +3473,21 @@ impl ScriptThread {
             incomplete.load_data.url, incomplete.pipeline_id
         );
 
+        let webview_preferences = self
+            .webview_preferences_for_id
+            .borrow()
+            .get(&incomplete.webview_preferences_id)
+            .cloned()
+            .unwrap_or_default();
+
         let font_context = Arc::new(FontContext::new(
             self.system_font_service.clone(),
             self.paint_api.clone(),
             self.resource_threads.clone(),
+            DefaultFontSettings {
+                default_font_size: webview_preferences.default_font_size,
+                default_monospace_font_size: webview_preferences.default_monospace_font_size,
+            },
         ));
 
         let image_cache = self.image_cache_factory.create(
@@ -3479,12 +3525,15 @@ impl ScriptThread {
             user_stylesheets,
             theme: incomplete.theme,
             embedder_chan: self.senders.pipeline_to_embedder_sender.clone(),
+            default_font_size: webview_preferences.default_font_size,
+            default_monospace_font_size: webview_preferences.default_monospace_font_size,
         };
 
         // Create the window and document objects.
         let window = Window::new(
             cx,
             incomplete.webview_id,
+            incomplete.webview_preferences_id,
             self.js_runtime.clone(),
             self.senders.self_sender.clone(),
             self.layout_factory.create(layout_config),

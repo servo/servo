@@ -9,6 +9,7 @@ use std::fmt;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::user_contents::UserContentManagerId;
+use embedder_traits::webview_preferences::WebViewPreferencesId;
 use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
@@ -462,6 +463,8 @@ pub struct AuxiliaryWebViewCreationResponse {
     pub new_pipeline_id: PipelineId,
     /// The [`UserContentManagerId`] for this new auxiliary browsing context.
     pub user_content_manager_id: Option<UserContentManagerId>,
+    /// The [`WebViewPreferencesId`] for this new auxiliary browsing context.
+    pub webview_preferences_id: WebViewPreferencesId,
 }
 
 /// Specifies the information required to load an iframe.

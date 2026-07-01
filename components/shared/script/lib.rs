@@ -14,6 +14,9 @@ use std::fmt;
 use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
+use embedder_traits::webview_preferences::{
+    WebViewPreference, WebViewPreferencesData, WebViewPreferencesId,
+};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FocusSequenceNumber, InputEventAndId,
     JavaScriptEvaluationId, MediaSessionActionType, PaintHitTestResult, ScriptToEmbedderChan,
@@ -77,6 +80,8 @@ pub struct NewPipelineInfo {
     pub viewport_details: ViewportDetails,
     /// The ID of the `UserContentManager` associated with this new pipeline's `WebView`.
     pub user_content_manager_id: Option<UserContentManagerId>,
+    /// The ID of the `WebViewPreferences` associated with this new pipeline's `WebView`.
+    pub webview_preferences_id: WebViewPreferencesId,
     /// The [`Theme`] of the new layout.
     pub theme: Theme,
     /// A snapshot of the navigation parameters of the target of this navigation.
@@ -329,6 +334,11 @@ pub enum ScriptThreadMessage {
     SetAccessibilityActive(PipelineId, bool, Epoch),
     /// Force a garbage collection in this script thread.
     TriggerGarbageCollection,
+    /// Set (or update) preferences for the given ID with partial updates.
+    SetWebViewPreferences(WebViewPreferencesId, Vec<WebViewPreference>),
+    /// Release all data for the given `WebViewPreferencesId` from the `ScriptThread`'s
+    /// `webview_preferences_for_id` map.
+    DestroyWebViewPreferences(WebViewPreferencesId),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
@@ -410,6 +420,8 @@ pub struct InitialScriptState {
     pub privileged_urls: Vec<ServoUrl>,
     /// A copy of constellation's `UserContentManagerId` to `UserContents` map.
     pub user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
+    /// A copy of constellation's `WebViewPreferencesId` to `WebViewPreferencesData` map.
+    pub webview_preferences_for_id: FxHashMap<WebViewPreferencesId, WebViewPreferencesData>,
 }
 
 /// Errors from executing a paint worklet

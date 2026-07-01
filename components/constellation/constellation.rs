@@ -106,6 +106,7 @@ use devtools_traits::{
 };
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
+use embedder_traits::webview_preferences::{WebViewPreferencesData, WebViewPreferencesId};
 use embedder_traits::{
     AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderProxy, FocusSequenceNumber,
     GenericEmbedderProxy, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
@@ -522,6 +523,10 @@ pub struct Constellation<STF, SWF> {
     /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
     /// the relevant `WebView`.
     pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
+    /// A map from `WebViewPreferencesId` to the `WebViewPreferencesData` for that ID.
+    /// Multiple `WebView`s can share the same `WebViewPreferences` and any mutations
+    /// to the latter must be forwarded to all `ScriptThread`s that host the relevant `WebView`s.
+    pub(crate) webview_preferences_for_id: FxHashMap<WebViewPreferencesId, WebViewPreferencesData>,
 }
 
 /// State needed to construct a constellation.
@@ -667,6 +672,12 @@ where
 
                 let broken_image_icon_data = resources::read_bytes(Resource::BrokenImageIcon);
 
+                // Intialize constellation with state for default `WebViewPreferencesId` that
+                // will be shared by `WebView`s that don't override their associated `WebViewPreferences`.
+                let webview_preferences_for_id = FxHashMap::from_iter([
+                    (WebViewPreferencesId::DEFAULT, WebViewPreferencesData::default()),
+                ]);
+
                 let mut constellation: Constellation<STF, SWF> = Constellation {
                     event_loops: Default::default(),
                     namespace_receiver,
@@ -741,6 +752,7 @@ where
                     pending_viewport_changes: Default::default(),
                     screenshot_readiness_requests: Vec::new(),
                     user_contents_for_manager_id: Default::default(),
+                    webview_preferences_for_id,
                 };
 
                 constellation.run();
@@ -1053,6 +1065,12 @@ where
             .get(&webview_id)
             .and_then(|webview| webview.user_content_manager_id);
 
+        let webview_preferences_id = self
+            .webviews
+            .get(&webview_id)
+            .map(|webview| webview.webview_preferences_id)
+            .expect("webview_id must have an associated ConstellationWebView");
+
         let new_pipeline_info = NewPipelineInfo {
             parent_info: parent_pipeline_id,
             new_pipeline_id,
@@ -1062,6 +1080,7 @@ where
             load_data,
             viewport_details: initial_viewport_details,
             user_content_manager_id,
+            webview_preferences_id,
             theme,
             target_snapshot_params,
         };
@@ -1552,6 +1571,23 @@ where
             },
             EmbedderToConstellationMessage::SetAccessibilityActive(webview_id, active) => {
                 self.set_accessibility_active(webview_id, active);
+            },
+            EmbedderToConstellationMessage::SetWebViewPreferences(id, preference_updates) => {
+                let webview_preferences_data =
+                    self.webview_preferences_for_id.entry(id).or_default();
+                webview_preferences_data.apply_preference_updates(&preference_updates);
+                for event_loop in self.event_loops() {
+                    let _ = event_loop.send(ScriptThreadMessage::SetWebViewPreferences(
+                        id,
+                        preference_updates.clone(),
+                    ));
+                }
+            },
+            EmbedderToConstellationMessage::DestroyWebViewPreferences(id) => {
+                self.webview_preferences_for_id.remove(&id);
+                for event_loop in self.event_loops() {
+                    let _ = event_loop.send(ScriptThreadMessage::DestroyWebViewPreferences(id));
+                }
             },
         }
     }
@@ -3266,6 +3302,7 @@ where
             webview_id,
             viewport_details,
             user_content_manager_id,
+            webview_preferences_id,
         }: NewWebViewDetails,
     ) {
         let pipeline_id = PipelineId::new();
@@ -3278,7 +3315,12 @@ where
         // its focused browsing context to be itself.
         self.webviews.insert(
             webview_id,
-            ConstellationWebView::new(webview_id, browsing_context_id, user_content_manager_id),
+            ConstellationWebView::new(
+                webview_id,
+                browsing_context_id,
+                user_content_manager_id,
+                webview_preferences_id,
+            ),
         );
 
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
@@ -3617,6 +3659,7 @@ where
             webview_id: new_webview_id,
             viewport_details,
             user_content_manager_id,
+            webview_preferences_id,
         } = match webview_id_receiver.recv() {
             Ok(Some(new_webview_details)) => new_webview_details,
             Ok(None) | Err(_) => {
@@ -3661,6 +3704,7 @@ where
             new_webview_id,
             new_pipeline_id,
             user_content_manager_id,
+            webview_preferences_id,
         }));
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
@@ -3671,6 +3715,7 @@ where
                 new_webview_id,
                 new_browsing_context_id,
                 user_content_manager_id,
+                webview_preferences_id,
             ),
         );
 
