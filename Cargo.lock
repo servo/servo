@@ -140,9 +140,9 @@ dependencies = [
 
 [[package]]
 name = "aead-stream"
-version = "0.6.0-rc.3"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cc2d8c7d80cce546b635811cc9371c1db8794d36fcc160a08cb1e6824a5eab2"
+checksum = "a901e5bcd15b4a9555a8f17a608d28ef92cf77bc4aa3b4a0c1a3fce1a9cc0bac"
 dependencies = [
  "aead",
 ]
@@ -2228,6 +2228,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "ed448"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae112a25f86ae3598d4e8533ed1e65149cec6eb21918e7a6f4c06dddec370263"
+dependencies = [
+ "pkcs8",
+ "signature",
+]
+
+[[package]]
+name = "ed448-goldilocks"
+version = "0.14.0-pre.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b805154de2e68f59874ec217ca36790dcffe500cd872c60fe509d28d0814a74d"
+dependencies = [
+ "ed448",
+ "elliptic-curve",
+ "hash2curve",
+ "rand_core 0.10.1",
+ "serdect",
+ "shake",
+ "signature",
+ "subtle",
+]
+
+[[package]]
 name = "egui"
 version = "0.34.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2305,9 +2331,9 @@ checksum = "91622ff5e7162018101f2fea40d6ebf4a78bbe5a49736a2020649edf9693679e"
 
 [[package]]
 name = "elliptic-curve"
-version = "0.14.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3273f1195b6f6253ebda493d6742c8baa9b26a291674cd96d92a0f09e90e9b46"
+checksum = "9d65aa39b3a5c1c9c1b745c9a019234bb7a21b77abcb4f4d266d706e2d577d65"
 dependencies = [
  "base16ct",
  "crypto-bigint",
@@ -3635,6 +3661,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash2curve"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1eaf40612d7d854743e7189228a6d528f0f6e8502cf6a0cb831d28a218b7f3f6"
+dependencies = [
+ "digest 0.11.3",
+ "elliptic-curve",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3863,9 +3899,9 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "hybrid-array"
-version = "0.4.12"
+version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9155a582abd142abc056962c29e3ce5ff2ad5469f4246b537ed42c5deba857da"
+checksum = "818356c5132c1fede50f837ca96afbe78ff42413047f4abb886217845e1b6c8c"
 dependencies = [
  "ctutils",
  "subtle",
@@ -4604,9 +4640,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "jiff"
-version = "0.2.29"
+version = "0.2.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34f877a98676d2fb664698d74cc6a51ce6c484ce8c770f05d0108ec9090aeb46"
+checksum = "ccfe6121cbe750cf81efa362d85c0bde7ea298ec43092d3a193baca59cdbd634"
 dependencies = [
  "defmt",
  "jiff-static",
@@ -4618,9 +4654,9 @@ dependencies = [
 
 [[package]]
 name = "jiff-static"
-version = "0.2.29"
+version = "0.2.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0666b5ab5ecaca213fc2a85b8c0083d9004e84ee2d5f9a7e0017aaf50986f25f"
+checksum = "e165e897f662d428f3cd3828a919dbe067c2d42bb1031eede74ef9d27ecdedd2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5016,7 +5052,7 @@ dependencies = [
 
 [[package]]
 name = "malloc_size_of_tests"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "servo-malloc-size-of",
  "servo_arc",
@@ -5189,9 +5225,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs"
-version = "0.16.4"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8d7e5cba578bc71ec962623e1bfffa5aaaa7665c54fa236d6f930c492807f7d"
+checksum = "5e8c4b84ea965f4f44afc808143990ac6a0fc4f232cb1ddae9a8aa91707bcb37"
 dependencies = [
  "bindgen",
  "cc",
@@ -6670,7 +6706,7 @@ dependencies = [
 
 [[package]]
 name = "profile_tests"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ipc-channel",
  "servo-config",
@@ -7307,9 +7343,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-pki-types"
-version = "1.14.1"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30a7197ae7eb376e574fe940d068c30fe0462554a3ddbe4eca7838e049c937a9"
+checksum = "764899a24af3980067ee14bc143654f297b22eaebfe3c7b6b211920a5a59b046"
 dependencies = [
  "zeroize",
 ]
@@ -7415,7 +7451,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "script_tests"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "encoding_rs",
  "euclid",
@@ -7512,8 +7548,8 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.38.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+version = "0.39.0"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "bitflags 2.13.0",
  "cssparser",
@@ -7667,7 +7703,7 @@ dependencies = [
 
 [[package]]
 name = "servo"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
@@ -7746,7 +7782,7 @@ dependencies = [
 
 [[package]]
 name = "servo-allocator"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "backtrace",
  "libc",
@@ -7759,7 +7795,7 @@ dependencies = [
 
 [[package]]
 name = "servo-background-hang-monitor"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "backtrace",
  "crossbeam-channel",
@@ -7776,7 +7812,7 @@ dependencies = [
 
 [[package]]
 name = "servo-background-hang-monitor-api"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "servo-base",
@@ -7784,7 +7820,7 @@ dependencies = [
 
 [[package]]
 name = "servo-base"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "accesskit",
  "crossbeam-channel",
@@ -7808,7 +7844,7 @@ dependencies = [
 
 [[package]]
 name = "servo-bluetooth"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bitflags 2.13.0",
  "blurmock",
@@ -7826,7 +7862,7 @@ dependencies = [
 
 [[package]]
 name = "servo-bluetooth-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "regex",
  "serde",
@@ -7836,7 +7872,7 @@ dependencies = [
 
 [[package]]
 name = "servo-canvas"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bytemuck",
  "crossbeam-channel",
@@ -7864,7 +7900,7 @@ dependencies = [
 
 [[package]]
 name = "servo-canvas-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "crossbeam-channel",
  "euclid",
@@ -7885,7 +7921,7 @@ dependencies = [
 
 [[package]]
 name = "servo-capi"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "dpi",
  "libc",
@@ -7896,14 +7932,14 @@ dependencies = [
 
 [[package]]
 name = "servo-capi-tests"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cc",
 ]
 
 [[package]]
 name = "servo-config"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "num_enum",
  "serde",
@@ -7915,7 +7951,7 @@ dependencies = [
 
 [[package]]
 name = "servo-config-macro"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7925,7 +7961,7 @@ dependencies = [
 
 [[package]]
 name = "servo-constellation"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "accesskit",
  "backtrace",
@@ -7972,7 +8008,7 @@ dependencies = [
 
 [[package]]
 name = "servo-constellation-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "base64",
  "content-security-policy",
@@ -8008,14 +8044,14 @@ dependencies = [
 
 [[package]]
 name = "servo-default-resources"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "servo-embedder-traits",
 ]
 
 [[package]]
 name = "servo-deny-public-fields"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -8024,7 +8060,7 @@ dependencies = [
 
 [[package]]
 name = "servo-devtools"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "atomic_refcell",
  "base64",
@@ -8053,7 +8089,7 @@ dependencies = [
 
 [[package]]
 name = "servo-devtools-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "http 1.4.2",
  "malloc_size_of_derive",
@@ -8069,7 +8105,7 @@ dependencies = [
 
 [[package]]
 name = "servo-dom-struct"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -8079,7 +8115,7 @@ dependencies = [
 
 [[package]]
 name = "servo-embedder-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "accesskit",
  "bitflags 2.13.0",
@@ -8112,7 +8148,7 @@ dependencies = [
 
 [[package]]
 name = "servo-fonts"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "app_units",
  "bitflags 2.13.0",
@@ -8169,7 +8205,7 @@ dependencies = [
 
 [[package]]
 name = "servo-fonts-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "atomic_refcell",
  "dwrote",
@@ -8192,7 +8228,7 @@ dependencies = [
 
 [[package]]
 name = "servo-geometry"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "app_units",
  "euclid",
@@ -8204,7 +8240,7 @@ dependencies = [
 
 [[package]]
 name = "servo-hyper-serde"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cookie 0.18.1",
  "headers",
@@ -8221,7 +8257,7 @@ dependencies = [
 
 [[package]]
 name = "servo-jstraceable-derive"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -8230,7 +8266,7 @@ dependencies = [
 
 [[package]]
 name = "servo-layout"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "accesskit",
  "app_units",
@@ -8288,7 +8324,7 @@ dependencies = [
 
 [[package]]
 name = "servo-layout-api"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "app_units",
  "atomic_refcell",
@@ -8320,7 +8356,7 @@ dependencies = [
 
 [[package]]
 name = "servo-malloc-size-of"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "app_units",
  "atomic_refcell",
@@ -8362,7 +8398,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "servo-base",
  "servo-media-audio",
@@ -8374,7 +8410,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-audio"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "byte-slice-cast",
  "euclid",
@@ -8396,7 +8432,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-auto"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "servo-media-dummy",
  "servo-media-gstreamer",
@@ -8404,7 +8440,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-derive"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8413,7 +8449,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-dummy"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "servo-base",
  "servo-media",
@@ -8426,7 +8462,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-examples"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "euclid",
  "rand 0.10.1",
@@ -8438,7 +8474,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-gstreamer"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "byte-slice-cast",
  "glib",
@@ -8469,7 +8505,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-gstreamer-render"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "gstreamer",
  "servo-media-player",
@@ -8477,7 +8513,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-gstreamer-render-android"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8490,7 +8526,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-gstreamer-render-unix"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8505,7 +8541,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-ohos"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "crossbeam-channel",
  "libc",
@@ -8527,7 +8563,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-player"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "malloc_size_of_derive",
  "serde",
@@ -8539,7 +8575,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-streams"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "malloc_size_of_derive",
  "servo-malloc-size-of",
@@ -8548,7 +8584,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-thread"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -8566,7 +8602,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "malloc_size_of_derive",
  "servo-malloc-size-of",
@@ -8574,7 +8610,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-webrtc"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "log",
  "servo-media-streams",
@@ -8583,7 +8619,7 @@ dependencies = [
 
 [[package]]
 name = "servo-metrics"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "malloc_size_of_derive",
  "servo-base",
@@ -8597,7 +8633,7 @@ dependencies = [
 
 [[package]]
 name = "servo-net"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-compression",
  "async-recursion",
@@ -8670,7 +8706,7 @@ dependencies = [
 
 [[package]]
 name = "servo-net-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "content-security-policy",
  "cookie 0.18.1",
@@ -8710,7 +8746,7 @@ dependencies = [
 
 [[package]]
 name = "servo-paint"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bitflags 2.13.0",
  "crossbeam-channel",
@@ -8750,7 +8786,7 @@ dependencies = [
 
 [[package]]
 name = "servo-paint-api"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bitflags 2.13.0",
  "crossbeam-channel",
@@ -8785,7 +8821,7 @@ dependencies = [
 
 [[package]]
 name = "servo-pixels"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "criterion",
  "euclid",
@@ -8800,7 +8836,7 @@ dependencies = [
 
 [[package]]
 name = "servo-profile"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "libc",
  "log",
@@ -8817,7 +8853,7 @@ dependencies = [
 
 [[package]]
 name = "servo-profile-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "crossbeam-channel",
  "ipc-channel",
@@ -8833,7 +8869,7 @@ dependencies = [
 
 [[package]]
 name = "servo-script"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -8863,6 +8899,7 @@ dependencies = [
  "data-url",
  "ecdsa",
  "ed25519-dalek",
+ "ed448-goldilocks",
  "elliptic-curve",
  "encoding_rs",
  "euclid",
@@ -8976,7 +9013,7 @@ dependencies = [
 
 [[package]]
 name = "servo-script-bindings"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bitflags 2.13.0",
  "crossbeam-channel",
@@ -9016,7 +9053,7 @@ dependencies = [
 
 [[package]]
 name = "servo-script-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "accesskit",
  "crossbeam-channel",
@@ -9051,7 +9088,7 @@ dependencies = [
 
 [[package]]
 name = "servo-storage"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "libc",
  "log",
@@ -9078,7 +9115,7 @@ dependencies = [
 
 [[package]]
 name = "servo-storage-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "malloc_size_of_derive",
  "serde",
@@ -9091,7 +9128,7 @@ dependencies = [
 
 [[package]]
 name = "servo-timers"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "crossbeam-channel",
  "malloc_size_of_derive",
@@ -9100,7 +9137,7 @@ dependencies = [
 
 [[package]]
 name = "servo-tracing"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -9110,7 +9147,7 @@ dependencies = [
 
 [[package]]
 name = "servo-url"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "encoding_rs",
  "malloc_size_of_derive",
@@ -9123,7 +9160,7 @@ dependencies = [
 
 [[package]]
 name = "servo-wakelock"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "servo-embedder-traits",
@@ -9131,7 +9168,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webdriver-server"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "base64",
  "bytes",
@@ -9162,7 +9199,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webgl"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bitflags 2.13.0",
  "byteorder",
@@ -9187,7 +9224,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webgpu"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "arrayvec",
  "euclid",
@@ -9205,7 +9242,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webgpu-traits"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "arrayvec",
  "malloc_size_of_derive",
@@ -9220,7 +9257,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webxr"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "crossbeam-channel",
  "euclid",
@@ -9238,7 +9275,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webxr-api"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -9253,7 +9290,7 @@ dependencies = [
 
 [[package]]
 name = "servo-xpath"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "log",
  "malloc_size_of_derive",
@@ -9264,7 +9301,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.3"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -9272,7 +9309,7 @@ dependencies = [
 
 [[package]]
 name = "servoshell"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "accesskit",
  "android_logger",
@@ -9716,7 +9753,7 @@ dependencies = [
 
 [[package]]
 name = "style_tests"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "app_units",
  "cssparser",
@@ -9734,8 +9771,8 @@ dependencies = [
 
 [[package]]
 name = "stylo"
-version = "0.18.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+version = "0.19.0"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -9790,8 +9827,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_atoms"
-version = "0.18.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+version = "0.19.0"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -9799,8 +9836,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_derive"
-version = "0.18.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+version = "0.19.0"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -9811,8 +9848,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_dom"
-version = "0.18.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+version = "0.19.0"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "bitflags 2.13.0",
  "stylo_malloc_size_of",
@@ -9820,8 +9857,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_malloc_size_of"
-version = "0.18.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+version = "0.19.0"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "app_units",
  "cssparser",
@@ -9837,16 +9874,16 @@ dependencies = [
 
 [[package]]
 name = "stylo_static_prefs"
-version = "0.18.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+version = "0.19.0"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "toml",
 ]
 
 [[package]]
 name = "stylo_traits"
-version = "0.18.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+version = "0.19.0"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "app_units",
  "bitflags 2.13.0",
@@ -10265,8 +10302,8 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "to_shmem"
-version = "0.4.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+version = "0.5.0"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -10279,7 +10316,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?rev=9d12364ecccb69cd26622391180f130c5346e393#9d12364ecccb69cd26622391180f130c5346e393"
+source = "git+https://github.com/servo/stylo?rev=bc25ec938fa224410eebf21a8963074bc8d8126d#bc25ec938fa224410eebf21a8963074bc8d8126d"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -12342,9 +12379,9 @@ dependencies = [
 
 [[package]]
 name = "zeitstempel"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3347afac8523417112bc46e087add86d639eb76c84a16209d34aa5c6e8d16edd"
+checksum = "d7082d20989e6410d2d1c304c8b73fb66aa2c8f68a169b94bf31d340e85b3a4f"
 dependencies = [
  "cfg-if",
  "libc",

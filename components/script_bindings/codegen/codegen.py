@@ -1002,7 +1002,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGWrapper(CGGeneric(f"{name}<D>"), pre="Rc<", post=">")
-            template = f"{name}::new(SafeJSContext::from_ptr(cx.raw_cx()), ${{val}}.get().to_object())"
+            template = f"{name}::new(cx, ${{val}}.get().to_object())"
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
                 template = wrapObjectTemplate(f"Some({template})", "None",
@@ -1012,6 +1012,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             return handleOptional(template, declType, handleDefault("None"))
 
         conversionFunction = "root_from_handlevalue"
+        maybeCx = "cx, "
         descriptorType = descriptor.returnType
         if isMember == "Variadic":
             conversionFunction = "native_from_handlevalue"
@@ -1020,6 +1021,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             descriptorType = descriptor.argumentType
         elif descriptor.interface.identifier.name == "WindowProxy":
             conversionFunction = "windowproxy_from_handlevalue::<D>"
+            maybeCx = ""
 
         if failureCode is None:
             unwrapFailureCode = (
@@ -1031,7 +1033,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         templateBody = fill(
             """
-            match ${function}($${val}, SafeJSContext::from_ptr(cx.raw_cx())) {
+            match ${function}(${maybeCx}$${val}) {
                 Ok(val) => val,
                 Err(()) => {
                     $*{failureCode}
@@ -1039,7 +1041,8 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             }
             """,
             failureCode=unwrapFailureCode + "\n",
-            function=conversionFunction)
+            function=conversionFunction,
+            maybeCx=maybeCx)
 
 
         declType = CGGeneric(descriptorType)
@@ -2673,39 +2676,23 @@ class CGDOMJSClass(CGThing):
             args["slots"] = "2"
         return f"""
 static CLASS_OPS: ThreadUnsafeOnceLock<JSClassOps> = ThreadUnsafeOnceLock::new();
-
-pub(crate) fn init_class_ops<D: DomTypes>() {{
-    CLASS_OPS.set(JSClassOps {{
-        addProperty: None,
-        delProperty: None,
-        enumerate: None,
-        newEnumerate: {args['enumerateHook']},
-        resolve: {args['resolveHook']},
-        mayResolve: {args['mayResolveHook']},
-        finalize: Some({args['finalizeHook']}),
-        call: None,
-        construct: None,
-        trace: Some({args['traceHook']}),
-    }});
-}}
-
 pub static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
 
 pub(crate) fn init_domjs_class<D: DomTypes>() {{
-    init_class_ops::<D>();
-    Class.set(DOMJSClass {{
-        base: JSClass {{
-            name: {args['name']},
-            flags: JSCLASS_IS_DOMJSCLASS | {args['flags']} |
-                   ((({args['slots']}) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
-                   /* JSCLASS_HAS_RESERVED_SLOTS({args['slots']}) */,
-            cOps: unsafe {{ CLASS_OPS.get() }},
-            spec: ptr::null(),
-            ext: ptr::null(),
-            oOps: ptr::null(),
-        }},
-        dom_class: {args['domClass']},
-    }});
+    let js_class_config = crate::init::InitClassOpsConfig {{
+            enumerate_hook: {args["enumerateHook"]},
+            resolve_hook: {args["resolveHook"]},
+            may_resolve_hook: {args["mayResolveHook"]},
+            finalize_hook: {args["finalizeHook"]},
+            trace_hook: {args["traceHook"]}
+            }};
+    let domjs_class_config = crate::init::DomJSClassConfig {{
+        name: {args['name']},
+        flags: {args['flags']},
+        slots: {args['slots']},
+        class: {args['domClass']},
+    }};
+    crate::init::init_domjs_class(&CLASS_OPS, js_class_config, &Class, domjs_class_config);
 }}
 """
 
@@ -2878,7 +2865,7 @@ class CGGeneric(CGThing):
 
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name: str) -> None:
-        CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(SafeJSContext::from_ptr(cx.raw_cx()), ${{val}}.get().to_object())")
+        CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object())")
 
 
 def getAllTypes(
@@ -4222,14 +4209,11 @@ class CGCallGenerator(CGThing):
                 name = f"&{name}"
             args.append(CGGeneric(name))
 
-        needsCx = False
         match max([needCx(returnType, (a for (a, _) in arguments), True), Context.Cx if is_implicit_cx_attribute else Context.No]):
             case Context.Cx:
                 descriptor.cxMethods.append(nativeMethodName)
             case Context.CurrentRealm:
                 descriptor.realmMethods.append(nativeMethodName)
-            case Context.OldCx:
-                needsCx = True
             case Context.No:
                 pass
 
@@ -4247,8 +4231,6 @@ class CGCallGenerator(CGThing):
         elif descriptor.interface.isIteratorInterface():
             args.prepend(CGGeneric("cx"))
         else:
-            if "cx" not in argsPre and needsCx:
-                args.prepend(CGGeneric("SafeJSContext::from_ptr(cx.raw_cx())"))
             if nativeMethodName in descriptor.canGcMethods:
                 args.append(CGGeneric("CanGc::deprecated_note()"))
 
@@ -7033,9 +7015,6 @@ class CGInterfaceTrait(CGThing):
 
             safe_cx = cx or cx_no_gc or realm or no_gc
 
-            if typeNeedsCx(attribute_type, retval) and not safe_cx:
-                yield "cx", "SafeJSContext"
-
             if argument:
                 yield "value", argument_type(descriptor, argument)
 
@@ -8382,14 +8361,12 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      realm: bool = False,
                      canGc: bool = False
                      ) -> Iterator[tuple[str, str]]:
-    old_cx = False
+
     match needCx(returnType, arguments, passJSBits):
         case Context.Cx:
             cx = True
         case Context.CurrentRealm:
             realm = True
-        case Context.OldCx:
-            old_cx = True
         case Context.No:
             pass
 
@@ -8403,9 +8380,6 @@ def method_arguments(descriptorProvider: DescriptorProvider,
         yield "cx", "&NoGC"
 
     safe_cx = cx or cx_no_gc or realm or no_gc
-
-    if old_cx and not safe_cx:
-        yield "cx", "SafeJSContext"
 
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,
@@ -8503,7 +8477,7 @@ class CGCallback(CGClass):
 
     def getConstructors(self) -> list[ClassConstructor]:
         return [ClassConstructor(
-            [Argument("SafeJSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
+            [Argument("&JSContext", "cx"), Argument("*mut JSObject", "aCallback")],
             bodyInHeader=True,
             visibility="pub",
             explicit=False,
@@ -8516,7 +8490,7 @@ class CGCallback(CGClass):
         args = list(method.args)
         # Strip out the JSContext*/JSObject* args
         # that got added.
-        assert args[0].name == "cx" and args[0].argType == "SafeJSContext"
+        assert args[0].name == "cx" and args[0].argType == "&mut JSContext"
         assert args[1].name == "aThisObj" and args[1].argType == "HandleValue"
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
@@ -8596,7 +8570,7 @@ class CGCallbackFunctionImpl(CGGeneric):
         type = f"{callback.identifier.name}<D>"
         impl = (f"""
 impl<D: DomTypes> CallbackContainer<D> for {type} {{
-    unsafe fn new(cx: SafeJSContext, callback: *mut JSObject) -> Rc<{type}> {{
+    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> Rc<{type}> {{
         {type.replace('<D>', '')}::new(cx, callback)
     }}
 
@@ -8798,7 +8772,7 @@ class CallbackMember(CGNativeMember):
             return args
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
-        return [Argument("SafeJSContext", "cx"),
+        return [Argument("&mut JSContext", "cx"),
                 Argument("HandleValue", "aThisObj")] + args
 
     def getCallSetup(self) -> str:

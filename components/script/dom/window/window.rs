@@ -64,6 +64,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
 use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
@@ -443,7 +444,7 @@ pub(crate) struct Window {
     current_event: DomRefCell<Option<Dom<Event>>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-registered-reporting-observer-list>
-    reporting_observer_list: DomRefCell<Vec<DomRoot<ReportingObserver>>>,
+    reporting_observer_list: DomRefCell<Vec<Dom<ReportingObserver>>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-reports>
     report_list: DomRefCell<Vec<Report>>,
@@ -581,10 +582,10 @@ impl Window {
         self.window_proxy.get().unwrap()
     }
 
-    pub(crate) fn append_reporting_observer(&self, reporting_observer: DomRoot<ReportingObserver>) {
+    pub(crate) fn append_reporting_observer(&self, reporting_observer: &ReportingObserver) {
         self.reporting_observer_list
             .borrow_mut()
-            .push(reporting_observer);
+            .push(Dom::from_ref(reporting_observer));
     }
 
     pub(crate) fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
@@ -600,7 +601,11 @@ impl Window {
     }
 
     pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
-        self.reporting_observer_list.borrow().clone()
+        self.reporting_observer_list
+            .borrow()
+            .iter()
+            .map(|observer| DomRoot::from_ref(&**observer))
+            .collect()
     }
 
     pub(crate) fn append_report(&self, report: Report) {
@@ -914,11 +919,11 @@ impl Window {
         self.script_thread().perform_a_microtask_checkpoint(cx);
     }
 
-    pub(crate) fn web_font_context(&self) -> WebFontDocumentContext {
+    pub(crate) fn web_font_context(&self, no_gc: &NoGC) -> WebFontDocumentContext {
         let global = self.as_global_scope();
         WebFontDocumentContext {
             policy_container: global.policy_container(),
-            request_client: global.request_client(),
+            request_client: global.request_client(Some(no_gc)),
             document_url: global.api_base_url(),
             has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
             insecure_requests_policy: global.insecure_requests_policy(),
@@ -1506,15 +1511,15 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://cookiestore.spec.whatwg.org/#Window>
-    fn CookieStore(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
+    fn CookieStore(&self, cx: &mut JSContext) -> DomRoot<CookieStore> {
         self.cookie_store
-            .or_init(|| CookieStore::new(self.upcast::<GlobalScope>(), can_gc))
+            .or_init(|| CookieStore::new(cx, self.upcast::<GlobalScope>()))
     }
 
     /// <https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto>
-    fn Crypto(&self) -> DomRoot<Crypto> {
+    fn Crypto(&self, cx: &mut JSContext) -> DomRoot<Crypto> {
         self.crypto
-            .or_init(|| Crypto::new(self.as_global_scope(), CanGc::deprecated_note()))
+            .or_init(|| Crypto::new(cx, self.as_global_scope()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-frameelement>
@@ -1620,11 +1625,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
-    fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
-        ScriptThread::enqueue_microtask(Microtask::User(UserMicrotask {
-            callback,
-            pipeline: self.pipeline_id(),
-        }));
+    fn QueueMicrotask(&self, cx: &JSContext, callback: Rc<VoidFunction>) {
+        ScriptThread::enqueue_microtask(
+            cx,
+            Microtask::User(UserMicrotask {
+                callback,
+                pipeline: self.pipeline_id(),
+            }),
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -2157,10 +2165,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-matchmedia>
-    fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
+    fn MatchMedia(&self, cx: &mut JSContext, query: DOMString) -> DomRoot<MediaQueryList> {
         let media_query_list = MediaList::parse_media_list(&query.str(), self);
         let document = self.Document();
-        let mql = MediaQueryList::new(&document, media_query_list, CanGc::deprecated_note());
+        let mql = MediaQueryList::new(cx, &document, media_query_list);
         self.media_query_lists.track(&*mql);
         mql
     }
@@ -2358,7 +2366,7 @@ impl Window {
         proto: HandleObject,
         object: MutableHandleObject,
     ) {
-        window_named_properties::create(cx.into(), proto, object)
+        window_named_properties::create(cx, proto, object)
     }
 
     pub(crate) fn current_event(&self) -> Option<DomRoot<Event>> {
@@ -2563,7 +2571,8 @@ impl Window {
             return Default::default();
         }
 
-        self.Document().ensure_safe_to_run_script_or_layout();
+        self.document_unrooted(cx.no_gc())
+            .ensure_safe_to_run_script_or_layout();
 
         // If layouts are blocked, we block all layouts that are for display only. Other
         // layouts (for queries and scrolling) are not blocked, as they do not display
@@ -2614,7 +2623,7 @@ impl Window {
         // layout runs, so that the map can gather their elements in DOM order.
         document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
-        let document_context = self.web_font_context();
+        let document_context = self.web_font_context(cx.no_gc());
 
         let rooted_nodes_for_accessibility_integrity_check =
             document.rooted_nodes_for_accessibility_integrity_check();
@@ -2908,6 +2917,13 @@ impl Window {
         self.layout
             .borrow()
             .query_current_css_zoom(node.to_trusted_node_address())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-2>
+    pub(crate) fn document_unrooted<'a>(&self, no_gc: &'a NoGC) -> UnrootedDom<'a, Document> {
+        self.document
+            .get_unrooted(no_gc)
+            .expect("Document accessed before initialization.")
     }
 
     /// Find the scroll area of the given node, if it is not None. If the node

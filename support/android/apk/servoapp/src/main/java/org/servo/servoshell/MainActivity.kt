@@ -21,6 +21,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -41,7 +42,9 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
     private lateinit var progressBar: CircularProgressIndicator
     private lateinit var idleText: TextView
-    private var canGoBack = false
+    private var canGoBackState = mutableStateOf(false)
+    private var canGoForwardState = mutableStateOf(false)
+    private var isRefreshingState = mutableStateOf(false)
     private var mediaSession: MediaSession? = null
     private lateinit var historyManager: HistoryManager
     private var currentUrl = ""
@@ -53,8 +56,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     }
 
     private lateinit var settings: Settings
-
-    private val actionClickListener = View.OnClickListener { v -> dispatchAction(v.id) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,10 +85,31 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         bottomNav?.setOnItemSelectedListener { item -> dispatchAction(item.itemId) }
 
         findViewById<View>(R.id.toolbar)?.apply {
-            findViewById<View>(R.id.history_back_menu_item).setOnClickListener(actionClickListener)
-            findViewById<View>(R.id.history_forward_menu_item).setOnClickListener(actionClickListener)
-            findViewById<View>(R.id.refresh_menu_item).setOnClickListener(actionClickListener)
-            findViewById<View>(R.id.cancel_menu_item).setOnClickListener(actionClickListener)
+            findViewById<ComposeView>(R.id.history_back_menu_item).apply {
+                setContent {
+                    IconButton(onClick = { dispatchAction(id) }, enabled = canGoBackState.value) {
+                        Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
+                    }
+                }
+            }
+            findViewById<ComposeView>(R.id.history_forward_menu_item).apply {
+                setContent {
+                    IconButton(onClick = { dispatchAction(id) }, enabled = canGoForwardState.value) {
+                        Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
+                    }
+                }
+            }
+            findViewById<ComposeView>(R.id.refresh_menu_item).apply {
+                setContent {
+                    IconButton(onClick = { dispatchAction(if (isRefreshingState.value) R.id.cancel_menu_item else R.id.refresh_menu_item) }) {
+                        if (isRefreshingState.value) {
+                            Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
+                        } else {
+                            Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
+                        }
+                    }
+                }
+            }
             findViewById<ComposeView>(R.id.settings_menu_item).apply {
                 setContent {
                     IconButton(onClick = { dispatchAction(id) }) {
@@ -225,9 +247,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             bottomNav.menu.findItem(R.id.cancel_menu_item).isVisible = true
             bottomNav.menu.findItem(R.id.refresh_menu_item).isVisible = false
         }
-        // tablet view
-        findViewById<View>(R.id.cancel_menu_item).isVisible = true
-        findViewById<View>(R.id.refresh_menu_item).isVisible = false
+        isRefreshingState.value = true
 
         progressBar.isVisible = true
     }
@@ -246,9 +266,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             bottomNav.menu.findItem(R.id.cancel_menu_item).isVisible = false
             bottomNav.menu.findItem(R.id.refresh_menu_item).isVisible = true
         }
-        // tablet view
-        findViewById<View>(R.id.cancel_menu_item).isVisible = false
-        findViewById<View>(R.id.refresh_menu_item).isVisible = true
+        isRefreshingState.value = false
         progressBar.isVisible = false
     }
 
@@ -268,10 +286,8 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             bottomNav.menu.findItem(R.id.history_back_menu_item).isEnabled = canGoBack
             bottomNav.menu.findItem(R.id.history_forward_menu_item).isEnabled = canGoForward
         }
-        // tablet view
-        findViewById<View>(R.id.history_back_menu_item).isEnabled = canGoBack
-        findViewById<View>(R.id.history_forward_menu_item).isEnabled = canGoForward
-        this.canGoBack = canGoBack
+        canGoBackState.value = canGoBack
+        canGoForwardState.value = canGoForward
     }
 
     override fun onRedrawing(redrawing: Boolean) {
@@ -291,7 +307,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (canGoBack) {
+        if (canGoBackState.value) {
             servoView.goBack()
         } else {
             super.onBackPressed()

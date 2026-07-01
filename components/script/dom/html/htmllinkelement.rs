@@ -520,7 +520,7 @@ impl HTMLLinkElement {
             base_url: document.borrow().base_url(),
             insecure_requests_policy: document.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
-            request_client: global.request_client(),
+            request_client: global.request_client(None),
             referrer: global.get_referrer(),
         };
 

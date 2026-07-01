@@ -661,7 +661,7 @@ impl ModuleFetchClient {
             insecure_requests_policy: global.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_or_current_origin(),
             policy_container: global.policy_container(),
-            client: global.request_client(),
+            client: global.request_client(None),
             pipeline_id: global.pipeline_id(),
             origin: global.origin().immutable().clone(),
         }

@@ -332,7 +332,7 @@ impl HTMLSlotElement {
             slottable.node().dirty(NodeDamage::Other);
         }
 
-        self.signal_a_slot_change();
+        self.signal_a_slot_change(cx);
 
         // If we don't disconnect the old slottables from this slot then they'll stay implicitily
         // connected, which causes problems later on. Only do this for slottables that have not
@@ -368,7 +368,7 @@ impl HTMLSlotElement {
     }
 
     /// <https://dom.spec.whatwg.org/#signal-a-slot-change>
-    pub(crate) fn signal_a_slot_change(&self) {
+    pub(crate) fn signal_a_slot_change(&self, cx: &JSContext) {
         self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
 
         if self.is_in_agents_signal_slots.get() {
@@ -381,7 +381,7 @@ impl HTMLSlotElement {
         mutation_observers.add_signal_slot(self);
 
         // Step 2. Queue a mutation observer microtask.
-        mutation_observers.queue_mutation_observer_microtask(ScriptThread::microtask_queue());
+        mutation_observers.queue_mutation_observer_microtask(cx, ScriptThread::microtask_queue());
     }
 
     pub(crate) fn remove_from_signal_slots(&self) {

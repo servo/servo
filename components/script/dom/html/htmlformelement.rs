@@ -68,7 +68,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::html::htmlobjectelement::HTMLObjectElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
@@ -1024,7 +1023,7 @@ impl HTMLFormElement {
         let request_body = bytes
             .extract(cx, &global, false)
             .expect("Couldn't extract body.")
-            .into_net_request_body()
+            .into_net_request_body(cx)
             .0;
         load_data.data = Some(request_body);
 
@@ -1649,13 +1648,15 @@ impl FormSubmitterElement<'_> {
 
 pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>>;
-
     fn set_form_owner(&self, form: Option<&HTMLFormElement>);
+    fn to_html_element(&self) -> &HTMLElement;
 
-    fn to_element(&self) -> &Element;
+    fn to_element(&self) -> &Element {
+        self.to_html_element().upcast::<Element>()
+    }
 
     fn is_listed(&self) -> bool {
-        true
+        self.to_html_element().is_listed_element()
     }
 
     // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
@@ -1948,9 +1949,6 @@ impl FormControlElementHelpers for Element {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
             )) => Some(self.downcast::<HTMLInputElement>().unwrap() as &dyn FormControl),
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLLabelElement,
-            )) => Some(self.downcast::<HTMLLabelElement>().unwrap() as &dyn FormControl),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLegendElement,
             )) => Some(self.downcast::<HTMLLegendElement>().unwrap() as &dyn FormControl),

@@ -9,10 +9,11 @@ use std::iter;
 use app_units::Au;
 use dom_struct::dom_struct;
 use euclid::Rect;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use style_traits::CSSPixel;
 
@@ -315,6 +316,11 @@ impl Range {
 
     fn end(&self) -> &BoundaryPoint {
         self.abstract_range().end()
+    }
+
+    pub(crate) fn start_and_end_are_in_document_tree(&self) -> bool {
+        self.start_container().is_in_a_document_tree() &&
+            self.end_container().is_in_a_document_tree()
     }
 
     pub(crate) fn start_container(&self) -> DomRoot<Node> {
@@ -1104,7 +1110,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-stringifier>
-    fn Stringifier(&self) -> DOMString {
+    fn Stringifier(&self, no_gc: &NoGC) -> DOMString {
         let start_node = self.start_container();
         let end_node = self.end_container();
 
@@ -1140,8 +1146,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // in tree order, to string.
         let ancestor = self.CommonAncestorContainer();
         let iter = start_node
-            .following_nodes(&ancestor, ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Text>);
+            .following_nodes_unrooted(no_gc, &ancestor, ShadowIncluding::No)
+            .filter_map(UnrootedDom::downcast::<Text>);
 
         for child in iter {
             if self.contains(child.upcast()) {

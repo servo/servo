@@ -41,7 +41,6 @@ use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{EmbedderPolicyValue, RequestPolicyContainer};
 use net_traits::pub_domains::{is_same_site, reg_suffix};
-use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator,
     Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestClient, RequestMode,
@@ -861,13 +860,20 @@ pub(crate) async fn http_fetch(
         if cors_preflight_flag {
             let method_cache_match = cache.match_method(request, request.method.clone());
 
+            // There is no method cache entry match for request’s method using request, and either
+            // request’s method is not a CORS-safelisted method or request’s use-CORS-preflight flag
+            // is set.
             let method_mismatch = !method_cache_match &&
                 (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
+
+            // There is at least one item in the CORS-unsafe request-header names with request’s
+            // header list for which there is no header-name cache entry match using request.
             let header_mismatch = request.headers.iter().any(|(name, value)| {
                 !cache.match_header(request, name) &&
                     !is_cors_safelisted_request_header(&name, &value)
             });
 
+            // Then:
             if method_mismatch || header_mismatch {
                 // Step 4.1.1. Let preflightResponse be the result of running
                 // CORS-preflight fetch given request.
@@ -902,8 +908,11 @@ pub(crate) async fn http_fetch(
             return Response::network_error(NetworkError::CorsGeneral);
         }
 
-        // TODO: Step 4.5. If the TAO check for request and response returns failure,
+        // Step 4.5. If the TAO check for request and response returns failure,
         // then set request’s timing allow failed flag.
+        if let Err(()) = tao_check(&fetch_params.request, &fetch_result) {
+            context.timing.inner().mark_timing_check_failed();
+        }
         fetch_result.return_internal = false;
         response = Some(fetch_result);
     }
@@ -937,19 +946,22 @@ pub(crate) async fn http_fetch(
         .try_code()
         .is_some_and(is_redirect_status)
     {
-        // Step 6.1. If internalResponse’s status is not 303, request’s body is non-null,
+        // TODO Step 6.1. If request is a navigation request, then append to a request’s navigation
+        // timing allow values list given request and internalResponse.
+
+        // Step 6.2. If internalResponse’s status is not 303, request’s body is non-null,
         // and the connection uses HTTP/2, then user agents may, and are even encouraged to,
         // transmit an RST_STREAM frame.
         if response.actual_response().status != StatusCode::SEE_OTHER {
             // TODO: send RST_STREAM frame
         }
 
-        // Step 6.2. Switch on request’s redirect mode:
+        // Step 6.3. Switch on request’s redirect mode:
         response = match request.redirect_mode {
-            // Step 6.2."error".1. Set response to a network error.
+            // Step 6.3."error".1. Set response to a network error.
             RedirectMode::Error => Response::network_error(NetworkError::RedirectError),
             RedirectMode::Manual => {
-                // Step 6.2."manual".1. If request’s mode is "navigate", then set fetchParams’s controller’s
+                // Step 6.3."manual".1. If request’s mode is "navigate", then set fetchParams’s controller’s
                 // next manual redirect steps to run HTTP-redirect fetch given fetchParams and response.
                 if request.mode == RequestMode::Navigate {
                     // TODO: We don't implement Fetch controller. Instead, we update the location url
@@ -960,13 +972,19 @@ pub(crate) async fn http_fetch(
                     response.actual_response_mut().location_url = location_url;
                     response
                 } else {
-                    // Step 6.2."manual".2. Otherwise, set response to an opaque-redirect filtered response whose internal response is internalResponse.
+                    // Step 6.3."manual".2. Otherwise, set response to an opaque-redirect filtered
+                    // response whose internal response is internalResponse.
                     response.to_filtered(ResponseType::OpaqueRedirect)
                 }
             },
             RedirectMode::Follow => {
+                // TODO Step 6.3."follow".1. Run the WebDriver BiDi response completed steps with
+                // request and response.
                 // set back to default
                 response.return_internal = true;
+
+                // Step 6.3."follow".2. Set response to the result of running HTTP-redirect fetch
+                // given fetchParams and response.
                 http_redirect_fetch(
                     fetch_params,
                     cache,
@@ -991,8 +1009,55 @@ pub(crate) async fn http_fetch(
 
     response.resource_timing = context.timing.clone();
 
-    // Step 6
+    // Step 7. Return response
     response
+}
+
+/// <https://fetch.spec.whatwg.org/#concept-tao-check>
+fn tao_check(request: &Request, response: &Response) -> Result<(), ()> {
+    // Step 1. Assert: request’s origin is not "client".
+    let Origin::Origin(ref request_origin) = request.origin else {
+        unreachable!("origin cannot be \"client\" at this point");
+    };
+
+    // Step 2. If request’s timing allow failed flag is set, then return failure.
+
+    // Step 3. Let values be the result of getting, decoding, and splitting `Timing-Allow-Origin`
+    // from response’s header list.
+    let values: Vec<&str> = response
+        .headers
+        .get_all("Timing-Allow-Origin")
+        .iter()
+        .map(|header_value| header_value.to_str().unwrap_or(""))
+        .collect();
+
+    // Step 4. If values contains "*", then return success.
+    if values.contains(&"*") {
+        return Ok(());
+    }
+
+    // Step 5. If values contains the result of serializing a request origin with request, then
+    // return success.
+    if values
+        .iter()
+        .any(|header_str| *header_str == request_origin.ascii_serialization())
+    {
+        return Ok(());
+    }
+
+    // Step 6. If request’s mode is "navigate" and request’s current URL’s origin is not same origin
+    // with request’s origin, then return failure.
+    if request.mode == RequestMode::Navigate && request.current_url().origin() != *request_origin {
+        return Err(());
+    }
+
+    // Step 7. If request’s response tainting is "basic", then return success.
+    if request.response_tainting == ResponseTainting::Basic {
+        return Ok(());
+    }
+
+    // Step 8. Return failure.
+    Err(())
 }
 
 // Convenience struct that implements Drop, for setting redirectEnd on function return
@@ -1972,16 +2037,15 @@ async fn http_network_fetch(
     // Step 1: Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
 
-    // Step 2
-    // TODO be able to create connection using current url's origin and credentials
+    // TODO Step 2. If request’s client is offline, then return a network error.
 
-    // Step 3
-    // TODO be able to tell if the connection is a failure
+    // TODO Step 3. Let response be null.
 
-    // Step 4
-    // TODO: check whether the connection is HTTP/2
+    // TODO Step 4. Let timingInfo be fetchParams’s timing info.
 
-    // Step 5
+    // TODO Step 5. Let networkPartitionKey be the result of determining the network partition key
+    // given request.
+
     let url = request.current_url();
     let request_id = request.id.0.to_string();
     if log_enabled!(log::Level::Info) {
@@ -2011,7 +2075,11 @@ async fn http_network_fetch(
 
     let browsing_context_id = request.target_webview_id.map(Into::into);
 
+    // Step 6. Let newConnection be "yes" if forceNewConnection is true; otherwise "no".
+
+    // Step 7. Switch on request’s mode:
     let (res, msg) = match &request.mode {
+        // Let connection be the result of obtaining a WebSocket connection, given request’s current URL.
         RequestMode::WebSocket {
             protocols,
             original_url: _,
@@ -2059,6 +2127,8 @@ async fn http_network_fetch(
             });
             (Decoder::detect(response, url.is_secure_scheme()), None)
         },
+        // Let connection be the result of obtaining a connection, given networkPartitionKey,
+        // request’s current URL, includeCredentials, and newConnection.
         _ => {
             let response_future = obtain_response(
                 &context.state.client,
@@ -2101,34 +2171,6 @@ async fn http_network_fetch(
         Some(true) => return Response::network_error(NetworkError::ConnectionFailure),
         Some(false) => {},
         _ => warn!("Failed to receive confirmation request was streamed without error."),
-    }
-
-    let header_strings: Vec<&str> = res
-        .headers()
-        .get_all("Timing-Allow-Origin")
-        .iter()
-        .map(|header_value| header_value.to_str().unwrap_or(""))
-        .collect();
-    let wildcard_present = header_strings.contains(&"*");
-    // The spec: https://www.w3.org/TR/resource-timing-2/#sec-timing-allow-origin
-    // says that a header string is either an origin or a wildcard so we can just do a straight
-    // check against the document origin
-    let req_origin_in_timing_allow = header_strings
-        .iter()
-        .any(|header_str| match request.origin {
-            SpecificOrigin(ref immutable_request_origin) => {
-                *header_str == immutable_request_origin.ascii_serialization()
-            },
-            _ => false,
-        });
-
-    let is_same_origin = request.url_list.iter().all(|url| match request.origin {
-        SpecificOrigin(ref immutable_request_origin) => url.origin() == *immutable_request_origin,
-        _ => false,
-    });
-
-    if !(is_same_origin || req_origin_in_timing_allow || wildcard_present) {
-        context.timing.inner().mark_timing_check_failed();
     }
 
     let timing = context.timing.inner().clone();

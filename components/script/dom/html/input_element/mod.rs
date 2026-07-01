@@ -2438,8 +2438,8 @@ impl FormControl for HTMLInputElement {
         self.form_owner.set(form);
     }
 
-    fn to_element(&self) -> &Element {
-        self.upcast::<Element>()
+    fn to_html_element(&self) -> &HTMLElement {
+        self.upcast::<HTMLElement>()
     }
 }
 

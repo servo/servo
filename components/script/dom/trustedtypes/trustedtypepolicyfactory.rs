@@ -5,6 +5,7 @@ use std::cell::RefCell;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
+use js::context::JSContext;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -32,7 +33,6 @@ use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypes::trustedtypepolicy::{TrustedType, TrustedTypePolicy};
 use crate::dom::types::WorkerGlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub struct TrustedTypePolicyFactory {
@@ -68,14 +68,14 @@ impl TrustedTypePolicyFactory {
         }
     }
 
-    pub(crate) fn new(cx: &mut js::context::JSContext, global: &GlobalScope) -> DomRoot<Self> {
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Self> {
         reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
     }
 
     /// <https://www.w3.org/TR/trusted-types/#create-trusted-type-policy-algorithm>
     fn create_trusted_type_policy(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         policy_name: String,
         options: &TrustedTypePolicyOptions,
         global: &GlobalScope,
@@ -190,7 +190,7 @@ impl TrustedTypePolicyFactory {
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#validate-attribute-mutation>
     pub(crate) fn get_trusted_types_compliant_attribute_value(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         element_namespace: &Namespace,
         element_name: &LocalName,
         attribute: &str,
@@ -244,7 +244,7 @@ impl TrustedTypePolicyFactory {
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#process-value-with-a-default-policy-algorithm>
     pub(crate) fn process_value_with_default_policy(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         expected_type: TrustedType,
         global: &GlobalScope,
         input: DOMString,
@@ -289,7 +289,7 @@ impl TrustedTypePolicyFactory {
     /// Step 1 is implemented by the caller
     /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm>
     pub(crate) fn get_trusted_type_compliant_string(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         expected_type: TrustedType,
         global: &GlobalScope,
         input: DOMString,
@@ -349,10 +349,10 @@ impl TrustedTypePolicyFactory {
 
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
     pub(crate) fn is_trusted_script(
-        cx: JSContext,
+        cx: &mut JSContext,
         value: HandleValue,
     ) -> Result<DomRoot<TrustedScript>, ()> {
-        root_from_handlevalue::<TrustedScript>(value, cx)
+        root_from_handlevalue::<TrustedScript>(cx, value)
     }
 }
 
@@ -360,30 +360,30 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-createpolicy>
     fn CreatePolicy(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         policy_name: DOMString,
         options: &TrustedTypePolicyOptions,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
         self.create_trusted_type_policy(cx, String::from(policy_name), options, &self.global())
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-ishtml>
-    fn IsHTML(&self, cx: JSContext, value: HandleValue) -> bool {
-        root_from_handlevalue::<TrustedHTML>(value, cx).is_ok()
+    fn IsHTML(&self, cx: &mut JSContext, value: HandleValue) -> bool {
+        root_from_handlevalue::<TrustedHTML>(cx, value).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
-    fn IsScript(&self, cx: JSContext, value: HandleValue) -> bool {
+    fn IsScript(&self, cx: &mut JSContext, value: HandleValue) -> bool {
         TrustedTypePolicyFactory::is_trusted_script(cx, value).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscripturl>
-    fn IsScriptURL(&self, cx: JSContext, value: HandleValue) -> bool {
-        root_from_handlevalue::<TrustedScriptURL>(value, cx).is_ok()
+    fn IsScriptURL(&self, cx: &mut JSContext, value: HandleValue) -> bool {
+        root_from_handlevalue::<TrustedScriptURL>(cx, value).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyhtml>
-    fn EmptyHTML(&self, cx: &mut js::context::JSContext) -> DomRoot<TrustedHTML> {
+    fn EmptyHTML(&self, cx: &mut JSContext) -> DomRoot<TrustedHTML> {
         TrustedHTML::new(cx, DOMString::new(), &self.global())
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyscript>
-    fn EmptyScript(&self, cx: &mut js::context::JSContext) -> DomRoot<TrustedScript> {
+    fn EmptyScript(&self, cx: &mut JSContext) -> DomRoot<TrustedScript> {
         TrustedScript::new(cx, DOMString::new(), &self.global())
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-getattributetype>
@@ -486,7 +486,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
 }
 
 impl GlobalScope {
-    fn trusted_types(&self, cx: &mut js::context::JSContext) -> DomRoot<TrustedTypePolicyFactory> {
+    fn trusted_types(&self, cx: &mut JSContext) -> DomRoot<TrustedTypePolicyFactory> {
         if let Some(window) = self.downcast::<Window>() {
             return window.TrustedTypes(cx);
         }

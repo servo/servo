@@ -45,7 +45,6 @@ pub(crate) mod base {
     pub(crate) use crate::proxyhandler::{CrossOriginProperties, is_platform_object_same_origin};
     pub(crate) use crate::reflector::DomObject;
     pub(crate) use crate::root::DomRoot;
-    pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
     pub(crate) use crate::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::trace::RootedTraceableBox;
     pub(crate) use crate::utils::{get_dictionary_property, set_dictionary_property};
@@ -84,8 +83,8 @@ pub(crate) mod module {
     };
     pub(crate) use js::rust::{CustomAutoRooterGuard, GCMethods, Handle, MutableHandle};
     pub(crate) use js::{
-        JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,
-        JSCLASS_RESERVED_SLOTS_MASK, typedarray,
+        JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_MASK,
+        typedarray,
     };
     pub(crate) use servo_config::pref;
 

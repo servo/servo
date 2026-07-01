@@ -85,6 +85,14 @@ impl HttpStatus {
     pub fn in_range<T: RangeBounds<u16>>(&self, range: T) -> bool {
         self.code != 0 && range.contains(&self.code)
     }
+
+    /// <https://fetch.spec.whatwg.org/#range-status>
+    pub fn is_a_range_status(&self) -> bool {
+        matches!(
+            self.code(),
+            StatusCode::PARTIAL_CONTENT | StatusCode::RANGE_NOT_SATISFIABLE
+        )
+    }
 }
 
 impl Default for HttpStatus {

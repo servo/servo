@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/45740">
+<style>
+#bar { content: url(doesnotexist); }
+</style>
+<body onload='bar.id = "baz"'>
+  <li id="bar" style="overflow: scroll"></li>
+</body>

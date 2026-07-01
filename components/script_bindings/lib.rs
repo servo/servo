@@ -28,6 +28,7 @@ mod finalize;
 mod guard;
 mod import;
 pub mod inheritance;
+mod init;
 pub mod interface;
 pub mod interfaces;
 pub mod iterable;

@@ -62,7 +62,6 @@ use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
-use crate::script_runtime::JSContext;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -498,12 +497,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl>
-    fn ToDataURL(
-        &self,
-        _context: JSContext,
-        mime_type: DOMString,
-        quality: HandleValue,
-    ) -> Fallible<USVString> {
+    fn ToDataURL(&self, mime_type: DOMString, quality: HandleValue) -> Fallible<USVString> {
         // Step 1: If this canvas element's bitmap's origin-clean flag is set to false,
         // then throw a "SecurityError" DOMException.
         if !self.origin_is_clean() {
@@ -549,7 +543,6 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-toblob>
     fn ToBlob(
         &self,
-        _cx: JSContext,
         callback: Rc<BlobCallback>,
         mime_type: DOMString,
         quality: HandleValue,

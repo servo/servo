@@ -1988,7 +1988,7 @@ impl Element {
             namespace: namespace.clone(),
             old_value: old_value.map(|old_value| DOMString::from(&**old_value)),
         });
-        MutationObserver::queue_a_mutation_record(&self.node, mutation);
+        MutationObserver::queue_a_mutation_record(cx, &self.node, mutation);
 
         // Avoid double borrow
         let has_new_value = new_value.is_some();
@@ -3827,7 +3827,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
-        root.query_selector_all(cx.no_gc(), selectors)
+        root.query_selector_all(cx, selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>

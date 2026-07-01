@@ -25,45 +25,22 @@
                 app:layout_constraintStart_toStartOf="parent"
                 >
 
-                <com.google.android.material.button.MaterialButton
+                <androidx.compose.ui.platform.ComposeView
                     android:id="@+id/history_back_menu_item"
-                    style="@style/Widget.Material3.Button.IconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:icon="@drawable/arrow_back"
-                    android:contentDescription="@string/history_back"
-                    android:enabled="false"
                     />
 
-                <com.google.android.material.button.MaterialButton
+                <androidx.compose.ui.platform.ComposeView
                     android:id="@+id/history_forward_menu_item"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    app:icon="@drawable/arrow_forward"
-                    app:iconTint="?colorOnBackground"
-                    android:contentDescription="@string/history_forward"
-                    android:enabled="false"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     />
 
-                <com.google.android.material.button.MaterialButton
+                <androidx.compose.ui.platform.ComposeView
                     android:id="@+id/refresh_menu_item"
-                    style="@style/Widget.Material3.Button.IconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:contentDescription="@string/refresh"
-                    app:icon="@drawable/refresh"
-                    app:iconTint="?colorOnBackground" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/cancel_menu_item"
-                    style="@style/Widget.Material3.Button.IconButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/cancel"
-                    app:icon="@drawable/cancel"
-                    app:iconTint="?colorOnBackground"
-                    android:visibility="gone"
                     />
 
 

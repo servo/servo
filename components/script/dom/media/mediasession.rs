@@ -9,9 +9,10 @@ use embedder_traits::{
     MediaMetadata as EmbedderMediaMetadata, MediaPositionState as EmbedderMediaPositionState,
     MediaSessionActionType, MediaSessionEvent,
 };
+use js::context::JSContext;
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::conversions::Convert;
@@ -33,7 +34,6 @@ use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::media::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct MediaSession {
@@ -65,8 +65,8 @@ impl MediaSession {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<MediaSession> {
-        reflect_dom_object(Box::new(MediaSession::new_inherited()), window, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<MediaSession> {
+        reflect_dom_object_with_cx(Box::new(MediaSession::new_inherited()), window, cx)
     }
 
     pub(crate) fn register_media_instance(&self, media_instance: &HTMLMediaElement) {
@@ -139,14 +139,14 @@ impl MediaSession {
 
 impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
     /// <https://w3c.github.io/mediasession/#dom-mediasession-metadata>
-    fn GetMetadata(&self, can_gc: CanGc) -> Option<DomRoot<MediaMetadata>> {
+    fn GetMetadata(&self, cx: &mut JSContext) -> Option<DomRoot<MediaMetadata>> {
         if let Some(ref metadata) = *self.metadata.borrow() {
             let mut init = MediaMetadataInit::empty();
             init.title = metadata.title.clone().into();
             init.artist = metadata.artist.clone().into();
             init.album = metadata.album.clone().into();
             let global = self.global();
-            Some(MediaMetadata::new(global.as_window(), &init, can_gc))
+            Some(MediaMetadata::new(cx, global.as_window(), &init))
         } else {
             None
         }

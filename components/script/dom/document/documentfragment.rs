@@ -167,8 +167,7 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
         cx: &mut JSContext,
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
-        self.upcast::<Node>()
-            .query_selector_all(cx.no_gc(), selectors)
+        self.upcast::<Node>().query_selector_all(cx, selectors)
     }
 }
 

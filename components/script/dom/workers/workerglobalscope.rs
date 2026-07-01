@@ -58,7 +58,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
@@ -320,7 +320,7 @@ pub(crate) struct WorkerGlobalScope {
     insecure_requests_policy: InsecureRequestsPolicy,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-registered-reporting-observer-list>
-    reporting_observer_list: DomRefCell<Vec<DomRoot<ReportingObserver>>>,
+    reporting_observer_list: DomRefCell<Vec<Dom<ReportingObserver>>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-reports>
     report_list: DomRefCell<Vec<Report>>,
@@ -426,8 +426,8 @@ impl WorkerGlobalScope {
             .get_or_init(|| OneshotTimers::new(self.upcast()))
     }
 
-    pub(crate) fn enqueue_microtask(&self, cx: &mut JSContext, job: Microtask) {
-        self.microtask_queue.enqueue(job, cx.into());
+    pub(crate) fn enqueue_microtask(&self, cx: &JSContext, job: Microtask) {
+        self.microtask_queue.enqueue(cx, job);
     }
 
     /// Perform a microtask checkpoint.
@@ -515,10 +515,10 @@ impl WorkerGlobalScope {
             .set_referrer_policy(referrer_policy);
     }
 
-    pub(crate) fn append_reporting_observer(&self, reporting_observer: DomRoot<ReportingObserver>) {
+    pub(crate) fn append_reporting_observer(&self, reporting_observer: &ReportingObserver) {
         self.reporting_observer_list
             .borrow_mut()
-            .push(reporting_observer);
+            .push(Dom::from_ref(reporting_observer));
     }
 
     pub(crate) fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
@@ -533,7 +533,11 @@ impl WorkerGlobalScope {
     }
 
     pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
-        self.reporting_observer_list.borrow().clone()
+        self.reporting_observer_list
+            .borrow()
+            .iter()
+            .map(|observer| DomRoot::from_ref(&**observer))
+            .collect()
     }
 
     pub(crate) fn append_report(&self, report: Report) {
@@ -863,9 +867,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dfn-Crypto>
-    fn Crypto(&self) -> DomRoot<Crypto> {
+    fn Crypto(&self, cx: &mut JSContext) -> DomRoot<Crypto> {
         self.crypto
-            .or_init(|| Crypto::new(self.upcast::<GlobalScope>(), CanGc::deprecated_note()))
+            .or_init(|| Crypto::new(cx, self.upcast::<GlobalScope>()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
@@ -1116,7 +1120,7 @@ impl WorkerGlobalScope {
             DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
                 let debugger_global_handle = rooted_heap_handle(self, |this| &this.debugger_global);
                 let debugger_global =
-                    root_from_handlevalue::<DebuggerGlobalScope>(debugger_global_handle, cx.into())
+                    root_from_handlevalue::<DebuggerGlobalScope>(cx, debugger_global_handle)
                         .expect("must be a debugger global scope");
 
                 debugger_global.fire_eval(

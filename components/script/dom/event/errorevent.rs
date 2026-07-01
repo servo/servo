@@ -23,7 +23,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext as SafeJSContext;
 
 #[dom_struct]
 pub(crate) struct ErrorEvent {
@@ -172,7 +171,7 @@ impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-errorevent-error>
-    fn Error(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
+    fn Error(&self, mut retval: MutableHandleValue) {
         retval.set(self.error.get());
     }
 

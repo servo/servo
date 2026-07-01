@@ -363,10 +363,7 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-data>
-    fn GetData(
-        &self,
-        _: script_bindings::script_runtime::JSContext,
-    ) -> Fallible<RootedTraceableBox<HeapUint8ClampedArray>> {
+    fn GetData(&self) -> Fallible<RootedTraceableBox<HeapUint8ClampedArray>> {
         self.data.get_typed_array().map_err(|_| Error::JSFailed)
     }
 

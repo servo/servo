@@ -324,9 +324,15 @@ pub(crate) enum StackingContextType {
 }
 
 #[derive(MallocSizeOf)]
-pub enum StackingContextFragments {
+pub(crate) enum StackingContextFragments {
     Root,
     Fragment(#[conditional_malloc_size_of] Arc<BoxFragment>),
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct StackingContextReferenceFrameInfo {
+    pub(crate) parent_spatial_node_id: ScrollTreeNodeId,
+    pub(crate) captured_clip_id: ClipId,
 }
 
 /// Either a stacking context or a stacking container, per the definitions in
@@ -366,6 +372,10 @@ pub struct StackingContext {
     /// The text decorations that apply to this [`StackingContext`] propagated via the box tree.
     #[conditional_malloc_size_of]
     pub(crate) text_decorations: Rc<Vec<FragmentTextDecoration>>,
+
+    /// If this [`StackingContext`] also created a WebRender reference frame, this field
+    /// holds information about that reference frame.
+    pub(crate) reference_frame_info: Option<StackingContextReferenceFrameInfo>,
 }
 
 impl StackingContext {
@@ -379,9 +389,11 @@ impl StackingContext {
             clip_id: ClipId::INVALID,
             z_index: 0,
             text_decorations: Default::default(),
+            reference_frame_info: None,
         }
     }
 
+    #[expect(clippy::too_many_arguments)]
     fn create_descendant(
         &self,
         context_type: StackingContextType,
@@ -390,6 +402,7 @@ impl StackingContext {
         clip_id: ClipId,
         initializing_fragment: Arc<BoxFragment>,
         text_decorations: Rc<Vec<FragmentTextDecoration>>,
+        reference_frame_info: Option<StackingContextReferenceFrameInfo>,
     ) -> Self {
         let z_index = initializing_fragment
             .style()
@@ -403,6 +416,7 @@ impl StackingContext {
             clip_id,
             z_index,
             text_decorations,
+            reference_frame_info,
         }
     }
 
@@ -595,6 +609,7 @@ impl BoxFragment {
                         containing_block_info,
                         parent_stacking_context,
                         text_decorations,
+                        None, /* reference_frame_info */
                     );
                 },
             };
@@ -638,11 +653,16 @@ impl BoxFragment {
             containing_block.rect.translate(-reference_frame_offset),
             new_spatial_id,
             None,
-            containing_block.clip_id,
+            ClipId::INVALID,
             containing_block.accumulated_reference_frame_offset + reference_frame_offset,
         );
         let new_containing_block_info =
             containing_block_info.new_for_non_absolute_descendants(&adjusted_containing_block);
+
+        let reference_frame_info = StackingContextReferenceFrameInfo {
+            parent_spatial_node_id: containing_block.scroll_node_id,
+            captured_clip_id: containing_block.clip_id,
+        };
 
         self.build_stacking_context_tree_maybe_creating_stacking_context(
             fragment,
@@ -651,9 +671,11 @@ impl BoxFragment {
             &new_containing_block_info,
             parent_stacking_context,
             text_decorations,
+            Some(reference_frame_info),
         );
     }
 
+    #[expect(clippy::too_many_arguments)]
     fn build_stacking_context_tree_maybe_creating_stacking_context(
         self: &Arc<Self>,
         fragment: Fragment,
@@ -662,6 +684,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        reference_frame_info: Option<StackingContextReferenceFrameInfo>,
     ) {
         let with_style = &self.with_style();
         let style = with_style.style();
@@ -731,6 +754,7 @@ impl BoxFragment {
             containing_block.clip_id,
             box_fragment,
             text_decorations.clone(),
+            reference_frame_info,
         );
         with_style.build_stacking_context_tree_for_children(
             stacking_context_tree,
