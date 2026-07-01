@@ -406,6 +406,35 @@
       ],
       {}
      ]
+    ],
+    "video-control-widget.html": [
+     "e727b6386901402a31a8ebfab8bedcd0fcf84626",
+     [
+      "appearance/video-control-widget.html",
+      [
+       [
+        "/_mozilla/appearance/video-control-widget-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "fuzzy": [
+        [
+         null,
+         [
+          [
+           0,
+           6
+          ],
+          [
+           0,
+           20
+          ]
+         ]
+        ]
+       ]
+      }
+     ]
     ]
    },
    "css": {
@@ -8448,6 +8477,10 @@
     ],
     "textarea-caret-following-linebreak-ref.html": [
      "f424853f243ff0fe4c43506db800b51afc294113",
+     []
+    ],
+    "video-control-widget-ref.html": [
+     "3ae9bd60625e943b8b9b4f8b926b2da1690ceeef",
      []
     ]
    },
