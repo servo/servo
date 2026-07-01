@@ -444,7 +444,7 @@ pub(crate) struct Window {
     current_event: DomRefCell<Option<Dom<Event>>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-registered-reporting-observer-list>
-    reporting_observer_list: DomRefCell<Vec<DomRoot<ReportingObserver>>>,
+    reporting_observer_list: DomRefCell<Vec<Dom<ReportingObserver>>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-reports>
     report_list: DomRefCell<Vec<Report>>,
@@ -582,7 +582,7 @@ impl Window {
         self.window_proxy.get().unwrap()
     }
 
-    pub(crate) fn append_reporting_observer(&self, reporting_observer: DomRoot<ReportingObserver>) {
+    pub(crate) fn append_reporting_observer(&self, reporting_observer: Dom<ReportingObserver>) {
         self.reporting_observer_list
             .borrow_mut()
             .push(reporting_observer);
@@ -600,7 +600,7 @@ impl Window {
         }
     }
 
-    pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
+    pub(crate) fn registered_reporting_observers(&self) -> Vec<Dom<ReportingObserver>> {
         self.reporting_observer_list.borrow().clone()
     }
 

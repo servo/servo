@@ -25,7 +25,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -138,7 +138,7 @@ impl ReportingObserver {
     /// <https://w3c.github.io/reporting/#invoke-observers>
     fn invoke_reporting_observers_with_notify_list(
         cx: &mut JSContext,
-        notify_list: Vec<DomRoot<ReportingObserver>>,
+        notify_list: Vec<Dom<ReportingObserver>>,
     ) {
         // Step 1. For each ReportingObserver observer in notify list:
         for observer in notify_list.iter() {
@@ -291,10 +291,10 @@ impl ReportingObserverMethods<crate::DomTypeHolder> for ReportingObserver {
 impl GlobalScope {
     fn append_reporting_observer(&self, reporting_observer: &ReportingObserver) {
         if let Some(window) = self.downcast::<Window>() {
-            return window.append_reporting_observer(DomRoot::from_ref(reporting_observer));
+            return window.append_reporting_observer(Dom::from_ref(reporting_observer));
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.append_reporting_observer(DomRoot::from_ref(reporting_observer));
+            return worker.append_reporting_observer(Dom::from_ref(reporting_observer));
         }
         unreachable!();
     }
@@ -309,7 +309,7 @@ impl GlobalScope {
         unreachable!();
     }
 
-    fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
+    fn registered_reporting_observers(&self) -> Vec<Dom<ReportingObserver>> {
         if let Some(window) = self.downcast::<Window>() {
             return window.registered_reporting_observers();
         }

@@ -58,7 +58,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
@@ -320,7 +320,7 @@ pub(crate) struct WorkerGlobalScope {
     insecure_requests_policy: InsecureRequestsPolicy,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-registered-reporting-observer-list>
-    reporting_observer_list: DomRefCell<Vec<DomRoot<ReportingObserver>>>,
+    reporting_observer_list: DomRefCell<Vec<Dom<ReportingObserver>>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-reports>
     report_list: DomRefCell<Vec<Report>>,
@@ -515,7 +515,7 @@ impl WorkerGlobalScope {
             .set_referrer_policy(referrer_policy);
     }
 
-    pub(crate) fn append_reporting_observer(&self, reporting_observer: DomRoot<ReportingObserver>) {
+    pub(crate) fn append_reporting_observer(&self, reporting_observer: Dom<ReportingObserver>) {
         self.reporting_observer_list
             .borrow_mut()
             .push(reporting_observer);
@@ -532,7 +532,7 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
+    pub(crate) fn registered_reporting_observers(&self) -> Vec<Dom<ReportingObserver>> {
         self.reporting_observer_list.borrow().clone()
     }
 
