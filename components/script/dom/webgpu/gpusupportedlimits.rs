@@ -64,8 +64,7 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxbindgroupsplusvertexbuffers>
     fn MaxBindGroupsPlusVertexBuffers(&self) -> u32 {
-        // Not in published wgpu yet (https://github.com/gfx-rs/wgpu/issues/8832), so we craft it manually
-        self.limits.max_bind_groups + self.limits.max_vertex_buffers
+        self.limits.max_bind_groups_plus_vertex_buffers
     }
 
     /*
@@ -268,11 +267,7 @@ pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
         "maxTextureArrayLayers" => set_maximum(&mut limits.max_texture_array_layers, value),
         "maxBindGroups" => set_maximum(&mut limits.max_bind_groups, value),
         "maxBindGroupsPlusVertexBuffers" => {
-            // not in wgpu (https://github.com/gfx-rs/wgpu/issues/8832)
-            // but we're allowed to give back better limits than requested.
-            // we use dummy value to still produce value verification
-            let mut v: u32 = 0;
-            set_maximum(&mut v, value)
+            set_maximum(&mut limits.max_bind_groups_plus_vertex_buffers, value)
         },
         "maxImmediateSize" => set_maximum(&mut limits.max_immediate_size, value),
         "maxBindingsPerBindGroup" => set_maximum(&mut limits.max_bindings_per_bind_group, value),

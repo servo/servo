@@ -1426,6 +1426,9 @@ impl WGPU {
                             warn!("Unable to send FreeExternalTexture({:?}) ({:?})", id, e);
                         };
                     },
+                    WebGPURequest::DestroyQuerySet(query_set_id) => {
+                        self.global.query_set_destroy(query_set_id);
+                    },
                 }
             }
         }

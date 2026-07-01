@@ -429,4 +429,5 @@ pub enum WebGPURequest {
     },
     DestroyExternalTexture(ExternalTextureId),
     DropExternalTexture(ExternalTextureId),
+    DestroyQuerySet(QuerySetId),
 }
