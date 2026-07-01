@@ -1212,18 +1212,18 @@ impl HTMLImageElement {
             generation: self.generation.get(),
         };
 
-        ScriptThread::await_stable_state(Microtask::ImageElement(task));
+        ScriptThread::await_stable_state(cx, Microtask::ImageElement(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
-    pub(crate) fn react_to_environment_changes(&self) {
+    pub(crate) fn react_to_environment_changes(&self, cx: &JSContext) {
         // Step 1. Await a stable state.
         let task = ImageElementMicrotask::EnvironmentChanges {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
 
-        ScriptThread::await_stable_state(Microtask::ImageElement(task));
+        ScriptThread::await_stable_state(cx, Microtask::ImageElement(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
@@ -1938,7 +1938,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
             promise: promise.clone(),
         };
 
-        ScriptThread::await_stable_state(Microtask::ImageElement(task));
+        ScriptThread::await_stable_state(cx, Microtask::ImageElement(task));
 
         // Step 3. Return promise.
         promise

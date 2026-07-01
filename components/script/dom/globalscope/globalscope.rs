@@ -153,7 +153,7 @@ use crate::realms::enter_auto_realm;
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
+use crate::script_runtime::{CanGc, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
@@ -2423,14 +2423,6 @@ impl GlobalScope {
         self.module_map.borrow().get(request).cloned()
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn get_cx() -> SafeJSContext {
-        let cx = Runtime::get()
-            .expect("Can't obtain context after runtime shutdown")
-            .as_ptr();
-        unsafe { SafeJSContext::from_ptr(cx) }
-    }
-
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
         let mut timers = self.console_timers.borrow_mut();
         if timers.len() >= 10000 {
@@ -3092,9 +3084,9 @@ impl GlobalScope {
     }
 
     /// Enqueue a microtask for subsequent execution.
-    pub(crate) fn enqueue_microtask(&self, cx: &mut js::context::JSContext, job: Microtask) {
+    pub(crate) fn enqueue_microtask(&self, cx: &js::context::JSContext, job: Microtask) {
         if self.is::<Window>() {
-            ScriptThread::enqueue_microtask(job);
+            ScriptThread::enqueue_microtask(cx, job);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             worker.enqueue_microtask(cx, job);
         }

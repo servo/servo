@@ -444,7 +444,7 @@ pub(crate) struct Window {
     current_event: DomRefCell<Option<Dom<Event>>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-registered-reporting-observer-list>
-    reporting_observer_list: DomRefCell<Vec<DomRoot<ReportingObserver>>>,
+    reporting_observer_list: DomRefCell<Vec<Dom<ReportingObserver>>>,
 
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-reports>
     report_list: DomRefCell<Vec<Report>>,
@@ -582,10 +582,10 @@ impl Window {
         self.window_proxy.get().unwrap()
     }
 
-    pub(crate) fn append_reporting_observer(&self, reporting_observer: DomRoot<ReportingObserver>) {
+    pub(crate) fn append_reporting_observer(&self, reporting_observer: &ReportingObserver) {
         self.reporting_observer_list
             .borrow_mut()
-            .push(reporting_observer);
+            .push(Dom::from_ref(reporting_observer));
     }
 
     pub(crate) fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
@@ -601,7 +601,11 @@ impl Window {
     }
 
     pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
-        self.reporting_observer_list.borrow().clone()
+        self.reporting_observer_list
+            .borrow()
+            .iter()
+            .map(|observer| DomRoot::from_ref(&**observer))
+            .collect()
     }
 
     pub(crate) fn append_report(&self, report: Report) {
@@ -1621,11 +1625,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
-    fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
-        ScriptThread::enqueue_microtask(Microtask::User(UserMicrotask {
-            callback,
-            pipeline: self.pipeline_id(),
-        }));
+    fn QueueMicrotask(&self, cx: &JSContext, callback: Rc<VoidFunction>) {
+        ScriptThread::enqueue_microtask(
+            cx,
+            Microtask::User(UserMicrotask {
+                callback,
+                pipeline: self.pipeline_id(),
+            }),
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -2359,7 +2366,7 @@ impl Window {
         proto: HandleObject,
         object: MutableHandleObject,
     ) {
-        window_named_properties::create(cx.into(), proto, object)
+        window_named_properties::create(cx, proto, object)
     }
 
     pub(crate) fn current_event(&self) -> Option<DomRoot<Event>> {
