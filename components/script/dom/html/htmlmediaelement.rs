@@ -1628,8 +1628,9 @@ impl HTMLMediaElement {
                     // Step 1. Set the error attribute to the result of creating a MediaError with
                     // MEDIA_ERR_SRC_NOT_SUPPORTED.
                     this.error.set(Some(&*MediaError::new(
+                        cx,
                         &this.owner_window(),
-                        MEDIA_ERR_SRC_NOT_SUPPORTED, CanGc::from_cx(cx))));
+                        MEDIA_ERR_SRC_NOT_SUPPORTED)));
 
                     // Step 2. Forget the media element's media-resource-specific tracks.
                     this.AudioTracks(cx).clear();
@@ -1953,11 +1954,8 @@ impl HTMLMediaElement {
 
         // Step 2. Set the error attribute to the result of creating a MediaError with
         // MEDIA_ERR_NETWORK/MEDIA_ERR_DECODE.
-        self.error.set(Some(&*MediaError::new(
-            &self.owner_window(),
-            error,
-            CanGc::from_cx(cx),
-        )));
+        self.error
+            .set(Some(&*MediaError::new(cx, &self.owner_window(), error)));
 
         // Step 3. Set the element's networkState attribute to the NETWORK_IDLE value.
         self.network_state.set(NetworkState::Idle);
@@ -2484,13 +2482,13 @@ impl HTMLMediaElement {
             };
 
             let video_track = VideoTrack::new(
+                cx,
                 self.global().as_window(),
                 DOMString::new(),
                 kind,
                 DOMString::new(),
                 DOMString::new(),
                 Some(&*video_track_list),
-                CanGc::from_cx(cx),
             );
 
             // Steps 2. Update the media element's videoTracks attribute's VideoTrackList object
@@ -2626,7 +2624,7 @@ impl HTMLMediaElement {
         let window = global.as_window();
 
         // Update the media session metadata title with the obtained metadata.
-        window.Navigator().MediaSession().update_title(
+        window.Navigator().MediaSession(cx).update_title(
             metadata
                 .title
                 .clone()
@@ -2738,7 +2736,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_position_changed(&self, position: f64) {
+    fn playback_position_changed(&self, position: f64, cx: &mut JSContext) {
         // Abort the following steps of the current time update if seeking is in progress.
         if self.seeking.get() {
             return;
@@ -2758,7 +2756,10 @@ impl HTMLMediaElement {
             "Sending media session event set position state {:?}",
             media_position_state
         );
-        self.send_media_session_event(MediaSessionEvent::SetPositionState(media_position_state));
+        self.send_media_session_event(
+            MediaSessionEvent::SetPositionState(media_position_state),
+            cx,
+        );
     }
 
     fn playback_seek_done(&self, position: f64) {
@@ -2779,7 +2780,7 @@ impl HTMLMediaElement {
         ScriptThread::await_stable_state(Microtask::MediaElement(task));
     }
 
-    fn playback_state_changed(&self, state: &PlaybackState) {
+    fn playback_state_changed(&self, state: &PlaybackState, cx: &mut JSContext) {
         let mut media_session_playback_state = MediaSessionPlaybackState::None_;
         match *state {
             PlaybackState::Paused => {
@@ -2806,9 +2807,10 @@ impl HTMLMediaElement {
             "Sending media session event playback state changed to {:?}",
             media_session_playback_state
         );
-        self.send_media_session_event(MediaSessionEvent::PlaybackStateChange(
-            media_session_playback_state,
-        ));
+        self.send_media_session_event(
+            MediaSessionEvent::PlaybackStateChange(media_session_playback_state),
+            cx,
+        );
     }
 
     fn seekable(&self) -> TimeRangesContainer {
@@ -2952,9 +2954,9 @@ impl HTMLMediaElement {
         }
     }
 
-    fn send_media_session_event(&self, event: MediaSessionEvent) {
+    fn send_media_session_event(&self, event: MediaSessionEvent, cx: &mut JSContext) {
         let global = self.global();
-        let media_session = global.as_window().Navigator().MediaSession();
+        let media_session = global.as_window().Navigator().MediaSession(cx);
 
         media_session.register_media_instance(self);
 
@@ -3308,7 +3310,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     fn VideoTracks(&self, cx: &mut JSContext) -> DomRoot<VideoTrackList> {
         let window = self.owner_window();
         self.video_tracks_list
-            .or_init(|| VideoTrackList::new(&window, &[], Some(self), CanGc::from_cx(cx)))
+            .or_init(|| VideoTrackList::new(cx, &window, &[], Some(self)))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-texttracks>
@@ -4062,12 +4064,14 @@ impl HTMLMediaElementEventHandler {
                 element.playback_metadata_updated(cx, metadata)
             },
             PlayerEvent::NeedData => element.playback_need_data(),
-            PlayerEvent::PositionChanged(position) => element.playback_position_changed(position),
+            PlayerEvent::PositionChanged(position) => {
+                element.playback_position_changed(position, cx)
+            },
             PlayerEvent::SeekData(offset, seek_lock) => {
                 element.fetch_request(Some(offset), Some(seek_lock))
             },
             PlayerEvent::SeekDone(position) => element.playback_seek_done(position),
-            PlayerEvent::StateChanged(ref state) => element.playback_state_changed(state),
+            PlayerEvent::StateChanged(ref state) => element.playback_state_changed(state, cx),
             PlayerEvent::VideoFrameUpdated => element.playback_video_frame_updated(),
         }
     }

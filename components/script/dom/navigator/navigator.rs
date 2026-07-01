@@ -479,13 +479,13 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices>
-    fn MediaDevices(&self) -> DomRoot<MediaDevices> {
+    fn MediaDevices(&self, cx: &mut JSContext) -> DomRoot<MediaDevices> {
         self.mediadevices
-            .or_init(|| MediaDevices::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| MediaDevices::new(cx, &self.global()))
     }
 
     /// <https://w3c.github.io/mediasession/#dom-navigator-mediasession>
-    fn MediaSession(&self) -> DomRoot<MediaSession> {
+    fn MediaSession(&self, cx: &mut JSContext) -> DomRoot<MediaSession> {
         self.mediasession.or_init(|| {
             // There is a single MediaSession instance per Pipeline
             // and only one active MediaSession globally.
@@ -496,7 +496,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             // - If a media instance (HTMLMediaElement so far) starts playing media.
             let global = self.global();
             let window = global.as_window();
-            MediaSession::new(window, CanGc::deprecated_note())
+            MediaSession::new(cx, window)
         })
     }
 

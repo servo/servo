@@ -2158,10 +2158,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-matchmedia>
-    fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
+    fn MatchMedia(&self, cx: &mut JSContext, query: DOMString) -> DomRoot<MediaQueryList> {
         let media_query_list = MediaList::parse_media_list(&query.str(), self);
         let document = self.Document();
-        let mql = MediaQueryList::new(&document, media_query_list, CanGc::deprecated_note());
+        let mql = MediaQueryList::new(cx, &document, media_query_list);
         self.media_query_lists.track(&*mql);
         mql
     }
