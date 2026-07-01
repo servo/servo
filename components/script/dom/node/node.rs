@@ -1484,7 +1484,7 @@ impl Node {
             let Some(slot_element) = old_parent.downcast::<HTMLSlotElement>() &&
             !slot_element.has_assigned_nodes()
         {
-            slot_element.signal_a_slot_change();
+            slot_element.signal_a_slot_change(cx);
         }
 
         // Step 16. If node has an inclusive descendant that is a slot:
@@ -1541,7 +1541,7 @@ impl Node {
             let Some(slot_element) = new_parent.downcast::<HTMLSlotElement>() &&
             !slot_element.has_assigned_nodes()
         {
-            slot_element.signal_a_slot_change();
+            slot_element.signal_a_slot_change(cx);
         }
 
         // Step 23. Run assign slottables for a tree with node’s root.
@@ -1587,7 +1587,7 @@ impl Node {
             prev: old_previous_sibling.as_deref(),
             next: old_next_sibling.as_deref(),
         });
-        MutationObserver::queue_a_mutation_record(&old_parent, mutation);
+        MutationObserver::queue_a_mutation_record(cx, &old_parent, mutation);
 
         // Step 26. Queue a tree mutation record for newParent with « node », « »,
         // newPreviousSibling, and child.
@@ -1597,7 +1597,7 @@ impl Node {
             prev: new_previous_sibling.as_deref(),
             next: child,
         });
-        MutationObserver::queue_a_mutation_record(new_parent, mutation);
+        MutationObserver::queue_a_mutation_record(cx, new_parent, mutation);
 
         Ok(())
     }
@@ -2540,7 +2540,7 @@ impl Node {
                 prev: None,
                 next: None,
             });
-            MutationObserver::queue_a_mutation_record(node, mutation);
+            MutationObserver::queue_a_mutation_record(cx, node, mutation);
         }
 
         // Step 5. If child is non-null:
@@ -2599,7 +2599,7 @@ impl Node {
                 let Some(slot_element) = parent_as_slot &&
                 !slot_element.has_assigned_nodes()
             {
-                slot_element.signal_a_slot_change();
+                slot_element.signal_a_slot_change(cx);
             }
 
             // Step 7.6 Run assign slottables for a tree with node’s root.
@@ -2631,7 +2631,7 @@ impl Node {
                             );
                         }
                     } else {
-                        try_upgrade_element(&descendant);
+                        try_upgrade_element(cx, &descendant);
                     }
                 }
             }
@@ -2653,7 +2653,7 @@ impl Node {
                 prev: previous_sibling.as_deref(),
                 next: child,
             });
-            MutationObserver::queue_a_mutation_record(parent, mutation);
+            MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
 
         // We use a delayed task for this step to work around an awkward interaction between
@@ -2726,7 +2726,7 @@ impl Node {
                 prev: None,
                 next: None,
             });
-            MutationObserver::queue_a_mutation_record(parent, mutation);
+            MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker(cx);
     }
@@ -2805,7 +2805,7 @@ impl Node {
             let Some(slot_element) = parent.downcast::<HTMLSlotElement>() &&
             !slot_element.has_assigned_nodes()
         {
-            slot_element.signal_a_slot_change();
+            slot_element.signal_a_slot_change(cx);
         }
 
         // Step 10. If node has an inclusive descendant that is a slot:
@@ -2843,7 +2843,7 @@ impl Node {
                 prev: old_previous_sibling.as_deref(),
                 next: old_next_sibling.as_deref(),
             });
-            MutationObserver::queue_a_mutation_record(parent, mutation);
+            MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker(cx);
     }
@@ -3766,7 +3766,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             next: reference_child,
         });
 
-        MutationObserver::queue_a_mutation_record(self, mutation);
+        MutationObserver::queue_a_mutation_record(cx, self, mutation);
 
         // Step 15. Return child.
         Ok(DomRoot::from_ref(child))

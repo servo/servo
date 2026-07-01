@@ -1625,11 +1625,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-queuemicrotask>
-    fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
-        ScriptThread::enqueue_microtask(Microtask::User(UserMicrotask {
-            callback,
-            pipeline: self.pipeline_id(),
-        }));
+    fn QueueMicrotask(&self, cx: &JSContext, callback: Rc<VoidFunction>) {
+        ScriptThread::enqueue_microtask(
+            cx,
+            Microtask::User(UserMicrotask {
+                callback,
+                pipeline: self.pipeline_id(),
+            }),
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>

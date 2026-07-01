@@ -3084,9 +3084,9 @@ impl GlobalScope {
     }
 
     /// Enqueue a microtask for subsequent execution.
-    pub(crate) fn enqueue_microtask(&self, cx: &mut js::context::JSContext, job: Microtask) {
+    pub(crate) fn enqueue_microtask(&self, cx: &js::context::JSContext, job: Microtask) {
         if self.is::<Window>() {
-            ScriptThread::enqueue_microtask(job);
+            ScriptThread::enqueue_microtask(cx, job);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             worker.enqueue_microtask(cx, job);
         }
