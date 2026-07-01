@@ -17,6 +17,8 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import threading
+import time
 from argparse import ArgumentParser
 from contextlib import chdir
 from pathlib import Path
@@ -36,7 +38,8 @@ from mach.decorators import (
 import servo.devtools_tests
 import servo.try_parser
 from servo.command_base import BuildType, CommandBase, call, check_call
-from servo.post_build_commands import PostBuildCommands
+from servo.platform.build_target import AndroidTarget, is_android, is_openharmony
+from servo.post_build_commands import ANDROID_APP_NAME, PostBuildCommands, shell_quote
 from servo.util import delete
 
 SCRIPT_PATH = os.path.split(__file__)[0]
@@ -876,8 +879,31 @@ class MachCommands(CommandBase):
     )
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
     @CommandArgument("--multiprocess", "-M", default=False, action="store_true", help="Run in multiprocess mode")
-    @CommandBase.common_command_arguments(binary_selection=True)
-    def smoketest(self, servo_binary: str, multiprocess: bool, params: list[str], **kwargs: Any) -> int | None:
+    @CommandArgument(
+        "--android",
+        default=None,
+        action="store_true",
+        help="Run the smoketest on a connected Android device or emulator "
+        f"(defaults to the `{AndroidTarget.DEFAULT_TRIPLE}` target).",
+    )
+    @CommandArgument(
+        "--target",
+        "-t",
+        default=None,
+        help="Run the smoketest for the given cross-compilation target (e.g. `x86_64-linux-android`).",
+    )
+    # Keep `allow_target_configuration` above `common_command_arguments`: binary_selection requires the
+    # target to be configured already.
+    @CommandBase.allow_target_configuration
+    @CommandBase.common_command_arguments(binary_selection=True, build_type=True)
+    def smoketest(self, servo_binary: Optional[str], build_type: BuildType, multiprocess: bool, params: list[str], **kwargs: Any) -> int | None:
+        if is_android(self.target):
+            return self.android_smoketest(self.target, build_type)
+        elif is_openharmony(self.target):
+            print(f"mach smoketest is not implemented yet for OpenHarmony targets ({self.target.triple()})")
+            return 1
+
+        assert servo_binary is not None, "servo_binary may only be None on cross-builds (Android / OpenHarmony)"
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.
@@ -885,6 +911,76 @@ class MachCommands(CommandBase):
         if multiprocess:
             args.append("-M")
         return PostBuildCommands(self.context)._run(servo_binary, params + args)
+
+    def android_smoketest(self, target: AndroidTarget, build_type: BuildType) -> int:
+        adb = self.android_adb_path(dict(os.environ))
+        apk_path = target.get_package_path(build_type.directory_name())
+        if not path.exists(apk_path):
+            print(f"APK not found at {apk_path}. Did you forget to run `./mach build --target {target.triple()}`?")
+            return 1
+
+        # `adb wait-for-device` blocks forever if nothing ever connects
+        device_wait_secs = 5
+        try:
+            subprocess.run([adb, "wait-for-device"], timeout=device_wait_secs, check=True)
+        except subprocess.TimeoutExpired:
+            print(f"No Android device or emulator found within {device_wait_secs}s.")
+            return 1
+        check_call([adb, "install", "-r", apk_path])
+
+        marker = "SERVO_ANDROID_SMOKETEST_OK"
+        url = f"data:text/html,<script>console.log('{marker}')</script>"
+
+        call([adb, "shell", "am", "force-stop", ANDROID_APP_NAME])
+        check_call([adb, "logcat", "-c"])
+
+        component = f"{ANDROID_APP_NAME}/{ANDROID_APP_NAME}.MainActivity"
+        check_call([adb, "shell", f"am start -a android.intent.action.VIEW -d {shell_quote(url)} {component}"])
+
+        # The timeout should be long enough for CI. 30s is a bit arbitrary,
+        # but we can adjust that in the future.
+        timeout_secs = 30
+        # Besides `servoshell` we also log error / fatal levels of things potentially
+        # relevant for a crash. `*:S` silences everything else.
+        logcat = subprocess.Popen(
+            [adb, "logcat", "--format=raw", "servoshell:D", "AndroidRuntime:E", "libc:F", "DEBUG:F", "*:S"],
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        watchdog = threading.Timer(timeout_secs, logcat.terminate)
+        watchdog.start()
+
+        crash_markers = ("Panic in Rust code", "FATAL EXCEPTION", "Fatal signal")
+        passed = False
+        crashed = False
+        try:
+            assert logcat.stdout is not None
+            for line in logcat.stdout:
+                sys.stdout.write(line)
+                if marker in line:
+                    passed = True
+                    break
+                if any(crash_marker in line for crash_marker in crash_markers):
+                    crashed = True
+                    # Wait a moment for relevant logs to appear in logcat.
+                    time.sleep(1)
+                    logcat.terminate()
+                    sys.stdout.write(logcat.stdout.read())
+                    break
+        finally:
+            watchdog.cancel()
+            if logcat.poll() is None:
+                logcat.terminate()
+            call([adb, "shell", "am", "force-stop", ANDROID_APP_NAME])
+
+        if passed:
+            print("Android smoketest passed.")
+            return 0
+        if crashed:
+            print("Android smoketest failed: Servo crashed during startup (see logcat output above).")
+        else:
+            print(f"Android smoketest failed: did not observe '{marker}' in logcat output within {timeout_secs}s.")
+        return 1
 
     @Command(
         "try",
