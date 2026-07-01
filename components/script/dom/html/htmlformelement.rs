@@ -1023,7 +1023,7 @@ impl HTMLFormElement {
         let request_body = bytes
             .extract(cx, &global, false)
             .expect("Couldn't extract body.")
-            .into_net_request_body()
+            .into_net_request_body(cx)
             .0;
         load_data.data = Some(request_body);
 
