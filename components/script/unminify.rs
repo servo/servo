@@ -4,7 +4,7 @@
 
 use std::env;
 use std::fs::{File, create_dir_all};
-use std::io::{Error, Read, Seek, Write};
+use std::io::{Error, ErrorKind, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::rc::Rc;
@@ -71,6 +71,13 @@ pub fn create_output_file(
     external: Option<bool>,
 ) -> Result<File, Error> {
     let path = PathBuf::from(unminified_dir);
+
+    if url.scheme() == "data" {
+        return Err(Error::new(
+            ErrorKind::InvalidInput,
+            "data URLs cannot be written as unminified files",
+        ));
+    }
 
     // Strip the query string from the URL before using it as a file path.
     // '?' is a reserved character on Windows and causes file creation to fail
