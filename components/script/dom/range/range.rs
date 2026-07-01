@@ -343,16 +343,19 @@ impl Range {
         self.abstract_range().Collapsed()
     }
 
-    fn client_rects(&self) -> impl Iterator<Item = Rect<Au, CSSPixel>> {
+    fn client_rects<'a>(&self, no_gc: &'a NoGC) -> impl Iterator<Item = Rect<Au, CSSPixel>> + 'a {
+        // FIXME: For text nodes that are only partially selected, this should return the client
+        // rect of the selected part, not the whole text node.
+
         // FIXME: For text nodes that are only partially selected, this should return the client
         // rect of the selected part, not the whole text node.
         let start = self.start_container();
         let end = self.end_container();
         let document = start.owner_doc();
-        let end_clone = end.clone();
+        let end_clone = UnrootedDom::from_dom(Dom::from_ref(&*end), no_gc);
         start
-            .following_nodes(document.upcast::<Node>(), ShadowIncluding::No)
-            .take_while(move |node| node != &end)
+            .following_nodes_unrooted(no_gc, document.upcast::<Node>(), ShadowIncluding::No)
+            .take_while(move |node| *node != *end)
             .chain(iter::once(end_clone))
             .flat_map(move |node| node.border_boxes())
     }
@@ -1228,8 +1231,9 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let start = self.start_container();
         let window = start.owner_window();
 
-        let client_rects = self
-            .client_rects()
+        let client_rects: Vec<_> = self.client_rects(cx.no_gc()).collect();
+        let client_rects = client_rects
+            .iter()
             .map(|rect| {
                 DOMRect::new(
                     cx,
@@ -1250,7 +1254,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let window = self.start_container().owner_window();
 
         // Step 1. Let list be the result of invoking getClientRects() on the same range this method was invoked on.
-        let list = self.client_rects();
+        let list = self.client_rects(cx.no_gc());
 
         // Step 2. If list is empty return a DOMRect object whose x, y, width and height members are zero.
         // Step 3. If all rectangles in list have zero width or height, return the first rectangle in list.

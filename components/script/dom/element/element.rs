@@ -20,7 +20,7 @@ use euclid::Rect;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::jsapi::{Heap, JSObject};
 use js::jsval::JSVal;
 use js::realm::CurrentRealm;
@@ -586,8 +586,9 @@ impl Element {
             .is_some_and(|overflow| overflow.establishes_scroll_container())
     }
 
-    pub(crate) fn has_overflow(&self) -> bool {
-        self.ScrollHeight() > self.ClientHeight() || self.ScrollWidth() > self.ClientWidth()
+    pub(crate) fn has_overflow(&self, no_gc: &NoGC) -> bool {
+        self.ScrollHeight() > self.ClientHeight(no_gc) ||
+            self.ScrollWidth() > self.ClientWidth(no_gc)
     }
 
     /// Whether or not this element has a scrolling box according to
@@ -597,8 +598,8 @@ impl Element {
     ///  1. The element has a layout box.
     ///  2. The style specifies that overflow should be scrollable (`auto`, `hidden` or `scroll`).
     ///  3. The fragment actually has content that overflows the box.
-    fn has_scrolling_box(&self) -> bool {
-        self.has_css_layout_box() && self.establishes_scroll_container() && self.has_overflow()
+    fn has_scrolling_box(&self, no_gc: &NoGC) -> bool {
+        self.has_css_layout_box() && self.establishes_scroll_container() && self.has_overflow(no_gc)
     }
 
     pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
@@ -919,8 +920,12 @@ impl Element {
             // determine the scroll-into-view position of `target` with `behavior` as the scroll
             // behavior, `block` as the block flow position, `inline` as the inline base direction
             // position and `scrolling box` as the scrolling box.
-            let position =
-                scrolling_box.determine_scroll_into_view_position(block, inline, get_target_rect());
+            let position = scrolling_box.determine_scroll_into_view_position(
+                cx.no_gc(),
+                block,
+                inline,
+                get_target_rect(),
+            );
 
             // Step 1.3: If `position` is not the same as `scrolling box`’s current scroll position, or
             // `scrolling box` has an ongoing smooth scroll,
@@ -2620,7 +2625,7 @@ impl Element {
         }
 
         // Step 10
-        if !self.has_scrolling_box() {
+        if !self.has_scrolling_box(cx.no_gc()) {
             return;
         }
 
@@ -3362,7 +3367,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_scrolling_box() {
+        if !self.has_scrolling_box(cx.no_gc()) {
             return;
         }
 
@@ -3459,7 +3464,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_scrolling_box() {
+        if !self.has_scrolling_box(cx.no_gc()) {
             return;
         }
 
@@ -3531,23 +3536,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clienttop>
-    fn ClientTop(&self) -> i32 {
-        self.client_rect().origin.y
+    fn ClientTop(&self, no_gc: &NoGC) -> i32 {
+        self.client_rect(no_gc).origin.y
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clientleft>
-    fn ClientLeft(&self) -> i32 {
-        self.client_rect().origin.x
+    fn ClientLeft(&self, no_gc: &NoGC) -> i32 {
+        self.client_rect(no_gc).origin.x
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clientwidth>
-    fn ClientWidth(&self) -> i32 {
-        self.client_rect().size.width
+    fn ClientWidth(&self, no_gc: &NoGC) -> i32 {
+        self.client_rect(no_gc).size.width
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-clientheight>
-    fn ClientHeight(&self) -> i32 {
-        self.client_rect().size.height
+    fn ClientHeight(&self, no_gc: &NoGC) -> i32 {
+        self.client_rect(no_gc).size.height
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-currentcsszoom
@@ -4868,7 +4873,7 @@ impl VirtualMethods for Element {
     }
 }
 impl Element {
-    pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {
+    pub(crate) fn client_rect(&self, no_gc: &NoGC) -> Rect<i32, CSSPixel> {
         let doc = self.node.owner_doc();
 
         if let Some(rect) = self
@@ -4876,7 +4881,7 @@ impl Element {
             .as_ref()
             .and_then(|data| data.client_rect.as_ref())
             .and_then(|rect| rect.get().ok()) &&
-            doc.restyle_reason().is_empty()
+            doc.restyle_reason(no_gc).is_empty()
         {
             return rect;
         }

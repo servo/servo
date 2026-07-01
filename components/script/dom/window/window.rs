@@ -2623,7 +2623,7 @@ impl Window {
             None
         };
 
-        let restyle_reason = document.restyle_reason();
+        let restyle_reason = document.restyle_reason(cx.no_gc());
         document.clear_restyle_reasons();
         let restyle = if restyle_reason.needs_restyle() {
             debug!("Invalidating layout cache due to reflow condition {restyle_reason:?}",);
@@ -2758,7 +2758,7 @@ impl Window {
         }
 
         let document = self.Document();
-        if document.needs_rendering_update() {
+        if document.needs_rendering_update(cx.no_gc()) {
             return;
         }
 
@@ -3433,7 +3433,7 @@ impl Window {
         // If viewport units were used, all nodes need to be restyled, because
         // we currently do not track which ones rely on viewport units.
         if self.layout().device().used_viewport_size() {
-            self.Document().dirty_all_nodes();
+            self.Document().dirty_all_nodes(cx.no_gc());
         }
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports

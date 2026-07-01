@@ -84,7 +84,7 @@ impl FontFaceSet {
                 window
                     .font_context()
                     .add_template_to_font_context(family_name, template);
-                window.Document().dirty_all_nodes();
+                window.Document().dirty_all_nodes(cx.no_gc());
             },
             _ => {},
         }

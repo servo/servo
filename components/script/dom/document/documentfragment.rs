@@ -129,7 +129,7 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-childelementcount>
     fn ChildElementCount(&self) -> u32 {
-        self.upcast::<Node>().child_elements().count() as u32
+        self.upcast::<Node>().children_count()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>

@@ -969,7 +969,7 @@ impl Document {
 
         self.title_changed();
         self.notify_embedder_favicon();
-        self.dirty_all_nodes();
+        self.dirty_all_nodes(cx.no_gc());
         self.window().resume(cx);
         media.resume(&client_context_id);
 
@@ -1088,7 +1088,7 @@ impl Document {
         self.stylesheets.borrow().has_changed()
     }
 
-    pub(crate) fn restyle_reason(&self) -> RestyleReason {
+    pub(crate) fn restyle_reason(&self, no_gc: &NoGC) -> RestyleReason {
         let mut condition = self.needs_restyle.get();
         if self.stylesheets_changed_since_last_reflow() {
             condition.insert(RestyleReason::StylesheetsChanged);
@@ -1097,7 +1097,7 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
-        if let Some(root) = self.GetDocumentElement() &&
+        if let Some(root) = self.get_document_element_unrooted(no_gc) &&
             root.upcast::<Node>().has_dirty_descendants()
         {
             condition.insert(RestyleReason::DOMChanged);
@@ -1453,14 +1453,14 @@ impl Document {
         window.send_to_embedder(msg);
     }
 
-    pub(crate) fn dirty_all_nodes(&self) {
+    pub(crate) fn dirty_all_nodes(&self, no_gc: &NoGC) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
             None => return,
         };
         for node in root
             .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
+            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes)
         {
             node.dirty(NodeDamage::Other)
         }
@@ -3049,12 +3049,12 @@ impl Document {
     /// Whether or not this [`Document`] needs a rendering update, due to changed
     /// contents or pending events. This is used to decide whether or not to schedule
     /// a call to the "update the rendering" algorithm.
-    pub(crate) fn needs_rendering_update(&self) -> bool {
+    pub(crate) fn needs_rendering_update(&self, no_gc: &NoGC) -> bool {
         if !self.is_fully_active() {
             return false;
         }
         if !self.window().layout_blocked() &&
-            (!self.restyle_reason().is_empty() ||
+            (!self.restyle_reason(no_gc).is_empty() ||
                 self.window().layout().needs_new_display_list() ||
                 self.window().layout().needs_accessibility_update())
         {
@@ -3175,7 +3175,7 @@ impl Document {
         if self.ReadyState() != DocumentReadyState::Complete {
             return false;
         }
-        if !self.restyle_reason().is_empty() {
+        if !self.restyle_reason(cx.no_gc()).is_empty() {
             return false;
         }
         if !self.rendering_update_reasons.get().is_empty() {
@@ -3567,6 +3567,13 @@ impl Document {
 
         accessibility_data.unroot_all_removed_nodes();
         None
+    }
+
+    pub(crate) fn get_document_element_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> Option<UnrootedDom<'a, Element>> {
+        self.upcast::<Node>().child_elements_unrooted(no_gc).next()
     }
 }
 
