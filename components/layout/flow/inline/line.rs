@@ -26,7 +26,7 @@ use crate::cell::ArcRefCell;
 use crate::flow::inline::text_run::FontAndScriptInfo;
 use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{
-    LogicalRect, LogicalVec2, PhysicalRect, ToLogical, ToLogicalWithContainingBlock,
+    LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
@@ -405,7 +405,11 @@ impl LineItemLayout<'_, '_> {
         let mut margin = inline_box_state.pbm.margin.auto_is(Au::zero);
         // PBM must not be cloned onto lines that exist only to support a block-level box.
         // See https://github.com/w3c/csswg-drafts/issues/14104
-        if !inline_box_state.clone_pbm || self.for_block_level {
+        if self.for_block_level {
+            padding = LogicalSides::zero();
+            border = LogicalSides::zero();
+            margin = LogicalSides::zero();
+        } else if !inline_box_state.clone_pbm {
             let mut had_start = inner_state
                 .flags
                 .contains(LineLayoutInlineContainerFlags::HAD_INLINE_START_PBM);

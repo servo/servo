@@ -7,7 +7,6 @@
     padding: 10px;
     margin: 10px;
     line-height: 200px;
-    box-decoration-break: clone;
   }
   div {
     border: solid cyan;
@@ -15,6 +14,6 @@
     width: 200px;
   }
 </style>
-<span>inline before split</span>
+<span style="border-inline-end: none; padding-inline-end: 0; margin-inline-end: 0;">inline before split</span>
 <div>There should be no magenta around this.</div>
-<span>inline after split</span>
+<span style="border-inline-start: none; padding-inline-start: 0; margin-inline-start: 0;">inline after split</span>

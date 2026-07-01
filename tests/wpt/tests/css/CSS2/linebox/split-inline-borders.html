@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>box-decoration-break: clone should not insert decorations around a block-level box that has split the inline.</title>
+<title>Block-level boxes that split the inline should not be wrapped in that inline's borders</title>
 <link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
-<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
 <link rel="help" href="https://www.w3.org/Style/css2-updates/css2/visuren.html#:~:text=When%20an%20inline%20box%20contains%20an%20in-flow%20block-level%20box">
-<link rel="match" href="box-decoration-break-clone-split-inline-ref.html">
-<meta name="assert" content="box-decoration-break: clone should not insert decorations around an in-flow block-level box that has split the inline.">
+<link rel="match" href="split-inline-borders-ref.html">
+<meta name="assert" content="Block-level boxes that split the inline should not be wrapped in that inline's borders.">
 <style>
   span {
     border: 10px solid magenta;
     padding: 10px;
     margin: 10px;
     line-height: 200px;
-    box-decoration-break: clone;
   }
   div {
     border: solid cyan;
