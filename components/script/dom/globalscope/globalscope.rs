@@ -153,7 +153,7 @@ use crate::realms::enter_auto_realm;
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
+use crate::script_runtime::{CanGc, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
@@ -2421,14 +2421,6 @@ impl GlobalScope {
 
     pub(crate) fn get_module_map_entry(&self, request: &ModuleRequest) -> Option<ModuleStatus> {
         self.module_map.borrow().get(request).cloned()
-    }
-
-    #[expect(unsafe_code)]
-    pub(crate) fn get_cx() -> SafeJSContext {
-        let cx = Runtime::get()
-            .expect("Can't obtain context after runtime shutdown")
-            .as_ptr();
-        unsafe { SafeJSContext::from_ptr(cx) }
     }
 
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
