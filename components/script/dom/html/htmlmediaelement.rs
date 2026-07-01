@@ -4072,7 +4072,6 @@ impl HTMLMediaElementEventHandler {
             },
             PlayerEvent::SeekDone(position) => element.playback_seek_done(cx, position),
             PlayerEvent::StateChanged(ref state) => element.playback_state_changed(cx, state),
-            PlayerEvent::StateChanged(ref state) => element.playback_state_changed(state),
             PlayerEvent::VideoFrameUpdated => element.playback_video_frame_updated(),
         }
     }
