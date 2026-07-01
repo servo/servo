@@ -2366,7 +2366,7 @@ impl Window {
         proto: HandleObject,
         object: MutableHandleObject,
     ) {
-        window_named_properties::create(cx.into(), proto, object)
+        window_named_properties::create(cx, proto, object)
     }
 
     pub(crate) fn current_event(&self) -> Option<DomRoot<Event>> {
