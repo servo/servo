@@ -4290,7 +4290,7 @@ impl ScriptThread {
         action: MediaSessionActionType,
     ) {
         if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
-            let media_session = window.Navigator().MediaSession();
+            let media_session = window.Navigator().MediaSession(cx);
             media_session.handle_action(cx, action);
         } else {
             warn!("No MediaSession for this pipeline ID");
