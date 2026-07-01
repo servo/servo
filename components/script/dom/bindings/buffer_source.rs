@@ -45,8 +45,6 @@ use js::typedarray::{
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::trace::RootedTraceableBox;
-#[cfg(feature = "webgpu")]
-use crate::dom::globalscope::GlobalScope;
 
 pub(crate) type RootedTypedArray<T> = RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>;
 
@@ -1035,9 +1033,13 @@ impl DataView {
 impl Drop for DataView {
     #[expect(unsafe_code)]
     fn drop(&mut self) {
-        let cx = GlobalScope::get_cx();
+        // TODO: https://github.com/servo/servo/issues/44640
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         assert!(unsafe {
-            js::jsapi::DetachArrayBuffer(*cx, self.buffer.underlying_object().handle())
+            DetachArrayBuffer(
+                &mut cx,
+                Handle::from_raw(self.buffer.underlying_object().handle()),
+            )
         })
     }
 }
