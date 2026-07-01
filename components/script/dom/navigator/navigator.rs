@@ -584,7 +584,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
                     HeaderValue::from_str(&content_type.str()).unwrap(),
                 );
             }
-            request_body = Some(extracted_body.into_net_request_body().0);
+            request_body = Some(extracted_body.into_net_request_body(cx).0);
         }
         // Step 7.1. Let req be a new request, initialized as follows:
         let request = RequestBuilder::new(
