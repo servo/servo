@@ -88,38 +88,56 @@ class CrossBuildTarget(BuildTarget):
 class AndroidTarget(CrossBuildTarget):
     DEFAULT_TRIPLE = "aarch64-linux-android"
 
+    @staticmethod
+    def min_sdk() -> str:
+        """Minimum supported Android API level"""
+        properties_file = path.join(util.SERVO_ROOT, "support", "android", "apk", "servo.properties")
+        with open(properties_file, encoding="utf8") as properties:
+            for line in properties:
+                line = line.strip()
+                if line.startswith("#") or line.strip() == "":
+                    continue
+                key, value = line.split("=", 1)
+                if key.strip() == "android.minSdk":
+                    assert value.strip().isdigit(), (
+                        f"android.minSdk must be an integer but was {value}. Check {properties_file}."
+                    )
+                    return value.strip()
+        raise Exception(f"`android.minSdk` is missing from {properties_file}")
+
     def ndk_configuration(self) -> dict[str, str]:
         target = self.triple()
+        api = self.min_sdk()
         config = {}
         if target == "armv7-linux-androideabi":
-            config["platform"] = "android-30"
+            config["platform"] = f"android-{api}"
             config["target"] = target
             config["toolchain_prefix"] = "arm-linux-androideabi"
             config["arch"] = "arm"
             config["lib"] = "armeabi-v7a"
-            config["toolchain_name"] = "armv7a-linux-androideabi30"
+            config["toolchain_name"] = f"armv7a-linux-androideabi{api}"
         elif target == "aarch64-linux-android":
-            config["platform"] = "android-30"
+            config["platform"] = f"android-{api}"
             config["target"] = target
             config["toolchain_prefix"] = target
             config["arch"] = "arm64"
             config["lib"] = "arm64-v8a"
-            config["toolchain_name"] = "aarch64-linux-androideabi30"
+            config["toolchain_name"] = f"aarch64-linux-androideabi{api}"
         elif target == "i686-linux-android":
             # https://github.com/jemalloc/jemalloc/issues/1279
-            config["platform"] = "android-30"
+            config["platform"] = f"android-{api}"
             config["target"] = target
             config["toolchain_prefix"] = target
             config["arch"] = "x86"
             config["lib"] = "x86"
-            config["toolchain_name"] = "i686-linux-android30"
+            config["toolchain_name"] = f"i686-linux-android{api}"
         elif target == "x86_64-linux-android":
-            config["platform"] = "android-30"
+            config["platform"] = f"android-{api}"
             config["target"] = target
             config["toolchain_prefix"] = target
             config["arch"] = "x86_64"
             config["lib"] = "x86_64"
-            config["toolchain_name"] = "x86_64-linux-android30"
+            config["toolchain_name"] = f"x86_64-linux-android{api}"
         else:
             raise Exception(f"Unknown android target {target}")
 

@@ -119,8 +119,9 @@ jobs:
         if: ${{ matrix.target == 'x86_64-linux-android' }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          # This should be kept in sync with the `minSdk` version in the servoshell android app (and servoview).
-          api-level: 30
+          # This should be kept in sync with the `minSdk` version in `servo.properties`.
+          # DO NOT INCREASE THIS without prior discussion on zulip!
+          api-level: 29
           arch: x86_64
           target: default
           script: ./mach smoketest --target ${{ matrix.target }} --profile ${{ inputs.profile }}

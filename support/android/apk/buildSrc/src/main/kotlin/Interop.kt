@@ -52,6 +52,17 @@ fun getNDKAbi(arch: String): String {
     }
 }
 
+fun Project.getServoMinSdk(): Int {
+    val propertiesFile = File(project.rootDir, "servo.properties")
+    val properties = Properties()
+    propertiesFile.inputStream().use { instr ->
+        properties.load(instr)
+    }
+    val minSdk = properties.getProperty("android.minSdk")
+        ?: throw GradleException("`android.minSdk` is missing from ${propertiesFile.absolutePath}")
+    return minSdk.trim().toInt()
+}
+
 fun Project.getNdkDir(): String {
     // Read environment variable used in rust build system
     var ndkRoot = System.getenv("ANDROID_NDK_ROOT")
