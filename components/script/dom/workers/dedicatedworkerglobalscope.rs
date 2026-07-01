@@ -16,7 +16,7 @@ use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::ImageCache;
-use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Origin, ParserMetadata,
     PreloadedResources, Referrer, RequestBuilder, RequestClient, RequestMode,
@@ -416,9 +416,7 @@ impl DedicatedWorkerGlobalScope {
 
                 let request_client = RequestClient {
                     preloaded_resources: PreloadedResources::default(),
-                    policy_container: RequestPolicyContainer::PolicyContainer(
-                        policy_container.clone(),
-                    ),
+                    policy_container: policy_container.clone(),
                     origin: Origin::Origin(origin.clone()),
                     is_nested_browsing_context,
                     insecure_requests_policy,

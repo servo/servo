@@ -216,7 +216,7 @@ pub struct RequestClient {
     /// <https://html.spec.whatwg.org/multipage/#map-of-preloaded-resources>
     pub preloaded_resources: PreloadedResources,
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
-    pub policy_container: RequestPolicyContainer,
+    pub policy_container: PolicyContainer,
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-origin>
     pub origin: Origin,
     /// <https://html.spec.whatwg.org/multipage/#nested-browsing-context>
@@ -1021,7 +1021,8 @@ impl Request {
             // Step 3.1. If request’s client is non-null, then set request’s
             // policy container to a clone of request’s client’s policy container. [HTML]
             if let Some(client) = self.client.as_ref() {
-                self.policy_container = client.policy_container.clone();
+                self.policy_container =
+                    RequestPolicyContainer::PolicyContainer(client.policy_container.clone());
             } else {
                 // Step 3.2. Otherwise, set request’s policy container to a new policy container.
                 self.policy_container =

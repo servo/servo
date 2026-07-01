@@ -15,7 +15,6 @@ use embedder_traits::{Theme, ViewportDetails, WebDriverLoadStatus};
 use http::header;
 use js::context::JSContext;
 use net_traits::blob_url_store::UrlWithBlobClaim;
-use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, Origin, PreloadedResources, RedirectMode,
     RequestBuilder, RequestClient, RequestMode,
@@ -226,9 +225,7 @@ impl InProgressLoad {
 
         let request_client = RequestClient {
             preloaded_resources: PreloadedResources::default(),
-            policy_container: RequestPolicyContainer::PolicyContainer(
-                self.load_data.policy_container.clone().unwrap_or_default(),
-            ),
+            policy_container: self.load_data.policy_container.clone().unwrap_or_default(),
             origin: Origin::Origin(client_origin),
             is_nested_browsing_context: self.parent_info.is_some(),
             insecure_requests_policy,
