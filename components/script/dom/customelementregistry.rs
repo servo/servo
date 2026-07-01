@@ -41,7 +41,7 @@ use crate::dom::bindings::error::{
 };
 use crate::dom::bindings::inheritance::{Castable, DocumentFragmentTypeId, NodeTypeId};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
+use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot, UnrootedDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -88,6 +88,9 @@ pub(crate) struct CustomElementRegistry {
     /// <https://html.spec.whatwg.org/multipage/#is-scoped>
     is_scoped: Cell<bool>,
 
+    /// <https://html.spec.whatwg.org/multipage/#scoped-document-set>
+    scoped_document_set: DomRefCell<Vec<Dom<Document>>>,
+
     #[conditional_malloc_size_of]
     /// <https://html.spec.whatwg.org/multipage/#custom-element-definition-set>
     definitions:
@@ -102,6 +105,7 @@ impl CustomElementRegistry {
             when_defined: DomRefCell::new(HashMapTracedValues::new_fx()),
             element_definition_is_running: Cell::new(false),
             is_scoped: Cell::new(false),
+            scoped_document_set: DomRefCell::new(Vec::new()),
             definitions: DomRefCell::new(HashMapTracedValues::new_fx()),
         }
     }
@@ -261,6 +265,50 @@ impl CustomElementRegistry {
             get_callback(cx, prototype, c"formStateRestoreCallback")?;
 
         Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#upgrade-particular-elements-within-a-document>
+    fn upgrade_particular_elements_within_a_document(
+        &self,
+        no_gc: &NoGC,
+        document: &Document,
+        definition: &Rc<CustomElementDefinition>,
+        local_name: &LocalName,
+        name: &LocalName,
+    ) {
+        // Step 1. Let upgradeCandidates be all elements that are shadow-including
+        // descendants of document, whose custom element registry is registry, whose
+        // namespace is the HTML namespace, and whose local name is localName,
+        // in shadow-including tree order. Additionally, if name is not localName,
+        // only include elements whose is value is equal to name.
+        for candidate in document
+            .upcast::<Node>()
+            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes)
+            .filter_map(UnrootedDom::downcast::<Element>)
+        {
+            // Note: If the registry is scoped, only include elements whose custom
+            // element registry is explicitly set to this registry. Otherwise,
+            // include elements with no explicit registry (they inherit the
+            // document's global registry) as well.
+            let registry_matches = if self.is_scoped.get() {
+                candidate
+                    .custom_element_registry()
+                    .is_some_and(|registry| *registry == *self)
+            } else {
+                candidate
+                    .custom_element_registry()
+                    .is_none_or(|registry| *registry == *self)
+            };
+            if *candidate.local_name() == *local_name &&
+                *candidate.namespace() == ns!(html) &&
+                registry_matches &&
+                (*name == *local_name || candidate.get_is().as_ref() == Some(name))
+            {
+                // Step 2. For each element element of upgradeCandidates: enqueue a
+                // custom element upgrade reaction given element and definition.
+                ScriptThread::enqueue_upgrade_reaction(&candidate, definition.clone());
+            }
+        }
     }
 }
 
@@ -528,30 +576,30 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             .borrow_mut()
             .insert(name.clone(), definition.clone());
 
-        // TODO Step 17: If this's is scoped is true, then for each document of
+        // Step 17: If this's is scoped is true, then for each document of
         // this's scoped document set: upgrade particular elements within a
         // document given this, document, definition, and localName.
         if self.is_scoped.get() {
-            // TODO: Need implementation for scoped document set.
+            for document in self.scoped_document_set.borrow().iter() {
+                self.upgrade_particular_elements_within_a_document(
+                    cx.no_gc(),
+                    document,
+                    &definition,
+                    &local_name,
+                    &local_name,
+                );
+            }
         } else {
             // Step 18: Otherwise, upgrade particular elements within a document given
             // this, this's relevant global object's associated Document, definition,
             // localName, and name.
-            let document = self.window.Document();
-
-            for candidate in document
-                .upcast::<Node>()
-                .traverse_preorder(ShadowIncluding::Yes)
-                .filter_map(DomRoot::downcast::<Element>)
-            {
-                let is = candidate.get_is();
-                if *candidate.local_name() == local_name &&
-                    *candidate.namespace() == ns!(html) &&
-                    (extends.is_none() || is.as_ref() == Some(&name))
-                {
-                    ScriptThread::enqueue_upgrade_reaction(&candidate, definition.clone());
-                }
-            }
+            self.upgrade_particular_elements_within_a_document(
+                cx.no_gc(),
+                &self.window.Document(),
+                &definition,
+                &local_name,
+                &name,
+            );
         }
 
         // Step 19: If this's when-defined promise map[name] exists:
@@ -691,9 +739,11 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
                 // Step 4.2.2. If this's is scoped is true, then append
                 // inclusiveDescendant's node document to this's scoped document set.
-                // TODO: scoped_document_set needs to be added to CustomElementRegistry.
                 if self.is_scoped.get() {
-                    // TODO: self.scoped_document_set.borrow_mut().push(...)
+                    let document = element.upcast::<Node>().owner_doc();
+                    self.scoped_document_set
+                        .borrow_mut()
+                        .push(Dom::from_ref(&document));
                 }
             // Step 4.3. If inclusiveDescendant's custom element registry is not this, then continue.
             } else if element
