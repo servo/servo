@@ -515,10 +515,10 @@ impl WorkerGlobalScope {
             .set_referrer_policy(referrer_policy);
     }
 
-    pub(crate) fn append_reporting_observer(&self, reporting_observer: Dom<ReportingObserver>) {
+    pub(crate) fn append_reporting_observer(&self, reporting_observer: &ReportingObserver) {
         self.reporting_observer_list
             .borrow_mut()
-            .push(reporting_observer);
+            .push(Dom::from_ref(reporting_observer));
     }
 
     pub(crate) fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
@@ -532,8 +532,12 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub(crate) fn registered_reporting_observers(&self) -> Vec<Dom<ReportingObserver>> {
-        self.reporting_observer_list.borrow().clone()
+    pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
+        self.reporting_observer_list
+            .borrow()
+            .iter()
+            .map(|observer| DomRoot::from_ref(&**observer))
+            .collect()
     }
 
     pub(crate) fn append_report(&self, report: Report) {
