@@ -7,6 +7,7 @@ use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::mem;
+use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 
 use imsz::imsz_from_reader;
@@ -1052,36 +1053,75 @@ impl ImageCache for ImageCacheImpl {
                 tinyskia_requested_size.height(),
             )
             .unwrap();
-            resvg::render(&vector_image.svg_tree, transform, &mut pixmap.as_mut());
 
-            let bytes = pixmap.take();
-            let frame = ImageFrame {
-                delay: None,
-                byte_range: 0..bytes.len(),
-                width: tinyskia_requested_size.width(),
-                height: tinyskia_requested_size.height(),
-            };
+            // Some SVG documents, primarily ones created by fuzzers, can cause resvg to fail
+            // assertions and panic. We catch any panics in `resvg::render` here so that we don't
+            // crash the whole engine for such cases. In case of a panic, the completion listeners
+            // added for this request will never get called.
+            //
+            // We also temporarily replace the panic hook with the default panic hook
+            // because servoshell registers a custom hook that intercepts the panic
+            // and crashes the process when run in hard_fail mode.
+            //
+            // `AssertUnwindSafe` should be safe here since we will remove the `vector_image`
+            // from `store.vector_images` and won't use it again. This assumes `resvg::render`
+            // doesn't use internal global state that could become invalid after the panic.
+            let previous_hook = std::panic::take_hook();
+            let resvg_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+                resvg::render(&vector_image.svg_tree, transform, &mut pixmap.as_mut());
 
-            let rasterized_image = RasterImage {
-                metadata: ImageMetadata {
+                let bytes = pixmap.take();
+                let frame = ImageFrame {
+                    delay: None,
+                    byte_range: 0..bytes.len(),
                     width: tinyskia_requested_size.width(),
                     height: tinyskia_requested_size.height(),
-                },
-                format: PixelFormat::RGBA8,
-                frames: vec![frame],
-                bytes: Arc::new(bytes),
-                id: None,
-                cors_status: vector_image.cors_status,
-                is_opaque: false,
-                loop_count: None,
-            };
+                };
 
-            let mut store = store.lock();
-            store.load_image_with_keycache(PendingKey::Svg((
-                image_id,
-                rasterized_image,
-                requested_size,
-            )));
+                RasterImage {
+                    metadata: ImageMetadata {
+                        width: tinyskia_requested_size.width(),
+                        height: tinyskia_requested_size.height(),
+                    },
+                    format: PixelFormat::RGBA8,
+                    frames: vec![frame],
+                    bytes: Arc::new(bytes),
+                    id: None,
+                    cors_status: vector_image.cors_status,
+                    is_opaque: false,
+                    loop_count: None,
+                }
+            }));
+            std::panic::set_hook(previous_hook);
+
+            match resvg_result {
+                Ok(rasterized_image) => {
+                    let mut store = store.lock();
+                    store.load_image_with_keycache(PendingKey::Svg((
+                        image_id,
+                        rasterized_image,
+                        requested_size,
+                    )));
+                },
+                Err(_) => {
+                    warn!("resvg panicked while rasterizing SVG image {image_id:?} at {requested_size:?}");
+                    let mut store = store.lock();
+                    // Clean up data for this rasterization request.
+                    store
+                        .svg_rasterization_task_store
+                        .remove_being_rasterized(image_id, requested_size);
+                    store
+                        .rasterized_vector_images
+                        .remove(&(image_id, requested_size));
+
+                    // Remove the `image_id` from `vector_images` so the check at the top of this
+                    // method will fail for subsequent calls and won't trigger rasterization
+                    // again. Note, however, this means subsequent rasterization requests for
+                    // a different `requested_size` will also fail, but the panics in resvg so far
+                    // seem indepenent of the size, so this should be good enough.
+                    store.vector_images.remove(&image_id);
+                },
+            }
         });
         None
     }
