@@ -22,7 +22,7 @@ use js::rust::wrappers2::{
     GetRequestedModulesCount, JS_GetModulePrivate, ModuleEvaluate, ModuleLink,
 };
 use js::rust::{HandleValue, IntoHandle};
-use net_traits::request::{Destination, Referrer};
+use net_traits::request::{Destination, Referrer, RequestClient};
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_callback;
 use servo_url::ServoUrl;
@@ -35,7 +35,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::realms::enter_auto_realm;
 use crate::script_module::{
-    ModuleFetchClient, ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
+    ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
 use crate::script_runtime::IntroductionType;
@@ -64,7 +64,7 @@ pub(crate) struct LoadState {
     #[no_trace]
     pub(crate) destination: Destination,
     #[no_trace]
-    pub(crate) fetch_client: ModuleFetchClient,
+    pub(crate) fetch_client: RequestClient,
 }
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
@@ -496,7 +496,7 @@ pub(crate) fn host_load_imported_module(
             // Step 11. Let destination be "script".
             Destination::Script,
             // Step 12. Let fetchClient be settingsObject.
-            ModuleFetchClient::from_global_scope(&global_scope),
+            global_scope.request_client(Some(cx.no_gc())),
         ),
     };
 
@@ -561,7 +561,7 @@ pub(crate) fn host_load_imported_module(
 fn fetch_a_single_imported_module_script(
     cx: &mut JSContext,
     url: ServoUrl,
-    fetch_client: ModuleFetchClient,
+    fetch_client: RequestClient,
     global: &GlobalScope,
     destination: Destination,
     options: ScriptFetchOptions,

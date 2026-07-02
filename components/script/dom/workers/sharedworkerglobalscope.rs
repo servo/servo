@@ -57,7 +57,7 @@ use crate::dom::types::DebuggerGlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
+use crate::script_module::fetch_a_module_worker_script_graph;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, Runtime};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -520,13 +520,6 @@ impl SharedWorkerGlobalScope {
                 // It is intentionally unused because its Drop unregisters the worker.
                 let _registration_cleanup = SharedWorkerRegistrationCleanup { registration_id };
 
-                let fetch_client = ModuleFetchClient {
-                    policy_container,
-                    client: request_client,
-                    pipeline_id,
-                    origin,
-                };
-
                 // Step 11. Let destination be "sharedworker" if is shared is true, and
                 // "worker" otherwise.
                 // Step 12. Obtain script by switching on options["type"]:
@@ -535,7 +528,7 @@ impl SharedWorkerGlobalScope {
                         fetch_a_classic_worker_script(
                             scope,
                             worker_url,
-                            fetch_client,
+                            request_client,
                             Destination::SharedWorker,
                             Some(webview_id),
                             referrer,
@@ -547,7 +540,7 @@ impl SharedWorkerGlobalScope {
                             cx,
                             global_scope,
                             worker_url.url(),
-                            fetch_client,
+                            request_client,
                             Destination::SharedWorker,
                             referrer,
                             credentials,
