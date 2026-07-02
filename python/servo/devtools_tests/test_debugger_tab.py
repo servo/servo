@@ -186,6 +186,35 @@ class TestDebuggerTab:
             assert preview["size"] == 2
             assert preview["entries"] == [["a", 1], ["b", True]]
 
+    def test_eval_reuses_object_actor(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/debugger/frame_scoped.html")
+        with Devtools.connect() as devtools:
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            evaluation_result = Future()
+
+            def on_evaluation_result(data):
+                if not evaluation_result.done():
+                    evaluation_result.set_result(data)
+
+            devtools.client.add_event_listener(
+                console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation_result
+            )
+
+            # Evaluating the same live object twice should reuse the same object actor.
+            first_result = Future()
+            evaluation_result = first_result
+            console.evaluate_js_async("testFunc")
+            first = first_result.result(2)["result"]
+
+            second_result = Future()
+            evaluation_result = second_result
+            console.evaluate_js_async("testFunc")
+            second = second_result.result(2)["result"]
+
+            assert first["type"] == "object"
+            assert first["class"] == "Function"
+            assert first["actor"] == second["actor"]
+
     def test_manual_pause(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
