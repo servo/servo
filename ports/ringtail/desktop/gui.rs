@@ -109,7 +109,7 @@ pub async fn fetch_approved_domains() {
                 }
                 if !domains.is_empty() {
                     *APPROVED_DOMAINS.lock().unwrap() = Some(domains);
-                    APPROVED_DOMAINS_LOADED.store(true, Ordering::Relaxed);=
+                    APPROVED_DOMAINS_LOADED.store(true, Ordering::Relaxed);
                     return;
                 }
             }
