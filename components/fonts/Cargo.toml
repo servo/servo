@@ -16,6 +16,11 @@ test = true
 doctest = false
 
 [features]
+# Compile FreeType from source (freetype-sys/bundled) instead of searching
+# via pkg-config. If this feature is disabled, and pkg-config fails to find a
+# suitable freetype version, the build will fail!
+# Only affects targets where freetype-sys is a dependency (Linux/Android/OHOS)
+bundled_freetype = ["freetype-sys/bundled"]
 tracing = ["dep:tracing"]
 
 [dependencies]
