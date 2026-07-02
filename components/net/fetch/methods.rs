@@ -26,8 +26,8 @@ use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
     InsecureRequestsPolicy, InternalRequest, Origin, ParserMetadata, RedirectMode, Referrer,
-    Request, RequestBody, RequestClient, RequestId, RequestMode, ResponseTainting,
-    is_cors_safelisted_method, is_cors_safelisted_request_header,
+    Request, RequestBody, RequestId, RequestMode, ResponseTainting, is_cors_safelisted_method,
+    is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
 use net_traits::{
@@ -1225,10 +1225,9 @@ pub fn should_request_be_blocked_as_mixed_content(
     // Step 1. Return allowed if one or more of the following conditions are met:
     // 1.1. Does settings prohibit mixed security contexts?
     // returns "Does Not Restrict Mixed Security Contexts" when applied to request’s client.
-    if request.client.as_ref().is_some_and(|client| {
-        do_settings_prohibit_mixed_security_contexts(client) ==
-            MixedSecurityProhibited::NotProhibited
-    }) {
+    if do_settings_prohibit_mixed_security_contexts(request) ==
+        MixedSecurityProhibited::NotProhibited
+    {
         return false;
     }
 
@@ -1258,10 +1257,9 @@ pub fn should_response_be_blocked_as_mixed_content(
     // Step 1. Return allowed if one or more of the following conditions are met:
     // 1.1. Does settings prohibit mixed security contexts? returns Does Not Restrict Mixed Content
     // when applied to request’s client.
-    if request.client.as_ref().is_some_and(|client| {
-        do_settings_prohibit_mixed_security_contexts(client) ==
-            MixedSecurityProhibited::NotProhibited
-    }) {
+    if do_settings_prohibit_mixed_security_contexts(request) ==
+        MixedSecurityProhibited::NotProhibited
+    {
         return false;
     }
 
@@ -1375,14 +1373,20 @@ pub enum MixedSecurityProhibited {
 }
 
 /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
-fn do_settings_prohibit_mixed_security_contexts(client: &RequestClient) -> MixedSecurityProhibited {
-    if let Origin::Origin(ref origin) = client.origin {
-        // Step 1. If settings’ origin is a potentially trustworthy origin,
-        // then return "Prohibits Mixed Security Contexts".
-        // NOTE: Workers created from a data: url are secure if they were created from secure contexts
-        if origin.is_potentially_trustworthy() || origin.is_for_data_worker_from_secure_context() {
-            return MixedSecurityProhibited::Prohibited;
-        }
+fn do_settings_prohibit_mixed_security_contexts(request: &Request) -> MixedSecurityProhibited {
+    let Some(ref client) = request.client else {
+        return MixedSecurityProhibited::NotProhibited;
+    };
+
+    let Origin::Origin(ref origin) = client.origin else {
+        unreachable!("Settings' origin is never a \"client\"");
+    };
+
+    // Step 1. If settings’ origin is a potentially trustworthy origin,
+    // then return "Prohibits Mixed Security Contexts".
+    // NOTE: Workers created from a data: url are secure if they were created from secure contexts
+    if origin.is_potentially_trustworthy() || origin.is_for_data_worker_from_secure_context() {
+        return MixedSecurityProhibited::Prohibited;
     }
 
     // Step 2.2. For each navigable navigable in document’s ancestor navigables:
@@ -1413,10 +1417,9 @@ fn should_upgrade_mixed_content_request(
     }
 
     // Step 1.3
-    if request.client.as_ref().is_some_and(|client| {
-        do_settings_prohibit_mixed_security_contexts(client) ==
-            MixedSecurityProhibited::NotProhibited
-    }) {
+    if do_settings_prohibit_mixed_security_contexts(request) ==
+        MixedSecurityProhibited::NotProhibited
+    {
         return false;
     }
 
