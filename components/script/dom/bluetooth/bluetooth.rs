@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::gc::HandleValue;
 use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
 use servo_base::generic_channel::{GenericCallback, GenericSender};
 use servo_bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
@@ -38,8 +39,6 @@ use crate::dom::promise::Promise;
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
-use js::jsapi::JSObject;
-use js::jsval::{ObjectValue, UndefinedValue};
 use profile_traits::{generic_channel};
 use std::collections::HashMap;
 use std::ffi::CStr;
@@ -621,13 +620,9 @@ impl PermissionAlgorithm for Bluetooth {
 
     fn create_descriptor(
         cx: &mut JSContext,
-        permission_descriptor_obj: *mut JSObject,
+        permission_descriptor_obj: HandleValue,
     ) -> Result<BluetoothPermissionDescriptor, Error> {
-        rooted!(&in(cx) let mut property = UndefinedValue());
-        property
-            .handle_mut()
-            .set(ObjectValue(permission_descriptor_obj));
-        match BluetoothPermissionDescriptor::new(cx, property.handle()) {
+        match BluetoothPermissionDescriptor::new(cx, permission_descriptor_obj) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             Err(_) => Err(Error::Type(BT_DESC_CONVERSION_ERROR.into())),
