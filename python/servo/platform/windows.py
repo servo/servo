@@ -56,7 +56,7 @@ def _append_to_user_path(new_path: str) -> None:
     so that it is available in all future processes, not just the current one."""
 
     # Using PowerShell avoids setx's 1024 character limit, but still correctly notifies the system
-    #of the change so that it is available in future processes.
+    # of the change so that it is available in future processes.
     subprocess.check_call(
         [
             "powershell",
@@ -77,7 +77,6 @@ def _ensure_llvm_in_user_path() -> None:
     llvm_bin = os.path.join(os.environ["PROGRAMFILES"], "LLVM", "bin")
     if os.path.isdir(llvm_bin) and llvm_bin not in os.environ.get("PATH", ""):
         _append_to_user_path(llvm_bin)
-
 
 
 class Windows(Base):
