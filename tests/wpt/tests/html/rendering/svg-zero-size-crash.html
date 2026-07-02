@@ -1,4 +1,19 @@
+<!doctype html>
+<title>Sending a svg that has zero height should not crash the browser</title>
+<link rel="issue" href="https://github.com/servo/servo/issues/46153" />
 <style>
-:defined { padding-left: 56%;margin-left: 66%;</style>
-<svg id="f2()" transform="scale(598,1) matrix(641,0.86,0,0,0,1)" baseProfile="polygon(45% 0.00em,89% 0%,0px 0em,0.43em 6%,100% 0%) border-box" viewBox="linearRGB" width="11%">
-<polyline id="inline-table" points="58,16 47,1 315,1 2,0 0,1 40,1 28,9 0,8 10,212 1,16384 7,15 0,446 34,32768 0,0 13,0 1,8 0,62 0,4 0,1 3,0 14,963 1,1 39603,1 56,48 86,0 0,0 62,0 1,0 4096,1 18,1 75,128 1,4 0,98 1,866 0,14 142,0 0,0 8,131072 7,9 56,2 64,8 92,1 0,15 7,0 928,1 81,12 1,80 2849,1 3,5 0,1 64,8192 847,0 96,49973 12,28 0,48258 0,0 283,48457 8,1 1,24 0,16 1,128 1,0 618,8 0,57 0,479" image-rendering="url(data) exclude luminance">
+    :defined { padding-left: 56%;margin-left: 66%;
+</style>
+<svg
+    id="f2()"
+    transform="scale(598,1) matrix(641,0.86,0,0,0,1)"
+    baseProfile="polygon(45% 0.00em,89% 0%,0px 0em,0.43em 6%,100% 0%) border-box"
+    viewBox="linearRGB"
+    width="11%"
+>
+    <polyline
+        id="inline-table"
+        points="58,16 47,1 315,1 2,0 0,1 40,1 28,9 0,8 10,212 1,16384 7,15 0,446 34,32768 0,0 13,0 1,8 0,62 0,4 0,1 3,0 14,963 1,1 39603,1 56,48 86,0 0,0 62,0 1,0 4096,1 18,1 75,128 1,4 0,98 1,866 0,14 142,0 0,0 8,131072 7,9 56,2 64,8 92,1 0,15 7,0 928,1 81,12 1,80 2849,1 3,5 0,1 64,8192 847,0 96,49973 12,28 0,48258 0,0 283,48457 8,1 1,24 0,16 1,128 1,0 618,8 0,57 0,479"
+        image-rendering="url(data) exclude luminance"
+    ></polyline>
+</svg>
