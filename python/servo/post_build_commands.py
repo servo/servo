@@ -73,11 +73,13 @@ class PostBuildCommands(CommandBase):
     @CommandArgument("--headless", "-z", action="store_true", help="Launch in headless mode")
     @CommandArgument("--software", "-s", action="store_true", help="Launch with software rendering")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
-    @CommandBase.common_command_arguments(binary_selection=True)
+    # Keep `allow_target_configuration` above `common_command_arguments - binary_selection requires the target
+    # to be configured already!
     @CommandBase.allow_target_configuration
+    @CommandBase.common_command_arguments(binary_selection=True)
     def run(
         self,
-        servo_binary: str,
+        servo_binary: Optional[str],
         params: list[str],
         debugger: bool = False,
         debugger_cmd: str | None = None,
@@ -90,7 +92,7 @@ class PostBuildCommands(CommandBase):
 
     def _run(
         self,
-        servo_binary: str,
+        servo_binary: Optional[str],
         params: list[str],
         debugger: bool = False,
         debugger_cmd: str | None = None,
@@ -148,6 +150,8 @@ class PostBuildCommands(CommandBase):
             shell.communicate(("\n".join(script) + "\n").encode())
             return shell.wait()
 
+        # `servo_binary` is only `None` for packaged targets, which are handled above.
+        assert servo_binary is not None
         args = [servo_binary]
 
         if headless:

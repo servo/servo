@@ -36,6 +36,7 @@ from mach.decorators import (
 import servo.devtools_tests
 import servo.try_parser
 from servo.command_base import BuildType, CommandBase, call, check_call
+from servo.platform.build_target import CrossBuildTarget
 from servo.post_build_commands import PostBuildCommands
 from servo.util import delete
 
@@ -465,8 +466,13 @@ class MachCommands(CommandBase):
         action="store_true",
         help="Update test expectations after test run",
     )
+    # Keep `allow_target_configuration` above `common_command_arguments`: binary_selection requires the
+    # target to be configured already.
+    @CommandBase.allow_target_configuration
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_wpt(self, servo_binary: str, multiprocess: bool, update_expectations: bool, **kwargs: Any) -> int:
+    def test_wpt(
+        self, servo_binary: Optional[str], multiprocess: bool, update_expectations: bool, **kwargs: Any
+    ) -> int:
         if update_expectations:
             if kwargs["log_raw"]:
                 print("Do not specify --log-raw when updating tests directly")
@@ -474,7 +480,12 @@ class MachCommands(CommandBase):
             with tempfile.TemporaryDirectory() as temp_dir:
                 kwargs["log_raw"] = [os.path.join(temp_dir, "wpt.log")]
 
-        test_return_value = self._test_wpt(servo_binary, multiprocess, **kwargs)
+        if isinstance(self.target, CrossBuildTarget):
+            print("test-wpt doesn't support any cross build targets (yet).")
+            return 1
+        else:
+            assert servo_binary is not None, "servo_binary should only be none on Android / OpenHarmony"
+            test_return_value = self._test_wpt(servo_binary, multiprocess, **kwargs)
 
         # We should only update when the tests actually failed. In any other case
         # such as incorrect command parameters, we shouldn't run the update command.
@@ -488,7 +499,6 @@ class MachCommands(CommandBase):
 
     @CommandBase.allow_target_configuration
     def _test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
-        # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?
         return_value = wpt.run.run_tests(servo_binary, multiprocess, **kwargs)
         return return_value if not kwargs["always_succeed"] else 0
 
