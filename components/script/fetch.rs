@@ -769,10 +769,8 @@ pub(crate) trait RequestWithGlobalScope {
 
 impl RequestWithGlobalScope for RequestBuilder {
     fn with_global_scope(self, global: &GlobalScope) -> Self {
-        self.policy_container(global.policy_container())
-            .client(global.request_client(None))
+        self.client(global.request_client(None))
             .pipeline_id(Some(global.pipeline_id()))
-            .origin(global.origin().immutable().clone())
     }
 }
 
