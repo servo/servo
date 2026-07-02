@@ -871,7 +871,7 @@ impl HTMLScriptElement {
                     if was_parser_inserted &&
                         doc.get_current_parser()
                             .is_some_and(|parser| parser.script_nesting_level() <= 1) &&
-                        doc.has_a_stylesheet_that_is_blocking_scripts()
+                        doc.get_script_blocking_stylesheets_count() > 0
                     {
                         // Step 34.2: classic, has no src, was parser-inserted, is blocked on stylesheet.
                         doc.set_pending_parsing_blocking_script(self, Some(result));

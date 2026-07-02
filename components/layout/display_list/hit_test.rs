@@ -38,10 +38,6 @@ pub(crate) struct HitTest<'a> {
     results: Vec<ElementsFromPointResult>,
     /// A cache of hit test results for shared clip nodes.
     clip_hit_test_results: FxHashMap<ClipId, bool>,
-    /// Collected reference frame clips. For painting, reference frame clips are handled
-    /// by enclosing reference frames in stacking contexts, but we don't have that option
-    /// here, so we must handle them manually.
-    collected_reference_frame_clips: Vec<ClipId>,
 }
 
 impl<'a> HitTest<'a> {
@@ -55,7 +51,6 @@ impl<'a> HitTest<'a> {
             stacking_context_tree,
             results: Vec::new(),
             clip_hit_test_results: FxHashMap::default(),
-            collected_reference_frame_clips: Default::default(),
         };
 
         PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut hit_test);
@@ -71,19 +66,9 @@ impl<'a> HitTest<'a> {
         hit_test.results
     }
 
-    /// Perform a hit test against the clip node for the given [`ClipId`], returning
+    /// Perform a hit test against a the clip node for the given [`ClipId`], returning
     /// true if it is not clipped out or false if is clipped out.
     fn hit_test_clip_id(&mut self, clip_id: ClipId) -> bool {
-        // Using the index here is necessary to avoid a double borrow of `self`.
-        for index in 0..self.collected_reference_frame_clips.len() {
-            if !self.hit_test_individual_clip_id(self.collected_reference_frame_clips[index]) {
-                return false;
-            }
-        }
-        self.hit_test_individual_clip_id(clip_id)
-    }
-
-    fn hit_test_individual_clip_id(&mut self, clip_id: ClipId) -> bool {
         if clip_id == ClipId::INVALID {
             return true;
         }
@@ -96,7 +81,7 @@ impl<'a> HitTest<'a> {
         let result = self
             .location_in_spatial_node(clip.parent_scroll_node_id)
             .is_some_and(|(point, _)| {
-                clip.contains(point) && self.hit_test_individual_clip_id(clip.parent_clip_id)
+                clip.contains(point) && self.hit_test_clip_id(clip.parent_clip_id)
             });
         self.clip_hit_test_results.insert(clip_id, result);
         result
@@ -132,32 +117,10 @@ impl<'a> HitTest<'a> {
 }
 
 impl PaintTraversalHandler for HitTest<'_> {
-    /// `true` if we pushed a reference frame clip and `false` otherwise.
-    type StackingContextState = bool;
+    type StackingContextState = ();
 
-    fn visit_stacking_context(
-        &mut self,
-        stacking_context: &StackingContext,
-    ) -> Self::StackingContextState {
-        if let Some(reference_frame_info) = stacking_context.reference_frame_info.as_ref() &&
-            reference_frame_info.captured_clip_id != ClipId::INVALID
-        {
-            self.collected_reference_frame_clips
-                .push(reference_frame_info.captured_clip_id);
-            return true;
-        }
-        false
-    }
-
-    fn leave_stacking_context(
-        &mut self,
-        _: &TraversalState,
-        pushed_reference_frame_clip: Self::StackingContextState,
-    ) {
-        if pushed_reference_frame_clip {
-            self.collected_reference_frame_clips.pop();
-        }
-    }
+    fn visit_stacking_context(&mut self, _: &StackingContext) -> Self::StackingContextState {}
+    fn leave_stacking_context(&mut self, _: &TraversalState, _: Self::StackingContextState) {}
     fn visit_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>) {
         Fragment::Box(fragment.box_fragment.clone()).hit_test(state, self);
     }

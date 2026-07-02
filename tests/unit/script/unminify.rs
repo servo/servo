@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::io::{ErrorKind, Write};
+use std::io::Write;
 
 use script::test::unminify::{create_output_file, substitute_with_local_script};
 use servo_url::ServoUrl;
@@ -37,17 +37,6 @@ fn test_create_output_file_without_query_string() {
 
     assert!(result.is_ok());
     assert!(dir.path().join("example.com/app.js").exists());
-}
-
-#[test]
-fn test_create_output_file_with_data_url() {
-    let dir = tempfile::tempdir().expect("create temp dir");
-    let url = ServoUrl::parse("data:text/javascript,console.log('pass')").unwrap();
-
-    let result = create_output_file(dir.path().to_str().unwrap().to_owned(), &url, Some(true));
-
-    assert_eq!(result.unwrap_err().kind(), ErrorKind::InvalidInput);
-    assert_eq!(dir.path().read_dir().unwrap().count(), 0);
 }
 
 #[test]

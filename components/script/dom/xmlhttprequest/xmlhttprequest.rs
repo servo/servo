@@ -37,7 +37,7 @@ use net_traits::{
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::trace::RootedTraceableBox;
 use script_traits::DocumentActivity;
 use servo_constellation_traits::BlobImpl;
@@ -79,6 +79,7 @@ use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
+use crate::script_runtime::CanGc;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
@@ -240,13 +241,13 @@ pub(crate) struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    fn new_inherited(global: &GlobalScope, upload: &XMLHttpRequestUpload) -> XMLHttpRequest {
+    fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> XMLHttpRequest {
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(Duration::ZERO),
             with_credentials: Cell::new(false),
-            upload: Dom::from_ref(upload),
+            upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global, can_gc)),
             response_url: DomRefCell::new(String::new()),
             status: DomRefCell::new(HttpStatus::new_error()),
             response: DomRefCell::new(vec![]),
@@ -278,16 +279,15 @@ impl XMLHttpRequest {
     }
 
     fn new(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<XMLHttpRequest> {
-        let upload = XMLHttpRequestUpload::new(cx, global);
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(XMLHttpRequest::new_inherited(global, &upload)),
+        reflect_dom_object_with_proto(
+            Box::new(XMLHttpRequest::new_inherited(global, can_gc)),
             global,
             proto,
-            cx,
+            can_gc,
         )
     }
 
@@ -299,11 +299,11 @@ impl XMLHttpRequest {
 impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#constructors>
     fn Constructor(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<XMLHttpRequest>> {
-        Ok(XMLHttpRequest::new(cx, global, proto))
+        Ok(XMLHttpRequest::new(global, proto, can_gc))
     }
 
     // https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange
@@ -714,7 +714,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .headers((*self.request_headers.borrow()).clone())
         .unsafe_request(true)
         // XXXManishearth figure out how to avoid this clone
-        .body(extracted_or_serialized.map(|e| e.into_net_request_body(cx).0))
+        .body(extracted_or_serialized.map(|e| e.into_net_request_body().0))
         .synchronous(self.sync.get())
         .mode(RequestMode::CorsMode)
         .use_cors_preflight(self.upload_listener.get())
@@ -1506,7 +1506,7 @@ impl XMLHttpRequest {
         let wr = self.global();
         let response = self.response.borrow();
         let (decoded, _, _) = charset.decode(&response);
-        let document = self.new_doc(cx, IsHTMLDocument::HTMLDocument);
+        let document = self.new_doc(IsHTMLDocument::HTMLDocument, CanGc::from_cx(cx));
         // TODO: Disable scripting while parsing
         ServoParser::parse_html_document(
             cx,
@@ -1524,7 +1524,7 @@ impl XMLHttpRequest {
         let wr = self.global();
         let response = self.response.borrow();
         let (decoded, _, _) = charset.decode(&response);
-        let document = self.new_doc(cx, IsHTMLDocument::NonHTMLDocument);
+        let document = self.new_doc(IsHTMLDocument::NonHTMLDocument, CanGc::from_cx(cx));
         // TODO: Disable scripting while parsing
         ServoParser::parse_xml_document(
             cx,
@@ -1536,7 +1536,7 @@ impl XMLHttpRequest {
         document
     }
 
-    fn new_doc(&self, cx: &mut JSContext, is_html_document: IsHTMLDocument) -> DomRoot<Document> {
+    fn new_doc(&self, is_html_document: IsHTMLDocument, can_gc: CanGc) -> DomRoot<Document> {
         let wr = self.global();
         let win = wr.as_window();
         let doc = win.Document();
@@ -1545,7 +1545,6 @@ impl XMLHttpRequest {
         let parsed_url = base.join(&self.ResponseURL().0).ok();
         let content_type = Some(self.final_mime_type());
         Document::new(
-            cx,
             win,
             HasBrowsingContext::No,
             parsed_url,
@@ -1568,6 +1567,7 @@ impl XMLHttpRequest {
             doc.creation_sandboxing_flag_set(),
             doc.pipeline_id(),
             doc.image_cache(),
+            can_gc,
         )
     }
 

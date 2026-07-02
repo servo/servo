@@ -6,7 +6,6 @@
 
 use std::cell::RefCell;
 use std::os::raw::{c_char, c_int, c_void};
-use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
@@ -98,7 +97,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
 pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     mut env: EnvUnowned<'local>,
     _: JClass<'local>,
-    activity: JObject<'local>,
+    _activity: JObject<'local>,
     opts: JObject<'local>,
     callbacks_obj: JObject<'local>,
     surface: JObject<'local>,
@@ -171,10 +170,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
         let host = Rc::new(HostCallbacks::new(jvm));
 
         crate::init_crypto();
-
-        if let Err(error) = set_default_config_dir(env, &activity) {
-            error!("Failed to determine Android config directory: {error:?}");
-        }
 
         let (opts, mut preferences, servoshell_preferences) =
             match parse_command_line_arguments(init_opts.args.as_slice()) {
@@ -922,39 +917,6 @@ fn get_field_as_string<'local>(
         .get_field(obj, field, jni_sig!("Ljava/lang/String;"))?
         .l()?;
     JString::cast_local(env, string_value)?.try_to_string(env)
-}
-
-fn set_default_config_dir<'local>(
-    env: &mut Env<'local>,
-    activity: &JObject<'local>,
-) -> Result<(), Error> {
-    let files_dir = env
-        .call_method(
-            activity,
-            jni_str!("getFilesDir"),
-            jni_sig!("()Ljava/io/File;"),
-            &[],
-        )?
-        .l()?;
-    let path = env
-        .call_method(
-            &files_dir,
-            jni_str!("getAbsolutePath"),
-            jni_sig!("()Ljava/lang/String;"),
-            &[],
-        )?
-        .l()?;
-    let path = JString::cast_local(env, path)?.try_to_string(env)?;
-
-    let config_dir = PathBuf::from(path).join("servo");
-    if let Err(error) = std::fs::create_dir_all(&config_dir) {
-        error!("Failed to create config directory at {config_dir:?}: {error:?}");
-    }
-    debug!("Default config dir: {config_dir:?}");
-    let _ = crate::prefs::DEFAULT_CONFIG_DIR
-        .set(config_dir)
-        .inspect_err(|path| warn!("Default config dir was already set to {path:?}"));
-    Ok(())
 }
 
 fn get_options<'local>(

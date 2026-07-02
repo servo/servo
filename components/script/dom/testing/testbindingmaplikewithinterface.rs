@@ -6,12 +6,11 @@
 
 use dom_struct::dom_struct;
 use indexmap::IndexMap;
-use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::like::Maplike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::TestBindingMaplikeWithInterfaceBinding::TestBindingMaplikeWithInterfaceMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -20,6 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::testbinding::TestBinding;
 use crate::maplike;
+use crate::script_runtime::CanGc;
 
 /// maplike<DOMString, TestBinding>
 #[dom_struct]
@@ -31,18 +31,18 @@ pub(crate) struct TestBindingMaplikeWithInterface {
 
 impl TestBindingMaplikeWithInterface {
     fn new(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<TestBindingMaplikeWithInterface> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(TestBindingMaplikeWithInterface {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(IndexMap::new()),
             }),
             global,
             proto,
-            cx,
+            can_gc,
         )
     }
 }
@@ -51,11 +51,11 @@ impl TestBindingMaplikeWithInterfaceMethods<crate::DomTypeHolder>
     for TestBindingMaplikeWithInterface
 {
     fn Constructor(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingMaplikeWithInterface>> {
-        Ok(TestBindingMaplikeWithInterface::new(cx, global, proto))
+        Ok(TestBindingMaplikeWithInterface::new(global, proto, can_gc))
     }
 
     fn SetInternal(&self, key: DOMString, value: &TestBinding) {

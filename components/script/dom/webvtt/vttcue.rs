@@ -5,10 +5,9 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 
 use crate::dom::bindings::codegen::Bindings::VTTCueBinding::{
     self, AlignSetting, AutoKeyword, DirectionSetting, LineAlignSetting, PositionAlignSetting,
@@ -22,6 +21,7 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::vttregion::VTTRegion;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct VTTCue {
@@ -61,18 +61,18 @@ impl VTTCue {
     }
 
     fn new(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         start_time: f64,
         end_time: f64,
         text: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(Self::new_inherited(start_time, end_time, text)),
             window,
             proto,
-            cx,
+            can_gc,
         )
     }
 }
@@ -80,14 +80,14 @@ impl VTTCue {
 impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
     /// <https://w3c.github.io/webvtt/#dom-vttcue-vttcue>
     fn Constructor(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         start_time: Finite<f64>,
         end_time: Finite<f64>,
         text: DOMString,
     ) -> DomRoot<Self> {
-        VTTCue::new(cx, window, proto, *start_time, *end_time, text)
+        VTTCue::new(window, proto, *start_time, *end_time, text, can_gc)
     }
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-region>

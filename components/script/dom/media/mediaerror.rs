@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct MediaError {
@@ -25,8 +25,8 @@ impl MediaError {
         }
     }
 
-    pub(crate) fn new(cx: &mut JSContext, window: &Window, code: u16) -> DomRoot<MediaError> {
-        reflect_dom_object_with_cx(Box::new(MediaError::new_inherited(code)), window, cx)
+    pub(crate) fn new(window: &Window, code: u16, can_gc: CanGc) -> DomRoot<MediaError> {
+        reflect_dom_object(Box::new(MediaError::new_inherited(code)), window, can_gc)
     }
 }
 

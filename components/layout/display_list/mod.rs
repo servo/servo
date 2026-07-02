@@ -634,71 +634,34 @@ impl DisplayListBuilder<'_> {
         self.paint_timing_handler
             .update_lcp_candidate(tag, bounds, clip_rect, transform, url);
     }
-
-    fn visit_stacking_context_reference_frame_info(
-        &mut self,
-        stacking_context: &StackingContext,
-    ) -> (usize, Option<ScrollTreeNodeId>) {
-        let Some(reference_frame_info) = &stacking_context.reference_frame_info else {
-            return (0, None);
-        };
-
-        // Note: Reference frames always establish a stacking context, so it is fine to check if
-        // this stacking context establishes a reference frame as well. We don't need to check
-        // every fragment.
-        let old_reference_frame_spatial_id = std::mem::replace(
-            &mut self.current_reference_frame_scroll_node_id,
-            stacking_context.scroll_tree_node_id,
-        );
-
-        if reference_frame_info.captured_clip_id == ClipId::INVALID {
-            return (0, Some(old_reference_frame_spatial_id));
-        }
-
-        // Although there is nothing in the display list API that prevents it, WebRender
-        // expects that reference frames that alter the coordinate space of their contents do
-        // not propagate clips to those contents. In order to achieve this, push an extra
-        // stacking context here that only specifies a clip. This stacking context will contain
-        // all of the contents of the reference frame, but because it is added in the parent
-        // spatial node, it has the coordinate space of the reference frame parent. In addition
-        // to this, reference frames reset the base `ClipId` value for descendants to
-        // `ClipId::INVALID` during stacking context tree construction.
-        let clip_chain_id = Some(self.clip_chain_id(reference_frame_info.captured_clip_id));
-        let spatial_id = self.spatial_id(reference_frame_info.parent_spatial_node_id);
-        self.wr().push_stacking_context(
-            spatial_id,
-            PrimitiveFlags::default(),
-            clip_chain_id,
-            webrender_api::TransformStyle::Flat,
-            webrender_api::MixBlendMode::Normal,
-            &[], // filters,
-            &[], // filter_datas
-            wr::RasterSpace::Screen,
-            wr::StackingContextFlags::empty(),
-            None, // snapshot
-        );
-
-        (1, Some(old_reference_frame_spatial_id))
-    }
 }
 
 impl PaintTraversalHandler for DisplayListBuilder<'_> {
-    /// A tuple composed of the number of real WebRender stacking contexts pushed
-    /// and the previous `Self::current_reference_frame_scroll_node_id` value of
-    /// the `DisplayListBuilder` when a stacking context was visited (or `None` if
-    /// the value was unmodified).
-    type StackingContextState = (usize, Option<ScrollTreeNodeId>);
+    type StackingContextState = (bool, Option<ScrollTreeNodeId>);
 
     fn visit_stacking_context(
         &mut self,
         stacking_context: &StackingContext,
     ) -> Self::StackingContextState {
-        let (mut stacking_contexts_pushed, old_reference_frame) =
-            self.visit_stacking_context_reference_frame_info(stacking_context);
-        if self.push_webrender_stacking_context_if_necessary(stacking_context) {
-            stacking_contexts_pushed += 1;
-        }
-        (stacking_contexts_pushed, old_reference_frame)
+        let pushed_stacking_context =
+            self.push_webrender_stacking_context_if_necessary(stacking_context);
+
+        // Note: Reference frames always establish a stacking context, so it is fine to check if
+        // this stacking context establishes a reference frame as well. We don't need to check
+        // every fragment.
+        let root_fragment = stacking_context.fragment();
+        let old_reference_frame = root_fragment.and_then(|root_fragment| {
+            root_fragment
+                .style()
+                .has_effective_transform_or_perspective(root_fragment.base.flags)
+                .then(|| {
+                    std::mem::replace(
+                        &mut self.current_reference_frame_scroll_node_id,
+                        stacking_context.scroll_tree_node_id,
+                    )
+                })
+        });
+        (pushed_stacking_context, old_reference_frame)
     }
 
     fn leave_stacking_context(
@@ -706,8 +669,8 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         _: &TraversalState,
         stacking_context_state: Self::StackingContextState,
     ) {
-        let (stacking_contexts_pushed, old_reference_frame) = stacking_context_state;
-        for _ in 0..stacking_contexts_pushed {
+        let (pushed_stacking_context, old_reference_frame) = stacking_context_state;
+        if pushed_stacking_context {
             self.wr().pop_stacking_context();
         }
 

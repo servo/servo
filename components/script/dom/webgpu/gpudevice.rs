@@ -7,7 +7,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::context::{JSContext, NoGC};
+use js::context::JSContext;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
@@ -182,7 +182,7 @@ impl GPUDevice {
             global,
             cx,
         );
-        queue.set_device(cx, &device);
+        queue.set_device(&device);
         device.extensions.set(*extensions);
         device
     }
@@ -433,8 +433,8 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, value: USVString) {
+        *self.label.borrow_mut() = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>

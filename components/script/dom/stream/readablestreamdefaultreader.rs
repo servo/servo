@@ -130,12 +130,12 @@ impl ReadRequest {
                 );
             },
             ReadRequest::DefaultTee { tee_read_request } => {
-                tee_read_request.enqueue_chunk_steps(cx, chunk);
+                tee_read_request.enqueue_chunk_steps(chunk);
             },
             ReadRequest::ByteTee {
                 byte_tee_read_request,
             } => {
-                byte_tee_read_request.enqueue_chunk_steps(cx, global, chunk);
+                byte_tee_read_request.enqueue_chunk_steps(global, chunk);
             },
             ReadRequest::ReadLoop {
                 success_steps: _,

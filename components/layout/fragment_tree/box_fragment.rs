@@ -255,15 +255,6 @@ impl BoxFragment {
         })
     }
 
-    pub(crate) fn clear_stacking_context_tree_traversal_data(&self) {
-        if let Some(rare_data) = self.rare_data.get() {
-            let mut rare_data = rare_data.borrow_mut();
-            rare_data.generated_clip_id = None;
-            rare_data.generated_scroll_tree_node_id = None;
-            rare_data.resolved_sticky_insets = None;
-        }
-    }
-
     pub(crate) fn resolved_sticky_insets(
         &self,
     ) -> Option<AtomicRef<'_, Box<PhysicalSides<AuOrAuto>>>> {

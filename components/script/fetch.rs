@@ -239,7 +239,7 @@ pub(crate) fn Fetch(
     if signal.aborted() {
         // Step 4.1. Abort the fetch() call with p, request, null, and requestObject’s signal’s abort reason.
         rooted!(&in(cx) let mut abort_reason = UndefinedValue());
-        signal.Reason(abort_reason.handle_mut());
+        signal.Reason(cx.into(), abort_reason.handle_mut());
         abort_fetch_call(
             promise.clone(),
             &request_object,
@@ -304,7 +304,7 @@ fn queue_deferred_fetch(
     let trusted_global = Trusted::new(global);
     let mut request = request;
     // Step 1. Populate request from client given request.
-    request.client = Some(global.request_client(None));
+    request.client = Some(global.request_client());
     request.populate_request_from_client();
     // Step 2. Set request’s service-workers mode to "none".
     request.service_workers_mode = ServiceWorkersMode::None;
@@ -360,7 +360,7 @@ pub(crate) fn FetchLater(
     let signal = request_object.Signal();
     if signal.aborted() {
         rooted!(&in(cx) let mut abort_reason = UndefinedValue());
-        signal.Reason(abort_reason.handle_mut());
+        signal.Reason(cx.into(), abort_reason.handle_mut());
         unsafe {
             assert!(!JS_IsExceptionPending(cx));
             JS_SetPendingException(cx, abort_reason.handle(), ExceptionStackBehavior::Capture)

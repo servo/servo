@@ -11,7 +11,6 @@ use http::HeaderMap;
 use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::context::JSContext;
 use js::jsapi::{Heap, JSObject, Value as JSValue};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -407,10 +406,7 @@ impl ExtractedBody {
     ///
     /// Transmitting a body over fetch, and consuming it in script,
     /// are mutually exclusive operations, since each will lock the stream to a reader.
-    pub(crate) fn into_net_request_body(
-        self,
-        cx: &mut JSContext,
-    ) -> (RequestBody, DomRoot<ReadableStream>) {
+    pub(crate) fn into_net_request_body(self) -> (RequestBody, DomRoot<ReadableStream>) {
         let ExtractedBody {
             stream,
             total_bytes,
@@ -430,7 +426,7 @@ impl ExtractedBody {
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SM.
         // Empty extracted bodies are always representable as an in-memory empty payload.
-        let in_memory = stream.get_in_memory_bytes(cx).or_else(|| {
+        let in_memory = stream.get_in_memory_bytes().or_else(|| {
             if total_bytes == Some(0) {
                 Some(GenericSharedMemory::from_bytes(&[]))
             } else {

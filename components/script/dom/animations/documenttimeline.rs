@@ -3,14 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use js::gc::HandleObject;
 use num_traits::ToPrimitive;
 use script_bindings::codegen::GenericBindings::DocumentTimelineBinding::DocumentTimelineOptions;
-use script_bindings::reflector::{
-    reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
-};
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::root::DomRoot;
+use script_bindings::script_runtime::CanGc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_config::pref;
 use time::Duration;
@@ -34,38 +32,38 @@ pub(crate) struct DocumentTimeline {
 }
 
 impl DocumentTimeline {
-    fn new_with_duration(
-        cx: &mut JSContext,
+    pub(crate) fn new_with_duration(
         window: &Window,
         proto: Option<HandleObject>,
         origin_time: Duration,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let duration_since_time_origin =
             CrossProcessInstant::now() - window.navigation_start() - origin_time;
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(Self {
                 animation_timeline: AnimationTimeline::new_inherited(duration_since_time_origin),
                 origin_offset: origin_time,
             }),
             window,
             proto,
-            cx,
+            can_gc,
         )
     }
 
-    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<DocumentTimeline> {
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<DocumentTimeline> {
         let duration = if pref!(layout_animations_test_enabled) {
             Duration::ZERO
         } else {
             CrossProcessInstant::now() - window.navigation_start()
         };
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
             Box::new(Self {
                 animation_timeline: AnimationTimeline::new_inherited(duration),
                 origin_offset: Duration::ZERO,
             }),
             window,
-            cx,
+            can_gc,
         )
     }
 
@@ -86,16 +84,16 @@ impl DocumentTimeline {
 
 impl DocumentTimelineMethods<crate::DomTypeHolder> for DocumentTimeline {
     fn Constructor(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         options: &DocumentTimelineOptions,
     ) -> DomRoot<Self> {
         Self::new_with_duration(
-            cx,
             window,
             proto,
             Duration::seconds_f64(options.originTime.to_f64().unwrap_or_default() / 1000.),
+            can_gc,
         )
     }
 }

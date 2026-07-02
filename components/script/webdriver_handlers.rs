@@ -92,6 +92,7 @@ use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::enter_auto_realm;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 /// <https://w3c.github.io/webdriver/#dfn-is-stale>
@@ -317,7 +318,7 @@ fn all_matching_links(
     // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
     // during the execution of the element location strategy, return error invalid selector.
     root_node
-        .query_selector_all(cx, DOMString::from("a"))
+        .query_selector_all(cx.no_gc(), DOMString::from("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
         .map(|nodes| matching_links(&nodes, link_text, partial).collect())
 }
@@ -943,7 +944,7 @@ pub(crate) fn handle_find_element_elements_css_selector(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 element
                     .upcast::<Node>()
-                    .query_selector_all(cx, DOMString::from(selector))
+                    .query_selector_all(cx.no_gc(), DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
@@ -1034,7 +1035,7 @@ pub(crate) fn handle_find_shadow_elements_css_selector(
             get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
                 shadow_root
                     .upcast::<Node>()
-                    .query_selector_all(cx, DOMString::from(selector))
+                    .query_selector_all(cx.no_gc(), DOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
@@ -1083,7 +1084,7 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
             get_known_shadow_root(documents, pipeline, shadow_root_id).map(|shadow_root| {
                 shadow_root
                     .upcast::<Node>()
-                    .query_selector_all(cx, DOMString::from(selector))
+                    .query_selector_all(cx.no_gc(), DOMString::from(selector))
                     .map(|nodes| {
                         nodes
                             .iter()
@@ -1376,7 +1377,7 @@ pub(crate) fn handle_get_page_source(
                     Some(element) => match element.outer_html(cx) {
                         Ok(source) => Ok(String::from(source)),
                         Err(_) => {
-                            match XMLSerializer::new(cx, document.window(), None)
+                            match XMLSerializer::new(document.window(), None, CanGc::from_cx(cx))
                                 .SerializeToString(element.upcast::<Node>())
                             {
                                 Ok(source) => Ok(String::from(source)),

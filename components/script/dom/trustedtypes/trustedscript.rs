@@ -87,7 +87,8 @@ impl TrustedScript {
         };
         // Step 2.2. Let isTrusted be true if bodyArg implements TrustedScript,
         // and false otherwise.
-        let mut is_trusted = match TrustedTypePolicyFactory::is_trusted_script(cx, body_arg) {
+        let mut is_trusted = match TrustedTypePolicyFactory::is_trusted_script(cx.into(), body_arg)
+        {
             // Step 2.3. If isTrusted is true then:
             Ok(trusted_script) => {
                 // Step 2.3.1. If bodyString is not equal to bodyArg’s data, set isTrusted to false.

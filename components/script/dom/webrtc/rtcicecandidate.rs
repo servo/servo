@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::{
     RTCIceCandidateInit, RTCIceCandidateMethods,
@@ -14,6 +13,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct RTCIceCandidate {
@@ -41,34 +41,34 @@ impl RTCIceCandidate {
     }
 
     pub(crate) fn new(
-        cx: &mut JSContext,
         window: &Window,
         candidate: DOMString,
         sdp_m_id: Option<DOMString>,
         sdp_m_line_index: Option<u16>,
         username_fragment: Option<DOMString>,
+        can_gc: CanGc,
     ) -> DomRoot<RTCIceCandidate> {
         Self::new_with_proto(
-            cx,
             window,
             None,
             candidate,
             sdp_m_id,
             sdp_m_line_index,
             username_fragment,
+            can_gc,
         )
     }
 
     fn new_with_proto(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         candidate: DOMString,
         sdp_m_id: Option<DOMString>,
         sdp_m_line_index: Option<u16>,
         username_fragment: Option<DOMString>,
+        can_gc: CanGc,
     ) -> DomRoot<RTCIceCandidate> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(RTCIceCandidate::new_inherited(
                 candidate,
                 sdp_m_id,
@@ -77,7 +77,7 @@ impl RTCIceCandidate {
             )),
             window,
             proto,
-            cx,
+            can_gc,
         )
     }
 }
@@ -85,9 +85,9 @@ impl RTCIceCandidate {
 impl RTCIceCandidateMethods<crate::DomTypeHolder> for RTCIceCandidate {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-constructor>
     fn Constructor(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         config: &RTCIceCandidateInit,
     ) -> Fallible<DomRoot<RTCIceCandidate>> {
         if config.sdpMid.is_none() && config.sdpMLineIndex.is_none() {
@@ -96,13 +96,13 @@ impl RTCIceCandidateMethods<crate::DomTypeHolder> for RTCIceCandidate {
             ));
         }
         Ok(RTCIceCandidate::new_with_proto(
-            cx,
             window,
             proto,
             config.candidate.clone(),
             config.sdpMid.clone(),
             config.sdpMLineIndex,
             config.usernameFragment.clone(),
+            can_gc,
         ))
     }
 

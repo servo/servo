@@ -89,6 +89,10 @@ impl WebViewCollection {
         self.webviews.get(&id)
     }
 
+    pub fn contains(&self, id: WebViewId) -> bool {
+        self.webviews.contains_key(&id)
+    }
+
     pub fn active(&self) -> Option<&WebView> {
         self.active_webview_id.and_then(|id| self.webviews.get(&id))
     }
@@ -219,6 +223,10 @@ pub(crate) struct RunningAppState {
     /// [`WebView::set_accessibility_active()`], in [`Self::set_accessibility_active()`] and
     /// and [`ServoShellWindow::create_toplevel_webview()`].
     accessibility_active: Cell<bool>,
+
+    /// Temporary storage to allow calling `WebviewDelegate` methods while the
+    /// `WebView` is being constructed.
+    window_of_webview_under_construction: RefCell<Option<Rc<ServoShellWindow>>>,
 }
 
 impl RunningAppState {
@@ -269,6 +277,7 @@ impl RunningAppState {
             user_content_manager,
             experimental_preferences_enabled,
             accessibility_active: Cell::new(false),
+            window_of_webview_under_construction: Default::default(),
         }
     }
 
@@ -312,9 +321,8 @@ impl RunningAppState {
     }
 
     pub(crate) fn webview_by_id(&self, webview_id: WebViewId) -> Option<WebView> {
-        self.windows()
-            .values()
-            .find_map(|window| window.webview_by_id(webview_id))
+        self.maybe_window_for_webview_id(webview_id)?
+            .webview_by_id(webview_id)
     }
 
     pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
@@ -447,29 +455,33 @@ impl RunningAppState {
         !self.exit_scheduled.get()
     }
 
-    fn maybe_window_for_webview(&self, webview: &WebView) -> Option<Rc<ServoShellWindow>> {
-        // Look up the ServoShellWindow by RenderingContext. This method can be called while a
-        // WebView is being constructed, which means that it may not fully be associated with a
-        // ServoShellWindow yet.
-        let rendering_context = webview.rendering_context();
-        self.windows()
-            .values()
-            .find(|window| {
-                Rc::ptr_eq(
-                    &window.platform_window().rendering_context(),
-                    &rendering_context,
-                )
-            })
-            .cloned()
+    pub(crate) fn maybe_window_for_webview_id(
+        &self,
+        webview_id: WebViewId,
+    ) -> Option<Rc<ServoShellWindow>> {
+        for window in self.windows.borrow().values() {
+            if window.contains_webview(webview_id) {
+                return Some(window.clone());
+            }
+        }
+        None
     }
 
-    pub(crate) fn window_for_webview(&self, webview: &WebView) -> Rc<ServoShellWindow> {
-        self.maybe_window_for_webview(webview)
-            .unwrap_or_else(|| panic!("Looking for unexpected WebView: {:?}", webview.id()))
+    pub(crate) fn window_for_webview_id(&self, webview_id: WebViewId) -> Rc<ServoShellWindow> {
+        self.maybe_window_for_webview_id(webview_id)
+            .or_else(|| self.window_of_webview_under_construction.borrow().clone())
+            .unwrap_or_else(|| panic!("Looking for unexpected WebView: {webview_id:?}"))
     }
 
-    pub(crate) fn platform_window_for_webview(&self, webview: &WebView) -> Rc<dyn PlatformWindow> {
-        self.window_for_webview(webview).platform_window()
+    pub(crate) fn set_window_for_webview_construction(&self, window: Option<Rc<ServoShellWindow>>) {
+        *self.window_of_webview_under_construction.borrow_mut() = window;
+    }
+
+    pub(crate) fn platform_window_for_webview_id(
+        &self,
+        webview_id: WebViewId,
+    ) -> Rc<dyn PlatformWindow> {
+        self.window_for_webview_id(webview_id).platform_window()
     }
 
     /// If we are exiting after achieving a stable image or we want to save the display of the
@@ -616,7 +628,7 @@ impl RunningAppState {
             return;
         };
 
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview_id)
             .dismiss_embedder_controls_for_webview(webview_id);
 
         info!("Loading URL in webview {}: {}", webview_id, url);
@@ -692,19 +704,22 @@ impl RunningAppState {
 
 impl WebViewDelegate for RunningAppState {
     fn screen_geometry(&self, webview: WebView) -> Option<servo::ScreenGeometry> {
-        Some(self.platform_window_for_webview(&webview).screen_geometry())
+        Some(
+            self.platform_window_for_webview_id(webview.id())
+                .screen_geometry(),
+        )
     }
 
     fn notify_status_text_changed(&self, webview: WebView, _status: Option<String>) {
-        self.window_for_webview(&webview).set_needs_update();
+        self.window_for_webview_id(webview.id()).set_needs_update();
     }
 
     fn notify_history_changed(&self, webview: WebView, _entries: Vec<Url>, _current: usize) {
-        self.window_for_webview(&webview).set_needs_update();
+        self.window_for_webview_id(webview.id()).set_needs_update();
     }
 
     fn notify_page_title_changed(&self, webview: WebView, _: Option<String>) {
-        self.window_for_webview(&webview).set_needs_update();
+        self.window_for_webview_id(webview.id()).set_needs_update();
     }
 
     fn notify_traversal_complete(&self, _webview: WebView, traversal_id: TraversalId) {
@@ -716,12 +731,12 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn request_move_to(&self, webview: WebView, new_position: DeviceIntPoint) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .set_position(new_position);
     }
 
     fn request_resize_to(&self, webview: WebView, requested_outer_size: DeviceIntSize) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .request_resize(&webview, requested_outer_size);
     }
 
@@ -730,19 +745,29 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         authentication_request: AuthenticationRequest,
     ) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .show_http_authentication_dialog(webview.id(), authentication_request);
     }
 
     fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
-        let window = self.window_for_webview(&parent_webview);
+        let window = self.window_for_webview_id(parent_webview.id());
         let platform_window = window.platform_window();
+
+        // As part of building the WebView, we may receive WebviewDelegate calls
+        // before we have set up the association between this window and the new
+        // webview. We stash this window in a known location so we can find it
+        // when this occurs.
+        self.set_window_for_webview_construction(Some(window.clone()));
 
         let webview = request
             .builder(platform_window.rendering_context())
             .hidpi_scale_factor(platform_window.hidpi_scale_factor())
             .delegate(parent_webview.delegate())
             .build();
+
+        // This window is now associated with the WebView, so the fallback
+        // is no longer needed.
+        self.set_window_for_webview_construction(None);
 
         webview.notify_theme_change(platform_window.theme());
         window.add_webview(webview.clone());
@@ -758,7 +783,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_closed(&self, webview: WebView) {
-        self.window_for_webview(&webview)
+        self.window_for_webview_id(webview.id())
             .close_webview(webview.id())
     }
 
@@ -768,7 +793,7 @@ impl WebViewDelegate for RunningAppState {
         id: InputEventId,
         result: InputEventResult,
     ) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .notify_input_event_handled(&webview, id, result);
         if let Some(response_sender) = self.pending_webdriver_events.borrow_mut().remove(&id) {
             let _ = response_sender.send(());
@@ -776,12 +801,12 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_cursor_changed(&self, webview: WebView, cursor: servo::Cursor) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .set_cursor(cursor);
     }
 
     fn notify_load_status_changed(&self, webview: WebView, status: LoadStatus) {
-        self.window_for_webview(&webview).set_needs_update();
+        self.window_for_webview_id(webview.id()).set_needs_update();
 
         if status == LoadStatus::Complete {
             if let Some(sender) = self
@@ -797,7 +822,7 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_fullscreen_state_changed(&self, webview: WebView, fullscreen_state: bool) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .set_fullscreen(fullscreen_state);
     }
 
@@ -806,17 +831,17 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         request: BluetoothDeviceSelectionRequest,
     ) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .show_bluetooth_device_dialog(webview.id(), request);
     }
 
     fn request_permission(&self, webview: WebView, permission_request: PermissionRequest) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .show_permission_dialog(webview.id(), permission_request);
     }
 
     fn notify_new_frame_ready(&self, webview: WebView) {
-        self.window_for_webview(&webview).set_needs_repaint();
+        self.window_for_webview_id(webview.id()).set_needs_repaint();
     }
 
     fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
@@ -840,7 +865,7 @@ impl WebViewDelegate for RunningAppState {
             return;
         }
 
-        self.window_for_webview(&webview)
+        self.window_for_webview_id(webview.id())
             .show_embedder_control(webview, embedder_control);
     }
 
@@ -851,27 +876,27 @@ impl WebViewDelegate for RunningAppState {
             return;
         }
 
-        self.window_for_webview(&webview)
+        self.window_for_webview_id(webview.id())
             .hide_embedder_control(webview, embedder_control_id);
     }
 
     fn notify_favicon_changed(&self, webview: WebView) {
-        self.window_for_webview(&webview)
+        self.window_for_webview_id(webview.id())
             .notify_favicon_changed(webview);
     }
 
     fn notify_media_session_event(&self, webview: WebView, event: MediaSessionEvent) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .notify_media_session_event(event);
     }
 
     fn notify_crashed(&self, webview: WebView, reason: String, backtrace: Option<String>) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .notify_crashed(webview, reason, backtrace);
     }
 
     fn show_console_message(&self, webview: WebView, level: ConsoleLogLevel, message: String) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .show_console_message(level, &message);
     }
 
@@ -880,7 +905,7 @@ impl WebViewDelegate for RunningAppState {
         webview: WebView,
         tree_update: accesskit::TreeUpdate,
     ) {
-        self.platform_window_for_webview(&webview)
+        self.platform_window_for_webview_id(webview.id())
             .notify_accessibility_tree_update(webview, tree_update);
     }
 }

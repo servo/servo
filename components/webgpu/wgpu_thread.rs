@@ -708,13 +708,9 @@ impl WGPU {
                                     }
                                 });
                                 global.device_set_device_lost_closure(device_id, callback);
-                                let mut descriptor = descriptor;
-                                descriptor.required_limits = global.device_limits(device_id);
-                                descriptor.required_features = global.device_features(device_id);
                                 descriptor
                             })
                             .map_err(Into::into);
-
                         if let Err(e) = sender.send((device, queue, result)) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestDevice ({})",

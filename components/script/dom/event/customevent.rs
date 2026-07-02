@@ -19,6 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]
@@ -110,13 +111,14 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-customevent-detail>
-    fn Detail(&self, mut retval: MutableHandleValue) {
+    fn Detail(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.detail.get())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-customevent-initcustomevent>
     fn InitCustomEvent(
         &self,
+        _cx: SafeJSContext,
         type_: DOMString,
         can_bubble: bool,
         cancelable: bool,

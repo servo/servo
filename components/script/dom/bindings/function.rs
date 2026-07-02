@@ -11,7 +11,7 @@
 macro_rules! native_fn {
     ($cx:expr, $call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
         let fun_obj = $crate::native_raw_obj_fn!($cx, $call, $name, $nargs, $flags);
-        let cx = $cx;
+        let cx = $cx.into();
         #[expect(unsafe_code)]
         unsafe {
             Function::new(cx, fun_obj)
@@ -47,12 +47,12 @@ macro_rules! native_raw_obj_fn {
         #[allow(clippy::macro_metavars_in_unsafe)]
         unsafe {
             let name: &std::ffi::CStr = $name;
-            let raw_fun = js::rust::wrappers2::JS_NewFunction(
-                $cx,
+            let raw_fun = js::jsapi::JS_NewFunction(
+                $cx.raw_cx(),
                 Some(wrapper),
                 $nargs,
                 $flags,
-                name.as_ptr(),
+                name.as_ptr() as *const std::ffi::c_char,
             );
             assert!(!raw_fun.is_null());
             js::jsapi::JS_GetFunctionObject(raw_fun)

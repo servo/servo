@@ -18,6 +18,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 #[dom_struct]
@@ -86,7 +87,7 @@ impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#wait-until-method>
-    fn WaitUntil(&self, _val: HandleValue) -> ErrorResult {
+    fn WaitUntil(&self, _cx: SafeJSContext, _val: HandleValue) -> ErrorResult {
         // Step 1
         if !self.extensions_allowed {
             return Err(Error::InvalidState(None));

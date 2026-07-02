@@ -18,6 +18,7 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{CloneChildrenFlag, Node, NodeTraits};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLTemplateElement {
@@ -116,7 +117,7 @@ impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
             let doc = self.owner_document();
             // Step 2. Create a DocumentFragment object whose node document is document and host is the template element.
             let document_fragment = doc
-                .appropriate_template_contents_owner_document(cx)
+                .appropriate_template_contents_owner_document(CanGc::from_cx(cx))
                 .CreateDocumentFragment(cx);
             document_fragment.set_host(self.upcast());
             // Step 3. Set the template element's template contents to the newly created DocumentFragment object.
@@ -136,7 +137,7 @@ impl VirtualMethods for HTMLTemplateElement {
         // Step 1.
         let doc = self
             .owner_document()
-            .appropriate_template_contents_owner_document(cx);
+            .appropriate_template_contents_owner_document(CanGc::from_cx(cx));
         // Step 2.
         let content = self.Content(cx);
         Node::adopt(cx, content.upcast(), &doc);

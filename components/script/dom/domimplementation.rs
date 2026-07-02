@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use html5ever::{QualName, local_name, ns};
 use js::context::JSContext;
 use script_bindings::error::Error;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_traits::DocumentActivity;
 
 use crate::document_loader::DocumentLoader;
@@ -28,6 +28,7 @@ use crate::dom::node::Node;
 use crate::dom::text::Text;
 use crate::dom::types::Element;
 use crate::dom::xmldocument::XMLDocument;
+use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
@@ -44,12 +45,12 @@ impl DOMImplementation {
         }
     }
 
-    pub(crate) fn new(cx: &mut JSContext, document: &Document) -> DomRoot<DOMImplementation> {
+    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<DOMImplementation> {
         let window = document.window();
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
             Box::new(DOMImplementation::new_inherited(document)),
             window,
-            cx,
+            can_gc,
         )
     }
 }
@@ -102,7 +103,6 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
 
         // Step 1. Let document be a new XMLDocument.
         let doc = XMLDocument::new(
-            cx,
             win,
             HasBrowsingContext::No,
             None,
@@ -117,6 +117,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             self.document.has_trustworthy_ancestor_or_current_origin(),
             self.document.custom_element_reaction_stack(),
             self.document.image_cache(),
+            CanGc::from_cx(cx),
         );
 
         // Step 2. Let element be null.
@@ -171,7 +172,6 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         // Step 1. Let doc be a new document that is an HTML document.
         // Step 2. Set doc’s content type to "text/html".
         let doc = Document::new(
-            cx,
             win,
             HasBrowsingContext::No,
             None,
@@ -195,6 +195,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             self.document.creation_sandboxing_flag_set(),
             self.document.pipeline_id(),
             self.document.image_cache(),
+            CanGc::from_cx(cx),
         );
 
         {

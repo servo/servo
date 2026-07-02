@@ -7,20 +7,20 @@ use std::ptr::NonNull;
 use std::sync::LazyLock;
 
 use js::conversions::jsstr_to_string;
-use js::glue::{AppendToIdVector, CreateProxyHandler, ProxyTraps};
+use js::glue::{AppendToIdVector, CreateProxyHandler, NewProxyObject, ProxyTraps};
 use js::jsapi::{
-    Handle, HandleId, HandleObject, JSCLASS_DELAY_METADATA_BUILDER, JSCLASS_IS_PROXY,
-    JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClass_NON_NATIVE,
-    JSContext, JSErrNum, JSPROP_READONLY, MutableHandle, MutableHandleIdVector,
+    Handle, HandleId, HandleObject, JS_SetImmutablePrototype, JSCLASS_DELAY_METADATA_BUILDER,
+    JSCLASS_IS_PROXY, JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass,
+    JSClass_NON_NATIVE, JSContext, JSErrNum, JSPROP_READONLY, MutableHandle, MutableHandleIdVector,
     MutableHandleObject, ObjectOpResult, PropertyDescriptor, ProxyClassExtension, ProxyClassOps,
     ProxyObjectOps, SymbolCode, UndefinedHandleValue,
 };
 use js::jsid::SymbolId;
 use js::jsval::UndefinedValue;
-use js::rust::wrappers2::{GetWellKnownSymbol, JS_SetImmutablePrototype, NewProxyObject};
+use js::rust::wrappers2::GetWellKnownSymbol;
 use js::rust::{
-    Handle as RustHandle, HandleObject as RustHandleObject, MutableHandle as RustMutableHandle,
-    MutableHandleObject as RustMutableHandleObject,
+    Handle as RustHandle, HandleObject as RustHandleObject, IntoHandle,
+    MutableHandle as RustMutableHandle, MutableHandleObject as RustMutableHandleObject,
 };
 use script_bindings::proxyhandler::set_property_descriptor;
 
@@ -30,6 +30,7 @@ use crate::dom::bindings::utils::has_property_on_prototype;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 struct SyncWrapper(*const libc::c_void);
 #[expect(unsafe_code)]
@@ -252,28 +253,26 @@ static CLASS: JSClass = JSClass {
 
 #[expect(unsafe_code)]
 pub(crate) fn create(
-    cx: &mut js::context::JSContext,
+    cx: SafeJSContext,
     proto: RustHandleObject,
     mut properties_obj: RustMutableHandleObject,
 ) {
     unsafe {
         properties_obj.set(NewProxyObject(
-            cx,
+            *cx,
             HANDLER.0,
-            RustHandle::from_raw(UndefinedHandleValue),
+            UndefinedHandleValue,
             proto.get(),
             &CLASS,
             false,
         ));
-    }
-    assert!(!properties_obj.get().is_null());
-    let mut succeeded = false;
-    unsafe {
+        assert!(!properties_obj.get().is_null());
+        let mut succeeded = false;
         assert!(JS_SetImmutablePrototype(
-            cx,
-            properties_obj.handle(),
+            *cx,
+            properties_obj.handle().into_handle(),
             &mut succeeded
         ));
+        assert!(succeeded);
     }
-    assert!(succeeded);
 }

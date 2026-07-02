@@ -38,6 +38,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::QuotaExceededError;
+use crate::script_runtime::CanGc;
 
 #[cfg(feature = "js_backtrace")]
 thread_local! {
@@ -197,11 +198,11 @@ pub(crate) fn create_dom_exception(
         Error::NoModificationAllowed(None) => DOMErrorName::NoModificationAllowedError,
         Error::QuotaExceeded { quota, requested } => {
             return Ok(DomRoot::upcast(QuotaExceededError::new(
-                cx,
                 global,
                 DOMString::new(),
                 quota,
                 requested,
+                CanGc::from_cx(cx),
             )));
         },
         Error::TypeMismatch(Some(custom_message)) => {

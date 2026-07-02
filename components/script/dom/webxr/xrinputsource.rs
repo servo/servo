@@ -23,6 +23,7 @@ use crate::dom::xrhand::XRHand;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::enter_auto_realm;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 #[dom_struct]
 pub(crate) struct XRInputSource {
@@ -161,7 +162,7 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
         }
     }
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles>
-    fn Profiles(&self, mut retval: MutableHandleValue) {
+    fn Profiles(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.profiles.get())
     }
 

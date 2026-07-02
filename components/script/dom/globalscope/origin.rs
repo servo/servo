@@ -3,10 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use js::rust::{HandleObject, HandleValue};
 use net_traits::pub_domains::is_same_site;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::OriginBinding::OriginMethods;
@@ -22,6 +21,7 @@ use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
 use crate::dom::url::URL;
 use crate::dom::window::Window;
+use crate::script_runtime::{CanGc, JSContext};
 
 /// <https://html.spec.whatwg.org/multipage/#the-origin-interface>
 #[dom_struct]
@@ -40,37 +40,37 @@ impl Origin {
     }
 
     fn new(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         origin: ImmutableOrigin,
+        can_gc: CanGc,
     ) -> DomRoot<Origin> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(Origin::new_inherited(origin)),
             global,
             proto,
-            cx,
+            can_gc,
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#extract-an-origin>
     fn extract_an_origin_from_platform_object(
-        cx: &mut JSContext,
         value: HandleValue,
+        cx: JSContext,
         current_global: &GlobalScope,
     ) -> Option<ImmutableOrigin> {
         // <https://html.spec.whatwg.org/multipage/#the-origin-interface:extract-an-origin>
-        if let Ok(origin_obj) = root_from_handlevalue::<Origin>(cx, value) {
+        if let Ok(origin_obj) = root_from_handlevalue::<Origin>(value, cx) {
             return Some(origin_obj.origin.clone());
         }
 
         // <https://url.spec.whatwg.org/#concept-url-origin>
-        if let Ok(url_obj) = root_from_handlevalue::<URL>(cx, value) {
+        if let Ok(url_obj) = root_from_handlevalue::<URL>(value, cx) {
             return Some(url_obj.origin());
         }
 
         // <https://html.spec.whatwg.org/multipage/#window:extract-an-origin>
-        if let Ok(window_obj) = root_from_handlevalue::<Window>(cx, value) {
+        if let Ok(window_obj) = root_from_handlevalue::<Window>(value, cx) {
             let window_origin = window_obj.origin();
             if !current_global.origin().same_origin_domain(&window_origin) {
                 return None;
@@ -79,7 +79,7 @@ impl Origin {
         }
 
         // <https://html.spec.whatwg.org/multipage/#api-for-a-and-area-elements:extract-an-origin>
-        if let Ok(anchor_obj) = root_from_handlevalue::<HTMLAnchorElement>(cx, value) {
+        if let Ok(anchor_obj) = root_from_handlevalue::<HTMLAnchorElement>(value, cx) {
             anchor_obj.reinitialize_url();
             if let Some(ref url) = *anchor_obj.get_url().borrow() {
                 return Some(url.origin());
@@ -88,7 +88,7 @@ impl Origin {
         }
 
         // <https://html.spec.whatwg.org/multipage/#api-for-a-and-area-elements:extract-an-origin>
-        if let Ok(area_obj) = root_from_handlevalue::<HTMLAreaElement>(cx, value) {
+        if let Ok(area_obj) = root_from_handlevalue::<HTMLAreaElement>(value, cx) {
             area_obj.reinitialize_url();
             if let Some(ref url) = *area_obj.get_url().borrow() {
                 return Some(url.origin());
@@ -103,24 +103,28 @@ impl Origin {
 impl OriginMethods<crate::DomTypeHolder> for Origin {
     /// <https://html.spec.whatwg.org/multipage/#dom-origin-constructor>
     fn Constructor(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<Origin> {
-        Origin::new(cx, global, proto, ImmutableOrigin::new_opaque())
+        Origin::new(global, proto, ImmutableOrigin::new_opaque(), can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-origin-from>
     fn From(
-        cx: &mut JSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         value: HandleValue,
     ) -> Fallible<DomRoot<Origin>> {
+        let can_gc = CanGc::deprecated_note();
+
         // Step 1. If value is a platform object:
         //   1. Let origin be the result of executing value's extract an origin operation.
         //   2. If origin is not null, then return a new Origin object whose origin is origin.
-        if let Some(origin) = Origin::extract_an_origin_from_platform_object(cx, value, global) {
-            return Ok(Origin::new(cx, global, None, origin));
+        if let Some(origin) =
+            Origin::extract_an_origin_from_platform_object(value, cx.into(), global)
+        {
+            return Ok(Origin::new(global, None, origin, can_gc));
         }
 
         // Step 2. If value is a string:
@@ -134,7 +138,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
             // Step 2.2. If parsedURL is not failure, then return a new Origin object whose
             //           origin is set to parsedURL's origin.
             match ServoUrl::parse(&s.str()) {
-                Ok(url) => return Ok(Origin::new(cx, global, None, url.origin())),
+                Ok(url) => return Ok(Origin::new(global, None, url.origin(), can_gc)),
                 Err(_) => return Err(Error::Type(c"Failed to parse URL".to_owned())),
             }
         }

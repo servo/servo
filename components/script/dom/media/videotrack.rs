@@ -5,15 +5,15 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::VideoTrackBinding::VideoTrackMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct VideoTrack {
@@ -46,20 +46,20 @@ impl VideoTrack {
     }
 
     pub(crate) fn new(
-        cx: &mut JSContext,
         window: &Window,
         id: DOMString,
         kind: DOMString,
         label: DOMString,
         language: DOMString,
         track_list: Option<&VideoTrackList>,
+        can_gc: CanGc,
     ) -> DomRoot<VideoTrack> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
             Box::new(VideoTrack::new_inherited(
                 id, kind, label, language, track_list,
             )),
             window,
-            cx,
+            can_gc,
         )
     }
 

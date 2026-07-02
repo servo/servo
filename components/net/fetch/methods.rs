@@ -433,8 +433,6 @@ pub async fn main_fetch(
         RequestPolicyContainer::Client => unreachable!(),
         RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
-
-    // Step 4. Run report Content Security Policy violations for request.
     let csp_request = convert_request_to_csp_request(request);
     if let Some(csp_request) = csp_request.as_ref() {
         // Step 2.2.
@@ -445,8 +443,10 @@ pub async fn main_fetch(
         }
     };
 
-    // Step 5. Upgrade request to a potentially trustworthy URL, if appropriate.
-    // Step 6. Upgrade a mixed content request to a potentially trustworthy URL, if appropriate.
+    // Step 3.
+    // TODO: handle request abort.
+
+    // Step 4. Upgrade request to a potentially trustworthy URL, if appropriate.
     if should_upgrade_request_to_potentially_trustworthy(request, context) ||
         should_upgrade_mixed_content_request(request, &context.protocols)
     {
@@ -507,8 +507,6 @@ pub async fn main_fetch(
         request.referrer_policy = policy_container.get_referrer_policy();
     }
 
-    // Step 9, If request’s referrer is not "no-referrer", then set request’s referrer to the result
-    // of invoking determine request’s referrer.
     let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
         Referrer::NoReferrer => None,
         Referrer::ReferrerUrl(referrer_source) | Referrer::Client(referrer_source) => {
@@ -522,6 +520,9 @@ pub async fn main_fetch(
     };
     request.referrer = referrer_url.map_or(Referrer::NoReferrer, Referrer::ReferrerUrl);
 
+    // Step 9.
+    // TODO: handle FTP URLs.
+
     // Step 10.
     context
         .state
@@ -529,7 +530,7 @@ pub async fn main_fetch(
         .read()
         .apply_hsts_rules(request.current_url_mut());
 
-    // Step 11. If recursive is false, then run the remaining steps in parallel.
+    // Step 11.
     // Not applicable: see fetch_async.
 
     let current_url = request.current_url();
@@ -545,9 +546,9 @@ pub async fn main_fetch(
 
     let mut response = match response {
         Some(response) => response,
-        // Step 12. If response is null, then set response to the result
-        // of running the steps corresponding to the first matching statement:
         None => {
+            // Step 12. If response is null, then set response to the result
+            // of running the steps corresponding to the first matching statement:
             let same_origin = if let Origin::Origin(ref origin) = request.origin {
                 *origin == request.current_url_with_blob_claim().origin()
             } else {
@@ -607,11 +608,9 @@ pub async fn main_fetch(
                             !is_cors_safelisted_request_header(&name, &value)
                         })))
             {
-                // Substep 1. Set request’s response tainting to "cors".
+                // Substep 1.
                 request.response_tainting = ResponseTainting::CorsTainting;
-
-                // Substep 2. Let corsWithPreflightResponse be the result of running override fetch
-                // given "http-fetch", fetchParams, and true.
+                // Substep 2.
                 let response = http_fetch(
                     fetch_params,
                     cache,
@@ -630,10 +629,9 @@ pub async fn main_fetch(
                 // Substep 4.
                 response
             } else {
-                // Substep 1. Set request’s response tainting to "cors".
+                // Substep 1.
                 request.response_tainting = ResponseTainting::CorsTainting;
-
-                // Substep 2. Return the result of running override fetch given "http-fetch" and fetchParams.
+                // Substep 2.
                 http_fetch(
                     fetch_params,
                     cache,
@@ -658,7 +656,7 @@ pub async fn main_fetch(
     let request = &mut fetch_params.request;
 
     // Step 14. If response is not a network error and response is not a filtered response, then:
-    if !response.is_network_error() && response.internal_response.is_none() {
+    let mut response = if !response.is_network_error() && response.internal_response.is_none() {
         // Step 14.1 If request’s response tainting is "cors", then:
         if request.response_tainting == ResponseTainting::CorsTainting {
             // Step 14.1.1 Let headerNames be the result of extracting header list values given
@@ -667,25 +665,24 @@ pub async fn main_fetch(
                 .headers
                 .typed_get::<AccessControlExposeHeaders>()
                 .map(|v| v.iter().collect());
-
-            if let Some(ref list) = header_names {
-                // Step 14.1.2. If request’s credentials mode is not "include" and headerNames
-                // contains `*`, then set response’s CORS-exposed header-name list to all unique
-                // header names in response’s header list.
-                if request.credentials_mode != CredentialsMode::Include &&
-                    list.iter().any(|header| header == "*")
+            match header_names {
+                // Subsubstep 2.
+                Some(ref list)
+                    if request.credentials_mode != CredentialsMode::Include &&
+                        list.iter().any(|header| header == "*") =>
                 {
                     response.cors_exposed_header_name_list = response
                         .headers
                         .iter()
                         .map(|(name, _)| name.as_str().to_owned())
                         .collect();
-                } else {
-                    // Step 14.1.3. Otherwise, if headerNames is non-null or failure, then set
-                    // response’s CORS-exposed header-name list to headerNames.
+                },
+                // Subsubstep 3.
+                Some(list) => {
                     response.cors_exposed_header_name_list =
                         list.iter().map(|h| h.as_str().to_owned()).collect();
-                }
+                },
+                _ => (),
             }
         }
 
@@ -696,8 +693,10 @@ pub async fn main_fetch(
             ResponseTainting::CorsTainting => ResponseType::Cors,
             ResponseTainting::Opaque => ResponseType::Opaque,
         };
-        response = response.to_filtered(response_type);
-    }
+        response.to_filtered(response_type)
+    } else {
+        response
+    };
 
     let internal_error = {
         // Tests for steps 17 and 18, before step 15 for borrowing concerns.
@@ -744,13 +743,7 @@ pub async fn main_fetch(
         // Step 17. Set internalResponse’s redirect taint to request’s redirect-taint.
         internal_response.redirect_taint = request.redirect_taint_for_request();
 
-        // TODO Step 18. If request is a navigation request, then set internalResponse’s navigation
-        // timing allow values list to a clone of request’s navigation timing allow values list.
-
-        // TODO Step 19. If request’s timing allow failed flag is unset, then set internalResponse’s
-        // timing allow passed flag.
-
-        // Step 20. If response is not a network error and any of the following returns blocked
+        // Step 19. If response is not a network error and any of the following returns blocked
         // * should internalResponse to request be blocked as mixed content
         // * should internalResponse to request be blocked by Content Security Policy
         // * should internalResponse to request be blocked due to its MIME type
@@ -776,14 +769,14 @@ pub async fn main_fetch(
             internal_response
         };
 
-        // Step 21. If response’s type is "opaque", internalResponse’s status is a range status,
-        // internalResponse’s range-requested flag is set, and request’s header list does not
-        // contain `Range`, then set response and internalResponse to a network error.
+        // Step 20. If response’s type is "opaque", internalResponse’s status is 206, internalResponse’s
+        // range-requested flag is set, and request’s header list does not contain `Range`, then set
+        // response and internalResponse to a network error.
         // Also checking if internal response is a network error to prevent crash from attemtping to
         // read status of a network error if we blocked the request above.
         let internal_response = if !internal_response.is_network_error() &&
             response_type == ResponseType::Opaque &&
-            internal_response.status.is_a_range_status() &&
+            internal_response.status.code() == StatusCode::PARTIAL_CONTENT &&
             internal_response.range_requested &&
             !request.headers.contains_key(RANGE)
         {
@@ -795,7 +788,7 @@ pub async fn main_fetch(
             internal_response
         };
 
-        // Step 22. If response is not a network error and either request’s method is `HEAD` or `CONNECT`,
+        // Step 21. If response is not a network error and either request’s method is `HEAD` or `CONNECT`,
         // or internalResponse’s status is a null body status, set internalResponse’s body to null and
         // disregard any enqueuing toward it (if any).
         // NOTE: We check `internal_response` since we did not mutate `response` in the previous steps.
@@ -814,9 +807,11 @@ pub async fn main_fetch(
     };
 
     // Execute deferred rebinding of response.
-    if let Some(error) = internal_error {
-        response = Response::network_error(error);
-    }
+    let mut response = if let Some(error) = internal_error {
+        Response::network_error(error)
+    } else {
+        response
+    };
 
     // Step 19. If response is not a network error and any of the following returns blocked
     let mut response_loaded = false;

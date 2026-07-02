@@ -16,7 +16,7 @@ use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
 use script_bindings::cell::DomRefCell;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -38,6 +38,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
 use crate::realms::enter_auto_realm;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 
 pub(crate) enum FileReadingTask {
@@ -204,16 +205,11 @@ impl FileReader {
     }
 
     fn new(
-        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<FileReader> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(FileReader::new_inherited()),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(Box::new(FileReader::new_inherited()), global, proto, can_gc)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error-steps
@@ -410,11 +406,11 @@ impl FileReader {
 impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
     /// <https://w3c.github.io/FileAPI/#filereaderConstrctr>
     fn Constructor(
-        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<FileReader>> {
-        Ok(FileReader::new(cx, global, proto))
+        Ok(FileReader::new(global, proto, can_gc))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-onloadstart
@@ -493,7 +489,7 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
 
     #[expect(unsafe_code)]
     /// <https://w3c.github.io/FileAPI/#dfn-result>
-    fn GetResult(&self) -> Option<StringOrObject> {
+    fn GetResult(&self, _: JSContext) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
             FileReaderResult::String(ref string) => StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {

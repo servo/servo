@@ -100,7 +100,6 @@ impl ByteTeeReadIntoRequest {
 
     pub(crate) fn enqueue_chunk_steps(
         &self,
-        cx: &mut JSContext,
         chunk: RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>>,
     ) {
         // Queue a microtask to perform the following steps:
@@ -109,10 +108,10 @@ impl ByteTeeReadIntoRequest {
             tee_read_request: Trusted::new(self),
         };
 
-        self.global().enqueue_microtask(
-            cx,
-            Microtask::ReadableStreamByteTeeReadIntoRequest(byte_tee_read_request_chunk),
-        );
+        self.global()
+            .enqueue_microtask(Microtask::ReadableStreamByteTeeReadIntoRequest(
+                byte_tee_read_request_chunk,
+            ));
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-chunk-steps%E2%91%A0>

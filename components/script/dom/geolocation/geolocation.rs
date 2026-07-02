@@ -22,12 +22,13 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::DomRoot;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
+use crate::dom::bindings::import::base::SafeJSContext;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::geolocationpositionerror::GeolocationPositionError;
 use crate::dom::globalscope::GlobalScope;
 
 fn cast_error_callback(
-    cx: &mut JSContext,
+    cx: SafeJSContext,
     error_callback: HandleValue,
 ) -> Fallible<Option<Rc<PositionErrorCallback<DomTypeHolder>>>> {
     if error_callback.get().is_object() {
@@ -35,7 +36,10 @@ fn cast_error_callback(
         #[expect(unsafe_code)]
         unsafe {
             if IsCallable(error_callback) {
-                Ok(Some(PositionErrorCallback::new(cx, error_callback)))
+                Ok(Some(PositionErrorCallback::new(
+                    SafeJSContext::from_ptr(cx.raw_cx()),
+                    error_callback,
+                )))
             } else {
                 Err(Error::Type(c"Value is not callable.".to_owned()))
             }
@@ -132,7 +136,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
         error_callback: HandleValue,
         options: &PositionOptions,
     ) -> Fallible<()> {
-        let error_callback = cast_error_callback(cx, error_callback)?;
+        let error_callback = cast_error_callback(cx.into(), error_callback)?;
         // Step 1. If this's relevant global object's associated Document is not fully active:
         if !self.global().as_window().Document().is_active() {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.
@@ -159,7 +163,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
         error_callback: HandleValue,
         options: &PositionOptions,
     ) -> Fallible<i32> {
-        let error_callback = cast_error_callback(cx, error_callback)?;
+        let error_callback = cast_error_callback(cx.into(), error_callback)?;
         // Step 1. If this's relevant global object's associated Document is not fully active:
         if !self.global().as_window().Document().is_active() {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.

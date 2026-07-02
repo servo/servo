@@ -1,16 +1,13 @@
-# Ringtail
-
-Ringtail is a Servo-based browser with *zero* trackers, browsing history, or ads.
+# The Servo Parallel Browser Engine Project
 
 Servo is a prototype web browser engine written in the
 [Rust](https://github.com/rust-lang/rust) language. It is currently developed on
 64-bit macOS, 64-bit Linux, 64-bit Windows, 64-bit OpenHarmony, and Android.
 
-Ringtail & Servo welcome contribution from everyone. Check out:
+Servo welcomes contribution from everyone. Check out:
 
 - The [Servo Book](https://book.servo.org) for documentation
 - [servo.org](https://servo.org/) for news and guides
-- [Ringtail's website](https://voxelite.neocities.org/ringtail/)
 
 Coordination of Servo development happens:
 - Here in the Github Issues
@@ -22,7 +19,7 @@ Coordination of Servo development happens:
 For more detailed build instructions, see the Servo Book under [Getting the Code] and [Building Servo].
 
 [Getting the Code]: https://book.servo.org/building/getting-the-code.html
-[Building Ringtail/Servo]: https://book.servo.org/building/building.html
+[Building Servo]: https://book.servo.org/building/building.html
 
 ### macOS
 
@@ -31,7 +28,7 @@ For more detailed build instructions, see the Servo Book under [Getting the Code
 - Install `rustup`: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - Restart your shell to make sure `cargo` is available
 - Install the other dependencies: `./mach bootstrap`
-- Build Ringtail: `./mach build`
+- Build servoshell: `./mach build`
 
 ### Linux
 
@@ -44,7 +41,7 @@ For more detailed build instructions, see the Servo Book under [Getting the Code
 - Install `rustup`: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - Restart your shell to make sure `cargo` is available
 - Install the other dependencies: `./mach bootstrap`
-- Build Ringtail: `./mach build`
+- Build servoshell: `./mach build`
 
 ### Windows
 
@@ -56,7 +53,7 @@ For more detailed build instructions, see the Servo Book under [Getting the Code
   - **C++ ATL for latest v143 build tools (x86 & x64)** (`Microsoft.VisualStudio.Component.VC.ATL`)
 - Restart your shell to make sure `cargo` is available
 - Install the other dependencies: `.\mach bootstrap`
-- Build Ringtail: `.\mach build`
+- Build servoshell: `.\mach build`
 
 ### Android
 

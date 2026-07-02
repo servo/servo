@@ -1988,7 +1988,7 @@ impl Element {
             namespace: namespace.clone(),
             old_value: old_value.map(|old_value| DOMString::from(&**old_value)),
         });
-        MutationObserver::queue_a_mutation_record(cx, &self.node, mutation);
+        MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
         // Avoid double borrow
         let has_new_value = new_value.is_some();
@@ -3827,7 +3827,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
-        root.query_selector_all(cx, selectors)
+        root.query_selector_all(cx.no_gc(), selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
@@ -4494,10 +4494,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-slotable-assignedslot>
-    fn GetAssignedSlot(&self, cx: &JSContext) -> Option<DomRoot<HTMLSlotElement>> {
+    fn GetAssignedSlot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let cx = GlobalScope::get_cx();
+
         // > The assignedSlot getter steps are to return the result of
         // > find a slot given this and with the open flag set.
-        rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
+        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
         slottable.find_a_slot(true)
     }
 
@@ -4700,9 +4702,9 @@ impl VirtualMethods for Element {
 
                 // Slottable name change steps from https://dom.spec.whatwg.org/#light-tree-slotables
                 if let Some(assigned_slot) = slottable.assigned_slot() {
-                    assigned_slot.assign_slottables(cx);
+                    assigned_slot.assign_slottables(cx.no_gc());
                 }
-                slottable.assign_a_slot(cx);
+                slottable.assign_a_slot(cx.no_gc());
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in

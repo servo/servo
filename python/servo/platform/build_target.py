@@ -229,12 +229,6 @@ class AndroidTarget(CrossBuildTarget):
         env["TARGET_STRIP"] = to_ndk_bin("llvm-strip")
         env["RUST_FONTCONFIG_DLOPEN"] = "on"
 
-        # Needed for tikv-jemalloc, which doesn't respect TARGET_AR and co.
-        # On macos this lead to it falling back to `ar` and missing jemalloc
-        # symbols in libservoshell.so.
-        env["AR"] = to_ndk_bin("llvm-ar")
-        env["RANLIB"] = to_ndk_bin("llvm-ranlib")
-
         env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib")
         env["CLANG_PATH"] = to_ndk_bin("clang")
         env["BINDGEN_EXTRA_CLANG_ARGS"] = (

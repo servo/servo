@@ -32,6 +32,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
 use crate::fetch::{DeferredFetchRecordId, FetchContext};
 use crate::realms::enter_auto_realm;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 impl js::gc::Rootable for AbortAlgorithm {}
 
@@ -430,7 +431,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-abortsignal-reason>
-    fn Reason(&self, mut rval: MutableHandleValue) {
+    fn Reason(&self, _cx: SafeJSContext, mut rval: MutableHandleValue) {
         // The reason getter steps are to return this’s abort reason.
         rval.set(self.abort_reason.get());
     }

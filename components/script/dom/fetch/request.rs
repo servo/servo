@@ -492,7 +492,7 @@ impl Request {
             }
 
             // Step 37.2. Set initBody to bodyWithType’s body.
-            let (net_body, stream) = body_with_type.into_net_request_body(cx);
+            let (net_body, stream) = body_with_type.into_net_request_body();
             r.body_stream.set(Some(&*stream));
             init_body = Some(net_body);
         }

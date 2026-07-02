@@ -51,12 +51,11 @@ use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader
 use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::router::ROUTER;
-use js::context::JSContext;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{GCReason, JSContext as UnsafeJSContext};
+use js::jsapi::{GCReason, JS_GC, JSContext as UnsafeJSContext};
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
-use js::rust::wrappers2::{JS_AddInterruptCallback, JS_GC, SetWindowProxyClass};
+use js::rust::wrappers2::{JS_AddInterruptCallback, SetWindowProxyClass};
 use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
@@ -74,6 +73,7 @@ use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
+use script_bindings::script_runtime::JSContext;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
@@ -346,7 +346,6 @@ pub struct ScriptThread {
 
     /// A list of pipelines containing documents that finished loading all their blocking
     /// resources during a turn of the event loop.
-    /// TODO(43149): Remove when document replacement is implemented
     docs_with_no_blocking_loads: DomRefCell<FxHashSet<Dom<Document>>>,
 
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
@@ -604,9 +603,11 @@ impl ScriptThread {
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
-    pub(crate) fn await_stable_state(cx: &JSContext, task: Microtask) {
+    pub(crate) fn await_stable_state(task: Microtask) {
         with_script_thread(|script_thread| {
-            script_thread.microtask_queue.enqueue(cx, task);
+            script_thread
+                .microtask_queue
+                .enqueue(task, script_thread.get_cx());
         });
     }
 
@@ -847,14 +848,13 @@ impl ScriptThread {
     }
 
     pub(crate) fn enqueue_upgrade_reaction(
-        cx: &js::context::JSContext,
         element: &Element,
         definition: Rc<CustomElementDefinition>,
     ) {
         with_script_thread(|script_thread| {
             script_thread
                 .custom_element_reaction_stack
-                .enqueue_upgrade_reaction(cx, element, definition);
+                .enqueue_upgrade_reaction(element, definition);
         })
     }
 
@@ -1049,6 +1049,11 @@ impl ScriptThread {
         )
     }
 
+    #[expect(unsafe_code)]
+    pub(crate) fn get_cx(&self) -> JSContext {
+        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
+    }
+
     /// Check if we are closing.
     fn can_continue_running_inner(&self) -> bool {
         if self.closing.load(Ordering::SeqCst) {
@@ -1232,7 +1237,7 @@ impl ScriptThread {
             if resized {
                 // https://html.spec.whatwg.org/multipage/#img-environment-changes
                 // As per the spec, this can be run at any time.
-                document.react_to_environment_changes(cx);
+                document.react_to_environment_changes();
             }
 
             let mut realm = enter_auto_realm(cx, &*document);
@@ -1550,7 +1555,6 @@ impl ScriptThread {
                 .perform_a_dom_garbage_collection_checkpoint();
         }
 
-        // TODO(43149): Remove when document replacement is implemented
         {
             // https://html.spec.whatwg.org/multipage/#the-end step 6
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
@@ -2011,7 +2015,7 @@ impl ScriptThread {
                 self.set_accessibility_active(pipeline_id, active, epoch);
             },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
-                JS_GC(cx, GCReason::API);
+                JS_GC(*GlobalScope::get_cx(), GCReason::API);
             },
         }
     }
@@ -2874,13 +2878,6 @@ impl ScriptThread {
             activity,
             thread::current().name()
         );
-
-        // If a pipeline transitions to fully active, the next turn of the event
-        // loop will release any pending tasks targeting that pipeline. To ensure
-        // we always run those as soon as possible, not just whenever we happen to
-        // receive another event, we make sure the event loop has an event waiting.
-        let _ = self.senders.self_sender.send(MainThreadScriptMsg::Inactive);
-
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             document.set_activity(cx, activity);
@@ -3581,7 +3578,6 @@ impl ScriptThread {
         let is_initial_about_blank = final_url.as_str() == "about:blank";
 
         let document = Document::new(
-            cx,
             &window,
             HasBrowsingContext::Yes,
             Some(final_url.clone()),
@@ -3604,6 +3600,7 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.pipeline_id,
             image_cache,
+            CanGc::from_cx(cx),
         );
 
         let referrer_policy = metadata
@@ -4290,16 +4287,18 @@ impl ScriptThread {
         action: MediaSessionActionType,
     ) {
         if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
-            let media_session = window.Navigator().MediaSession(cx);
+            let media_session = window.Navigator().MediaSession();
             media_session.handle_action(cx, action);
         } else {
             warn!("No MediaSession for this pipeline ID");
         };
     }
 
-    pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Microtask) {
+    pub(crate) fn enqueue_microtask(job: Microtask) {
         with_script_thread(|script_thread| {
-            script_thread.microtask_queue.enqueue(cx, job);
+            script_thread
+                .microtask_queue
+                .enqueue(job, script_thread.get_cx());
         });
     }
 

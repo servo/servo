@@ -12,7 +12,6 @@ use encoding_rs::{Decoder, UTF_8};
 use headers::ContentType;
 use http::StatusCode;
 use http::header::{self, HeaderName, HeaderValue};
-use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use mime::{self, Mime};
@@ -20,7 +19,7 @@ use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, 
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
@@ -42,6 +41,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
+use crate::script_runtime::CanGc;
 use crate::timers::OneshotTimerCallback;
 
 const DEFAULT_RECONNECTION_TIME: Duration = Duration::from_millis(5000);
@@ -251,7 +251,7 @@ impl EventSourceContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dispatchMessage>
-    fn dispatch_event(&mut self, cx: &mut JSContext) {
+    fn dispatch_event(&mut self, cx: &mut js::context::JSContext) {
         let event_source = self.event_source.root();
         // Step 1
         *event_source.last_event_id.borrow_mut() = DOMString::from(self.last_event_id.clone());
@@ -311,7 +311,7 @@ impl EventSourceContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#event-stream-interpretation>
-    fn parse(&mut self, cx: &mut JSContext, stream: Chars) {
+    fn parse(&mut self, cx: &mut js::context::JSContext, stream: Chars) {
         let mut stream = stream.peekable();
 
         while let Some(ch) = stream.next() {
@@ -387,7 +387,7 @@ impl FetchResponseListener for EventSourceContext {
 
     fn process_response(
         &mut self,
-        _: &mut JSContext,
+        _: &mut js::context::JSContext,
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -431,7 +431,12 @@ impl FetchResponseListener for EventSourceContext {
         }
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
         let mut output = String::with_capacity(chunk.len());
         let mut input = &chunk[..];
 
@@ -464,7 +469,7 @@ impl FetchResponseListener for EventSourceContext {
 
     fn process_response_eof(
         mut self,
-        cx: &mut JSContext,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -488,7 +493,7 @@ impl FetchResponseListener for EventSourceContext {
 
     fn process_csp_violations(
         &mut self,
-        cx: &mut JSContext,
+        cx: &mut js::context::JSContext,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
@@ -524,17 +529,17 @@ impl EventSource {
     }
 
     fn new(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         url: ServoUrl,
         with_credentials: bool,
+        can_gc: CanGc,
     ) -> DomRoot<EventSource> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(EventSource::new_inherited(url, with_credentials)),
             global,
             proto,
-            cx,
+            can_gc,
         )
     }
 
@@ -571,9 +576,9 @@ impl EventSource {
 impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
     /// <https://html.spec.whatwg.org/multipage/#dom-eventsource>
     fn Constructor(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         url: DOMString,
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
@@ -587,12 +592,12 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         };
         // Step 1 Let ev be a new EventSource object.
         let event_source = EventSource::new(
-            cx,
             global,
             proto,
             // Step 5 Set ev's url to urlRecord.
             url_record.clone(),
             event_source_init.withCredentials,
+            can_gc,
         );
         global.track_event_source(&event_source);
         let cors_attribute_state = if event_source_init.withCredentials {

@@ -7,7 +7,6 @@ use std::str::{self, FromStr};
 
 use dom_struct::dom_struct;
 use http::header::{HeaderMap as HyperHeaders, HeaderName, HeaderValue};
-use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::fetch::headers::{
     extract_mime_type, get_decode_and_split_header_value, get_value_from_header_list,
@@ -70,12 +69,12 @@ impl Headers {
 impl HeadersMethods<crate::DomTypeHolder> for Headers {
     /// <https://fetch.spec.whatwg.org/#dom-headers>
     fn Constructor(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         init: Option<HeadersInit>,
     ) -> Fallible<DomRoot<Headers>> {
-        let dom_headers_new = Headers::new_with_proto(global, proto, CanGc::from_cx(cx));
+        let dom_headers_new = Headers::new_with_proto(global, proto, can_gc);
         dom_headers_new.fill(init)?;
         Ok(dom_headers_new)
     }

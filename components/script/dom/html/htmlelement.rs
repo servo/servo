@@ -1467,7 +1467,14 @@ impl FormControl for HTMLElement {
             .set_form_owner(form);
     }
 
-    fn to_html_element(&self) -> &HTMLElement {
-        self
+    fn to_element(&self) -> &Element {
+        &self.element
     }
+
+    fn is_listed(&self) -> bool {
+        debug_assert!(self.is_form_associated_custom_element());
+        true
+    }
+
+    // TODO satisfies_constraints traits
 }

@@ -10,6 +10,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::script_runtime::JSContext as SafeJSContext;
 use webxr_api::{Viewer, ViewerPose, Views};
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
@@ -191,7 +192,7 @@ impl XRViewerPose {
 
 impl XRViewerPoseMethods<crate::DomTypeHolder> for XRViewerPose {
     /// <https://immersive-web.github.io/webxr/#dom-xrviewerpose-views>
-    fn Views(&self, mut retval: MutableHandleValue) {
+    fn Views(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.views.get())
     }
 }

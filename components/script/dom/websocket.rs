@@ -8,7 +8,6 @@ use std::ptr::{self, NonNull};
 
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
-use js::context::JSContext;
 use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::realm::AutoRealm;
@@ -25,7 +24,7 @@ use net_traits::{
 use profile_traits::ipc as ProfiledIpc;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto};
 use servo_base::generic_channel::{LazyCallback, lazy_callback};
 use servo_constellation_traits::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -49,6 +48,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::window::Window;
 use crate::fetch::RequestWithGlobalScope;
+use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 use crate::task_source::SendableTaskSource;
 
@@ -130,17 +130,17 @@ impl WebSocket {
     }
 
     fn new(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         url: ServoUrl,
         sender: LazyCallback<WebSocketDomAction>,
+        can_gc: CanGc,
     ) -> DomRoot<WebSocket> {
-        let websocket = reflect_dom_object_with_proto_and_cx(
+        let websocket = reflect_dom_object_with_proto(
             Box::new(WebSocket::new_inherited(url, sender)),
             global,
             proto,
-            cx,
+            can_gc,
         );
         if let Some(window) = global.downcast::<Window>() {
             window.Document().track_websocket(&websocket);
@@ -198,9 +198,9 @@ impl WebSocket {
 impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket>
     fn Constructor(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         url: DOMString,
         protocols: Option<StringOrStringSequence>,
     ) -> Fallible<DomRoot<WebSocket>> {
@@ -270,7 +270,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
         // Step 12. Establish a WebSocket connection given urlRecord, protocols, and client.
-        let ws = WebSocket::new(cx, global, proto, url_record.clone(), dom_action_sender);
+        let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
         let address = Trusted::new(&*ws);
 
         // https://websockets.spec.whatwg.org/#concept-websocket-establish
@@ -492,7 +492,7 @@ struct ReportCSPViolationTask {
 }
 
 impl TaskOnce for ReportCSPViolationTask {
-    fn run_once(self, cx: &mut JSContext) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let global = self.websocket.root().global();
         global.report_csp_violations(cx, self.violations, None, None);
     }
@@ -507,7 +507,7 @@ struct ConnectionEstablishedTask {
 
 impl TaskOnce for ConnectionEstablishedTask {
     /// <https://html.spec.whatwg.org/multipage/#feedback-from-the-protocol:concept-websocket-established>
-    fn run_once(self, cx: &mut JSContext) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let ws = self.address.root();
 
         // Step 1.
@@ -536,7 +536,7 @@ impl TaskOnce for BufferedAmountTask {
     // To be compliant with standards, we need to reset bufferedAmount only when the event loop
     // reaches step 1.  In our implementation, the bytes will already have been sent on a background
     // thread.
-    fn run_once(self, _cx: &mut JSContext) {
+    fn run_once(self, _cx: &mut js::context::JSContext) {
         let ws = self.address.root();
 
         ws.buffered_amount.set(0);
@@ -552,7 +552,7 @@ struct CloseTask {
 }
 
 impl TaskOnce for CloseTask {
-    fn run_once(self, cx: &mut JSContext) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let ws = self.address.root();
 
         if ws.ready_state.get() == WebSocketRequestState::Closed {
@@ -596,7 +596,7 @@ struct MessageReceivedTask {
 
 impl TaskOnce for MessageReceivedTask {
     #[expect(unsafe_code)]
-    fn run_once(self, cx: &mut JSContext) {
+    fn run_once(self, cx: &mut js::context::JSContext) {
         let ws = self.address.root();
         debug!(
             "MessageReceivedTask::handler({:p}): readyState={:?}",
@@ -627,6 +627,7 @@ impl TaskOnce for MessageReceivedTask {
                 },
                 BinaryType::Arraybuffer => {
                     rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                    // GlobalScope::get_cx() returns a valid `JSContext` pointer, so this is safe.
                     unsafe {
                         assert!(
                             ArrayBuffer::create(

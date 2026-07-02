@@ -292,11 +292,6 @@ impl WebView {
         self.inner().id
     }
 
-    /// Get the [`RenderingContext`] associated with this [`WebView`].
-    pub fn rendering_context(&self) -> Rc<dyn RenderingContext> {
-        self.inner().rendering_context.clone()
-    }
-
     /// Get the load status for the page that is currently loading or loaded in this [`WebView`].
     ///
     /// The embedder can use [`WebViewDelegate::notify_load_status_changed`] to subscribe

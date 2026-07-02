@@ -40,7 +40,7 @@ pub(crate) unsafe fn call_default_constructor<D: crate::DomTypes>(
     ) -> bool,
 ) -> bool {
     if !args.is_constructing() {
-        throw_constructor_without_new(cx, ctor_name);
+        throw_constructor_without_new(cx.into(), ctor_name);
         return false;
     }
 

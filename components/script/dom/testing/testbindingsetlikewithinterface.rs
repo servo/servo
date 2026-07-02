@@ -6,17 +6,17 @@
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
-use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::like::Setlike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::TestBindingSetlikeWithInterfaceBinding::TestBindingSetlikeWithInterfaceMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::testbinding::TestBinding;
+use crate::script_runtime::CanGc;
 use crate::setlike;
 
 // setlike<TestBinding>
@@ -29,18 +29,18 @@ pub(crate) struct TestBindingSetlikeWithInterface {
 
 impl TestBindingSetlikeWithInterface {
     fn new(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<TestBindingSetlikeWithInterface> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(TestBindingSetlikeWithInterface {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(IndexSet::new()),
             }),
             global,
             proto,
-            cx,
+            can_gc,
         )
     }
 }
@@ -49,11 +49,11 @@ impl TestBindingSetlikeWithInterfaceMethods<crate::DomTypeHolder>
     for TestBindingSetlikeWithInterface
 {
     fn Constructor(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingSetlikeWithInterface>> {
-        Ok(TestBindingSetlikeWithInterface::new(cx, global, proto))
+        Ok(TestBindingSetlikeWithInterface::new(global, proto, can_gc))
     }
 
     fn Size(&self) -> u32 {

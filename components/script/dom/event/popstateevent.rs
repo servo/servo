@@ -21,6 +21,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
 #[dom_struct]
@@ -101,7 +102,7 @@ impl PopStateEventMethods<crate::DomTypeHolder> for PopStateEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-popstateevent-state>
-    fn State(&self, mut retval: MutableHandleValue) {
+    fn State(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.state.get())
     }
 

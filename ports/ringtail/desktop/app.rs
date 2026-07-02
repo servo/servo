@@ -4,6 +4,7 @@
 
 //! Application entry point, runs the event loop.
 
+use log::info;
 use std::path::Path;
 use std::rc::Rc;
 use std::time::Instant;
@@ -21,6 +22,7 @@ use winit::window::WindowId;
 
 use super::event_loop::AppEvent;
 use crate::desktop::event_loop::ServoShellEventLoop;
+use crate::desktop::gui::fetch_approved_domains;
 use crate::desktop::headed_window::HeadedWindow;
 use crate::desktop::headless_window::HeadlessWindow;
 use crate::desktop::protocols;
@@ -80,6 +82,17 @@ impl App {
 
     /// Initialize Application once event loop start running.
     pub fn init(&mut self, active_event_loop: Option<&ActiveEventLoop>) {
+        info!("App::init called - starting approved domains fetch");
+        // Fetch approved domains in a background thread
+        std::thread::spawn(|| {
+            info!("Background thread started for approved domains fetch");
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(async {
+                fetch_approved_domains().await;
+            });
+            info!("Background thread completed approved domains fetch");
+        });
+
         let mut protocol_registry = ProtocolRegistry::default();
         let _ = protocol_registry.register(
             "urlinfo",
@@ -166,6 +179,17 @@ impl App {
         let AppState::Running(state) = &self.state else {
             return false;
         };
+
+        // Check if console should be toggled
+        if crate::desktop::dialog::OPEN_JS_CONSOLE.swap(false, std::sync::atomic::Ordering::Relaxed) {
+            // Try to find any headed window
+            for (_window_id, window) in state.windows().iter() {
+                if let Some(headed_window) = window.platform_window().as_headed_window() {
+                    headed_window.gui().borrow_mut().toggle_console();
+                    break;
+                }
+            }
+        }
 
         let create_platform_window = |url: Url| self.create_platform_window(url, active_event_loop);
         if !state.spin_event_loop(Some(&create_platform_window)) {

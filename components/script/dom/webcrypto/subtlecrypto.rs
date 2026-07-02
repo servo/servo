@@ -15,7 +15,6 @@ mod ec_common;
 mod ecdh_operation;
 mod ecdsa_operation;
 mod ed25519_operation;
-mod ed448_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod kangarootwelve_operation;
@@ -104,8 +103,6 @@ enum CryptoAlgorithm {
     Ed25519,
     #[strum(serialize = "X25519")]
     X25519,
-    #[strum(serialize = "Ed448")]
-    Ed448,
     #[strum(serialize = "AES-CTR")]
     AesCtr,
     #[strum(serialize = "AES-CBC")]
@@ -2717,7 +2714,6 @@ pub(crate) fn check_support_for_algorithm(
                 ImportKeyAlgorithm::Ecdh(_) |
                 ImportKeyAlgorithm::Ed25519(_) |
                 ImportKeyAlgorithm::X25519(_) |
-                ImportKeyAlgorithm::Ed448(_) |
                 ImportKeyAlgorithm::AesCtr(_) |
                 ImportKeyAlgorithm::AesCbc(_) |
                 ImportKeyAlgorithm::AesGcm(_) |
@@ -2746,7 +2742,6 @@ pub(crate) fn check_support_for_algorithm(
                 ExportKeyAlgorithm::Ecdh(_) |
                 ExportKeyAlgorithm::Ed25519(_) |
                 ExportKeyAlgorithm::X25519(_) |
-                ExportKeyAlgorithm::Ed448(_) |
                 ExportKeyAlgorithm::AesCtr(_) |
                 ExportKeyAlgorithm::AesCbc(_) |
                 ExportKeyAlgorithm::AesGcm(_) |
@@ -4604,7 +4599,6 @@ fn normalize_algorithm<Op: Operation>(
 // ECDH:              <https://w3c.github.io/webcrypto/#ecdh-registration>
 // Ed25519:           <https://w3c.github.io/webcrypto/#ed25519-registration>
 // X25519:            <https://w3c.github.io/webcrypto/#x25519-registration>
-// Ed448:             <https://wicg.github.io/webcrypto-secure-curves/#ed448-registration>
 // AES-CTR:           <https://w3c.github.io/webcrypto/#aes-ctr-registration>
 // AES-CBC:           <https://w3c.github.io/webcrypto/#aes-cbc-registration>
 // AES-GCM:           <https://w3c.github.io/webcrypto/#aes-gcm-registration>
@@ -5475,7 +5469,6 @@ enum ImportKeyAlgorithm {
     Ecdh(SubtleEcKeyImportParams),
     Ed25519(SubtleAlgorithm),
     X25519(SubtleAlgorithm),
-    Ed448(SubtleAlgorithm),
     AesCtr(SubtleAlgorithm),
     AesCbc(SubtleAlgorithm),
     AesGcm(SubtleAlgorithm),
@@ -5516,9 +5509,6 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             CryptoAlgorithm::X25519 => Ok(ImportKeyAlgorithm::X25519(
-                object.try_into_with_cx_and_name(cx, algorithm_name)?,
-            )),
-            CryptoAlgorithm::Ed448 => Ok(ImportKeyAlgorithm::Ed448(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             CryptoAlgorithm::AesCtr => Ok(ImportKeyAlgorithm::AesCtr(
@@ -5575,7 +5565,6 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
             ImportKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
             ImportKeyAlgorithm::Ed25519(algorithm) => algorithm.name,
             ImportKeyAlgorithm::X25519(algorithm) => algorithm.name,
-            ImportKeyAlgorithm::Ed448(algorithm) => algorithm.name,
             ImportKeyAlgorithm::AesCtr(algorithm) => algorithm.name,
             ImportKeyAlgorithm::AesCbc(algorithm) => algorithm.name,
             ImportKeyAlgorithm::AesGcm(algorithm) => algorithm.name,
@@ -5655,9 +5644,6 @@ impl ImportKeyAlgorithm {
             },
             ImportKeyAlgorithm::X25519(_algorithm) => {
                 x25519_operation::import_key(cx, global, format, key_data, extractable, usages)
-            },
-            ImportKeyAlgorithm::Ed448(_algorithm) => {
-                ed448_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
             ImportKeyAlgorithm::AesCtr(_algorithm) => {
                 aes_ctr_operation::import_key(cx, global, format, key_data, extractable, usages)
@@ -5747,7 +5733,6 @@ enum ExportKeyAlgorithm {
     Ecdh(SubtleAlgorithm),
     Ed25519(SubtleAlgorithm),
     X25519(SubtleAlgorithm),
-    Ed448(SubtleAlgorithm),
     AesCtr(SubtleAlgorithm),
     AesCbc(SubtleAlgorithm),
     AesGcm(SubtleAlgorithm),
@@ -5785,9 +5770,6 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             CryptoAlgorithm::X25519 => Ok(ExportKeyAlgorithm::X25519(
-                object.try_into_with_cx_and_name(cx, algorithm_name)?,
-            )),
-            CryptoAlgorithm::Ed448 => Ok(ExportKeyAlgorithm::Ed448(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             CryptoAlgorithm::AesCtr => Ok(ExportKeyAlgorithm::AesCtr(
@@ -5835,7 +5817,6 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
             ExportKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
             ExportKeyAlgorithm::Ed25519(algorithm) => algorithm.name,
             ExportKeyAlgorithm::X25519(algorithm) => algorithm.name,
-            ExportKeyAlgorithm::Ed448(algorithm) => algorithm.name,
             ExportKeyAlgorithm::AesCtr(algorithm) => algorithm.name,
             ExportKeyAlgorithm::AesCbc(algorithm) => algorithm.name,
             ExportKeyAlgorithm::AesGcm(algorithm) => algorithm.name,
@@ -5861,7 +5842,6 @@ impl ExportKeyAlgorithm {
             ExportKeyAlgorithm::Ecdh(_algorithm) => ecdh_operation::export_key(format, key),
             ExportKeyAlgorithm::Ed25519(_algorithm) => ed25519_operation::export_key(format, key),
             ExportKeyAlgorithm::X25519(_algorithm) => x25519_operation::export_key(format, key),
-            ExportKeyAlgorithm::Ed448(_algorithm) => ed448_operation::export_key(format, key),
             ExportKeyAlgorithm::AesCtr(_algorithm) => aes_ctr_operation::export_key(format, key),
             ExportKeyAlgorithm::AesCbc(_algorithm) => aes_cbc_operation::export_key(format, key),
             ExportKeyAlgorithm::AesGcm(_algorithm) => aes_gcm_operation::export_key(format, key),

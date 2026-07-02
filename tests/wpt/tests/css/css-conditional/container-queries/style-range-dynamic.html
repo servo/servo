@@ -181,20 +181,20 @@ test(() => {
   ]);
 }, "After increasing container line-height");
 
-promise_test(async () => {
-  await document.fonts.load("16px TallLineHeight");
-
-  // Set font family to TallLineHeight; line-height is normal.
-  // lh should compute to 16px * 4 = 64px.
-  document.querySelector("div.container.lh3").style.fontFamily = "TallLineHeight";
-  expect([
-    ["rem", green],
-    ["em", green],
-    ["rlh1", green],
-    ["rlh2", green],
-    ["lh1", green],
-    ["lh2", green],
-    ["lh3", green],
-  ]);
-}, "After changing container font-family to TallLineHeight");
+document.fonts.load("16px TallLineHeight").then(() => {
+  test(() => {
+    // Set font family to TallLineHeight; line-height is normal.
+    // lh should compute to 16px * 4 = 64px.
+    document.querySelector("div.container.lh3").style.fontFamily = "TallLineHeight";
+    expect([
+      ["rem", green],
+      ["em", green],
+      ["rlh1", green],
+      ["rlh2", green],
+      ["lh1", green],
+      ["lh2", green],
+      ["lh3", green],
+    ]);
+  }, "After changing container font-family to TallLineHeight");
+});
 </script>

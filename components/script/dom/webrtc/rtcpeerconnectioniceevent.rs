@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -19,6 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct RTCPeerConnectionIceEvent {
@@ -40,30 +40,30 @@ impl RTCPeerConnectionIceEvent {
     }
 
     pub(crate) fn new(
-        cx: &mut JSContext,
         window: &Window,
         ty: Atom,
         candidate: Option<&RTCIceCandidate>,
         url: Option<DOMString>,
         trusted: bool,
+        can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
-        Self::new_with_proto(cx, window, None, ty, candidate, url, trusted)
+        Self::new_with_proto(window, None, ty, candidate, url, trusted, can_gc)
     }
 
     fn new_with_proto(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         ty: Atom,
         candidate: Option<&RTCIceCandidate>,
         url: Option<DOMString>,
         trusted: bool,
+        can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
-        let e = reflect_dom_object_with_proto_and_cx(
+        let e = reflect_dom_object_with_proto(
             Box::new(RTCPeerConnectionIceEvent::new_inherited(candidate, url)),
             window,
             proto,
-            cx,
+            can_gc,
         );
         let evt = e.upcast::<Event>();
         evt.init_event(ty, false, false); // XXXManishearth bubbles/cancelable?
@@ -75,14 +75,13 @@ impl RTCPeerConnectionIceEvent {
 impl RTCPeerConnectionIceEventMethods<crate::DomTypeHolder> for RTCPeerConnectionIceEvent {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-constructor>
     fn Constructor(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         ty: DOMString,
         init: &RTCPeerConnectionIceEventInit,
     ) -> Fallible<DomRoot<RTCPeerConnectionIceEvent>> {
         Ok(RTCPeerConnectionIceEvent::new_with_proto(
-            cx,
             window,
             proto,
             ty.into(),
@@ -92,6 +91,7 @@ impl RTCPeerConnectionIceEventMethods<crate::DomTypeHolder> for RTCPeerConnectio
                 .map(|x| &**x),
             init.url.as_ref().and_then(|x| x.clone()),
             false,
+            can_gc,
         ))
     }
 

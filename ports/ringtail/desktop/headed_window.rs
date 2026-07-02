@@ -185,13 +185,16 @@ impl HeadedWindow {
             .expect("Could not make window RenderingContext current");
 
         let rendering_context = Rc::new(window_rendering_context.offscreen_context(inner_size));
-        let gui = RefCell::new(Gui::new(
+        let mut gui = RefCell::new(Gui::new(
             &winit_window,
             event_loop,
             event_loop_proxy,
             rendering_context.clone(),
             initial_url,
         ));
+
+        // Load lock/unlock icons
+        gui.borrow_mut().load_icons();
 
         debug!("Created window {:?}", winit_window.id());
         Rc::new(HeadedWindow {
@@ -219,6 +222,10 @@ impl HeadedWindow {
 
     pub(crate) fn winit_window(&self) -> &winit::window::Window {
         &self.winit_window
+    }
+
+    pub(crate) fn gui(&self) -> &RefCell<Gui> {
+        &self.gui
     }
 
     fn handle_keyboard_input(

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
 
@@ -16,6 +16,7 @@ use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::element::Element;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
@@ -107,14 +108,14 @@ impl StyleSheetList {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
         window: &Window,
         doc_or_sr: StyleSheetListOwner,
+        can_gc: CanGc,
     ) -> DomRoot<StyleSheetList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
             Box::new(StyleSheetList::new_inherited(doc_or_sr)),
             window,
-            cx,
+            can_gc,
         )
     }
 }

@@ -1475,7 +1475,7 @@ impl Node {
 
         // Step 14. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
-            slot.assign_slottables(cx);
+            slot.assign_slottables(cx.no_gc());
         }
 
         // Step 15. If oldParent’s root is a shadow root, and oldParent is a slot whose assigned
@@ -1484,7 +1484,7 @@ impl Node {
             let Some(slot_element) = old_parent.downcast::<HTMLSlotElement>() &&
             !slot_element.has_assigned_nodes()
         {
-            slot_element.signal_a_slot_change(cx);
+            slot_element.signal_a_slot_change();
         }
 
         // Step 16. If node has an inclusive descendant that is a slot:
@@ -1495,10 +1495,10 @@ impl Node {
             // Step 16.1. Run assign slottables for a tree with oldParent’s root.
             old_parent
                 .GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree(cx, ForceSlottableNodeReconciliation::Skip);
+                .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
 
             // Step 16.2. Run assign slottables for a tree with node.
-            node.assign_slottables_for_a_tree(cx, ForceSlottableNodeReconciliation::Skip);
+            node.assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
         }
 
         // Step 17. If child is non-null:
@@ -1532,7 +1532,7 @@ impl Node {
             (node.is::<Element>() || node.is::<Text>())
         {
             rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(node)));
-            slottable.assign_a_slot(cx);
+            slottable.assign_a_slot(cx.no_gc());
         }
 
         // Step 22. If newParent’s root is a shadow root, and newParent is a slot whose assigned
@@ -1541,12 +1541,12 @@ impl Node {
             let Some(slot_element) = new_parent.downcast::<HTMLSlotElement>() &&
             !slot_element.has_assigned_nodes()
         {
-            slot_element.signal_a_slot_change(cx);
+            slot_element.signal_a_slot_change();
         }
 
         // Step 23. Run assign slottables for a tree with node’s root.
         node.GetRootNode(&GetRootNodeOptions::empty())
-            .assign_slottables_for_a_tree(cx, ForceSlottableNodeReconciliation::Skip);
+            .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
 
         // Step 24. For each shadow-including inclusive descendant inclusiveDescendant of node, in
         // shadow-including tree order:
@@ -1587,7 +1587,7 @@ impl Node {
             prev: old_previous_sibling.as_deref(),
             next: old_next_sibling.as_deref(),
         });
-        MutationObserver::queue_a_mutation_record(cx, &old_parent, mutation);
+        MutationObserver::queue_a_mutation_record(&old_parent, mutation);
 
         // Step 26. Queue a tree mutation record for newParent with « node », « »,
         // newPreviousSibling, and child.
@@ -1597,7 +1597,7 @@ impl Node {
             prev: new_previous_sibling.as_deref(),
             next: child,
         });
-        MutationObserver::queue_a_mutation_record(cx, new_parent, mutation);
+        MutationObserver::queue_a_mutation_record(new_parent, mutation);
 
         Ok(())
     }
@@ -1637,7 +1637,7 @@ impl Node {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn query_selector_all(
         &self,
-        cx: &mut JSContext,
+        no_gc: &NoGC,
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
         // > The querySelectorAll(selectors) method steps are to return the static result of running scope-match
@@ -1648,9 +1648,10 @@ impl Node {
         // layout runs, so that the map can gather their elements in DOM order.
         self.owner_document()
             .id_map()
-            .resolve_all(cx.no_gc(), self.owner_doc().upcast());
+            .resolve_all(no_gc, self.owner_doc().upcast());
 
-        let traced_node = UnrootedDom::from_dom(Dom::from_ref(self), cx.no_gc());
+        // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
+        let traced_node = Dom::from_ref(self);
         let matching_elements = with_layout_state(|| {
             let layout_node: LayoutDom<'_, _> = unsafe { traced_node.to_layout() };
             ServoDangerousStyleNode::from(layout_node)
@@ -1666,7 +1667,7 @@ impl Node {
         Ok(NodeList::new_simple_list(
             &self.owner_window(),
             iter,
-            CanGc::from_cx(cx),
+            CanGc::deprecated_note(),
         ))
     }
 
@@ -2000,7 +2001,7 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
     pub(crate) fn assign_slottables_for_a_tree(
         &self,
-        cx: &JSContext,
+        no_gc: &NoGC,
         force: ForceSlottableNodeReconciliation,
     ) {
         // NOTE: This method traverses all descendants of the node and is potentially very
@@ -2021,9 +2022,9 @@ impl Node {
 
         // > To assign slottables for a tree, given a node root, run assign slottables for each slot
         // > slot in root’s inclusive descendants, in tree order.
-        for node in self.traverse_preorder_non_rooting(cx, ShadowIncluding::No) {
+        for node in self.traverse_preorder_non_rooting(no_gc, ShadowIncluding::No) {
             if let Some(slot) = node.downcast::<HTMLSlotElement>() {
-                slot.assign_slottables(cx);
+                slot.assign_slottables(no_gc);
             }
         }
     }
@@ -2204,7 +2205,7 @@ pub(super) fn as_uintptr<T>(t: &T) -> uintptr_t {
 
 impl Node {
     pub(crate) fn reflect_node<N>(
-        cx: &mut JSContext,
+        cx: &mut js::context::JSContext,
         node: Box<N>,
         document: &Document,
     ) -> DomRoot<N>
@@ -2215,7 +2216,7 @@ impl Node {
     }
 
     pub(crate) fn reflect_node_with_proto<N>(
-        cx: &mut JSContext,
+        cx: &mut js::context::JSContext,
         node: Box<N>,
         document: &Document,
         proto: Option<HandleObject>,
@@ -2540,7 +2541,7 @@ impl Node {
                 prev: None,
                 next: None,
             });
-            MutationObserver::queue_a_mutation_record(cx, node, mutation);
+            MutationObserver::queue_a_mutation_record(node, mutation);
         }
 
         // Step 5. If child is non-null:
@@ -2590,7 +2591,7 @@ impl Node {
                 (kid.is::<Element>() || kid.is::<Text>())
             {
                 rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(kid)));
-                slottable.assign_a_slot(cx);
+                slottable.assign_a_slot(cx.no_gc());
             }
 
             // Step 7.5 If parent’s root is a shadow root, and parent is a slot whose assigned nodes
@@ -2599,12 +2600,12 @@ impl Node {
                 let Some(slot_element) = parent_as_slot &&
                 !slot_element.has_assigned_nodes()
             {
-                slot_element.signal_a_slot_change(cx);
+                slot_element.signal_a_slot_change();
             }
 
             // Step 7.6 Run assign slottables for a tree with node’s root.
             kid.GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree(cx, ForceSlottableNodeReconciliation::Skip);
+                .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
 
             // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
             // in shadow-including tree order:
@@ -2631,7 +2632,7 @@ impl Node {
                             );
                         }
                     } else {
-                        try_upgrade_element(cx, &descendant);
+                        try_upgrade_element(&descendant);
                     }
                 }
             }
@@ -2653,7 +2654,7 @@ impl Node {
                 prev: previous_sibling.as_deref(),
                 next: child,
             });
-            MutationObserver::queue_a_mutation_record(cx, parent, mutation);
+            MutationObserver::queue_a_mutation_record(parent, mutation);
         }
 
         // We use a delayed task for this step to work around an awkward interaction between
@@ -2726,7 +2727,7 @@ impl Node {
                 prev: None,
                 next: None,
             });
-            MutationObserver::queue_a_mutation_record(cx, parent, mutation);
+            MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker(cx);
     }
@@ -2796,7 +2797,7 @@ impl Node {
 
         // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
-            slot.assign_slottables(cx);
+            slot.assign_slottables(cx.no_gc());
         }
 
         // Step 9. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
@@ -2805,7 +2806,7 @@ impl Node {
             let Some(slot_element) = parent.downcast::<HTMLSlotElement>() &&
             !slot_element.has_assigned_nodes()
         {
-            slot_element.signal_a_slot_change(cx);
+            slot_element.signal_a_slot_change();
         }
 
         // Step 10. If node has an inclusive descendant that is a slot:
@@ -2816,10 +2817,10 @@ impl Node {
             // Step 10.1 Run assign slottables for a tree with parent’s root.
             parent
                 .GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree(cx, ForceSlottableNodeReconciliation::Skip);
+                .assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Skip);
 
             // Step 10.2 Run assign slottables for a tree with node.
-            node.assign_slottables_for_a_tree(cx, ForceSlottableNodeReconciliation::Force);
+            node.assign_slottables_for_a_tree(cx.no_gc(), ForceSlottableNodeReconciliation::Force);
         }
 
         // TODO: Step 15. transient registered observers
@@ -2843,7 +2844,7 @@ impl Node {
                 prev: old_previous_sibling.as_deref(),
                 next: old_next_sibling.as_deref(),
             });
-            MutationObserver::queue_a_mutation_record(cx, parent, mutation);
+            MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker(cx);
     }
@@ -2937,7 +2938,6 @@ impl Node {
                 let window = document.window();
                 let loader = DocumentLoader::new(&document.loader());
                 let document = Document::new(
-                    cx,
                     window,
                     HasBrowsingContext::No,
                     Some(document.url()),
@@ -2961,6 +2961,7 @@ impl Node {
                     document.creation_sandboxing_flag_set(),
                     document.pipeline_id(),
                     document.image_cache(),
+                    CanGc::from_cx(cx),
                 );
                 // Step 2. If node’s custom element registry’s is scoped is true,
                 // then set copy’s custom element registry to node’s custom element registry.
@@ -3196,7 +3197,7 @@ impl Node {
 
     pub(crate) fn html_serialize(
         &self,
-        cx: &mut JSContext,
+        cx: &mut js::context::JSContext,
         traversal_scope: html_serialize::TraversalScope,
         serialize_shadow_roots: bool,
         shadow_roots: Vec<DomRoot<ShadowRoot>>,
@@ -3252,7 +3253,7 @@ impl Node {
     /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
     pub(crate) fn fragment_serialization_algorithm(
         &self,
-        cx: &mut JSContext,
+        cx: &mut js::context::JSContext,
         require_well_formed: bool,
     ) -> Fallible<DOMString> {
         // Step 1. Let context document be node's node document.
@@ -3766,7 +3767,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             next: reference_child,
         });
 
-        MutationObserver::queue_a_mutation_record(cx, self, mutation);
+        MutationObserver::queue_a_mutation_record(self, mutation);
 
         // Step 15. Return child.
         Ok(DomRoot::from_ref(child))
@@ -4212,7 +4213,7 @@ impl VirtualMethods for Node {
 
     // This handles the ranges mentioned in steps 2-3 when removing a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
         // Ranges should only drain to the parent from inclusive non-shadow
@@ -4251,7 +4252,7 @@ impl VirtualMethods for Node {
         self.owner_doc().content_and_heritage_changed(self);
     }
 
-    fn handle_event(&self, cx: &mut JSContext, event: &Event) {
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if event.DefaultPrevented() || event.flags().contains(EventFlags::Handled) {
             return;
         }

@@ -4,12 +4,12 @@
 
 use std::ffi::CString;
 
-use js::context::JSContext;
 use js::error::throw_type_error;
-use js::rust::wrappers2::JS_IsExceptionPending;
+use js::jsapi::JS_IsExceptionPending;
 
 use crate::codegen::PrototypeList::proto_id_to_name;
 use crate::num::Finite;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 /// DOM exceptions that can be thrown by a native DOM method.
 /// <https://webidl.spec.whatwg.org/#dfn-error-names-table>
@@ -97,22 +97,22 @@ pub type ErrorResult = Fallible<()>;
 
 /// Throw an exception to signal that a `JSObject` can not be converted to a
 /// given DOM type.
-pub fn throw_invalid_this(cx: &mut JSContext, proto_id: u16) {
-    debug_assert!(unsafe { !JS_IsExceptionPending(cx) });
+pub fn throw_invalid_this(cx: SafeJSContext, proto_id: u16) {
+    debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
     let mut vec = "\"this\" object does not implement interface "
         .as_bytes()
         .to_vec();
     vec.extend_from_slice(proto_id_to_name(proto_id).as_bytes());
     let error = CString::new(vec).expect("WebIDL name should not contain nul byte");
-    unsafe { throw_type_error(cx.raw_cx(), &error) };
+    unsafe { throw_type_error(*cx, &error) };
 }
 
-pub fn throw_constructor_without_new(cx: &mut JSContext, name: &str) {
-    debug_assert!(unsafe { !JS_IsExceptionPending(cx) });
+pub fn throw_constructor_without_new(cx: SafeJSContext, name: &str) {
+    debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
     let mut error = name.as_bytes().to_vec();
     error.extend_from_slice(b" constructor: 'new' is required");
     let error = CString::new(error).expect("WebIDL name should not contain nul byte");
-    unsafe { throw_type_error(cx.raw_cx(), &error) };
+    unsafe { throw_type_error(*cx, &error) };
 }
 
 #[macro_export]

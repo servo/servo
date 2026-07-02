@@ -190,7 +190,7 @@ impl FormControl for HTMLObjectElement {
         self.form_owner.set(form);
     }
 
-    fn to_html_element(&self) -> &HTMLElement {
-        self.upcast::<HTMLElement>()
+    fn to_element(&self) -> &Element {
+        self.upcast::<Element>()
     }
 }

@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::string::String;
 
 use dom_struct::dom_struct;
-use js::context::{JSContext, NoGC};
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::typedarray::HeapArrayBuffer;
 use script_bindings::cell::DomRefCell;
@@ -206,12 +206,12 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self, cx: &mut js::context::JSContext) {
         // Step 1
-        let promise = self.pending_map.safe_borrow_mut(cx).take();
+        let promise = self.pending_map.borrow_mut().take();
         if let Some(promise) = promise {
             promise.reject_error(cx, Error::Abort(None));
         }
         // Step 2
-        let mut mapping = RootedTraceableBox::new(self.mapping.safe_borrow_mut(cx).take());
+        let mut mapping = RootedTraceableBox::new(self.mapping.borrow_mut().take());
         let mapping = if let Some(mapping) = mapping.as_mut() {
             mapping
         } else {
@@ -269,7 +269,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             return promise;
         }
         // Step 4
-        *self.pending_map.safe_borrow_mut(cx) = Some(promise.clone());
+        *self.pending_map.borrow_mut() = Some(promise.clone());
         // Step 5
         let host_map = match mode {
             GPUMapModeConstants::READ => HostMap::Read,
@@ -323,7 +323,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         // Step 2: validation
         let mut mapping = self
             .mapping
-            .safe_borrow_mut(cx)
+            .borrow_mut()
             .take()
             .map(RootedTraceableBox::new)
             .ok_or(Error::Operation(None))?;
@@ -333,9 +333,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             offset >= mapping.range.start &&
             offset + range_size <= mapping.range.end;
         if !valid {
-            self.mapping
-                .safe_borrow_mut(cx)
-                .replace(*mapping.into_box());
+            self.mapping.borrow_mut().replace(*mapping.into_box());
             return Err(Error::Operation(None));
         }
 
@@ -349,9 +347,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .map(|view| view.array_buffer())
             .map_err(|()| Error::Operation(None));
 
-        self.mapping
-            .safe_borrow_mut(cx)
-            .replace(*mapping.into_box());
+        self.mapping.borrow_mut().replace(*mapping.into_box());
         result
     }
 
@@ -361,8 +357,8 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, value: USVString) {
+        *self.label.borrow_mut() = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-size>
@@ -398,7 +394,7 @@ impl GPUBuffer {
         // Step 2
         assert!(p.is_pending());
         // Step 3
-        self.pending_map.safe_borrow_mut(cx).take();
+        self.pending_map.borrow_mut().take();
         // Step 4
         let is_lost = self.device.is_lost();
         if is_lost {
@@ -429,18 +425,16 @@ impl GPUBuffer {
 
         match mapping {
             Err(error) => {
-                *self.pending_map.safe_borrow_mut(cx) = None;
+                *self.pending_map.borrow_mut() = None;
                 p.reject_error(cx, error);
             },
             Ok(mut mapping) => {
                 // Step 5
                 mapping.data.load(&wgpu_mapping.data);
                 // Step 6
-                self.mapping
-                    .safe_borrow_mut(cx)
-                    .replace(*mapping.into_box());
+                self.mapping.borrow_mut().replace(*mapping.into_box());
                 // Step 7
-                self.pending_map.safe_borrow_mut(cx).take();
+                self.pending_map.borrow_mut().take();
                 p.resolve_native(cx, &());
             },
         }

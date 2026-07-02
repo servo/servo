@@ -16,6 +16,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::stream::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::types::GlobalScope;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablestreambyobrequest>
 #[dom_struct]
@@ -67,7 +68,10 @@ impl ReadableStreamBYOBRequest {
 
 impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBYOBRequest {
     /// <https://streams.spec.whatwg.org/#rs-byob-request-view>
-    fn GetView(&self) -> Option<RootedTraceableBox<js::typedarray::HeapArrayBufferView>> {
+    fn GetView(
+        &self,
+        _cx: SafeJSContext,
+    ) -> Option<RootedTraceableBox<js::typedarray::HeapArrayBufferView>> {
         // Return this.[[view]].
         self.view.borrow().typed_array_to_option()
     }

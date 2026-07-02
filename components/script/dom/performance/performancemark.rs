@@ -23,6 +23,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::window::Window;
+use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub(crate) struct PerformanceMark {
@@ -71,7 +72,7 @@ impl PerformanceMark {
 
 impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
     /// <https://w3c.github.io/user-timing/#dom-performancemark-detail>
-    fn Detail(&self, mut retval: MutableHandleValue) {
+    fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.detail.get())
     }
 

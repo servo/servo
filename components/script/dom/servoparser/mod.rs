@@ -249,7 +249,6 @@ impl ServoParser {
             Some(url.clone()),
         );
         let document = Document::new(
-            cx,
             window,
             HasBrowsingContext::No,
             Some(url.clone()),
@@ -272,6 +271,7 @@ impl ServoParser {
             context_document.creation_sandboxing_flag_set(),
             context_document.pipeline_id(),
             context_document.image_cache(),
+            CanGc::from_cx(cx),
         );
 
         // Step 2. If context's node document is in quirks mode, then set document's mode to "quirks".
@@ -764,15 +764,18 @@ impl ServoParser {
         // Step 1. If the active speculative HTML parser is not null,
         // then stop the speculative HTML parser and return.
         // TODO
+
         // Step 2. Set the insertion point to undefined.
-        self.tokenizer.end(cx);
+        self.document.set_current_parser(None);
+
         // Step 3. Update the current document readiness to "interactive".
         self.document
             .set_ready_state(cx, DocumentReadyState::Interactive);
+
         // Step 4. Pop all the nodes off the stack of open elements.
-        self.document.set_current_parser(None);
-        // Step 5. While the list of scripts that will execute when the document has finished parsing is not empty:
-        self.document.start_the_end_loading_phase();
+        self.tokenizer.end(cx);
+
+        // Steps 5-11 are in another castle, namely finish_load.
         let url = self.tokenizer.url().clone();
         self.document.finish_load(LoadType::PageSource(url), cx);
 

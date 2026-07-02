@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{
     RTCErrorDetailType, RTCErrorInit, RTCErrorMethods,
@@ -14,6 +13,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::DOMException;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct RTCError {
@@ -40,26 +40,26 @@ impl RTCError {
     }
 
     pub(crate) fn new(
-        cx: &mut JSContext,
         window: &Window,
         init: &RTCErrorInit,
         message: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<RTCError> {
-        Self::new_with_proto(cx, window, None, init, message)
+        Self::new_with_proto(window, None, init, message, can_gc)
     }
 
     fn new_with_proto(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         init: &RTCErrorInit,
         message: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<RTCError> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(RTCError::new_inherited(init, message)),
             window,
             proto,
-            cx,
+            can_gc,
         )
     }
 }
@@ -67,13 +67,13 @@ impl RTCError {
 impl RTCErrorMethods<crate::DomTypeHolder> for RTCError {
     /// <https://www.w3.org/TR/webrtc/#dom-rtcerror-constructor>
     fn Constructor(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         init: &RTCErrorInit,
         message: DOMString,
     ) -> DomRoot<RTCError> {
-        RTCError::new_with_proto(cx, window, proto, init, message)
+        RTCError::new_with_proto(window, proto, init, message, can_gc)
     }
 
     /// <https://www.w3.org/TR/webrtc/#dom-rtcerror-errordetail>

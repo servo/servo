@@ -8,14 +8,15 @@ use std::fs;
 #[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
 use std::path::Path;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, Vec2,
-    WidgetInfo, WidgetType, pos2,
+    Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, RichText,
+    ScrollArea, Vec2, WidgetInfo, WidgetType, pos2,
 };
 #[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
 use egui::{FontData, FontFamily};
@@ -38,6 +39,149 @@ use crate::desktop::event_loop::AppEvent;
 use crate::desktop::headed_window;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::RingtailWindow;
+
+/// Global buffer for console log messages
+pub static CONSOLE_LOGS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// Global cache of approved domains for lock_approved.svg
+pub static APPROVED_DOMAINS: Mutex<Option<Vec<String>>> = Mutex::new(None);
+pub static APPROVED_DOMAINS_LOADED: AtomicBool = AtomicBool::new(false);
+
+/// Fetch approved domains from remote JSON
+pub async fn fetch_approved_domains() {
+    if APPROVED_DOMAINS_LOADED.load(Ordering::Relaxed) {
+        return;
+    }
+
+    match reqwest::get("https://voxelite.neocities.org/ringtail/dns/approved.json").await {
+        Ok(response) => {
+            let text = match response.text().await {
+                Ok(t) => {
+                    t
+                },
+                Err(e) => {
+                    warn!("Failed to read response text: {}", e);
+                    return;
+                },
+            };
+
+
+            if let Ok(domains) = serde_json::from_str::<Vec<String>>(&text) {
+                *APPROVED_DOMAINS.lock().unwrap() = Some(domains);
+                APPROVED_DOMAINS_LOADED.store(true, Ordering::Relaxed);
+                return;
+            }
+            
+            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&text) {
+                if let Some(domains) = data.get("domains").and_then(|d| d.as_array()) {
+                    let domain_strings: Vec<String> = domains
+                        .iter()
+                        .filter_map(|d| d.as_str().map(|s| s.to_string()))
+                        .collect();
+                    *APPROVED_DOMAINS.lock().unwrap() = Some(domain_strings);
+                    APPROVED_DOMAINS_LOADED.store(true, Ordering::Relaxed);
+                    return;
+                }
+
+                if let Some(obj) = data.as_object() {
+                    let domain_strings: Vec<String> = obj.keys().map(|k| k.clone()).collect();
+                    *APPROVED_DOMAINS.lock().unwrap() = Some(domain_strings);
+                    APPROVED_DOMAINS_LOADED.store(true, Ordering::Relaxed);
+                    return;
+                }
+            }
+
+            if text.trim().starts_with('{') && text.trim().ends_with('}') {
+                let mut domains = Vec::new();
+                for line in text.lines() {
+                    let line = line.trim();
+                    if line.starts_with('"') && line.ends_with(',') {
+                        let domain = line[1..line.len()-1].trim();
+                        if !domain.is_empty() {
+                            domains.push(domain.to_string());
+                        }
+                    } else if line.starts_with('"') && line.ends_with('"') {
+                        let domain = &line[1..line.len()-1];
+                        if !domain.is_empty() {
+                            domains.push(domain.to_string());
+                        }
+                    }
+                }
+                if !domains.is_empty() {
+                    *APPROVED_DOMAINS.lock().unwrap() = Some(domains);
+                    APPROVED_DOMAINS_LOADED.store(true, Ordering::Relaxed);
+                    return;
+                }
+            }
+
+            warn!("Failed to parse approved domains JSON: unknown format");
+        },
+        Err(e) => {
+            warn!("Failed to fetch approved domains: {}", e);
+        },
+    }
+}
+
+/// Check if a domain is in the approved list (supports wildcards like *.neocities.org)
+fn is_domain_approved(domain: &str) -> bool {
+    if let Some(approved) = APPROVED_DOMAINS.lock().unwrap().as_ref() {
+        for pattern in approved {
+            if pattern.starts_with("*.") {
+                let suffix = &pattern[2..];
+                if domain.ends_with(suffix) || domain == suffix {
+                    return true;
+                }
+            } else if domain == pattern {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Load an SVG icon from the resources directory
+fn load_svg_icon(ctx: &egui::Context, filename: &str) -> Option<egui::TextureHandle> {
+    let resources_dir = crate::resources::resource_protocol_dir_path();
+    let icon_path = resources_dir.join(filename);
+    
+    if !icon_path.exists() {
+        warn!("Icon file not found: {:?}", icon_path);
+        return None;
+    }
+
+    match std::fs::read(&icon_path) {
+        Ok(svg_data) => {
+            // Use resvg to render the SVG to an image
+            let opts = resvg::usvg::Options::default();
+            let tree = resvg::usvg::Tree::from_data(&svg_data, &opts).ok()?;
+            
+            let size = tree.size();
+            let width = size.width().ceil() as u32;
+            let height = size.height().ceil() as u32;
+            
+            let mut pixmap = resvg::tiny_skia::Pixmap::new(width, height)?;
+            pixmap.fill(resvg::tiny_skia::Color::TRANSPARENT);
+            
+            // Render the tree to the pixmap
+            resvg::render(&tree, resvg::tiny_skia::Transform::identity(), &mut pixmap.as_mut());
+            
+            let color_image = egui::ColorImage::from_rgba_unmultiplied(
+                [width as usize, height as usize],
+                pixmap.data(),
+            );
+            let handle = ctx.load_texture(
+                format!("icon-{}", filename),
+                color_image,
+                Default::default(),
+            );
+            Some(handle)
+        },
+        Err(e) => {
+            warn!("Failed to read icon file {:?}: {}", icon_path, e);
+            None
+        },
+    }
+}
 
 /// The user interface of a headed servoshell. Currently this is implemented via
 /// egui.
@@ -71,6 +215,30 @@ pub struct Gui {
     /// AccessKit tree updates pending the next egui tick.
     /// This allows us to ensure that graft nodes are sent before the subtrees they graft.
     pending_accesskit_updates: Vec<accesskit::TreeUpdate>,
+
+    /// Whether the console sidebar is visible.
+    console_visible: bool,
+
+    /// Whether the current URL is secure (HTTPS).
+    is_secure: bool,
+
+    /// Whether the current domain is approved (for lock_approved.svg).
+    is_approved: bool,
+
+    /// Texture handle for the lock icon.
+    lock_icon: Option<egui::TextureHandle>,
+
+    /// Texture handle for the unlock icon.
+    unlock_icon: Option<egui::TextureHandle>,
+
+    /// Texture handle for the lock approved icon.
+    lock_approved_icon: Option<egui::TextureHandle>,
+
+    /// Texture handle for the exp icon (experimental preferences enabled).
+    exp_icon: Option<egui::TextureHandle>,
+
+    /// Texture handle for the exp_off icon (experimental preferences disabled).
+    exp_off_icon: Option<egui::TextureHandle>,
 }
 
 fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
@@ -212,16 +380,12 @@ impl Gui {
         winit_window.set_visible(true);
 
         context.egui_ctx.options_mut(|options| {
-            // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
-            // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.
             options.zoom_with_keyboard = false;
-
-            // On platforms where winit fails to obtain a system theme, fall back to a light theme
-            // since it is the more common default.
             options.fallback_theme = egui::Theme::Light;
         });
 
-        Self {
+        // 1. Assign to a mutable variable first
+        let mut gui = Self {
             rendering_context,
             context,
             toolbar_height: Default::default(),
@@ -233,7 +397,31 @@ impl Gui {
             can_go_forward: false,
             favicon_textures: Default::default(),
             pending_accesskit_updates: vec![],
-        }
+            console_visible: false,
+            is_secure: false,
+            is_approved: false,
+            lock_icon: None,
+            unlock_icon: None,
+            lock_approved_icon: None,
+            exp_icon: None,
+            exp_off_icon: None,
+        };
+
+        // 2. Call load_icons now that the egui context is fully prepared
+        gui.load_icons();
+
+        // 3. Return the populated gui instance
+        gui
+    }
+
+    /// Load the lock/unlock icons (call this after the context is available)
+    pub(crate) fn load_icons(&mut self) {
+        let ctx = &self.context.egui_ctx;
+        self.lock_icon = load_svg_icon(ctx, "lock.svg");
+        self.unlock_icon = load_svg_icon(ctx, "unlock.svg");
+        self.lock_approved_icon = load_svg_icon(ctx, "lock_approved.svg");
+        self.exp_icon = load_svg_icon(ctx, "exp.svg");
+        self.exp_off_icon = load_svg_icon(ctx, "exp_off.svg");
     }
 
     pub(crate) fn has_keyboard_focus(&self) -> bool {
@@ -248,6 +436,14 @@ impl Gui {
                 memory.surrender_focus(focused);
             }
         });
+    }
+
+    pub(crate) fn toggle_console(&mut self) {
+        self.console_visible = !self.console_visible;
+    }
+
+    pub(crate) fn is_console_visible(&self) -> bool {
+        self.console_visible
     }
 
     pub(crate) fn on_window_event(
@@ -453,6 +649,36 @@ impl Gui {
                                     }
                                 },
                             }
+
+                            // Show lock icon next to refresh button
+                            let url = window.active_webview().and_then(|webview| webview.url());
+                            let scheme = url.as_ref().and_then(|u| Some(u.scheme()));
+
+                            if let Some(icon) = if self.is_approved {
+                                self.lock_approved_icon.as_ref()
+                            } else if self.is_secure {
+                                self.lock_icon.as_ref()
+                            } else {
+                                self.unlock_icon.as_ref()
+                            } {
+                                let hover_text = if let Some(scheme) = scheme {
+                                    match scheme {
+                                        "peanut" => "Your connection is secure.\nSensitive data is encrypted by design with E2EE, preventing man-in-the-middle attacks.\nThe server itself may still steal information, so double-check the server.",
+                                        "ringtail" => "Your data is secure.\nThis is an internal browser page stored locally on your computer, so no server is contacted.",
+                                        _ if self.is_approved => "Your connection is secure.\nSensitive data is encrypted preventing man-in-the-middle attacks.\nThe server itself has been verified to not steal data; so you can trust it.",
+                                        _ if self.is_secure => "Your connection is secure.\nSensitive data is encrypted, preventing man-in-the-middle attacks.\nThe server itself may still steal information, so double-check the server.",
+                                        _ => "Your connection is not encrypted.\nDo not enter sensitive data, as hackers may be able to intercept it; as well as the server itself.",
+                                    }
+                                } else {
+                                    "Unknown connection type"
+                                };
+                                ui.add(
+                                    egui::Image::from_texture(icon)
+                                        .fit_to_exact_size(egui::vec2(16.0, 16.0))
+                                        .bg_fill(egui::Color32::TRANSPARENT)
+                                ).on_hover_text(hover_text);
+                            }
+
                             ui.add_space(2.0);
 
                             ui.allocate_ui_with_layout(
@@ -461,23 +687,52 @@ impl Gui {
                                 |ui| {
                                     let mut experimental_preferences_enabled =
                                         state.experimental_preferences_enabled();
-                                    let prefs_toggle = ui
-                                        .toggle_value(&mut experimental_preferences_enabled, "☢")
-                                        .on_hover_text("Enable experimental prefs");
-                                    prefs_toggle.widget_info(|| {
-                                        let mut info = WidgetInfo::new(WidgetType::Button);
-                                        info.label = Some("Enable experimental preferences".into());
-                                        info.selected = Some(experimental_preferences_enabled);
-                                        info
-                                    });
-                                    if prefs_toggle.clicked() {
-                                        state.set_experimental_preferences_enabled(
-                                            experimental_preferences_enabled,
-                                        );
-                                        *location_dirty = false;
-                                        window.queue_user_interface_command(
-                                            UserInterfaceCommand::ReloadAll,
-                                        );
+
+                                    // Show exp or exp_off icon based on state
+                                    let icon = if experimental_preferences_enabled {
+                                        self.exp_icon.as_ref()
+                                    } else {
+                                        self.exp_off_icon.as_ref()
+                                    };
+
+                                    if let Some(icon) = icon {
+                                        let image = egui::Image::from_texture(icon).fit_to_exact_size(egui::vec2(16.0, 16.0));
+                                        let prefs_button = ui.add_sized(
+                                            [16.0, ui.available_height()],
+                                            egui::Button::image(image)
+                                                .fill(egui::Color32::TRANSPARENT)
+                                        ).on_hover_text("Enable experimental preferences");
+
+                                        if prefs_button.clicked() {
+                                            experimental_preferences_enabled = !experimental_preferences_enabled;
+                                            state.set_experimental_preferences_enabled(
+                                                experimental_preferences_enabled,
+                                            );
+                                            *location_dirty = false;
+                                            window.queue_user_interface_command(
+                                                UserInterfaceCommand::ReloadAll,
+                                            );
+                                        }
+                                    } else {
+                                        // Fallback to emoji if icons not loaded
+                                        let prefs_toggle = ui
+                                            .toggle_value(&mut experimental_preferences_enabled, "☢")
+                                            .on_hover_text("Enable experimental preferences");
+                                        prefs_toggle.widget_info(|| {
+                                            let mut info = WidgetInfo::new(WidgetType::Button);
+                                            info.label = Some("Enable experimental preferences".into());
+                                            info.selected = Some(experimental_preferences_enabled);
+                                            info
+                                        });
+                                        if prefs_toggle.clicked() {
+                                            state.set_experimental_preferences_enabled(
+                                                experimental_preferences_enabled,
+                                            );
+                                            *location_dirty = false;
+                                            window.queue_user_interface_command(
+                                                UserInterfaceCommand::ReloadAll,
+                                            );
+                                        }
                                     }
 
                                     let location_id = egui::Id::new("location_input");
@@ -584,6 +839,44 @@ impl Gui {
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
 
             headed_window.for_each_active_dialog(window, |dialog| dialog.update(ctx));
+
+            // Show console panel on the right if visible
+            // This must be drawn before the webview so the webview gets the remaining space
+            if self.console_visible {
+                let mut should_close = false;
+                egui::Panel::right("console_panel")
+                    .default_size(400.0)
+                    .show_inside(ctx, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.label("Console Output:");
+                            if ui.button("Clear").clicked() {
+                                if let Ok(mut logs) = CONSOLE_LOGS.lock() {
+                                    logs.clear();
+                                }
+                            }
+                            if ui.button("Close").clicked() {
+                                should_close = true;
+                            }
+                        });
+                        
+                        ui.separator();
+
+                        egui::ScrollArea::vertical().stick_to_bottom(true).show(ui, |ui| {
+                            if let Ok(logs) = CONSOLE_LOGS.lock() {
+                                if logs.is_empty() {
+                                    ui.weak("No logs captured yet.");
+                                } else {
+                                    for log_line in logs.iter() {
+                                        ui.label(egui::RichText::new(log_line).size(10.0).monospace());
+                                    }
+                                }
+                            }
+                        });
+                    });
+                if should_close {
+                    self.console_visible = false;
+                }
+            }
 
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
@@ -719,17 +1012,44 @@ impl Gui {
         old_can_go_back != self.can_go_back || old_can_go_forward != self.can_go_forward
     }
 
+    fn update_is_secure(&mut self, window: &RingtailWindow) -> bool {
+        let url_opt = window.active_webview().and_then(|webview| webview.url());
+        let (is_secure, is_approved) = if let Some(url) = url_opt {
+            let scheme = url.scheme();
+            // ringtail, peanut, and https are secure
+            let is_secure = scheme == "https" || scheme == "ringtail" || scheme == "peanut";
+            
+            let is_approved = if let Some(host) = url.host_str() {
+                is_domain_approved(host.trim_end_matches('.'))
+            } else if url.host_str() == Some("neocities.org") || url.host_str() == Some("voxelite.neocities.org") {
+                true
+            } else {
+                false
+            };
+            (is_secure, is_approved)
+        } else {
+            (false, false)
+        };
+
+        let old_is_secure = std::mem::replace(&mut self.is_secure, is_secure);
+        let old_is_approved = std::mem::replace(&mut self.is_approved, is_approved);
+        
+        old_is_secure != self.is_secure || old_is_approved != self.is_approved
+    }
+
     /// Updates all fields taken from the given [`RingtailWindow`], such as the location field.
     /// Returns true iff the egui needs an update.
     pub(crate) fn update_webview_data(&mut self, window: &RingtailWindow) -> bool {
-        // Note: We must use the "bitwise OR" (|) operator here instead of "logical OR" (||)
-        //       because logical OR would short-circuit if any of the functions return true.
-        //       We want to ensure that all functions are called. The "bitwise OR" operator
-        //       does not short-circuit.
+        // Check if the background thread finished loading domains since the last frame
+        let domains_loaded = APPROVED_DOMAINS_LOADED.load(Ordering::Relaxed);
+        
+        // If domains are loaded but the local state doesn't match yet
         self.update_load_status(window) |
             self.update_location_in_toolbar(window) |
             self.update_status_text(window) |
-            self.update_can_go_back_and_forward(window)
+            self.update_can_go_back_and_forward(window) |
+            self.update_is_secure(window) | 
+            domains_loaded
     }
 
     /// Returns true if a redraw is required after handling the provided event.

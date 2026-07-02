@@ -57,6 +57,11 @@ impl<T: Serialize, U> GenericBufferedSender<T, U> {
         self.buffer.borrow().len()
     }
 
+    /// Change the auto-flush threshold.
+    pub fn set_max_buffer(&mut self, max: usize) {
+        self.max_buffer = max;
+    }
+
     /// Buffer a message for later batched delivery.
     ///
     /// If the buffer reaches `max_buffer` items an automatic flush is triggered.
@@ -130,11 +135,6 @@ impl<T: Serialize, U> GenericBufferedSender<T, U> {
             let location = Location::caller();
             log::warn!("Failed to flush buffered messages due to `{error}` at {location:?}");
         }
-    }
-
-    /// Discard all buffered messages without sending them.
-    pub fn discard(&self) {
-        self.buffer.borrow_mut().clear();
     }
 }
 

@@ -520,7 +520,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
         // `thisobj` is not a platform object, so the security check is not
         // invoked in this case
-        throw_invalid_this(cx, proto_id);
+        throw_invalid_this(cx.into(), proto_id);
         return if EXCEPTION_TO_REJECTION {
             exception_to_promise(cx, args.rval())
         } else {
@@ -554,7 +554,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
                 *vp = UndefinedValue();
                 return true;
             } else {
-                throw_invalid_this(cx, proto_id);
+                throw_invalid_this(cx.into(), proto_id);
                 return if EXCEPTION_TO_REJECTION {
                     exception_to_promise(cx, args.rval())
                 } else {

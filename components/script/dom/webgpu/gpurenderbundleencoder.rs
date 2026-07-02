@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::ffi::CString;
 
 use dom_struct::dom_struct;
-use js::context::{JSContext, NoGC};
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{WebGPU, WebGPURenderBundle, WebGPURequest};
@@ -138,20 +138,14 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, value: USVString) {
+        *self.label.borrow_mut() = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
     #[expect(unsafe_code)]
-    fn SetBindGroup(
-        &self,
-        no_gc: &NoGC,
-        index: u32,
-        bind_group: &GPUBindGroup,
-        dynamic_offsets: Vec<u32>,
-    ) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             unsafe {
                 wgpu_bundle::wgpu_render_bundle_set_bind_group(
                     encoder,
@@ -165,8 +159,8 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline>
-    fn SetPipeline(&self, no_gc: &NoGC, pipeline: &GPURenderPipeline) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+    fn SetPipeline(&self, pipeline: &GPURenderPipeline) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_pipeline(encoder, pipeline.id().0);
         }
     }
@@ -174,13 +168,12 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setindexbuffer>
     fn SetIndexBuffer(
         &self,
-        no_gc: &NoGC,
         buffer: &GPUBuffer,
         index_format: GPUIndexFormat,
         offset: u64,
         size: u64,
     ) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_index_buffer(
                 encoder,
                 buffer.id().0,
@@ -195,8 +188,8 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
-    fn SetVertexBuffer(&self, no_gc: &NoGC, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+    fn SetVertexBuffer(&self, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_vertex_buffer(
                 encoder,
                 slot,
@@ -208,15 +201,8 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-draw>
-    fn Draw(
-        &self,
-        no_gc: &NoGC,
-        vertex_count: u32,
-        instance_count: u32,
-        first_vertex: u32,
-        first_instance: u32,
-    ) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+    fn Draw(&self, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_draw(
                 encoder,
                 vertex_count,
@@ -230,14 +216,13 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexed>
     fn DrawIndexed(
         &self,
-        no_gc: &NoGC,
         index_count: u32,
         instance_count: u32,
         first_index: u32,
         base_vertex: i32,
         first_instance: u32,
     ) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_draw_indexed(
                 encoder,
                 index_count,
@@ -250,8 +235,8 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect>
-    fn DrawIndirect(&self, no_gc: &NoGC, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+    fn DrawIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_draw_indirect(
                 encoder,
                 indirect_buffer.id().0,
@@ -261,8 +246,8 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect>
-    fn DrawIndexedIndirect(&self, no_gc: &NoGC, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+    fn DrawIndexedIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_draw_indexed_indirect(
                 encoder,
                 indirect_buffer.id().0,
@@ -273,8 +258,8 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup>
     #[expect(unsafe_code)]
-    fn PushDebugGroup(&self, no_gc: &NoGC, group_label: USVString) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+    fn PushDebugGroup(&self, group_label: USVString) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             let label = CString::new(group_label.0).unwrap_or_default();
             unsafe {
                 wgpu_bundle::wgpu_render_bundle_push_debug_group(encoder, label.as_ptr());
@@ -283,16 +268,16 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup>
-    fn PopDebugGroup(&self, no_gc: &NoGC) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+    fn PopDebugGroup(&self) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_pop_debug_group(encoder);
         }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
     #[expect(unsafe_code)]
-    fn InsertDebugMarker(&self, no_gc: &NoGC, marker_label: USVString) {
-        if let Some(encoder) = self.render_bundle_encoder.safe_borrow_mut(no_gc).as_mut() {
+    fn InsertDebugMarker(&self, marker_label: USVString) {
+        if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             let label = CString::new(marker_label.0).unwrap_or_default();
             unsafe {
                 wgpu_bundle::wgpu_render_bundle_insert_debug_marker(encoder, label.as_ptr());
@@ -309,11 +294,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
         let desc = wgpu_types::RenderBundleDescriptor {
             label: (&descriptor.parent).convert(),
         };
-        let encoder = self
-            .render_bundle_encoder
-            .safe_borrow_mut(cx)
-            .take()
-            .unwrap();
+        let encoder = self.render_bundle_encoder.borrow_mut().take().unwrap();
         let render_bundle_id = self.global().wgpu_id_hub().create_render_bundle_id();
 
         self.channel

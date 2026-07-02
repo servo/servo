@@ -1,9 +1,0 @@
-<!DOCTYPE html>
-<title>CSSOM Test: Servo crash when modifying keyframe rules</title>
-<link rel="help" href="https://github.com/servo/servo/issues/46025">
-<style>@keyframes keyframe {}</style>
-<script>
-  let rule = document.styleSheets[0].cssRules[0];
-  rule.appendRule("1% { }")
-  rule.cssRules[1];
-</script>

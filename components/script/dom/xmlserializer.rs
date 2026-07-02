@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use xml5ever::serialize::{SerializeOpts, TraversalScope, serialize};
 
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
@@ -15,6 +14,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
 use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XMLSerializer {
@@ -31,15 +31,15 @@ impl XMLSerializer {
     }
 
     pub(crate) fn new(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<XMLSerializer> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(XMLSerializer::new_inherited(window)),
             window,
             proto,
-            cx,
+            can_gc,
         )
     }
 }
@@ -47,11 +47,11 @@ impl XMLSerializer {
 impl XMLSerializerMethods<crate::DomTypeHolder> for XMLSerializer {
     /// <https://w3c.github.io/DOM-Parsing/#dom-xmlserializer>
     fn Constructor(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<XMLSerializer>> {
-        Ok(XMLSerializer::new(cx, window, proto))
+        Ok(XMLSerializer::new(window, proto, can_gc))
     }
 
     /// <https://w3c.github.io/DOM-Parsing/#the-xmlserializer-interface>

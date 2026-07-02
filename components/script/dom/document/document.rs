@@ -27,7 +27,6 @@ use embedder_traits::{
 use encoding_rs::{Encoding, UTF_8};
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
-use indexmap::IndexSet;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
@@ -52,8 +51,7 @@ use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
-use script_bindings::trace::CustomTraceable;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -212,7 +210,6 @@ use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::script_runtime::CanGc;
 use crate::script_thread::{ScriptThread, SharedRwLocks};
-use crate::stylesheet_loader::StylesheetContextId;
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
 use crate::task_manager::TaskManager;
@@ -283,16 +280,6 @@ impl RefreshRedirectDue {
 pub(crate) enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
-}
-
-#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
-pub(crate) enum TheEndLoadingPhase {
-    #[default]
-    Initial,
-    ProcessingDeferredScripts,
-    ProcessingAsSoonAsPossibleScripts,
-    WaitingForLoadEventBlockers,
-    Done,
 }
 
 /// Information about a declarative refresh
@@ -424,17 +411,13 @@ pub(crate) struct Document {
     stylesheet_list: MutNullableDom<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
-    /// TODO(43149): Remove when document replacement is implemented
     domcontentloaded_dispatched: Cell<bool>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
-    #[no_trace]
-    current_the_end_loading_phase: Cell<TheEndLoadingPhase>,
     /// <https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script>
     pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
-    /// <https://html.spec.whatwg.org/multipage/#script-blocking-style-sheet-set>
-    /// > A Document has a script-blocking style sheet set, which is an ordered set, initially empty.
-    script_blocking_stylesheet_set: DomRefCell<IndexSet<StylesheetContextId>>,
+    /// Number of stylesheets that block executing the next parser-inserted script
+    script_blocking_stylesheets_count: Cell<u32>,
     /// Number of elements that block the rendering of the page.
     /// <https://html.spec.whatwg.org/multipage/#implicitly-potentially-render-blocking>
     render_blocking_element_count: Cell<u32>,
@@ -1642,19 +1625,19 @@ impl Document {
         self.current_script.set(script);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#has-a-style-sheet-that-is-blocking-scripts>
-    pub(crate) fn has_a_stylesheet_that_is_blocking_scripts(&self) -> bool {
-        !self.script_blocking_stylesheet_set.borrow().is_empty()
+    pub(crate) fn get_script_blocking_stylesheets_count(&self) -> u32 {
+        self.script_blocking_stylesheets_count.get()
     }
 
-    pub(crate) fn add_script_blocking_stylesheet(&self, id: StylesheetContextId) {
-        self.script_blocking_stylesheet_set.borrow_mut().insert(id);
+    pub(crate) fn increment_script_blocking_stylesheet_count(&self) {
+        let count_cell = &self.script_blocking_stylesheets_count;
+        count_cell.set(count_cell.get() + 1);
     }
 
-    pub(crate) fn remove_script_blocking_stylesheet(&self, id: StylesheetContextId) {
-        self.script_blocking_stylesheet_set
-            .borrow_mut()
-            .shift_remove(&id);
+    pub(crate) fn decrement_script_blocking_stylesheet_count(&self) {
+        let count_cell = &self.script_blocking_stylesheets_count;
+        assert!(count_cell.get() > 0);
+        count_cell.set(count_cell.get() - 1);
     }
 
     pub(crate) fn render_blocking_element_count(&self) -> u32 {
@@ -2010,8 +1993,8 @@ impl Document {
             }));
     }
 
-    /// Step 8 of <https://html.spec.whatwg.org/multipage/#the-end>
-    /// <https://html.spec.whatwg.org/multipage/#delay-the-load-event>
+    // https://html.spec.whatwg.org/multipage/#the-end
+    // https://html.spec.whatwg.org/multipage/#delay-the-load-event
     pub(crate) fn finish_load(&self, load: LoadType, cx: &mut JSContext) {
         // This does not delay the load event anymore.
         debug!("Document got finish_load: {:?}", load);
@@ -2042,8 +2025,6 @@ impl Document {
             _ => {},
         }
 
-        // START TODO(43149): Remove when document replacement is implemented
-
         // Step 4 is in another castle, namely at the end of
         // process_deferred_scripts.
 
@@ -2069,17 +2050,6 @@ impl Document {
         }
 
         ScriptThread::mark_document_with_no_blocked_loads(self);
-
-        // END TODO(43149): Remove when document replacement is implemented
-
-        // Step 8. Spin the event loop until there is nothing that delays the load event in the Document.
-        let document = Trusted::new(self);
-        self.owner_global()
-            .task_manager()
-            .dom_manipulation_task_source()
-            .queue(task!(wait_for_load_blockers: move |cx| {
-                document.root().wait_until_load_blockers_have_resolved(cx);
-            }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>
@@ -2262,7 +2232,6 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
-    // TODO(43149): Remove when document replacement is implemented
     pub(crate) fn maybe_queue_document_completion(&self, cx: &mut JSContext) {
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
         let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
@@ -2286,11 +2255,6 @@ impl Document {
             return;
         }
 
-        self.queue_document_completion(cx);
-    }
-
-    /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn queue_document_completion(&self, cx: &mut JSContext) {
         self.loader.borrow_mut().inhibit_events();
 
         // The rest will ever run only once per document.
@@ -2398,11 +2362,6 @@ impl Document {
         self.completely_loaded.get()
     }
 
-    pub(crate) fn start_the_end_loading_phase(&self) {
-        self.current_the_end_loading_phase
-            .set(TheEndLoadingPhase::ProcessingDeferredScripts);
-    }
-
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
     pub(crate) fn set_pending_parsing_blocking_script(
         &self,
@@ -2436,7 +2395,7 @@ impl Document {
     }
 
     fn process_pending_parsing_blocking_script(&self, cx: &mut JSContext) {
-        if self.has_a_stylesheet_that_is_blocking_scripts() {
+        if self.script_blocking_stylesheets_count.get() > 0 {
             return;
         }
         let pair = self
@@ -2476,7 +2435,6 @@ impl Document {
             scripts.swap_remove(idx);
         }
         element.execute(cx, result);
-        self.wait_until_asap_scripts_have_executed();
     }
 
     // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
@@ -2499,11 +2457,9 @@ impl Document {
         {
             element.execute(cx, result);
         }
-
-        self.wait_until_asap_scripts_have_executed();
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing>
+    // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
     pub(crate) fn add_deferred_script(&self, script: &HTMLScriptElement) {
         self.deferred_scripts.push(script);
     }
@@ -2520,82 +2476,67 @@ impl Document {
         self.process_deferred_scripts(cx);
     }
 
-    /// Step 5 of <https://html.spec.whatwg.org/multipage/#the-end>
+    /// <https://html.spec.whatwg.org/multipage/#the-end> step 3.
     fn process_deferred_scripts(&self, cx: &mut JSContext) {
-        if self.current_the_end_loading_phase.get() != TheEndLoadingPhase::ProcessingDeferredScripts
-        {
+        if self.ready_state.get() != DocumentReadyState::Interactive {
             return;
         }
-
-        // Step 5.1. Spin the event loop until the first script in the list of scripts that will execute when the
-        // document has finished parsing has its ready to be parser-executed set to true and the parser's Document
-        // has no style sheet that is blocking scripts.
+        // Part of substep 1.
         loop {
-            if self.has_a_stylesheet_that_is_blocking_scripts() {
+            if self.script_blocking_stylesheets_count.get() > 0 {
                 return;
             }
-            // Step 5.3. Remove the first script element from the list of scripts that will execute when the
-            // document has finished parsing (i.e. shift out the first entry in the list).
             if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
             {
-                // Step 5.2. Execute the script element given by the first script in the list of scripts that will execute when the document has finished parsing.
                 element.execute(cx, result);
             } else {
                 break;
             }
         }
-        // Step 5. While the list of scripts that will execute when the document has finished parsing is not empty:
         if self.deferred_scripts.is_empty() {
-            self.current_the_end_loading_phase
-                .set(TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts);
-            // TODO(43149): Use `dispatch_dom_content_loaded` when document replacement is implemented
+            // https://html.spec.whatwg.org/multipage/#the-end step 4.
             self.maybe_dispatch_dom_content_loaded();
         }
     }
 
     /// Step 6. of <https://html.spec.whatwg.org/multipage/#the-end>
     pub(crate) fn maybe_dispatch_dom_content_loaded(&self) {
-        // TODO(43149): Remove when document replacement is implemented
         if self.domcontentloaded_dispatched.get() {
             return;
         }
         self.domcontentloaded_dispatched.set(true);
-
-        self.dispatch_dom_content_loaded();
-    }
-
-    /// Step 6 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn dispatch_dom_content_loaded(&self) {
         assert_ne!(
             self.ReadyState(),
             DocumentReadyState::Complete,
             "Complete before DOMContentLoaded?"
         );
 
-        // Step 6. Queue a global task on the DOM manipulation task source given the Document's
+        // Step 6 Queue a global task on the DOM manipulation task source given the Document's
         // relevant global object to run the following substeps:
         let document = Trusted::new(self);
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(fire_dom_content_loaded_event: move |cx| {
-                // Step 6.1. Set the Document's load timing info's DOM content loaded event start time to
-                // the current high resolution time given the Document's relevant global object.
-                let document = document.root();
-                update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_start);
-                // Step 6.2. Fire an event named DOMContentLoaded at the Document object, with its bubbles attribute initialized to true.
-                document.upcast::<EventTarget>().fire_bubbling_event(cx, atom!("DOMContentLoaded"));
-                // Step 6.3. Set the Document's load timing info's DOM content loaded event end time to
-                // the current high resolution time given the Document's relevant global object.
-                update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_end);
-                // Step 6.4. Enable the client message queue of the ServiceWorkerContainer object
-                // whose associated service worker client is the Document object's relevant settings object.
-                // TODO
+            let document = document.root();
 
-                // Step 6.5. Invoke WebDriver BiDi DOM content loaded with the Document's browsing context,
-                // and a new WebDriver BiDi navigation status whose id is the Document object's during-loading
-                // navigation ID for WebDriver BiDi, status is "pending", and url is the Document object's URL.
-                // TODO
+            // Step 6.1 Set the Document's load timing info's DOM content loaded event start time
+            // to the current high resolution time given the Document's relevant global object.
+            update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_start);
+            // Step 6.2 Fire an event named DOMContentLoaded at the Document object, with its bubbles
+            // attribute initialized to true.
+            document.upcast::<EventTarget>().fire_bubbling_event(cx, atom!("DOMContentLoaded"));
+
+            // Step 6.3 Set the Document's load timing info's DOM content loaded event end time to the current
+            // high resolution time given the Document's relevant global object.
+            update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_end);
+
+            // TODO Step 6.4 Enable the client message queue of the ServiceWorkerContainer object whose associated
+            // service worker client is the Document object's relevant settings object.
+
+            // TODO Step 6.5 Invoke WebDriver BiDi DOM content loaded with the Document's browsing context, and
+            // a new WebDriver BiDi navigation status whose id is the Document object's during-loading
+            // navigation ID for WebDriver BiDi, status is "pending", and url is the Document object's URL.
             }));
 
         // html parsing has finished - set dom content loaded
@@ -2603,79 +2544,8 @@ impl Document {
             .borrow()
             .maybe_set_tti(InteractiveFlag::DOMContentLoaded);
 
-        self.wait_until_asap_scripts_have_executed();
-    }
-
-    fn has_finished_all_asap_scripts(&self) -> bool {
-        self.asap_scripts_set.borrow().is_empty() && self.asap_in_order_scripts_list.is_empty()
-    }
-
-    /// Step 7 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn wait_until_asap_scripts_have_executed(&self) {
-        if self.current_the_end_loading_phase.get() !=
-            TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts
-        {
-            return;
-        }
-        // Step 7. Spin the event loop until the set of scripts that will execute as soon as possible
-        // and the list of scripts that will execute in order as soon as possible are empty.
-        if self.has_finished_all_asap_scripts() {
-            let document = Trusted::new(self);
-            self.owner_global()
-                .task_manager()
-                .dom_manipulation_task_source()
-                .queue(task!(transition_away_from_asap_scripts: move |cx| {
-                    let document = document.root();
-                    // Ensure that if this task is fired multiple times, we only progress the
-                    // end of loading phase once.
-                    if document.current_the_end_loading_phase.get() !=
-                        TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts
-                    {
-                        return;
-                    }
-                    // Check again if we still fulfil the goal
-                    if !document.has_finished_all_asap_scripts() {
-                        return;
-                    }
-                    document.current_the_end_loading_phase
-                        .set(TheEndLoadingPhase::WaitingForLoadEventBlockers);
-                    document.wait_until_load_blockers_have_resolved(cx);
-                }));
-        }
-    }
-
-    /// Step 8 of <https://html.spec.whatwg.org/multipage/#the-end>
-    pub(crate) fn wait_until_load_blockers_have_resolved(&self, _cx: &mut JSContext) {
-        if self.current_the_end_loading_phase.get() !=
-            TheEndLoadingPhase::WaitingForLoadEventBlockers
-        {
-            return;
-        }
-        // Step 8. Spin the event loop until there is nothing that delays the load event in the Document.
-        {
-            let loader = self.loader.borrow();
-
-            // Servo measures when the top-level content (not iframes) is loaded.
-            if self
-                .navigation_timing
-                .top_level_dom_complete
-                .get()
-                .is_none() &&
-                loader.is_only_blocked_by_iframes()
-            {
-                update_with_current_instant(&self.navigation_timing.top_level_dom_complete);
-            }
-
-            let not_ready_for_load = loader.is_blocked() || loader.events_inhibited();
-            if not_ready_for_load {
-                return;
-            }
-        }
-
-        self.current_the_end_loading_phase
-            .set(TheEndLoadingPhase::Done);
-        // TODO(43149): Add when document replacement is implemented
-        // self.queue_document_completion(cx);
+        // Step 4.2.
+        // TODO: client message queue.
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
@@ -2796,7 +2666,7 @@ impl Document {
         // from the network for them. If this resulted in any instances of the fetch algorithm
         // being canceled or any queued tasks or any network data getting discarded,
         // then make document unsalvageable given document and "fetch".
-        self.script_blocking_stylesheet_set.borrow_mut().clear();
+        self.script_blocking_stylesheets_count.set(0);
         *self.pending_parsing_blocking_script.borrow_mut() = None;
         *self.asap_scripts_set.borrow_mut() = vec![];
         self.asap_in_order_scripts_list.clear();
@@ -2986,9 +2856,9 @@ impl Document {
             .set(counter - 1);
     }
 
-    pub(crate) fn react_to_environment_changes(&self, cx: &JSContext) {
+    pub(crate) fn react_to_environment_changes(&self) {
         for image in self.responsive_images.borrow().iter() {
-            image.react_to_environment_changes(cx);
+            image.react_to_environment_changes();
         }
     }
 
@@ -3772,10 +3642,10 @@ impl Document {
             stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
+
             current_script: Default::default(),
-            current_the_end_loading_phase: Default::default(),
             pending_parsing_blocking_script: Default::default(),
-            script_blocking_stylesheet_set: Default::default(),
+            script_blocking_stylesheets_count: Default::default(),
             render_blocking_element_count: Default::default(),
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
@@ -3963,7 +3833,6 @@ impl Document {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        cx: &mut JSContext,
         window: &Window,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
@@ -3986,9 +3855,9 @@ impl Document {
         creation_sandboxing_flag_set: SandboxingFlagSet,
         pipeline_id: PipelineId,
         image_cache: StdArc<dyn ImageCache>,
+        can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
-            cx,
             window,
             None,
             has_browsing_context,
@@ -4012,12 +3881,12 @@ impl Document {
             creation_sandboxing_flag_set,
             pipeline_id,
             image_cache,
+            can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         has_browsing_context: HasBrowsingContext,
@@ -4041,9 +3910,10 @@ impl Document {
         creation_sandboxing_flag_set: SandboxingFlagSet,
         pipeline_id: PipelineId,
         image_cache: StdArc<dyn ImageCache>,
+        can_gc: CanGc,
     ) -> DomRoot<Document> {
-        let timeline = DocumentTimeline::new(cx, window);
-        let document = reflect_dom_object_with_proto_and_cx(
+        let timeline = DocumentTimeline::new(window, can_gc);
+        let document = reflect_dom_object_with_proto(
             Box::new(Document::new_inherited(
                 window,
                 has_browsing_context,
@@ -4071,7 +3941,7 @@ impl Document {
             )),
             window,
             proto,
-            cx,
+            can_gc,
         );
         {
             let node = document.upcast::<Node>();
@@ -4237,7 +4107,7 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     pub(crate) fn appropriate_template_contents_owner_document(
         &self,
-        cx: &mut JSContext,
+        can_gc: CanGc,
     ) -> DomRoot<Document> {
         self.appropriate_template_contents_owner_document
             .or_init(|| {
@@ -4247,7 +4117,6 @@ impl Document {
                     IsHTMLDocument::NonHTMLDocument
                 };
                 let new_doc = Document::new(
-                    cx,
                     self.window(),
                     HasBrowsingContext::No,
                     None,
@@ -4271,6 +4140,7 @@ impl Document {
                     self.creation_sandboxing_flag_set(),
                     self.pipeline_id(),
                     self.image_cache.clone(),
+                    can_gc,
                 );
                 new_doc
                     .appropriate_template_contents_owner_document
@@ -4560,7 +4430,7 @@ impl Document {
     ) {
         self.window
             .layout()
-            .load_web_fonts_from_stylesheet(stylesheet, &self.window.web_font_context(cx.no_gc()));
+            .load_web_fonts_from_stylesheet(stylesheet, &self.window.web_font_context());
         self.switch_font_face_set_to_loading_if_needed(cx);
     }
 
@@ -4573,7 +4443,7 @@ impl Document {
         self.window.layout_mut().add_stylesheet(
             stylesheet,
             before_stylesheet,
-            &self.window.web_font_context(cx.no_gc()),
+            &self.window.web_font_context(),
         );
         self.switch_font_face_set_to_loading_if_needed(cx);
     }
@@ -4999,15 +4869,14 @@ impl Document {
 impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-document>
     fn Constructor(
-        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
         // The new Document() constructor steps are to set this’s origin to the origin of current global object’s associated Document. [HTML]
         let doc = window.Document();
         let docloader = DocumentLoader::new(&doc.loader());
         Ok(Document::new_with_proto(
-            cx,
             window,
             proto,
             HasBrowsingContext::No,
@@ -5031,6 +4900,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.active_sandboxing_flag_set.get(),
             doc.pipeline_id(),
             doc.image_cache(),
+            can_gc,
         ))
     }
 
@@ -5061,7 +4931,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 2. Let document be a new Document, whose content type is "text/html".
         // Step 3. Set document's allow declarative shadow roots to true.
         let document = Document::new(
-            cx,
             window,
             HasBrowsingContext::No,
             Some(ServoUrl::parse("about:blank").unwrap()),
@@ -5084,6 +4953,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.creation_sandboxing_flag_set(),
             doc.pipeline_id(),
             doc.image_cache(),
+            CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
         ServoParser::parse_html_document(cx, &document, Some(compliant_html), url, None, None);
@@ -5116,7 +4986,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .parse()
             .expect("Supported type is not a MIME type");
         let document = Document::new(
-            cx,
             window,
             HasBrowsingContext::No,
             Some(ServoUrl::parse("about:blank").unwrap()),
@@ -5139,6 +5008,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.creation_sandboxing_flag_set(),
             doc.pipeline_id(),
             doc.image_cache(),
+            CanGc::from_cx(cx),
         );
 
         // Step 3. Parse HTML from a string given document and html.
@@ -5156,20 +5026,20 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-document-stylesheets>
-    fn StyleSheets(&self, cx: &mut JSContext) -> DomRoot<StyleSheetList> {
+    fn StyleSheets(&self, can_gc: CanGc) -> DomRoot<StyleSheetList> {
         self.stylesheet_list.or_init(|| {
             StyleSheetList::new(
-                cx,
                 &self.window,
                 StyleSheetListOwner::Document(Dom::from_ref(self)),
+                can_gc,
             )
         })
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-implementation>
-    fn Implementation(&self, cx: &mut JSContext) -> DomRoot<DOMImplementation> {
+    fn Implementation(&self, can_gc: CanGc) -> DomRoot<DOMImplementation> {
         self.implementation
-            .or_init(|| DOMImplementation::new(cx, self))
+            .or_init(|| DOMImplementation::new(self, can_gc))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-url>
@@ -5744,12 +5614,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter>
     fn CreateNodeIterator(
         &self,
-        cx: &mut js::context::JSContext,
         root: &Node,
         what_to_show: u32,
         filter: Option<Rc<NodeFilter>>,
+        can_gc: CanGc,
     ) -> DomRoot<NodeIterator> {
-        NodeIterator::new(cx, self, root, what_to_show, filter)
+        NodeIterator::new(self, root, what_to_show, filter, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createtreewalker>
@@ -6047,7 +5917,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         cx: &mut JSContext,
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
-        self.upcast::<Node>().query_selector_all(cx, selectors)
+        self.upcast::<Node>()
+            .query_selector_all(cx.no_gc(), selectors)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-readystate>

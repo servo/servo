@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XMLHttpRequestUpload {
@@ -21,7 +21,11 @@ impl XMLHttpRequestUpload {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
         }
     }
-    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<XMLHttpRequestUpload> {
-        reflect_dom_object_with_cx(Box::new(XMLHttpRequestUpload::new_inherited()), global, cx)
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<XMLHttpRequestUpload> {
+        reflect_dom_object(
+            Box::new(XMLHttpRequestUpload::new_inherited()),
+            global,
+            can_gc,
+        )
     }
 }

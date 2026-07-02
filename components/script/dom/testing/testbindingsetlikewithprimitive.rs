@@ -6,17 +6,17 @@
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
-use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::like::Setlike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::TestBindingSetlikeWithPrimitiveBinding::TestBindingSetlikeWithPrimitiveMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 use crate::setlike;
 
 // setlike<DOMString>
@@ -29,18 +29,18 @@ pub(crate) struct TestBindingSetlikeWithPrimitive {
 
 impl TestBindingSetlikeWithPrimitive {
     fn new(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<TestBindingSetlikeWithPrimitive> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(TestBindingSetlikeWithPrimitive {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(IndexSet::new()),
             }),
             global,
             proto,
-            cx,
+            can_gc,
         )
     }
 }
@@ -49,11 +49,11 @@ impl TestBindingSetlikeWithPrimitiveMethods<crate::DomTypeHolder>
     for TestBindingSetlikeWithPrimitive
 {
     fn Constructor(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingSetlikeWithPrimitive>> {
-        Ok(TestBindingSetlikeWithPrimitive::new(cx, global, proto))
+        Ok(TestBindingSetlikeWithPrimitive::new(global, proto, can_gc))
     }
 
     fn Size(&self) -> u32 {

@@ -7,6 +7,9 @@ use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
 
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{MessagePortId, MessagePortIndex};
+use servo_constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::{FromJSValConvertible, ToJSValConvertible};
@@ -19,9 +22,6 @@ use js::rust::{
 };
 use js::typedarray::{ArrayBufferViewU8, Uint8};
 use rustc_hash::FxHashMap;
-use servo_base::generic_channel::GenericSharedMemory;
-use servo_base::id::{MessagePortId, MessagePortIndex};
-use servo_constellation_traits::MessagePortImpl;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
@@ -68,8 +68,8 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::StructuredData;
 
-use super::readablestreambyobreader::ReadIntoRequest;
 use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource, create_buffer_source};
+use super::readablestreambyobreader::ReadIntoRequest;
 
 /// State Machine for `PipeTo`.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
@@ -1265,7 +1265,7 @@ impl ReadableStream {
 
     /// Return bytes for synchronous use, if the stream has all data in memory.
     /// Useful for native source integration only.
-    pub(crate) fn get_in_memory_bytes(&self, cx: &mut JSContext) -> Option<GenericSharedMemory> {
+    pub(crate) fn get_in_memory_bytes(&self) -> Option<GenericSharedMemory> {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => controller
                 .get()
@@ -1275,7 +1275,7 @@ impl ReadableStream {
             Some(ControllerType::Byte(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .get_in_memory_bytes(cx)
+                .get_in_memory_bytes()
                 .map(GenericSharedMemory::from_vec),
             _ => unreachable!("Getting in-memory bytes for a stream without a controller"),
         }

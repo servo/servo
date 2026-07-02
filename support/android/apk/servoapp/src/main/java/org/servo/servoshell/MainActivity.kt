@@ -5,6 +5,7 @@
  */
 package org.servo.servoshell
 
+import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.SharedPreferences
@@ -18,13 +19,6 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.core.content.getSystemService
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
@@ -33,7 +27,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoView
 
-class MainActivity : AppCompatActivity(), Servo.Client {
+class MainActivity : Activity(), Servo.Client {
     private lateinit var servoView: ServoView
     private var bottomNav: BottomNavigationView? = null
 
@@ -42,9 +36,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
     private lateinit var progressBar: CircularProgressIndicator
     private lateinit var idleText: TextView
-    private var canGoBackState = mutableStateOf(false)
-    private var canGoForwardState = mutableStateOf(false)
-    private var isRefreshingState = mutableStateOf(false)
+    private var canGoBack = false
     private var mediaSession: MediaSession? = null
     private lateinit var historyManager: HistoryManager
     private var currentUrl = ""
@@ -56,6 +48,17 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     }
 
     private lateinit var settings: Settings
+
+    private val actionClickListener = View.OnClickListener { v -> dispatchAction(v.id) }
+
+    // Binds a click listener to a View if it exists.
+    // Useful for handling buttons that only exist in the tablet+ layout
+    private fun bindClick(id: Int) {
+        val v = findViewById<View>(id)
+        if (v != null) {
+            v.setOnClickListener(actionClickListener)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,47 +87,12 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         bottomNav = findViewById(R.id.bottom_bar)
         bottomNav?.setOnItemSelectedListener { item -> dispatchAction(item.itemId) }
 
-        findViewById<View>(R.id.toolbar)?.apply {
-            findViewById<ComposeView>(R.id.history_back_menu_item).apply {
-                setContent {
-                    IconButton(onClick = { dispatchAction(id) }, enabled = canGoBackState.value) {
-                        Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
-                    }
-                }
-            }
-            findViewById<ComposeView>(R.id.history_forward_menu_item).apply {
-                setContent {
-                    IconButton(onClick = { dispatchAction(id) }, enabled = canGoForwardState.value) {
-                        Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
-                    }
-                }
-            }
-            findViewById<ComposeView>(R.id.refresh_menu_item).apply {
-                setContent {
-                    IconButton(onClick = { dispatchAction(if (isRefreshingState.value) R.id.cancel_menu_item else R.id.refresh_menu_item) }) {
-                        if (isRefreshingState.value) {
-                            Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
-                        } else {
-                            Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
-                        }
-                    }
-                }
-            }
-            findViewById<ComposeView>(R.id.settings_menu_item).apply {
-                setContent {
-                    IconButton(onClick = { dispatchAction(id) }) {
-                        Icon(painterResource(R.drawable.settings), stringResource(R.string.options))
-                    }
-                }
-            }
-            findViewById<ComposeView>(R.id.history_menu_item).apply {
-                setContent {
-                    IconButton(onClick = { dispatchAction(id) }) {
-                        Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
-                    }
-                }
-            }
-        }
+        bindClick(R.id.history_back_menu_item)
+        bindClick(R.id.history_forward_menu_item)
+        bindClick(R.id.refresh_menu_item)
+        bindClick(R.id.cancel_menu_item)
+        bindClick(R.id.settings_menu_item)
+        bindClick(R.id.history_menu_item)
 
         servoView.setClient(this)
         servoView.requestFocus()
@@ -247,7 +215,9 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             bottomNav.menu.findItem(R.id.cancel_menu_item).isVisible = true
             bottomNav.menu.findItem(R.id.refresh_menu_item).isVisible = false
         }
-        isRefreshingState.value = true
+        // tablet view
+        findViewById<View>(R.id.cancel_menu_item).isVisible = true
+        findViewById<View>(R.id.refresh_menu_item).isVisible = false
 
         progressBar.isVisible = true
     }
@@ -266,7 +236,9 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             bottomNav.menu.findItem(R.id.cancel_menu_item).isVisible = false
             bottomNav.menu.findItem(R.id.refresh_menu_item).isVisible = true
         }
-        isRefreshingState.value = false
+        // tablet view
+        findViewById<View>(R.id.cancel_menu_item).isVisible = false
+        findViewById<View>(R.id.refresh_menu_item).isVisible = true
         progressBar.isVisible = false
     }
 
@@ -286,8 +258,10 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             bottomNav.menu.findItem(R.id.history_back_menu_item).isEnabled = canGoBack
             bottomNav.menu.findItem(R.id.history_forward_menu_item).isEnabled = canGoForward
         }
-        canGoBackState.value = canGoBack
-        canGoForwardState.value = canGoForward
+        // tablet view
+        findViewById<View>(R.id.history_back_menu_item).isEnabled = canGoBack
+        findViewById<View>(R.id.history_forward_menu_item).isEnabled = canGoForward
+        this.canGoBack = canGoBack
     }
 
     override fun onRedrawing(redrawing: Boolean) {
@@ -307,7 +281,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (canGoBackState.value) {
+        if (canGoBack) {
             servoView.goBack()
         } else {
             super.onBackPressed()

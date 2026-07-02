@@ -57,7 +57,11 @@ impl DebuggerAddDebuggeeEvent {
 
 impl DebuggerAddDebuggeeEventMethods<crate::DomTypeHolder> for DebuggerAddDebuggeeEvent {
     // check-tidy: no specs after this line
-    fn Global(&self, mut return_value: MutableHandleObject) {
+    fn Global(
+        &self,
+        _cx: script_bindings::script_runtime::JSContext,
+        mut return_value: MutableHandleObject,
+    ) {
         return_value.set(self.global.get());
     }
 

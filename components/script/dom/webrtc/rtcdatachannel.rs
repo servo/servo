@@ -189,8 +189,15 @@ impl RTCDataChannel {
         let message = match error {
             WebRtcError::Backend(message) => DOMString::from(message),
         };
-        let error = RTCError::new(cx, window, &init, message);
-        let event = RTCErrorEvent::new(cx, window, atom!("error"), false, false, &error);
+        let error = RTCError::new(window, &init, message, CanGc::from_cx(cx));
+        let event = RTCErrorEvent::new(
+            window,
+            atom!("error"),
+            false,
+            false,
+            &error,
+            CanGc::from_cx(cx),
+        );
         event.upcast::<Event>().fire(cx, self.upcast());
     }
 

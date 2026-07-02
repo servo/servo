@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::{JSContext, NoGC};
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericCallback;
@@ -124,8 +124,8 @@ impl GPURenderPipelineMethods<crate::DomTypeHolder> for GPURenderPipeline {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, value: USVString) {
+        *self.label.borrow_mut() = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout>

@@ -1002,7 +1002,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGWrapper(CGGeneric(f"{name}<D>"), pre="Rc<", post=">")
-            template = f"{name}::new(cx, ${{val}}.get().to_object())"
+            template = f"{name}::new(SafeJSContext::from_ptr(cx.raw_cx()), ${{val}}.get().to_object())"
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
                 template = wrapObjectTemplate(f"Some({template})", "None",
@@ -1012,7 +1012,6 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             return handleOptional(template, declType, handleDefault("None"))
 
         conversionFunction = "root_from_handlevalue"
-        maybeCx = "cx, "
         descriptorType = descriptor.returnType
         if isMember == "Variadic":
             conversionFunction = "native_from_handlevalue"
@@ -1021,7 +1020,6 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             descriptorType = descriptor.argumentType
         elif descriptor.interface.identifier.name == "WindowProxy":
             conversionFunction = "windowproxy_from_handlevalue::<D>"
-            maybeCx = ""
 
         if failureCode is None:
             unwrapFailureCode = (
@@ -1033,7 +1031,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         templateBody = fill(
             """
-            match ${function}(${maybeCx}$${val}) {
+            match ${function}($${val}, SafeJSContext::from_ptr(cx.raw_cx())) {
                 Ok(val) => val,
                 Err(()) => {
                     $*{failureCode}
@@ -1041,8 +1039,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             }
             """,
             failureCode=unwrapFailureCode + "\n",
-            function=conversionFunction,
-            maybeCx=maybeCx)
+            function=conversionFunction)
 
 
         declType = CGGeneric(descriptorType)
@@ -1557,28 +1554,15 @@ def returnTypeNeedsOutparam(type: IDLType | None) -> bool:
         type = type.inner
     if type.isObject():
         return True
-    if type.isSequence():
-        assert isinstance(type, IDLSequenceType)
-        return returnTypeNeedsOutparam(type.inner)
     return type.isAny()
 
 
-def outparamTypeFromReturnType(type: IDLType, isInnerType: bool = False) -> str:
+def outparamTypeFromReturnType(type: IDLType) -> str:
     if type.isAny():
-        typename = "Value"
-    elif type.isObject():
-        typename = "*mut JSObject"
-    elif type.isSequence():
-        assert isinstance(type, IDLSequenceType)
-        inner_typename = outparamTypeFromReturnType(type.inner, isInnerType=True)
-        return f"&mut RootedVec<Box<Heap<{inner_typename}>>>"
-    else:
-        raise TypeError(f"Don't know how to handle {type} as an outparam")
-
-    if isInnerType:
-        return typename
-    else:
-        return f"MutableHandle<{typename}>"
+        return "MutableHandleValue"
+    if type.isObject():
+        return "MutableHandleObject"
+    raise TypeError(f"Don't know how to handle {type} as an outparam")
 
 
 # Returns a conversion behavior suitable for a type
@@ -1619,7 +1603,7 @@ def builtin_return_type(returnType: IDLType) -> CGThing:
 
 
 # Returns a CGThing containing the type of the return value.
-def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: DescriptorProvider, isInnerType: bool =False) -> CGThing:
+def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: DescriptorProvider) -> CGThing:
     if returnType is None or returnType.isUndefined():
         # Nothing to declare
         return CGGeneric("()")
@@ -1676,26 +1660,10 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isAny():
-        valueType = CGGeneric("JSVal")
-        if isInnerType:
-            return CGWrapper(valueType, pre="Box<Heap<", post=">>")
-        else:
-            return valueType
+        return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
-        objectType = CGGeneric("*mut JSObject")
-        if isInnerType:
-            return CGWrapper(objectType, pre="Box<Heap<", post=">>")
-        else:
-            return objectType
-    if returnType.isSequence():
-        result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider, isInnerType=True)
-        result = wrapInNativeContainerType(returnType, result)
-        if returnType.nullable():
-            result = CGWrapper(result, pre="Option<", post=">")
-        return result
-    # FIXME: The branches for isSequence() and isRecord() should be the same, but we don't use out-parameters for
-    # records containing unrooted JS types yet.
-    if returnType.isRecord():
+        return CGGeneric("*mut JSObject")
+    if returnType.isSequence() or returnType.isRecord():
         result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider)
         result = wrapInNativeContainerType(returnType, result)
         if returnType.nullable():
@@ -2676,23 +2644,39 @@ class CGDOMJSClass(CGThing):
             args["slots"] = "2"
         return f"""
 static CLASS_OPS: ThreadUnsafeOnceLock<JSClassOps> = ThreadUnsafeOnceLock::new();
+
+pub(crate) fn init_class_ops<D: DomTypes>() {{
+    CLASS_OPS.set(JSClassOps {{
+        addProperty: None,
+        delProperty: None,
+        enumerate: None,
+        newEnumerate: {args['enumerateHook']},
+        resolve: {args['resolveHook']},
+        mayResolve: {args['mayResolveHook']},
+        finalize: Some({args['finalizeHook']}),
+        call: None,
+        construct: None,
+        trace: Some({args['traceHook']}),
+    }});
+}}
+
 pub static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
 
 pub(crate) fn init_domjs_class<D: DomTypes>() {{
-    let js_class_config = crate::init::InitClassOpsConfig {{
-            enumerate_hook: {args["enumerateHook"]},
-            resolve_hook: {args["resolveHook"]},
-            may_resolve_hook: {args["mayResolveHook"]},
-            finalize_hook: {args["finalizeHook"]},
-            trace_hook: {args["traceHook"]}
-            }};
-    let domjs_class_config = crate::init::DomJSClassConfig {{
-        name: {args['name']},
-        flags: {args['flags']},
-        slots: {args['slots']},
-        class: {args['domClass']},
-    }};
-    crate::init::init_domjs_class(&CLASS_OPS, js_class_config, &Class, domjs_class_config);
+    init_class_ops::<D>();
+    Class.set(DOMJSClass {{
+        base: JSClass {{
+            name: {args['name']},
+            flags: JSCLASS_IS_DOMJSCLASS | {args['flags']} |
+                   ((({args['slots']}) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
+                   /* JSCLASS_HAS_RESERVED_SLOTS({args['slots']}) */,
+            cOps: unsafe {{ CLASS_OPS.get() }},
+            spec: ptr::null(),
+            ext: ptr::null(),
+            oOps: ptr::null(),
+        }},
+        dom_class: {args['domClass']},
+    }});
 }}
 """
 
@@ -2865,7 +2849,7 @@ class CGGeneric(CGThing):
 
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name: str) -> None:
-        CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(cx, ${{val}}.get().to_object())")
+        CGGeneric.__init__(self, f"{name.replace('<D>', '::<D>')}::new(SafeJSContext::from_ptr(cx.raw_cx()), ${{val}}.get().to_object())")
 
 
 def getAllTypes(
@@ -4194,10 +4178,10 @@ class CGCallGenerator(CGThing):
 
         result = getRetvalDeclarationForType(returnType, descriptor)
         if returnType and returnTypeNeedsOutparam(returnType):
-            outparamRootType = result
+            rootType = result
             result = CGGeneric("()")
         else:
-            outparamRootType = None
+            rootType = None
 
         if isFallible:
             result = CGWrapper(result, pre="Result<", post=", Error>")
@@ -4209,45 +4193,44 @@ class CGCallGenerator(CGThing):
                 name = f"&{name}"
             args.append(CGGeneric(name))
 
+        needsCx = False
         match max([needCx(returnType, (a for (a, _) in arguments), True), Context.Cx if is_implicit_cx_attribute else Context.No]):
             case Context.Cx:
                 descriptor.cxMethods.append(nativeMethodName)
             case Context.CurrentRealm:
                 descriptor.realmMethods.append(nativeMethodName)
+            case Context.OldCx:
+                needsCx = True
             case Context.No:
                 pass
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
-        if nativeMethodName in descriptor.realmMethods:
+        if nativeMethodName in descriptor.cx_no_gcMethods or nativeMethodName in descriptor.cxMethods:
+            args.prepend(CGGeneric("cx"))
+        elif nativeMethodName in descriptor.realmMethods:
             self.cgRoot.append(CGList([
                 CGGeneric("let mut realm = CurrentRealm::assert(cx);"),
                 CGGeneric("let cx = &mut realm;"),
             ]))
             args.prepend(CGGeneric("cx"))
-        elif nativeMethodName in descriptor.no_gcMethods or nativeMethodName in descriptor.cx_no_gcMethods or nativeMethodName in descriptor.cxMethods or nativeMethodName.startswith("Constructor"):
-            args.prepend(CGGeneric("cx"))
         # Workaround for iterators `Next` method until `safe_cx` is the default
         elif descriptor.interface.isIteratorInterface():
             args.prepend(CGGeneric("cx"))
         else:
+            if "cx" not in argsPre and needsCx:
+                args.prepend(CGGeneric("SafeJSContext::from_ptr(cx.raw_cx())"))
             if nativeMethodName in descriptor.canGcMethods:
                 args.append(CGGeneric("CanGc::deprecated_note()"))
+        if rootType:
+            args.append(CGGeneric("retval.handle_mut()"))
 
-        if returnType and outparamRootType:
-            if returnType.isSequence():
-                args.append(CGGeneric("&mut retval"))
-            else:
-                args.append(CGGeneric("retval.handle_mut()"))
-
-            if returnType.isSequence():
-                self.cgRoot.append(CGGeneric("rooted_vec!(let mut retval);"))
-            else:
-                self.cgRoot.append(CGList([
-                    CGGeneric("rooted!(&in(cx) let mut retval: "),
-                    outparamRootType,
-                    CGGeneric(");"),
-                ]))
+        if rootType:
+            self.cgRoot.append(CGList([
+                CGGeneric("rooted!(&in(cx) let mut retval: "),
+                rootType,
+                CGGeneric(");"),
+            ]))
 
         call = CGGeneric(nativeMethodName)
         if static:
@@ -6946,6 +6929,9 @@ let global = D::GlobalScope::from_object(JS_CALLEE(cx.raw_cx(), vp).to_object())
                     "Some(desired_proto)",
                 ]
 
+            if nativeName not in self.descriptor.cxMethods and nativeName not in self.descriptor.realmMethods:
+                args += ['CanGc::from_cx(cx)']
+
             constructor = CGMethodCall(args, nativeName, True, self.descriptor, self.constructor)
             constructorCall = f"""
             call_default_constructor::<D>(
@@ -6997,23 +6983,23 @@ class CGInterfaceTrait(CGThing):
 
         def attribute_arguments(attribute_type: IDLType,
                                 argument: IDLType | None = None,
-                                no_gc: bool = False,
                                 cx_no_gc: bool = False,
                                 cx: bool = False,
                                 realm: bool = False,
                                 canGc: bool = False,
                                 retval: bool = False
                                 ) -> Iterable[tuple[str, str]]:
-            if realm:
-                yield "realm", "&mut CurrentRealm"
+            if cx_no_gc:
+                yield "cx", "&JSContext"
             elif cx:
                 yield "cx", "&mut JSContext"
-            elif cx_no_gc:
-                yield "cx", "&JSContext"
-            elif no_gc:
-                yield "cx", "&NoGC"
+            elif realm:
+                yield "realm", "&mut CurrentRealm"
 
-            safe_cx = cx or cx_no_gc or realm or no_gc
+            safe_cx = cx or cx_no_gc or realm
+
+            if typeNeedsCx(attribute_type, retval) and not safe_cx:
+                yield "cx", "SafeJSContext"
 
             if argument:
                 yield "value", argument_type(descriptor, argument)
@@ -7042,7 +7028,6 @@ class CGInterfaceTrait(CGThing):
                         rettype = cast(IDLType, rettype)
                         arguments = cast(list[IDLArgument], arguments)
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods or descriptor.interface.isIteratorInterface(),
                                                      realm=name in descriptor.realmMethods,
@@ -7062,7 +7047,6 @@ class CGInterfaceTrait(CGThing):
                     yield (name,
                            attribute_arguments(
                                m.type,
-                               no_gc=name in descriptor.no_gcMethods,
                                cx_no_gc=name in descriptor.cx_no_gcMethods,
                                cx=name in descriptor.cxMethods or isEventHandlerCallback(m),
                                realm=name in descriptor.realmMethods,
@@ -7083,7 +7067,6 @@ class CGInterfaceTrait(CGThing):
                                attribute_arguments(
                                    m.type,
                                    m.type,
-                                   no_gc=name in descriptor.no_gcMethods,
                                    cx_no_gc=name in descriptor.cx_no_gcMethods,
                                    cx=name in descriptor.cxMethods or descriptor.implicitCxSetters or isEventHandlerCallback(m),
                                    realm=name in descriptor.realmMethods,
@@ -7106,7 +7089,6 @@ class CGInterfaceTrait(CGThing):
                         if not rettype.nullable():
                             rettype = IDLNullableType(rettype.location, rettype)
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods,
@@ -7121,7 +7103,6 @@ class CGInterfaceTrait(CGThing):
                             yield "SupportedPropertyNames", [("no_gc", "&NoGC")], "Vec<DOMString>", False
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods,
@@ -7166,13 +7147,19 @@ class CGInterfaceTrait(CGThing):
             infallible = 'infallible' in descriptor.getExtendedAttributes(ctor)
             for (i, (rettype, arguments)) in enumerate(ctor.signatures()):
                 name = (baseName or ctor.identifier.name) + ('_' * i)
+                cx = name in descriptor.cxMethods
                 realm = name in descriptor.realmMethods
-                args = list(method_arguments(descriptor, rettype, arguments, cx=True, realm=realm))
+                args = list(method_arguments(descriptor, rettype, arguments, cx=cx, realm=realm))
                 extra = [
                     ("global", f"&D::{exposedGlobal}"),
                     ("proto", "Option<HandleObject>"),
                 ]
-                args = [args[0]] + extra + args[1:]
+                if not cx and not realm:
+                    extra += [("can_gc", "CanGc")]
+                if args and (args[0][0] == "cx" or args[0][0] == "realm"):
+                    args = [args[0]] + extra + args[1:]
+                else:
+                    args = extra + args
                 yield CGGeneric(
                     f"fn {name}({fmt(args, leadingComma=False)}) -> "
                     f"{return_type(descriptorProvider, rettype, infallible)};\n"
@@ -8355,31 +8342,32 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      arguments: Iterable[IDLArgument | FakeArgument],
                      passJSBits: bool = True,
                      trailing: tuple[str, str] | None = None,
-                     no_gc: bool = False,
                      cx_no_gc: bool = False,
                      cx: bool = False,
                      realm: bool = False,
                      canGc: bool = False
                      ) -> Iterator[tuple[str, str]]:
-
+    old_cx = False
     match needCx(returnType, arguments, passJSBits):
         case Context.Cx:
             cx = True
         case Context.CurrentRealm:
             realm = True
+        case Context.OldCx:
+            old_cx = True
         case Context.No:
             pass
-
-    if realm:
-        yield "realm", "&mut CurrentRealm"
+    if cx_no_gc:
+        yield "cx", "&JSContext"
     elif cx:
         yield "cx", "&mut JSContext"
-    elif cx_no_gc:
-        yield "cx", "&JSContext"
-    elif no_gc:
-        yield "cx", "&NoGC"
+    elif realm:
+        yield "realm", "&mut CurrentRealm"
 
-    safe_cx = cx or cx_no_gc or realm or no_gc
+    safe_cx = cx or cx_no_gc or realm
+
+    if old_cx and not safe_cx:
+        yield "cx", "SafeJSContext"
 
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,
@@ -8477,7 +8465,7 @@ class CGCallback(CGClass):
 
     def getConstructors(self) -> list[ClassConstructor]:
         return [ClassConstructor(
-            [Argument("&JSContext", "cx"), Argument("*mut JSObject", "aCallback")],
+            [Argument("SafeJSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
             bodyInHeader=True,
             visibility="pub",
             explicit=False,
@@ -8490,7 +8478,7 @@ class CGCallback(CGClass):
         args = list(method.args)
         # Strip out the JSContext*/JSObject* args
         # that got added.
-        assert args[0].name == "cx" and args[0].argType == "&mut JSContext"
+        assert args[0].name == "cx" and args[0].argType == "SafeJSContext"
         assert args[1].name == "aThisObj" and args[1].argType == "HandleValue"
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
@@ -8570,7 +8558,7 @@ class CGCallbackFunctionImpl(CGGeneric):
         type = f"{callback.identifier.name}<D>"
         impl = (f"""
 impl<D: DomTypes> CallbackContainer<D> for {type} {{
-    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> Rc<{type}> {{
+    unsafe fn new(cx: SafeJSContext, callback: *mut JSObject) -> Rc<{type}> {{
         {type.replace('<D>', '')}::new(cx, callback)
     }}
 
@@ -8772,7 +8760,7 @@ class CallbackMember(CGNativeMember):
             return args
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
-        return [Argument("&mut JSContext", "cx"),
+        return [Argument("SafeJSContext", "cx"),
                 Argument("HandleValue", "aThisObj")] + args
 
     def getCallSetup(self) -> str:

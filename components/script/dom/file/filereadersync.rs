@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -21,6 +21,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::filereader::FileReaderSharedFunctionality;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct FileReaderSync {
@@ -35,15 +36,15 @@ impl FileReaderSync {
     }
 
     fn new(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<FileReaderSync> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
             Box::new(FileReaderSync::new_inherited()),
             global,
             proto,
-            cx,
+            can_gc,
         )
     }
 
@@ -55,11 +56,11 @@ impl FileReaderSync {
 impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
     /// <https://w3c.github.io/FileAPI/#filereadersyncConstrctr>
     fn Constructor(
-        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<FileReaderSync>> {
-        Ok(FileReaderSync::new(cx, global, proto))
+        Ok(FileReaderSync::new(global, proto, can_gc))
     }
 
     /// <https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection>

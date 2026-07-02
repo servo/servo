@@ -12,18 +12,15 @@ pub(crate) mod base {
         ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
     };
     pub(crate) use js::error::throw_type_error;
-    pub(crate) use js::gc::RootedVec;
     pub(crate) use js::jsapi::{
-        HandleValue as RawHandleValue, HandleValueArray, Heap, IsCallable, JSObject, Value,
+        HandleValue as RawHandleValue, HandleValueArray, Heap, IsCallable, JSObject,
     };
     pub(crate) use js::jsval::{JSVal, NullValue, ObjectOrNullValue, ObjectValue, UndefinedValue};
     pub(crate) use js::panic::maybe_resume_unwind;
     #[allow(unused_imports)]
     pub(crate) use js::realm::{AutoRealm, CurrentRealm};
     pub(crate) use js::rust::wrappers2::{Call, JS_NewObject};
-    pub(crate) use js::rust::{
-        HandleObject, HandleValue, MutableHandle, MutableHandleObject, MutableHandleValue,
-    };
+    pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
     pub(crate) use js::typedarray;
     pub(crate) use js::typedarray::{
         HeapArrayBuffer, HeapArrayBufferView, HeapFloat32Array, HeapFloat64Array, HeapUint8Array,
@@ -45,6 +42,7 @@ pub(crate) mod base {
     pub(crate) use crate::proxyhandler::{CrossOriginProperties, is_platform_object_same_origin};
     pub(crate) use crate::reflector::DomObject;
     pub(crate) use crate::root::DomRoot;
+    pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
     pub(crate) use crate::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::trace::RootedTraceableBox;
     pub(crate) use crate::utils::{get_dictionary_property, set_dictionary_property};
@@ -83,8 +81,8 @@ pub(crate) mod module {
     };
     pub(crate) use js::rust::{CustomAutoRooterGuard, GCMethods, Handle, MutableHandle};
     pub(crate) use js::{
-        JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_MASK,
-        typedarray,
+        JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,
+        JSCLASS_RESERVED_SLOTS_MASK, typedarray,
     };
     pub(crate) use servo_config::pref;
 

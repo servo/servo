@@ -26,7 +26,6 @@ use embedder_traits::{
 use fonts::FontContext;
 use indexmap::IndexSet;
 use ipc_channel::router::ROUTER;
-use js::context::NoGC;
 use js::jsapi::{
     CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap, JSContext, JSObject,
 };
@@ -149,11 +148,11 @@ use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord}
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::enter_auto_realm;
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
-use crate::script_runtime::{CanGc, ThreadSafeJSContext};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
@@ -2345,7 +2344,7 @@ impl GlobalScope {
     /// Returns the global scope of the realm that the given DOM object's reflector
     /// was created in.
     #[expect(unsafe_code)]
-    pub(crate) fn from_reflector<T: DomObject>(reflector: &T) -> DomRoot<Self> {
+    pub(crate) fn from_reflector<T: DomObject>(reflector: &T, _realm: InRealm) -> DomRoot<Self> {
         unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
     }
 
@@ -2421,6 +2420,14 @@ impl GlobalScope {
 
     pub(crate) fn get_module_map_entry(&self, request: &ModuleRequest) -> Option<ModuleStatus> {
         self.module_map.borrow().get(request).cloned()
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn get_cx() -> SafeJSContext {
+        let cx = Runtime::get()
+            .expect("Can't obtain context after runtime shutdown")
+            .as_ptr();
+        unsafe { SafeJSContext::from_ptr(cx) }
     }
 
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
@@ -2622,21 +2629,12 @@ impl GlobalScope {
     }
 
     /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
-    pub(crate) fn request_client(&self, no_gc: Option<&NoGC>) -> RequestClient {
+    pub(crate) fn request_client(&self) -> RequestClient {
         // Step 1.2.2. If global is a Window object and global’s navigable is not null,
         // then set request’s traversable for user prompts to global’s navigable’s traversable navigable.
         let window = self.downcast::<Window>();
         let preloaded_resources = window
-            .map(|window: &Window| {
-                if let Some(no_gc) = no_gc {
-                    window
-                        .document_unrooted(no_gc)
-                        .preloaded_resources()
-                        .clone()
-                } else {
-                    window.Document().preloaded_resources().clone()
-                }
-            })
+            .map(|window: &Window| window.Document().preloaded_resources().clone())
             .unwrap_or_default();
         let is_nested_browsing_context = window.is_some_and(|window| !window.is_top_level());
         RequestClient {
@@ -3085,11 +3083,11 @@ impl GlobalScope {
     }
 
     /// Enqueue a microtask for subsequent execution.
-    pub(crate) fn enqueue_microtask(&self, cx: &js::context::JSContext, job: Microtask) {
+    pub(crate) fn enqueue_microtask(&self, job: Microtask) {
         if self.is::<Window>() {
-            ScriptThread::enqueue_microtask(cx, job);
+            ScriptThread::enqueue_microtask(job);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            worker.enqueue_microtask(cx, job);
+            worker.enqueue_microtask(job);
         }
     }
 
@@ -3604,12 +3602,16 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         GlobalScope::from_current_realm(realm)
     }
 
+    fn get_cx() -> SafeJSContext {
+        GlobalScope::get_cx()
+    }
+
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<Self> {
         unsafe { GlobalScope::from_object(obj) }
     }
 
-    fn from_reflector(reflector: &impl DomObject) -> DomRoot<Self> {
-        GlobalScope::from_reflector(reflector)
+    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<Self> {
+        GlobalScope::from_reflector(reflector, realm)
     }
 
     fn origin(&self) -> MutableOrigin {

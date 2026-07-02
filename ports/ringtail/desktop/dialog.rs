@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use egui::{
     Area, Button, CornerRadius, Frame, Id, Modal, Order, RichText, Sense, Stroke, Vec2, pos2,
@@ -20,6 +21,9 @@ use servo::{
 /// The minimum width of many UI elements including dialog boxes and menus,
 /// for the sake of consistency.
 const MINIMUM_UI_ELEMENT_WIDTH: f32 = 150.0;
+
+// Global flag to signal that the user has chosen to open the Toggle Console window
+pub static OPEN_JS_CONSOLE: AtomicBool = AtomicBool::new(false);
 
 #[expect(clippy::large_enum_variant)]
 pub enum Dialog {
@@ -682,12 +686,10 @@ impl Dialog {
                                             ui.style_mut().visuals.widgets.hovered.weak_bg_fill = hover_color;
                                             ui.style_mut().visuals.widgets.hovered.bg_fill = hover_color;
 
-                                            // FIX: Clear stroke widths to avoid padding mismatch
                                             ui.style_mut().visuals.widgets.inactive.bg_stroke.width = 0.0;
                                             ui.style_mut().visuals.widgets.hovered.bg_stroke.width = 0.0;
                                             ui.style_mut().visuals.widgets.active.bg_stroke.width = 0.0;
 
-                                            // FIX: Clear expansions to remove extra item margins/offsets
                                             ui.style_mut().visuals.widgets.inactive.expansion = 0.0;
                                             ui.style_mut().visuals.widgets.hovered.expansion = 0.0;
                                             ui.style_mut().visuals.widgets.active.expansion = 0.0;
@@ -712,6 +714,18 @@ impl Dialog {
                                             ui.separator();
                                         },
                                     }
+                                }
+
+                                // Append our custom Toggle Console option
+                                ui.separator();
+                                let console_button = Button::new(RichText::new("Toggle Console").color(ui.visuals().strong_text_color()))
+                                    .corner_radius(CornerRadius::ZERO)
+                                    .stroke(Stroke::NONE)
+                                    .min_size(Vec2 { x: MINIMUM_UI_ELEMENT_WIDTH, y: 0.0 });
+
+                                if ui.add(console_button).clicked() {
+                                    OPEN_JS_CONSOLE.store(true, Ordering::Relaxed);
+                                    is_open = false;
                                 }
                             })
                         });

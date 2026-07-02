@@ -404,10 +404,7 @@ impl App {
 
     /// The active webview will be immediately valid via `active_or_newest_webview()`
     pub(crate) fn activate_webview(&self, id: WebViewId) {
-        let Some(webview) = self.state.webview_by_id(id) else {
-            return;
-        };
-        self.state.window_for_webview(&webview).activate_webview(id);
+        self.state.window_for_webview_id(id).activate_webview(id);
     }
 
     /// This is the Servo heartbeat. This needs to be called
