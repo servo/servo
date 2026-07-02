@@ -21,13 +21,13 @@ test_composition({
   addFrom: '60px 160px',
   addTo: '160px 260px',
 }, [
-  {at: -0.25, expect: '75px 275px, 75px 275px'},
-  {at: 0, expect: '100px 300px, 100px 300px'},
-  {at: 0.25, expect: '125px 325px, 125px 325px'},
-  {at: 0.5, expect: '150px 350px, 150px 350px'},
-  {at: 0.75, expect: '175px 375px, 175px 375px'},
-  {at: 1, expect: '200px 400px, 200px 400px'},
-  {at: 1.25, expect: '225px 425px, 225px 425px'},
+  {at: -0.25, expect: '75px 275px'},
+  {at: 0, expect: '100px 300px'},
+  {at: 0.25, expect: '125px 325px'},
+  {at: 0.5, expect: '150px 350px'},
+  {at: 0.75, expect: '175px 375px'},
+  {at: 1, expect: '200px 400px'},
+  {at: 1.25, expect: '225px 425px'},
 ]);
 
 test_composition({
@@ -36,13 +36,13 @@ test_composition({
   addFrom: 'left 60% top 80%',
   addTo: 'right 80% bottom 40%',
 }, [
-  {at: -0.25, expect: '110% 105%, 110% 105%'},
-  {at: 0, expect: '100% 100%, 100% 100%'},
-  {at: 0.25, expect: '90% 95%, 90% 95%'},
-  {at: 0.5, expect: '80% 90%, 80% 90%'},
-  {at: 0.75, expect: '70% 85%, 70% 85%'},
-  {at: 1, expect: '60% 80%, 60% 80%'},
-  {at: 1.25, expect: '50% 75%, 50% 75%'},
+  {at: -0.25, expect: '110% 105%'},
+  {at: 0, expect: '100% 100%'},
+  {at: 0.25, expect: '90% 95%'},
+  {at: 0.5, expect: '80% 90%'},
+  {at: 0.75, expect: '70% 85%'},
+  {at: 1, expect: '60% 80%'},
+  {at: 1.25, expect: '50% 75%'},
 ]);
 
 test_composition({
@@ -66,13 +66,13 @@ test_composition({
   replaceFrom: '100px 200px',
   addTo: '160px 260px',
 }, [
-  {at: -0.25, expect: '75px 150px, 75px 150px'},
-  {at: 0, expect: '100px 200px, 100px 200px'},
-  {at: 0.25, expect: '125px 250px, 125px 250px'},
-  {at: 0.5, expect: '150px 300px, 150px 300px'},
-  {at: 0.75, expect: '175px 350px, 175px 350px'},
-  {at: 1, expect: '200px 400px, 200px 400px'},
-  {at: 1.25, expect: '225px 450px, 225px 450px'},
+  {at: -0.25, expect: '75px 150px'},
+  {at: 0, expect: '100px 200px'},
+  {at: 0.25, expect: '125px 250px'},
+  {at: 0.5, expect: '150px 300px'},
+  {at: 0.75, expect: '175px 350px'},
+  {at: 1, expect: '200px 400px'},
+  {at: 1.25, expect: '225px 450px'},
 ]);
 
 test_composition({
@@ -81,13 +81,13 @@ test_composition({
   addFrom: '60px 160px',
   replaceTo: '200px 400px',
 }, [
-  {at: -0.25, expect: '75px 275px, 75px 275px'},
-  {at: 0, expect: '100px 300px, 100px 300px'},
-  {at: 0.25, expect: '125px 325px, 125px 325px'},
-  {at: 0.5, expect: '150px 350px, 150px 350px'},
-  {at: 0.75, expect: '175px 375px, 175px 375px'},
-  {at: 1, expect: '200px 400px, 200px 400px'},
-  {at: 1.25, expect: '225px 425px, 225px 425px'},
+  {at: -0.25, expect: '75px 275px'},
+  {at: 0, expect: '100px 300px'},
+  {at: 0.25, expect: '125px 325px'},
+  {at: 0.5, expect: '150px 350px'},
+  {at: 0.75, expect: '175px 375px'},
+  {at: 1, expect: '200px 400px'},
+  {at: 1.25, expect: '225px 425px'},
 ]);
 </script>
 </body>

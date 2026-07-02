@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>NEGATED :last-child pseudo-class</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[.green { background-color : lime ! important }
 .t1 td:not(:last-child) { background-color : red }
 p > *:not(:last-child) { background-color : red }
@@ -15,22 +18,36 @@ table.t1 td { border : thin black solid }
  <div>
   <table class="t1" border="1">
    <tr>
-    <td class="green">green cell</td>
-    <td class="green">green cell</td>
-    <td>1.3</td>
+    <td id="t1" class="green">green cell</td>
+    <td id="t2" class="green">green cell</td>
+    <td id="t1_3">1.3</td>
    </tr>
    <tr>
-    <td class="green">green cell</td>
-    <td class="green">green cell</td>
-    <td>2.3</td>
+    <td id="t3" class="green">green cell</td>
+    <td id="t4" class="green">green cell</td>
+    <td id="t2_3">2.3</td>
    </tr>
    <tr>
-    <td class="green">green cell</td>
-    <td class="green">green cell</td>
-    <td>3.3</td>
+    <td id="t5" class="green">green cell</td>
+    <td id="t6" class="green">green cell</td>
+    <td id="t3_3">3.3</td>
    </tr>
   </table>
  </div>
- <p>This <span>paragraph should</span> be unstyled.</p>
-</body>
+ <p>This <span id="t7">paragraph should</span> be unstyled.</p>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+  assert_background_color('t4', LIME);
+  assert_background_color('t5', LIME);
+  assert_background_color('t6', LIME);
+  assert_not_background_color('t1_3', RED);
+  assert_not_background_color('t2_3', RED);
+  assert_not_background_color('t3_3', RED);
+  assert_not_background_color('t7', RED);
+}, "NEGATED :last-child pseudo-class");
+]]></script>
+ </body>
 </html>

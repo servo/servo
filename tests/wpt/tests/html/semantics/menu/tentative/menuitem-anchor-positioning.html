@@ -12,21 +12,24 @@
 
 <menubar>
   <menuitem>Nothing</menuitem>
-  <menuitem id="trigger" command="toggle-menu" commandfor="menulist">Trigger</menuitem>
+  <submenu>
+    <menuitem id="trigger">Trigger</menuitem>
+    <menulist id="menulist">
+      <submenu>
+        <menuitem id=trigger2>Trigger 2</menuitem>
+        <menulist id="submenu">
+          <menuitem>Most nested item</menuitem>
+        </menulist>
+      </submenu>
+      <submenu>
+        <menuitem id=trigger3>Trigger 3</menuitem>
+        <menulist id="submenu2">
+          <menuitem>Most nested item 2</menuitem>
+        </menulist>
+      </submenu>
+    </menulist>
+  </submenu>
 </menubar>
-
-<menulist id="menulist">
-  <menuitem id=trigger2 command=toggle-menu commandfor=submenu>Trigger 2</menuitem>
-  <menuitem id=trigger3 command=toggle-menu commandfor=submenu2>Trigger 3</menuitem>
-</menulist>
-
-<menulist id="submenu">
-  <menuitem>Most nested item</menuitem>
-</menulist>
-
-<menulist id="submenu2">
-  <menuitem>Most nested item 2</menuitem>
-</menulist>
 
 <script>
   trigger.click();

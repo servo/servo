@@ -43,7 +43,7 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
 use net_traits::image_cache::ImageCache;
-use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient,
 };
@@ -2639,10 +2639,11 @@ impl GlobalScope {
         let is_nested_browsing_context = window.is_some_and(|window| !window.is_top_level());
         RequestClient {
             preloaded_resources,
-            policy_container: RequestPolicyContainer::PolicyContainer(self.policy_container()),
+            policy_container: self.policy_container(),
             origin: RequestOrigin::Origin(self.origin().immutable().clone()),
             is_nested_browsing_context,
             insecure_requests_policy: self.insecure_requests_policy(),
+            has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_or_current_origin(),
         }
     }
 

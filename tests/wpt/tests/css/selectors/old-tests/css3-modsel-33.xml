@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>:last-child pseudo-class</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[.red { background-color : red }
 .t1 td:last-child { background-color : lime }
 p > *:last-child { background-color : lime }
@@ -15,22 +18,30 @@ p > *:last-child { background-color : lime }
   <tr>
     <td>1.1</td>
     <td>1.2</td>
-    <td class="red">green cell</td>
+    <td id="t1" class="red">green cell</td>
   </tr>
   <tr>
     <td>2.1</td>
     <td>2.2</td>
-    <td class="red">green cell</td>
+    <td id="t2" class="red">green cell</td>
   </tr>
   <tr>
     <td>3.1</td>
     <td>3.2</td>
-    <td class="red">green cell</td>
+    <td id="t3" class="red">green cell</td>
   </tr>
 </table>
 </div>
 <p>
-<span>This paragraph contains a span that should
+<span id="t4">This paragraph contains a span that should
      have a green background</span> and some text after it.</p>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+  assert_background_color('t4', LIME);
+}, ':last-child');
+]]></script>
 </body>
 </html>

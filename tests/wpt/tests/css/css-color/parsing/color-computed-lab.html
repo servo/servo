@@ -19,7 +19,7 @@
 <style>
   #container {
     container-type: inline-size;
-    color: rgb(255, 0, 0]);
+    color: rgb(255, 0, 0);
   }
 </style>
 <script>
@@ -164,7 +164,7 @@ for (const test of tests) {
     test_computed_value("color", test[0], test[1], test[2] ? `[${test[2]}]` : undefined);
 }
 
-// Ensure that `calc` values work with dynamically changing relative units (slighly different alpha values to make test harness not complain about duplicate tests).
+// Ensure that `calc` values work with dynamically changing relative units (slightly different alpha values to make test harness not complain about duplicate tests).
 document.getElementById("container").style.width = "1000px";
 test_computed_value("color", "lab(calc(50 + (sign(2cqw - 10px) * 10)) 30 50 / 0.51)", "lab(60 30 50 / 0.51)");
 test_computed_value("color", "oklab(calc(0.5 + (sign(2cqw - 10px) * 0.1)) 0.3 0.5 / 0.51)", "oklab(0.6 0.3 0.5 / 0.51)");

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test (Crash): shape() on a float inside a vertical writing mode</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shape-function">
+<link rel="help" href="https://crbug.com/525565993">
+<meta name="assert" content="A non-square shape() float in a vertical writing
+                             mode rasterizes the shape in logical coordinates
+                             without reading out of the pixel buffer.">
+<style>
+  .container {
+    writing-mode: vertical-rl;
+  }
+  #test-shape {
+    float: left;
+    height: 200px;
+    shape-outside: shape(from 0px 0px, line to 100px 0px, line to 100px 200px, line to 0px 200px, close);
+  }
+</style>
+<div class="container">
+  <div id="test-shape" contenteditable></div>
+  XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX
+</div>

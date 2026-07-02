@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG use element animation should not crash during style recalc</title>
+<link rel="help" href="https://crbug.com/40601978">
+<style>
+  @keyframes anim {
+    from { fill: orange; }
+    to { fill: brown; }
+  }
+  rect { animation: anim 5s; }
+  defs { display: none; }
+</style>
+<svg>
+  <defs>
+    <rect x="0" y="0" width="100" height="100" id="target" fill="green" />
+  </defs>
+  <use x="0" xlink:href="#target" />
+</svg>
+<script>
+  document.body.offsetTop;
+  document.querySelector("defs").style.display = "block";
+  document.body.offsetLeft;
+</script>

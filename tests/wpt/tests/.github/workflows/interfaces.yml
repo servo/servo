@@ -10,7 +10,7 @@ jobs:
     if: github.repository == 'web-platform-tests/wpt'
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Run interfaces_update.sh
       run: ./tools/ci/interfaces_update.sh
     - name: Create pull request

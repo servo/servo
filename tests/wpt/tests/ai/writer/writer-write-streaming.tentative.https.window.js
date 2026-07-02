@@ -8,16 +8,10 @@
 
 promise_test(async () => {
   const writer = await createWriter();
-  const streamingResponse =
-    writer.writeStreaming(kTestPrompt, { context: kTestContext });
-  assert_equals(
-    Object.prototype.toString.call(streamingResponse),
-    '[object ReadableStream]');
-  let result = '';
-  for await (const chunk of streamingResponse) {
-    result += chunk;
-  }
-  assert_greater_than(result.length, 0);
+  const streamingResponse = writer.writeStreaming(kTestPrompt);
+  assert_true(streamingResponse instanceof ReadableStream);
+  const result = (await Array.fromAsync(streamingResponse)).join('');
+  assert_greater_than(result.length, 0, 'The result should not be empty.');
 }, 'Simple Writer.writeStreaming() call');
 
 promise_test(async (t) => {
@@ -33,10 +27,7 @@ promise_test(async (t) => {
 promise_test(async t => {
   const writer = await createWriter();
   const streamingResponse = writer.writeStreaming('');
-  assert_equals(
-    Object.prototype.toString.call(streamingResponse),
-    "[object ReadableStream]"
-  );
+  assert_true(streamingResponse instanceof ReadableStream);
   const { result, done } = await streamingResponse.getReader().read();
   assert_true(done);
 }, 'Writer.writeStreaming() returns a ReadableStream without any chunk on an empty input');
@@ -53,8 +44,7 @@ promise_test(async () => {
   const writer = await createWriter();
   const streamingResponse = writer.writeStreaming(kTestPrompt);
   garbageCollect();
-  assert_equals(Object.prototype.toString.call(streamingResponse),
-                '[object ReadableStream]');
+  assert_true(streamingResponse instanceof ReadableStream);
   let result = '';
   for await (const value of streamingResponse) {
     result += value;

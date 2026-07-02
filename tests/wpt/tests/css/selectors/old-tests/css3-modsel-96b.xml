@@ -1,6 +1,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Universal selector without declared namespace</title>
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <script src="common.js"></script>
   <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
 @namespace b url(http://www.example.org/b);
 div.green * { background-color : lime ! important }
@@ -14,13 +17,22 @@ div.test |* { background-color : red }]]></style>
  <body>
 <div class="test">
  <p>This line should be unstyled.</p>
- <elementA xmlns="http://www.example.org/a">This line should be unstyled.</elementA>
- <elementB xmlns="http://www.example.org/b">This line should be unstyled.</elementB>
+ <elementA id="u1" xmlns="http://www.example.org/a">This line should be unstyled.</elementA>
+ <elementB id="u2" xmlns="http://www.example.org/b">This line should be unstyled.</elementB>
  <div class="green">
-  <p xmlns="">This line should have a green background</p>
-  <elementA xmlns="">This line should have a green background</elementA>
-  <elementB xmlns="">This line should have a green background</elementB>
+  <p id="t1" xmlns="">This line should have a green background</p>
+  <elementA id="t2" xmlns="">This line should have a green background</elementA>
+  <elementB id="t3" xmlns="">This line should have a green background</elementB>
  </div>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+  assert_not_background_color('u1', LIME);
+  assert_not_background_color('u2', LIME);
+}, 'Universal selector without declared namespace');
+]]></script>
 </body>
 </html>

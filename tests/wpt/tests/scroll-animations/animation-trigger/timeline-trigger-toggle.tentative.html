@@ -77,27 +77,12 @@
     const target = document.getElementById("target");
     const animation = target.getAnimations()[0];
 
-    async function scrollSourceOutOfView() {
-      // First, scroll source to the top of the viewport.
-      let scrollend_promise =
-            waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
-      source.scrollIntoView({block: "start"});
-      await scrollend_promise;
-      // Now scroll a litte further to push it just out of view.
-      scrollend_promise =
-            waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
-      scroller.scrollBy({top: 50});
-      await scrollend_promise;
-      await waitForCompositorCommit();
-    }
-
-    async function scrollSourceIntoView() {
-      let scrollend_promise =
-            waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
-      source.scrollIntoView({block: "center"});
-      await scrollend_promise;
-      await waitForCompositorCommit();
-    }
+    const contain_0_offset = computeContainOffset(scroller, source, 0);
+    const contain_100_offset = computeContainOffset(scroller, source, 100);
+    const rangeBoundaries = getRangeBoundariesForTest(
+          contain_0_offset, contain_100_offset,
+          contain_0_offset, contain_100_offset,
+          scroller);
 
     promise_test(async(test) => {
       assert_equals(getComputedStyle(source).timelineTrigger, "none");
@@ -116,7 +101,8 @@
       animation.finish();
       assert_equals(animation.playState, "finished");
 
-      await scrollSourceOutOfView();
+      // NOTE: we need to exit (scroll) below as there is no room above.
+      await exit(rangeBoundaries, /*exitAbove=*/false);
       // Animation should be playing backwards.
       assert_equals(animation.playState, "running");
 
@@ -133,7 +119,7 @@
       // There should be no change to the animation.
       assert_equals(animation.playState, "finished");
 
-      await scrollSourceIntoView();
+      await enter(rangeBoundaries);
 
       // There should still be no change to the animation.
       assert_equals(animation.playState, "finished");

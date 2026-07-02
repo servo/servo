@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Test: CSSOM MediaList.deleteMedium parses its argument and removes all matches</title>
+  <link rel="help" href="https://drafts.csswg.org/cssom/#dom-medialist-deletemedium">
+  <meta name="assert" content="deleteMedium() parses its argument as a media query and removes every query that compares equal to it, rather than string-matching the raw argument against the serialized form and removing only the first match.">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <script>
+    function freshMediaList() {
+      var old = document.getElementById('test_style');
+      if (old)
+        old.remove();
+      var style = document.createElement('style');
+      style.id = 'test_style';
+      document.head.appendChild(style);
+      return style.sheet.media;
+    }
+
+    // deleteMedium() must parse its argument as a media query and compare the
+    // parsed result, not string-match the raw argument against the serialized
+    // query. An argument that differs only in insignificant whitespace must
+    // still match.
+    test(function() {
+      var mediaList = freshMediaList();
+      mediaList.mediaText = "screen and (min-width: 480px)";
+      assert_equals(mediaList.length, 1, "precondition: one query present");
+
+      // Same query, but no space after the colon -- parses to an equal query.
+      mediaList.deleteMedium("screen and (min-width:480px)");
+
+      assert_equals(mediaList.length, 0, "query should have been removed");
+      assert_equals(mediaList.mediaText, "");
+    }, "deleteMedium matches a query that differs only in whitespace");
+
+    // deleteMedium() must remove every matching query, not just the first.
+    test(function() {
+      var mediaList = freshMediaList();
+      mediaList.mediaText = "screen, print, screen";
+      assert_equals(mediaList.length, 3, "precondition: three queries present");
+
+      mediaList.deleteMedium("screen");
+
+      assert_equals(mediaList.length, 1, "all 'screen' queries should be removed");
+      assert_equals(mediaList.item(0), "print");
+      assert_equals(mediaList.mediaText, "print");
+    }, "deleteMedium removes every matching query, not only the first");
+  </script>
+</body>
+</html>

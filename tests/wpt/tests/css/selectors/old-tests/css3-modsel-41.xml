@@ -4,10 +4,19 @@
   <title>::before pseudo-element</title>
   <style type="text/css"><![CDATA[p::before { background-color : lime ; content : "GENERATED CONTENT "}
 ]]></style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
  </head>
  <body>
-<p>You should see before this paragraph the words GENERATED CONTENT over green background</p>
+<p id="t1">You should see before this paragraph the words GENERATED CONTENT over green background</p>
+<script><![CDATA[
+test(function() {
+  const t1 = document.getElementById('t1');
+  assert_equals(getComputedStyle(t1, '::before').backgroundColor, LIME);
+}, '::before pseudo-element background-color');
+]]></script>
 </body>
 </html>

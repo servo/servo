@@ -69,20 +69,27 @@
     const subjectanchor = document.getElementById("subjectanchor");
     const ANIMATION_DURATION_MS = 1;
 
+    const contain_0_offset = computeContainOffset(scroller,
+       document.getElementById("subject"), 0);
+    const contain_100_offset = computeContainOffset(scroller,
+       document.getElementById("subject"), 100);
+    const rangeBoundaries = getRangeBoundariesForTest(
+          contain_0_offset, contain_100_offset,
+          contain_0_offset, contain_100_offset,
+          scroller);
+
     promise_test(async () => {
       waitForAnimationFrames(2);
       setupAnimationAndTrigger(target, document.getElementById("subject"),
-        ANIMATION_DURATION_MS);
+        ANIMATION_DURATION_MS, "contain 0%", "contain 100%");
       const animation = target.getAnimations()[0];
 
       const initial_transform = getComputedStyle(target).transform;
       // Sanity check that the trigger works: scroll into the trigger range,
       // observe animation's effect.
-      const contain_0_offset = computeContainOffset(scroller,
-        document.getElementById("subject"), 0);
       let animation_promise = waitForAnimation(
         /*targetCurrentTime=*/ANIMATION_DURATION_MS, animation);
-      await waitForScrollReset(test, scroller, 0, contain_0_offset);
+      await enter(rangeBoundaries);
 
       await animation_promise;
       assert_not_equals(getComputedStyle(target).transform, initial_transform,
@@ -94,12 +101,12 @@
       const transform_after_removal = getComputedStyle(target).transform;
 
       // Scroll outside the range.
-      await waitForScrollReset(test, scroller, 0, contain_0_offset - 100);
+      await exit(rangeBoundaries);
       assert_equals(getComputedStyle(target).transform, transform_after_removal,
         "exit does not trigger");
 
       // Scroll into the range once again.
-      await waitForScrollReset(test, scroller, 0, contain_0_offset);
+      await enter(rangeBoundaries);
       assert_equals(getComputedStyle(target).transform, transform_after_removal,
         "re-entry does not trigger");
 
@@ -108,7 +115,7 @@
 
       animation_promise = waitForAnimation(/*targetCurrentTime=*/0, animation);
       // Scroll outside the range; should reverse the animation.
-      await waitForScrollReset(test, scroller, 0, contain_0_offset - 100);
+      await exit(rangeBoundaries);
       // Make sure the playbackRate is reflected before waiting on the promise.
       await waitForAnimationFrames(3)
       await animation_promise;

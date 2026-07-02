@@ -8,25 +8,37 @@ dl > :nth-of-type(3n+1) { background-color : lime }
 ]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 <p>This paragraph is here only to fill space in the DOM</p>
 <address>And this address too..</address>
 <p>So does this paragraph !</p>
-<p class="red">But this one should have green background</p>
+<p id="t1" class="red">But this one should have green background</p>
 <dl>
-  <dt class="red">First definition term that should have green background</dt>
-    <dd class="red">First definition that should have green background</dd>
+  <dt id="t2" class="red">First definition term that should have green background</dt>
+    <dd id="t3" class="red">First definition that should have green background</dd>
   <dt>Second definition term</dt>
     <dd>Second definition</dd>
   <dt>Third definition term</dt>
     <dd>Third definition</dd>
-  <dt class="red">Fourth definition term that should have green background</dt>
-    <dd class="red">Fourth definition that should have green background</dd>
+  <dt id="t4" class="red">Fourth definition term that should have green background</dt>
+    <dd id="t5" class="red">Fourth definition that should have green background</dd>
   <dt>Fifth definition term</dt>
     <dd>Fifth definition</dd>
   <dt>Sixth definition term</dt>
     <dd>Sixth definition</dd>
 </dl>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+  assert_background_color('t4', LIME);
+  assert_background_color('t5', LIME);
+}, 'nth-of-type selector tests');
+]]></script>
 </body>
 </html>

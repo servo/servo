@@ -28,5 +28,13 @@ document.fonts.load("20px Ahem").then(() => {
   test_computed_value("text-decoration-inset", "1ch -1ch", "20px -20px");
   test_computed_value("text-decoration-inset", "calc(1em / 4) calc(-1ch)", "5px -20px");
   test_computed_value("text-decoration-inset", "auto");
+
+  // https://github.com/w3c/csswg-drafts/issues/8403
+  test_computed_value("text-decoration-inset", "10%");
+  test_computed_value("text-decoration-inset", "0 20%", "0px 20%");
+  test_computed_value("text-decoration-inset", "10% 20%");
+  test_computed_value("text-decoration-inset", "10px -20%");
+  test_computed_value("text-decoration-inset", "calc(10% - 1em) 0", "calc(10% - 20px) 0px");
+  test_computed_value("text-decoration-inset", "calc(10% + 1ch) calc(-20%)", "calc(10% + 20px) -20%");
 });
 </script>

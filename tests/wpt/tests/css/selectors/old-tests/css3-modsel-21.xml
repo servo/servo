@@ -6,7 +6,9 @@
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content=" interact" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 <p id="first">This paragraph should be unstyled.
@@ -20,5 +22,35 @@
        It should become green when you select the link above. When you follow
        <a href="#missing">this link</a>, the three paragraphs
        should all return to being unstyled.</p>
+  <script><![CDATA[
+promise_test(async t => {
+  const first = document.getElementById('first');
+  const second = document.getElementById('second');
+  const third = document.getElementById('third');
+
+  assert_not_background_color(first, LIME, 'first should be unstyled');
+  assert_not_background_color(second, LIME, 'second should initially be unstyled');
+  assert_not_background_color(third, LIME, 'third should initially be unstyled');
+
+  function setHash(hash) {
+    return new Promise(resolve => {
+      window.addEventListener('hashchange', resolve, { once: true });
+      location.hash = hash;
+    });
+  }
+
+  await setHash('#second');
+  assert_background_color(second, LIME, 'second should be green when targeted');
+  assert_not_background_color(third, LIME, 'third should be unstyled when second is targeted');
+
+  await setHash('#third');
+  assert_not_background_color(second, LIME, 'second should be unstyled when third is targeted');
+  assert_background_color(third, LIME, 'third should be green when targeted');
+
+  await setHash('#missing');
+  assert_not_background_color(second, LIME, 'second should be unstyled when missing is targeted');
+  assert_not_background_color(third, LIME, 'third should be unstyled when missing is targeted');
+}, 'CSS3 :target pseudo-class');
+]]></script>
 </body>
 </html>

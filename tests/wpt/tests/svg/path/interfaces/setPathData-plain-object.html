@@ -1,0 +1,61 @@
+<!doctype html>
+<title>SVGPathElement.setPathData() with plain JS objects</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#__svg__SVGPathData__setPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<svg></svg>
+<script>
+// WebIDL dictionary conversion accepts plain JS objects with the required
+// own properties.
+
+test(() => {
+  const path = createPath();
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10, 10] }
+  ]);
+  const segs = path.getPathData();
+  assert_equals(segs.length, 2);
+  assert_equals(segs[0].type, "M");
+  assert_array_equals(segs[0].values, [0, 0]);
+  assert_equals(segs[1].type, "L");
+  assert_array_equals(segs[1].values, [10, 10]);
+}, "setPathData() accepts plain object literals");
+
+test(() => {
+  const path = createPath();
+  // Array-like (not a real Array) with iterator should also be accepted
+  // because sequence<T> uses the iterable protocol.
+  function* gen() {
+    yield { type: "M", values: [0, 0] };
+    yield { type: "L", values: [5, 5] };
+  }
+  path.setPathData([...gen()]);
+  assert_equals(path.getAttribute("d"), "M 0 0 L 5 5");
+}, "setPathData() accepts spread from a generator");
+
+test(() => {
+  const path = createPath();
+  // `values` must be iterable for sequence<unrestricted float>. Typed arrays
+  // are iterable, so Float32Array works.
+  path.setPathData([
+    { type: "M", values: new Float32Array([0, 0]) },
+    { type: "L", values: new Float64Array([7, 7]) }
+  ]);
+  assert_equals(path.getAttribute("d"), "M 0 0 L 7 7");
+}, "setPathData() accepts typed-array values");
+
+test(() => {
+  const path = createPath();
+  // Extra own properties on the segment object are ignored by WebIDL
+  // dictionary conversion.
+  path.setPathData([
+    { type: "M", values: [0, 0], extra: "ignored" },
+    { type: "L", values: [3, 3], foo: 42 }
+  ]);
+  assert_equals(path.getAttribute("d"), "M 0 0 L 3 3");
+}, "setPathData() ignores extra properties on segment objects");
+</script>

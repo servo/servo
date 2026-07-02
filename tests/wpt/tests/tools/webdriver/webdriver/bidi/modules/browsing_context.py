@@ -38,6 +38,21 @@ class FormatOptions(Dict[str, Any]):
             self["quality"] = quality
 
 
+class VideoOptions(Dict[str, Any]):
+    def __init__(
+        self,
+        frame_rate: Optional[int] = None,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
+    ):
+        if frame_rate is not None:
+            self["frameRate"] = frame_rate
+        if height is not None:
+            self["height"] = height
+        if width is not None:
+            self["width"] = width
+
+
 class BrowsingContext(BidiModule):
     @command
     def activate(self, context: str) -> Mapping[str, Any]:
@@ -255,6 +270,43 @@ class BrowsingContext(BidiModule):
             params["userContexts"] = user_contexts
 
         return params
+
+    @command
+    def start_screencast(self,
+                         context: str,
+                         video: Optional[VideoOptions] = None,
+                         audio: Optional[bool] = None,
+                         mime_type: Optional[str] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {"context": context}
+
+        if video is not None:
+            params["video"] = video
+        if audio is not None:
+            params["audio"] = audio
+        if mime_type is not None:
+            params["mimeType"] = mime_type
+
+        return params
+
+    @start_screencast.result
+    def _start_screencast(self, result: Mapping[str, Any]) -> Any:
+        assert isinstance(result["path"], str)
+        assert isinstance(result["screencast"], str)
+
+        return result
+
+    @command
+    def stop_screencast(self, screencast: str) -> Mapping[str, Any]:
+        return {"screencast": screencast}
+
+    @stop_screencast.result
+    def _stop_screencast(self, result: Mapping[str, Any]) -> Any:
+        assert isinstance(result["path"], str)
+
+        if "error" in result:
+            assert isinstance(result["error"], str)
+
+        return result
 
     @command
     def traverse_history(self, context: str, delta: int) -> Mapping[str, Any]:

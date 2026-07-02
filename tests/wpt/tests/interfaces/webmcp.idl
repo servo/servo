@@ -30,16 +30,9 @@ dictionary ToolAnnotations {
   boolean untrustedContentHint = false;
 };
 
-callback ToolExecuteCallback = Promise<any> (object input, ModelContextClient client);
+callback ToolExecuteCallback = Promise<any> (object input);
 
 dictionary ModelContextRegisterToolOptions {
   AbortSignal signal;
   sequence<USVString> exposedTo;
 };
-
-[Exposed=Window, SecureContext]
-interface ModelContextClient {
-  Promise<any> requestUserInteraction(UserInteractionCallback callback);
-};
-
-callback UserInteractionCallback = Promise<any> ();

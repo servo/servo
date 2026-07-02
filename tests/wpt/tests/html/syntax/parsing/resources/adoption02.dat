@@ -37,3 +37,20 @@
 |       <address>
 |         <a>
 |         <a>
+
+#data
+<nobr><table><marquee></table><nobr>
+#errors
+(1,6): expected-doctype-but-got-start-tag
+(1,22): unexpected-start-tag-implies-table-voodoo
+(1,30): end-tag-too-early-named
+(1,36): unexpected-start-tag-implies-end-tag
+(1,36): expected-closing-tag-but-got-eof
+#document
+| <html>
+|   <head>
+|   <body>
+|     <nobr>
+|       <marquee>
+|       <table>
+|     <nobr>

@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use atomic_refcell::AtomicRefCell;
 use devtools_traits::{DebuggerValue, PropertyDescriptor};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
@@ -124,13 +125,17 @@ impl ObjectPropertyDescriptor {
     }
 }
 
-#[derive(MallocSizeOf)]
-pub(crate) struct ObjectActor {
-    name: String,
-    _uuid: Option<String>,
+#[derive(Clone, MallocSizeOf)]
+struct ObjectActorData {
     class: String,
     own_property_length: Option<u32>,
     preview: Option<devtools_traits::ObjectPreview>,
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct ObjectActor {
+    name: String,
+    data: AtomicRefCell<ObjectActorData>,
 }
 
 impl Actor for ObjectActor {
@@ -149,7 +154,8 @@ impl Actor for ObjectActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "enumProperties" => {
-                let properties = self.preview.as_ref().map_or_else(Vec::new, |preview| {
+                let preview = self.data.borrow().preview.clone();
+                let properties = preview.as_ref().map_or_else(Vec::new, |preview| {
                     if preview.kind == "ArrayLike" {
                         // For arrays, convert items to indexed properties
                         // <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/getOwnPropertyDescriptor#description>
@@ -197,11 +203,12 @@ impl Actor for ObjectActor {
 
             "enumEntries" => {
                 let mut entries = Vec::new();
-                if let Some(preview) = &self.preview &&
-                    let Some(map_entries) = &preview.entries
+                let preview = self.data.borrow().preview.clone();
+                if let Some(preview) = preview &&
+                    let Some(map_entries) = preview.entries
                 {
                     for (key, value) in map_entries {
-                        entries.push(PropertyIteratorEntry::MapEntry(key.clone(), value.clone()));
+                        entries.push(PropertyIteratorEntry::MapEntry(key, value));
                     }
                 }
                 self.reply_property_iterator(request, registry, entries)?
@@ -255,60 +262,57 @@ impl ObjectActor {
 
     pub fn register(
         registry: &ActorRegistry,
-        uuid: Option<String>,
+        actor_name: Option<String>,
         class: String,
         own_property_length: Option<u32>,
         preview: Option<devtools_traits::ObjectPreview>,
     ) -> String {
-        let Some(uuid) = uuid else {
-            let name = new_actor_name::<Self>();
-            let actor = ObjectActor {
-                name: name.clone(),
-                _uuid: None,
-                class,
-                own_property_length,
-                preview,
-            };
-            registry.register(actor);
+        if let Some(name) = actor_name {
+            let actor = registry.find::<Self>(&name);
+            let mut data = actor.data.borrow_mut();
+
+            data.class = class;
+            data.own_property_length = own_property_length;
+
+            if preview.is_some() || data.preview.is_none() {
+                data.preview = preview;
+            }
+
             return name;
-        };
-        if !registry.script_actor_registered(&uuid) {
-            let name = new_actor_name::<Self>();
-            let actor = ObjectActor {
-                name: name.clone(),
-                _uuid: Some(uuid.clone()),
+        }
+
+        let name = new_actor_name::<Self>();
+        let actor = ObjectActor {
+            name: name.clone(),
+            data: AtomicRefCell::new(ObjectActorData {
                 class,
                 own_property_length,
                 preview,
-            };
-
-            registry.register_script_actor(uuid, name.clone());
-            registry.register(actor);
-
-            name
-        } else {
-            registry.script_to_actor(&uuid)
-        }
+            }),
+        };
+        registry.register(actor);
+        name
     }
 }
 
 impl ActorEncode<ObjectActorMsg> for ObjectActor {
     fn encode(&self, registry: &ActorRegistry) -> ObjectActorMsg {
+        let data = self.data.borrow().clone();
         let mut msg = ObjectActorMsg {
             actor: self.name().into(),
             type_: "object".into(),
-            class: self.class.clone(),
+            class: data.class.clone(),
             extensible: true,
             frozen: false,
             sealed: false,
             function: None,
             preview: None,
-            own_property_length: self.own_property_length,
+            own_property_length: data.own_property_length,
         };
 
         // Build preview
         // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
-        let Some(preview) = self.preview.clone() else {
+        let Some(preview) = data.preview.clone() else {
             return msg;
         };
 
@@ -320,7 +324,7 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
             is_generator: function.is_generator,
         });
 
-        if self.class == "Function" {
+        if data.class == "Function" {
             msg.function = function.clone();
         }
 

@@ -31,6 +31,20 @@ ignore = [
     # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
     # See the comment above `bincode` entry in Cargo.toml.
     "RUSTSEC-2025-0141",
+    # The crate `ttf-parser` is unmaintained.
+    # This is a dependency of `usvg`, `rustybuzz`, `fontdb`.
+    # We will need to wait for upstream actions.
+    "RUSTSEC-2026-0192",
+    # Vulnerability in `quick-xml`: Quadratic run time when checking a start
+    # tag for duplicate attribute names.
+    #
+    # We must use this version of quick-xml until `winit` upgrades `sctk`.
+    "RUSTSEC-2026-0194",
+    # Vulnerability in `quick-xml`: Unbounded namespace-declaration allocation
+    # in `NsReader` enables memory-exhaustion denial of service.
+    #
+    # We must use this version of quick-xml until `winit` upgrades `sctk`.
+    "RUSTSEC-2026-0195",
 ]
 
 # This section is considered when running `cargo deny check licenses`

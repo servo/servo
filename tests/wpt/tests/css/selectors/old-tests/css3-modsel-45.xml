@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Direct adjacent combinator</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[.red { background-color : red }
 div.stub > p + p { background-color : lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
@@ -11,10 +14,16 @@ div.stub > p + p { background-color : lime }]]></style>
  <body>
  <div class="stub">
   <p>This paragraph should be unstyled.</p>
-  <p class="red">But this one should have a green background.</p>
-  <p class="red">And this one should also have a green background.</p>
+  <p class="red" id="t1">But this one should have a green background.</p>
+  <p class="red" id="t2">And this one should also have a green background.</p>
   <address>This address is only here to fill some space between two paragraphs.</address>
   <p>This paragraph should be unstyled.</p>
  </div>
+ <script><![CDATA[
+test(function() {
+ assert_background_color('t1', LIME);
+ assert_background_color('t2', LIME);
+}, 'Direct adjacent combinator');
+]]></script>
 </body>
 </html>

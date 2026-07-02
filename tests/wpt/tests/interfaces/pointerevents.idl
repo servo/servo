@@ -95,6 +95,7 @@ dictionary WheelEventInit : MouseEventInit {
   double deltaY = 0.0;
   double deltaZ = 0.0;
   unsigned long deltaMode = 0;
+  boolean momentum = false;
 };
 
 partial interface Element {

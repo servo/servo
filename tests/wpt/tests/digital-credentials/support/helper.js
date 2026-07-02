@@ -126,9 +126,9 @@ const CANONICAL_REQUEST_OBJECTS = {
   /** @type MobileDocumentRequest **/
   "org-iso-mdoc": {
     deviceRequest:
-      "omd2ZXJzaW9uYzEuMGtkb2NSZXF1ZXN0c4GhbGl0ZW1zUmVxdWVzdNgYWIKiZ2RvY1R5cGV1b3JnLmlzby4xODAxMy41LjEubURMam5hbWVTcGFjZXOhcW9yZy5pc28uMTgwMTMuNS4x9pWthZ2Vfb3Zlcl8yMfRqZ2l2ZW5fbmFtZfRrZmFtaWx5X25hbWX0cmRyaXZpbmdfcHJpdmlsZWdlc_RocG9ydHJhaXT0",
+      "omd2ZXJzaW9uYzEuMGtkb2NSZXF1ZXN0c4GhbGl0ZW1zUmVxdWVzdNgYWFyiZ2RvY1R5cGV1b3JnLmlzby4xODAxMy41LjEubURMam5hbWVTcGFjZXOhcW9yZy5pc28uMTgwMTMuNS4xomtmYW1pbHlfbmFtZfRvZG9jdW1lbnRfbnVtYmVy9A",
     encryptionInfo:
-      "gmVkY2FwaaJlbm9uY2VYICBetSsDkKlE_G9JSIHwPzr3ctt6Ol9GgmCH8iGdGQNJcnJlY2lwaWVudFB1YmxpY0tleaQBAiABIVggKKm1iPeuOb9bDJeeJEL4QldYlWvY7F_K8eZkmYdS9PwiWCCm9PLEmosiE_ildsE11lqq4kDkjhfQUKPpbX-Hm1ZSLg",
+      "gmVkY2FwaaJlbm9uY2VQuTBR9ybYyMxHk586vsBGt3JyZWNpcGllbnRQdWJsaWNLZXmkAQIgASFYIGDjOSOFBB9RQDBR8kFVMctW3T-ZnHFocBOqxnaLyBh-Ilgg5Y3rj9vpB_fdU2gkVVGjR5b30iFcRAwzm7D3tnvszfo",
   },
 };
 
@@ -211,6 +211,40 @@ const allMappings = {
     },
   },
 };
+
+/**
+ * Internal helper to handle the shared logic for creating and getting credentials.
+ * @param {"get" | "create"} type
+ * @param {Protocol} protocol
+ * @returns {DigitalCredentialGetRequest | DigitalCredentialCreateRequest}
+ */
+function makeCanonicalRequest(type, protocol) {
+  const mapping = allMappings[type];
+  if (protocol in mapping) {
+    return mapping[/** @type {keyof typeof mapping} */ (protocol)]();
+  }
+  throw new Error(`Unknown ${type} protocol: ${protocol}`);
+}
+
+/**
+ * Creates a single canonical create request for a protocol.
+ * @export
+ * @param {CreateProtocol} protocol
+ * @returns {DigitalCredentialCreateRequest}
+ */
+export function makeCanonicalCreateRequest(protocol) {
+  return makeCanonicalRequest('create', protocol);
+}
+
+/**
+ * Creates a single canonical get request for a protocol.
+ * @export
+ * @param {GetProtocol} protocol
+ * @returns {DigitalCredentialGetRequest}
+ */
+export function makeCanonicalGetRequest(protocol) {
+  return makeCanonicalRequest('get', protocol);
+}
 
 /**
  * Generic helper to create credential options from config with protocol already set.
@@ -324,4 +358,30 @@ export function loadIframe(iframe, url) {
     }
     iframe.src = url.toString();
   });
+}
+
+/**
+ * Creates options for getting credentials with an arbitrary protocol string.
+ * Unlike makeGetOptions, this doesn't validate the protocol - useful for testing
+ * invalid/unknown protocols that should be filtered out by the browser.
+ *
+ * @export
+ * @param {string} protocol - The protocol string (can be invalid/unknown)
+ * @param {object} [data={}] - The request data
+ * @param {AbortSignal} [signal] - Optional abort signal
+ * @returns {CredentialRequestOptions}
+ */
+export function makeGetOptionsWithArbitraryProtocol(protocol, data = {}, signal) {
+  /** @type {CredentialRequestOptions} */
+  const options = {
+    digital: {
+      requests: [{ protocol, data }]
+    }
+  };
+
+  if (signal) {
+    options.signal = signal;
+  }
+
+  return options;
 }

@@ -1,13 +1,21 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" id="t1">
  <head>
   <title>:root pseudo-class</title>
   <style type="text/css"><![CDATA[html { background-color : red }
 *:root { background-color: lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
-<p>The background of the document should be green</p>
+ <p>The background of the document should be green</p>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+}, 'The background of the root element should be lime');
+]]></script>
 </body>
 </html>

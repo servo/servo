@@ -13,15 +13,13 @@ use html5ever::tokenizer::{
 use html5ever::{Attribute, LocalName, local_name};
 use js::jsapi::JSTracer;
 use markup5ever::TokenizerResult;
-use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer,
-    RequestClient,
+    CorsSettings, CredentialsMode, Destination, ParserMetadata, Referrer, RequestClient,
 };
 use net_traits::{CoreResourceMsg, FetchChannels, ReferrerPolicy, ResourceThreads};
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::{PipelineId, WebViewId};
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
@@ -65,7 +63,6 @@ impl Tokenizer {
     pub(crate) fn new(document: &Document) -> Self {
         let global = document.global();
         let sink = PrefetchSink {
-            origin: document.origin().immutable().clone(),
             pipeline_id: global.pipeline_id(),
             webview_id: document.webview_id(),
             base_url: RefCell::new(None),
@@ -77,10 +74,7 @@ impl Tokenizer {
             // true after the first script tag, since that is what will
             // block the main parser.
             prefetching: Cell::new(false),
-            insecure_requests_policy: document.insecure_requests_policy(),
-            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
-            policy_container: global.policy_container(),
-            request_client: global.request_client(),
+            request_client: global.request_client(None),
         };
         let options = Default::default();
         let inner = TraceableTokenizer(HtmlTokenizer::new(sink, options));
@@ -94,8 +88,6 @@ impl Tokenizer {
 
 #[derive(JSTraceable)]
 struct PrefetchSink {
-    #[no_trace]
-    origin: ImmutableOrigin,
     #[no_trace]
     pipeline_id: PipelineId,
     #[no_trace]
@@ -111,11 +103,6 @@ struct PrefetchSink {
     #[no_trace]
     resource_threads: ResourceThreads,
     prefetching: Cell<bool>,
-    #[no_trace]
-    insecure_requests_policy: InsecureRequestsPolicy,
-    has_trustworthy_ancestor_origin: bool,
-    #[no_trace]
-    policy_container: PolicyContainer,
     #[no_trace]
     request_client: RequestClient,
 }
@@ -158,11 +145,7 @@ impl TokenSink for PrefetchSink {
                         },
                         self.referrer.clone(),
                     )
-                    .insecure_requests_policy(self.insecure_requests_policy)
-                    .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
-                    .policy_container(self.policy_container.clone())
                     .client(self.request_client.clone())
-                    .origin(self.origin.clone())
                     .pipeline_id(Some(self.pipeline_id));
                     let _ = self
                         .resource_threads
@@ -181,11 +164,7 @@ impl TokenSink for PrefetchSink {
                         None,
                         self.referrer.clone(),
                     )
-                    .insecure_requests_policy(self.insecure_requests_policy)
-                    .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
-                    .policy_container(self.policy_container.clone())
                     .client(self.request_client.clone())
-                    .origin(self.origin.clone())
                     .pipeline_id(Some(self.pipeline_id))
                     .referrer_policy(self.get_referrer_policy(tag, local_name!("referrerpolicy")));
 
@@ -218,11 +197,7 @@ impl TokenSink for PrefetchSink {
                         None,
                         self.referrer.clone(),
                     )
-                    .insecure_requests_policy(self.insecure_requests_policy)
-                    .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
-                    .policy_container(self.policy_container.clone())
                     .client(self.request_client.clone())
-                    .origin(self.origin.clone())
                     .pipeline_id(Some(self.pipeline_id))
                     .referrer_policy(referrer_policy)
                     .integrity_metadata(integrity_metadata);

@@ -6,6 +6,8 @@ pytestmark = pytest.mark.asyncio
 FILE_DIALOG_OPENED_EVENT = "input.fileDialogOpened"
 
 
+@pytest.mark.capabilities(
+    {"unhandledPromptBehavior": {'file': 'dismiss', 'default': 'ignore'}})
 @pytest.mark.parametrize("user_context", ["default", "new"])
 async def test_user_context(
     bidi_session,

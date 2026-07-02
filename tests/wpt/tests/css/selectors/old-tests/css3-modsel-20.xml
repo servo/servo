@@ -6,11 +6,36 @@
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content=" interact" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
-<p>The background color of <a href="#foo">anchors</a>
-  in this page should turn <a href="#foo">to green</a> when they have the
-  <a href="#foo">focus</a>.</p>
+<p>The background color of <a id="t1" href="#foo">anchors</a>
+  in this page should turn <a id="t2" href="#foo">to green</a> when they have the
+  <a id="t3" href="#foo">focus</a>.</p>
+<script><![CDATA[
+promise_test(async () => {
+  const t1 = document.getElementById('t1');
+  const t2 = document.getElementById('t2');
+  const t3 = document.getElementById('t3');
+
+  assert_not_background_color(t1, LIME);
+  assert_not_background_color(t2, LIME);
+  assert_not_background_color(t3, LIME);
+
+  await test_driver.click(t1);
+  assert_background_color(t1, LIME);
+
+  await test_driver.click(t2);
+  assert_background_color(t2, LIME);
+
+  await test_driver.click(t3);
+  assert_background_color(t3, LIME);
+}, 'Verify :focus matches focused elements');
+]]></script>
 </body>
 </html>

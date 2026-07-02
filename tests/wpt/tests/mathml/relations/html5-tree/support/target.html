@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<script>
+    const ch = new BroadcastChannel('mathml_nav_test');
+    ch.postMessage(window.location.href);
+    ch.close()
+    window.close()
+</script>

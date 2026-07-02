@@ -1828,13 +1828,7 @@ fn cross_origin_resource_policy_check(
     // That's the default value of the enum
 
     // Step 2. Let embedderPolicy be settingsObject’s policy container’s embedder policy.
-    let RequestPolicyContainer::PolicyContainer(ref policy_container) =
-        request_client.policy_container
-    else {
-        return CrossOriginResourcePolicy::Blocked;
-    };
-
-    let embedder_policy = &policy_container.embedder_policy;
+    let embedder_policy = &request_client.policy_container.embedder_policy;
 
     // Step 3. If the cross-origin resource policy internal check with origin, "unsafe-none",
     // response, and forNavigation returns blocked, then return blocked.

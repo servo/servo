@@ -81,6 +81,14 @@ document.querySelectorAll('.test').forEach(testContainer => {
     return [...select.selectedOptions];
   }
 
+  function isOptionVisible(option) {
+    const selectRect = select.getBoundingClientRect();
+    const optionRect = option.getBoundingClientRect();
+    const tolerance = 1;
+    return optionRect.top >= selectRect.top - tolerance &&
+           optionRect.bottom <= selectRect.bottom + tolerance;
+  }
+
   promise_test(async () => {
     let expectedSelectedOptions = [];
 
@@ -100,8 +108,12 @@ document.querySelectorAll('.test').forEach(testContainer => {
       'First option should match :active-option after focusing input.');
     assert_array_equals(selectedOptions(), expectedSelectedOptions,
       'No options should be selected after focusing the input.');
-    assert_equals(select.scrollTop, 0,
-      'Select should be scrolled to its top after focusing the input.');
+    if (!dropdown) {
+      assert_true(isOptionVisible(optionOne),
+        'Option one should be visible after focusing the input.');
+      assert_false(isOptionVisible(optionThree),
+        'Option three should not be visible after focusing the input.');
+    }
 
     await pressKey(arrowDown);
     await pressKey(arrowDown);
@@ -110,8 +122,8 @@ document.querySelectorAll('.test').forEach(testContainer => {
     assert_array_equals(selectedOptions(), expectedSelectedOptions,
       'No options should be selected after pressing down arrow twice.');
     if (!dropdown) {
-      assert_not_equals(select.scrollTop, 0,
-        'Select should be scrolled down after pressing down arrow twice.');
+      assert_true(isOptionVisible(optionThree),
+        'Option three should be visible after pressing down arrow twice.');
     }
 
     await pressKey(arrowDown);
@@ -120,7 +132,6 @@ document.querySelectorAll('.test').forEach(testContainer => {
     assert_array_equals(selectedOptions(), expectedSelectedOptions,
       'No options should be selected after pressing down arrow on the last option.');
 
-    let previousScrollTop = select.scrollTop;
     await pressKey(arrowUp);
     await pressKey(arrowUp);
     assert_array_equals(activeOptions(), [optionOne],
@@ -128,8 +139,10 @@ document.querySelectorAll('.test').forEach(testContainer => {
     assert_array_equals(selectedOptions(), expectedSelectedOptions,
       'No options should be selected after pressing up arrow twice.');
     if (!dropdown) {
-      assert_not_equals(select.scrollTop, previousScrollTop,
-        'Select should be scrolled up after pressing up arrow twice.');
+      assert_true(isOptionVisible(optionOne),
+        'Option one should be visible after pressing up arrow twice.');
+      assert_false(isOptionVisible(optionThree),
+        'Option three should not be visible after pressing up arrow twice.');
     }
 
     await pressKey(arrowUp);

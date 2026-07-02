@@ -1,6 +1,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Type element selector with declared namespace</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[@namespace test url(http://www.example.org/a);
 testa { background-color : red }
 test|testa { background-color : lime }]]></style>
@@ -9,6 +12,11 @@ test|testa { background-color : lime }]]></style>
   <meta name="flags" content=" namespace" />
  </head>
  <body>
-<testa xmlns="http://www.example.org/a">This paragraph should have a green background</testa>
+<testa id="t1" xmlns="http://www.example.org/a">This paragraph should have a green background</testa>
+  <script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+}, 'Type element selector with declared namespace');
+]]></script>
 </body>
 </html>

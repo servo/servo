@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<title>Digital Credential API: org-iso-mdoc malformed request robustness</title>
+<link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body></body>
+<script type="module">
+
+// These tests verify that malformed org-iso-mdoc requests are handled
+// gracefully (no crash, no hang, deterministic rejection).
+
+// When ALL requests have invalid data, the browser should reject.
+// We pair the malformed org-iso-mdoc with no other protocols,
+// so the browser has zero valid requests and must reject.
+
+async function assertMalformedMdocRequestRejects(t, deviceRequest, encryptionInfo) {
+  const options = {
+    digital: {
+      requests: [{
+        protocol: "org-iso-mdoc",
+        data: { deviceRequest, encryptionInfo }
+      }]
+    },
+  };
+
+  await test_driver.bless("user activation");
+  try {
+    await navigator.credentials.get(options);
+    assert_unreached("Malformed request should not resolve successfully");
+  } catch (e) {
+    // An immediate abort would mask whether the malformed request was actually
+    // rejected (AbortError is a DOMException), so exclude AbortError here.
+    assert_true(
+      e instanceof TypeError || (e instanceof DOMException && e.name !== "AbortError"),
+      `Expected a non-abort rejection, got ${e.constructor.name}: ${e.name}`
+    );
+  }
+}
+
+// --- Base64url malformation ---
+
+promise_test(async (t) => {
+  await assertMalformedMdocRequestRejects(t, "", "");
+}, "Empty deviceRequest and encryptionInfo are handled gracefully.");
+
+promise_test(async (t) => {
+  await assertMalformedMdocRequestRejects(t, "A", "A");
+}, "Single-character base64url strings are handled gracefully.");
+
+promise_test(async (t) => {
+  await assertMalformedMdocRequestRejects(t, "aGVsbG8=", "aGVsbG8=");
+}, "Base64 with padding characters (invalid base64url) is handled gracefully.");
+
+promise_test(async (t) => {
+  await assertMalformedMdocRequestRejects(t, "aGVs+G8/", "aGVs+G8/");
+}, "Standard base64 characters (+/) instead of base64url (-_) are handled gracefully.");
+
+// --- Valid base64url but not valid CBOR ---
+
+promise_test(async (t) => {
+  // 0x83 = CBOR array(3) with no items following (truncated)
+  await assertMalformedMdocRequestRejects(t, "gw", "gw");
+}, "Truncated CBOR (incomplete array header) is handled gracefully.");
+
+promise_test(async (t) => {
+  // 0x01 = CBOR unsigned integer 1 (not a map)
+  await assertMalformedMdocRequestRejects(t, "AQ", "AQ");
+}, "CBOR unsigned integer (wrong major type) is handled gracefully.");
+
+promise_test(async (t) => {
+  // 0x9F 0x01 0x02 0xFF = indefinite-length array (not allowed in ISO 18013)
+  await assertMalformedMdocRequestRejects(t, "nwEC_w", "nwEC_w");
+}, "Indefinite-length CBOR array is handled gracefully.");
+
+promise_test(async (t) => {
+  // 0x1C = CBOR with reserved additional information value 28
+  await assertMalformedMdocRequestRejects(t, "HA", "HA");
+}, "CBOR with reserved additional information (28) is handled gracefully.");
+
+// --- Valid CBOR but wrong EncryptionInfo structure ---
+
+promise_test(async (t) => {
+  // ["evil", {}] encoded as CBOR
+  const wrongTag = "gmRldmlsoA";
+  await assertMalformedMdocRequestRejects(t, wrongTag, wrongTag);
+}, "EncryptionInfo with protocol tag != 'dcapi' is handled gracefully.");
+
+promise_test(async (t) => {
+  // {"protocol": "dcapi"} encoded as CBOR (map instead of array)
+  const notArray = "oWhwcm90b2NvbGVkY2FwaQ";
+  await assertMalformedMdocRequestRejects(t, notArray, notArray);
+}, "EncryptionInfo that is a CBOR map instead of array is handled gracefully.");
+
+// --- Resource exhaustion ---
+
+promise_test(async (t) => {
+  const huge = "A".repeat(1048576);
+  await assertMalformedMdocRequestRejects(t, huge, huge);
+}, "Very large (1MB) deviceRequest is handled gracefully without hanging.");
+</script>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Digital Credential API: org-iso-mdoc mixed valid/invalid request handling</title>
+<link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type="module">
+
+// Tests that verify behavior when multiple org-iso-mdoc requests are sent
+// with a mix of valid and invalid data. Per the WebKit implementation,
+// invalid requests are silently dropped; if at least one survives validation,
+// the flow proceeds. If ALL fail, the request should reject.
+//
+// These tests also cover the case where org-iso-mdoc is mixed with other
+// protocols (openid4vp) to verify cross-protocol isolation.
+
+import { makeGetOptions } from "../support/helper.js";
+
+// Valid ISO 18013-7 Annex C reference vectors (proven to trigger wallet prompt)
+const VALID_DR = "omd2ZXJzaW9uYzEuMGtkb2NSZXF1ZXN0c4GhbGl0ZW1zUmVxdWVzdNgYWFyiZ2RvY1R5cGV1b3JnLmlzby4xODAxMy41LjEubURMam5hbWVTcGFjZXOhcW9yZy5pc28uMTgwMTMuNS4xomtmYW1pbHlfbmFtZfRvZG9jdW1lbnRfbnVtYmVy9A";
+const VALID_EI = "gmVkY2FwaaJlbm9uY2VQuTBR9ybYyMxHk586vsBGt3JyZWNpcGllbnRQdWJsaWNLZXmkAQIgASFYIGDjOSOFBB9RQDBR8kFVMctW3T-ZnHFocBOqxnaLyBh-Ilgg5Y3rj9vpB_fdU2gkVVGjR5b30iFcRAwzm7D3tnvszfo";
+const GARBAGE_DR = "not-valid-cbor-at-all";
+const GARBAGE_EI = "also-not-valid";
+
+// --- All invalid org-iso-mdoc requests should reject ---
+
+promise_test(async (t) => {
+  const options = {
+    digital: {
+      requests: [
+        { protocol: "org-iso-mdoc", data: { deviceRequest: GARBAGE_DR, encryptionInfo: GARBAGE_EI } },
+        { protocol: "org-iso-mdoc", data: { deviceRequest: "", encryptionInfo: "" } },
+        { protocol: "org-iso-mdoc", data: { deviceRequest: "AQ", encryptionInfo: "AQ" } },
+      ]
+    }
+  };
+  await test_driver.bless("user activation");
+  // All requests fail validation and are dropped, leaving an empty set of
+  // validated requests; per the get() algorithm an empty set rejects with a
+  // TypeError, not a DOMException.
+  await promise_rejects_js(t, TypeError, navigator.credentials.get(options));
+}, "All org-iso-mdoc requests invalid: API rejects (no valid request survives).");
+
+// --- Mix of invalid org-iso-mdoc with valid openid4vp should still work ---
+
+promise_test(async (t) => {
+  const controller = new AbortController();
+  const { signal } = controller;
+
+  const [openidReq] = makeGetOptions({ protocol: "openid4vp-v1-unsigned" }).digital.requests;
+
+  const options = {
+    digital: {
+      requests: [
+        { protocol: "org-iso-mdoc", data: { deviceRequest: GARBAGE_DR, encryptionInfo: GARBAGE_EI } },
+        openidReq,
+      ]
+    },
+    signal,
+  };
+
+  await test_driver.bless("user activation");
+  const promise = navigator.credentials.get(options);
+  controller.abort();
+  await promise_rejects_dom(t, "AbortError", promise);
+}, "Invalid org-iso-mdoc + valid openid4vp: openid4vp request proceeds (abort confirms it was accepted).");
+
+// --- Multiple org-iso-mdoc requests: one valid, others garbage ---
+
+promise_test(async (t) => {
+  const controller = new AbortController();
+  const { signal } = controller;
+
+  const options = {
+    digital: {
+      requests: [
+        { protocol: "org-iso-mdoc", data: { deviceRequest: GARBAGE_DR, encryptionInfo: GARBAGE_EI } },
+        { protocol: "org-iso-mdoc", data: { deviceRequest: VALID_DR, encryptionInfo: VALID_EI } },
+        { protocol: "org-iso-mdoc", data: { deviceRequest: "", encryptionInfo: "" } },
+      ]
+    },
+    signal,
+  };
+
+  await test_driver.bless("user activation");
+  const promise = navigator.credentials.get(options);
+  // If the valid request survived validation, the promise should be pending
+  // (waiting for wallet interaction). Abort to confirm it proceeded.
+  controller.abort();
+  await promise_rejects_dom(t, "AbortError", promise);
+}, "One valid org-iso-mdoc among garbage: valid request survives, flow proceeds.");
+
+// --- Invalid request should not poison subsequent valid request ---
+
+promise_test(async (t) => {
+  // First: a request with all garbage (should reject)
+  const garbageOptions = {
+    digital: {
+      requests: [
+        { protocol: "org-iso-mdoc", data: { deviceRequest: GARBAGE_DR, encryptionInfo: GARBAGE_EI } },
+      ]
+    }
+  };
+  await test_driver.bless("user activation");
+  await promise_rejects_js(t, TypeError, navigator.credentials.get(garbageOptions));
+
+  // Second: a request with valid data (should proceed)
+  const controller = new AbortController();
+  const { signal } = controller;
+  const validOptions = {
+    digital: {
+      requests: [
+        { protocol: "org-iso-mdoc", data: { deviceRequest: VALID_DR, encryptionInfo: VALID_EI } },
+      ]
+    },
+    signal,
+  };
+  await test_driver.bless("user activation");
+  const promise = navigator.credentials.get(validOptions);
+  controller.abort();
+  await promise_rejects_dom(t, "AbortError", promise);
+}, "Failed request does not poison the coordinator state for subsequent valid requests.");
+
+// --- Extremely large number of invalid requests in one call ---
+
+promise_test(async (t) => {
+  const requests = [];
+  for (let i = 0; i < 100; i++) {
+    requests.push({
+      protocol: "org-iso-mdoc",
+      data: { deviceRequest: `garbage-${i}`, encryptionInfo: `garbage-${i}` }
+    });
+  }
+  const options = { digital: { requests } };
+  await test_driver.bless("user activation");
+
+  // Should reject without hanging (all 100 fail validation)
+  const startTime = performance.now();
+  try {
+    await navigator.credentials.get(options);
+    assert_unreached("100 invalid requests should not succeed");
+  } catch (e) {
+    const elapsed = performance.now() - startTime;
+    assert_less_than(elapsed, 10000, "Should reject within 10 seconds (no hang)");
+  }
+}, "100 invalid org-iso-mdoc requests are handled without hanging.");
+
+// --- Data field type coercion edge cases ---
+
+promise_test(async (t) => {
+  // data.deviceRequest and data.encryptionInfo are required DOMStrings
+  // What happens with numeric values that coerce to strings?
+  const options = {
+    digital: {
+      requests: [{
+        protocol: "org-iso-mdoc",
+        data: { deviceRequest: 12345, encryptionInfo: 67890 }
+      }]
+    }
+  };
+  await test_driver.bless("user activation");
+  // Number coerces to string "12345" which is not valid base64url CBOR
+  try {
+    await navigator.credentials.get(options);
+    assert_unreached("Numeric deviceRequest should not succeed");
+  } catch (e) {
+    assert_true(
+      e instanceof TypeError || e instanceof DOMException,
+      "Numeric coercion handled gracefully"
+    );
+  }
+}, "Numeric values in deviceRequest/encryptionInfo are coerced to strings and handled gracefully.");
+
+promise_test(async (t) => {
+  // Object values that would stringify to "[object Object]"
+  const options = {
+    digital: {
+      requests: [{
+        protocol: "org-iso-mdoc",
+        data: { deviceRequest: {nested: "object"}, encryptionInfo: [1,2,3] }
+      }]
+    }
+  };
+  await test_driver.bless("user activation");
+  try {
+    await navigator.credentials.get(options);
+    assert_unreached("Object deviceRequest should not succeed");
+  } catch (e) {
+    assert_true(
+      e instanceof TypeError || e instanceof DOMException,
+      "Object coercion handled gracefully"
+    );
+  }
+}, "Object/Array values in deviceRequest/encryptionInfo are handled gracefully.");
+</script>

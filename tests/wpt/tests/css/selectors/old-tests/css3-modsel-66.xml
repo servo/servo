@@ -7,7 +7,9 @@ p:not(:target) { background-color: white; color: black; }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content=" interact" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 <p id="first">This paragraph should be unstyled.
@@ -21,5 +23,33 @@ p:not(:target) { background-color: white; color: black; }]]></style>
        It should become blue when you select the link above. When you follow
        <a href="#missing">this link</a>, the three paragraphs
        should all return to being unstyled.</p>
+<script><![CDATA[
+test(function() {
+  const WHITE = 'rgb(255, 255, 255)';
+  const NAVY = 'rgb(0, 0, 128)';
+
+  assert_background_color('first', WHITE);
+  assert_background_color('second', WHITE);
+  assert_background_color('third', WHITE);
+
+  window.location.hash = 'second';
+  assert_background_color('first', WHITE);
+  assert_background_color('second', NAVY);
+  assert_background_color('third', WHITE);
+
+  window.location.hash = 'third';
+  assert_background_color('first', WHITE);
+  assert_background_color('second', WHITE);
+  assert_background_color('third', NAVY);
+
+  window.location.hash = 'missing';
+  assert_background_color('first', WHITE);
+  assert_background_color('second', WHITE);
+  assert_background_color('third', WHITE);
+
+  // Cleanup
+  window.location.hash = '';
+}, 'NEGATED :target pseudo-class');
+]]></script>
 </body>
 </html>

@@ -7,6 +7,7 @@
 [Global=DebuggerGlobalScope, Exposed=DebuggerGlobalScope]
 interface DebuggerGlobalScope: GlobalScope {
     undefined notifyNewSource(NotifyNewSource args);
+    DOMString? registerObjectActor(DOMString serializedValue);
 };
 
 dictionary NotifyNewSource {

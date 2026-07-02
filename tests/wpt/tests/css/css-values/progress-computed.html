@@ -53,4 +53,21 @@ test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) 
 test_math_used('rotate3d(progress(21em, 1rem, 11em), progress(21em, 1rem, 11em), progress(21em, 1rem, 11em), calc(progress(11em, 1rem, 11em) * 2deg))', 'rotate3d(2, 2, 2, 2deg)', {prop:'transform'});
 
 test_math_used('calc(50% - 0px * clamp(0, progress(0cqw, 0px, 0px), 1))', '50px', {type:'length', prop:'width'});
+
+// Disable clamping
+test_math_used('calc(progress(no-clamp 100px, 0px, 50px) * 10px + 100px)', '120px');
+test_math_used('calc(progress(no-clamp 100, 0, sign(1rem - 5px)))', '100', {type:'number'});
+test_math_used('calc(progress(no-clamp abs(5%), hypot(3%, 4%), 10%))', '0', {type:'number', approx:0.001});
+test_math_used('progress(no-clamp 50em, 10em, 110em)', '0.4', {type:'number', approx:0.1});
+test_math_used('progress(no-clamp 1000em, 10em, 110em)', '9.9', {type:'number', approx:0.1});
+test_math_used('progress(no-clamp 10em, 50em, 100em)', '-0.8', {type:'number', approx:0.1});
+
+// Start == End
+test_math_used('progress(100px, 10px, 10px)', '0', {type:'number' });
+test_math_used('progress(1px, 10px, 10px)', '0', {type:'number' });
+test_math_used('progress(10px, 10px, 10px)', '0', {type:'number' });
+test_plus_infinity('progress(no-clamp 100px, 10px, 10px)');
+test_minus_infinity('progress(no-clamp 1px, 10px, 10px)');
+test_math_used('progress(no-clamp 10px, 10px, 10px)', '0', {type:'number' });
+
 </script>
