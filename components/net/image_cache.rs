@@ -11,7 +11,7 @@ use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 
 use imsz::imsz_from_reader;
-use log::{debug, warn};
+use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
@@ -1025,6 +1025,14 @@ impl ImageCache for ImageCacheImpl {
             .svg_rasterization_task_store
             .is_or_set_being_rasterized(image_id, requested_size)
         {
+            return None;
+        }
+
+        if requested_size.width == 0 || requested_size.height == 0 {
+            error!(
+                "Asked for requested size {:?} which has zero size. Not returning image",
+                requested_size
+            );
             return None;
         }
 
