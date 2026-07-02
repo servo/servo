@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reparenting in removeNode() in adoptNode() should not crash</title>
+<link rel="help" href="https://crbug.com/40509368">
+<div id="test-container"><script>
+var sacrifice;
+let testContainer = document.getElementById('test-container');
+let iframe = document.createElement('iframe');
+testContainer.appendChild(iframe);
+let doc = iframe.contentDocument;
+let script = doc.createElementNS('http://www.w3.org/2000/svg', 'script');
+script.type = 'invalid-type';
+script.textContent = 'document.body.appendChild(parent.sacrifice)';
+sacrifice = document.createElement('div');
+script.appendChild(sacrifice);
+doc.body.appendChild(script);
+script.type = '';
+document.adoptNode(sacrifice);
+</script>

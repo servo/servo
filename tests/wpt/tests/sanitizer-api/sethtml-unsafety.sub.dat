@@ -77,3 +77,65 @@ script
 |   data-y="2"
 |   data-z="3"
 
+#data
+<div><base href="https://example.org/"></base></div>
+#config
+{ }
+#document
+| <div>
+|   <base>
+|     href="https://example.org/"
+
+#data
+<div><embed src="https://example.org/"></embed></div>
+#config
+{ }
+#document
+| <div>
+|   <embed>
+|     src="https://example.org/"
+
+#data
+<div><iframe src="https://example.org/"></iframe></div>
+#config
+{ }
+#document
+| <div>
+|   <iframe>
+|     src="https://example.org/"
+
+#data
+<div><object data="https://example.org/"></object></div>
+#config
+{ }
+#document
+| <div>
+|   <object>
+|     data="https://example.org/"
+
+#data
+<div><script src="https://example.org/"></script></div>
+#config
+{ }
+#document
+| <div>
+|   <script>
+|     src="https://example.org/"
+
+#data
+<svg><script src="https://example.org/"></script></svg>
+#config
+{ }
+#document
+| <svg svg>
+|   <svg script>
+|     src="https://example.org/"
+
+#data
+<svg><use href="https://example.org/"></use></svg>
+#config
+{ }
+#document
+| <svg svg>
+|   <svg use>
+|     href="https://example.org/"

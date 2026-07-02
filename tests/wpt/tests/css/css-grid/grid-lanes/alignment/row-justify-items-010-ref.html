@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-rows: repeat(3, 80px);
+      grid-template-columns: 1fr;
+      width: 300px;
+      gap: 5px;
+      padding: 2px;
+      margin: 5px;
+      border: 1px solid;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid" style="justify-items: end;">
+  <item style="grid-column: 1; grid-row: 1 / 3; width: 60px; background: #f4a0a0;">1</item>
+  <item style="grid-column: 1; grid-row: 3; width: 60px; background: #2ca02c;">2</item>
+  <item style="grid-column: 1; grid-row: 1 / 4; width: 50px; margin-right: 65px; background: #ff7f0e;">3</item>
+  <item style="grid-column: 1; grid-row: 1; width: 60px; margin-right: 120px; background: #ffbb78;">4</item>
+  <item style="grid-column: 1; grid-row: 2; width: 60px; margin-right: 120px; background: #aad4f5;">5</item>
+  <item style="grid-column: 1; grid-row: 1 / 3; width: 115px; margin-right: 185px; background: #c5b0d5;">6</item>
+  <item style="grid-column: 1; grid-row: 3; width: 180px; margin-right: 120px; background: #98df8a;">7</item>
+</div>
+
+<div class="grid" style="justify-items: start;">
+  <item style="grid-column: 1; grid-row: 2 / 4; width: 60px; background: #f4a0a0;">1</item>
+  <item style="grid-column: 1; grid-row: 1; width: 60px; background: #2ca02c;">2</item>
+  <item style="grid-column: 1; grid-row: 1 / 4; width: 50px; margin-left: 65px; background: #ff7f0e;">3</item>
+  <item style="grid-column: 1; grid-row: 3; width: 60px; margin-left: 120px; background: #ffbb78;">4</item>
+  <item style="grid-column: 1; grid-row: 2; width: 60px; margin-left: 120px; background: #aad4f5;">5</item>
+  <item style="grid-column: 1; grid-row: 2 / 4; width: 115px; margin-left: 185px; background: #c5b0d5;">6</item>
+  <item style="grid-column: 1; grid-row: 1; width: 180px; margin-left: 120px; background: #98df8a;">7</item>
+</div>
+
+</body>
+</html>

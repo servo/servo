@@ -7,7 +7,7 @@
     <html:link rel="match" href="path-length-css-property-ref.tentative.svg"/>
   </metadata>
   <style>
-    rect { path-length: 10; }
+    rect { path-length: 10px; }
   </style>
   <rect x="20" y="20" width="200" height="200"
         fill="none" stroke="black" stroke-width="5" stroke-dasharray="0.25"/>

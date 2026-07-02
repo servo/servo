@@ -28,7 +28,7 @@ async function setupIframe(t, origin) {
 promise_test(async t => {
   // 1. Parent (origin A: self.origin) registers tool T_A
   const controller_a = new AbortController();
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'parent_tool',
     description: 'Parent tool',
     execute: async () => 'hello'

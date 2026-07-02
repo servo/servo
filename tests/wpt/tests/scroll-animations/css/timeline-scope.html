@@ -189,7 +189,8 @@
     await scrollTop(scrollers[1], 175); // 25%
 
     // Attached to two timelines initially:
-    assert_equals(getComputedStyle(target).width, '0px');
+    // Resolve conflict by selecting last match in flat tree order.
+    assert_equals(getComputedStyle(target).width, '50px');
 
     // Detach scrollers[1].
     await runAndWaitForFrameUpdate(() => {

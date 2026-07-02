@@ -9,9 +9,7 @@
   <style>
     path { path-length: 0; }
   </style>
-  <!-- With path-length:0, the dash scaling factor becomes infinity,
-       so stroke-dasharray="1 1" is scaled to an infinite dash length,
-       resulting in a solid stroke. -->
+  <!-- path-length:0 makes the dash scale infinite, so the stroke is solid. -->
   <path d="M10,10 L110,10 L110,110 L10,110Z" stroke-dasharray="1 1"
         fill="none" stroke="black" stroke-width="10"/>
 </svg>

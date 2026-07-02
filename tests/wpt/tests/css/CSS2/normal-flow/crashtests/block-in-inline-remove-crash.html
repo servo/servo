@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS Test: Re-layout after removing block-in-inline element</title>
+<link rel="help" href="https://crbug.com/41491628">
+<br>
+<nobr>
+<ol id="target"></ol>
+</nobr>
+<script>
+document.body.offsetHeight;
+const target = document.getElementById('target');
+target.remove();
+document.body.offsetHeight;
+</script>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Animating transitioned properties should not crash</title>
+<link rel="help" href="https://crbug.com/40412155">
+<style>
+@keyframes test {
+  from {
+    /* These properties have -webkit-* equivalents. */
+    background-size: 10px 10px;
+    box-shadow: 10px 10px green;
+    perspective: 10px;
+    transform: translate(10px, 10px);
+    perspective-origin: 10px 10px;
+    transform-origin: 10px 10px;
+  }
+}
+#target {
+  animation: test 1s;
+  transition: all 1s;
+}
+</style>
+<div id="target"></div>
+<script>
+  'use strict';
+  let frameWait = 5;
+  function frame() {
+    frameWait--;
+    if (frameWait) {
+      requestAnimationFrame(frame);
+    } else {
+      document.documentElement.classList.remove('test-wait');
+    }
+  }
+  requestAnimationFrame(frame);
+</script>
+</html>

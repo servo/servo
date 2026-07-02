@@ -37,14 +37,13 @@ promise_test(async t => {
   const iframe_modelContext = iframe.contentWindow.document.modelContext;
   iframe.remove();
 
-  assert_throws_dom('InvalidStateError', iDOMException, () => {
+  return promise_rejects_dom(t, 'InvalidStateError', iDOMException,
     iframe_modelContext.registerTool({
       name: 'detached_tool',
       description: 'Tool registered in detached frame',
       execute: async () => 'hello'
-    });
-  }, 'Throws InvalidStateError for detached frame');
-}, 'registerTool() throws `InvalidStateError` in detached frame');
+    }), 'Rejects InvalidStateError for detached frame');
+}, 'registerTool() rejects `InvalidStateError` in detached frame');
 </script>
 </body>
 </html>

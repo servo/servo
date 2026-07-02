@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Animating an element moved to another document should not crash</title>
+<link rel="help" href="https://crbug.com/40391065">
+<iframe id="dc"></iframe>
+<canvas id="ak">
+  <object id="bs">
+    <script>
+      bs.animate([{"backgroundClip":"content-box"}, {"backgroundClip":"border-box"}], 2000);
+      try {bs.appendChild(document.querySelector("e2").cloneNode(true));}catch(e){}
+      dc.contentDocument.body.appendChild(ak);
+    </script>
+  </object>
+</canvas>

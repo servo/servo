@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Universal selector with opacity: inherit in keyframes should not crash</title>
+<link rel="help" href="https://crbug.com/41243180">
+<div>This test passes if it does not crash.</div>
+<style>
+* {
+  animation-name: test;
+}
+@keyframes test {
+  0% { opacity: inherit; }
+}
+</style>

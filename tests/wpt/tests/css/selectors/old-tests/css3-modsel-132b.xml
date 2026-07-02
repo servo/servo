@@ -13,15 +13,25 @@ div.stub html|*:not([*|class~="deux"]),
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b">
 <div class="stub">
 <p class="un deux trois">This paragraph should be unstyled</p>
-<p class="un deu trois">This paragraph should have a green background.</p>
-<q xmlns="http://www.example.org/a" a:bar="un deux trois">This paragraph should have a green background.</q>
-<q xmlns="http://www.example.org/a" a:foo="un second deuxieme trois">This paragraph should have a green background.</q>
+<p id="t1" class="un deu trois">This paragraph should have a green background.</p>
+<q id="t2" xmlns="http://www.example.org/a" a:bar="un deux trois">This paragraph should have a green background.</q>
+<q id="t3" xmlns="http://www.example.org/a" a:foo="un second deuxieme trois">This paragraph should have a green background.</q>
 <r xmlns="http://www.example.org/a" a:foo="un deux trois">This paragraph should be unstyled.</r>
 <s xmlns="http://www.example.org/b" b:foo="un deux trois">This paragraph should be unstyled.</s>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+}, 'NEGATED Attribute space-separated value selector with universal namespace');
+]]></script>
 </body>
 </html>

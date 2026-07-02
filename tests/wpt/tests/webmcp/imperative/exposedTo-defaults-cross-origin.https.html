@@ -27,7 +27,7 @@ async function setupIframe(t) {
 
 promise_test(async t => {
   const controller = new AbortController();
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'parent_tool_default',
     description: 'Parent tool with default exposure',
     execute: async () => 'hello'
@@ -57,7 +57,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const controller = new AbortController();
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'parent_tool_empty',
     description: 'Parent tool with empty exposedTo',
     execute: async () => 'hello'

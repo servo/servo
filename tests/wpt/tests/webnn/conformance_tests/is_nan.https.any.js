@@ -27,7 +27,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -49,7 +49,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -71,7 +71,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -93,7 +93,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -116,7 +116,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -141,7 +141,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -164,7 +164,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -186,7 +186,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -208,7 +208,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -232,7 +232,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -254,7 +254,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -276,7 +276,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -298,7 +298,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {
@@ -323,7 +323,7 @@ const isNaNTests = [
       },
       'operators': [{
         'name': 'isNaN',
-        'arguments': [{'input': 'isNaNInput'}],
+        'arguments': [{'a': 'isNaNInput'}],
         'outputs': 'isNaNOutput'
       }],
       'expectedOutputs': {

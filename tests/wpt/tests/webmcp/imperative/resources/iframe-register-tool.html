@@ -21,7 +21,7 @@
   // manage/unregister any tool that it registers.
   const controllers = new Map();
 
-  window.onmessage = e => {
+  window.onmessage = async e => {
     const action = typeof e.data === 'string' ? e.data : e.data.action;
 
     if (action === 'register') {
@@ -37,7 +37,7 @@
         const givenOptions = e.data.options;
         const options = { signal: controller.signal, ...givenOptions};
 
-        document.modelContext.registerTool(tool, options);
+        await document.modelContext.registerTool(tool, options);
         controllers.set(tool.name, controller);
       } catch (e) {
         parent.postMessage(`tool registration failed: ${e}`, '*');

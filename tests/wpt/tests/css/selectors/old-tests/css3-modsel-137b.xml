@@ -11,11 +11,21 @@ div.stub *|*:not([|title]) { background-color : red }]]></style>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body xmlns:a="http://www.example.org/a">
 <div class="stub">
-<q xmlns="http://www.example.org/a" a:title="si on chantait">This paragraph should have a green background.</q>
-<r xmlns="http://www.example.org/a" title="si on chantait">This paragraph should be unstyled.</r>
+<q id="q" xmlns="http://www.example.org/a" a:title="si on chantait">This paragraph should have a green background.</q>
+<r id="r" xmlns="http://www.example.org/a" title="si on chantait">This paragraph should be unstyled.</r>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_background_color('q', LIME);
+  assert_not_background_color('r', LIME);
+  assert_not_background_color('r', RED);
+}, 'NEGATED Attribute existence selector without declared namespace');
+]]></script>
 </body>
 </html>

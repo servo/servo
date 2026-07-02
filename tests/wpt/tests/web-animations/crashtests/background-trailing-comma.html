@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Animating background with implicit longhand values and more than one bg-layer should not crash</title>
+<link rel="help" href="https://crbug.com/40083771">
+<div id="target"></div>
+<script>
+  target.animate({background: 'none, 10px'}, {fill: 'forwards'});
+  getComputedStyle(target).backgroundPosition;
+</script>

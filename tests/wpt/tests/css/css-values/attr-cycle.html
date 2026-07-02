@@ -156,4 +156,30 @@
   attrElem.setAttribute('data-bar', '3');
   test_attr_no_cycle('--data-foo', 'attr(data-foo type(*))', 'attr(data-bar number)', '3');
   attrElem.setAttribute('data-bar', null);
+
+  /* Cycle in non-custom property */
+  CSS.registerProperty({
+    name: '--data-baz',
+    syntax: '<length>',
+    inherits: false,
+    initialValue: '4px',
+  });
+  attrElem.style.setProperty('--data-baz', '3em');
+  test_attr_cycle('font-size', 'attr(data-foo type(*))', 'var(--data-baz)');
+  test_attr_cycle('font-size', 'attr(unknown type(*), var(--data-baz))', '');
+  attrElem.style.setProperty('--data-baz', null);
+
+  /* No cycle in non-custom property */
+  attrElem.style.setProperty('--bar', '3em');
+  test_attr_no_cycle('font-size', 'attr(unknown, var(--bar))', '', '48px');
+  attrElem.style.setProperty('--bar', null);
+
+  attrElem.setAttribute('data-bar', '3');
+  test_attr_no_cycle('font-size', 'attr(data-foo type(*))', 'attr(data-bar em)', '48px');
+  attrElem.setAttribute('data-bar', null);
+
+  /* Cycle in unused fallback for non-custom property */
+  attrElem.style.setProperty('--data-baz', '3em');
+  test_attr_no_cycle('font-size', 'attr(data-foo type(<length>), var(--data-baz))', '5px', '5px');
+  attrElem.style.setProperty('--data-baz', null);
 </script>

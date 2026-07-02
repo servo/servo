@@ -859,6 +859,23 @@ def test_spec_links_complex(input, expected):
     assert s.spec_links == set(expected)
 
 
+@pytest.mark.parametrize("input,expected", [
+    (b"""// META: spec=https://example.com/\ntest()""",
+     ["https://example.com/"]),
+    (b"""// META: spec=https://example.com/a/\n// META: spec=https://example.com/b/\ntest()""",
+     ["https://example.com/a/", "https://example.com/b/"]),
+    (b"""// META: global=window,worker\n// META: spec=https://example.com/\n// META: script=/resources/testharness.js\ntest()""",
+     ["https://example.com/"]),
+    (b"""// META: global=window,worker\ntest()""",
+     []),
+    (b"""test()""",
+     []),
+])
+def test_spec_links_script_metadata(input, expected):
+    s = create("html/test.any.js", contents=input)
+    assert s.spec_links == set(expected)
+
+
 def test_url_base():
     contents = b"""// META: global=window,worker
 // META: variant=?default

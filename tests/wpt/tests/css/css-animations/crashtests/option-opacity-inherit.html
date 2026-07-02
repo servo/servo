@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Animating opacity with inherit on an option element should not crash</title>
+<link rel="help" href="https://crbug.com/41243180">
+<object>
+  <a>
+    <option id="objectAOption"></option>
+  </a>
+</object>
+
+<canvas>
+  <div>
+    <option id="canvasDivOption"></option>
+  </div>
+</canvas>
+
+<script>
+  objectAOption.animate([{"opacity":"inherit"}, {"opacity":"inherit"}], 1000);
+  canvasDivOption.animate([{"opacity":"inherit"}, {"opacity":"inherit"}], 1000);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('test-wait');
+    });
+  });
+</script>
+</html>

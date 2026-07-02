@@ -4,7 +4,7 @@
   <title>SVG Path Properties: parsing path-length with invalid values</title>
   <metadata>
     <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthProperty"/>
-    <h:meta name="assert" content="path-length supports only the grammar 'none | &lt;number [0,∞]&gt;'."/>
+    <h:meta name="assert" content="path-length supports only the grammar 'none | &lt;length [0,∞]&gt;'."/>
   </metadata>
   <path id="target"/>
   <h:script src="/resources/testharness.js"/>
@@ -15,8 +15,14 @@
 test_invalid_value("path-length", "-1");
 test_invalid_value("path-length", "-0.5");
 test_invalid_value("path-length", "auto");
-test_invalid_value("path-length", "10px");
+test_invalid_value("path-length", "1");
+test_invalid_value("path-length", "0.5");
+test_invalid_value("path-length", "100");
+test_invalid_value("path-length", "1e2");
+test_invalid_value("path-length", "-10px");
 test_invalid_value("path-length", "10%");
+test_invalid_value("path-length", "calc(10px + 5%)");
+test_invalid_value("path-length", "calc(infinity)");
 test_invalid_value("path-length", "1 2");
 test_invalid_value("path-length", "none 1");
 
