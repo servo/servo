@@ -231,7 +231,7 @@ signal-hook-registry = "1.4.8"
 skrifa = "0.42.1"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 speexdsp-resampler = "0.1.0"
-string_cache = "0.9"
+string_cache = "0.10"
 strum = { version = "0.28", features = ["derive"] }
 stylo = { git = "https://github.com/servo/stylo", rev = "bc25ec938fa224410eebf21a8963074bc8d8126d" }
 stylo_atoms = { git = "https://github.com/servo/stylo", rev = "bc25ec938fa224410eebf21a8963074bc8d8126d" }
