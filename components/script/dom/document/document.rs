@@ -80,6 +80,7 @@ use url::{Host, Position};
 
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
+use crate::dom::FlatTreeParent;
 use crate::dom::animationtimeline::AnimationTimeline;
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -779,8 +780,9 @@ impl Document {
         }
 
         let parent = match node.parent_in_flat_tree() {
-            Some(parent) => parent,
-            None => {
+            FlatTreeParent::Parent(parent) => parent,
+            FlatTreeParent::NotInFlatTree => return,
+            FlatTreeParent::RootNode => {
                 // There is no parent so this is the Document node, so we
                 // behave as if we were called with the document element.
                 let Some(document_element) = self.GetDocumentElement() else {

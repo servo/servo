@@ -15,6 +15,7 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use style::selector_parser::PseudoElement;
 use stylo_dom::ElementState;
 
+use crate::dom::FlatTreeParent;
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
@@ -524,7 +525,8 @@ impl Activatable for HTMLButtonElement {
         // Adhoc, this step is needed so that file inputs button activates the input.
         if let Some(pseudo_element) = self.upcast::<Node>().implemented_pseudo_element() {
             if pseudo_element == PseudoElement::FileSelectorButton {
-                let Some(parent) = self.upcast::<Node>().parent_in_flat_tree() else {
+                let FlatTreeParent::Parent(parent) = self.upcast::<Node>().parent_in_flat_tree()
+                else {
                     return;
                 };
 

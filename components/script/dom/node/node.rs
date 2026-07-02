@@ -2067,29 +2067,52 @@ impl Node {
 
     /// Gets the parent of this node from the perspective of layout and style.
     ///
-    /// The returned node is the node's assigned slot, if any, or the
-    /// shadow host if it's a shadow root. Otherwise, it is the node's
-    /// parent.
-    pub(crate) fn parent_in_flat_tree(&self) -> Option<DomRoot<Node>> {
+    /// If the node and its parent have a flat tree relationship, this returns:
+    ///  - The node's assigned slot.
+    ///  - The parent node's shadow host if it's a shadow root.
+    ///  - Or the node's parent.
+    ///
+    /// The parent might not have a flat tree relationship with the node if
+    ///  - It's a light tree child of a shadow host.
+    ///  - It's fallback content for an assigned slot.
+    pub(crate) fn parent_in_flat_tree(&self) -> FlatTreeParent {
         if let Some(assigned_slot) = self.assigned_slot() {
-            return Some(DomRoot::upcast(assigned_slot));
+            return FlatTreeParent::Parent(DomRoot::upcast(assigned_slot));
         }
 
-        let parent_or_none = self.GetParentNode();
-        if let Some(parent) = parent_or_none.as_deref() &&
-            let Some(shadow_root) = parent.downcast::<ShadowRoot>()
+        let Some(parent) = self.GetParentNode() else {
+            return FlatTreeParent::RootNode;
+        };
+
+        if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
+            return FlatTreeParent::Parent(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
+        }
+
+        if parent
+            .downcast::<Element>()
+            .is_some_and(|element| element.is_shadow_host())
         {
-            return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
+            return FlatTreeParent::NotInFlatTree;
         }
 
-        parent_or_none
+        if parent
+            .downcast::<HTMLSlotElement>()
+            .is_some_and(|slot| slot.has_assigned_nodes())
+        {
+            return FlatTreeParent::NotInFlatTree;
+        }
+
+        FlatTreeParent::Parent(parent)
     }
 
     pub(crate) fn inclusive_ancestors_in_flat_tree(
         &self,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), move |n| {
-            n.parent_in_flat_tree()
+        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), move |node| {
+            match node.parent_in_flat_tree() {
+                FlatTreeParent::Parent(parent) => Some(parent),
+                FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
+            }
         })
     }
 
@@ -4344,4 +4367,15 @@ where
 
         self.insert(insertion_index, Dom::from_ref(node));
     }
+}
+
+/// The return value of [`Node::parent_in_flat_tree`].
+pub(crate) enum FlatTreeParent {
+    /// The parent in the flat tree.
+    Parent(DomRoot<Node>),
+    /// This node has a parent (it's not the root), but it does not share a flat tree
+    /// relationship with its parent.
+    NotInFlatTree,
+    /// This node is in the flat tree, but has no parent node.
+    RootNode,
 }
