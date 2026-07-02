@@ -276,8 +276,8 @@ webdriver = { version = "0.53.0", default-features = false }
 webpki-roots = "1.0"
 webrender = { version = "0.69", features = ["capture"] }
 webrender_api = "0.69"
-wgpu-core = { git = "https://github.com/sagudev/wgpu", branch = "drop-them" }
-wgpu-types = { git = "https://github.com/sagudev/wgpu", branch = "drop-them" }
+wgpu-core = "30"
+wgpu-types = "30"
 winapi = "0.3"
 windows-sys = "0.61"
 winit = "0.30.13"

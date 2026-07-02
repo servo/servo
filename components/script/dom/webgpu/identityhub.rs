@@ -6,12 +6,12 @@ use webgpu_traits::{ComputePass, ComputePassId, RenderPass, RenderPassId};
 use wgpu_core::id::markers::{
     Adapter, BindGroup, BindGroupLayout, Buffer, CommandBuffer, CommandEncoder, ComputePipeline,
     Device, ExternalTexture, PipelineLayout, QuerySet, Queue, RenderBundle, RenderPipeline,
-    Sampler, ShaderModule, Texture, TextureView,
+    Sampler, ShaderModule, Texture, TextureView, RenderBundleEncoder
 };
 use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
     ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId, QuerySetId, QueueId,
-    RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId, TextureId, TextureViewId,
+    RenderBundleEncoderId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId, TextureId, TextureViewId,
 };
 use wgpu_core::identity::IdentityManager;
 
