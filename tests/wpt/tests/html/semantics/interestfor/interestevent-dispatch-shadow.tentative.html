@@ -24,18 +24,13 @@
     let childEvent = null;
     let childEventTarget = null;
     let childEventSource = null;
-    let hostEvent = null;
-    let hostEventTarget = null;
-    let hostEventSource = null;
     slot.addEventListener("interest", (e) => {
         childEvent = e;
         childEventTarget = e.target;
         childEventSource = e.source;
       }, { once: true });
     host.addEventListener("interest", (e) => {
-        hostEvent = e;
-        hostEventTarget = e.target;
-        hostEventSource = e.source;
+        assert_unreached("host should not receive interest event");
       }, { once: true });
     const event = new InterestEvent("interest", {
       bubbles: true,
@@ -46,10 +41,7 @@
     assert_true(childEvent instanceof InterestEvent, "slot saw interest event");
     assert_equals(childEventTarget, slot, "target is child inside shadow boundary");
     assert_equals(childEventSource, slot, "source is child inside shadow boundary");
-    assert_equals(hostEvent, childEvent, "event dispatch propagates across shadow boundary");
-    assert_equals(hostEventTarget, host, "target is retargeted to shadowroot host");
-    assert_equals(hostEventSource, host, "source is retargeted to shadowroot host");
-  }, "InterestEvent propagates across shadow boundaries retargeting invoker source");
+  }, "InterestEvent doesn't propagate across shadow boundary when retargeted source == currentTarget");
 
   promise_test(async (t) => {
     const host = document.createElement("div");

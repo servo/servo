@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>shape-outside on transitioning element should not crash</title>
+<input id="input" autofocus>
+<style>
+  input {
+    transition: ease, 50ms;
+    shape-outside: padding-box;
+  }
+</style>
+<script>
+  document.getElementById("input").addEventListener("transitionend", function() {
+    document.documentElement.classList.remove("test-wait");
+  });
+</script>

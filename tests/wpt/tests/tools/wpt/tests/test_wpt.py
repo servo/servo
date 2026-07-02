@@ -1,5 +1,6 @@
 # mypy: allow-untyped-defs
 
+import argparse
 import errno
 import logging
 import os
@@ -8,6 +9,7 @@ import socket
 import subprocess
 import sys
 import time
+from unittest import mock
 from urllib.request import urlopen
 from urllib.error import URLError
 
@@ -108,6 +110,40 @@ def test_load_commands():
     commands = wpt.load_commands()
     # The `wpt run` command has conditional requirements.
     assert "conditional_requirements" in commands["run"]
+
+
+def test_dispatcher_uncaught_exception_exits_70(monkeypatch, capsys):
+    def boom(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    def fake_import_command(prog, command, props):
+        return boom, argparse.ArgumentParser()
+
+    monkeypatch.setattr(wpt, "import_command", fake_import_command)
+
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["files-changed"])
+    assert excinfo.value.code == getattr(os, "EX_SOFTWARE", 70)
+    err = capsys.readouterr().err
+    assert "Traceback (most recent call last):" in err
+    assert "RuntimeError: boom" in err
+
+
+def test_dispatcher_uncaught_exception_debug_invokes_pdb(monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    def fake_import_command(prog, command, props):
+        return boom, argparse.ArgumentParser()
+
+    monkeypatch.setattr(wpt, "import_command", fake_import_command)
+
+    with mock.patch("pdb.post_mortem", autospec=True, spec_set=True) as mock_pm:
+        with pytest.raises(SystemExit) as excinfo:
+            wpt.main(argv=["--debug", "files-changed"])
+    # Falls through to the trailing sys.exit(0) after pdb.post_mortem returns.
+    assert excinfo.value.code == 0
+    mock_pm.assert_called_once_with()
 
 
 @pytest.mark.slow

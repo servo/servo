@@ -8,6 +8,8 @@ def pid_from(capabilities):
         return capabilities["goog:processID"], "chrome"
     if capabilities["browserName"] == "firefox":
         return capabilities["moz:processID"], "firefox"
+    if "safari:processID" in capabilities:
+        return capabilities["safari:processID"], capabilities["browserName"]
     return 0, capabilities["browserName"]
 
 

@@ -50,11 +50,6 @@
                                     scroller);
       const ANIMATION_DURATION_MS = 1;
 
-      const enter = () => {
-        return runAndWaitForFrameUpdate(() => {
-          rangeBoundaries.enterTriggerRange();
-        })
-      }
       const view_timeline = new ViewTimeline({ subject: subject });
       function setupAnimation() {
         const animation = new Animation(
@@ -118,7 +113,7 @@
         assert_times_equal(animation.currentTime, 0, "currentTime is 0");
 
         // Entering the trigger range should play the animation.
-        await enter();
+        await enter(rangeBoundaries);
         await animation.finished;
 
         assert_equals(animation.playState, "finished",
@@ -143,8 +138,7 @@
         assert_array_equals(trigger.getAnimations(), [],
           "trigger has no animations");
 
-        rangeBoundaries.enterTriggerRange();
-        await waitForAnimationFrames(2);
+        await enter(rangeBoundaries);
 
         assert_equals(animation.playState, "idle", "animation is still idle");
         assert_equals(animation.currentTime, null, "currentTime is still null");

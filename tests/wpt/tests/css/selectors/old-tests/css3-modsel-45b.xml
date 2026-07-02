@@ -8,14 +8,26 @@ div.stub > p + p { background-color: red; }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
  <div class="stub">
-  <p class="green">This paragraph should have a green background.</p>
-  <p class="white">But this one should be unstyled.</p>
-  <p class="white">And this one should also be unstyled.</p>
-  <address class="green">This address is only here to fill some space between two paragraphs and should have a green background.</address>
-  <p class="green">This paragraph should have a green background too.</p>
+  <p class="green" id="t1">This paragraph should have a green background.</p>
+  <p class="white" id="t2">But this one should be unstyled.</p>
+  <p class="white" id="t3">And this one should also be unstyled.</p>
+  <address class="green" id="t4">This address is only here to fill some space between two paragraphs and should have a green background.</address>
+  <p class="green" id="t5">This paragraph should have a green background too.</p>
  </div>
-</body>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', 'rgba(0, 0, 0, 0)');
+  assert_background_color('t3', 'rgba(0, 0, 0, 0)');
+  assert_background_color('t4', LIME);
+  assert_background_color('t5', LIME);
+}, 'Direct adjacent combinator');
+]]></script>
+ </body>
 </html>

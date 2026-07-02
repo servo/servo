@@ -91,6 +91,10 @@ class NoSuchRequestException(BidiException):
     error_code = "no such request"
 
 
+class NoSuchScreencastException(BidiException):
+    error_code = "no such screencast"
+
+
 class NoSuchScriptException(BidiException):
     error_code = "no such script"
 

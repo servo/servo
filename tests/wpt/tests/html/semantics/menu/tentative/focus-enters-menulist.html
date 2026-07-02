@@ -8,13 +8,15 @@
 <script src="/resources/testdriver-actions.js"></script>
 
 <button id=nothing>nothing</button>
-<button commandfor=menulist command=toggle-menu>toggle-menu</button>
+<button commandfor=menulist command=toggle-popover>toggle-menu</button>
 <menubar>
-  <menuitem commandfor=menulist command=toggle-menu>toggle-menu</menuitem>
+  <submenu>
+    <menuitem id=menuitem-trigger>toggle-menu</menuitem>
+    <menulist id=menulist>
+      <menuitem>menuitem</menuitem>
+    </menulist>
+  </submenu>
 </menubar>
-<menulist id=menulist>
-  <menuitem>menuitem</menuitem>
-</menulist>
 
 <style>
 button, menuitem {
@@ -44,10 +46,13 @@ const keyMap = {
 const menulist = document.getElementById('menulist');
 const menulistChild = menulist.querySelector('menuitem');
 
+const menuitemTrigger = document.getElementById('menuitem-trigger');
+const buttonTrigger = document.querySelector('button[commandfor]');
+
 for (const useInterest of [true, false]) {
   for (const keyName of ['enter', 'space']) {
-    document.querySelectorAll('[commandfor]').forEach(invoker => {
-      // interest invoking is only supported on <menuitem command=toggle-menu>
+    [buttonTrigger, menuitemTrigger].forEach(invoker => {
+      // interest invoking is only supported on <menuitem>
       if (useInterest && invoker.localName == "button") {
         return;
       }

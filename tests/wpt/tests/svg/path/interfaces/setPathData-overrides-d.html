@@ -1,0 +1,36 @@
+<!doctype html>
+<title>SVGPathElement.setPathData() overrides previous d attribute</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#__svg__SVGPathData__setPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<svg></svg>
+<script>
+test(() => {
+  const path = createPath("M 0 0 L 99 99 Z");
+  path.setPathData([
+    { type: "M", values: [1, 2] },
+    { type: "L", values: [3, 4] }
+  ]);
+  assert_equals(path.getAttribute("d"), "M 1 2 L 3 4");
+}, "setPathData() replaces the existing d attribute");
+
+test(() => {
+  // Detached path with no initial d.
+  const path = createPath();
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [5, 5] }
+  ]);
+  assert_equals(path.getAttribute("d"), "M 0 0 L 5 5");
+}, "setPathData() works on a detached path");
+
+test(() => {
+  const path = createPath("M 5 5 L 10 10");
+  path.setPathData([]);
+  assert_equals(path.getAttribute("d"), null,
+      "Empty sequence removes the d attribute");
+}, "setPathData() with an empty sequence");
+</script>

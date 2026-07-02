@@ -435,7 +435,6 @@ impl ServiceWorkerGlobalScope {
                 .use_url_credentials(true)
                 .pipeline_id(Some(pipeline_id))
                 .referrer_policy(referrer_policy)
-                .insecure_requests_policy(worker_scope.insecure_requests_policy())
                 // TODO: Use policy container from ScopeThings
                 .policy_container(global_scope.policy_container())
                 .origin(origin);

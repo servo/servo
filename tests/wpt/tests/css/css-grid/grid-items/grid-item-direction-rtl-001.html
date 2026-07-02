@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#direction">
+<link rel="match" href="grid-item-direction-rtl-001-ref.html">
+<style>
+.grid {
+    display: grid;
+    width: 100px;
+    height: 100px;
+    direction: rtl;
+    grid-template-columns: 100px;
+    grid-template-rows: 100px;
+}
+.item {
+    width: 50px;
+    height: 50px;
+    grid-row: 1/2;
+    background-color: green;
+}
+</style>
+
+<p>Test passes if there is a 50x50 green box on the right side of a 100x100 area.</p>
+
+<div class="grid">
+    <div class="item"></div>
+</div>

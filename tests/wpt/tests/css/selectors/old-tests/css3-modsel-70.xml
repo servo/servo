@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>NEGATED :checked pseudo-class</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[input, span { background-color : red }
 input:not(:checked), input:not(:checked) + span { background-color : lime}]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
@@ -10,6 +13,12 @@ input:not(:checked), input:not(:checked) + span { background-color : lime}]]></s
  </head>
  <body>
 <p>
-<input type="checkbox"></input> <span>Everything in this paragraph should have a green background</span></p>
+<input id="t1" type="checkbox"></input> <span id="t2">Everything in this paragraph should have a green background</span></p>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME, "input should be green");
+  assert_background_color('t2', LIME, "span should be green");
+}, 'NEGATED :checked pseudo-class');
+]]></script>
 </body>
 </html>

@@ -64,13 +64,13 @@
         // Sources 1 through 4 come earlier than source5 in tree-order so they
         // should have no effect.
         for (const source of [source1, source2, source3, source4]) {
-          await runAndWaitForFrameUpdate(() => {
+          await runAndWaitForTriggerResponse(() => {
             source.scrollIntoView({block: "center"});
           });
           assert_element_animation_state(target, "paused");
         }
 
-        await runAndWaitForFrameUpdate(() => {
+        await runAndWaitForTriggerResponse(() => {
           source5.scrollIntoView({block: "center"});
         });
 

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html class=test-wait>
+
+<style>
+select { appearance: base-select; }
+</style>
+
+<select></select>
+
+<script>
+requestAnimationFrame(() => {
+  document.querySelector('select').setAttribute('multiple', '');
+  document.documentElement.classList.remove('test-wait');
+});
+</script>

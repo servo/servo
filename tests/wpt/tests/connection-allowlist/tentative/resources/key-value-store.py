@@ -19,13 +19,25 @@ def main(request, response):
     key = request.GET.get(b"key")
     value = request.GET.get(b"value", None)
 
+    # Modulepreload requests always use CORS mode. These headers are required
+    # in the responses to the CORS preflight requests, to allow the actual
+    # requests to proceed.
+    headers = [
+        (b"Access-Control-Allow-Origin", b"*"),
+        (b"Access-Control-Allow-Methods", b"GET, POST, OPTIONS"),
+        (b"Access-Control-Allow-Headers", b"*"),
+    ]
+
+    if request.method == b"OPTIONS":
+        return (200, headers, b"")
+
     # Store the value.
     if value:
         request.server.stash.put(key, value)
-        return (200, [], b"")
+        return (200, headers, b"")
 
     # Get the value.
     data = request.server.stash.take(key)
     if not data:
-        return (200, [], b"")
-    return (200, [], data)
+        return (200, headers, b"")
+    return (200, headers, data)

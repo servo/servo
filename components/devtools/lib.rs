@@ -377,6 +377,10 @@ impl DevtoolsInstance {
                     pipeline_id,
                     frame_info,
                 )) => self.handle_create_frame_actor(result_sender, pipeline_id, frame_info),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::CreateObjectActor(
+                    result_sender,
+                    value,
+                )) => self.handle_create_object_actor(result_sender, value),
                 DevtoolsControlMsg::FromScript(
                     ScriptToDevtoolsControlMsg::CreateEnvironmentActor(
                         result_sender,
@@ -890,6 +894,31 @@ impl DevtoolsInstance {
         let _ = result_sender.send(frame_actor.name().into());
     }
 
+    fn handle_create_object_actor(
+        &mut self,
+        result_sender: GenericSender<String>,
+        value: DebuggerValue,
+    ) {
+        let DebuggerValue::ObjectValue {
+            actor,
+            class,
+            own_property_length,
+            preview,
+        } = value
+        else {
+            return;
+        };
+
+        let object_actor = ObjectActor::register(
+            &self.registry,
+            actor,
+            class,
+            own_property_length,
+            preview.map(|preview| *preview),
+        );
+        let _ = result_sender.send(object_actor);
+    }
+
     fn handle_create_environment_actor(
         &mut self,
         result_sender: GenericSender<String>,
@@ -1015,14 +1044,14 @@ pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerVa
         },
         DebuggerValue::StringValue(str) => Value::String(str),
         DebuggerValue::ObjectValue {
-            uuid,
+            actor,
             class,
             own_property_length,
             preview,
         } => {
             let object_name = ObjectActor::register(
                 registry,
-                Some(uuid),
+                actor,
                 class,
                 own_property_length,
                 preview.map(|preview| *preview),

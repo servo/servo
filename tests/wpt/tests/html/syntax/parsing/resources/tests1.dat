@@ -556,7 +556,6 @@ Line1<br>Line2<br>Line3<br>Line4
 #new-errors
 (1:2) unexpected-question-mark-instead-of-tag-name
 #document
-| <!-- ? -->
 | <html>
 |   <head>
 |   <body>
@@ -569,7 +568,6 @@ Line1<br>Line2<br>Line3<br>Line4
 #new-errors
 (1:2) unexpected-question-mark-instead-of-tag-name
 #document
-| <!-- ?# -->
 | <html>
 |   <head>
 |   <body>
@@ -608,7 +606,7 @@ Line1<br>Line2<br>Line3<br>Line4
 #new-errors
 (1:2) unexpected-question-mark-instead-of-tag-name
 #document
-| <!-- ?COMMENT? -->
+| <?COMMENT ??>
 | <html>
 |   <head>
 |   <body>
@@ -647,7 +645,7 @@ Line1<br>Line2<br>Line3<br>Line4
 #new-errors
 (1:2) unexpected-question-mark-instead-of-tag-name
 #document
-| <!-- ?COM--MENT? -->
+| <?COM--MENT ??>
 | <html>
 |   <head>
 |   <body>

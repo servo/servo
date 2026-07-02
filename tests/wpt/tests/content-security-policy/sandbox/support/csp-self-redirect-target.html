@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'">
+</head>
+<body>
+    <script>self.__scriptLoaded = false;</script>
+    <script src="iframe-self-pass.js"></script>
+    <script>
+        var msg = self.__scriptLoaded
+            ? "PASS script-src self after redirect"
+            : "FAIL script blocked after redirect";
+        window.parent.postMessage(msg, "*");
+    </script>
+</body>
+</html>

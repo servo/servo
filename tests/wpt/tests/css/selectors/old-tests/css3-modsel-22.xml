@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>:lang() pseudo-class</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[ul > li { background-color : red }
 li:lang(en-GB) { background-color : lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
@@ -10,16 +13,24 @@ li:lang(en-GB) { background-color : lime }]]></style>
  </head>
  <body>
 <ul>
-  <li lang="en-GB">This list item should be green because its language is
+  <li lang="en-GB" id="t1">This list item should be green because its language is
         British English</li>
-  <li lang="en-GB-wa">This list item should be green because its language
+  <li lang="en-GB-wa" id="t2">This list item should be green because its language
         is British English (Wales)</li>
 </ul>
 <ol>
-  <li lang="en-US">This list item should NOT be green because its language
+  <li lang="en-US" id="t3">This list item should NOT be green because its language
        is US English</li>
-  <li lang="fr">This list item should NOT be green because its language is
+  <li lang="fr" id="t4">This list item should NOT be green because its language is
        French</li>
 </ol>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME, 'lang=en-GB should be green');
+  assert_background_color('t2', LIME, 'lang=en-GB-wa should be green');
+  assert_not_background_color('t3', LIME, 'lang=en-US should not be green');
+  assert_not_background_color('t4', LIME, 'lang=fr should not be green');
+}, 'li:lang(en-GB) matches');
+]]></script>
 </body>
 </html>

@@ -1,0 +1,156 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: subgrid line name resolution from grid-lanes (columns)</title>
+  <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="column-line-names-005-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:12px/1 monospace; padding:0; margin:0;
+}
+
+.grid-lanes {
+  display: inline-grid-lanes;
+  grid-template-columns: [a] 30px [b] 30px [c] 30px [] 30px [e-start] 30px [] 30px [x] 30px [h] 30px [i] 30px [j] 30px [k];
+  grid-template-areas: ". . . e . . . . . . .";
+  place-content: start;
+  border: 1px solid;
+  width: 500px;
+  grid-auto-columns: 100px;
+}
+
+.subgrid {
+  display: grid;
+  grid: auto / subgrid;
+  background: lightgrey;
+  grid-column: 2 / span 8;
+  min-width: 0;
+  min-height: 0;
+}
+
+.subgrid2 {
+  display: grid;
+  grid: auto / subgrid [] [] [] [b];
+  grid-column: 1 / span 10;
+}
+
+.subgrid#s1 {
+  grid-template-areas: ". e e . . . .";
+}
+
+x {
+  min-width: 10px;
+  min-height: 20px;
+  background: silver;
+}
+
+.hl { writing-mode: horizontal-tb; direction: ltr; }
+.hr { writing-mode: horizontal-tb; direction: rtl; }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes">
+  <div class="subgrid" id="s1">
+    <x style="grid-column:foo / span 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes hr">
+  <div class="subgrid hl" id="s2">
+    <x style="grid-column: x 6 / span 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="subgrid hr" id="s2">
+    <x style="grid-column: x 6 / span 4">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; width:500px; grid-template-columns: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-column:1 / b">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; width:500px; grid-template-columns: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-column:foo / span 4">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; width:500px; grid-template-columns: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-column: span bar / foo 3">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; width:500px; grid-template-columns: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-row:2; grid-column: span bar / foo 3">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; width:500px; grid-template-columns: repeat(10, 50px);">
+  <div class="subgrid2">
+    <x style="grid-column:span 4 / foo">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; width:500px; grid-template-columns: repeat(20, [a] 50px) [a]">
+  <div class="subgrid2">
+    <x style="grid-column:foo / span 4">x</x>
+  </div>
+</div>
+
+<div style="display:inline-grid-lanes; grid-template-columns: repeat(10, 50px) repeat(10, [a] 50px) [a]">
+  <div style="display:grid; grid:auto/subgrid; grid-column: 1 / span 10;">
+    <x style="grid-column: span a / a 8">x</x>
+  </div>
+</div>
+
+<div style='display:inline-grid-lanes; grid-template-columns: repeat(10, 50px); grid-template-areas: "a a a a a a a a a a";'>
+  <div style="display:grid; grid:auto/subgrid; grid-column: 6 / span 5;">
+    <x style="grid-column: a">x</x>
+  </div>
+</div>
+
+<div style='display:inline-grid-lanes; grid-template-columns: repeat(10, 50px); grid-template-areas: ". . . . . . a a a a";'>
+  <div style='display:grid; grid-template-areas: ". . . . . . . a a ."; grid-template-columns:subgrid; grid-column: 1 / span 10;'>
+    <div style="display:grid; grid:auto/subgrid; grid-column: 6 / span 5;">
+      <x style="grid-column: a">x</x>
+    </div>
+  </div>
+</div>
+
+<script>
+  const expectedResults = [
+    "subgrid [] [] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [b] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [b] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [b] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [b] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [b] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [b] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [] [] []",
+    "subgrid [] [] [] [] [] [] [] [] [] [] []",
+    "subgrid [] [] [] [] [] []",
+  ];
+  [...document.querySelectorAll('div > div')].forEach(function(subgrid, i) {
+    let actual = window.getComputedStyle(subgrid)['grid-template-columns'];
+    let expected = expectedResults[i];
+    if (actual != expected) {
+      let err = "Unexpected getComputedStyle value for subgrid " + i + " with className '" + subgrid.className + "':" +
+        " Actual: \"" + actual + "\", Expected: \"" + expected + "\"";
+      document.body.appendChild(document.createTextNode(err));
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <title>Reference: tab stops with float</title>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script>
+const params = new URLSearchParams(window.location.search);
+let classes = ['ltr'];
+if (params.has('class')) {
+  classes = params.getAll('class').flatMap(value => value.split(','));
+}
+document.documentElement.classList.add(...classes);
+</script>
 <style>
 body {
     margin: 0;
@@ -10,6 +18,9 @@ div {
     white-space: pre;
     tab-size: 4;
     width: 400px;
+}
+.rtl div {
+    direction: rtl;
 }
 .spacer {
     display: inline-block;

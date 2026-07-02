@@ -53,7 +53,7 @@
             const cross_origin_start = host_info["HTTP_REMOTE_ORIGIN"] + start_page;
             const test_cases = [
                 { start_url : start_page, end_url: redirect_chain_partial_tao(), unload_exposed: false, redirects: 0, name: "Redirect chain with a partial TAO opt-in" },
-                { start_url : start_page, end_url: redirect_chain_full_tao(), unload_exposed: false, redirects: 0, name: "Redirect chain with full TAO opt-in" },
+                { start_url : start_page, end_url: redirect_chain_full_tao(), unload_exposed: false, redirects: 1, name: "Redirect chain with full TAO opt-in" },
                 { start_url : start_page, end_url: redirect_chain_no_tao(), unload_exposed: false, redirects: 0, name: "Same-cross-same redirect chain with no TAO opt-in" },
                 { start_url : cross_origin_start, end_url: redirect_chain_no_tao(), unload_exposed: false, redirects: 0, name: "cross-cross-same Redirect chain with no TAO opt-in" },
                 { start_url : cross_origin_start, end_url: end_page, unload_exposed: false, redirects: 0, name: "Previous document cross origin" },
@@ -62,7 +62,7 @@
                 { start_url : start_page, end_url: same_origin_redirect_chain(), unload_exposed: true, redirects: 1, name: "Same origin previous document with same origin redirect" },
                 { start_url : same_origin_redirect_chain(), end_url: null, unload_exposed: false, redirects: 1, name: "No previous document with same origin redirect" },
                 { start_url : redirect_chain_no_tao(), end_url: null, unload_exposed: false, redirects: 0, name: "No previous document with cross origin redirect" },
-                { start_url : redirect_chain_full_tao(), end_url: null, unload_exposed: false, redirects: 0, name: "No previous document with cross origin redirect with partial TAO" },
+                { start_url : redirect_chain_full_tao(), end_url: null, unload_exposed: false, redirects: 1, name: "No previous document with cross origin redirect with partial TAO" },
                 { start_url : redirect_chain_partial_tao(), end_url: null, unload_exposed: false, redirects: 0, name: "No previous document with cross origin redirect with TAO" },
             ];
 

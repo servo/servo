@@ -43,10 +43,25 @@ format. This manifest is used directly to determine which tests exist. Local
 metadata files are used to store the expected test results.
 """
 
-def setup_logging(*args, **kwargs):
-    global logger
-    logger = wptlogging.setup(*args, **kwargs)
-    return logger
+def setup_logging(wptrunner_kwargs, defaults, formatter_defaults=None):
+    # Legacy entry point
+    return GlobalLogger(wptrunner_kwargs, defaults, formatter_defaults).__enter__()
+
+
+class GlobalLogger(wptlogging.LoggerManager):
+    def __enter__(self):
+        global logger
+        if logger is not None:
+            raise ValueError("logger is already configured")
+        logger = super().__enter__()
+        assert logger is not None
+        return self._logger
+
+    def __exit__(self, *args, **kwargs):
+        global logger
+        assert logger is not None
+        super().__exit__(self, *args, **kwargs)
+        logger = None
 
 
 def get_loader(test_paths: wptcommandline.TestPaths,
@@ -590,7 +605,6 @@ def start(**kwargs: Any) -> int:
         else:
             rv = int(not run_tests(**kwargs)[0])
     finally:
-        logger.shutdown()
         logger.remove_handler(handler)
 
     # Reserve everything above 64 for our global usage.
@@ -610,9 +624,8 @@ def main():
         if kwargs["prefs_root"] is None:
             kwargs["prefs_root"] = os.path.abspath(os.path.join(here, "prefs"))
 
-        setup_logging(kwargs, {"raw": sys.stdout})
-
-        return start(**kwargs)
+        with GlobalLogger(kwargs, {"raw": sys.stdout}):
+            return start(**kwargs)
     except Exception:
         if kwargs["pdb"]:
             import pdb

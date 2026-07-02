@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Single-frame filter animation with composite accumulate should not crash</title>
+<link rel="help" href="https://crbug.com/40166815">
+<script>
+  const elem = document.createElement('elem');
+  document.body.appendChild(elem);
+  elem.animate([
+    {"filter": "url(#a)"}, {}
+  ], {
+    duration: 1000,
+  });
+
+  elem.animate([
+    {"filter": "hue-rotate(-0.8turn)"}, {}
+  ], {
+    duration: 1000,
+    composite: "accumulate",
+  });
+</script>

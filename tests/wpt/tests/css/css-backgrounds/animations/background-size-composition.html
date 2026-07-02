@@ -14,32 +14,32 @@
 <script>
 test_composition({
   property: 'background-size',
-  underlying: '40px 40px',
+  underlying: '40px 40px',              // intepreted as [  40px  40px,  40px  40px] via repetition
   addFrom: '60px 60px, 260px 260px',
-  addTo: '160px 160px',
+  addTo: '160px 160px',                 // intepreted as [ 160px 160px, 160px 160px] via repetition
 }, [
-  {at: -0.25, expect: '75px 75px, 325px 325px'},
-  {at: 0, expect: '100px 100px, 300px 300px'},
-  {at: 0.25, expect: '125px 125px, 275px 275px'},
-  {at: 0.5, expect: '150px 150px, 250px 250px'},
-  {at: 0.75, expect: '175px 175px, 225px 225px'},
-  {at: 1, expect: '200px 200px, 200px 200px'},
-  {at: 1.25, expect: '225px 225px, 175px 175px'},
+  {at: -0.25, expect: ' 75px  75px, 325px 325px'},
+  {at: 0, expect:     '100px 100px, 300px 300px'},
+  {at: 0.25, expect:  '125px 125px, 275px 275px'},
+  {at: 0.5, expect:   '150px 150px, 250px 250px'},
+  {at: 0.75, expect:  '175px 175px, 225px 225px'},
+  {at: 1, expect:     '200px 200px, 200px 200px'},
+  {at: 1.25, expect:  '225px 225px, 175px 175px'},
 ]);
 
 test_composition({
   property: 'background-size',
-  underlying: '20% 40%',
+  underlying: '20% 40%',            // intepreted as [ 20% 40%, 20% 40%] via repetition
   addFrom: '40px 80px, 180% 160%',
-  addTo: '80% 40%',
+  addTo: '80% 40%',                 // intepreted as [ 80% 40%, 80% 40%] via repetition
 }, [
-  {at: -0.25, expect: 'calc(50px + 0%) calc(100px + 30%), 225% 230%'},
-  {at: 0, expect: 'calc(40px + 20%) calc(80px + 40%), 200% 200%'},
-  {at: 0.25, expect: 'calc(30px + 40%) calc(60px + 50%), 175% 170%'},
-  {at: 0.5, expect: 'calc(20px + 60%) calc(40px + 60%), 150% 140%'},
-  {at: 0.75, expect: 'calc(10px + 80%) calc(20px + 70%), 125% 110%'},
-  {at: 1, expect: '100% 80%, 100% 80%'},
-  {at: 1.25, expect: 'calc(-10px + 120%) calc(-20px + 90%), 75% 50%'},
+  {at: -0.25, expect: 'calc( 50px +   0%) calc(100px + 30%), 225% 230%'},
+  {at: 0, expect:     'calc( 40px +  20%) calc( 80px + 40%), 200% 200%'},
+  {at: 0.25, expect:  'calc( 30px +  40%) calc( 60px + 50%), 175% 170%'},
+  {at: 0.5, expect:   'calc( 20px +  60%) calc( 40px + 60%), 150% 140%'},
+  {at: 0.75, expect:  'calc( 10px +  80%) calc( 20px + 70%), 125% 110%'},
+  {at: 1, expect:     '             100%               80%,  100%  80%'},
+  {at: 1.25, expect:  'calc(-10px + 120%) calc(-20px + 90%),  75%  50%'},
 ]);
 
 test_composition({
@@ -48,13 +48,13 @@ test_composition({
   replaceFrom: '100px 100px',
   addTo: '160px 160px',
 }, [
-  {at: -0.25, expect: '75px 75px, 75px 75px'},
-  {at: 0, expect: '100px 100px, 100px 100px'},
-  {at: 0.25, expect: '125px 125px, 125px 125px'},
-  {at: 0.5, expect: '150px 150px, 150px 150px'},
-  {at: 0.75, expect: '175px 175px, 175px 175px'},
-  {at: 1, expect: '200px 200px, 200px 200px'},
-  {at: 1.25, expect: '225px 225px, 225px 225px'},
+  {at: -0.25, expect: '75px 75px'},
+  {at: 0, expect: '100px 100px'},
+  {at: 0.25, expect: '125px 125px'},
+  {at: 0.5, expect: '150px 150px'},
+  {at: 0.75, expect: '175px 175px'},
+  {at: 1, expect: '200px 200px'},
+  {at: 1.25, expect: '225px 225px'},
 ]);
 
 test_composition({
@@ -63,13 +63,13 @@ test_composition({
   addFrom: '60px 60px',
   replaceTo: '200px 200px',
 }, [
-  {at: -0.25, expect: '75px 75px, 75px 75px'},
-  {at: 0, expect: '100px 100px, 100px 100px'},
-  {at: 0.25, expect: '125px 125px, 125px 125px'},
-  {at: 0.5, expect: '150px 150px, 150px 150px'},
-  {at: 0.75, expect: '175px 175px, 175px 175px'},
-  {at: 1, expect: '200px 200px, 200px 200px'},
-  {at: 1.25, expect: '225px 225px, 225px 225px'},
+  {at: -0.25, expect: '75px 75px'},
+  {at: 0, expect: '100px 100px'},
+  {at: 0.25, expect: '125px 125px'},
+  {at: 0.5, expect: '150px 150px'},
+  {at: 0.75, expect: '175px 175px'},
+  {at: 1, expect: '200px 200px'},
+  {at: 1.25, expect: '225px 225px'},
 ]);
 
 test_composition({
@@ -78,13 +78,13 @@ test_composition({
   addFrom: '100px 150px',
   replaceTo: '200px 250px',
 }, [
-  {at: -0.25, expect: '75px 125px, 75px 125px'},
-  {at: 0, expect: '100px 150px, 100px 150px'},
-  {at: 0.25, expect: '125px 175px, 125px 175px'},
-  {at: 0.5, expect: '150px 200px, 150px 200px'},
-  {at: 0.75, expect: '175px 225px, 175px 225px'},
-  {at: 1, expect: '200px 250px, 200px 250px'},
-  {at: 1.25, expect: '225px 275px, 225px 275px'},
+  {at: -0.25, expect: '75px 125px'},
+  {at: 0, expect: '100px 150px'},
+  {at: 0.25, expect: '125px 175px'},
+  {at: 0.5, expect: '150px 200px'},
+  {at: 0.75, expect: '175px 225px'},
+  {at: 1, expect: '200px 250px'},
+  {at: 1.25, expect: '225px 275px'},
 ]);
 
 test_composition({

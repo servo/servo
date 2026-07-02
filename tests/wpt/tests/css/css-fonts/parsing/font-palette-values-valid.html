@@ -113,6 +113,10 @@
 @font-palette-values --R {
     override-colors: 0 color-mix(in lch, color-mix(in lch, red, blue), color-mix(in lch, green, white));
 }
+
+/* 19 */
+@font-palette-values --\{ {
+}
 </style>
 </head>
 <body>
@@ -411,6 +415,15 @@ test(function() {
     assert_equals(rule.basePalette, "");
     assert_equals(rule.overrideColors, "0 color-mix(in lch, color-mix(in lch, red, blue), color-mix(in lch, green, white))");
 });
+
+test(function() {
+    let rule = rules[19];
+    assert_equals(rule.name, "--{");
+    let text = rule.cssText;
+    assert_equals(text.indexOf("--{"), -1);
+    assert_not_equals(text.indexOf("--\\{"), -1);
+});
+
 </script>
 </body>
 </html>

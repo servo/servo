@@ -920,19 +920,38 @@ def get_product_setup(product_name, venv, prompt):
 product_setup = BUILTIN_PRODUCT_SETUP
 
 
-def setup_logging(kwargs, default_config=None, formatter_defaults=None):
-    global logger
+class GlobalLogger(wptrunner.GlobalLogger):
+    def __init__(self, wptrunner_kwargs, defaults=None, formatter_defaults=None):
+        # Use the grouped formatter by default where mozlog 3.9+ is installed
+        if defaults is None:
+            if hasattr(mozlog.formatters, "GroupingFormatter"):
+                default_formatter = "grouped"
+            else:
+                default_formatter = "mach"
+            defaults = {default_formatter: sys.stdout}
 
-    # Use the grouped formatter by default where mozlog 3.9+ is installed
-    if default_config is None:
-        if hasattr(mozlog.formatters, "GroupingFormatter"):
-            default_formatter = "grouped"
-        else:
-            default_formatter = "mach"
-        default_config = {default_formatter: sys.stdout}
-    wptrunner.setup_logging(kwargs, default_config, formatter_defaults=formatter_defaults)
-    logger = wptrunner.logger
-    return logger
+        super().__init__(wptrunner_kwargs,
+                         defaults=defaults,
+                         formatter_defaults=formatter_defaults)
+
+    def __enter__(self):
+        global logger
+        if logger is not None:
+            raise ValueError("logger is already configured")
+        logger = super().__enter__()
+        assert logger is not None
+        return logger
+
+    def __exit__(self, *args, **kwargs):
+        global logger
+        assert logger is not None
+        super().__exit__(*args, **kwargs)
+        logger = None
+
+
+def setup_logging(kwargs, default_config=None, formatter_defaults=None):
+    # Legacy compat, prefer to use WptLogger directly instead
+    return GlobalLogger(kwargs, default_config, formatter_defaults).__enter__()
 
 
 def setup_wptrunner(venv, **kwargs):
@@ -1021,14 +1040,14 @@ def setup_wptrunner(venv, **kwargs):
 
 
 def run(venv, **kwargs):
-    setup_logging(kwargs)
+    with GlobalLogger(kwargs):
+        assert logger is not None
+        setup_cls, wptrunner_kwargs = setup_wptrunner(venv, **kwargs)
 
-    setup_cls, wptrunner_kwargs = setup_wptrunner(venv, **kwargs)
-
-    try:
-        rv = run_single(venv, **wptrunner_kwargs)
-    finally:
-        setup_cls.teardown()
+        try:
+            rv = run_single(venv, **wptrunner_kwargs)
+        finally:
+            setup_cls.teardown()
 
     return rv
 

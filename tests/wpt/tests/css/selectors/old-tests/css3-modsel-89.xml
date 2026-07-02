@@ -4,6 +4,9 @@
   <title>Simple combination of descendant and child combinators</title>
   <style type="text/css"><![CDATA[p { color: red; }
 blockquote div > p { color: green; }]]></style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
  </head>
@@ -11,9 +14,14 @@ blockquote div > p { color: green; }]]></style>
 <blockquote>
 <div>
 <div>
-<p>This text should be green.</p>
+<p id="t1">This text should be green.</p>
 </div>
 </div>
 </blockquote>
+<script><![CDATA[
+test(function() {
+  assert_color('t1', 'rgb(0, 128, 0)');
+}, 'Simple combination of descendant and child combinators');
+]]></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ const debuggeesToPipelineIds = new Map;
 const debuggeesToWorkerIds = new Map;
 const sourceIdsToScripts = new Map;
 const frameActorsToFrames = new Map;
+const objectActorsToObjects = new Map;
 const environmentActorsToEnvironments = new Map;
 const environmentsToEnvironmentActors = new Map;
 const blackboxing = new Map;
@@ -112,6 +113,7 @@ function createValueGrip(value, depth) {
             }
             // TODO: handle typed arrays and storage independently
             const ownPropertyLength = value.getOwnPropertyNamesLength();
+            let objectActorId = findKeyByValue(objectActorsToObjects, value);
             const objectValue = {
                 class: value.class,
                 ownPropertyLength: Number.isFinite(ownPropertyLength) ? ownPropertyLength : undefined,
@@ -119,9 +121,21 @@ function createValueGrip(value, depth) {
             // Debugger.Object - get preview using registered previewers
             // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html>
             const preview = getPreview(value, depth + 1);
-            if (preview) {
-                objectValue.preview = preview;
+            if (!preview) {
+                // Reusing an actor with a stored preview can cause recursion, we should handle it properly at some point.
+                return { ObjectValue: objectValue };
             }
+            objectValue.preview = preview;
+
+            if (!objectActorId) {
+                objectActorId = registerObjectActor(JSON.stringify({ ObjectValue: objectValue }));
+                if (!objectActorId) {
+                    console.error("[debugger] Couldn't create object actor");
+                    return { ObjectValue: objectValue };
+                }
+                objectActorsToObjects.set(objectActorId, value);
+            }
+            objectValue.actor = objectActorId;
             return { ObjectValue: objectValue };
         default:
             return { StringValue: String(value) };

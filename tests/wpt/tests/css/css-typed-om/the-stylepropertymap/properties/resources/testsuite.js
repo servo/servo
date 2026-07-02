@@ -106,7 +106,10 @@ const gTestSyntaxExamples = {
         input: new CSSMathSum(new CSSUnitValue(0, 'px'), new CSSUnitValue(0, 'em')),
         // Specified/computed calcs are usually simplified.
         // FIXME: Test this properly
-        defaultSpecified: (_, result) => assert_is_calc_sum(result),
+        defaultSpecified: (input, result) => {
+          assert_is_calc_sum(result);
+          assert_numeric_type_equals(result.type(), input.type());
+        },
         defaultComputed: (_, result) => assert_is_unit('px', result)
       }
     ],
@@ -340,9 +343,10 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
 
         // Verify that reification preserves the numeric type. This check is
         // only reached for properties using the generic checking path and
-        // currently covers only CSSUnitValue inputs, but will be extended to
-        // cover all CSSNumericValue subclasses.
-        if (example.input instanceof CSSUnitValue) {
+        // currently covers CSSUnitValue and CSSMathSum inputs, but will be
+        // extended to cover all CSSNumericValue subclasses.
+        if (example.input instanceof CSSUnitValue ||
+            example.input instanceof CSSMathSum) {
           assert_numeric_type_equals(specifiedResult.type(), example.input.type());
         }
       }
@@ -361,9 +365,10 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
 
         // Verify that reification preserves the numeric type. This check is
         // only reached for properties using the generic checking path and
-        // currently covers only CSSUnitValue inputs, but will be extended to
-        // cover all CSSNumericValue subclasses.
-        if (example.input instanceof CSSUnitValue) {
+        // currently covers CSSUnitValue and CSSMathSum inputs, but will be
+        // extended to cover all CSSNumericValue subclasses.
+        if (example.input instanceof CSSUnitValue ||
+            example.input instanceof CSSMathSum) {
           assert_numeric_type_equals(computedResult.type(), example.input.type());
         }
       }

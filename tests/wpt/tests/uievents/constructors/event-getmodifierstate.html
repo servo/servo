@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>getModifierState() reflects the EventModifierInit modifiers</title>
+<link rel="help" href="https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate">
+<link rel="help" href="https://w3c.github.io/uievents/#interface-EventModifierInit">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+// https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate
+// Each modifier exposed through EventModifierInit must be reported by
+// getModifierState() using its corresponding modifier key value, and the
+// modifiers must be independent of one another.
+
+// EventModifierInit member -> getModifierState() key value.
+const modifiers = [
+    { init: "ctrlKey", key: "Control" },
+    { init: "shiftKey", key: "Shift" },
+    { init: "altKey", key: "Alt" },
+    { init: "metaKey", key: "Meta" },
+    { init: "modifierAltGraph", key: "AltGraph" },
+    { init: "modifierCapsLock", key: "CapsLock" },
+];
+
+// Modifier key values defined by the specification that have no
+// EventModifierInit member; a constructed event can never set them, so
+// getModifierState() must always report them as false.
+const unsettableKeys = ["Fn", "FnLock", "Hyper", "NumLock", "ScrollLock", "Super", "Symbol", "SymbolLock"];
+
+const allKeys = modifiers.map(modifier => modifier.key).concat(unsettableKeys);
+
+for (const ctor of [
+    { name: "KeyboardEvent", construct: init => new KeyboardEvent("keydown", init) },
+    { name: "MouseEvent", construct: init => new MouseEvent("mousedown", init) },
+]) {
+    test(() => {
+        const event = ctor.construct({});
+        for (const key of allKeys)
+            assert_false(event.getModifierState(key), key);
+    }, `${ctor.name}.getModifierState() returns false for every modifier when none are set`);
+
+    for (const modifier of modifiers) {
+        test(() => {
+            const event = ctor.construct({ [modifier.init]: true });
+            assert_true(event.getModifierState(modifier.key), `${modifier.key} should be active`);
+            for (const key of allKeys) {
+                if (key !== modifier.key)
+                    assert_false(event.getModifierState(key), `${key} should be inactive`);
+            }
+        }, `${ctor.name}.getModifierState('${modifier.key}') reflects ${modifier.init} in isolation`);
+    }
+
+    test(() => {
+        const init = {};
+        for (const modifier of modifiers)
+            init[modifier.init] = true;
+        const event = ctor.construct(init);
+        for (const modifier of modifiers)
+            assert_true(event.getModifierState(modifier.key), `${modifier.key} should be active`);
+        for (const key of unsettableKeys)
+            assert_false(event.getModifierState(key), `${key} should be inactive`);
+    }, `${ctor.name}.getModifierState() reports every modifier when all are set`);
+}
+</script>

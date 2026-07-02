@@ -21,26 +21,29 @@ menulist {
 
 <div id="container">
  <menubar>
-   <menuitem id="a" command="toggle-menu" commandfor="menulist1">Commands A</menuitem>
-   <menuitem id="b" command="toggle-menu" commandfor="menulist2">Commands B</menuitem>
+   <submenu>
+     <menuitem id="a">Commands A</menuitem>
+     <menulist id="menulist1">
+       <menuitem id="d">Command D</menuitem>
+     </menulist>
+   </submenu>
+   <submenu>
+     <menuitem id="b">Commands B</menuitem>
+     <menulist id="menulist2">
+       <menuitem id="e" command="show-popover" commandfor="menulist4">Command E</menuitem>
+       <menuitem id="f" command="toggle-popover" commandfor="menulist4">Command F</menuitem>
+       <submenu>
+         <menuitem id="g">Commands G</menuitem>
+         <menulist id="menulist3" class="nested">
+           <menuitem id="h">Command H</menuitem>
+           <menuitem id="i">Command I</menuitem>
+         </menulist>
+       </submenu>
+     </menulist>
+   </submenu>
    <menuitem id="c">Commands C</menuitem>
  </menubar>
 </div>
-
-<menulist id="menulist1">
- <menuitem id="d">Command D</menuitem>
-</menulist>
-
-<menulist id="menulist2">
- <menuitem id="e" command="show-popover" commandfor="menulist4">Command E</menuitem>
- <menuitem id="f" command="toggle-popover" commandfor="menulist4">Command F</menuitem>
- <menuitem id="g" command="toggle-menu" commandfor="menulist3">Commands G</menuitem>
-</menulist>
-
-<menulist id="menulist3" class="nested">
- <menuitem id="h">Command H</menuitem>
- <menuitem id="i">Command I</menuitem>
-</menulist>
 
 <menulist id="menulist4" class="nested">
  <menuitem id="j">Command J</menuitem>

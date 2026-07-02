@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Digital Credential API: Protocol Filtering (org-iso-mdoc)</title>
+<link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type="module">
+  import { makeGetOptions, makeGetOptionsWithArbitraryProtocol } from "./support/helper.js";
+
+  promise_test(async (t) => {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    const options = makeGetOptions({ protocol: "org-iso-mdoc", signal });
+    await test_driver.bless("user activation");
+    const promise = navigator.credentials.get(options);
+    abortController.abort();
+    await promise_rejects_dom(
+      t,
+      "AbortError",
+      promise,
+      "Valid protocol should not throw TypeError"
+    );
+  }, "Valid protocol 'org-iso-mdoc' passes through filtering");
+
+  promise_test(async (t) => {
+    const options = makeGetOptionsWithArbitraryProtocol("ORG-ISO-MDOC");
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.get(options)
+    );
+  }, "Protocol matching is case sensitive - 'ORG-ISO-MDOC' filtered");
+
+  promise_test(async (t) => {
+    const options = makeGetOptionsWithArbitraryProtocol("");
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.get(options)
+    );
+  }, "Empty protocol string is filtered out");
+
+  promise_test(async (t) => {
+    const options = makeGetOptionsWithArbitraryProtocol(" org-iso-mdoc");
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.get(options)
+    );
+  }, "Protocol with leading whitespace is filtered out");
+
+  promise_test(async (t) => {
+    const options = makeGetOptionsWithArbitraryProtocol("org-iso-mdoc ");
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.get(options)
+    );
+  }, "Protocol with trailing whitespace is filtered out");
+
+  promise_test(async (t) => {
+    const options = makeGetOptionsWithArbitraryProtocol("org-iso");
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.get(options)
+    );
+  }, "Partial protocol match 'org-iso' is filtered out");
+
+  promise_test(async (t) => {
+    const options = makeGetOptionsWithArbitraryProtocol("org_iso_mdoc");
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.get(options)
+    );
+  }, "Protocol with invalid characters 'org_iso_mdoc' is filtered out");
+
+  promise_test(async (t) => {
+    const options = makeGetOptionsWithArbitraryProtocol("unknown-protocol");
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.get(options)
+    );
+  }, "Unknown protocol 'unknown-protocol' is filtered out");
+</script>
