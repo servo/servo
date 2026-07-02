@@ -166,8 +166,8 @@ class Windows(Base):
         root = self.gstreamer_root(target)
         if root is None:
             return False
-        # The runtime may be present without the development files, so also make
-        # sure that the pkg-config files have been installed.
+        # In the case of a failed installation, the runtime may be present without the development
+        # files, so also make sure that the pkg-config files have been installed.
         return os.path.exists(os.path.join(root, "lib", "pkgconfig", "gobject-2.0.pc"))
 
     def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
