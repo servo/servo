@@ -25,7 +25,7 @@ use embedder_traits::{
     AllowOrDeny, AnimationState, CustomHandlersAutomationMode, EmbedderMsg, Image, LoadStatus,
 };
 use encoding_rs::{Encoding, UTF_8};
-use html5ever::{LocalName, Namespace, QualName, local_name, ns};
+use html5ever::{LocalName, QualName, local_name, ns};
 use hyper_serde::Serde;
 use indexmap::IndexSet;
 use js::context::{JSContext, NoGC};
@@ -129,9 +129,7 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::fontfaceset::FontFaceSet;
 use crate::dom::css::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
-use crate::dom::customelementregistry::{
-    CustomElementDefinition, CustomElementReactionStack, CustomElementRegistry,
-};
+use crate::dom::customelementregistry::{CustomElementReactionStack, CustomElementRegistry};
 use crate::dom::customevent::CustomEvent;
 use crate::dom::document::accessibility_data::AccessibilityData;
 use crate::dom::document::focus::{DocumentFocusHandler, FocusableArea};
@@ -2940,29 +2938,6 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#cookie-averse-document-object>
     pub(crate) fn is_cookie_averse(&self) -> bool {
         !self.has_browsing_context || !url_has_network_scheme(&self.url())
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition>
-    pub(crate) fn lookup_custom_element_definition(
-        &self,
-        namespace: &Namespace,
-        local_name: &LocalName,
-        is: Option<&LocalName>,
-    ) -> Option<Rc<CustomElementDefinition>> {
-        // Step 1
-        if *namespace != ns!(html) {
-            return None;
-        }
-
-        // Step 2
-        if !self.has_browsing_context {
-            return None;
-        }
-
-        // Step 3
-        let registry = self.custom_element_registry()?;
-
-        registry.lookup_definition(local_name, is)
     }
 
     pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
