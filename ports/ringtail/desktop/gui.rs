@@ -233,6 +233,12 @@ pub struct Gui {
 
     /// Texture handle for the lock approved icon.
     lock_approved_icon: Option<egui::TextureHandle>,
+
+    /// Texture handle for the exp icon (experimental preferences enabled).
+    exp_icon: Option<egui::TextureHandle>,
+
+    /// Texture handle for the exp_off icon (experimental preferences disabled).
+    exp_off_icon: Option<egui::TextureHandle>,
 }
 
 fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
@@ -397,6 +403,8 @@ impl Gui {
             lock_icon: None,
             unlock_icon: None,
             lock_approved_icon: None,
+            exp_icon: None,
+            exp_off_icon: None,
         };
 
         // 2. Call load_icons now that the egui context is fully prepared
@@ -412,6 +420,8 @@ impl Gui {
         self.lock_icon = load_svg_icon(ctx, "lock.svg");
         self.unlock_icon = load_svg_icon(ctx, "unlock.svg");
         self.lock_approved_icon = load_svg_icon(ctx, "lock_approved.svg");
+        self.exp_icon = load_svg_icon(ctx, "exp.svg");
+        self.exp_off_icon = load_svg_icon(ctx, "exp_off.svg");
     }
 
     pub(crate) fn has_keyboard_focus(&self) -> bool {
@@ -677,23 +687,52 @@ impl Gui {
                                 |ui| {
                                     let mut experimental_preferences_enabled =
                                         state.experimental_preferences_enabled();
-                                    let prefs_toggle = ui
-                                        .toggle_value(&mut experimental_preferences_enabled, "☢")
-                                        .on_hover_text("Enable experimental preferences");
-                                    prefs_toggle.widget_info(|| {
-                                        let mut info = WidgetInfo::new(WidgetType::Button);
-                                        info.label = Some("Enable experimental preferences".into());
-                                        info.selected = Some(experimental_preferences_enabled);
-                                        info
-                                    });
-                                    if prefs_toggle.clicked() {
-                                        state.set_experimental_preferences_enabled(
-                                            experimental_preferences_enabled,
-                                        );
-                                        *location_dirty = false;
-                                        window.queue_user_interface_command(
-                                            UserInterfaceCommand::ReloadAll,
-                                        );
+
+                                    // Show exp or exp_off icon based on state
+                                    let icon = if experimental_preferences_enabled {
+                                        self.exp_icon.as_ref()
+                                    } else {
+                                        self.exp_off_icon.as_ref()
+                                    };
+
+                                    if let Some(icon) = icon {
+                                        let image = egui::Image::from_texture(icon).fit_to_exact_size(egui::vec2(16.0, 16.0));
+                                        let prefs_button = ui.add_sized(
+                                            [16.0, ui.available_height()],
+                                            egui::Button::image(image)
+                                                .fill(egui::Color32::TRANSPARENT)
+                                        ).on_hover_text("Enable experimental preferences");
+
+                                        if prefs_button.clicked() {
+                                            experimental_preferences_enabled = !experimental_preferences_enabled;
+                                            state.set_experimental_preferences_enabled(
+                                                experimental_preferences_enabled,
+                                            );
+                                            *location_dirty = false;
+                                            window.queue_user_interface_command(
+                                                UserInterfaceCommand::ReloadAll,
+                                            );
+                                        }
+                                    } else {
+                                        // Fallback to emoji if icons not loaded
+                                        let prefs_toggle = ui
+                                            .toggle_value(&mut experimental_preferences_enabled, "☢")
+                                            .on_hover_text("Enable experimental preferences");
+                                        prefs_toggle.widget_info(|| {
+                                            let mut info = WidgetInfo::new(WidgetType::Button);
+                                            info.label = Some("Enable experimental preferences".into());
+                                            info.selected = Some(experimental_preferences_enabled);
+                                            info
+                                        });
+                                        if prefs_toggle.clicked() {
+                                            state.set_experimental_preferences_enabled(
+                                                experimental_preferences_enabled,
+                                            );
+                                            *location_dirty = false;
+                                            window.queue_user_interface_command(
+                                                UserInterfaceCommand::ReloadAll,
+                                            );
+                                        }
                                     }
 
                                     let location_id = egui::Id::new("location_input");
