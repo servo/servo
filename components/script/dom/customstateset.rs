@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
+
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use script_bindings::cell::DomRefCell;
@@ -43,8 +45,8 @@ impl CustomStateSet {
     /// Mutating the underlying refcell while this value is active is
     /// undefined behaviour.
     #[expect(unsafe_code)]
-    pub(crate) unsafe fn set_for_layout(&self) -> &IndexSet<DOMString> {
-        unsafe { self.internal.borrow_for_layout() }
+    pub(crate) unsafe fn set_for_layout(&self) -> Ref<'_, IndexSet<DOMString>> {
+        self.internal.borrow_for_layout_safe()
     }
 
     fn states_did_change(&self) {

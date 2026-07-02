@@ -49,11 +49,17 @@ impl<T> DomRefCell<T> {
     #[expect(unsafe_code)]
     pub unsafe fn borrow_for_layout(&self) -> &T {
         assert_in_layout();
+
         unsafe {
             self.value
                 .try_borrow_unguarded()
                 .expect("cell is mutably borrowed")
         }
+    }
+
+    pub fn borrow_for_layout_safe(&self) -> Ref<'_, T> {
+        assert_in_layout();
+        self.value.borrow()
     }
 
     /// Borrow the contents for the purpose of script deallocation.
@@ -88,9 +94,17 @@ impl<T> DomRefCell<T> {
     /// Panics if this is called from anywhere other than the layout thread.
     #[expect(unsafe_code)]
     #[allow(clippy::mut_from_ref)]
-    pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
+    pub unsafe fn borrow_mut_for_layout(&self) -> RefMut<'_, T> {
         assert_in_layout();
-        unsafe { &mut *self.value.as_ptr() }
+        self.value.borrow_mut()
+
+        /*
+        debug_assert!(
+            self.value.try_borrow_mut().is_ok(),
+            "Mutably borrowed for layout when we are not allowed to"
+        );
+         */
+        //unsafe { &mut *self.value.as_ptr() }
     }
 
     /// Mutably borrows the wrapped value.

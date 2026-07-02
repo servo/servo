@@ -4445,7 +4445,7 @@ impl Document {
         }
         #[expect(unsafe_code)]
         unsafe {
-            for shadow_root in self.shadow_roots.borrow_for_layout().iter() {
+            for shadow_root in self.shadow_roots.borrow_for_layout_safe().iter() {
                 let layout: LayoutDom<'_, _> = shadow_root.to_layout();
                 layout.flush_stylesheets_for_layout(stylist, guard);
             }

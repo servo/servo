@@ -193,7 +193,7 @@ impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) unsafe fn initialize_layout_data(self, new_data: Box<GenericLayoutData>) {
-        let data = unsafe { self.unsafe_get().layout_data().borrow_mut_for_layout() };
+        let mut data = unsafe { self.unsafe_get().layout_data().borrow_mut_for_layout() };
         debug_assert!(data.is_none());
         *data = Some(new_data);
     }
