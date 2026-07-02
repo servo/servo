@@ -15,18 +15,18 @@ use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
 use layout_api::{DangerousStyleElement, LayoutDamage, LayoutNode};
 use script_bindings::root::DomRoot;
+use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};
 use selectors::sink::Push;
-use selectors::{Element as _, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow};
 use style::CaseSensitivityExt;
 use style::animation::AnimationSetKey;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
 use style::bloom::each_relevant_element_hash;
-use style::context::{SharedStyleContext, TreeCountingCaches};
+use style::context::SharedStyleContext;
 use style::data::{ElementDataMut, ElementDataRef};
 use style::dom::{LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -36,12 +36,11 @@ use style::selector_parser::{
 };
 use style::shared_lock::Locked as StyleLocked;
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
-use style::values::computed::{Display, Image, TreeCountingResult};
+use style::values::computed::{Display, Image};
 use style::values::generics::counters::{Content, ContentItem, GenericContentItems};
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::{DisplayInside, DisplayOutside};
 use style::values::{AtomIdent, AtomString};
-use style_traits::dom::OpaqueNode;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
@@ -85,51 +84,6 @@ impl<'dom> DangerousStyleElement<'dom> for ServoDangerousStyleElement<'dom> {
 
     fn layout_element(&self) -> ServoLayoutElement<'dom> {
         self.element.into()
-    }
-}
-
-impl<'dom> style::dom::ElementContext for ServoDangerousStyleElement<'dom> {
-    fn get_attr(&self, attr: &style::LocalName, namespace: &style::Namespace) -> Option<String> {
-        // All attribute names on HTML elements in HTML docs match ASCII-case-insensitively.
-        // See note in https://html.spec.whatwg.org/multipage/#custom-data-attribute
-        if self.is_html_element_in_html_document() {
-            let attr = &style::LocalName::new(attr.to_ascii_lowercase());
-            self.element.get_attr_val_for_layout(namespace, attr)
-        } else {
-            self.element.get_attr_val_for_layout(namespace, attr)
-        }
-        .map(Into::into)
-    }
-
-    fn opaque_element(&self) -> Option<OpaqueElement> {
-        Some(self.opaque())
-    }
-
-    fn opaque_parent(&self) -> Option<OpaqueNode> {
-        self.as_node().parent_node().map(|n| n.opaque())
-    }
-
-    fn get_tree_counting_result(&self, caches: &mut TreeCountingCaches) -> TreeCountingResult {
-        let Some(parent) = self.as_node().parent_node() else {
-            return TreeCountingResult::default();
-        };
-
-        let mut curr = parent.first_child();
-        let mut index = 0u32;
-        let mut count = 0u32;
-        while let Some(node) = curr {
-            if let Some(element) = node.as_element() {
-                count += 1;
-                if *self == element {
-                    index = count;
-                }
-                caches.sibling_index.insert(element.opaque(), count);
-            }
-            curr = node.next_sibling();
-        }
-        caches.sibling_count.insert(parent.opaque(), count);
-
-        TreeCountingResult::new(index, count)
     }
 }
 
@@ -689,6 +643,18 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
             // fragment as well.
             RestyleDamage::RELAYOUT
         }
+    }
+
+    fn get_attr(&self, attr: &style::LocalName, namespace: &style::Namespace) -> Option<String> {
+        // All attribute names on HTML elements in HTML docs match ASCII-case-insensitively.
+        // See note in https://html.spec.whatwg.org/multipage/#custom-data-attribute
+        if self.is_html_element_in_html_document() {
+            let attr = &style::LocalName::new(attr.to_ascii_lowercase());
+            self.element.get_attr_val_for_layout(namespace, attr)
+        } else {
+            self.element.get_attr_val_for_layout(namespace, attr)
+        }
+        .map(Into::into)
     }
 }
 
