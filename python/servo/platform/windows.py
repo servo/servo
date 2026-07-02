@@ -51,6 +51,35 @@ def _winget_import(force: bool = False, yes: bool = False) -> None:
         raise e
 
 
+def _append_to_user_path(new_path: str) -> None:
+    """Persistently append a directory to the current user's PATH environment variable
+    so that it is available in all future processes, not just the current one."""
+
+    # Using PowerShell avoids setx's 1024 character limit, but still correctly notifies the system
+    #of the change so that it is available in future processes.
+    subprocess.check_call(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "[Environment]::SetEnvironmentVariable('PATH', "
+            f"[Environment]::GetEnvironmentVariable('PATH', 'User') + '{os.pathsep}{new_path}', 'User')",
+        ]
+    )
+
+    # Make the change visible to the current process as well.
+    util.append_paths_to_env(os.environ, "PATH", new_path)
+
+
+def _ensure_llvm_in_user_path() -> None:
+    """winget doesn't add LLVM to the PATH, so persistently append the default install
+    location to the user's PATH if it's not already there."""
+    llvm_bin = os.path.join(os.environ["PROGRAMFILES"], "LLVM", "bin")
+    if os.path.isdir(llvm_bin) and llvm_bin not in os.environ.get("PATH", ""):
+        _append_to_user_path(llvm_bin)
+
+
+
 class Windows(Base):
     def __init__(self, triple: str) -> None:
         super().__init__(triple)
@@ -79,6 +108,7 @@ class Windows(Base):
     def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         installed_something = self.passive_bootstrap()
         _winget_import(force, yes)
+        _ensure_llvm_in_user_path()
 
         target = BuildTarget.from_triple(None)
         installed_something |= self._platform_bootstrap_gstreamer(target, force, yes)
