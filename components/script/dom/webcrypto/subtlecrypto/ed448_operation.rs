@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ed448_goldilocks::elliptic_curve::Generate;
+use ed448_goldilocks::elliptic_curve::group::cofactor::CofactorGroup;
 use ed448_goldilocks::pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePublicKey};
-use ed448_goldilocks::{PublicKeyBytes, SigningKey, VerifyingKey};
+use ed448_goldilocks::signature::SignatureEncoding;
+use ed448_goldilocks::{CompressedEdwardsY, PublicKeyBytes, Signature, SigningKey, VerifyingKey};
 use js::context::JSContext;
 use pkcs8::der::Encode;
 use pkcs8::der::asn1::OctetStringRef;
@@ -11,7 +14,7 @@ use pkcs8::{AlgorithmIdentifierRef, ObjectIdentifier, PrivateKeyInfoRef};
 use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, KeyType, KeyUsage,
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
@@ -21,11 +24,202 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleKeyAlgorithm,
+    SubtleEd448Params, SubtleKeyAlgorithm,
 };
 
 /// `id-Ed448` object identifier defined in [RFC8410]
 const ED448_OID_STRING: &str = "1.3.101.113";
+
+/// <https://wicg.github.io/webcrypto-secure-curves/#ed448-operations>
+pub(crate) fn sign(
+    normalized_algorithm: &SubtleEd448Params,
+    key: &CryptoKey,
+    message: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Private {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"private\"".into(),
+        )));
+    }
+
+    // Step 2. Let context be the contents of the context member of normalizedAlgorithm or the empty
+    // octet string if the context member of normalizedAlgorithm is not present.
+    let context = normalized_algorithm.context.as_deref().unwrap_or_default();
+
+    // Step 3. If context has a length greater than 255 bytes, then throw an OperationError.
+    if context.len() > 255 {
+        return Err(Error::Operation(Some(
+            "Context has a length greater than 255 bytes".into(),
+        )));
+    }
+
+    // Step 4. Perform the Ed448 signing process, as specified in [RFC8032], Section 5.2.6, with
+    // message as M and context as C, using the Ed448 private key associated with key.
+    let Handle::Ed448PrivateKey(private_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not an Ed448 private key".into(),
+        )));
+    };
+    let result = private_key.sign_ctx(context, message).map_err(|_| {
+        Error::Operation(Some(
+            "Failed to sign the message with Ed448 algorithm".into(),
+        ))
+    })?;
+
+    // Step 5. Return a new ArrayBuffer associated with the relevant global object of this [HTML],
+    // and containing the bytes of the signature resulting from performing the Ed448 signing
+    // process.
+    // NOTE: The conversion to ArrayBuffer is done in SubtleCrypto::Sign.
+    Ok(result.to_vec())
+}
+
+/// <https://wicg.github.io/webcrypto-secure-curves/#ed448-operations>
+pub(crate) fn verify(
+    normalized_algorithm: &SubtleEd448Params,
+    key: &CryptoKey,
+    message: &[u8],
+    signature: &[u8],
+) -> Result<bool, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "public", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Public {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"public\"".into(),
+        )));
+    }
+
+    // Step 2. Let context be the contents of the context member of normalizedAlgorithm or the empty
+    // octet string if the context member of normalizedAlgorithm is not present.
+    let context = normalized_algorithm.context.as_deref().unwrap_or_default();
+
+    // Step 3. If context has a length greater than 255 bytes, then throw an OperationError.
+    if context.len() > 255 {
+        return Err(Error::Operation(Some(
+            "Context has a length greater than 255 bytes".into(),
+        )));
+    }
+
+    // Step 4. If the key data of key represents an invalid point or a small-order element on the
+    // Elliptic Curve of Ed448, return false.
+    let Handle::Ed448PublicKey(public_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not an Ed448 public key".into(),
+        )));
+    };
+    if (*public_key).to_edwards().is_small_order().into() {
+        return Ok(false);
+    }
+
+    // Step 5. If the point R, encoded in the first half of signature, represents an invalid point
+    // or a small-order element on the Elliptic Curve of Ed448, return false.
+    if CompressedEdwardsY::try_from(&signature[..signature.len() / 2])
+        .ok()
+        .and_then(|compressed_point| compressed_point.decompress().into_option())
+        .map(|point| point.to_edwards().is_small_order().into())
+        .unwrap_or(true)
+    {
+        return Ok(false);
+    }
+
+    // Step 6. Perform the Ed448 verification steps, as specified in [RFC8032], Section 5.2.7, using
+    // the cofactorless (unbatched) equation, [S]B = R + [k]A', on the signature, with message as M
+    // and context as C, using the Ed448 public key associated with key.
+    // Step 7. Let result be a boolean with the value true if the signature is valid and the value
+    // false otherwise.
+    let result = Signature::from_slice(signature)
+        .and_then(|signature| public_key.verify_ctx(&signature, context, message))
+        .is_ok();
+
+    // Step 8. Return result.
+    Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-secure-curves/#ed448-operations>
+pub(crate) fn generate_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> Result<CryptoKeyPair, Error> {
+    // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
+    // SyntaxError.
+    if usages
+        .iter()
+        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+    {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
+        )));
+    }
+
+    // Step 2. Generate an Ed448 key pair, as defined in [RFC8032], section 5.1.5.
+    let private_key = SigningKey::try_generate()
+        .map_err(|_| Error::Operation(Some("Failed to generate Ed448 private key".into())))?;
+    let public_key = private_key.verifying_key();
+
+    // Step 3. Let algorithm be a new KeyAlgorithm object.
+    // Step 4. Set the name attribute of algorithm to "Ed448".
+    let algorithm = SubtleKeyAlgorithm {
+        name: CryptoAlgorithm::Ed448,
+    };
+
+    // Step 5. Let publicKey be a new CryptoKey associated with the relevant global object of this
+    // [HTML], and representing the public key of the generated key pair.
+    // Step 6. Set the [[type]] internal slot of publicKey to "public"
+    // Step 7. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 8. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 9. Set the [[usages]] internal slot of publicKey to be the usage intersection of usages
+    // and [ "verify" ].
+    let public_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
+        usages
+            .iter()
+            .filter(|&usage| *usage == KeyUsage::Verify)
+            .cloned()
+            .collect(),
+        Handle::Ed448PublicKey(public_key),
+    );
+
+    // Step 10. Let privateKey be a new CryptoKey associated with the relevant global object of this
+    // [HTML], and representing the private key of the generated key pair.
+    // Step 11. Set the [[type]] internal slot of privateKey to "private"
+    // Step 12. Set the [[algorithm]] internal slot of privateKey to algorithm.
+    // Step 13. Set the [[extractable]] internal slot of privateKey to extractable.
+    // Step 14. Set the [[usages]] internal slot of privateKey to be the usage intersection of
+    // usages and [ "sign" ].
+    let private_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Private,
+        extractable,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+        usages
+            .iter()
+            .filter(|&usage| *usage == KeyUsage::Sign)
+            .cloned()
+            .collect(),
+        Handle::Ed448PrivateKey(private_key),
+    );
+
+    // Step 15. Let result be a new CryptoKeyPair dictionary.
+    // Step 16. Set the publicKey attribute of result to be publicKey.
+    // Step 17. Set the privateKey attribute of result to be privateKey.
+    let result = CryptoKeyPair {
+        publicKey: Some(public_key),
+        privateKey: Some(private_key),
+    };
+
+    // Step 18. Return the result of converting result to an ECMAScript Object, as defined by
+    // [WebIDL].
+    // NOTE: The conversion of result to an ECMAScript Object is done in SubtleCrypto::Generate.
+    Ok(result)
+}
 
 /// <https://wicg.github.io/webcrypto-secure-curves/#ed448-operations>
 pub(crate) fn import_key(
