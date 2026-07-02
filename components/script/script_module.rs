@@ -41,8 +41,8 @@ use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
-    RequestClient, RequestId, RequestMode,
+    CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestClient,
+    RequestId, RequestMode,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
@@ -52,9 +52,8 @@ use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_callback;
 use script_bindings::trace::CustomTraceable;
 use serde_json::{Map as JsonMap, Value as JsonValue};
-use servo_base::id::PipelineId;
 use servo_config::pref;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
@@ -645,29 +644,6 @@ impl Callback for QueueTaskHandler {
     }
 }
 
-#[derive(Clone)]
-pub(crate) struct ModuleFetchClient {
-    pub insecure_requests_policy: InsecureRequestsPolicy,
-    pub has_trustworthy_ancestor_origin: bool,
-    pub policy_container: PolicyContainer,
-    pub client: RequestClient,
-    pub pipeline_id: PipelineId,
-    pub origin: ImmutableOrigin,
-}
-
-impl ModuleFetchClient {
-    pub(crate) fn from_global_scope(global: &GlobalScope) -> Self {
-        Self {
-            insecure_requests_policy: global.insecure_requests_policy(),
-            has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_or_current_origin(),
-            policy_container: global.policy_container(),
-            client: global.request_client(None),
-            pipeline_id: global.pipeline_id(),
-            origin: global.origin().immutable().clone(),
-        }
-    }
-}
-
 /// The context required for asynchronously loading an external module script source.
 struct ModuleContext {
     /// The owner of the module that initiated the request.
@@ -1188,7 +1164,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
     cx: &mut JSContext,
     global: &GlobalScope,
     url: ServoUrl,
-    fetch_client: ModuleFetchClient,
+    fetch_client: RequestClient,
     destination: Destination,
     referrer: Referrer,
     credentials_mode: CredentialsMode,
@@ -1251,7 +1227,7 @@ pub(crate) fn fetch_an_external_module_script(
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
     let referrer = global.get_referrer();
-    let fetch_client = ModuleFetchClient::from_global_scope(global);
+    let fetch_client = global.request_client(Some(cx.no_gc()));
     let global_scope = DomRoot::from_ref(global);
 
     // Step 1. Fetch a single module script given url, settingsObject, "script", options, settingsObject, "client", true,
@@ -1296,7 +1272,7 @@ pub(crate) fn fetch_a_modulepreload_module(
     on_complete: impl FnOnce(&mut JSContext, bool) + 'static,
 ) {
     let referrer = global.get_referrer();
-    let fetch_client = ModuleFetchClient::from_global_scope(global);
+    let fetch_client = global.request_client(Some(cx.no_gc()));
     let global_scope = DomRoot::from_ref(global);
 
     // Note: There is a specification inconsistency, `fetch_a_single_module_script` doesn't allow
@@ -1368,7 +1344,7 @@ pub(crate) fn fetch_inline_module_script(
         line_number,
         introduction_type,
     ));
-    let fetch_client = ModuleFetchClient::from_global_scope(global);
+    let fetch_client = global.request_client(Some(cx.no_gc()));
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
     fetch_the_descendants_and_link_module_script(
@@ -1387,7 +1363,7 @@ fn fetch_the_descendants_and_link_module_script(
     cx: &mut JSContext,
     global: &GlobalScope,
     module_script: Rc<ModuleTree>,
-    fetch_client: ModuleFetchClient,
+    fetch_client: RequestClient,
     destination: Destination,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
@@ -1482,7 +1458,7 @@ fn fetch_the_descendants_and_link_module_script(
 pub(crate) fn fetch_a_single_module_script(
     cx: &mut JSContext,
     url: ServoUrl,
-    fetch_client: ModuleFetchClient,
+    fetch_client: RequestClient,
     global: &GlobalScope,
     destination: Destination,
     options: ScriptFetchOptions,
@@ -1572,8 +1548,6 @@ pub(crate) fn fetch_a_single_module_script(
         let policy_container = (is_top_level && global.is::<WorkerGlobalScope>())
             .then(|| fetch_client.policy_container.clone());
 
-        let webview_id = global.webview_id();
-
         // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
 
         // Step 10. If destination is "worker", "sharedworker", or "serviceworker", and isTopLevel is true,
@@ -1596,7 +1570,7 @@ pub(crate) fn fetch_a_single_module_script(
 
         // Step 12. Set up the module script request given request and options.
         let request = RequestBuilder::new(
-            webview_id,
+            global.webview_id(),
             ensure_blob_referenced_by_url_is_kept_alive(global, url.clone()),
             referrer,
         )
@@ -1607,12 +1581,8 @@ pub(crate) fn fetch_a_single_module_script(
         .referrer_policy(options.referrer_policy)
         .mode(mode)
         .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
-        .insecure_requests_policy(fetch_client.insecure_requests_policy)
-        .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
-        .policy_container(fetch_client.policy_container)
-        .client(fetch_client.client)
-        .pipeline_id(Some(fetch_client.pipeline_id))
-        .origin(fetch_client.origin);
+        .client(fetch_client)
+        .pipeline_id(Some(global.pipeline_id()));
 
         let context = ModuleContext {
             owner: Trusted::new(global),

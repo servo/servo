@@ -16,7 +16,7 @@ use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::ImageCache;
-use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Origin, ParserMetadata,
     PreloadedResources, Referrer, RequestBuilder, RequestClient, RequestMode,
@@ -58,7 +58,7 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::enter_auto_realm;
-use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
+use crate::script_module::fetch_a_module_worker_script_graph;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -416,12 +416,11 @@ impl DedicatedWorkerGlobalScope {
 
                 let request_client = RequestClient {
                     preloaded_resources: PreloadedResources::default(),
-                    policy_container: RequestPolicyContainer::PolicyContainer(
-                        policy_container.clone(),
-                    ),
+                    policy_container,
                     origin: Origin::Origin(origin.clone()),
                     is_nested_browsing_context,
                     insecure_requests_policy,
+                    has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
                 };
 
                 let event_loop_sender = ScriptEventLoopSender::DedicatedWorker {
@@ -511,15 +510,6 @@ impl DedicatedWorkerGlobalScope {
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 
-                let fetch_client = ModuleFetchClient {
-                    insecure_requests_policy,
-                    has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
-                    policy_container,
-                    client: request_client,
-                    pipeline_id,
-                    origin,
-                };
-
                 // Step 12. Obtain script by switching on options["type"]:
                 {
                     let _ar = AutoWorkerReset::new(&global, worker.clone());
@@ -528,7 +518,7 @@ impl DedicatedWorkerGlobalScope {
                             fetch_a_classic_worker_script(
                                 scope,
                                 worker_url,
-                                fetch_client,
+                                request_client,
                                 Destination::Worker,
                                 Some(webview_id),
                                 referrer,
@@ -540,7 +530,7 @@ impl DedicatedWorkerGlobalScope {
                                 cx,
                                 global_scope,
                                 worker_url.url(),
-                                fetch_client,
+                                request_client,
                                 Destination::Worker,
                                 referrer,
                                 credentials,
@@ -794,20 +784,18 @@ impl DedicatedWorkerGlobalScope {
 pub(crate) fn fetch_a_classic_worker_script(
     workerscope: &WorkerGlobalScope,
     url_with_blob_lock: UrlWithBlobClaim,
-    fetch_client: ModuleFetchClient,
+    fetch_client: RequestClient,
     destination: Destination,
     webview_id: Option<WebViewId>,
     referrer: Referrer,
 ) {
+    let policy_container = fetch_client.policy_container.clone();
+
     // Step 1. Let request be a new request whose URL is url,
     let request = RequestBuilder::new(webview_id, url_with_blob_lock.clone(), referrer)
         // client is fetchClient,
-        .insecure_requests_policy(fetch_client.insecure_requests_policy)
-        .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
-        .policy_container(fetch_client.policy_container.clone())
-        .client(fetch_client.client)
-        .pipeline_id(Some(fetch_client.pipeline_id))
-        .origin(fetch_client.origin)
+        .client(fetch_client)
+        .pipeline_id(Some(workerscope.pipeline_id()))
         // destination is destination,
         .destination(destination)
         // TODO initiator type is "other",
@@ -823,7 +811,7 @@ pub(crate) fn fetch_a_classic_worker_script(
     let context = ScriptFetchContext::new(
         Trusted::new(workerscope),
         url_with_blob_lock.url(),
-        fetch_client.policy_container,
+        policy_container,
     );
     let global = workerscope.upcast::<GlobalScope>();
     let task_source = global.task_manager().networking_task_source().to_sendable();

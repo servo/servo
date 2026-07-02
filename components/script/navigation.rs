@@ -15,7 +15,6 @@ use embedder_traits::{Theme, ViewportDetails, WebDriverLoadStatus};
 use http::header;
 use js::context::JSContext;
 use net_traits::blob_url_store::UrlWithBlobClaim;
-use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, Origin, PreloadedResources, RedirectMode,
     RequestBuilder, RequestClient, RequestMode,
@@ -226,12 +225,11 @@ impl InProgressLoad {
 
         let request_client = RequestClient {
             preloaded_resources: PreloadedResources::default(),
-            policy_container: RequestPolicyContainer::PolicyContainer(
-                self.load_data.policy_container.clone().unwrap_or_default(),
-            ),
+            policy_container: self.load_data.policy_container.clone().unwrap_or_default(),
             origin: Origin::Origin(client_origin),
             is_nested_browsing_context: self.parent_info.is_some(),
             insecure_requests_policy,
+            has_trustworthy_ancestor_origin: self.load_data.has_trustworthy_ancestor_origin,
         };
 
         let mut request_builder = RequestBuilder::new(
@@ -247,8 +245,6 @@ impl InProgressLoad {
         .pipeline_id(Some(id))
         .referrer_policy(self.load_data.referrer_policy)
         .policy_container(self.load_data.policy_container.clone().unwrap_or_default())
-        .insecure_requests_policy(insecure_requests_policy)
-        .has_trustworthy_ancestor_origin(self.load_data.has_trustworthy_ancestor_origin)
         .headers(self.load_data.headers.clone())
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)
