@@ -8,7 +8,7 @@
 </head>
 <body>
 <script>
-test(() => {
+promise_test(async() => {
   const tool = {
     name: 'echo',
     description: 'echo input',
@@ -19,7 +19,7 @@ test(() => {
   };
 
   const controller = new AbortController();
-  document.modelContext.registerTool(tool, { signal: controller.signal });
+  await document.modelContext.registerTool(tool, { signal: controller.signal });
   controller.abort();
 }, 'register tool with empty annotations');
 </script>

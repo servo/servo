@@ -16,7 +16,7 @@ function checkPathLength(expected) {
   return () => {
     assert_equals(
         getComputedStyle(path).getPropertyValue('path-length'),
-        String(expected));
+        `${expected}px`);
   };
 }
 

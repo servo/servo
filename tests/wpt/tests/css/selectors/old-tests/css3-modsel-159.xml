@@ -8,9 +8,15 @@
 ]]></style>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content=" interact" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
  </head>
  <body>
- <p>Try selecting some text in this document. It should be have a green background.</p>
+ <p id="t1">Try selecting some text in this document. It should be have a green background.</p>
+ <script><![CDATA[
+test(function() {
+  assert_equals(window.getComputedStyle(document.getElementById('t1'), '::selection').backgroundColor, 'rgb(0, 255, 0)', '::selection background should be lime');
+}, 'Syntax and parsing of new pseudo-elements');
+]]></script>
 </body>
 </html>

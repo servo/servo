@@ -4,7 +4,7 @@
   <title>SVG Path Properties: parsing path-length with valid values</title>
   <metadata>
     <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthProperty"/>
-    <h:meta name="assert" content="path-length supports the full grammar 'none | &lt;number [0,∞]&gt;'."/>
+    <h:meta name="assert" content="path-length supports the full grammar 'none | &lt;length [0,∞]&gt;'."/>
   </metadata>
   <path id="target"/>
   <h:script src="/resources/testharness.js"/>
@@ -13,14 +13,12 @@
   <script><![CDATA[
 
 test_valid_value("path-length", "none");
-test_valid_value("path-length", "0");
-test_valid_value("path-length", "1");
-test_valid_value("path-length", "0.5");
-test_valid_value("path-length", "100");
-test_valid_value("path-length", "3.14");
-test_valid_value("path-length", "1e2", "100");
-test_valid_value("path-length", "calc(1 + 2)", "calc(3)");
-test_valid_value("path-length", "calc(infinity)");
+test_valid_value("path-length", "0", "0px");
+test_valid_value("path-length", "100px");
+test_valid_value("path-length", "10em");
+test_valid_value("path-length", "2rem");
+test_valid_value("path-length", "calc(1px + 2px)", "calc(3px)");
+test_valid_value("path-length", "calc(10px + 2em)", "calc(2em + 10px)");
 
   ]]></script>
 </svg>

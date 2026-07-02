@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Composited identity animation with layer squash should not crash</title>
+<link rel="help" href="https://crbug.com/40410671">
+<div id="opacity">
+  <div style="position: relative"></div>
+</div>
+<div id="transform">
+  <div style="position: relative"></div>
+</div>
+<script>
+  var opacityPlayer = opacity.animate([
+    {opacity: 1},
+    {opacity: 1},
+  ], 1e6);
+  var transformPlayer = transform.animate([
+    {transform: 'none'},
+    {transform: 'none'},
+  ], 1e6);
+  requestAnimationFrame(() => {
+    opacityPlayer.cancel();
+    transformPlayer.cancel();
+          requestAnimationFrame(() => {
+      document.documentElement.classList.remove('test-wait');
+    });
+  });
+</script>

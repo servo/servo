@@ -8,6 +8,9 @@ div.stub > *|* { color : green ; display : block ;
                  margin-bottom : 1em }
 div.stub > *|*:not(|*) { color : red ! important }
 ]]></style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
@@ -15,8 +18,13 @@ div.stub > *|*:not(|*) { color : red ! important }
  </head>
  <body>
 <div class="stub">
-<t xmlns="">This paragraph should be in green characters.</t>
+<t xmlns="" id="t1">This paragraph should be in green characters.</t>
 </div>
 
+<script><![CDATA[
+test(function() {
+  assert_color('t1', GREEN);
+}, 'NEGATED universal selector with declared namespace');
+]]></script>
 </body>
 </html>

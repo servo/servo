@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<!--
+    tt-wildcard must be exactly "*". A token such as "*X" has trailing
+    characters after the wildcard, so it is neither a valid tt-wildcard nor a
+    valid tt-policy-name (the "*" is not a policy-name character). It is therefore
+    an invalid tt-expression and must be ignored when parsing the directive.
+
+    With no valid tt-expression in the directive value, the trusted-types list is
+    empty and the wildcard is not enabled (equivalent to 'none'), so
+    trustedTypes.createPolicy() must throw a TypeError. Both Blink and Gecko
+    reject "*X" as a wildcard.
+-->
+<meta http-equiv="Content-Security-Policy" content="trusted-types *X">
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#trusted-types-csp-directive">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    test(() => {
+        assert_throws_js(TypeError, () => {
+            trustedTypes.createPolicy("policy");
+        });
+    }, "A trusted-types wildcard with trailing characters ('*X') is an invalid expression and must not enable the wildcard, so createPolicy() is blocked.");
+</script>

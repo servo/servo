@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Animating elements attached to detached documents should not crash</title>
+<link rel="help" href="https://crbug.com/40436630">
+<script>
+  document.implementation.createDocument('', '').createElement('div').animate({transform: 'none'}, 1000);
+</script>

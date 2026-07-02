@@ -1,4 +1,5 @@
 const LIME = 'rgb(0, 255, 0)';
+const GREEN = 'rgb(0, 128, 0)';
 const RED = 'rgb(255, 0, 0)';
 
 function assert_background_color(elementOrId, colorString, comment) {

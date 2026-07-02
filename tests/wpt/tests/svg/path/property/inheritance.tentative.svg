@@ -14,7 +14,7 @@
   <h:script src="/css/support/inheritance-testcommon.js"/>
   <script><![CDATA[
 
-assert_not_inherited('path-length', 'none', '10');
+assert_not_inherited('path-length', 'none', '10px');
 
   ]]></script>
 </svg>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>CSS length range values in animations should not crash</title>
+<link rel="help" href="https://crbug.com/41179343">
+<div id="target"></div>
+<script>
+  target.animate([{
+    left: '1e100px',
+    top: '-1e100px',
+  }, {
+    left: '0px',
+    top: '0px',
+  }], 1000);
+
+  requestAnimationFrame(function() {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

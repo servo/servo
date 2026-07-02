@@ -896,6 +896,13 @@ class SourceFile:
     def spec_links(self) -> Set[Text]:
         """Set of spec links specified in the file"""
         rv: Set[Text] = set()
+
+        if self.script_metadata is not None:
+            for (meta, content) in self.script_metadata:
+                if meta == "spec":
+                    rv.add(content)
+            return rv
+
         for item in self.spec_link_nodes:
             if "href" in item.attrib:
                 rv.add(item.attrib["href"].strip(space_chars))

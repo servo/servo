@@ -9,10 +9,18 @@
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
- <address xmlns="http://tests.example.org/xml-only/"><![CDATA[]]></address>
+ <address id="t1" xmlns="http://tests.example.org/xml-only/"><![CDATA[]]></address>
  <div class="text">This line should have a green background.</div>
  <p>(Note: This test is based on unpublished errata.)</p>
+ <script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+}, 'Empty CDATA section makes the element match :empty');
+]]></script>
 </body>
 </html>

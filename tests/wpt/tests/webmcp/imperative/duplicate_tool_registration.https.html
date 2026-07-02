@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP modelContext duplicate tool registration</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  function empty() {
+    return 'empty';
+  }
+
+  await document.modelContext.registerTool({
+    name: 'empty',
+    description: 'echo empty',
+    execute: empty,
+  });
+
+  return promise_rejects_dom(t, 'InvalidStateError',
+    document.modelContext.registerTool({
+      name: 'empty',
+      description: 'echo empty',
+      execute: empty,
+    }),
+    'duplicate tool registration is invalid.',
+  );
+}, 'duplicate tool registration is invalid.');
+</script>
+</body>
+</html>

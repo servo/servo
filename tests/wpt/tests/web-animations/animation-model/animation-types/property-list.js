@@ -1265,7 +1265,7 @@ const gCSSProperties2 = {
   },
   'path-length': {
     // https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthAttribute
-    types: [ 'positiveNumber' ],
+    types: [ 'length' ],
     setup: t => {
       return createElement(t, 'path');
     }

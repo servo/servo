@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Syntax and parsing of unknown pseudo-classes and pseudo-elements</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[
   p { background: lime; }
   p   * { background: lime; }
@@ -29,19 +32,25 @@
 ]]></style>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content=" interact" />
  </head>
  <body>
- <p>This line should have a green background.</p>
+ <p id="t1">This line should have a green background.</p>
  <p>
   UAs may render the following element as a pop up menu. If so, please ensure the menu is unstyled (or green).
-  <select size="1">
+  <select id="t2" size="1">
    <option>This should</option>
    <option>have a green</option>
    <option>background.</option>
   </select>
  </p>
- <table><tr><td>This line should have a green background (or it might be unstyled).</td></tr></table>
+ <table id="t3"><tr><td>This line should have a green background (or it might be unstyled).</td></tr></table>
  <!-- only allowed to be unstyled if + and ~ are not supported -->
+ <script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+}, 'Syntax and parsing of unknown pseudo-classes and pseudo-elements');
+]]></script>
 </body>
 </html>

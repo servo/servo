@@ -9,7 +9,7 @@
 <script>
 promise_test(async t => {
   // Register a legitimate tool first to retrieve a valid template.
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: "legit_tool",
     description: "Legitimate tool description",
     execute: async (args) => "success"

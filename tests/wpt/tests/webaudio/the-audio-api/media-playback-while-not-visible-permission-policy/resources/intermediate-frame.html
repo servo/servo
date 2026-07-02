@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Intermediate frame embedding a nested AudioContext iframe</title>
+</head>
+<body>
+<iframe id="nested-iframe"
+        allow="media-playback-while-not-visible 'none'; autoplay *"
+        src="audiocontext-frame.html">
+</iframe>
+<script>
+// Bidirectionally forwards postMessage traffic between the test page (parent)
+// and the leaf AudioContext iframe (child), so the test page can drive the
+// AudioContext as if it were a direct child while remaining separated from it
+// by this intermediate frame.
+const nestedIframe = document.getElementById('nested-iframe');
+
+window.addEventListener('message', function(event) {
+  if (event.source === nestedIframe.contentWindow) {
+    // Messages from the nested iframe (leaf) - forward to parent
+    window.parent.postMessage(event.data, '*');
+  } else if (event.source === window.parent) {
+    // Messages from the parent - forward to the nested iframe (leaf)
+    nestedIframe.contentWindow.postMessage(event.data, '*');
+  }
+});
+</script>
+</body>
+</html>

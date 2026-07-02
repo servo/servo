@@ -13,7 +13,7 @@
   </style>
 
   <defs>
-    <path id="path1" d="M10 60 L210 60" style="display:none; path-length:10"/>
+    <path id="path1" d="M10 60 L210 60" style="display:none; path-length:10px"/>
   </defs>
 
   <text>

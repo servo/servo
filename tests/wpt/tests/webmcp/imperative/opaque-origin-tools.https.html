@@ -12,17 +12,11 @@ promise_test(async t => {
   // Assert that our CSP header took effect.
   assert_equals(self.origin, 'null');
 
-  const toolchange_promise = new Promise(resolve => {
-    document.modelContext.addEventListener('toolchange', resolve, { once: true });
-  });
-
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'opaque_tool',
     description: 'Opaque tool description',
     execute: async () => 'success'
   });
-
-  await toolchange_promise;
 
   // The tool should be available, but its execution is rejected because opaque
   // origins lose their same-origin identity during string serialization ("null").

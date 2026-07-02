@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Moving a marquee element and toggling visibility should not crash</title>
+<link rel="help" href="https://crbug.com/40212038">
+<marquee id="target">Don't crash me</marquee>
+<div id="container" style="display: none;"></div>
+<script>
+  const target = document.getElementById('target');
+  const container = document.getElementById('container');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      // Removing the element pauses the animation in Blink.
+      target.parentElement.removeChild(target);
+      requestAnimationFrame(() => {
+        // Reattaching the element resumes the animation regardless of
+        // visibility.
+        container.appendChild(target);
+        requestAnimationFrame(() => {
+          container.style = "display: block";
+          document.documentElement.classList.remove('test-wait');
+        });
+      });
+    });
+  });
+</script>
+</html>

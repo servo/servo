@@ -83,17 +83,19 @@
     let scroller = main.querySelector('.scroller');
     let animating = main.querySelector('.animating');
 
-    assert_equals(animating.getAnimations()[0].timeline.source, null);
-  }, 'Animation.timeline returns a timeline with no source for inactive deferred timeline');
+    // https://github.com/w3c/csswg-drafts/issues/13807
+    // RESOLVED: unresolved timelines are represented in the OM as null
+    assert_equals(animating.getAnimations()[0].timeline, null);
+  }, 'Animation.timeline returns null for an inactive deferred timeline');
 </script>
 
 <template id=animation_timeline_overattached>
   <div class="scope">
     <div class=animating>Test</div>
-    <div class="scroller timeline">
+    <div class="scroller timeline" id="a">
       <div class="content"></div>
     </div>
-    <div class="scroller timeline">
+    <div class="scroller timeline" id="b">
       <div class="content"></div>
     </div>
   </div>
@@ -101,9 +103,13 @@
 <script>
   promise_test(async (t) => {
     inflate(t, animation_timeline_overattached);
-    let scroller = main.querySelector('.scroller');
-    let animating = main.querySelector('.animating');
+    const scroller = main.querySelector('.scroller');
+    const animating = main.querySelector('.animating');
+    const timeline = animating.getAnimations()[0].timeline;
 
-    assert_equals(animating.getAnimations()[0].timeline.source, null);
-  }, 'Animation.timeline returns a timeline with no source for inactive (overattached) deferred timeline');
+    // https://github.com/w3c/csswg-drafts/issues/12581
+    // RESOLVED: change timeline clash resolution to use last in tree order
+    assert_true(!!timeline, 'timeline naming conflict resolved');
+    assert_equals(timeline.source.id, "b");
+  }, 'Animation.timeline naming conflict resolves to last in tree order');
 </script>

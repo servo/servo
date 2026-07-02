@@ -55,7 +55,7 @@ promise_test(async t => {
   const failure_msg = await failure_promise;
 
   assert_true(failure_msg.includes('NotAllowedError'), `Expected NotAllowedError in navigated iframe, got: ${failure_msg}`);
-}, 'registerTool() throws in iframe, after navigation to an origin not covered by permissions policy');
+}, 'registerTool() rejects in iframe, after navigation to an origin not covered by permissions policy');
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');

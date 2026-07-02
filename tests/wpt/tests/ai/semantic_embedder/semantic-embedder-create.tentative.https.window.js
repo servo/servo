@@ -47,3 +47,19 @@ promise_test(async t => {
   assert_true(Array.isArray(result.embeddings));
   assert_equals(result.embeddings.length, 1);
 }, 'SemanticEmbedder.embed() accepts taskType option');
+
+promise_test(async t => {
+  await ensureEmbedder();
+  let embedder = await createEmbedder();
+  let result = await embedder.embed([]);
+  assert_true(typeof result === 'object');
+  // It should gracefully resolve, potentially with undefined or empty embeddings.
+  if (result.embeddings) {
+    assert_equals(result.embeddings.length, 0);
+  }
+}, 'SemanticEmbedder.embed() handles empty array without crashing');
+
+promise_test(async t => {
+  await ensureEmbedder();
+  await testAbortPromise(t, signal => createEmbedder({ signal }));
+}, 'SemanticEmbedder.create() can be aborted');

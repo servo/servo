@@ -1,6 +1,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>:nth-last-of-type() pseudo-class with collapsed elements</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[
   line { display: block; }
   [type~=match] { background: lime ! important; }
@@ -13,27 +16,37 @@
  </head>
  <body>
  <test xmlns="http://www.example.org/">
-  <line type="">This line should be unstyled.</line>
-  <line type="match">This line should be green.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="match">This line should be green.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="match" hidden="hidden">This line should be green.</line>
-  <line type="" hidden="hidden">This line should be unstyled.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="match">This line should be green.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="match">This line should be green.</line>
-  <line type="" hidden="hidden">This line should be unstyled.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="match">This line should be green.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="">This line should be unstyled.</line>
-  <line type="match">This line should be green.</line>
-  <line type="">This line should be unstyled.</line>
+  <line id="u1" type="">This line should be unstyled.</line>
+  <line id="t1" type="match">This line should be green.</line>
+  <line id="u2" type="">This line should be unstyled.</line>
+  <line id="u3" type="">This line should be unstyled.</line>
+  <line id="t2" type="match">This line should be green.</line>
+  <line id="u4" type="">This line should be unstyled.</line>
+  <line id="u5" type="">This line should be unstyled.</line>
+  <line id="t3" type="match" hidden="hidden">This line should be green.</line>
+  <line id="u6" type="" hidden="hidden">This line should be unstyled.</line>
+  <line id="u7" type="">This line should be unstyled.</line>
+  <line id="t4" type="match">This line should be green.</line>
+  <line id="u8" type="">This line should be unstyled.</line>
+  <line id="u9" type="">This line should be unstyled.</line>
+  <line id="t5" type="match">This line should be green.</line>
+  <line id="u10" type="" hidden="hidden">This line should be unstyled.</line>
+  <line id="u11" type="">This line should be unstyled.</line>
+  <line id="t6" type="match">This line should be green.</line>
+  <line id="u12" type="">This line should be unstyled.</line>
+  <line id="u13" type="">This line should be unstyled.</line>
+  <line id="t7" type="match">This line should be green.</line>
+  <line id="u14" type="">This line should be unstyled.</line>
  </test>
+ <script><![CDATA[
+test(function() {
+  for (let i = 1; i <= 7; ++i) {
+    assert_background_color(`t${i}`, LIME);
+  }
+  for (let i = 1; i <= 14; ++i) {
+    assert_not_background_color(`u${i}`, LIME);
+  }
+}, 'nth-last-of-type with collapsed elements');
+]]></script>
 </body>
 </html>
