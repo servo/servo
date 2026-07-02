@@ -109,15 +109,6 @@ where
     C: Clone,
 {
     type Config = C;
-    unsafe fn from_jsval(
-        _cx: *mut RawJSContext,
-        value: HandleValue,
-        config: C,
-    ) -> Result<ConversionResult<Self>, ()> {
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = unsafe { crate::script_runtime::temp_cx() };
-        FromJSValConvertible::safe_from_jsval(&mut cx, value, config)
-    }
 
     fn safe_from_jsval(
         cx: &mut JSContext,

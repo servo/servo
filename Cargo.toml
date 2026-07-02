@@ -139,7 +139,7 @@ inventory = "0.3.24"
 ipc-channel = "0.22"
 itertools = "0.15"
 jni = "0.22"
-js = { package = "mozjs", version = "=0.17", default-features = false, features = ["intl", "libz-sys"] }
+js = { package = "mozjs", version = "=0.18", default-features = false, features = ["intl", "libz-sys"] }
 k12 = "0.5"
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.13.1", features = ["euclid"] }
@@ -444,6 +444,8 @@ codegen-units = 1
 #
 # mozjs = { path = "../mozjs/mozjs" }
 # mozjs_sys = { path = "../mozjs/mozjs-sys" }
+mozjs = { git = "https://github.com/servo/mozjs.git", rev = "refs/pull/770/head" }
+mozjs_sys = { git = "https://github.com/servo/mozjs.git", rev = "refs/pull/770/head" }
 #
 # Or for CSP crate:
 # content-security-policy = { path = "../rust-content-security-policy" }

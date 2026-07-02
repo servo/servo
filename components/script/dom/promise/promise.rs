@@ -384,16 +384,6 @@ fn create_native_handler_function(
 }
 
 impl FromJSValConvertibleRc for Promise {
-    #[expect(unsafe_code)]
-    unsafe fn from_jsval(
-        _cx: *mut RawJSContext,
-        value: HandleValue,
-    ) -> Result<ConversionResult<Rc<Promise>>, ()> {
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        Self::safe_from_jsval(&mut cx, value)
-    }
-
     fn safe_from_jsval(
         cx: &mut JSContext,
         value: HandleValue,

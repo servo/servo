@@ -822,7 +822,7 @@ dependencies = [
  "bitflags 2.13.0",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "regex",
@@ -2522,7 +2522,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3091,7 +3091,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5225,9 +5225,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e8c4b84ea965f4f44afc808143990ac6a0fc4f232cb1ddae9a8aa91707bcb37"
+version = "0.18.0"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F770%2Fhead#c8b189b82fd7e59e0ed8e84337c87559d222e2d2"
 dependencies = [
  "bindgen",
  "cc",
@@ -5241,8 +5240,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "140.12.0-0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f78cdbe11d0dba944f54f21f0f2b8c3ffb24b94170c0c075fadc24cc3e947dc4"
+source = "git+https://github.com/servo/mozjs.git?rev=refs%2Fpull%2F770%2Fhead#c8b189b82fd7e59e0ed8e84337c87559d222e2d2"
 dependencies = [
  "bindgen",
  "cc",
@@ -7249,7 +7247,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7306,7 +7304,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -9998,7 +9996,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -11540,7 +11538,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
