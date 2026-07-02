@@ -68,7 +68,7 @@ def _append_to_user_path(new_path: str) -> None:
     )
 
     # Make the change visible to the current process as well.
-    util.append_paths_to_env(os.environ, "PATH", new_path)
+    os.environ["PATH"] = os.environ.get("PATH", "") + os.pathsep + new_path
 
 
 def _ensure_llvm_in_user_path() -> None:
