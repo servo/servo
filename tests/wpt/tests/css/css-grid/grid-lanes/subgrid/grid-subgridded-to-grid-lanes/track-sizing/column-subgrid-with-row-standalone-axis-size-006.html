@@ -17,7 +17,6 @@
   display: grid-lanes;
   grid-lanes-direction: column;
   width: min-content;
-  height: 100px;
   background: green;
   color: transparent;
   font: 25px/1 Ahem;
@@ -25,6 +24,7 @@
 .subgrid {
   display: grid;
   grid-template-columns: subgrid;
+  height: 100px;
   grid-template-rows: repeat(4, 1fr);
 }
 </style>

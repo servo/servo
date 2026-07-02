@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-synthesis-box">
+  <link rel="match" href="alignment-baseline-flex-item-export-001-ref.html">
+  <link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+  <script src="support/variant-class.js"></script>
+  <meta name="assert" content="alignment-baseline on a flex item does not affect the exported baseline of the flex container" />
+  <meta name="flags" content="image" />
+  <meta charset="utf-8">
+  <meta name="variant" content="?class=baseline">
+  <meta name="variant" content="?class=text-bottom">
+  <meta name="variant" content="?class=alphabetic">
+  <meta name="variant" content="?class=ideographic">
+  <meta name="variant" content="?class=middle">
+  <meta name="variant" content="?class=central">
+  <meta name="variant" content="?class=mathematical">
+  <meta name="variant" content="?class=hanging">
+  <meta name="variant" content="?class=text-top">
+  <style>
+    :root {
+      font: 200px/1 'BaselineDiagnostic';
+    }
+
+    .flex-container {
+      display: inline-flex;
+    }
+
+    img {
+      width: 100px;
+      height: 100px;
+    }
+
+    .baseline     img { alignment-baseline: baseline; }
+    .text-bottom  img { alignment-baseline: text-bottom; }
+    .alphabetic   img { alignment-baseline: alphabetic; }
+    .ideographic  img { alignment-baseline: ideographic; }
+    .middle       img { alignment-baseline: middle; }
+    .central      img { alignment-baseline: central; }
+    .mathematical img { alignment-baseline: mathematical; }
+    .hanging      img { alignment-baseline: hanging; }
+    .text-top     img { alignment-baseline: text-top; }
+  </style>
+</head>
+<body>
+  <span>X<span class="flex-container"><img src="/images/checkerboard.svg"></span></span>
+</body>
+</html>

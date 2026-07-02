@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Digital Credential API: org-iso-mdoc valid request/response (ISO 18013-7 Annex C)</title>
+<link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type="module">
+
+// Golden-path tests using ISO/IEC 18013-7 2nd edition Annex C reference vectors.
+// These prove a correctly-formed org-iso-mdoc request/response round-trip works.
+//
+// Vectors provided by Martijn Haring (ISO/IEC JTC 1/SC 17/WG 10).
+// Origin: https://example.com
+// DocType: org.iso.18013.5.1.mDL
+// Elements: family_name ("Doe"), document_number ("123456789")
+//
+// Requires: WebDriver BiDi virtual wallet (PR #381)
+
+// --- Reference vectors (ISO 18013-7 Annex C example) ---
+
+const VALID_REQUEST = {
+  deviceRequest: "omd2ZXJzaW9uYzEuMGtkb2NSZXF1ZXN0c4GhbGl0ZW1zUmVxdWVzdNgYWFyiZ2RvY1R5cGV1b3JnLmlzby4xODAxMy41LjEubURMam5hbWVTcGFjZXOhcW9yZy5pc28uMTgwMTMuNS4xomtmYW1pbHlfbmFtZfRvZG9jdW1lbnRfbnVtYmVy9A",
+  encryptionInfo: "gmVkY2FwaaJlbm9uY2VQuTBR9ybYyMxHk586vsBGt3JyZWNpcGllbnRQdWJsaWNLZXmkAQIgASFYIGDjOSOFBB9RQDBR8kFVMctW3T-ZnHFocBOqxnaLyBh-Ilgg5Y3rj9vpB_fdU2gkVVGjR5b30iFcRAwzm7D3tnvszfo",
+};
+
+const VALID_RESPONSE = {
+  response: "gmVkY2FwaaJjZW5jWEEEWojRgrzl9C76WZQ_MzWdLoqWj_KJ2T5fpES2JDQxZ_6xboz4WN3HaQQHumHUwzgjeoz8895qpnL8YKVXqjL8Z2pjaXBoZXJUZXh0WQZ0BAaypQYA8xz2vVLOT99canhuSsGJgQnuxY3DjkvXz14-8lRNZqdh3Y3znCLw3sJLnylnAAhLiOA_X0sRnwkOkQjFT4PWzkyARAPcW7B35URx1de1rdSV-t5-Ei9v1oRGuvzDHrXRwOHhSaXolE4Sv5O_kSsYscfBcAj2jD6mQRqjND0UDFozBZdZzlCuESx5yoz6bWMGSjiM5iixj6Q0XhJ1WMZX9p-b6xLcNxxDXpZyVVJAmLeBWkT4qKwQyf40NlMRBC6hDsRcQB7dwnZUKowyNY8jaSwjLbdToYtJ-dPQ5vXuf9gmYVsDsm5AYCX-udOhnz70oJyLtkyu5wvRE8BCRrbZiwPPcZjx1JU7ARM7Sf_P3qfyxNDO7HlxVdBOAIColO20_kxmyU-FBTGeRknXHwf4VJY9Fw8wf0sawmjycNgx1lS471cQbZBjkscpBLmtorAsSHfA-Be-8EnSqwRLgWqQe0SjW3p6vMicTKx27x8N74P-4KqwiVAVbUQNFioWtBd5ipiDHs8fpGvB3yBiAoSQzCN32Ax0-cXhzocQdeOM5N4F_abDNV_R01ucVMV6RpK2dBHQEIpmyvBUwgxJi4uMCsuFi43Vw5cuJUOZCap-G1n7MngDMsfZmHq2DxWso9qaYI-NkxddWS_nGMEByzbLIud_OfKzzbr6HRkiy-XWnPLOTEw7q9nbv4z4dIBD4eKeH3TOz1V8WjHlxZi1oowIy-GSh0lenVyeZinizCcVyY8a_CnKngP4X6fjSDRS9hB5v1pcyiR6PpdUr3Ui9A1m4W3DxJCxAl0LvtvASmUDpR_R38RUYXx46VD3cU_r-j7oEcc121zTq0aO-VRwOCj0OTAtS2Z_LxR6wjHvKXP0XAyNcm1PX12kf3eeD6edPVOEnJ11iJ-pNe5uGuTbpLSIjpG1J3qv0YukHvPj74rSRpU4J7mpGJRDnJqb7v_XTqTUFO2OPm-UsmwBfxVg5zqXtmoVXFsZZ9s7izTx-gdQaKdrKXrftEPvKoi4mb4Z_jamrSHhw70fieF9wKwMaeH8ih-fLF6jN5go4s-GRigA_JVEASGO4vwZ3TQPgo20ij8z-mbbZonOkbeyZZA4FIHkuwovft1lPSzecaTeljqE7ntJhmxMzM9c8jGcbq5PxmmnvV53JhOupXzeOu8pre6_k_YWWH0LV-IbUWo4twjGre-OhhmseUPoqCMjDPW9lxJ_mnCyD_EPvdRChOwaRxdfFacIDIE39-qPHrQhZVXhiIMhJlLenBFRbgolfUATS2KuiKNy9PvhFlGdZ_pBfBgPIj3iZBq3Tdr9dTJt_HRDsUZ7Gg15vbQvx3QrKa_NLkMUDRoVtLz0ir3d15pMc3K3GrD6JI8RcfGx4ILbrwbMUgUv-7iBVmf3VNTfTbTXnx0vclGiB69bREb5lJz3zPVw_SIPpc_n79JKyYwpcFZsGeyeo1oCtLYXrSjzsokm-H6QJW462ASkfM6Qy3ww45boPriWnKRzakWi6W8K3ujIBszG1jvkxzwlJS1TcHjTyamBSCOJ5213l0wak8Gfg2dN-eq157ZxqtJ-DDw8c1JtOTg7dLyykQp2re8LfHbUdAkxgccO89u6eyL4_ifGFiUpO4wcx_URQ-hINLSCfbti2jp8946uQn2BByzBWHXS_RZ7bH9vdHukUOMNuTjmgDmpp84z3EuOOTdlbEGB01avgbk4s3APKDwhcvE-YttKkvT7s040KyWqItzxkuA3uJtu6b9z98bonLAjZlNYqvZOVvuwo3VT0D4kqsPbKeKzBPy-pDPpM5eDPrgsZdBRQDxJtyrPYqh0wwtDGEk2VDsa-taG6_pWC-YHTZeGd6WP5zZvZ8HsJeWhzhgmGj9QE-vCDguyhHHgSRRYzIwHLfRGdKTFxRdQ6nG_6fx7criSK-RljLv0i7ETheMGAlAqk3rajCGYZRYEa-qrhoCpYFZJEf92yI65iqYcJJScgg6fVZ4yc7U2F-LTywuufOKA0flzGIFmD-01qzw1xaw3SsQwAwgdWT7Hvwc8TwbJ2NpFwiREUtD37k_TV5s1HLxZP9GCQgPzMvO3rxmf1w5yslTjth86XK-oF5q7G8LqxThLL8mq4pct8Kbj_OHRrVvmClnIrewOybtW1CYrXNIeNE5ld8sItpGe0yTN2gHZ_ct2llLJidFf0rEeuz63q3lnVl0",
+};
+
+// --- Tests ---
+
+promise_test(async (t) => {
+  await test_driver.set_virtual_wallet_behavior("respond", "org-iso-mdoc", VALID_RESPONSE);
+  t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+  await test_driver.bless("user activation");
+
+  const options = {
+    digital: {
+      requests: [{
+        protocol: "org-iso-mdoc",
+        data: VALID_REQUEST,
+      }]
+    }
+  };
+
+  const credential = await navigator.credentials.get(options);
+
+  assert_equals(credential.protocol, "org-iso-mdoc",
+    "Protocol should be org-iso-mdoc");
+  assert_equals(credential.type, "digital",
+    "Credential type should be 'digital'");
+  assert_true(credential.data !== null && credential.data !== undefined,
+    "Credential data should be present");
+  assert_equals(credential.data.response, VALID_RESPONSE.response,
+    "Response data should match what the wallet returned");
+}, "Valid ISO 18013-7 Annex C request/response round-trip succeeds.");
+
+promise_test(async (t) => {
+  await test_driver.set_virtual_wallet_behavior("respond", "org-iso-mdoc", VALID_RESPONSE);
+  t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+  await test_driver.bless("user activation");
+
+  const options = {
+    digital: {
+      requests: [{
+        protocol: "org-iso-mdoc",
+        data: VALID_REQUEST,
+      }]
+    }
+  };
+
+  const credential = await navigator.credentials.get(options);
+
+  // Verify the response contains the expected structure:
+  // EncryptedResponse = ["dcapi", {"enc": bstr, "cipherText": bstr}]
+  // encoded as base64url CBOR
+  const responseStr = credential.data.response;
+  assert_equals(typeof responseStr, "string", "Response should be a string");
+  assert_greater_than(responseStr.length, 0, "Response should not be empty");
+
+  // The response starts with the CBOR encoding of ["dcapi", ...]
+  // (array(2) + text string "dcapi"); its leading base64url chars are "gmVkY2Fwa".
+  assert_true(responseStr.startsWith("gmVkY2Fwa"),
+    "Response should start with CBOR-encoded ['dcapi', ...] prefix");
+}, "Valid response contains expected Annex C EncryptedResponse structure prefix.");
+
+promise_test(async (t) => {
+  await test_driver.set_virtual_wallet_behavior("respond", "org-iso-mdoc", VALID_RESPONSE);
+  t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+  await test_driver.bless("user activation");
+
+  // Request with both org-iso-mdoc and openid4vp protocols
+  const options = {
+    digital: {
+      requests: [
+        { protocol: "org-iso-mdoc", data: VALID_REQUEST },
+        { protocol: "openid4vp-v1-unsigned", data: { dcql_query: { credentials: [] }, nonce: "test" } },
+      ]
+    }
+  };
+
+  const credential = await navigator.credentials.get(options);
+
+  // The wallet responded with org-iso-mdoc, so that's what we should get
+  assert_equals(credential.protocol, "org-iso-mdoc");
+  assert_equals(credential.data.response, VALID_RESPONSE.response);
+}, "Valid org-iso-mdoc request alongside other protocols: wallet response selects org-iso-mdoc.");
+
+promise_test(async (t) => {
+  await test_driver.set_virtual_wallet_behavior("respond", "org-iso-mdoc", VALID_RESPONSE);
+  t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+  await test_driver.bless("user activation");
+
+  // Two identical org-iso-mdoc requests (e.g., different document types in real use)
+  const options = {
+    digital: {
+      requests: [
+        { protocol: "org-iso-mdoc", data: VALID_REQUEST },
+        { protocol: "org-iso-mdoc", data: VALID_REQUEST },
+      ]
+    }
+  };
+
+  const credential = await navigator.credentials.get(options);
+  assert_equals(credential.protocol, "org-iso-mdoc");
+  assert_equals(credential.data.response, VALID_RESPONSE.response);
+}, "Multiple valid org-iso-mdoc requests in a single call: succeeds.");
+</script>

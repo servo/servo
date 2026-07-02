@@ -52,6 +52,43 @@ function getPreloadsFromSearchParams() {
 }
 
 /**
+ * Navigate to a test page with an Early Hints response containing preconnects.
+ *
+ * @typedef {Object} Preconnect
+ * @property {string} url - An origin/URL to preconnect to.
+ * @property {string} [crossorigin_attr] - `crossorigin` attribute of this
+ *     preconnect.
+ *
+ * @param {string} test_url - URL of a test after the Early Hints response.
+ * @param {Array<Preconnect>} preconnects - Preconnects in the Early Hints
+ *     response.
+ */
+function navigateToTestWithEarlyHintsPreconnects(test_url, preconnects) {
+    const params = new URLSearchParams();
+    params.set("test_url", test_url);
+    params.set("exclude_preloads_from_ok_response", "true");
+    for (const preconnect of preconnects) {
+        params.append("preconnects", JSON.stringify(preconnect));
+    }
+    const url = RESOURCES_PATH + "/early-hints-test-loader.h2.py?" +
+        params.toString();
+    window.location.replace(new URL(url, window.location));
+}
+
+/**
+ * Parses the query string of the current window location and returns
+ * preconnects in the Early Hints response sent via
+ * `navigateToTestWithEarlyHintsPreconnects()`.
+ *
+ * @returns {Array<Preconnect>}
+ */
+function getPreconnectsFromSearchParams() {
+    const params = new URLSearchParams(window.location.search);
+    const encoded = params.getAll("preconnects");
+    return encoded.map(e => JSON.parse(e));
+}
+
+/**
  * Fetches a script or an image.
  *
  * @param {string} element - "script" or "img".

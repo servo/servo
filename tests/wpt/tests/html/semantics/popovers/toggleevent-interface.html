@@ -163,6 +163,13 @@ test(function() {
 }, 'ToggleEventInit with source.');
 
 test(function() {
+  const div = document.createElement('div');
+  const eventInit = {source: div};
+  const event = new ToggleEvent('beforetoggle', eventInit);
+  assert_equals(event.relatedTarget, undefined);
+}, 'ToggleEvent doesn\'t expose relatedTarget property.');
+
+test(function() {
   var event = new ToggleEvent("test", {newState: "sample"});
   assert_equals(event.newState, "sample");
 }, "newState set to 'sample'");

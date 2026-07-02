@@ -1,0 +1,130 @@
+<!doctype html>
+<title>SVGPathElement.setPathData() with malformed segments</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#__svg__SVGPathData__setPathData">
+<link rel="help" href="https://svgwg.org/specs/paths/#PathDataErrorHandling">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<svg></svg>
+<script>
+// Invalid segments (unknown type, wrong values count, non-finite values) and
+// everything after them are dropped (valid-prefix semantics).
+
+test(() => {
+  const path = createPath();
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10, 10] },
+    { type: "X", values: [] },
+    { type: "L", values: [20, 20] }
+  ]);
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10, 10] }
+  ]);
+}, "setPathData() with an unknown command letter truncates at that segment");
+
+test(() => {
+  const path = createPath();
+  // L expects exactly two values; the structured API does not split extras
+  // into an implicit repeat as the d-attribute parser does.
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10, 10, 20, 20] }
+  ]);
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] }
+  ]);
+}, "setPathData() with extra values truncates at that segment");
+
+test(() => {
+  const path = createPath();
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [10] }
+  ]);
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] }
+  ]);
+}, "setPathData() with too few values truncates at that segment");
+
+test(() => {
+  const path = createPath();
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [NaN, 10] }
+  ]);
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] }
+  ]);
+}, "setPathData() with NaN truncates at that segment");
+
+test(() => {
+  const path = createPath();
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [Infinity, 10] }
+  ]);
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] }
+  ]);
+}, "setPathData() with Infinity truncates at that segment");
+
+test(() => {
+  const path = createPath();
+  // ClosePath must have an empty values array.
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "Z", values: [1, 2] }
+  ]);
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] }
+  ]);
+}, "setPathData() rejects ClosePath with non-empty values");
+
+test(() => {
+  const path = createPath();
+  // Multi-character type strings are not aliases for known commands.
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "MM", values: [10, 10] }
+  ]);
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] }
+  ]);
+}, "setPathData() rejects multi-character type strings");
+
+test(() => {
+  const path = createPath("M 99 99");
+  // Per SVG Paths §9.7, a path that does not begin with a moveto is invalid;
+  // a leading non-moveto is the first invalid segment and drops everything.
+  path.setPathData([
+    { type: "L", values: [10, 10] },
+    { type: "L", values: [20, 20] }
+  ]);
+  assert_equals(path.getAttribute("d"), null,
+      "leading non-moveto removes the attribute");
+}, "setPathData() rejects a leading non-moveto segment");
+
+test(() => {
+  const path = createPath("M 99 99");
+  // Wrong-arity leading moveto is itself invalid, so 'd' resets.
+  path.setPathData([
+    { type: "M", values: [0] }
+  ]);
+  assert_equals(path.getAttribute("d"), null,
+      "malformed leading moveto removes the attribute");
+}, "setPathData() rejects a leading moveto with the wrong arity");
+
+test(() => {
+  const path = createPath();
+  // Lowercase 'm' is also a moveto and is valid as a leading command.
+  path.setPathData([
+    { type: "m", values: [5, 5] },
+    { type: "l", values: [3, 4] }
+  ]);
+  assert_equals(path.getAttribute("d"), "m 5 5 l 3 4");
+}, "setPathData() accepts a leading relative moveto");
+</script>

@@ -1,0 +1,2 @@
+Link: <https://preconnect-response-header-none.test>; rel=preconnect
+Link: <https://preconnect-response-header-anon.test>; rel=preconnect; crossorigin

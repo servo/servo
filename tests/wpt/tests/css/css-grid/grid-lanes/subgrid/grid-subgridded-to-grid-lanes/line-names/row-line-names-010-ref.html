@@ -1,0 +1,89 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <style>
+html,body {
+  color:black; background-color:white; font:12px/1 monospace; padding:0; margin:0;
+}
+
+.grid-lanes > div { background: grey; grid-row:2 / span 2; }
+
+x { background: silver; }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: '.' '.' '.' '.' '.' '.' 'a' 'a' 'a' '.';">
+  <div style="display:grid; grid:subgrid/auto; grid-row:5 / 9;">
+    <x style="grid-row: 3 / 5">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: 'a' 'a' 'a';">
+  <div style="display:grid; grid:subgrid/auto; grid-row:5 / 9;">
+    <x style="grid-row: 5">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: '.' '.' '.' '.' '.' '.' 'a' 'a' 'a' '.';">
+  <div style="display:grid; grid:subgrid/auto; grid-row:5 / 9;">
+    <x style="grid-row: 3 / 5">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: 'a' 'a' 'a';">
+  <div style="display:grid; grid:subgrid/auto; grid-row:5 / 9;">
+    <x style="grid-row: 5">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: '.' '.' '.' '.' '.' '.' 'a' 'a' 'a' '.';">
+  <div style="display:grid; grid:subgrid/auto; grid-row:5 / 9; grid-template-areas: 'a' 'a' 'a';">
+    <x style="grid-row: 1 / 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: 'a' 'a' 'a';">
+  <div style="display:grid; grid:subgrid/auto; grid-row:5 / 9; grid-template-areas: 'a' 'a' 'a'">
+    <x style="grid-row: 1 / 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: '.' '.' '.' '.' '.' '.' 'a' 'a' 'a' '.';">
+  <div style="display:grid; grid:subgrid/auto; grid-row:5 / 9; grid-template-areas: 'a' 'a' 'a'">
+    <x style="grid-row: 1 / 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: 'a' 'a' 'a';">
+  <div style="display:grid; grid:subgrid/auto; grid-row:5 / 9; grid-template-areas: 'a' 'a' 'a'">
+    <x style="grid-row: 1 / 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: 'a' 'a' 'a';">
+  <div style="display:grid; grid:subgrid/auto; grid-row:3 / 9; grid-template-areas: 'a' 'a' 'a'">
+    <x style="grid-row: 1">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: 'a' 'a' 'a';">
+  <div style="display:grid; grid:subgrid [a]/auto;">
+    <x style="grid-row: 1 / 3">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(10, 30px); grid-template-areas: 'a' 'a' 'a';">
+  <div style="display:grid; grid:subgrid [b] [b] [b] [a]/auto; grid-row:1 / 9;">
+    <x style="grid-row: 1 / 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes" style="display:inline-grid-lanes; grid-template-rows: repeat(4, 30px); grid-template-areas: 'a' 'b' 'c' 'd';">
+  <div style="display:grid; grid:subgrid/auto; grid-row: a / d;">
+    <x style="grid-row: 3">x</x>
+  </div>
+</div>
+
+</body>
+</html>

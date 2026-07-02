@@ -9,25 +9,38 @@ dl > *:not(:nth-last-of-type(3n+1)) { background-color : red }
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
-<p>This paragraph should be unstyled.</p>
-<address>This address should be unstyled.</address>
-<p class="green">This paragraph should have green background.</p>
-<p class="green">This paragraph should have green background.</p>
+<p id="u1">This paragraph should be unstyled.</p>
+<address id="u2">This address should be unstyled.</address>
+<p class="green" id="t1">This paragraph should have green background.</p>
+<p class="green" id="t2">This paragraph should have green background.</p>
 <dl>
-  <dt class="green">First definition term that should have green background.</dt>
-    <dd class="green">First definition that should also have a green background.</dd>
-  <dt class="green">Second definition term that should have green background.</dt>
-    <dd class="green">Second definition that should have green background.</dd>
-  <dt>Third definition term.</dt>
-    <dd>Third definition.</dd>
-  <dt class="green">Fourth definition term that should have green background.</dt>
-    <dd class="green">Fourth definition that should have green background.</dd>
-  <dt class="green">Fifth definition term that should have green background.</dt>
-    <dd class="green">Fifth definition that should have green background.</dd>
-  <dt>Sixth definition term.</dt>
-    <dd>Sixth definition.</dd>
+  <dt class="green" id="t3">First definition term that should have green background.</dt>
+    <dd class="green" id="t4">First definition that should also have a green background.</dd>
+  <dt class="green" id="t5">Second definition term that should have green background.</dt>
+    <dd class="green" id="t6">Second definition that should have green background.</dd>
+  <dt id="u3">Third definition term.</dt>
+    <dd id="u4">Third definition.</dd>
+  <dt class="green" id="t7">Fourth definition term that should have green background.</dt>
+    <dd class="green" id="t8">Fourth definition that should have green background.</dd>
+  <dt class="green" id="t9">Fifth definition term that should have green background.</dt>
+    <dd class="green" id="t10">Fifth definition that should have green background.</dd>
+  <dt id="u5">Sixth definition term.</dt>
+    <dd id="u6">Sixth definition.</dd>
 </dl>
+<script><![CDATA[
+test(() => {
+  for (let i = 1; i < 10; ++i) {
+    assert_background_color(`t${i}`, LIME, `t${i} should be green`);
+  }
+  for (let i = 1; i < 6; ++i) {
+    assert_not_background_color(`u${i}`, LIME, `u${i} should be unstyled`);
+  }
+}, 'NEGATED :nth-last-of-type() pseudo-class')
+]]></script>
 </body>
 </html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Gap Decorations: repaint when flex container position shifts (reference)</title>
+  <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+  <style>
+    * { margin: 0;}
+    body { background: #f9fafb; }
+    .flex {
+      display: flex; flex-wrap: wrap; width: 100px;
+      column-gap: 10px; row-gap: 10px;
+      column-rule: 6px solid blue; column-rule-break: intersection;
+    }
+    .flex > div { height: 35px; background: lightgray; }
+    .w1 { width: 30px; } .w2 { width: 50px; } .w3 { width: 40px; }
+  </style>
+</head>
+<body>
+<div style="height: 20px;"></div>
+<div class="flex">
+  <div class="w1"></div><div class="w2"></div>
+  <div class="w3"></div><div class="w1"></div>
+  <div class="w2"></div><div class="w3"></div>
+  <div class="w1"></div>
+</div>
+</body>
+</html>

@@ -73,31 +73,43 @@ promise_test(async t => {
   assert_equals(await test_driver.get_computed_label(input1), "Label 2");
 }, "Changing the reference target ID updates the computed label");
 
-async function setup_nested_reference_target() {
+async function setup_nested_reference_target(
+    {invalidMiddleReferenceTarget = false, invalidInnerHostId = false} = {}) {
+  const middle_reference_target =
+      invalidMiddleReferenceTarget ? "invalidTarget" : "inner_host";
+  const inner_host_id = invalidInnerHostId ? "invalidId" : "inner_host";
   const test_container = document.querySelector("#test-container");
   test_container.setHTMLUnsafe(`
     <div id="outer_host">
-      <template shadowrootmode="open" shadowrootreferencetarget="inner_host">
+      <template shadowrootmode="open" shadowrootreferencetarget="middle_host">
         <span>shadow tree level 1</span>
-        <div id="inner_host">
-          <template shadowrootmode="open" shadowrootreferencetarget="real_label1">
-          <span>shadow tree level 2</span>
-          <label id="real_label1">Real Label 1</label>
-          <label id="real_label2">Real Label 2</label>
+        <div id="middle_host">
+          <template shadowrootmode="open" shadowrootreferencetarget="${middle_reference_target}">
+            <span>shadow tree level 2</span>
+            <div id="${inner_host_id}">
+              <template shadowrootmode="open" shadowrootreferencetarget="real_label1">
+                <span>shadow tree level 3</span>
+                <label id="real_label1">Real Label 1</label>
+                <label id="real_label2">Real Label 2</label>
+              </template>
+            </div>
           </template>
         </div>
       </template>
     </div>
     <input id="input1" aria-labelledby="outer_host">`);
   const input1 = test_container.querySelector("#input1");
-  assert_equals(await test_driver.get_computed_label(input1), "Real Label 1");
+  const expected_label =
+      (invalidMiddleReferenceTarget || invalidInnerHostId) ? "" : "Real Label 1";
+  assert_equals(await test_driver.get_computed_label(input1), expected_label);
   return test_container
 }
 
 promise_test(async t => {
   const test_container = await setup_nested_reference_target();
   const outer_host = test_container.querySelector("#outer_host");
-  const inner_host = outer_host.shadowRoot.querySelector("#inner_host");
+  const middle_host = outer_host.shadowRoot.querySelector("#middle_host");
+  const inner_host = middle_host.shadowRoot.querySelector("#inner_host");
   inner_host.shadowRoot.referenceTarget = "real_label2";
   assert_equals(await test_driver.get_computed_label(input1), "Real Label 2");
 }, "Changing the nested referenceTarget to reference a different element updates the computed label");
@@ -105,11 +117,56 @@ promise_test(async t => {
 promise_test(async t => {
   const test_container = await setup_nested_reference_target();
   const outer_host = test_container.querySelector("#outer_host");
-  const inner_host = outer_host.shadowRoot.querySelector("#inner_host");
+  const middle_host = outer_host.shadowRoot.querySelector("#middle_host");
+  const inner_host = middle_host.shadowRoot.querySelector("#inner_host");
   const real_label1 = inner_host.shadowRoot.querySelector("#real_label1");
   real_label1.id = "new_id";
   assert_equals(await test_driver.get_computed_label(input1), "");
 }, "Changing the ID of the nested referenced element results in an empty computed label");
+
+promise_test(async t => {
+  const test_container =
+      await setup_nested_reference_target({invalidMiddleReferenceTarget: true});
+  const outer_host = test_container.querySelector("#outer_host");
+  const middle_host = outer_host.shadowRoot.querySelector("#middle_host");
+
+  assert_equals(await test_driver.get_computed_label(input1), "");
+  middle_host.shadowRoot.referenceTarget = "inner_host";
+  assert_equals(await test_driver.get_computed_label(input1), "Real Label 1");
+}, "Changing the middle shadow's reference target from an invalid to a valid ID establishes the association");
+
+promise_test(async t => {
+  const test_container = await setup_nested_reference_target();
+  const outer_host = test_container.querySelector("#outer_host");
+  const middle_host = outer_host.shadowRoot.querySelector("#middle_host");
+
+  assert_equals(await test_driver.get_computed_label(input1), "Real Label 1");
+  middle_host.shadowRoot.referenceTarget = "invalidTarget";
+  assert_equals(await test_driver.get_computed_label(input1), "");
+}, "Changing the middle shadow's reference target from a valid to an invalid ID breaks the association");
+
+promise_test(async t => {
+  const test_container =
+      await setup_nested_reference_target({invalidInnerHostId: true});
+  const outer_host = test_container.querySelector("#outer_host");
+  const middle_host = outer_host.shadowRoot.querySelector("#middle_host");
+  const inner_host = middle_host.shadowRoot.querySelector("#invalidId");
+
+  assert_equals(await test_driver.get_computed_label(input1), "");
+  inner_host.id = "inner_host";
+  assert_equals(await test_driver.get_computed_label(input1), "Real Label 1");
+}, "Changing the inner host's ID from an invalid to a valid value establishes the association");
+
+promise_test(async t => {
+  const test_container = await setup_nested_reference_target();
+  const outer_host = test_container.querySelector("#outer_host");
+  const middle_host = outer_host.shadowRoot.querySelector("#middle_host");
+  const inner_host = middle_host.shadowRoot.querySelector("#inner_host");
+
+  assert_equals(await test_driver.get_computed_label(input1), "Real Label 1");
+  inner_host.id = "invalidId";
+  assert_equals(await test_driver.get_computed_label(input1), "");
+}, "Changing the inner host's ID from a valid to an invalid value breaks the association");
 </script>
 
 <label id="label2" for="x-input2">Input 2</label>

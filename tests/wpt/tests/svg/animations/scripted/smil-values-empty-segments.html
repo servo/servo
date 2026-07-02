@@ -35,6 +35,9 @@
 <script>
   const svg = document.getElementById('svg');
 
+  promise_setup(() => new Promise(
+    resolve => window.addEventListener('load', resolve, {once: true})));
+
   promise_test(async t => {
     svg.pauseAnimations();
     svg.setCurrentTime(4);

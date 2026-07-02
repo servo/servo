@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>:first-child pseudo-class</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[.red { background-color : red }
 .t1 td:first-child { background-color : lime }
 p > *:first-child { background-color : lime }
@@ -13,24 +16,32 @@ p > *:first-child { background-color : lime }
 <div>
 <table class="t1" border="1">
   <tr>
-    <td class="red">green cell</td>
+    <td class="red" id="t1">green cell</td>
     <td>1.2</td>
     <td>1.3</td>
   </tr>
   <tr>
-    <td class="red">green cell</td>
+    <td class="red" id="t2">green cell</td>
     <td>2.2</td>
     <td>2.3</td>
   </tr>
   <tr>
-    <td class="red">green cell</td>
+    <td class="red" id="t3">green cell</td>
     <td>3.2</td>
     <td>3.3</td>
   </tr>
 </table>
 </div>
 <p>This paragraph contains some text
-          <span>and a span that should have a green background</span>
+          <span id="t4">and a span that should have a green background</span>
 </p>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+  assert_background_color('t4', LIME);
+}, 'CSS Selectors: :first-child');
+]]></script>
 </body>
 </html>

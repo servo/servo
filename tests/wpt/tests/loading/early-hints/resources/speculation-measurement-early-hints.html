@@ -43,8 +43,8 @@ for (const expected of preloads) {
     assert_equals(entry.crossorigin, expectedCrossOrigin,
       `crossorigin should be '${expectedCrossOrigin}'`);
 
-    assert_true(entry.earlyHints,
-      "earlyHints should be true for an Early Hints preload");
+    assert_true(entry.earlyhint,
+      "earlyhint should be true for an Early Hints preload");
 
     assert_not_equals(entry.used, null,
       "preload should have been used after consumption");

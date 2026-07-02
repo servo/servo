@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<div id="target">Initial Text</div>
+<button id="testButton">Click Me!</button>
+
+<script>
+  promise_test(async t => {
+    testButton.addEventListener('click', () => {
+      const textNode = target.childNodes[0];
+      textNode.insertData(0, 'Inserted Text and ');
+    }, {once: true});
+
+    const icpPromise = new SoftNavigationTestHelper(t).waitForIcp();
+
+    if (test_driver) {
+      test_driver.click(testButton);
+    }
+
+    const icps = await icpPromise;
+    assert_equals(icps.length, 1, 'Expected exactly one ICP entry');
+    assert_equals(
+        icps[0].largestContentfulPaint.id, 'target',
+        'Expected the LCP element to be "target"');
+  }, 'InteractionContentfulPaint supports CharacterData.insertData');
+</script>

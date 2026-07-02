@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/658632">
+<div id="container" style="direction:rtl;">
+  <div style="display:table-cell;"></div>
+  <div id="remove1" style="display:table-cell;"></div>
+  <div id="remove2" style="display:table-cell;"></div>
+  <div id="rowLater" style="display:none;"></div>
+</div>
+<script>
+  var cell = document.createElement('td');
+  cell.setAttribute('colspan', '3');
+  cell.style.display = "none";
+  rowLater.appendChild(cell);
+
+  document.body.offsetTop;
+  remove1.style.display = "none";
+  remove2.style.display = "none";
+  rowLater.style.display = "table-row";
+
+  document.body.offsetTop;
+  cell.style.display = "table-cell";
+</script>

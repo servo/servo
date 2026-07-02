@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Digital Credential API: Protocol Filtering (openid4vp)</title>
+<link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type="module">
+  import {
+    makeGetOptions,
+    makeGetOptionsWithArbitraryProtocol,
+  } from "./support/helper.js";
+
+  const validProtocols = [
+    "openid4vp-v1-unsigned",
+    "openid4vp-v1-signed",
+    "openid4vp-v1-multisigned",
+  ];
+
+  for (const protocol of validProtocols) {
+    promise_test(async (t) => {
+      const abortController = new AbortController();
+      const { signal } = abortController;
+      const options = makeGetOptions({ protocol, signal });
+      await test_driver.bless("user activation");
+      const promise = navigator.credentials.get(options);
+      abortController.abort();
+      await promise_rejects_dom(
+        t,
+        "AbortError",
+        promise,
+        `Valid protocol '${protocol}' should not throw TypeError`
+      );
+    }, `Valid protocol '${protocol}' passes through filtering`);
+  }
+
+  const filteredProtocols = [
+    ["openid4vp", "bare identifier without version or mode"],
+    ["openid4vp-v1", "version without mode"],
+    ["openid4vp-v2-unsigned", "wrong version number"],
+    ["openid4vp-v1-unknown", "valid prefix with unknown mode"],
+    ["OPENID4VP-V1-UNSIGNED", "uppercase variant"],
+    ["Openid4vp-V1-Unsigned", "mixed case variant"],
+    [" openid4vp-v1-unsigned", "leading whitespace"],
+    ["openid4vp-v1-unsigned ", "trailing whitespace"],
+    ["openid4vp-v1-unsigned\t", "trailing tab"],
+    ["openid4vp_v1_unsigned", "underscores instead of hyphens"],
+  ];
+
+  for (const [protocol, description] of filteredProtocols) {
+    promise_test(async (t) => {
+      const options = makeGetOptionsWithArbitraryProtocol(protocol);
+      await promise_rejects_js(
+        t,
+        TypeError,
+        navigator.credentials.get(options)
+      );
+    }, `Filtered: '${protocol}' (${description})`);
+  }
+</script>

@@ -25,52 +25,57 @@ verify that they don't open.
 <div id="blank-area" style="height: 50px"></div>
 
 <menubar>
-  <menuitem command="toggle-menu" commandfor="file-menu">File</menuitem>
-  <menuitem command="toggle-menu" commandfor="edit-menu">Edit</menuitem>
-  <menuitem command="toggle-menu" commandfor="view-menu">View</menuitem>
+  <submenu>
+    <menuitem id="file-trigger">File</menuitem>
+    <menulist id="file-menu">
+      <menuitem>New</menuitem>
+      <menuitem>Open</menuitem>
+      <hr>
+      <menuitem>Exit</menuitem>
+    </menulist>
+  </submenu>
+  <submenu>
+    <menuitem id="edit-trigger">Edit</menuitem>
+    <menulist id="edit-menu">
+      <menuitem>Cut</menuitem>
+      <menuitem>Copy</menuitem>
+      <menuitem>Paste</menuitem>
+    </menulist>
+  </submenu>
+  <submenu>
+    <menuitem id="view-trigger">View</menuitem>
+    <menulist id="view-menu">
+      <fieldset checkable="multiple">
+        <menuitem>Full Screen</menuitem>
+      </fieldset>
+      <submenu>
+        <menuitem id="zoom-trigger">Zoom</menuitem>
+        <menulist id="zoom-menu">
+          <menuitem>50%</menuitem>
+          <menuitem>75%</menuitem>
+          <menuitem>90%</menuitem>
+          <menuitem>100%</menuitem>
+          <menuitem>110%</menuitem>
+          <menuitem>125%</menuitem>
+          <menuitem>150%</menuitem>
+          <menuitem>200%</menuitem>
+        </menulist>
+      </submenu>
+      <hr>
+      <fieldset>
+        <legend>Developer tools</legend>
+        <submenu>
+          <menuitem id="view-source-trigger">View Source</menuitem>
+          <menulist id="view-source-menu">
+            <menuitem>Toplevel frame</menuitem>
+            <menuitem>Focused frame</menuitem>
+          </menulist>
+        </submenu>
+        <menuitem>Inspect</menuitem>
+      </fieldset>
+    </menulist>
+  </submenu>
 </menubar>
-
-<menulist id="file-menu">
-  <menuitem>New</menuitem>
-  <menuitem>Open</menuitem>
-  <hr>
-  <menuitem>Exit</menuitem>
-</menulist>
-
-<menulist id="edit-menu">
-  <menuitem>Cut</menuitem>
-  <menuitem>Copy</menuitem>
-  <menuitem>Paste</menuitem>
-</menulist>
-
-<menulist id="view-menu">
-  <fieldset checkable="multiple">
-    <menuitem>Full Screen</menuitem>
-  </fieldset>
-  <menuitem command="toggle-menu" commandfor="zoom-menu">Zoom</menuitem>
-  <hr>
-  <fieldset>
-    <legend>Developer tools</legend>
-    <menuitem command="toggle-menu" commandfor="view-source-menu">View Source</menuitem>
-    <menuitem>Inspect</menuitem>
-  </fieldset>
-</menulist>
-
-<menulist id="zoom-menu">
-  <menuitem>50%</menuitem>
-  <menuitem>75%</menuitem>
-  <menuitem>90%</menuitem>
-  <menuitem>100%</menuitem>
-  <menuitem>110%</menuitem>
-  <menuitem>125%</menuitem>
-  <menuitem>150%</menuitem>
-  <menuitem>200%</menuitem>
-</menulist>
-
-<menulist id="view-source-menu">
-  <menuitem>Toplevel frame</menuitem>
-  <menuitem>Focused frame</menuitem>
-</menulist>
 
 <script>
 
@@ -88,10 +93,10 @@ verify that they don't open.
   let blank_area = document.getElementById("blank-area");
 
   promise_test(async function (t) {
-    let file_item = document.querySelector("[commandfor='file-menu']");
+    let file_item = document.getElementById("file-trigger");
     let file_event = null;
     document.getElementById("file-menu").addEventListener("interest", (ev) => { file_event = ev; }, { once: true });
-    let edit_item = document.querySelector("[commandfor='edit-menu']");
+    let edit_item = document.getElementById("edit-trigger");
 
     assert_false(file_item.matches(":open"), "file menu not open at start");
     assert_false(edit_item.matches(":open"), "edit menu not open at start");
@@ -117,8 +122,8 @@ verify that they don't open.
   }, "hover implicitly causes interest on a menuitem in a menubar only when an item in that menubar is already open");
 
   promise_test(async function (t) {
-    let view_item = document.querySelector("[commandfor='view-menu']");
-    let zoom_item = document.querySelector("[commandfor='zoom-menu']");
+    let view_item = document.getElementById("view-trigger");
+    let zoom_item = document.getElementById("zoom-trigger");
     await clickOn(view_item);
     assert_true(view_item.matches(":open"), "view menu open after clicking");
     assert_false(zoom_item.matches(":open"), "zoom menu not open");
@@ -137,8 +142,8 @@ verify that they don't open.
   }, "hover implicitly causes interest on a menuitem in a menulist");
 
   promise_test(async function (t) {
-    let view_item = document.querySelector("[commandfor='view-menu']");
-    let view_source_item = document.querySelector("[commandfor='view-source-menu']");
+    let view_item = document.getElementById("view-trigger");
+    let view_source_item = document.getElementById("view-source-trigger");
     await clickOn(view_item);
     assert_true(view_item.matches(":open"), "view menu open after clicking");
     assert_false(view_source_item.matches(":open"), "view-source menu not open");

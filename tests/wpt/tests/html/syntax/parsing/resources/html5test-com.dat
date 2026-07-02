@@ -134,7 +134,7 @@
 #new-errors
 (1:2) unexpected-question-mark-instead-of-tag-name
 #document
-| <!-- ?import namespace="foo" implementation="#bar" -->
+| <?import namespace="foo" implementation="#bar"?>
 | <html>
 |   <head>
 |   <body>

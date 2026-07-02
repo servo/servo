@@ -4,7 +4,7 @@
 <link rel="match" href="embedded_style_multiple_tracks-ref.html">
 <link rel="help" href="https://w3c.github.io/webvtt/#obtaining-css-boxes">
 <script src="/common/reftest-wait.js"></script>
-<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+<video width="320" height="180" autoplay>
     <source src="/media/white.webm" type="video/webm">
     <source src="/media/white.mp4" type="video/mp4">
     <track src="support/embedded_style_multiple_tracks1.vtt">
@@ -12,6 +12,7 @@
     <script>
     document.getElementsByTagName('track')[0].track.mode = 'showing';
     document.getElementsByTagName('track')[1].track.mode = 'showing';
+    waitForActiveCueAndTakeScreenshot();
     </script>
 </video>
 </html>

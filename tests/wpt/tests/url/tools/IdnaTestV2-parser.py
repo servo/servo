@@ -58,6 +58,15 @@ def contains_bidi_status(statuses):
             return True
     return False
 
+FORBIDDEN_DOMAIN_CODE_POINTS = (
+    set(range(0x00, 0x20))
+    | {0x20, 0x23, 0x25, 0x2F, 0x3A, 0x3C, 0x3E, 0x3F, 0x40,
+       0x5B, 0x5C, 0x5D, 0x5E, 0x7C, 0x7F}
+)
+
+def contains_forbidden_domain_code_point(s):
+    return any(ord(c) in FORBIDDEN_DOMAIN_CODE_POINTS for c in s)
+
 def parse(lines, exclude_ipv4_like, exclude_std3, exclude_bidi):
     # Main quest.
     output = ["THIS IS A GENERATED FILE. PLEASE DO NOT MODIFY DIRECTLY. See ../tools/IdnaTestV2-parser.py instead."]
@@ -135,7 +144,10 @@ def parse(lines, exclude_ipv4_like, exclude_std3, exclude_bidi):
             continue
 
         if len(statuses) > 0:
-            to_ascii = None
+            if source.isascii() and not contains_forbidden_domain_code_point(source):
+                to_ascii = source.lower()
+            else:
+                to_ascii = None
 
         test = { "input": source, "output": to_ascii }
         comment = ""

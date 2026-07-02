@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head><title>Document.append reentrancy tree corruption</title></head>
+<body>
+<script>
+
+// Create a container whose removal fires a synchronous JS callback.
+function makeTrigger(callback) {
+  const container = document.createElement('div');
+  const iframe = document.createElement('iframe');
+  container.appendChild(iframe);
+  document.body.appendChild(container);
+  let fired = false;
+  function listener() {
+    if (fired) {
+      return;
+    }
+    fired = true;
+    callback();
+  }
+  iframe.contentWindow.addEventListener('unload', listener);
+  iframe.contentWindow.addEventListener('pagehide', listener);
+  return container;
+}
+
+function bug() {
+  const doc = document.implementation.createDocument(null, null, null);
+  const div = document.createElement('div');
+  const node1 = document.createComment('victim');
+  const trig = makeTrigger(() => {
+    div.appendChild(node1);
+  });
+  try { doc.append(node1, trig); } catch (e) { }
+}
+
+window.onload = () => {
+  bug();
+};
+</script>
+</body>
+</html>

@@ -10,4 +10,6 @@
 <div id="target"></div>
 <script>
   fuzzy_test_computed_color(`color-mix(in srgb, oklch(0 none none), white)`, `color(srgb 0.5 0.5 0.5)`);
+  fuzzy_test_computed_color(`color-mix(in srgb, rgb(0 255 0 / 0.5), rgb(0 255 0 / none))`, `color(srgb 0 1 0 / 0.5)`);
+  fuzzy_test_computed_color(`color-mix(in srgb, rgb(0 255 0 / none), rgb(0 255 0 / 0.5))`, `color(srgb 0 1 0 / 0.5)`);
 </script>

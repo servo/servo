@@ -1,6 +1,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>NEGATED attribute existence selector</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
 a|* { color : red ; display : block ; margin-bottom : 1em }
 div.stub *|*:not([test]) { color : lime }]]></style>
@@ -11,9 +14,15 @@ div.stub *|*:not([test]) { color : lime }]]></style>
  <body>
 <div class="stub">
 <q xmlns="http://www.example.org/a" test="1">
-  <r>This text should be in green characters</r>
+  <r id="t1">This text should be in green characters</r>
 </q>
-<s xmlns="http://www.example.org/a">This text should be in green characters</s>
+<s xmlns="http://www.example.org/a" id="t2">This text should be in green characters</s>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('t1')).color, LIME);
+  assert_equals(getComputedStyle(document.getElementById('t2')).color, LIME);
+}, 'NEGATED attribute existence selector');
+]]></script>
 </body>
 </html>

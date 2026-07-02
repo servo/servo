@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>scrollWidth/scrollHeight: child border-box extending past content-box but within padding-box does not extend the scrollable area</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollheight">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/129">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8660">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .container {
+    box-sizing: content-box;
+    width: 300px;
+    height: 300px;
+    padding: 10px;
+    border: 2px solid black;
+    /* content-box 300x300, padding-box 320x320, border-box 324x324 */
+    /* scrollbar-width: none — keep clientWidth/scrollWidth math
+       independent of platform scrollbar size (classic vs overlay). */
+    scrollbar-width: none;
+  }
+  .child {
+    box-sizing: content-box;
+    width: 100%;
+    height: 100%;
+    border: 2px solid black;
+    /* in default content-box sizing, width:100% gives content-box 300,
+       so the child's rendered border-box is 304x304 — 4px past the
+       container's content edge on each side, but 16px inside the
+       padding edge on each side */
+  }
+  .x-only  { overflow-x: auto; overflow-y: visible; }
+  .y-only  { overflow-y: auto; overflow-x: visible; }
+  .both    { overflow: auto; }
+  .clip-y  { overflow-y: hidden; overflow-x: visible; /* computes to overflow-x: auto */ }
+  .clip-x  { overflow-x: hidden; overflow-y: visible; /* computes to overflow-y: auto */ }
+</style>
+
+<div class="container x-only" id="x-only"><div class="child"></div></div>
+<div class="container y-only" id="y-only"><div class="child"></div></div>
+<div class="container both"   id="both"><div class="child"></div></div>
+<div class="container clip-y" id="clip-y"><div class="child"></div></div>
+<div class="container clip-x" id="clip-x"><div class="child"></div></div>
+
+<script>
+// CSS Overflow 3 §3, read literally, defines the scrollable overflow
+// rectangle as the smallest rectangle containing the padding-box AND
+// every in-flow child's margin area. With that reading, the child's
+// margin-box (304×304) is fully contained in the padding-box (320×320)
+// and scrollWidth/scrollHeight should both be 320.
+//
+// In practice every engine implements the resolution from
+// csswg-drafts#129 / #8660 ("padding edge appended to outer margin
+// edge of overflowing block-level child"), and applies it as soon as
+// the child margin-box's edge crosses the content edge — even by 1px,
+// even when the child remains inside the padding-box. The child here
+// extends 4px past the content edge in both axes, so the right (and
+// bottom) padding edge is appended:
+//   union(padding-box X 2..322, child-X 12..316 + right-padding 10) = 2..326 → width 324
+//   union(padding-box Y 2..322, child-Y 12..316 + bottom-padding 10) = 2..326 → height 324
+// Cross-engine measurement (2026-06-23): Chrome 150, Firefox 152, and
+// WebKit (post-bug-316902 patch) all report scrollWidth = scrollHeight = 324.
+// Pre-patch WebKit reports 320 — the original spec-literal reading.
+//
+// This test is `tentative` because §3 prose still doesn't say "324",
+// but engine consensus says it does. It serves as a regression sentinel
+// against drift back to 320, and as a marker for the spec-prose gap.
+
+for (const id of ["x-only", "y-only", "both", "clip-y", "clip-x"]) {
+  test(() => {
+    const el = document.getElementById(id);
+    assert_equals(el.clientWidth, 320, "clientWidth (padding-box width)");
+    assert_equals(el.clientHeight, 320, "clientHeight (padding-box height)");
+    assert_equals(el.scrollWidth, 324,
+      "scrollWidth — inline-axis padding edge appended to overflowing child margin edge (csswg-drafts#8660)");
+    assert_equals(el.scrollHeight, 324,
+      "scrollHeight — block-axis padding edge appended to overflowing child margin edge (csswg-drafts#129)");
+  }, `Container with overflow:${id} — child border crossing content edge extends scrollable area by inline/block padding`);
+}
+</script>

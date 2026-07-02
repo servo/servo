@@ -9,21 +9,43 @@ from mozlog import commandline, stdadapter, set_default_logger
 from mozlog.structuredlog import StructuredLogger, log_levels
 
 
+class LoggerManager:
+    def __init__(self, args, defaults, formatter_defaults=None):
+        self._logger = None
+        self._owns_logger = False
+        self._args = args
+        self._defaults = defaults
+        self._formatter_defaults = formatter_defaults
+
+    def __enter__(self):
+        self._logger = self._args.pop('log', None)
+        if self._logger is not None:
+            set_default_logger(self._logger)
+            StructuredLogger._logger_states["web-platform-tests"] = self._logger._state
+        else:
+            self._logger = commandline.setup_logging("web-platform-tests", self._args, self._defaults,
+                                                     formatter_defaults=self._formatter_defaults)
+            self._owns_logger = True
+        setup_stdlib_logger()
+
+        for name in list(self._args.keys()):
+            if name.startswith("log_"):
+                self._args.pop(name)
+
+        return self._logger
+
+    def __exit__(self, *args, **kwargs):
+        if self._logger is None:
+            return
+
+        if self._owns_logger:
+            self._logger.shutdown()
+        self._logger = None
+
+
 def setup(args, defaults, formatter_defaults=None):
-    logger = args.pop('log', None)
-    if logger:
-        set_default_logger(logger)
-        StructuredLogger._logger_states["web-platform-tests"] = logger._state
-    else:
-        logger = commandline.setup_logging("web-platform-tests", args, defaults,
-                                           formatter_defaults=formatter_defaults)
-    setup_stdlib_logger()
-
-    for name in list(args.keys()):
-        if name.startswith("log_"):
-            args.pop(name)
-
-    return logger
+    # Legacy entry point
+    return LoggerManager(args, defaults, formatter_defaults).__enter__()
 
 
 def setup_stdlib_logger():

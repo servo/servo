@@ -19,9 +19,9 @@
 <script>
   test(() => {
     const style = getComputedStyle(host1.shadowRoot.querySelector("#t1"));
-    assert_equals(style.zIndex, "0", "z-index should be 0");
-    assert_equals(style.order, "0", "order should be 0");
-  }, "sibling-index() and sibling-count() evaluates to 0 from outer tree with ::part");
+    assert_equals(style.zIndex, "1", "z-index should be 1");
+    assert_equals(style.order, "1", "order should be 1");
+  }, "sibling-index() and sibling-count() evaluates to 1 from outer tree with ::part");
 </script>
 
 <div>

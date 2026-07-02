@@ -60,12 +60,14 @@ try {
   new Request("./file.js");
   constructedRequest = true;
 } catch (e) {}
-self.postMessage(constructedRequest);
+self.onconnect = e => {
+  e.source.postMessage(constructedRequest);
+};
 `;
   const blob = new Blob([blob_contents]);
   const url = URL.createObjectURL(blob);
 
   const worker = new SharedWorker(url);
-  const reply = await message_from_port(worker);
+  const reply = await message_from_port(worker.port);
   assert_equals(reply, run_result, "Should not be able to resolve request with relative file path in blob");
 }, 'Blob URLs should not resolve relative to document base URL.');

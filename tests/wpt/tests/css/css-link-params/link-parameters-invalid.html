@@ -23,6 +23,13 @@
     test_invalid_value("link-parameters", "para(--a)");
 
     test_invalid_value("link-parameters", "param(--a red)");
+
+    // param() without a comma is invalid per
+    // https://github.com/w3c/csswg-drafts/issues/13767
+    test_invalid_value("link-parameters", "param(--a)");
+    test_invalid_value("link-parameters", "param(--a), param(--b)");
+    test_invalid_value("link-parameters", "param(--a");
+    test_invalid_value("link-parameters", "param(--)");
 </script>
 </body>
 </html>

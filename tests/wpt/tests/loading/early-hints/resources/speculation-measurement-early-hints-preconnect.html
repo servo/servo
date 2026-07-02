@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+const preconnects = getPreconnectsFromSearchParams();
+
+for (const expected of preconnects) {
+  const coLabel = "crossorigin_attr" in expected
+      ? `crossorigin=${expected.crossorigin_attr || "anonymous"}`
+      : "no crossorigin";
+
+  promise_test(async t => {
+    assert_true(typeof performance.getSpeculations === 'function',
+      "SpeculationMeasurement feature must be enabled");
+    assert_true('PreconnectData' in window, "PreconnectData should exist");
+
+    const origin = new URL(expected.url).origin;
+    // Map the crossorigin attribute to the reflected CrossOriginMode enum.
+    let expectedCrossOrigin = 'none';
+    if ('crossorigin_attr' in expected) {
+      expectedCrossOrigin =
+          (expected.crossorigin_attr === '' ||
+           expected.crossorigin_attr === 'anonymous')
+              ? 'anonymous'
+              : 'use-credentials';
+    }
+
+    const matches = performance.getSpeculations().preconnects.filter(
+        p => p.origin === origin && p.crossorigin === expectedCrossOrigin);
+
+    assert_equals(matches.length, 1,
+      "exactly one matching preconnect entry");
+    assert_true(matches[0].earlyhint,
+      "earlyhint should be true for an Early Hints preconnect");
+  }, `Early Hints preconnect: ${coLabel}`);
+}
+</script>
+</body>

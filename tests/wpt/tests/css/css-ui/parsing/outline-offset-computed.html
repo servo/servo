@@ -22,6 +22,15 @@ test_computed_value("outline-offset", "10px");
 test_computed_value("outline-offset", "0.5em", "20px");
 test_computed_value("outline-offset", "calc(10px + 0.5em)", "30px");
 test_computed_value("outline-offset", "calc(10px - 0.5em)", "-10px");
+
+test(() => {
+  target.style['outline-offset'] = '10px';
+  target.style['outline-style'] = 'none';
+  assert_equals(getComputedStyle(target)['outline-offset'], '10px');
+  target.style['outline-style'] = 'auto';
+  assert_equals(getComputedStyle(target)['outline-offset'], '10px');
+  target.style['outline-style'] = '';
+}, 'outline-offset is independent of the value of outline-style');
 </script>
 </body>
 </html>

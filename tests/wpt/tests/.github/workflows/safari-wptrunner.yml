@@ -58,7 +58,7 @@ jobs:
       matrix: "${{ fromJSON(inputs.matrix || '{\"pointless-matrix-item\": [0]}') }}"
     steps:
       - name: checkout
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@v7
         with:
           fetch-depth: ${{ inputs.fetch-depth || 1 }}
           ref: ${{ inputs.fetch-ref }}

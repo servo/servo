@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin background images</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+
+<body>
+  <iframe id="iframe" src="support/subframe-cross-origin-background-image.https.sub.html"></iframe>
+  <canvas id="canvas" width="300" height="150" layoutsubtree>
+    <div id="child"></div>
+  </canvas>
+
+  <script>
+  window.onload = () => {
+    promise_test(async function(t) {
+      await waitForCanvasPaint(canvas);
+
+      // Atomically move the iframe into the canvas.
+      child.moveBefore(iframe, null);
+
+      await waitForCanvasPaint(canvas);
+      const context = canvas.getContext("2d");
+      context.drawElementImage(child, 0, 0);
+      const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+      let pixel = _getPixelFromImageData(imgData, 50, 50);
+      assert_array_equals(pixel, [0, 128, 0, 255],
+                          "Cross-origin background image in iframe should not draw");
+    });
+  };
+  </script>
+</body>
+</html>

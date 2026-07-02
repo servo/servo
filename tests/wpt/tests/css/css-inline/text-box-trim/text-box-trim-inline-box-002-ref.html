@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Test of text-box-trim (trim-end) on inline boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<script src="support/variant-class.js"></script>
+<meta charset="utf-8">
+<meta name="variant" content="?class=auto">
+<meta name="variant" content="?class=text">
+<meta name="variant" content="?class=alphabetic">
+<meta name="variant" content="?class=vrl,auto">
+<meta name="variant" content="?class=vrl,text">
+<meta name="variant" content="?class=vrl,alphabetic">
+<meta name="variant" content="?class=vlr,auto">
+<meta name="variant" content="?class=vlr,text">
+<meta name="variant" content="?class=vlr,cap">
+<meta name="variant" content="?class=vlr,ex">
+<style>
+@import "support/MetricsTestFont.css";
+
+.spacer {
+  block-size: 100px;
+  background: lightgray;
+}
+
+.container {
+  font: 100px/1 MetricsTestFont;
+}
+
+.target {
+  position: relative;
+}
+
+.target::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: green;
+}
+
+:root:not(.vrl, .vlr) .target::before { bottom: var(--block-end-inset, 0); }
+:root.vrl .target::before { left: var(--block-end-inset, 0); }
+:root.vlr .target::before { right: var(--block-end-inset, 0); }
+:root.vrl { writing-mode: vertical-rl; }
+:root.vlr { writing-mode: vertical-lr; }
+
+.alphabetic .target::before { --block-end-inset: 0.2em; }
+.cap .target::before { --block-end-inset: 0.2em; }
+.ex .target::before { --block-end-inset: 0.6em; }
+
+</style>
+<div class="spacer"></div>
+<div class="container">
+  <span class="target">ApÉx</span>
+</div>
+<div class="spacer"></div>

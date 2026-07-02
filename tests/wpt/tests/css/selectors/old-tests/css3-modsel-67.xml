@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>NEGATED :lang() pseudo-class</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[div.stub * { background-color : red  }
 div.stub *:not(:lang(fr)) { background-color : green }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
@@ -9,14 +12,21 @@ div.stub *:not(:lang(fr)) { background-color : green }]]></style>
  </head>
  <body>
 <div lang="en" class="stub">
-<p>This paragraph should have a green background because the
+<p id="t1">This paragraph should have a green background because the
    enclosing div is in english.</p>
-<p lang="en">This paragraph should have a green background because
+<p lang="en" id="t2">This paragraph should have a green background because
    it is in english.</p>
 <div lang="fr">
-  <p lang="en">This paragraph should have a green background
+  <p lang="en" id="t3">This paragraph should have a green background
      because it is in english.</p>
 </div>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', 'rgb(0, 128, 0)');
+  assert_background_color('t2', 'rgb(0, 128, 0)');
+  assert_background_color('t3', 'rgb(0, 128, 0)');
+}, "NEGATED :lang() pseudo-class");
+]]></script>
 </body>
 </html>

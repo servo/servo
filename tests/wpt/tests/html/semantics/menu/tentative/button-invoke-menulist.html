@@ -27,17 +27,5 @@ test(() => {
  menulist.hidePopover();
 }, "Button with command=toggle-popover can invoke menulist popover.");
 
-test(() => {
- btn.setAttribute("command", "toggle-menu");
- btn.disabled = true;
- btn.click();
- assert_false(menulist.matches(':popover-open'),
-    'The menulist should not open because the button is disabled.');
 
- btn.disabled = false;
- btn.click();
- assert_true(menulist.matches(':popover-open'),
-    'The menulist should be able to open successfully.');
- menulist.hidePopover();
-}, "Button with command=toggle-menu can invoke menulist popover.");
 </script>
