@@ -276,7 +276,7 @@ webdriver = { version = "0.53.0", default-features = false }
 webpki-roots = "1.0"
 webrender = { version = "0.69", features = ["capture"] }
 webrender_api = "0.69"
-wgpu-core = "29"
+wgpu-core = "30"
 wgpu-types = "29"
 winapi = "0.3"
 windows-sys = "0.61"
