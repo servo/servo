@@ -99,24 +99,21 @@ class MainActivity : AppCompatActivity(), Servo.Client {
                         icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
                         label = { Text(stringResource(R.string.history_forward)) },
                     )
-                    NavigationBarItem(
-                        selected = false,
-                        onClick = { dispatchAction(if (isRefreshingState.value) R.id.cancel_menu_item else R.id.refresh_menu_item) },
-                        icon = {
-                            if (isRefreshingState.value) {
-                                Icon(painterResource(R.drawable.cancel), null)
-                            } else {
-                                Icon(painterResource(R.drawable.refresh), null)
-                            }
-                        },
-                        label = {
-                            if (isRefreshingState.value) {
-                                Text(stringResource(R.string.cancel))
-                            } else {
-                                Text(stringResource(R.string.refresh))
-                            }
-                        },
-                    )
+                    if (isRefreshingState.value) {
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = { dispatchAction(R.id.cancel_menu_item) },
+                            icon = { Icon(painterResource(R.drawable.cancel), null) },
+                            label = { Text(stringResource(R.string.cancel)) },
+                        )
+                    } else {
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = { dispatchAction(R.id.refresh_menu_item) },
+                            icon = { Icon(painterResource(R.drawable.refresh), null) },
+                            label = { Text(stringResource(R.string.refresh)) },
+                        )
+                    }
                     NavigationBarItem(
                         selected = false,
                         onClick = { dispatchAction(R.id.settings_menu_item) },
