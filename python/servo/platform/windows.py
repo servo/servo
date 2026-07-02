@@ -28,6 +28,7 @@ GSTREAMER_URL = f"{DEPS_URL}/gstreamer-1.0-msvc-x86_64-1.22.8.msi"
 GSTREAMER_DEVEL_URL = f"{DEPS_URL}/gstreamer-1.0-devel-msvc-x86_64-1.22.8.msi"
 DEPENDENCIES_DIR = os.path.join(util.get_target_dir(), "dependencies")
 
+
 def get_dependency_dir(package: str) -> str:
     """Get the directory that a given Windows dependency should extract to."""
     return os.path.join(DEPENDENCIES_DIR, package, DEPENDENCIES[package])
