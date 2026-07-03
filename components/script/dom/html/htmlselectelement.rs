@@ -745,6 +745,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
 
         self.validity_state(cx)
             .perform_validation_and_update(cx, ValidationFlags::VALUE_MISSING);
+
+        self.update_shadow_tree(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-selectedindex>
