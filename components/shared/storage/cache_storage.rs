@@ -62,6 +62,7 @@ pub enum CacheStorageThreadMessage {
         proxy: StorageProxyMap,
         origin: ImmutableOrigin,
     },
+    Exit(GenericSender<()>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

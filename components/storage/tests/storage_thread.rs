@@ -8,6 +8,7 @@ use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
+use storage_traits::cache_storage::CacheStorageThreadMessage;
 
 fn shutdown_storage_group(threads: &StorageThreads) {
     let (client_sender, client_receiver) = generic_channel::channel().unwrap();
@@ -16,6 +17,13 @@ fn shutdown_storage_group(threads: &StorageThreads) {
     client_receiver
         .recv()
         .expect("failed to receive client storage exit ack");
+
+    let (cache_sender, cache_receiver) = generic_channel::channel().unwrap();
+    GenericSend::send(threads, CacheStorageThreadMessage::Exit(cache_sender.into()))
+        .expect("failed to send cache storage exit");
+    cache_receiver
+        .recv()
+        .expect("failed to receive cache storage exit ack");
 
     let (idb_sender, idb_receiver) = generic_channel::channel().unwrap();
     GenericSend::send(

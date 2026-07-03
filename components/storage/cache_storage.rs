@@ -112,6 +112,10 @@ where
                         error!("Failed to send response to script for HasCache message.");
                     }
                 },
+                CacheStorageThreadMessage::Exit(sender) => {
+                    let _ = sender.send(());
+                    break;
+                }
             }
         }
     }
