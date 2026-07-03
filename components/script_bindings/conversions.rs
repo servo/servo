@@ -80,15 +80,6 @@ pub enum StringificationBehavior {
 // https://heycam.github.io/webidl/#es-DOMString
 impl FromJSValConvertible for DOMString {
     type Config = StringificationBehavior;
-    unsafe fn from_jsval(
-        _cx: *mut JSContext,
-        value: HandleValue,
-        null_behavior: StringificationBehavior,
-    ) -> Result<ConversionResult<DOMString>, ()> {
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = unsafe { crate::script_runtime::temp_cx() };
-        FromJSValConvertible::safe_from_jsval(&mut cx, value, null_behavior)
-    }
 
     fn safe_from_jsval(
         cx: &mut js::context::JSContext,
@@ -109,15 +100,6 @@ impl FromJSValConvertible for DOMString {
 // http://heycam.github.io/webidl/#es-USVString
 impl FromJSValConvertible for USVString {
     type Config = ();
-    unsafe fn from_jsval(
-        _cx: *mut JSContext,
-        value: HandleValue,
-        _: (),
-    ) -> Result<ConversionResult<USVString>, ()> {
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = unsafe { crate::script_runtime::temp_cx() };
-        FromJSValConvertible::safe_from_jsval(&mut cx, value, ())
-    }
 
     fn safe_from_jsval(
         cx: &mut js::context::JSContext,
@@ -154,15 +136,6 @@ impl ToJSValConvertible for ByteString {
 // http://heycam.github.io/webidl/#es-ByteString
 impl FromJSValConvertible for ByteString {
     type Config = ();
-    unsafe fn from_jsval(
-        _cx: *mut JSContext,
-        value: HandleValue,
-        _option: (),
-    ) -> Result<ConversionResult<ByteString>, ()> {
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = unsafe { crate::script_runtime::temp_cx() };
-        FromJSValConvertible::safe_from_jsval(&mut cx, value, ())
-    }
 
     fn safe_from_jsval(
         cx: &mut js::context::JSContext,
@@ -215,16 +188,6 @@ impl<T> ToJSValConvertible for Reflector<T> {
 
 impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
     type Config = ();
-
-    unsafe fn from_jsval(
-        _cx: *mut JSContext,
-        value: HandleValue,
-        _config: Self::Config,
-    ) -> Result<ConversionResult<DomRoot<T>>, ()> {
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = unsafe { crate::script_runtime::temp_cx() };
-        FromJSValConvertible::safe_from_jsval(&mut cx, value, ())
-    }
 
     fn safe_from_jsval(
         cx: &mut js::context::JSContext,
@@ -445,16 +408,6 @@ impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
 impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Finite<T> {
     type Config = ();
 
-    unsafe fn from_jsval(
-        _cx: *mut JSContext,
-        value: HandleValue,
-        option: (),
-    ) -> Result<ConversionResult<Finite<T>>, ()> {
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = unsafe { crate::script_runtime::temp_cx() };
-        FromJSValConvertible::safe_from_jsval(&mut cx, value, option)
-    }
-
     fn safe_from_jsval(
         cx: &mut js::context::JSContext,
         value: HandleValue,
@@ -554,16 +507,6 @@ where
     Heap<T>: JSTraceable + Default,
 {
     type Config = T::Config;
-
-    unsafe fn from_jsval(
-        _cx: *mut JSContext,
-        value: HandleValue,
-        config: Self::Config,
-    ) -> Result<ConversionResult<Self>, ()> {
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = unsafe { crate::script_runtime::temp_cx() };
-        FromJSValConvertible::safe_from_jsval(&mut cx, value, config)
-    }
 
     fn safe_from_jsval(
         cx: &mut js::context::JSContext,

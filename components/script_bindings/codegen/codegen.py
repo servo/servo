@@ -5373,12 +5373,6 @@ impl ToJSValConvertible for super::{ident} {{
 
 impl FromJSValConvertible for super::{ident} {{
     type Config = ();
-    unsafe fn from_jsval(_cx: *mut RawJSContext, value: HandleValue, _option: ())
-                         -> Result<ConversionResult<super::{ident}>, ()> {{
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = crate::script_runtime::temp_cx();
-        Self::safe_from_jsval(&mut cx, value, _option)
-    }}
 
     fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())
                          -> Result<ConversionResult<super::{ident}>, ()> {{
@@ -5627,7 +5621,7 @@ class CGUnionConversionStruct(CGThing):
         def get_match(name: str) -> str:
             generic = "::<D>" if containsDomInterface(self.type) else ""
             return (
-                f"match {self.type}{generic}::TryConvertTo{name}(&mut cx, value) {{\n"
+                f"match unsafe {{ {self.type}{generic}::TryConvertTo{name}(cx, value) }} {{\n"
                 "    Err(_) => return Err(()),\n"
                 f"    Ok(Some(value)) => return Ok(ConversionResult::Success({self.type}::{name}(value))),\n"
                 "    Ok(None) => (),\n"
@@ -5758,12 +5752,8 @@ class CGUnionConversionStruct(CGThing):
         generic, genericSuffix = genericsForType(self.type)
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
-            pre="unsafe fn from_jsval(_cx: *mut RawJSContext,\n"
-                "                     value: HandleValue,\n"
-                "                     _option: ())\n"
-                f"                     -> Result<ConversionResult<{self.type}{genericSuffix}>, ()> {{\n"
-                "   // TODO https://github.com/servo/mozjs/issues/749\n"
-                "   let mut cx = crate::script_runtime::temp_cx();\n",
+            pre="fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
+                f"                     -> Result<ConversionResult<{self.type}{genericSuffix}>, ()> {{\n",
             post="\n}")
         return CGWrapper(
             CGIndenter(CGList([
@@ -7760,12 +7750,6 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "\n"
             f"impl{self.generic} FromJSValConvertible for {actualType} {{\n"
             "    type Config = ();\n"
-            "    unsafe fn from_jsval(_cx: *mut RawJSContext, value: HandleValue, _option: ())\n"
-            f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
-            "         // TODO https://github.com/servo/mozjs/issues/749\n"
-            "         let mut cx = crate::script_runtime::temp_cx();\n"
-            f"        {selfName}::new(&mut cx, value)\n"
-            "    }\n"
             "    fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
             f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
             f"        {selfName}::new(cx, value)\n"
