@@ -4,12 +4,12 @@
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::ElementInternalsBinding::CustomStateSetMethods;
 use script_bindings::like::Setlike;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use script_bindings::trace::CustomTraceable;
 
@@ -35,8 +35,8 @@ impl CustomStateSet {
         }
     }
 
-    pub(crate) fn new(window: &Window, element: &HTMLElement, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(element)), window, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, window: &Window, element: &HTMLElement) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(element)), window, cx)
     }
 
     /// Returns a borrowed version of the set without the usual Ref wrapper.

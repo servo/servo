@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::MutableHandleValue;
 use js::jsapi::Heap;
 use js::jsval::UndefinedValue;
@@ -14,7 +15,7 @@ use profile_traits::mem::MemoryReportResult;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::ServoInternalsHelpers;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::str::USVString;
 use servo_config::prefs::{self, PrefValue, Preferences};
 use servo_constellation_traits::ScriptToConstellationMessage;
@@ -25,7 +26,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 fn pref_to_jsval(cx: &mut js::context::JSContext, pref: &PrefValue, rval: MutableHandleValue) {
@@ -59,8 +59,8 @@ impl ServoInternals {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ServoInternals> {
-        reflect_dom_object(Box::new(ServoInternals::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<ServoInternals> {
+        reflect_dom_object_with_cx(Box::new(ServoInternals::new_inherited()), global, cx)
     }
 }
 
@@ -112,7 +112,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     /// <https://servo.org/internal-no-spec>
     fn DefaultPreferenceValue(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         name: USVString,
         rval: MutableHandleValue,
     ) -> Fallible<()> {
@@ -127,7 +127,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     /// <https://servo.org/internal-no-spec>
     fn GetPreference(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         name: USVString,
         rval: MutableHandleValue,
     ) -> Fallible<()> {
@@ -197,7 +197,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
 impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
     fn handle_response(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         response: MemoryReportResult,
         promise: &Rc<Promise>,
     ) {
@@ -210,7 +210,7 @@ impl RoutedPromiseListener<MemoryReportResult> for ServoInternals {
 impl ServoInternalsHelpers for ServoInternals {
     /// The navigator.servo api is exposed to about: pages except about:blank, as
     /// well as any URLs provided by embedders that register new protocol handlers.
-    fn is_servo_internal(cx: &mut js::context::JSContext, _global: HandleObject) -> bool {
+    fn is_servo_internal(cx: &mut JSContext, _global: HandleObject) -> bool {
         let realm = CurrentRealm::assert(cx);
         let global_scope = GlobalScope::from_current_realm(&realm);
         let url = global_scope.get_url();

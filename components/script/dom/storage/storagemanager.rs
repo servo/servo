@@ -5,8 +5,9 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
@@ -22,7 +23,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::request_permission_to_use;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
 #[dom_struct]
@@ -37,8 +37,8 @@ impl StorageManager {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<StorageManager> {
-        reflect_dom_object(Box::new(StorageManager::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<StorageManager> {
+        reflect_dom_object_with_cx(Box::new(StorageManager::new_inherited()), global, cx)
     }
 
     fn origin_cannot_obtain_local_storage_shelf(&self) -> bool {

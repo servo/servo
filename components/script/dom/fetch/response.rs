@@ -36,7 +36,7 @@ use crate::dom::headers::{Guard, Headers, is_obs_text, is_vchar};
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
-use crate::script_runtime::{CanGc, StreamConsumer};
+use crate::script_runtime::StreamConsumer;
 
 #[dom_struct]
 pub(crate) struct Response {
@@ -316,7 +316,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     /// <https://fetch.spec.whatwg.org/#dom-response-headers>
     fn Headers(&self, cx: &mut js::context::JSContext) -> DomRoot<Headers> {
         self.headers_reflector
-            .or_init(|| Headers::for_response(&self.global(), CanGc::from_cx(cx)))
+            .or_init(|| Headers::for_response(cx, &self.global()))
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-clone>

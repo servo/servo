@@ -53,7 +53,6 @@ use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
 #[dom_struct]
@@ -293,12 +292,12 @@ impl RTCPeerConnection {
         match event {
             DataChannelEvent::NewChannel => {
                 let channel = RTCDataChannel::new(
+                    cx,
                     &self.global(),
                     self,
                     USVString::from("".to_owned()),
                     &RTCDataChannelInit::empty(),
                     Some(channel_id),
-                    CanGc::from_cx(cx),
                 );
 
                 let event = RTCDataChannelEvent::new(
@@ -779,26 +778,21 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     /// <https://www.w3.org/TR/webrtc/#dom-peerconnection-createdatachannel>
     fn CreateDataChannel(
         &self,
+        cx: &mut JSContext,
         label: USVString,
         init: &RTCDataChannelInit,
     ) -> DomRoot<RTCDataChannel> {
-        RTCDataChannel::new(
-            &self.global(),
-            self,
-            label,
-            init,
-            None,
-            CanGc::deprecated_note(),
-        )
+        RTCDataChannel::new(cx, &self.global(), self, label, init, None)
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addtransceiver>
     fn AddTransceiver(
         &self,
+        cx: &mut JSContext,
         _track_or_kind: MediaStreamTrackOrString,
         init: &RTCRtpTransceiverInit,
     ) -> DomRoot<RTCRtpTransceiver> {
-        RTCRtpTransceiver::new(&self.global(), init.direction, CanGc::deprecated_note())
+        RTCRtpTransceiver::new(cx, &self.global(), init.direction)
     }
 }
 

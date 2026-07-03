@@ -60,7 +60,6 @@ use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 /// Fetch canceller object. By default initialized to having a
 /// request associated with it, which can be aborted or terminated.
@@ -418,11 +417,7 @@ pub(crate) fn FetchLater(
     // Step 14. Add the following abort steps to requestObject’s signal: Set deferredRecord’s invoke state to "aborted".
     signal.add(&AbortAlgorithm::FetchLater(deferred_record_id));
     // Step 15. Return a new FetchLaterResult whose activated getter steps are to return activated.
-    Ok(FetchLaterResult::new(
-        window,
-        deferred_record_id,
-        CanGc::from_cx(cx),
-    ))
+    Ok(FetchLaterResult::new(cx, window, deferred_record_id))
 }
 
 /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
