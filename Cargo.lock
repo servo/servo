@@ -8452,6 +8452,7 @@ dependencies = [
  "euclid",
  "rand 0.10.2",
  "serde",
+ "servo",
  "servo-media",
  "servo-media-auto",
  "servo-media-dummy",

@@ -13,6 +13,7 @@ description.workspace = true
 euclid = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
+servo = { workspace = true, features = ["bundled_freetype"]}
 servo-media = { workspace = true }
 servo-media-auto = { workspace = true }
 servo-media-dummy = { workspace = true }
