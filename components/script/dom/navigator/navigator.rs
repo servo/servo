@@ -355,9 +355,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#framework-credential-management>
-    fn Credentials(&self) -> DomRoot<CredentialsContainer> {
+    fn Credentials(&self, cx: &mut js::context::JSContext) -> DomRoot<CredentialsContainer> {
         self.credentials
-            .or_init(|| CredentialsContainer::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| CredentialsContainer::new(cx, &self.global()))
     }
 
     /// <https://www.w3.org/TR/geolocation/#navigator_interface>
