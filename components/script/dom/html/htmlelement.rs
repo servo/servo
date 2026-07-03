@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
 
@@ -11,6 +10,7 @@ use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
+use rustc_hash::FxHashSet;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
@@ -423,14 +423,15 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return None;
         }
 
-        #[expect(clippy::mutable_key_type)]
-        // See `impl Hash for DOMString`.
-        let mut item_attr_values = HashSet::new();
-        for attr_value in &atoms {
-            item_attr_values.insert(DOMString::from(String::from(attr_value.trim())));
-        }
-
-        Some(item_attr_values.into_iter().collect())
+        Some(
+            FxHashSet::from_iter(
+                atoms
+                    .iter()
+                    .map(|attr_value| DOMString::from(String::from(attr_value.trim()))),
+            )
+            .into_iter()
+            .collect(),
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#names:-the-itemprop-attribute>
@@ -443,14 +444,15 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return None;
         }
 
-        #[expect(clippy::mutable_key_type)]
-        // See `impl Hash for DOMString`.
-        let mut item_attr_values = HashSet::new();
-        for attr_value in &atoms {
-            item_attr_values.insert(DOMString::from(String::from(attr_value.trim())));
-        }
-
-        Some(item_attr_values.into_iter().collect())
+        Some(
+            FxHashSet::from_iter(
+                atoms
+                    .iter()
+                    .map(|attr_value| DOMString::from(String::from(attr_value.trim()))),
+            )
+            .into_iter()
+            .collect(),
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-click>
