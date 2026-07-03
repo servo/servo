@@ -19,6 +19,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -131,27 +132,21 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         }
 
         findViewById<View>(R.id.toolbar)?.apply {
-            findViewById<ComposeView>(R.id.history_back_menu_item).apply {
+            findViewById<ComposeView>(R.id.toolbarButtons).apply {
                 setContent {
-                    IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
-                        Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
-                    }
-                }
-            }
-            findViewById<ComposeView>(R.id.history_forward_menu_item).apply {
-                setContent {
-                    IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
-                        Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
-                    }
-                }
-            }
-            findViewById<ComposeView>(R.id.refresh_menu_item).apply {
-                setContent {
-                    IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
-                        if (isRefreshingState.value) {
-                            Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
-                        } else {
-                            Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
+                    Row {
+                        IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
+                            Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
+                        }
+                        IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
+                            Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
+                        }
+                        IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
+                            if (isRefreshingState.value) {
+                                Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
+                            } else {
+                                Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
+                            }
                         }
                     }
                 }
