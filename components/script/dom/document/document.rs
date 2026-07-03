@@ -867,10 +867,13 @@ impl Document {
             }
         }
 
+        // Find the new dirty root. If `Node::common_ancestors_in_flat_tree` returns `None`, this
+        // means that the old dirty root is no longer part of the flat tree and `element` is the new
+        // dirty root.
         let new_dirty_root = element
             .upcast::<Node>()
             .common_ancestor_in_flat_tree(dirty_root.upcast())
-            .expect("Couldn't find common ancestor");
+            .unwrap_or_else(|| DomRoot::from_ref(element.upcast()));
 
         let mut has_dirty_descendants = true;
         for ancestor in dirty_root
