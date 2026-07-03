@@ -6,6 +6,8 @@ use crossbeam_channel::{Receiver, select};
 use devtools_traits::DevtoolScriptControlMsg;
 use rustc_hash::FxHashSet;
 use script_bindings::reflector::DomObject;
+use servo_base::generic_channel::RoutedReceiver;
+use servo_constellation_traits::WorkerAnimationFrameTick;
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
@@ -29,6 +31,12 @@ pub(crate) trait WorkerEventLoopMethods {
     fn from_worker_msg(msg: Self::WorkerMsg) -> Self::Event;
     fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> Self::Event;
     fn from_timer_msg() -> Self::Event;
+    fn from_animation_frame_tick_msg(_msg: WorkerAnimationFrameTick) -> Option<Self::Event> {
+        None
+    }
+    fn animation_frame_tick_receiver(&self) -> Option<&RoutedReceiver<WorkerAnimationFrameTick>> {
+        None
+    }
     fn control_receiver(&self) -> &Receiver<Self::ControlMsg>;
 }
 
@@ -47,8 +55,12 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
     let task_queue = worker_scope.task_queue();
 
-    let never = crossbeam_channel::never();
-    let devtools_receiver = scope.devtools_receiver().unwrap_or(&never);
+    let devtools_never = crossbeam_channel::never();
+    let devtools_receiver = scope.devtools_receiver().unwrap_or(&devtools_never);
+    let animation_frame_tick_never = crossbeam_channel::never();
+    let animation_frame_tick_receiver = worker_scope
+        .animation_frame_tick_receiver()
+        .unwrap_or(&animation_frame_tick_never);
 
     let event = select! {
         recv(worker_scope.control_receiver()) -> msg => match msg {
@@ -65,6 +77,10 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         recv(devtools_receiver) -> msg => match msg {
             Ok(msg) => msg.ok().map(T::from_devtools_msg),
             Err(_) => None,
+        },
+        recv(animation_frame_tick_receiver) -> msg => match msg {
+            Ok(Ok(msg)) => T::from_animation_frame_tick_msg(msg),
+            Ok(Err(_)) | Err(_) => None,
         },
         recv(scope.timer_scheduler().wait_channel()) -> _ => Some(T::from_timer_msg()),
     };
@@ -101,15 +117,15 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     for event in sequential {
         let mut realm = enter_auto_realm(cx, worker_scope);
         let cx = &mut realm.current_realm();
+        let _ar = match worker {
+            Some(worker) => worker_scope.handle_worker_post_event(worker),
+            None => None,
+        };
         if !worker_scope.handle_event(event, cx) {
             // Shutdown
             return;
         }
         // Step 6
-        let _ar = match worker {
-            Some(worker) => worker_scope.handle_worker_post_event(worker),
-            None => None,
-        };
         scope.perform_a_microtask_checkpoint(cx);
     }
     worker_scope

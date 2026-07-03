@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::collections::VecDeque;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
@@ -23,21 +26,28 @@ use net_traits::request::{
 };
 use script_bindings::cell::DomRefCell;
 use script_bindings::interfaces::HasOrigin;
-use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, PipelineId, ScriptEventLoopId, WebViewId};
-use servo_constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
+use servo_constellation_traits::{
+    ScriptToConstellationMessage, WorkerAnimationFrameTick, WorkerGlobalScopeInit,
+    WorkerScriptLoadOrigin,
+};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 
 use crate::conversions::Convert;
 use crate::dom::abstractworker::{MessageData, SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
+use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerOptions, WorkerType};
-use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
@@ -110,6 +120,7 @@ pub(crate) enum MixedMessage {
     Worker(DedicatedWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
     Control(DedicatedWorkerControlMsg),
+    AnimationFrameTick(WorkerAnimationFrameTick),
     Timer,
 }
 
@@ -210,6 +221,26 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
     browsing_context: Option<BrowsingContextId>,
+    animation_frame_provider_supported: bool,
+    animation_frame_provider_registered: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier>
+    animation_frame_ident: Cell<u32>,
+    /// Pending animation frame callbacks for a later worker rendering update.
+    #[ignore_malloc_size_of = "closures are hard"]
+    animation_frame_list: DomRefCell<VecDeque<(u32, Rc<FrameRequestCallback>)>>,
+    /// Callbacks snapshotted for the current worker rendering update.
+    #[ignore_malloc_size_of = "closures are hard"]
+    current_animation_frame_list: DomRefCell<VecDeque<(u32, Rc<FrameRequestCallback>)>>,
+    /// Whether we're in the process of running animation callbacks.
+    running_animation_callbacks: Cell<bool>,
+    /// Whether Constellation currently treats this worker as having callbacks.
+    animation_frame_callbacks_active: Cell<bool>,
+    #[no_trace]
+    #[ignore_malloc_size_of = "channels are hard"]
+    animation_frame_tick_sender: Option<GenericSender<WorkerAnimationFrameTick>>,
+    #[no_trace]
+    #[ignore_malloc_size_of = "channels are hard"]
+    animation_frame_tick_receiver: Option<RoutedReceiver<WorkerAnimationFrameTick>>,
     /// A receiver of control messages,
     /// currently only used to signal shutdown.
     #[no_trace]
@@ -255,6 +286,14 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         MixedMessage::Timer
     }
 
+    fn from_animation_frame_tick_msg(msg: WorkerAnimationFrameTick) -> Option<MixedMessage> {
+        Some(MixedMessage::AnimationFrameTick(msg))
+    }
+
+    fn animation_frame_tick_receiver(&self) -> Option<&RoutedReceiver<WorkerAnimationFrameTick>> {
+        self.animation_frame_tick_receiver.as_ref()
+    }
+
     fn control_receiver(&self) -> &Receiver<DedicatedWorkerControlMsg> {
         &self.control_receiver
     }
@@ -276,11 +315,15 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
+        animation_frame_tick_sender: Option<GenericSender<WorkerAnimationFrameTick>>,
+        animation_frame_tick_receiver: Option<RoutedReceiver<WorkerAnimationFrameTick>>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
     ) -> DedicatedWorkerGlobalScope {
+        let animation_frame_provider_supported = init.animation_frame_provider_supported;
+
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 init,
@@ -303,6 +346,15 @@ impl DedicatedWorkerGlobalScope {
             worker: DomRefCell::new(None),
             image_cache,
             browsing_context,
+            animation_frame_provider_supported,
+            animation_frame_provider_registered: Cell::new(false),
+            animation_frame_ident: Cell::new(0),
+            animation_frame_list: DomRefCell::new(VecDeque::new()),
+            current_animation_frame_list: DomRefCell::new(VecDeque::new()),
+            running_animation_callbacks: Cell::new(false),
+            animation_frame_callbacks_active: Cell::new(false),
+            animation_frame_tick_sender,
+            animation_frame_tick_receiver,
             control_receiver,
             queued_worker_tasks: Default::default(),
         }
@@ -323,6 +375,8 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
+        animation_frame_tick_sender: Option<GenericSender<WorkerAnimationFrameTick>>,
+        animation_frame_tick_receiver: Option<RoutedReceiver<WorkerAnimationFrameTick>>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
@@ -344,6 +398,8 @@ impl DedicatedWorkerGlobalScope {
             closing,
             image_cache,
             browsing_context,
+            animation_frame_tick_sender,
+            animation_frame_tick_receiver,
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             control_receiver,
@@ -458,6 +514,16 @@ impl DedicatedWorkerGlobalScope {
                 let _ = context_sender.send(context_for_interrupt);
 
                 let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
+                let animation_frame_channel = init
+                    .animation_frame_provider_supported
+                    .then(|| generic_channel::channel().expect("Failed to create generic channel"));
+                let (animation_frame_tick_sender, animation_frame_tick_receiver) =
+                    match animation_frame_channel {
+                        Some((sender, receiver)) => {
+                            (Some(sender), Some(receiver.route_preserving_errors()))
+                        },
+                        None => (None, None),
+                    };
 
                 // Step 8 "Set up a worker environment settings object [...]"
                 //
@@ -491,6 +557,8 @@ impl DedicatedWorkerGlobalScope {
                     closing,
                     image_cache,
                     browsing_context,
+                    animation_frame_tick_sender,
+                    animation_frame_tick_receiver,
                     #[cfg(feature = "webgpu")]
                     gpu_id_hub,
                     control_receiver,
@@ -499,6 +567,9 @@ impl DedicatedWorkerGlobalScope {
                     &debugger_global,
                     cx,
                 );
+
+                global.register_animation_frame_provider();
+
                 if devtools_enabled {
                     debugger_global.fire_add_debuggee(
                         cx,
@@ -562,6 +633,8 @@ impl DedicatedWorkerGlobalScope {
                         );
                 }
 
+                // Drop worker rAF state before destroying the JS runtime.
+                global.clear_animation_frame_callbacks_and_unregister();
                 scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
@@ -569,6 +642,210 @@ impl DedicatedWorkerGlobalScope {
 
     pub(crate) fn webview_id(&self) -> WebViewId {
         self.webview_id
+    }
+
+    pub(crate) fn animation_frame_provider_supported(&self) -> bool {
+        self.animation_frame_provider_supported
+    }
+
+    fn register_animation_frame_provider(&self) {
+        if !self.animation_frame_provider_supported {
+            return;
+        }
+
+        let Some(sender) = self.animation_frame_tick_sender.clone() else {
+            return;
+        };
+
+        if self.animation_frame_provider_registered.replace(true) {
+            return;
+        }
+
+        let worker_id = self.upcast::<WorkerGlobalScope>().worker_id();
+        log::debug!(
+            "Registering dedicated worker animation frame provider: worker={worker_id:?} ---->"
+        );
+        let _ = self
+            .upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .send(
+                ScriptToConstellationMessage::RegisterWorkerAnimationFrameProvider(
+                    worker_id, sender,
+                ),
+            );
+    }
+
+    fn unregister_animation_frame_provider(&self) {
+        if !self.animation_frame_provider_registered.replace(false) {
+            return;
+        }
+
+        self.animation_frame_callbacks_active.set(false);
+        let worker_id = self.upcast::<WorkerGlobalScope>().worker_id();
+        log::debug!(
+            "Unregistering dedicated worker animation frame provider: worker={worker_id:?} ---->"
+        );
+        let _ = self
+            .upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .send(ScriptToConstellationMessage::UnregisterWorkerAnimationFrameProvider(worker_id));
+    }
+
+    fn send_animation_frame_callbacks_state(&self, active: bool) {
+        if !self.animation_frame_provider_supported {
+            return;
+        }
+
+        let worker_id = self.upcast::<WorkerGlobalScope>().worker_id();
+        log::debug!(
+            "Sending dedicated worker animation frame state: worker={worker_id:?}, active={active} ---->",
+        );
+        let _ = self
+            .upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .send(
+                ScriptToConstellationMessage::ChangeWorkerAnimationFrameProviderState(
+                    worker_id, active,
+                ),
+            );
+    }
+
+    fn set_animation_frame_callbacks_active(&self, active: bool) {
+        if self.animation_frame_callbacks_active.replace(active) == active {
+            return;
+        }
+
+        self.send_animation_frame_callbacks_state(active);
+    }
+
+    fn remove_animation_frame_callback_from(
+        list: &DomRefCell<VecDeque<(u32, Rc<FrameRequestCallback>)>>,
+        ident: u32,
+    ) {
+        let mut list = list.borrow_mut();
+        if let Some(position) = list.iter().position(|(handle, _)| *handle == ident) {
+            list.remove(position);
+        }
+    }
+
+    fn has_animation_frame_callbacks(&self) -> bool {
+        !self.animation_frame_list.borrow().is_empty() ||
+            !self.current_animation_frame_list.borrow().is_empty()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-animationframeprovider-requestanimationframe>
+    pub(crate) fn request_animation_frame(
+        &self,
+        callback: Rc<FrameRequestCallback>,
+    ) -> Fallible<u32> {
+        // Step 1. If this is not supported, then throw a "NotSupportedError" DOMException.
+        if !self.animation_frame_provider_supported {
+            return Err(Error::NotSupported(None));
+        }
+
+        // Step 2. Let target be this's target object.
+        // Step 3. Increment target's animation frame callback identifier by one,
+        // and let handle be the result.
+        let ident = self.animation_frame_ident.get() + 1;
+        self.animation_frame_ident.set(ident);
+
+        // Step 4. Let callbacks be target's map of animation frame callbacks.
+        // Step 5. Set callbacks[handle] to callback.
+        self.animation_frame_list
+            .borrow_mut()
+            .push_back((ident, callback));
+        log::debug!("Queued dedicated worker animation frame callback: handle={ident} ---->");
+        self.set_animation_frame_callbacks_active(true);
+
+        // Step 6. Return handle.
+        Ok(ident)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-animationframeprovider-cancelanimationframe>
+    pub(crate) fn cancel_animation_frame(&self, ident: u32) -> ErrorResult {
+        // Step 1. If this is not supported, then throw a "NotSupportedError" DOMException.
+        if !self.animation_frame_provider_supported {
+            return Err(Error::NotSupported(None));
+        }
+
+        // Step 2. Let callbacks be this's target object's map of animation frame callbacks.
+        // Step 3. Remove callbacks[handle].
+        Self::remove_animation_frame_callback_from(&self.animation_frame_list, ident);
+
+        Self::remove_animation_frame_callback_from(&self.current_animation_frame_list, ident);
+        log::debug!("Cancelled dedicated worker animation frame callback: handle={ident} ---->");
+
+        if !self.running_animation_callbacks.get() && !self.has_animation_frame_callbacks() {
+            self.set_animation_frame_callbacks_active(false);
+        }
+
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
+    pub(crate) fn run_the_animation_frame_callbacks(&self, cx: &mut JSContext) {
+        if !self.animation_frame_provider_supported ||
+            self.upcast::<WorkerGlobalScope>().is_closing()
+        {
+            return;
+        }
+
+        // Step 1. Let callbacks be target's map of animation frame callbacks.
+        // Step 2. Let callbackHandles be the result of getting the keys of callbacks.
+        let callback_count = self.animation_frame_list.borrow().len();
+        log::debug!("Running dedicated worker animation frame callbacks: count={callback_count}");
+        {
+            let mut pending = self.animation_frame_list.borrow_mut();
+            let mut current = self.current_animation_frame_list.borrow_mut();
+            for _ in 0..callback_count {
+                if let Some(callback) = pending.pop_front() {
+                    current.push_back(callback);
+                }
+            }
+        }
+
+        self.running_animation_callbacks.set(true);
+        let timing = self.upcast::<GlobalScope>().performance().Now();
+
+        // Step 3. For each handle in callbackHandles, if handle exists in callbacks:
+        for _ in 0..callback_count {
+            // Step 3.1. Let callback be callbacks[handle].
+            // Step 3.2. Remove callbacks[handle].
+            let callback = self
+                .current_animation_frame_list
+                .borrow_mut()
+                .pop_front()
+                .map(|(_, callback)| callback);
+
+            if let Some(callback) = callback {
+                // Step 3.3. Invoke callback with « now » and "`report`".
+                let _ = callback.Call__(cx, Finite::wrap(*timing), ExceptionHandling::Report);
+            }
+        }
+
+        self.current_animation_frame_list.borrow_mut().clear();
+        self.running_animation_callbacks.set(false);
+
+        if !self.has_animation_frame_callbacks() {
+            self.set_animation_frame_callbacks_active(false);
+        } else {
+            // Acknowledge the consumed worker tick while staying active; Paint
+            // will drive the next refresh tick.
+            self.send_animation_frame_callbacks_state(true);
+        }
+    }
+
+    pub(crate) fn clear_animation_frame_callbacks_and_unregister(&self) {
+        // Worker shutdown drops pending rAF callbacks and unregisters the tick target.
+        let worker_id = self.upcast::<WorkerGlobalScope>().worker_id();
+        log::debug!(
+            "Clearing dedicated worker animation frame callbacks: worker={worker_id:?} ---->"
+        );
+        self.animation_frame_list.borrow_mut().clear();
+        self.current_animation_frame_list.borrow_mut().clear();
+        self.running_animation_callbacks.set(false);
+        self.animation_frame_callbacks_active.set(false);
+        self.unregister_animation_frame_provider();
     }
 
     /// The non-None value of the `worker` field can contain a rooted [`TrustedWorkerAddress`]
@@ -664,6 +941,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model>
     fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut JSContext) -> bool {
         if self.upcast::<WorkerGlobalScope>().is_closing() {
             return false;
@@ -680,6 +958,11 @@ impl DedicatedWorkerGlobalScope {
             MixedMessage::Worker(DedicatedWorkerScriptMsg::WakeUp) => {},
             MixedMessage::Control(DedicatedWorkerControlMsg::Exit) => {
                 return false;
+            },
+            MixedMessage::AnimationFrameTick(_) => {
+                // Step 6.1.2. Run the animation frame callbacks for that
+                // DedicatedWorkerGlobalScope, passing in now as the timestamp.
+                self.run_the_animation_frame_callbacks(cx);
             },
             MixedMessage::Timer => {},
         }
@@ -857,6 +1140,16 @@ impl DedicatedWorkerGlobalScopeMethods<crate::DomTypeHolder> for DedicatedWorker
     fn Close(&self) {
         // Step 2
         self.upcast::<WorkerGlobalScope>().close();
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-animationframeprovider-requestanimationframe>
+    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> Fallible<u32> {
+        self.request_animation_frame(callback)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-animationframeprovider-cancelanimationframe>
+    fn CancelAnimationFrame(&self, ident: u32) -> ErrorResult {
+        self.cancel_animation_frame(ident)
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
