@@ -97,18 +97,6 @@ impl CanvasRenderingContext2D {
         })
     }
 
-    pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
-        std::mem::take(&mut self.canvas_state.get_missing_image_urls().borrow_mut())
-    }
-
-    pub(crate) fn get_canvas_id(&self) -> CanvasId {
-        self.canvas_state.get_canvas_id()
-    }
-
-    pub(crate) fn send_canvas_command(&self, msg: CanvasCommand) {
-        self.canvas_state.send_canvas_command(msg)
-    }
-
     pub(crate) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
         self.canvas_state.send_canvas_command_immediate(msg)
     }
