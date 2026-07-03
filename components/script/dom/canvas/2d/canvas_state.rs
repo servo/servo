@@ -1414,10 +1414,17 @@ impl CanvasState {
     pub(super) fn restore(&self) {
         let mut saved_states = self.saved_states.borrow_mut();
         if let Some(state) = saved_states.pop() {
-            let clips_to_pop = self.state.borrow().clips_pushed;
-            if clips_to_pop != 0 {
+            let mut clips_to_pop = self.state.borrow().clips_pushed;
+            while clips_to_pop > 0 &&
+                self.buffered_sender
+                    .pop_last_if_matches(|c| matches!(c, CanvasCommand::ClipPath(..)))
+            {
+                clips_to_pop -= 1;
+            }
+            if clips_to_pop > 0 {
                 self.send_canvas_command(CanvasCommand::PopClips(clips_to_pop));
             }
+
             self.state.borrow_mut().clone_from(&state);
         }
     }
