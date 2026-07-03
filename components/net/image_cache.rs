@@ -11,7 +11,7 @@ use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 
 use imsz::imsz_from_reader;
-use log::{debug, error, warn};
+use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
