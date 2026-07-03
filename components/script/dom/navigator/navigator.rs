@@ -519,7 +519,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://storage.spec.whatwg.org/#api>
     fn Storage(&self, cx: &mut js::context::JSContext) -> DomRoot<StorageManager> {
         self.storage
-            .or_init(|| StorageManager::new(&self.global(), CanGc::from_cx(cx)))
+            .or_init(|| StorageManager::new(cx, &self.global()))
     }
 
     /// <https://w3c.github.io/beacon/#sec-processing-model>
@@ -614,9 +614,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://servo.org/internal-no-spec>
-    fn Servo(&self) -> DomRoot<ServoInternals> {
+    fn Servo(&self, cx: &mut js::context::JSContext) -> DomRoot<ServoInternals> {
         self.servo_internals
-            .or_init(|| ServoInternals::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| ServoInternals::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-registerprotocolhandler>

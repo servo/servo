@@ -60,7 +60,6 @@ use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 
 /// Fetch canceller object. By default initialized to having a
 /// request associated with it, which can be aborted or terminated.

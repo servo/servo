@@ -395,12 +395,12 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-elementinternals-states>
-    fn States(&self, can_gc: CanGc) -> DomRoot<CustomStateSet> {
+    fn States(&self, cx: &mut JSContext) -> DomRoot<CustomStateSet> {
         self.states.or_init(|| {
             CustomStateSet::new(
+                cx,
                 &self.target_element.owner_window(),
                 &self.target_element,
-                can_gc,
             )
         })
     }
