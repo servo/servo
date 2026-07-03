@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::id::ServiceWorkerId;
 use servo_constellation_traits::{DOMMessage, ScriptToConstellationMessage};
 use servo_url::ServoUrl;
@@ -29,7 +29,6 @@ use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 
 pub(crate) type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
@@ -61,20 +60,20 @@ impl ServiceWorker {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         script_url: ServoUrl,
         scope_url: ServoUrl,
         worker_id: ServiceWorkerId,
-        can_gc: CanGc,
     ) -> DomRoot<ServiceWorker> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ServiceWorker::new_inherited(
                 script_url.as_str(),
                 scope_url,
                 worker_id,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
