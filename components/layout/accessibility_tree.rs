@@ -258,10 +258,10 @@ impl AccessibilityTree {
                 _ => None,
             })
         {
-            let node = self.nodes.remove(&id);
+            let _node = self.nodes.remove(&id);
             {
                 #[cfg(debug_assertions)]
-                assert!(node.is_some(), "Node for id {:?} was already removed", id);
+                assert!(_node.is_some(), "Node for id {id:?} was already removed");
             }
             if let Some(opaque_node) = self.id_to_opaque_node.remove(&id) {
                 self.opaque_node_to_id.remove(&opaque_node);
@@ -334,10 +334,8 @@ impl AccessibilityTree {
         };
 
         // Traverse the tree from the given root.
-        let mut nodes: Vec<(
-            ArcRefCell<AccessibilityNode>,
-            Option<WeakRefCell<AccessibilityNode>>,
-        )> = vec![(root_node, None)];
+        // `nodes` is a Vec of pairs of nodes and their expected parents.
+        let mut nodes = vec![(root_node, None)];
         let mut seen_node_ids = FxHashSet::default();
         while let Some((node, expected_parent)) = nodes.pop() {
             let node = node.borrow();
@@ -351,11 +349,14 @@ impl AccessibilityTree {
 
             node.assert_integrity(expected_parent);
 
+            // assert_node_for_id() here double-checks that the node hasn't been incorrectly evicted
+            // from the map while it's still retained as a child node.
             let weak_node = Some(self.assert_node_for_id(&node.id).downgrade());
             nodes.extend(node.children().iter().cloned().zip(repeat(weak_node)));
         }
 
         // If this fails, then the tree has orphaned nodes (a leak).
+        // If a node has been incorrectly removed from the map, that will be caught above.
         assert_eq!(seen_node_ids, self.nodes.keys().copied().collect());
     }
 
@@ -413,21 +414,21 @@ impl AccessibilityNode {
         let dom_children: Vec<ServoLayoutNode> = dom_node.flat_tree_children().collect();
 
         let mut damage_from_children = LocalAccessibilityDamage::empty();
-        let new_children = dom_children
-            .iter()
-            .map(|dom_child| {
-                let (child_id, child_node) = tree.get_or_create_node(dom_child, update);
-                let child_damage =
-                    tree.update_node_and_descendants_from_dom_node(&child_node, dom_child, update);
-                damage_from_children.insert(child_damage);
-                (child_id, child_node)
-            })
-            .collect();
+        let mut new_child_ids = vec![];
+        let mut new_child_nodes = vec![];
+        for dom_child in dom_children {
+            let (child_id, child_node) = tree.get_or_create_node(&dom_child, update);
+            let child_damage =
+                tree.update_node_and_descendants_from_dom_node(&child_node, &dom_child, update);
+            damage_from_children.insert(child_damage);
+            new_child_ids.push(child_id);
+            new_child_nodes.push(child_node);
+        }
         if !damage_from_children.is_empty() {
             damage.insert(LocalAccessibilityDamage::SUBTREE_CHANGED);
         }
 
-        damage.insert(self.set_children(weak_self, new_children, update));
+        damage.insert(self.set_children(weak_self, new_child_ids, new_child_nodes, update));
         damage
     }
 
@@ -545,11 +546,10 @@ impl AccessibilityNode {
     fn set_children(
         &mut self,
         weak_self: WeakRefCell<Self>,
-        new_children: Vec<(NodeId, ArcRefCell<AccessibilityNode>)>,
+        new_child_ids: Vec<NodeId>,
+        new_child_nodes: Vec<ArcRefCell<AccessibilityNode>>,
         update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
-        let (new_child_ids, new_child_nodes): (Vec<NodeId>, Vec<ArcRefCell<AccessibilityNode>>) =
-            new_children.into_iter().unzip();
         if new_child_ids == self.child_ids() {
             return LocalAccessibilityDamage::empty();
         }
@@ -660,7 +660,7 @@ impl AccessibilityNode {
             );
         }
 
-        let children_ids: Vec<NodeId> = self
+        let children_ids: Vec<_> = self
             .children()
             .iter()
             .map(|child| child.borrow().id)
@@ -777,7 +777,7 @@ fn test_accessibility_update_add_some_nodes_twice() {
     let root_node = tree.get_or_create_node_with_id(NodeId(2), &mut root_update);
     tree.root_node = Some(root_node.clone());
 
-    let nodes = [
+    let nodes: Vec<_> = [
         (3, Role::GenericContainer),
         (4, Role::Heading),
         (5, Role::Paragraph),
@@ -790,9 +790,13 @@ fn test_accessibility_update_add_some_nodes_twice() {
         (id, node)
     })
     .collect();
-    root_node
-        .borrow_mut()
-        .set_children(root_node.downgrade(), nodes, &mut root_update);
+    let (child_node_ids, child_nodes) = nodes.iter().cloned().unzip();
+    root_node.borrow_mut().set_children(
+        root_node.downgrade(),
+        child_node_ids,
+        child_nodes,
+        &mut root_update,
+    );
 
     let mut update = AccessibilityUpdate::new(None);
 
