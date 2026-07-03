@@ -3666,8 +3666,8 @@ dependencies = [
 
 [[package]]
 name = "harfbuzz-sys"
-version = "0.6.1"
-source = "git+https://github.com/servo/rust-harfbuzz?rev=cd527bf7633ba3e0f06246aab07678541e080f68#cd527bf7633ba3e0f06246aab07678541e080f68"
+version = "0.7.0"
+source = "git+https://github.com/jschwe/rust-harfbuzz?branch=bump-harfbuzz-0.7#9c2a6075df7bddb5e613667d47a5ba1613a1c71b"
 dependencies = [
  "cc",
  "core-graphics",

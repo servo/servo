@@ -116,7 +116,7 @@ gstreamer-sys = "0.25"
 gstreamer-video = "0.25"
 gstreamer-webrtc = { version = "0.25", features = ["v1_18"] }
 half = "2"
-harfbuzz-sys = "0.6.1"
+harfbuzz-sys = "0.7"
 headers = "0.4"
 hilog = "0.2.2"
 hitrace = { version = "0.2.0", features = ["api-19", "tracing-rs"] }
@@ -423,7 +423,7 @@ codegen-units = 1
 
 [patch.crates-io]
 # Pending crates.io releases of rust-harfbuzz and webrender with the patches
-harfbuzz-sys = { git = "https://github.com/servo/rust-harfbuzz", rev = "cd527bf7633ba3e0f06246aab07678541e080f68" }
+harfbuzz-sys = { git = "https://github.com/jschwe/rust-harfbuzz", branch = "bump-harfbuzz-0.7" }
 webrender = { git = "https://github.com/servo/webrender", rev = "7463c8fdd5e58179cbe16a2c7fd9a23c6cc17c1f" }
 webrender_api = { git = "https://github.com/servo/webrender", rev = "7463c8fdd5e58179cbe16a2c7fd9a23c6cc17c1f" }
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", rev = "7463c8fdd5e58179cbe16a2c7fd9a23c6cc17c1f" }
