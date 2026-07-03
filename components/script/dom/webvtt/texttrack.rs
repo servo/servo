@@ -5,8 +5,9 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
@@ -20,7 +21,6 @@ use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttrackcuelist::TextTrackCueList;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct TextTrack {
@@ -57,6 +57,7 @@ impl TextTrack {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         id: DOMString,
         kind: TextTrackKind,
@@ -64,14 +65,13 @@ impl TextTrack {
         language: DOMString,
         mode: TextTrackMode,
         track_list: Option<&TextTrackList>,
-        can_gc: CanGc,
     ) -> DomRoot<TextTrack> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(TextTrack::new_inherited(
                 id, kind, label, language, mode, track_list,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
