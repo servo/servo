@@ -1029,7 +1029,7 @@ impl ImageCache for ImageCacheImpl {
         }
 
         if requested_size.width == 0 || requested_size.height == 0 {
-            error!(
+            debug!(
                 "Asked for requested size {:?} which has zero size. Not returning image",
                 requested_size
             );
