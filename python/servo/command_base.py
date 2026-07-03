@@ -602,10 +602,19 @@ class CommandBase(object):
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:
-                        kwargs["servo_binary"] = kwargs.get("bin") or self.get_binary_path(
-                            cast(BuildType, kwargs.get("build_type")),
-                            sanitizer=cast(SanitizerKind, kwargs.get("sanitizer")),
-                        )
+                        # For packaged targets (Android, OpenHarmony) the binary is not important,
+                        # since we can't run it directly. We could return the shared library object,
+                        # but that doesn't seem very useful.
+                        if self.target.needs_packaging():
+                            if kwargs.get("bin") is not None:
+                                print(f"`--bin` cannot be used with the '{self.target.triple()}' target.")
+                                sys.exit(1)
+                            kwargs["servo_binary"] = None
+                        else:
+                            kwargs["servo_binary"] = kwargs.get("bin") or self.get_binary_path(
+                                cast(BuildType, kwargs.get("build_type")),
+                                sanitizer=cast(SanitizerKind, kwargs.get("sanitizer")),
+                            )
                     kwargs.pop("bin")
                     kwargs.pop("nightly")
                     if not build_type:
@@ -624,6 +633,7 @@ class CommandBase(object):
 
     @staticmethod
     def allow_target_configuration(original_function: Callable) -> Callable:
+        @functools.wraps(original_function)
         def target_configuration_decorator(self: CommandBase, *args: Any, **kwargs: Any) -> Callable:
             self.configure_build_target(kwargs, suppress_log=True)
             kwargs.pop("target", False)
