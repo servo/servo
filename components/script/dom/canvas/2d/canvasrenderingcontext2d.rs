@@ -9,7 +9,6 @@ use pixels::Snapshot;
 use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object_with_cx};
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::canvas::{CanvasCommand, CanvasId};
-use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 
 use super::canvas_state::CanvasState;
@@ -95,18 +94,6 @@ impl CanvasRenderingContext2D {
             context.update_associated_memory_size();
             context
         })
-    }
-
-    pub(crate) fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
-        std::mem::take(&mut self.canvas_state.get_missing_image_urls().borrow_mut())
-    }
-
-    pub(crate) fn get_canvas_id(&self) -> CanvasId {
-        self.canvas_state.get_canvas_id()
-    }
-
-    pub(crate) fn send_canvas_command(&self, msg: CanvasCommand) {
-        self.canvas_state.send_canvas_command(msg)
     }
 
     pub(crate) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {

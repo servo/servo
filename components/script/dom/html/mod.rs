@@ -9,7 +9,6 @@ pub(crate) mod htmlbaseelement;
 pub(crate) mod htmlbodyelement;
 pub(crate) mod htmlbrelement;
 pub(crate) mod htmlbuttonelement;
-#[expect(dead_code)]
 pub(crate) mod htmlcanvaselement;
 pub(crate) mod htmlcollection;
 pub(crate) mod htmldataelement;

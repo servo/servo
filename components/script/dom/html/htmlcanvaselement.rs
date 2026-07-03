@@ -337,15 +337,6 @@ impl HTMLCanvasElement {
             })
     }
 
-    /// Gets the base WebGLRenderingContext for WebGL or WebGL 2, if exists.
-    pub(crate) fn get_base_webgl_context(&self) -> Option<DomRoot<WebGLRenderingContext>> {
-        match *self.context_mode.borrow() {
-            Some(RenderingContext::WebGL(ref context)) => Some(DomRoot::from_ref(context)),
-            Some(RenderingContext::WebGL2(ref context)) => Some(context.base_context()),
-            _ => None,
-        }
-    }
-
     #[expect(unsafe_code)]
     fn get_gl_attributes(
         cx: &mut js::context::JSContext,
