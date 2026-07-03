@@ -500,7 +500,6 @@ impl FontContext {
         url: ServoUrl,
         state: WebFontDownloadState,
     ) {
-        println!("did start load for  {:?}", url.as_str());
         self.currently_downloading_fonts
             .lock()
             .entry(url)
@@ -696,30 +695,29 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
     ) {
-        println!("== Update font state ==");
         let mut removed_any = false;
 
-        self.active_font_face_rules.lock().diff_font_face_rules(
-            stylist,
-            guards,
-            |new_rule| {
-                println!("Loading new font face: {:?}", new_rule.descriptors.font_family);
-                self.load_single_font_face_rule(
-                    new_rule,
-                    webview_id,
-                    callback.clone(),
-                    document_context,
-                );
-            },
-            |stale_rule| {
-                println!("Unloading old font face: {:?}", stale_rule.descriptors.font_family);
-                self.remove_single_font_face_rule(
-                    &stale_rule.descriptors,
-                    &mut self.web_fonts.write(),
-                );
-                removed_any = true;
-            },
-        );
+        self.active_font_face_rules
+            .lock()
+            .diff_old_and_new_font_face_rules(
+                stylist,
+                guards,
+                |new_rule| {
+                    self.load_single_font_face_rule(
+                        new_rule,
+                        webview_id,
+                        callback.clone(),
+                        document_context,
+                    );
+                },
+                |stale_rule| {
+                    self.remove_single_font_face_rule(
+                        &stale_rule.descriptors,
+                        &mut self.web_fonts.write(),
+                    );
+                    removed_any = true;
+                },
+            );
 
         if removed_any {
             // We modified the list of available fonts, so invalidate resolved font groups.
@@ -972,7 +970,6 @@ impl FontContext {
         let web_font_family_name = state.css_font_face_descriptors.family_name.clone();
         match source {
             Source::Url(url_source) => {
-                println!("Will download from {:?}", url_source.url.as_str());
                 RemoteWebFontDownloader::download(url_source, this, web_font_family_name, state)
             },
             Source::Local(ref local_family_name) => {
@@ -1090,11 +1087,9 @@ impl RemoteWebFontDownloader {
                 match downloader.handle_web_font_fetch_message(response_message) {
                     DownloaderResponseResult::InProcess => {},
                     DownloaderResponseResult::Finished => {
-                        println!("Did download successfully: {:?}", downloader.url.as_str());
                         downloader.process_downloaded_font_and_signal_completion()
                     },
                     DownloaderResponseResult::Failure => {
-                        println!("Did download failed: {:?}", downloader.url.as_str());
                         font_context.handle_web_font_request_failed(downloader.url.clone().into());
                     },
                 }
@@ -1250,7 +1245,7 @@ impl ActiveFontFaceRules {
     /// Computes the difference between the `@font-face `rules that are currently in effect
     /// and the ones that the `Stylist` knows about. The caller is notified about new or removed rules
     /// with callbacks.
-    fn diff_font_face_rules<NewRuleCallback, StaleRuleCallback>(
+    fn diff_old_and_new_font_face_rules<NewRuleCallback, StaleRuleCallback>(
         &mut self,
         stylist: &Stylist,
         guards: &StylesheetGuards<'_>,

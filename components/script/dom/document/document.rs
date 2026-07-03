@@ -1084,9 +1084,13 @@ impl Document {
         self.needs_restyle.set(RestyleReason::empty());
     }
 
+    pub(crate) fn stylesheets_changed_since_last_reflow(&self) -> bool {
+        self.stylesheets.borrow().has_changed()
+    }
+
     pub(crate) fn restyle_reason(&self) -> RestyleReason {
         let mut condition = self.needs_restyle.get();
-        if self.stylesheets.borrow().has_changed() {
+        if self.stylesheets_changed_since_last_reflow() {
             condition.insert(RestyleReason::StylesheetsChanged);
         }
 
@@ -3165,7 +3169,7 @@ impl Document {
         if !fonts.waiting_to_fullfill_promise() {
             return false;
         }
-        if dbg!(self.window().font_context().web_fonts_still_loading()) != 0 {
+        if self.window().font_context().web_fonts_still_loading() != 0 {
             return false;
         }
         if self.ReadyState() != DocumentReadyState::Complete {
@@ -3178,7 +3182,6 @@ impl Document {
             return false;
         }
 
-        println!("will fulfill font ready promise");
         let result = fonts.fulfill_ready_promise_if_needed(cx);
 
         // Add a rendering update after the `fonts.ready` promise is fulfilled just for
@@ -4540,11 +4543,9 @@ impl Document {
     }
 
     pub(crate) fn switch_font_face_set_to_loading_if_needed(&self, cx: &mut JSContext) {
-        println!("switch to loading if needed");
         if self.window.font_context().web_fonts_still_loading() != 0 &&
             let Some(font_face_set) = self.fonts.get()
         {
-            println!("load now");
             font_face_set.switch_to_loading(cx);
         }
     }

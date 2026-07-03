@@ -11,6 +11,7 @@ use js::gc::Handle;
 use js::jsapi::Value;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
+use layout_api::{QueryMsg, ReflowGoal};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::FontFaceBinding::{
     FontFaceLoadStatus, FontFaceMethods,
@@ -20,7 +21,7 @@ use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::FontFaceSetMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::refcounted::TrustedPromise;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -141,12 +142,20 @@ impl FontFaceSet {
 
 impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-ready>
-    fn Ready(&self) -> Rc<Promise> {
-        if self.stylesheets.borrow().has_changed() {
-            self.window().flush_user_font_set();
-            self.switch
+    fn Ready(&self, cx: &mut JSContext) -> Rc<Promise> {
+        // FIXME: Figure out what to do for worker scopes.
+        if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
+            // There may be pending style changes that cause new web fonts to start loading,
+            // FIXME: Use a new sort of ReflowGoal that only runs the CSS cascade without
+            //        building a new box tree or running any sort of layout really.
+            //        We query for the box area here, which is a lie.
+            let document = window.Document();
+            if document.stylesheets_changed_since_last_reflow() {
+                window.reflow(cx, ReflowGoal::LayoutQuery(QueryMsg::BoxArea));
+                document.switch_font_face_set_to_loading_if_needed(cx);
+            }
         }
-        println!("Get ready promise which is fulfilled: {:?}", self.promise.borrow().is_fulfilled());
+
         self.promise.borrow().clone()
     }
 
@@ -222,14 +231,14 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
         }
 
         // Step 4. Queue a task to run the following steps synchronously:
-        let trusted_ready_promise = TrustedPromise::new(self.promise.borrow().clone());
+        let trusted_this = Trusted::new(self);
         let trusted_load_promise = TrustedPromise::new(load_promise.clone());
         self.global()
             .task_manager()
             .font_loading_task_source()
             .queue(task!(resolve_font_face_set_load_task: move |cx| {
-                let ready_promise = trusted_ready_promise.root();
                 let load_promise = trusted_load_promise.root();
+                let this = trusted_this.root();
 
                 // Step 4.1. For all of the font faces in the font face list, call their load()
                 // method.
@@ -242,7 +251,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                 // be correct, but any code that waits on the promise will have
                 // conservatively consistent behavior. This is important for preventing
                 // intermittent results in WPT tests.
-                let global = ready_promise.global();
+                let global = this.global();
                 let handler = PromiseNativeHandler::new(
                     cx,
                     &global,
@@ -252,6 +261,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                     None,
                 );
 
+                let ready_promise = this.Ready(cx);
                 let mut realm = enter_auto_realm(cx, &*global);
                 ready_promise.append_native_handler(&mut realm.current_realm(), &handler);
             }));
