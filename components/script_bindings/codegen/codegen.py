@@ -3283,8 +3283,8 @@ class CGConstructorEnabled(CGAbstractMethod):
         if secure:
             conditions.append("""
 {
-let realm = CurrentRealm::assert(cx);
-D::GlobalScope::from_current_realm(&realm).is_secure_context()
+let mut realm = CurrentRealm::assert(cx);
+D::GlobalScope::from_current_realm(&mut realm).is_secure_context()
 }
 """)
 
@@ -4274,7 +4274,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = "global.upcast::<D::GlobalScope>()"
             else:
-                glob = "&D::GlobalScope::from_current_realm(&CurrentRealm::assert(cx))"
+                glob = "&D::GlobalScope::from_current_realm(&mut CurrentRealm::assert(cx))"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"

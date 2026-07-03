@@ -534,8 +534,8 @@ fn ensure_cross_origin_property_holder(
 pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: &mut JSContext, obj: HandleObject) -> bool {
     unsafe {
         IsWindowProxy(*obj) ||
-            native_from_object::<D::Location>(*obj, cx.raw_cx()).is_ok() ||
-            native_from_object::<D::DissimilarOriginLocation>(*obj, cx.raw_cx()).is_ok()
+            native_from_object::<D::Location>(cx, *obj).is_ok() ||
+            native_from_object::<D::DissimilarOriginLocation>(cx, *obj).is_ok()
     }
 }
 
@@ -640,7 +640,7 @@ pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
     if is_platform_object_same_origin(cx, proxy) {
         let mut realm = AutoRealm::new_from_handle(cx, proxy);
         let mut realm = realm.current_realm();
-        let global = D::GlobalScope::from_current_realm(&realm);
+        let global = D::GlobalScope::from_current_realm(&mut realm);
         get_proto_object(
             &mut realm,
             global.reflector().get_jsobject(),

@@ -26,17 +26,15 @@ use embedder_traits::{
 use fonts::FontContext;
 use indexmap::IndexSet;
 use ipc_channel::router::ROUTER;
-use js::context::NoGC;
-use js::jsapi::{
-    CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap, JSContext, JSObject,
-};
+use js::context::{JSContext, NoGC};
+use js::jsapi::{GetNonCCWObjectGlobal, HandleObject, Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::realm::CurrentRealm;
-use js::rust::wrappers2::Compile1;
+use js::rust::wrappers2::{Compile1, CurrentGlobalOrNull};
 use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue, ParentRuntime,
-    Runtime, get_object_class, transform_str_to_source_text,
+    get_object_class, transform_str_to_source_text,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use net_traits::blob_url_store::BlobBuf;
@@ -2361,9 +2359,9 @@ impl GlobalScope {
     ///
     /// Eventually we could return Handle here as global is already rooted by realm.
     #[expect(unsafe_code)]
-    pub(crate) fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
-        let global = realm.global();
-        unsafe { global_scope_from_global(global.get(), realm.raw_cx_no_gc()) }
+    pub(crate) fn from_current_realm(realm: &'_ mut CurrentRealm) -> DomRoot<Self> {
+        let global = realm.global().get();
+        unsafe { global_scope_from_global(realm, global) }
     }
 
     pub(crate) fn add_uncaught_rejection(&self, rejection: HandleObject) {
@@ -3138,13 +3136,13 @@ impl GlobalScope {
     /// ["current"]: https://html.spec.whatwg.org/multipage/#current
     #[expect(unsafe_code)]
     pub(crate) fn current() -> Option<DomRoot<Self>> {
-        let cx = Runtime::get()?;
+        let mut cx = unsafe { JSContext::get_from_thread()? };
         unsafe {
-            let global = CurrentGlobalOrNull(cx.as_ptr());
+            let global = CurrentGlobalOrNull(&cx);
             if global.is_null() {
                 None
             } else {
-                Some(global_scope_from_global(global, cx.as_ptr()))
+                Some(global_scope_from_global(&mut cx, global))
             }
         }
     }
@@ -3568,8 +3566,8 @@ impl GlobalScope {
 /// Returns the Rust global scope from a JS global object.
 #[expect(unsafe_code)]
 unsafe fn global_scope_from_global(
+    cx: &mut js::context::JSContext,
     global: *mut JSObject,
-    cx: *mut JSContext,
 ) -> DomRoot<GlobalScope> {
     unsafe {
         assert!(!global.is_null());
@@ -3578,7 +3576,7 @@ unsafe fn global_scope_from_global(
             ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
             0
         );
-        root_from_object(global, cx).unwrap()
+        root_from_object(cx, global).unwrap()
     }
 }
 
@@ -3600,7 +3598,7 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
 
 #[expect(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
-    fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
+    fn from_current_realm(realm: &'_ mut CurrentRealm) -> DomRoot<Self> {
         GlobalScope::from_current_realm(realm)
     }
 

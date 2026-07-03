@@ -587,9 +587,9 @@ impl ServiceWorkerGlobalScope {
 unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(std::ptr::NonNull::new(cx).unwrap()) };
-    let realm = CurrentRealm::assert(&mut cx);
+    let mut realm = CurrentRealm::assert(&mut cx);
 
-    let global = GlobalScope::from_current_realm(&realm);
+    let global = GlobalScope::from_current_realm(&mut realm);
     let worker =
         DomRoot::downcast::<WorkerGlobalScope>(global).expect("global is not a worker scope");
     assert!(worker.is::<ServiceWorkerGlobalScope>());

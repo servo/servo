@@ -64,7 +64,7 @@ pub trait DomHelpers<D: DomTypes> {
 /// Operations that must be invoked from the generated bindings.
 #[expect(unsafe_code)]
 pub trait GlobalScopeHelpers<D: DomTypes> {
-    fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<D::GlobalScope>;
+    fn from_current_realm(realm: &'_ mut CurrentRealm) -> DomRoot<D::GlobalScope>;
 
     /// # Safety
     /// `obj` must point to a valid, non-null JSObject.

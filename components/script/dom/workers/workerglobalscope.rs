@@ -1141,9 +1141,9 @@ impl WorkerGlobalScope {
 unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(std::ptr::NonNull::new(cx).unwrap()) };
-    let realm = CurrentRealm::assert(&mut cx);
+    let mut realm = CurrentRealm::assert(&mut cx);
 
-    let global = GlobalScope::from_current_realm(&realm);
+    let global = GlobalScope::from_current_realm(&mut realm);
 
     // If we are running the debugger script, just exit immediately.
     let Some(worker) = global.downcast::<WorkerGlobalScope>() else {
