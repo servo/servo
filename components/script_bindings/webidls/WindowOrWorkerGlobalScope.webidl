@@ -56,5 +56,10 @@ partial interface mixin WindowOrWorkerGlobalScope {
   [NewObject] Promise<Response> fetch(RequestInfo input, optional RequestInit init = {});
 };
 
+// https://w3c.github.io/ServiceWorker/#global-caches-attribute
+partial interface mixin WindowOrWorkerGlobalScope {
+  [SecureContext, SameObject] readonly attribute CacheStorage caches;
+};
+
 Window includes WindowOrWorkerGlobalScope;
 WorkerGlobalScope includes WindowOrWorkerGlobalScope;

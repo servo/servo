@@ -176,6 +176,7 @@ use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::screen::Screen;
 use crate::dom::scrolling_box::{ScrollingBox, ScrollingBoxSource};
 use crate::dom::selection::Selection;
+use crate::dom::serviceworker::cachestorage::CacheStorage;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
@@ -313,6 +314,9 @@ pub(crate) struct Window {
     /// The start of something resembling
     /// <https://html.spec.whatwg.org/multipage/#ongoing-navigation>
     ongoing_navigation: Cell<OngoingNavigation>,
+
+    /// <https://w3c.github.io/ServiceWorker/#global-caches-attribute>
+    caches: MutNullableDom<CacheStorage>,
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
@@ -1212,6 +1216,12 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         // Step 7: Invoke WebDriver BiDi user prompt closed with this, "alert", and true.
         // TODO: Implement support for WebDriver BiDi.
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#global-caches-attribute>
+    fn Caches(&self, cx: &mut JSContext) -> DomRoot<CacheStorage> {
+        self.caches
+            .or_init(|| CacheStorage::new(cx, self.as_global_scope()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-confirm>
@@ -3870,6 +3880,7 @@ impl Window {
                 unminify_js,
                 Some(font_context),
             ),
+            caches: Default::default(),
             ongoing_navigation: Default::default(),
             script_chan,
             layout: RefCell::new(layout),

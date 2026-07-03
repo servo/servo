@@ -7,11 +7,15 @@ use std::path::PathBuf;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use servo_base::generic_channel::GenericSender;
 use storage_traits::StorageThreads;
+use storage_traits::cache_storage::CacheStorageThreadHandle;
 use storage_traits::client_storage::ClientStorageThreadHandle;
 use storage_traits::indexeddb::IndexedDBThreadMsg;
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 
-use crate::{ClientStorageThreadFactory, IndexedDBThreadFactory, WebStorageThreadFactory};
+use crate::{
+    CacheStorageThreadFactory, ClientStorageThreadFactory, IndexedDBThreadFactory,
+    WebStorageThreadFactory,
+};
 
 fn new_storage_thread_group(
     mem_profiler_chan: MemProfilerChan,
@@ -26,12 +30,19 @@ fn new_storage_thread_group(
         format!("indexedDB-reporter-{label}"),
     );
     let web_storage: GenericSender<WebStorageThreadMsg> = WebStorageThreadFactory::new(
-        config_dir,
+        config_dir.clone(),
         mem_profiler_chan,
         format!("storage-reporter-{label}"),
     );
+    let cache_storage: CacheStorageThreadHandle =
+        CacheStorageThreadFactory::new(config_dir, temporary_storage);
 
-    StorageThreads::new(client_storage.into(), idb, web_storage)
+    StorageThreads::new(
+        client_storage.into(),
+        idb,
+        web_storage,
+        cache_storage.into(),
+    )
 }
 
 pub fn new_storage_threads(

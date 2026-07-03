@@ -75,6 +75,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
+use crate::dom::serviceworker::cachestorage::CacheStorage;
 use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
@@ -343,6 +344,9 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     pipeline_id: PipelineId,
 
+    /// <https://w3c.github.io/ServiceWorker/#global-caches-attribute>
+    caches: MutNullableDom<CacheStorage>,
+
     /// A [`TaskManager`] for this [`WorkerGlobalScope`].
     #[conditional_malloc_size_of]
     task_manager: Rc<TaskManager>,
@@ -391,6 +395,7 @@ impl WorkerGlobalScope {
                 init.unminify_js,
                 font_context,
             ),
+            caches: Default::default(),
             microtask_queue: runtime.microtask_queue.clone(),
             worker_id: init.worker_id,
             worker_name,
@@ -938,6 +943,12 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             Duration::from_millis(timeout.max(0) as u64),
             IsInterval::Interval,
         )
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#global-caches-attribute>
+    fn Caches(&self, cx: &mut JSContext) -> DomRoot<CacheStorage> {
+        self.caches
+            .or_init(|| CacheStorage::new(cx, self.upcast::<GlobalScope>()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval>
