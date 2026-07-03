@@ -61,7 +61,7 @@ use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::realms::enter_auto_realm;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::{CanGc, IntroductionType, Runtime, ThreadSafeJSContext};
+use crate::script_runtime::{IntroductionType, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -536,12 +536,12 @@ impl ServiceWorkerGlobalScope {
 
                 rooted!(&in(cx) let mut message = UndefinedValue());
                 let client = Client::new(
+                    cx,
                     scope.upcast(),
                     self.swmanager_sender.clone(),
                     self.scope_url.clone(),
                     FrameType::None,
                     self.worker_id,
-                    CanGc::from_cx(cx),
                 );
                 if let Ok(ports) =
                     structuredclone::read(cx, scope.upcast(), *msg.data, message.handle_mut())

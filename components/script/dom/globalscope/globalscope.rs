@@ -153,7 +153,7 @@ use crate::realms::enter_auto_realm;
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
-use crate::script_runtime::{CanGc, ThreadSafeJSContext};
+use crate::script_runtime::ThreadSafeJSContext;
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
@@ -875,13 +875,13 @@ impl GlobalScope {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn get_serviceworker_registration(
         &self,
+        cx: &mut js::context::JSContext,
         script_url: &ServoUrl,
         scope: &ServoUrl,
         registration_id: ServiceWorkerRegistrationId,
         installing_worker: Option<ServiceWorkerId>,
         _waiting_worker: Option<ServiceWorkerId>,
         _active_worker: Option<ServiceWorkerId>,
-        can_gc: CanGc,
     ) -> DomRoot<ServiceWorkerRegistration> {
         // Step 1
         let mut registrations = self.registration_map.borrow_mut();
@@ -893,11 +893,11 @@ impl GlobalScope {
 
         // Step 2.1 -> 2.5
         let new_registration =
-            ServiceWorkerRegistration::new(self, scope.clone(), registration_id, can_gc);
+            ServiceWorkerRegistration::new(cx, self, scope.clone(), registration_id);
 
         // Step 2.6
         if let Some(worker_id) = installing_worker {
-            let worker = self.get_serviceworker(script_url, scope, worker_id, can_gc);
+            let worker = self.get_serviceworker(cx, script_url, scope, worker_id);
             new_registration.set_installing(&worker);
         }
 
@@ -915,10 +915,10 @@ impl GlobalScope {
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-object>
     pub(crate) fn get_serviceworker(
         &self,
+        cx: &mut js::context::JSContext,
         script_url: &ServoUrl,
         scope: &ServoUrl,
         worker_id: ServiceWorkerId,
-        can_gc: CanGc,
     ) -> DomRoot<ServiceWorker> {
         // Step 1
         let mut workers = self.worker_map.borrow_mut();
@@ -930,7 +930,7 @@ impl GlobalScope {
             // Step 2.1
             // TODO: step 2.2, worker state.
             let new_worker =
-                ServiceWorker::new(self, script_url.clone(), scope.clone(), worker_id, can_gc);
+                ServiceWorker::new(cx, self, script_url.clone(), scope.clone(), worker_id);
 
             // Step 2.3
             workers.insert(worker_id, Dom::from_ref(&*new_worker));

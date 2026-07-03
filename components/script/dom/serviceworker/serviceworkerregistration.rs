@@ -12,7 +12,7 @@ use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::id::ServiceWorkerRegistrationId;
 use servo_constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
@@ -33,7 +33,6 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ServiceWorkerRegistration {
@@ -73,18 +72,18 @@ impl ServiceWorkerRegistration {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         scope: ServoUrl,
         registration_id: ServiceWorkerRegistrationId,
-        can_gc: CanGc,
     ) -> DomRoot<ServiceWorkerRegistration> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ServiceWorkerRegistration::new_inherited(
                 scope,
                 registration_id,
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 

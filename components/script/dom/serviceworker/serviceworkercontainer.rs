@@ -35,7 +35,6 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::types::MessageEvent;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ServiceWorkerContainer {
@@ -112,13 +111,13 @@ impl ServiceWorkerContainer {
                         // set convertedValue to the result of getting the service worker registration object
                         // that represents value in equivalentJob’s client.
                         let registration = global.get_serviceworker_registration(
+                            cx,
                             &script_url,
                             &scope_url,
                             id,
                             installing_worker,
                             waiting_worker,
                             active_worker,
-                            CanGc::from_cx(cx),
                         );
 
                         // TODO Step 2.3: Else, set convertedValue to value, in equivalentJob’s client’s Realm.
@@ -151,13 +150,13 @@ impl ServiceWorkerContainer {
         // Step 8.3: Resolve promise with the result of getting the service worker registration object
         // that represents registration in promise’s relevant settings object.
         let registration = self.global().get_serviceworker_registration(
+            cx,
             &info.script_url,
             &info.scope_url,
             info.id,
             info.installing_worker,
             info.waiting_worker,
             info.active_worker,
-            CanGc::from_cx(cx),
         );
         promise.resolve_native(cx, &*registration);
     }
@@ -195,8 +194,7 @@ impl ServiceWorkerContainer {
                 // Note: spec uses a MesssageEvent, so it's unclear what to do with source.
                 // Perhaps an ExtendableMessageEvent should be used instead.
                 // See https://github.com/w3c/ServiceWorker/issues/1823
-                let _source =
-                    global.get_serviceworker(&script_url, &scope_url, source, CanGc::from_cx(cx));
+                let _source = global.get_serviceworker(cx, &script_url, &scope_url, source);
 
                 // Step 4.5.4: Let messageClone be deserializeRecord.[[Deserialized]].
                 // Step 4.5.5: Let newPorts be a new frozen array consisting of all MessagePort objects
