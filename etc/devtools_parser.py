@@ -15,7 +15,7 @@
 # Linux (Debian based):       apt install tshark
 # Linux (Arch based):         pacman -Sy wireshark-cli
 # MacOS (With homebrew):      brew install --cask wireshark
-# Windows (With winget):  winget install --exact WiresharkFoundation.Wireshark
+# Windows (With winget):      winget install --exact WiresharkFoundation.Wireshark
 #
 # To use it, launch Servo or Firefox in devtools mode:
 #
