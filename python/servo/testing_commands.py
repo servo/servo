@@ -36,7 +36,6 @@ from mach.decorators import (
 import servo.devtools_tests
 import servo.try_parser
 from servo.command_base import BuildType, CommandBase, call, check_call
-from servo.platform.build_target import CrossBuildTarget
 from servo.post_build_commands import PostBuildCommands
 from servo.util import delete
 
