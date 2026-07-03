@@ -1043,7 +1043,11 @@ impl ImageCache for ImageCacheImpl {
             tiny_skia::IntSize::from_wh(width, height).unwrap_or(natural_size)
         };
 
-        if tinyskia_requested_size.width() == 0 || tinyskia_requested_size.height() == 0 {
+        // Requirements from tiny_skia::Pixmap::new
+        if tinyskia_requested_size.width() == 0 ||
+            tinyskia_requested_size.width() > (i32::MAX / 4).try_into().unwrap() ||
+            tinyskia_requested_size.height() == 0
+        {
             debug!(
                 "Asked for requested size {:?} which has zero size. Not returning image",
                 requested_size
