@@ -8,7 +8,10 @@ pub use wgpu_core::id::markers::{
     ComputePassEncoder as ComputePass, RenderPassEncoder as RenderPass,
 };
 use wgpu_core::id::{
-    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId, QuerySetId, QueueId, RenderBundleEncoderId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId, SurfaceId, TextureId, TextureViewId,
+    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
+    ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId, QuerySetId, QueueId,
+    RenderBundleEncoderId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId, SurfaceId,
+    TextureId, TextureViewId,
 };
 pub use wgpu_core::id::{
     ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,

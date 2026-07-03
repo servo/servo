@@ -5,9 +5,12 @@
 //! Render pass commands
 
 use serde::{Deserialize, Serialize};
-use wgpu_core::command::{PassStateError};
+use wgpu_core::command::PassStateError;
 use wgpu_core::global::Global;
-use wgpu_core::id::{BindGroupId, BufferId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId, RenderPipelineId};
+use wgpu_core::id::{
+    BindGroupId, BufferId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId,
+    RenderPipelineId,
+};
 
 /// <https://github.com/gfx-rs/wgpu/blob/f25e07b984ab391628d9568296d5970981d79d8b/wgpu-core/src/command/render_command.rs#L17>
 #[derive(Debug, Deserialize, Serialize)]
@@ -86,7 +89,12 @@ pub fn apply_render_command(
             index,
             bind_group_id,
             offsets,
-        } => global.render_pass_set_bind_group_with_id(render_pass_id, index, Some(bind_group_id), &offsets),
+        } => global.render_pass_set_bind_group_with_id(
+            render_pass_id,
+            index,
+            Some(bind_group_id),
+            &offsets,
+        ),
         RenderCommand::SetViewport {
             x,
             y,
@@ -94,7 +102,15 @@ pub fn apply_render_command(
             height,
             min_depth,
             max_depth,
-        } => global.render_pass_set_viewport_with_id(render_pass_id, x, y, width, height, min_depth, max_depth),
+        } => global.render_pass_set_viewport_with_id(
+            render_pass_id,
+            x,
+            y,
+            width,
+            height,
+            min_depth,
+            max_depth,
+        ),
         RenderCommand::SetScissorRect {
             x,
             y,
@@ -112,19 +128,37 @@ pub fn apply_render_command(
             index_format,
             offset,
             size,
-        } => global.render_pass_set_index_buffer_with_id(render_pass_id, buffer_id, index_format, offset, size),
+        } => global.render_pass_set_index_buffer_with_id(
+            render_pass_id,
+            buffer_id,
+            index_format,
+            offset,
+            size,
+        ),
         RenderCommand::SetVertexBuffer {
             slot,
             buffer_id,
             offset,
             size,
-        } => global.render_pass_set_vertex_buffer_with_id(render_pass_id, slot, buffer_id, offset, size),
+        } => global.render_pass_set_vertex_buffer_with_id(
+            render_pass_id,
+            slot,
+            buffer_id,
+            offset,
+            size,
+        ),
         RenderCommand::Draw {
             vertex_count,
             instance_count,
             first_vertex,
             first_instance,
-        } => global.render_pass_draw_with_id(render_pass_id, vertex_count, instance_count, first_vertex, first_instance),
+        } => global.render_pass_draw_with_id(
+            render_pass_id,
+            vertex_count,
+            instance_count,
+            first_vertex,
+            first_instance,
+        ),
         RenderCommand::DrawIndexed {
             index_count,
             instance_count,
@@ -211,16 +245,88 @@ pub fn apply_render_bundle_command(
     command: RenderBundleCommand,
 ) -> Result<(), PassStateError> {
     match command {
-        RenderBundleCommand::SetPipeline(id) => global.render_bundle_encoder_set_pipeline_with_id(render_bundle_encoder_id, id),
-        RenderBundleCommand::SetBindGroup { index, bind_group_id, offsets } => global.render_bundle_encoder_set_bind_group_with_id(render_bundle_encoder_id, index, Some(bind_group_id), &offsets),
-        RenderBundleCommand::SetIndexBuffer { buffer_id, index_format, offset, size } => global.render_bundle_encoder_set_index_buffer_with_id(render_bundle_encoder_id, buffer_id, index_format, offset, size),
-        RenderBundleCommand::SetVertexBuffer { slot, buffer_id, offset, size } => global.render_bundle_encoder_set_vertex_buffer_with_id(render_bundle_encoder_id, slot, buffer_id, offset, size),
-        RenderBundleCommand::Draw { vertex_count, instance_count, first_vertex, first_instance } => global.render_bundle_encoder_draw_with_id(render_bundle_encoder_id, vertex_count, instance_count, first_vertex, first_instance),
-        RenderBundleCommand::DrawIndexed { index_count, instance_count, first_index, base_vertex, first_instance } => global.render_bundle_encoder_draw_indexed_with_id(render_bundle_encoder_id, index_count, instance_count, first_index, base_vertex, first_instance),
-        RenderBundleCommand::DrawIndirect { buffer_id, offset } => global.render_bundle_encoder_draw_indirect_with_id(render_bundle_encoder_id, buffer_id, offset),
-        RenderBundleCommand::DrawIndexedIndirect { buffer_id, offset } => global.render_bundle_encoder_draw_indexed_indirect_with_id(render_bundle_encoder_id, buffer_id, offset),
-        RenderBundleCommand::PushDebugGroup(label) => global.render_bundle_encoder_push_debug_group_with_id(render_bundle_encoder_id, &label),
-        RenderBundleCommand::PopDebugGroup => global.render_bundle_encoder_pop_debug_group_with_id(render_bundle_encoder_id),
-        RenderBundleCommand::InsertDebugMarker(label) => global.render_bundle_encoder_insert_debug_marker_with_id(render_bundle_encoder_id, &label),
+        RenderBundleCommand::SetPipeline(id) => {
+            global.render_bundle_encoder_set_pipeline_with_id(render_bundle_encoder_id, id)
+        },
+        RenderBundleCommand::SetBindGroup {
+            index,
+            bind_group_id,
+            offsets,
+        } => global.render_bundle_encoder_set_bind_group_with_id(
+            render_bundle_encoder_id,
+            index,
+            Some(bind_group_id),
+            &offsets,
+        ),
+        RenderBundleCommand::SetIndexBuffer {
+            buffer_id,
+            index_format,
+            offset,
+            size,
+        } => global.render_bundle_encoder_set_index_buffer_with_id(
+            render_bundle_encoder_id,
+            buffer_id,
+            index_format,
+            offset,
+            size,
+        ),
+        RenderBundleCommand::SetVertexBuffer {
+            slot,
+            buffer_id,
+            offset,
+            size,
+        } => global.render_bundle_encoder_set_vertex_buffer_with_id(
+            render_bundle_encoder_id,
+            slot,
+            buffer_id,
+            offset,
+            size,
+        ),
+        RenderBundleCommand::Draw {
+            vertex_count,
+            instance_count,
+            first_vertex,
+            first_instance,
+        } => global.render_bundle_encoder_draw_with_id(
+            render_bundle_encoder_id,
+            vertex_count,
+            instance_count,
+            first_vertex,
+            first_instance,
+        ),
+        RenderBundleCommand::DrawIndexed {
+            index_count,
+            instance_count,
+            first_index,
+            base_vertex,
+            first_instance,
+        } => global.render_bundle_encoder_draw_indexed_with_id(
+            render_bundle_encoder_id,
+            index_count,
+            instance_count,
+            first_index,
+            base_vertex,
+            first_instance,
+        ),
+        RenderBundleCommand::DrawIndirect { buffer_id, offset } => global
+            .render_bundle_encoder_draw_indirect_with_id(
+                render_bundle_encoder_id,
+                buffer_id,
+                offset,
+            ),
+        RenderBundleCommand::DrawIndexedIndirect { buffer_id, offset } => global
+            .render_bundle_encoder_draw_indexed_indirect_with_id(
+                render_bundle_encoder_id,
+                buffer_id,
+                offset,
+            ),
+        RenderBundleCommand::PushDebugGroup(label) => {
+            global.render_bundle_encoder_push_debug_group_with_id(render_bundle_encoder_id, &label)
+        },
+        RenderBundleCommand::PopDebugGroup => {
+            global.render_bundle_encoder_pop_debug_group_with_id(render_bundle_encoder_id)
+        },
+        RenderBundleCommand::InsertDebugMarker(label) => global
+            .render_bundle_encoder_insert_debug_marker_with_id(render_bundle_encoder_id, &label),
     }
 }

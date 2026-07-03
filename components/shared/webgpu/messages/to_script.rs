@@ -7,7 +7,10 @@
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
 use wgpu_core::id::{
-    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId, ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId, QuerySetId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId, RenderPipelineId, SamplerId, ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
+    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
+    ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId,
+    QuerySetId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId, RenderPipelineId,
+    SamplerId, ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
 };
 
 use crate::{DeviceLostReason, Error, WebGPUDevice};

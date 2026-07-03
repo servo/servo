@@ -8,10 +8,10 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use webgpu_traits::{RenderBundleCommand, WebGPU, WebGPURenderBundle, WebGPURenderBundleEncoder, WebGPURequest};
-use wgpu_core::command::{
-    RenderBundleEncoderDescriptor,
+use webgpu_traits::{
+    RenderBundleCommand, WebGPU, WebGPURenderBundle, WebGPURenderBundleEncoder, WebGPURequest,
 };
+use wgpu_core::command::RenderBundleEncoderDescriptor;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -29,7 +29,6 @@ use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpurenderbundle::GPURenderBundle;
 use crate::dom::webgpu::gpurenderpipeline::GPURenderPipeline;
 
-
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPURenderBundleEncoder {
     #[no_trace]
@@ -40,11 +39,9 @@ struct DroppableGPURenderBundleEncoder {
 
 impl Drop for DroppableGPURenderBundleEncoder {
     fn drop(&mut self) {
-        if let Err(error) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropRenderBundleEncoder(self.render_bundle_encoder.0))
-        {
+        if let Err(error) = self.channel.0.send(WebGPURequest::DropRenderBundleEncoder(
+            self.render_bundle_encoder.0,
+        )) {
             warn!(
                 "Failed to send WebGPURequest::DropRenderBundleEncoder({:?}) ({error})",
                 self.render_bundle_encoder.0
@@ -138,7 +135,10 @@ impl GPURenderBundleEncoder {
             multiview: None,
         };
 
-        let id = device.global().wgpu_id_hub().create_render_bundle_encoder_id();
+        let id = device
+            .global()
+            .wgpu_id_hub()
+            .create_render_bundle_encoder_id();
         let render_bundle_encoder = WebGPURenderBundleEncoder(id);
 
         let channel = device.channel();
@@ -151,7 +151,6 @@ impl GPURenderBundleEncoder {
                 render_bundle_encoder_id: render_bundle_encoder.0,
             })
             .expect("Failed to send WebGPURequest::CreateRenderBundleEncoder");
-
 
         Ok(GPURenderBundleEncoder::new(
             cx,
@@ -180,17 +179,20 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
-    fn SetBindGroup(
-        &self,
-        index: u32,
-        bind_group: &GPUBindGroup,
-        dynamic_offsets: Vec<u32>,
-    ) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::SetBindGroup { index, bind_group_id: bind_group.id().0, offsets: dynamic_offsets }, device_id: self.device.id().0 })
+    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::SetBindGroup {
+                        index,
+                        bind_group_id: bind_group.id().0,
+                        offsets: dynamic_offsets,
+                    },
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderSetBindGroup({:?}) ({error})",
@@ -201,11 +203,15 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline>
     fn SetPipeline(&self, pipeline: &GPURenderPipeline) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::SetPipeline(pipeline.id().0), device_id: self.device.id().0 })
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::SetPipeline(pipeline.id().0),
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderSetPipeline({:?}) ({error})",
@@ -222,11 +228,20 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
         offset: u64,
         size: u64,
     ) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::SetIndexBuffer { buffer_id: buffer.id().0, index_format: index_format.convert(), offset, size: wgpu_types::BufferSize::new(size) }, device_id: self.device.id().0 })
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::SetIndexBuffer {
+                        buffer_id: buffer.id().0,
+                        index_format: index_format.convert(),
+                        offset,
+                        size: wgpu_types::BufferSize::new(size),
+                    },
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderSetIndexBuffer({:?}) ({error})",
@@ -237,11 +252,20 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
     fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer>, offset: u64, size: u64) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::SetVertexBuffer { slot, buffer_id: buffer.map(|b| b.id().0), offset, size: wgpu_types::BufferSize::new(size) }, device_id: self.device.id().0 })
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::SetVertexBuffer {
+                        slot,
+                        buffer_id: buffer.map(|b| b.id().0),
+                        offset,
+                        size: wgpu_types::BufferSize::new(size),
+                    },
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderSetVertexBuffer({:?}) ({error})",
@@ -251,18 +275,21 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-draw>
-    fn Draw(
-        &self,
-        vertex_count: u32,
-        instance_count: u32,
-        first_vertex: u32,
-        first_instance: u32,
-    ) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::Draw { vertex_count, instance_count, first_vertex, first_instance }, device_id: self.device.id().0 })
+    fn Draw(&self, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) {
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::Draw {
+                        vertex_count,
+                        instance_count,
+                        first_vertex,
+                        first_instance,
+                    },
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderDraw({:?}) ({error})",
@@ -280,11 +307,21 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
         base_vertex: i32,
         first_instance: u32,
     ) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::DrawIndexed { index_count, instance_count, first_index, base_vertex, first_instance }, device_id: self.device.id().0 })
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::DrawIndexed {
+                        index_count,
+                        instance_count,
+                        first_index,
+                        base_vertex,
+                        first_instance,
+                    },
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderDrawIndexed({:?}) ({error})",
@@ -295,11 +332,18 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect>
     fn DrawIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::DrawIndirect { buffer_id: indirect_buffer.id().0, offset: indirect_offset }, device_id: self.device.id().0 })
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::DrawIndirect {
+                        buffer_id: indirect_buffer.id().0,
+                        offset: indirect_offset,
+                    },
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderDrawIndirect({:?}) ({error})",
@@ -310,11 +354,18 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect>
     fn DrawIndexedIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::DrawIndexedIndirect { buffer_id: indirect_buffer.id().0, offset: indirect_offset }, device_id: self.device.id().0 })
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::DrawIndexedIndirect {
+                        buffer_id: indirect_buffer.id().0,
+                        offset: indirect_offset,
+                    },
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderDrawIndexedIndirect({:?}) ({error})",
@@ -325,11 +376,15 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-pushdebuggroup>
     fn PushDebugGroup(&self, group_label: USVString) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::PushDebugGroup(group_label.to_string()), device_id: self.device.id().0 })
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::PushDebugGroup(group_label.to_string()),
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderPushDebugGroup({:?}) ({error})",
@@ -340,11 +395,15 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-popdebuggroup>
     fn PopDebugGroup(&self) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::PopDebugGroup, device_id: self.device.id().0 })
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::PopDebugGroup,
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderPopDebugGroup({:?}) ({error})",
@@ -355,11 +414,17 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudebugcommandsmixin-insertdebugmarker>
     fn InsertDebugMarker(&self, marker_label: USVString) {
-        if let Err(error) = self
-            .droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderCommand { render_bundle_encoder_id: self.droppable.render_bundle_encoder.0, render_command: RenderBundleCommand::InsertDebugMarker(marker_label.to_string()), device_id: self.device.id().0 })
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderCommand {
+                    render_bundle_encoder_id: self.droppable.render_bundle_encoder.0,
+                    render_command: RenderBundleCommand::InsertDebugMarker(
+                        marker_label.to_string(),
+                    ),
+                    device_id: self.device.id().0,
+                })
         {
             warn!(
                 "Failed to send WebGPURequest::RenderBundleEncoderInsertDebugMarker({:?}) ({error})",
