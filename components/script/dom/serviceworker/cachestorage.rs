@@ -42,8 +42,8 @@ impl CacheStorage {
     fn new_inherited() -> CacheStorage {
         CacheStorage {
             reflector_: Reflector::new(),
-            callback: RefCell::new(None),
-            pending_promises: RefCell::new(VecDeque::new()),
+            callback: Default::default(),
+            pending_promises: Default::default(),
         }
     }
 
