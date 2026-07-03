@@ -3,15 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::TextTrackCueListBinding::TextTrackCueListMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct TextTrackCueList {
@@ -28,15 +28,11 @@ impl TextTrackCueList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         cues: &[&TextTrackCue],
-        can_gc: CanGc,
     ) -> DomRoot<TextTrackCueList> {
-        reflect_dom_object(
-            Box::new(TextTrackCueList::new_inherited(cues)),
-            window,
-            can_gc,
-        )
+        reflect_dom_object_with_cx(Box::new(TextTrackCueList::new_inherited(cues)), window, cx)
     }
 
     pub(crate) fn item(&self, idx: usize) -> Option<DomRoot<TextTrackCue>> {

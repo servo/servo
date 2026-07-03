@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackListBinding::TextTrackListMethods;
 use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
@@ -18,7 +19,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::trackevent::TrackEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct TextTrackList {
@@ -35,15 +35,11 @@ impl TextTrackList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         tracks: &[&TextTrack],
-        can_gc: CanGc,
     ) -> DomRoot<TextTrackList> {
-        reflect_dom_object(
-            Box::new(TextTrackList::new_inherited(tracks)),
-            window,
-            can_gc,
-        )
+        reflect_dom_object_with_cx(Box::new(TextTrackList::new_inherited(tracks)), window, cx)
     }
 
     pub(crate) fn item(&self, idx: usize) -> Option<DomRoot<TextTrack>> {

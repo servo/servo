@@ -104,7 +104,6 @@ use crate::fetch::{FetchCanceller, RequestWithGlobalScope, create_a_potential_co
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
 
@@ -3317,7 +3316,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     fn TextTracks(&self, cx: &mut JSContext) -> DomRoot<TextTrackList> {
         let window = self.owner_window();
         self.text_tracks_list
-            .or_init(|| TextTrackList::new(&window, &[], CanGc::from_cx(cx)))
+            .or_init(|| TextTrackList::new(cx, &window, &[]))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-addtexttrack>
@@ -3332,6 +3331,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         // Step 1 & 2
         // FIXME(#22314, dlrobertson) set the ready state to Loaded
         let track = TextTrack::new(
+            cx,
             &window,
             "".into(),
             kind,
@@ -3339,7 +3339,6 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             language,
             TextTrackMode::Hidden,
             None,
-            CanGc::from_cx(cx),
         );
         // Step 3 & 4
         self.TextTracks(cx).add(&track);
