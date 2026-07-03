@@ -75,10 +75,9 @@ impl TextTrack {
         )
     }
 
-    pub(crate) fn get_cues(&self) -> DomRoot<TextTrackCueList> {
-        self.cue_list.or_init(|| {
-            TextTrackCueList::new(self.global().as_window(), &[], CanGc::deprecated_note())
-        })
+    pub(crate) fn get_cues(&self, cx: &mut JSContext) -> DomRoot<TextTrackCueList> {
+        self.cue_list
+            .or_init(|| TextTrackCueList::new(cx, self.global().as_window(), &[]))
     }
 
     pub(crate) fn id(&self) -> &str {
@@ -126,45 +125,41 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-cues>
-    fn GetCues(&self) -> Option<DomRoot<TextTrackCueList>> {
+    fn GetCues(&self, cx: &mut JSContext) -> Option<DomRoot<TextTrackCueList>> {
         match self.Mode() {
             TextTrackMode::Disabled => None,
-            _ => Some(self.get_cues()),
+            _ => Some(self.get_cues(cx)),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-activecues>
-    fn GetActiveCues(&self) -> Option<DomRoot<TextTrackCueList>> {
+    fn GetActiveCues(&self, cx: &mut JSContext) -> Option<DomRoot<TextTrackCueList>> {
         // XXX implement active cues logic
         //      https://github.com/servo/servo/issues/22314
-        Some(TextTrackCueList::new(
-            self.global().as_window(),
-            &[],
-            CanGc::deprecated_note(),
-        ))
+        Some(TextTrackCueList::new(cx, self.global().as_window(), &[]))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-addcue>
-    fn AddCue(&self, cue: &TextTrackCue) -> ErrorResult {
+    fn AddCue(&self, cx: &mut JSContext, cue: &TextTrackCue) -> ErrorResult {
         // FIXME(#22314, dlrobertson) add Step 1 & 2
         // Step 3
         if let Some(old_track) = cue.get_track() {
             // gecko calls RemoveCue when the given cue
             // has an associated track, but doesn't return
             // the error from it, so we wont either.
-            if old_track.RemoveCue(cue).is_err() {
+            if old_track.RemoveCue(cx, cue).is_err() {
                 warn!("Failed to remove cues for the added cue's text track");
             }
         }
         // Step 4
-        self.get_cues().add(cue);
+        self.get_cues(cx).add(cue);
         Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-removecue>
-    fn RemoveCue(&self, cue: &TextTrackCue) -> ErrorResult {
+    fn RemoveCue(&self, cx: &mut JSContext, cue: &TextTrackCue) -> ErrorResult {
         // Step 1
-        let cues = self.get_cues();
+        let cues = self.get_cues(cx);
         let index = match cues.find(cue) {
             Some(i) => Ok(i),
             None => Err(Error::NotFound(None)),

@@ -17,7 +17,6 @@ use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::texttrack::TextTrack;
-use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u16)]
@@ -58,6 +57,7 @@ impl HTMLTrackElement {
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTrackElement> {
         let track = TextTrack::new(
+            cx,
             document.window(),
             Default::default(),
             Default::default(),
@@ -65,7 +65,6 @@ impl HTMLTrackElement {
             Default::default(),
             Default::default(),
             None,
-            CanGc::from_cx(cx),
         );
         Node::reflect_node_with_proto(
             cx,
