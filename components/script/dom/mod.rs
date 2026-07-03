@@ -240,7 +240,6 @@ pub(crate) mod datatransfer;
 pub(crate) use self::datatransfer::*;
 pub(crate) mod debugger;
 pub(crate) use self::debugger::*;
-#[expect(dead_code)]
 pub(crate) mod document;
 pub(crate) use self::document::*;
 pub(crate) mod domexception;

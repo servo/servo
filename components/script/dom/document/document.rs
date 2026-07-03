@@ -3197,11 +3197,6 @@ impl Document {
             .push(Dom::from_ref(resize_observer));
     }
 
-    /// Whether or not this [`Document`] has any active [`ResizeObserver`].
-    pub(crate) fn has_resize_observers(&self) -> bool {
-        !self.resize_observers.borrow().is_empty()
-    }
-
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
@@ -3596,11 +3591,6 @@ impl<'dom> LayoutDom<'dom, Document> {
         guard: &SharedRwLockReadGuard,
     ) {
         (*self.unsafe_get()).flush_shadow_root_stylesheets_if_necessary_for_layout(stylist, guard)
-    }
-
-    #[inline]
-    pub(crate) fn shadow_roots_styles_changed(self) -> bool {
-        self.unsafe_get().shadow_roots_styles_changed.get()
     }
 
     pub(crate) fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
@@ -4423,10 +4413,6 @@ impl Document {
 
     pub(crate) fn invalidate_shadow_roots_stylesheets(&self) {
         self.shadow_roots_styles_changed.set(true);
-    }
-
-    pub(crate) fn shadow_roots_styles_changed(&self) -> bool {
-        self.shadow_roots_styles_changed.get()
     }
 
     pub(crate) fn flush_shadow_root_stylesheets_if_necessary_for_layout(
