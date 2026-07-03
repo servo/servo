@@ -146,7 +146,7 @@ impl Drop for DroppableGPUExternalTexture {
 pub(crate) struct GPUExternalTexture {
     reflector_: Reflector,
     label: DomRefCell<USVString>,
-    #[ignore_malloc_size_of = "rc"]
+    #[conditional_malloc_size_of]
     planar_texture: Option<Rc<PlanarTexture>>,
     droppable: DroppableGPUExternalTexture,
 }
@@ -219,6 +219,7 @@ impl GPUExternalTexture {
             .wgpu_features()
             .contains(Features::EXTERNAL_TEXTURE)
         {
+            // 2.1 - 2.4 inside the method
             descriptor.source.planar_video_for_webgpu(device)?
         } else {
             // spec assumes that this is always supported, but that is not the case in wgpu
@@ -226,7 +227,7 @@ impl GPUExternalTexture {
                 "ExternalTexture is not supported on this device".to_string(),
             )));
         };
-        // 5. Let result be a new GPUExternalTexture object wrapping data.
+        // 2.5. Let result be a new GPUExternalTexture object wrapping data.
         let device_id = device.id().0;
         let channel = device.channel();
         let external_texture_id = device.global().wgpu_id_hub().create_external_texture_id();
@@ -247,11 +248,11 @@ impl GPUExternalTexture {
             &device.global(),
             channel,
             WebGPUExternalTexture(external_texture_id),
-            // Set result.label to descriptor.label.
+            // 5. Set result.label to descriptor.label.
             descriptor.parent.label.clone(),
             planar_texture,
         );
-        // If source is an HTMLVideoElement, queue an automatic expiry task with device this and the following steps
+        // 3. If source is an HTMLVideoElement, queue an automatic expiry task with device this and the following steps
         let this = Trusted::new(&*result);
         device
             .global()
@@ -261,7 +262,7 @@ impl GPUExternalTexture {
                 this.root().expire();
             }));
 
-        // Return result.
+        // 6. Return result.
         Ok(result)
     }
 }

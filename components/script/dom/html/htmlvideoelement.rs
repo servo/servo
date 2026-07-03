@@ -65,7 +65,7 @@ pub(crate) struct HTMLVideoElement {
     #[no_trace]
     last_frame: DomRefCell<Option<VideoFrame>>,
     #[cfg(feature = "webgpu")]
-    #[ignore_malloc_size_of = "rc"]
+    #[conditional_malloc_size_of]
     /// Planar texture for WebGPU
     planar_texture: DomRefCell<Option<Rc<crate::dom::gpuexternaltexture::PlanarTexture>>>,
 }
