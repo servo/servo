@@ -122,6 +122,12 @@ jobs:
           echo CCACHE=ccache >> $GITHUB_ENV
 
       # Install missing tools in a GitHub-hosted runner.
+      - name: Install Winget
+        if: ${{ runner.environment != 'self-hosted' }}
+        shell: pwsh
+        run: |
+          Install-Module -Name Microsoft.WinGet.Client -Repository PSGallery -Force
+          Repair-WinGetPackageManager -Latest -Force -AllUsers
       - name: Install wixtoolset
         if: ${{ runner.environment != 'self-hosted' }}
         run: |
