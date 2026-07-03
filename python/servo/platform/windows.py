@@ -35,7 +35,7 @@ def get_dependency_dir(package: str) -> str:
 
 
 def _winget_import(force: bool = False, yes: bool = False) -> None:
-    winget_json = os.path.join(util.SERVO_ROOT, "support", "windows", "winget.json")
+    winget_json = os.path.join(os.path.dirname(__file__), "windows", "winget.json")
     try:
         # We install tools like LLVM / CMake, so we probably don't want to force-upgrade
         # a user installed version without good reason.
