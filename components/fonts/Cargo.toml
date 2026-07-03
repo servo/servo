@@ -68,6 +68,7 @@ webrender_api = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
+harfbuzz-sys = { workspace = true, features = ["coretext"] }
 objc2 = { workspace = true }
 objc2-core-foundation = { workspace = true }
 objc2-core-graphics = { workspace = true }
@@ -75,6 +76,7 @@ objc2-core-text = { workspace = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))'.dependencies]
 freetype-sys = { workspace = true }
+harfbuzz-sys = { workspace = true, features = ["freetype"] }
 servo-allocator = { workspace = true }
 
 [target.'cfg(all(any(target_os = "linux", target_os = "freebsd"), not(target_env = "ohos")))'.dependencies]
@@ -85,6 +87,7 @@ xml = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = { workspace = true }
+harfbuzz-sys = { workspace = true, features = ["directwrite"] }
 winapi = { workspace = true }
 
 [lints.rust]
