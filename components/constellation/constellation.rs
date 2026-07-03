@@ -174,6 +174,7 @@ use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use style::global_style_data::StyleThreadPool;
+use webdriver_traits::messages::{ScriptToWebDriverMessage, WebDriverMessage};
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
 #[cfg(feature = "webgpu")]
@@ -375,6 +376,10 @@ pub struct Constellation<STF, SWF> {
     /// `EventLoop`s to send messages to then. Shared with all `EventLoop`s.
     pub script_to_devtools_callback: OnceCell<Option<GenericCallback<ScriptToDevtoolsControlMsg>>>,
 
+    pub(crate) webdriver_sender: Option<Sender<WebDriverMessage>>,
+
+    pub script_to_webdriver_callback: OnceCell<Option<GenericCallback<ScriptToWebDriverMessage>>>,
+
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
     #[cfg(feature = "bluetooth")]
@@ -540,6 +545,9 @@ pub struct InitialConstellationState {
     /// A channel to the developer tools, if applicable.
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
+    /// A channel to the webdriver, if applicable.
+    pub webdriver_sender: Option<Sender<WebDriverMessage>>,
+
     /// A channel to the bluetooth thread.
     #[cfg(feature = "bluetooth")]
     pub bluetooth_thread: GenericSender<BluetoothRequest>,
@@ -686,6 +694,8 @@ where
                     webviews: Default::default(),
                     devtools_sender: state.devtools_sender,
                     script_to_devtools_callback: Default::default(),
+                    webdriver_sender: state.webdriver_sender,
+                    script_to_webdriver_callback: Default::default(),
                     #[cfg(feature = "bluetooth")]
                     bluetooth_ipc_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
@@ -910,8 +920,8 @@ where
         let Some(bc_group_id) = maybe_bc_group_id else {
             return warn!("Trying to add an event-loop to an unknown browsing context group");
         };
-        if let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id) &&
-            bc_group
+        if let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id)
+            && bc_group
                 .event_loops
                 .insert(host.clone(), Rc::downgrade(event_loop))
                 .is_some_and(|old_event_loop| old_event_loop.strong_count() != 0)
@@ -1200,8 +1210,8 @@ where
             .insert(browsing_context_id, browsing_context);
 
         // If this context is a nested container, attach it to parent pipeline.
-        if let Some(parent_pipeline_id) = parent_pipeline_id &&
-            let Some(parent) = self.pipelines.get_mut(&parent_pipeline_id)
+        if let Some(parent_pipeline_id) = parent_pipeline_id
+            && let Some(parent) = self.pipelines.get_mut(&parent_pipeline_id)
         {
             parent.add_child(browsing_context_id);
         }
@@ -1352,8 +1362,8 @@ where
                                 pending.target_snapshot_params,
                             );
                         } else {
-                            if let Some((sender, id)) = &self.webdriver_load_status_sender &&
-                                pipeline_id == *id
+                            if let Some((sender, id)) = &self.webdriver_load_status_sender
+                                && pipeline_id == *id
                             {
                                 let _ = sender.send(WebDriverLoadStatus::NavigationStop);
                             }
@@ -1636,8 +1646,8 @@ where
         &self,
         message: BackgroundHangMonitorControlMsg,
     ) {
-        if let Some(background_monitor_control_sender) = &self.background_monitor_control_sender &&
-            let Err(error) = background_monitor_control_sender.send(message.clone())
+        if let Some(background_monitor_control_sender) = &self.background_monitor_control_sender
+            && let Err(error) = background_monitor_control_sender.send(message.clone())
         {
             error!("Could not send message ({message:?}) to BHM: {error}");
         }
@@ -2014,9 +2024,9 @@ where
                 // The last media session claiming to be in playing state is set to
                 // the active media session.
                 // Events coming from inactive media sessions are discarded.
-                if self.active_media_session.is_some() &&
-                    let MediaSessionEvent::PlaybackStateChange(ref state) = event &&
-                    !matches!(
+                if self.active_media_session.is_some()
+                    && let MediaSessionEvent::PlaybackStateChange(ref state) = event
+                    && !matches!(
                         state,
                         MediaSessionPlaybackState::Playing | MediaSessionPlaybackState::Paused
                     )
@@ -2059,8 +2069,8 @@ where
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
             ScriptToConstellationMessage::ForwardKeyboardScroll(pipeline_id, scroll) => {
-                if let Some(pipeline) = self.pipelines.get(&pipeline_id) &&
-                    let Err(error) =
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id)
+                    && let Err(error) =
                         pipeline
                             .event_loop
                             .send(ScriptThreadMessage::ForwardKeyboardScroll(
@@ -2082,8 +2092,8 @@ where
             ScriptToConstellationMessage::AcquireWakeLock(type_) => match type_ {
                 WakeLockType::Screen => {
                     self.screen_wake_lock_count += 1;
-                    if self.screen_wake_lock_count == 1 &&
-                        let Err(e) = self.wake_lock_provider.acquire(type_)
+                    if self.screen_wake_lock_count == 1
+                        && let Err(e) = self.wake_lock_provider.acquire(type_)
                     {
                         warn!("Failed to acquire screen wake lock: {e}");
                     }
@@ -2092,8 +2102,8 @@ where
             ScriptToConstellationMessage::ReleaseWakeLock(type_) => match type_ {
                 WakeLockType::Screen => {
                     self.screen_wake_lock_count = self.screen_wake_lock_count.saturating_sub(1);
-                    if self.screen_wake_lock_count == 0 &&
-                        let Err(e) = self.wake_lock_provider.release(type_)
+                    if self.screen_wake_lock_count == 0
+                        && let Err(e) = self.wake_lock_provider.release(type_)
                     {
                         warn!("Failed to release screen wake lock: {e}");
                     }
@@ -2354,8 +2364,8 @@ where
                         entangled_with: entry.entangled_with,
                     }
                 },
-                TransferState::CompletionFailed(buffer) |
-                TransferState::CompletionRequested(_, buffer) => {
+                TransferState::CompletionFailed(buffer)
+                | TransferState::CompletionRequested(_, buffer) => {
                     // If the completion had already failed,
                     // this is a request coming from a global to complete a new transfer,
                     // but we're still awaiting the return of the buffer
@@ -2520,8 +2530,8 @@ where
         if let Some(info) = self.message_ports.get_mut(&port2) {
             info.entangled_with = None;
             match &mut info.state {
-                TransferState::Managed(router_id) |
-                TransferState::CompletionInProgress(router_id) => {
+                TransferState::Managed(router_id)
+                | TransferState::CompletionInProgress(router_id) => {
                     // We try to disentangle the other port now,
                     // and if it has been transfered out by the time the message is received,
                     // it will be ignored,
@@ -2653,8 +2663,8 @@ where
             // and, if type is "session", whose relevant settings object's associated Document's
             // node navigable's traversable navigable is thisDocument's node navigable's
             // traversable navigable."
-            if storage == WebStorageType::Session &&
-                pipeline.webview_id != source_pipeline.webview_id
+            if storage == WebStorageType::Session
+                && pipeline.webview_id != source_pipeline.webview_id
             {
                 continue;
             }
@@ -2758,8 +2768,8 @@ where
 
         // In single process mode, join on the background hang monitor worker thread.
         drop(self.background_monitor_register.take());
-        if let Some(join_handle) = self.background_monitor_register_join_handle.take() &&
-            join_handle.join().is_err()
+        if let Some(join_handle) = self.background_monitor_register_join_handle.take()
+            && join_handle.join().is_err()
         {
             error!("Failed to join on the bhm background thread.");
         }
@@ -3721,8 +3731,8 @@ where
         pipeline_id: PipelineId,
         animation_state: AnimationState,
     ) {
-        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) &&
-            pipeline.animation_state != animation_state
+        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id)
+            && pipeline.animation_state != animation_state
         {
             pipeline.animation_state = animation_state;
             self.paint_proxy
@@ -3890,8 +3900,8 @@ where
                 };
                 if let Err(e) = result {
                     self.handle_send_error(parent_pipeline_id, e);
-                } else if let Some((sender, id)) = &self.webdriver_load_status_sender &&
-                    source_id == *id
+                } else if let Some((sender, id)) = &self.webdriver_load_status_sender
+                    && source_id == *id
                 {
                     let _ = sender.send(WebDriverLoadStatus::NavigationStop);
                 }
@@ -4167,8 +4177,8 @@ where
         }
 
         for (browsing_context_id, mut pipeline_reloader) in browsing_context_changes.drain() {
-            if let NeedsToReload::Yes(pipeline_id, ref mut load_data) = pipeline_reloader &&
-                let Some(url) = url_to_load.get(&pipeline_id)
+            if let NeedsToReload::Yes(pipeline_id, ref mut load_data) = pipeline_reloader
+                && let Some(url) = url_to_load.get(&pipeline_id)
             {
                 load_data.url = url.clone();
             }
@@ -4659,8 +4669,8 @@ where
         for &pipeline in new_focus_chain_pipelines.iter().rev() {
             // Don't send a message to the browsing context that initiated this
             // focus operation. It already knows that it has gotten focus.
-            if Some(pipeline.id) != initiator_pipeline_id &&
-                let Err(error) = pipeline.event_loop.send(
+            if Some(pipeline.id) != initiator_pipeline_id
+                && let Err(error) = pipeline.event_loop.send(
                     ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(
                         pipeline.id,
                         pipeline.focus_sequence,
@@ -4673,15 +4683,16 @@ where
             child_browsing_context_id = Some(pipeline.browsing_context_id);
         }
 
-        if let Some(pipeline) = first_common_pipeline_in_chain &&
-            Some(pipeline.id) != initiator_pipeline_id &&
-            let Err(error) = pipeline.event_loop.send(
-                ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(
-                    pipeline.id,
-                    pipeline.focus_sequence,
-                    child_browsing_context_id,
-                ),
-            )
+        if let Some(pipeline) = first_common_pipeline_in_chain
+            && Some(pipeline.id) != initiator_pipeline_id
+            && let Err(error) =
+                pipeline
+                    .event_loop
+                    .send(ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(
+                        pipeline.id,
+                        pipeline.focus_sequence,
+                        child_browsing_context_id,
+                    ))
         {
             send_errors.push((pipeline.id, error));
         }
@@ -4800,18 +4811,18 @@ where
                     "ScriptCommand after closure",
                 );
             },
-            WebDriverCommandMsg::CloseWebView(..) |
-            WebDriverCommandMsg::NewWindow(..) |
-            WebDriverCommandMsg::FocusWebView(..) |
-            WebDriverCommandMsg::IsWebViewOpen(..) |
-            WebDriverCommandMsg::GetWindowRect(..) |
-            WebDriverCommandMsg::GetViewportSize(..) |
-            WebDriverCommandMsg::SetWindowRect(..) |
-            WebDriverCommandMsg::MaximizeWebView(..) |
-            WebDriverCommandMsg::LoadUrl(..) |
-            WebDriverCommandMsg::Refresh(..) |
-            WebDriverCommandMsg::InputEvent(..) |
-            WebDriverCommandMsg::TakeScreenshot(..) => {
+            WebDriverCommandMsg::CloseWebView(..)
+            | WebDriverCommandMsg::NewWindow(..)
+            | WebDriverCommandMsg::FocusWebView(..)
+            | WebDriverCommandMsg::IsWebViewOpen(..)
+            | WebDriverCommandMsg::GetWindowRect(..)
+            | WebDriverCommandMsg::GetViewportSize(..)
+            | WebDriverCommandMsg::SetWindowRect(..)
+            | WebDriverCommandMsg::MaximizeWebView(..)
+            | WebDriverCommandMsg::LoadUrl(..)
+            | WebDriverCommandMsg::Refresh(..)
+            | WebDriverCommandMsg::InputEvent(..)
+            | WebDriverCommandMsg::TakeScreenshot(..) => {
                 unreachable!("This command should be send directly to the embedder.");
             },
             _ => {
@@ -4963,8 +4974,8 @@ where
         // If the currently focused browsing context is a child of the browsing
         // context in which the page is being loaded, then update the focused
         // browsing context to be the one where the page is being loaded.
-        if self.focused_browsing_context_is_descendant_of(&change) &&
-            let Some(webview) = self.webviews.get_mut(&change.webview_id)
+        if self.focused_browsing_context_is_descendant_of(&change)
+            && let Some(webview) = self.webviews.get_mut(&change.webview_id)
         {
             webview.focused_browsing_context_id = change.browsing_context_id;
         }
@@ -5143,8 +5154,9 @@ where
             .get(&change.webview_id)
             .map(|webview| webview.focused_browsing_context_id);
         focused_browsing_context_id.is_some_and(|focused_browsing_context_id| {
-            focused_browsing_context_id == change.browsing_context_id ||
-                self.fully_active_descendant_browsing_contexts_iter(change.browsing_context_id)
+            focused_browsing_context_id == change.browsing_context_id
+                || self
+                    .fully_active_descendant_browsing_contexts_iter(change.browsing_context_id)
                     .any(|nested_ctx| nested_ctx.id == focused_browsing_context_id)
         })
     }
@@ -5240,8 +5252,8 @@ where
                 },
             },
         };
-        if let Some(parent_pipeline_id) = parent_pipeline_id &&
-            let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id)
+        if let Some(parent_pipeline_id) = parent_pipeline_id
+            && let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id)
         {
             let msg = ScriptThreadMessage::UpdatePipelineId(
                 parent_pipeline_id,
@@ -5391,10 +5403,10 @@ where
     fn get_activity(&self, pipeline_id: PipelineId) -> DocumentActivity {
         let mut ancestor_id = pipeline_id;
         loop {
-            if let Some(ancestor) = self.pipelines.get(&ancestor_id) &&
-                let Some(browsing_context) =
-                    self.browsing_contexts.get(&ancestor.browsing_context_id) &&
-                browsing_context.pipeline_id == ancestor_id
+            if let Some(ancestor) = self.pipelines.get(&ancestor_id)
+                && let Some(browsing_context) =
+                    self.browsing_contexts.get(&ancestor.browsing_context_id)
+                && browsing_context.pipeline_id == ancestor_id
             {
                 if let Some(parent_pipeline_id) = browsing_context.parent_pipeline_id {
                     ancestor_id = parent_pipeline_id;
@@ -5751,15 +5763,15 @@ where
         // In order to get repeatability, we sort the pipeline ids.
         let mut pipeline_ids: Vec<&PipelineId> = self.pipelines.keys().collect();
         pipeline_ids.sort_unstable();
-        if let Some((ref mut rng, probability)) = self.random_pipeline_closure &&
-            let Some(pipeline_id) = pipeline_ids.choose(rng) &&
-            let Some(pipeline) = self.pipelines.get(pipeline_id)
+        if let Some((ref mut rng, probability)) = self.random_pipeline_closure
+            && let Some(pipeline_id) = pipeline_ids.choose(rng)
+            && let Some(pipeline) = self.pipelines.get(pipeline_id)
         {
             if self
                 .pending_changes
                 .iter()
-                .any(|change| change.new_pipeline_id == pipeline.id) &&
-                probability <= rng.random::<f32>()
+                .any(|change| change.new_pipeline_id == pipeline.id)
+                && probability <= rng.random::<f32>()
             {
                 // We tend not to close pending pipelines, as that almost always
                 // results in pipelines being closed early in their lifecycle,
@@ -5996,6 +6008,37 @@ where
                         Ok(callback) => Some(callback),
                         Err(error) => {
                             error!("Could not create Devtools communication channel: {error}");
+                            None
+                        },
+                    }
+                })
+            })
+            .clone()
+    }
+
+    pub(crate) fn script_to_webdriver_callback(
+        &self,
+    ) -> Option<GenericCallback<ScriptToWebDriverMessage>> {
+        self.script_to_webdriver_callback
+            .get_or_init(|| {
+                self.webdriver_sender.as_ref().and_then(|webdriver_sender| {
+                    let webdriver_sender = webdriver_sender.clone();
+                    let callback = GenericCallback::new(move |message| match message {
+                        Err(error) => {
+                            error!("Cast to ScriptToWebDriverMessage failed ({error}).")
+                        },
+                        Ok(message) => {
+                            if let Err(error) =
+                                webdriver_sender.send(WebDriverMessage::FromScript(message))
+                            {
+                                warn!("Sending to webdriver failed ({error:?})")
+                            }
+                        },
+                    });
+                    match callback {
+                        Ok(callback) => Some(callback),
+                        Err(error) => {
+                            error!("Could not create Webdriver communication channel: {error}");
                             None
                         },
                     }

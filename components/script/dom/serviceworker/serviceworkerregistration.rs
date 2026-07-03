@@ -130,6 +130,7 @@ impl ServiceWorkerRegistration {
             .and_then(|window| window.webgl_chan_value());
         let worker_id = WorkerId(Uuid::new_v4());
         let devtools_chan = global.devtools_chan().cloned();
+        let webdriver_chan = global.webdriver_chan().cloned();
         let init = prepare_workerscope_init(global, None, Some(worker_id), webgl_chan);
         let browsing_context_id = global
             .downcast::<Window>()
@@ -143,6 +144,7 @@ impl ServiceWorkerRegistration {
             init,
             worker_load_origin,
             devtools_chan,
+            webdriver_chan,
             worker_id,
             browsing_context_id,
             webview_id,

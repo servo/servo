@@ -137,6 +137,8 @@ tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
 webgl = { workspace = true, default-features = false }
+webdriver_traits = { workspace = true }
+webdriver_server = { workspace = true }
 webgpu = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

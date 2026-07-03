@@ -97,6 +97,7 @@ impl DebuggerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: std::sync::Arc<IdentityHub>,
         cx: &mut JSContext,
     ) -> DomRoot<Self> {
+        let webdriver_chan = None;
         let global = Box::new(Self {
             global_scope: GlobalScope::new_inherited(
                 script_to_devtools_sender,
@@ -104,6 +105,7 @@ impl DebuggerGlobalScope {
                 time_profiler_chan,
                 script_to_constellation_sender,
                 script_to_embedder_chan,
+                webdriver_chan,
                 resource_threads,
                 storage_threads,
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
@@ -454,8 +456,8 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 IntroductionType::EVENT_HANDLER_STR,
                 IntroductionType::DOM_TIMER_STR,
             ]
-            .contains(&&*introduction_type.str()) &&
-                url_override.is_none()
+            .contains(&&*introduction_type.str())
+                && url_override.is_none()
             {
                 debug!(
                     "Not creating debuggee: `introductionType` is `{introduction_type}` but no valid url"

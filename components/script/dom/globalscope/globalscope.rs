@@ -29,7 +29,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{
     CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap, JSContext, JSObject,
 };
-use js::jsval::UndefinedValue;
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::Compile1;
@@ -76,6 +76,9 @@ use storage_traits::StorageThreads;
 use strum::VariantArray;
 use timers::{TimerEventRequest, TimerId};
 use uuid::Uuid;
+use webdriver_traits::bidi::script::ResultOwnership;
+use webdriver_traits::ids::{HandleId, RealmId};
+use webdriver_traits::messages::ScriptToWebDriverMessage;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{DeviceLostReason, WebGPUDevice};
 
@@ -403,6 +406,17 @@ pub(crate) struct GlobalScope {
     /// <https://fetch.spec.whatwg.org/#environment-settings-object-fetch-group>
     #[no_trace]
     fetch_group: RefCell<FetchGroup>,
+
+    #[no_trace]
+    webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
+
+    #[ignore_malloc_size_of = "mozjs"]
+    handle_object_map:
+        DomRefCell<HashMapTracedValues<HandleId, Box<Heap<*mut JSObject>>, FxBuildHasher>>,
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#realm-id>
+    #[no_trace]
+    realm_id: RealmId,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -708,8 +722,8 @@ impl FileListener {
                 },
             },
             Err(_) => match self.state.take() {
-                Some(FileListenerState::Receiving(_, target)) |
-                Some(FileListenerState::Empty(target)) => {
+                Some(FileListenerState::Receiving(_, target))
+                | Some(FileListenerState::Empty(target)) => {
                     let error = Err(Error::Network(None));
 
                     match target {
@@ -786,6 +800,7 @@ impl GlobalScope {
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_sender: ScriptToConstellationSender,
         script_to_embedder_chan: ScriptToEmbedderChan,
+        webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
         origin: MutableOrigin,
@@ -840,6 +855,9 @@ impl GlobalScope {
             resolved_module_set: Default::default(),
             font_context,
             fetch_group: Default::default(),
+            webdriver_chan,
+            handle_object_map: Default::default(),
+            realm_id: Default::default(),
         }
     }
 
@@ -1337,15 +1355,15 @@ impl GlobalScope {
         // Step 7, a few preliminary steps.
 
         // - Check the worker is not closing.
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() &&
-            worker.is_closing()
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>()
+            && worker.is_closing()
         {
             return;
         }
 
         // - Check the associated document is fully-active.
-        if let Some(window) = self.downcast::<Window>() &&
-            !window.Document().is_fully_active()
+        if let Some(window) = self.downcast::<Window>()
+            && !window.Document().is_fully_active()
         {
             return;
         }
@@ -2503,6 +2521,44 @@ impl GlobalScope {
         &self.script_to_embedder_chan
     }
 
+    pub(crate) fn webdriver_chan(&self) -> Option<&GenericCallback<ScriptToWebDriverMessage>> {
+        self.webdriver_chan.as_ref()
+    }
+
+    pub(crate) fn disown_handle(&self, handle: &HandleId) {
+        self.handle_object_map.borrow_mut().remove(handle);
+    }
+
+    pub(crate) fn get_handle(&self, handle: &HandleId, mut rval: MutableHandleValue) -> bool {
+        match self.handle_object_map.borrow().get(handle) {
+            Some(obj) => {
+                rval.set(ObjectValue(obj.get()));
+                true
+            },
+            None => false,
+        }
+    }
+
+    /// <https://www.w3.org/TR/webdriver-bidi/#handle-for-an-object>
+    pub(crate) fn handle_for_an_object(
+        &self,
+        ownership_type: ResultOwnership,
+        object: HandleObject,
+    ) -> Option<HandleId> {
+        // Step 1.
+        if matches!(ownership_type, ResultOwnership::None) {
+            return None;
+        };
+        // Step 2. new handle id
+        let handle_id = HandleId::new();
+        // Step 3, 4.
+        self.handle_object_map
+            .borrow_mut()
+            .insert(handle_id, Heap::boxed(object.get()));
+        // Step 5.
+        Some(handle_id)
+    }
+
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.script_to_embedder_chan().send(msg).unwrap();
     }
@@ -3209,8 +3265,8 @@ impl GlobalScope {
                 // Step 2. If the result of Is url potentially trustworthy?
                 // given environment's top-level creation URL is "Potentially Trustworthy", then return true.
                 // Step 3. Return false.
-                if top_level_creation_url.scheme() == "blob" &&
-                    Some(true) == self.inherited_secure_context
+                if top_level_creation_url.scheme() == "blob"
+                    && Some(true) == self.inherited_secure_context
                 {
                     return true;
                 }
@@ -3555,6 +3611,10 @@ impl GlobalScope {
 
         // Step 5. Return timerKey.
         timer_key
+    }
+
+    pub(crate) fn realm_id(&self) -> RealmId {
+        self.realm_id
     }
 }
 

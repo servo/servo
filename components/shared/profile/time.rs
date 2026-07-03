@@ -22,8 +22,8 @@ pub struct ProfilerChan(pub Option<GenericSender<ProfilerMsg>>);
 
 impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {
-        if let Some(sender) = &self.0 &&
-            let Err(e) = sender.send(msg)
+        if let Some(sender) = &self.0
+            && let Err(e) = sender.send(msg)
         {
             warn!("Error communicating with the time profiler thread: {}", e);
         }
@@ -115,6 +115,7 @@ pub enum ProfilerCategory {
     ScriptWebGPUMsg = 0x80,
 
     ScriptDatabaseAccessEvent = 0x81,
+    ScriptWebDriverMsg = 0x82,
 
     /// Web performance metrics.
     TimeToFirstPaint = 0x90,
@@ -173,6 +174,7 @@ impl ProfilerCategory {
             ProfilerCategory::TimeToInteractive => "TimeToInteractive",
             ProfilerCategory::IpcReceiver => "IpcReceiver",
             ProfilerCategory::IpcBytesReceiver => "IpcBytesReceiver",
+            ProfilerCategory::ScriptWebDriverMsg => "ScriptWebDriverMsg",
         }
     }
 }

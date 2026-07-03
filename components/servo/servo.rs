@@ -77,6 +77,7 @@ use servo_wakelock::DefaultWakeLockDelegate;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
+use webdriver_server::bidi::WebDriverBidiThread;
 
 use crate::clipboard_delegate::StringRequest;
 #[cfg(feature = "gamepad")]
@@ -932,6 +933,32 @@ impl Servo {
             None
         };
 
+        let (
+            webdriver_sender,
+            // TODO: currently we do not have webdriver to constellation message,
+            // so as embedder
+            _webdriver_receiver,
+            _embedder_webdriver_sender,
+            _webdriver_embedder_receiver,
+        ) = if pref!(webdriver_server_enabled) {
+            let (embedder_sender, embedder_receiver) = unbounded();
+            let (webdriver_embedder_proxy, webdriver_embedder_receiver) =
+                create_generic_embedder_channel(event_loop_waker.clone());
+            let (webdriver_sender, webdriver_receiver) = WebDriverBidiThread::start(
+                webdriver_embedder_proxy,
+                embedder_receiver,
+                pref!(webdriver_server_listen_port) as u16,
+            );
+            (
+                Some(webdriver_sender),
+                Some(webdriver_receiver),
+                Some(embedder_sender),
+                Some(webdriver_embedder_receiver),
+            )
+        } else {
+            (None, None, None, None)
+        };
+
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
         let js_engine_setup = if !opts.multiprocess {
@@ -988,6 +1015,7 @@ impl Servo {
             time_profiler_chan,
             mem_profiler_chan,
             devtools_sender,
+            webdriver_sender,
             protocols,
             public_resource_threads.clone(),
             private_resource_threads.clone(),
@@ -1189,6 +1217,7 @@ fn create_constellation(
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
+    webdriver_sender: Option<Sender<webdriver_traits::messages::WebDriverMessage>>,
     protocols: Arc<ProtocolRegistry>,
     public_resource_threads: ResourceThreads,
     private_resource_threads: ResourceThreads,
@@ -1218,6 +1247,7 @@ fn create_constellation(
         embedder_proxy,
         constellation_to_embedder_proxy,
         devtools_sender,
+        webdriver_sender,
         #[cfg(feature = "bluetooth")]
         bluetooth_thread,
         system_font_service,

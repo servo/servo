@@ -24,13 +24,15 @@ use net_traits::request::{
 };
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
-use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
+use servo_base::generic_channel::{self, GenericReceiver, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, ScriptEventLoopId, WebViewId};
 use servo_constellation_traits::{MessagePortImpl, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use uuid::Uuid;
+use webdriver_traits::bidi::script::{BaseRealmInfo, RealmInfo, SharedWorkerRealmInfo};
+use webdriver_traits::messages::{ScriptToWebDriverMessage, WebDriverToScriptMessage};
 
 use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
@@ -61,6 +63,7 @@ use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, Runtime};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
+use crate::webdriver_handlers::notify_webdriver_realm_destroyed;
 
 pub(crate) enum SharedWorkerScriptMsg {
     CommonWorker(WorkerScriptMsg),
@@ -76,6 +79,7 @@ pub(crate) enum SharedWorkerControlMsg {
 pub(crate) enum MixedMessage {
     SharedWorker(SharedWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
+    WebDriver(WebDriverToScriptMessage),
     Control(SharedWorkerControlMsg),
     Timer,
 }
@@ -221,6 +225,10 @@ impl WorkerEventLoopMethods for SharedWorkerGlobalScope {
         MixedMessage::Devtools(msg)
     }
 
+    fn from_webdriver_msg(msg: WebDriverToScriptMessage) -> MixedMessage {
+        MixedMessage::WebDriver(msg)
+    }
+
     fn from_timer_msg() -> MixedMessage {
         MixedMessage::Timer
     }
@@ -241,6 +249,7 @@ impl SharedWorkerGlobalScope {
         worker: TrustedSharedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
         from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        from_webdriver_receiver: RoutedReceiver<WebDriverToScriptMessage>,
         runtime: Runtime,
         own_sender: Sender<SharedWorkerScriptMsg>,
         receiver: Receiver<SharedWorkerScriptMsg>,
@@ -267,6 +276,7 @@ impl SharedWorkerGlobalScope {
                 worker_url,
                 runtime,
                 from_devtools_receiver,
+                from_webdriver_receiver,
                 closing,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
@@ -303,6 +313,7 @@ impl SharedWorkerGlobalScope {
         worker: TrustedSharedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
         from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        from_webdriver_receiver: RoutedReceiver<WebDriverToScriptMessage>,
         runtime: Runtime,
         own_sender: Sender<SharedWorkerScriptMsg>,
         receiver: Receiver<SharedWorkerScriptMsg>,
@@ -331,6 +342,7 @@ impl SharedWorkerGlobalScope {
             worker,
             parent_event_loop_sender,
             from_devtools_receiver,
+            from_webdriver_receiver,
             runtime,
             own_sender,
             receiver,
@@ -453,6 +465,10 @@ impl SharedWorkerGlobalScope {
 
                 let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
 
+                let (from_webdriver_sender, from_webdriver_receiver) =
+                    generic_channel::channel().unwrap();
+                let webdriver_mpsc_port = from_webdriver_receiver.route_preserving_errors();
+
                 let worker_id = init.worker_id;
                 let devtools_enabled = init.to_devtools_sender.is_some();
                 // Step 3. Let origin be a unique opaque origin if worker global scope's url's scheme is "data"; otherwise outside settings's origin.
@@ -474,6 +490,7 @@ impl SharedWorkerGlobalScope {
                     worker,
                     parent_event_loop_sender,
                     devtools_mpsc_port,
+                    webdriver_mpsc_port,
                     runtime,
                     own_sender,
                     receiver,
@@ -496,6 +513,25 @@ impl SharedWorkerGlobalScope {
                 );
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
+
+                if let Some(to_webdriver_sender) = global_scope.webdriver_chan() {
+                    if let Err(err) =
+                        to_webdriver_sender.send(ScriptToWebDriverMessage::RealmCreated(
+                            RealmInfo::SharedWorker(SharedWorkerRealmInfo {
+                                base: BaseRealmInfo {
+                                    realm: global_scope.realm_id(),
+                                    origin: global.constructor_origin.ascii_serialization(),
+                                },
+                            }),
+                            false,
+                            None,
+                            from_webdriver_sender,
+                        ))
+                    {
+                        warn!("Sending RealmCreated event to webdriver failed ({err:?})");
+                    }
+                }
+
                 // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
                 let worker_is_secure_context = global_scope.is_secure_context();
                 if devtools_enabled {
@@ -577,6 +613,8 @@ impl SharedWorkerGlobalScope {
                     );
 
                 scope.clear_js_runtime();
+
+                notify_webdriver_realm_destroyed(global_scope);
             })
     }
 
@@ -782,6 +820,9 @@ impl SharedWorkerGlobalScope {
                 return false;
             },
             MixedMessage::Timer => {},
+            MixedMessage::WebDriver(msg) => self
+                .upcast::<WorkerGlobalScope>()
+                .handle_webdriver_message(msg, cx),
         }
 
         true

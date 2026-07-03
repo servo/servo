@@ -246,6 +246,8 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             }
         }
 
+        let owner = global.realm_id();
+
         let webgl_chan = global
             .downcast::<Window>()
             .and_then(|window| window.webgl_chan_value());
@@ -279,6 +281,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             global.insecure_requests_policy(),
             global.policy_container(),
             global.font_context().cloned(),
+            owner,
         );
 
         let context = context_receiver

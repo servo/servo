@@ -44,6 +44,7 @@ servo-url = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
 uuid = { workspace = true }
+webdriver_traits = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, optional = true }

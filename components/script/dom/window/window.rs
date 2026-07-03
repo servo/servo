@@ -4,8 +4,8 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
-use std::collections::HashSet;
 use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
@@ -94,6 +94,8 @@ use style::stylesheets::UrlExtraData;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use time::Duration as TimeDuration;
+use webdriver_traits::ids::PreloadScriptId;
+use webdriver_traits::messages::{PreloadScriptBody, ScriptToWebDriverMessage};
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
@@ -425,6 +427,12 @@ pub(crate) struct Window {
     #[no_trace]
     #[conditional_malloc_size_of]
     user_scripts: Rc<Vec<UserScript>>,
+
+    /// The [`PreloadScriptBody`]s added via `AddPreloadScript`. The scripts only affect the top-level
+    /// traversable.
+    #[no_trace]
+    #[conditional_malloc_size_of]
+    preload_scripts: RefCell<HashMap<PreloadScriptId, Rc<PreloadScriptBody>>>,
 
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
@@ -784,6 +792,18 @@ impl Window {
 
     pub(crate) fn userscripts(&self) -> &[UserScript] {
         &self.user_scripts
+    }
+
+    pub(crate) fn add_preload_scripts(&self, id: PreloadScriptId, body: PreloadScriptBody) {
+        self.preload_scripts.borrow_mut().insert(id, body.into());
+    }
+
+    pub(crate) fn remove_preload_scripts(&self, id: PreloadScriptId) {
+        self.preload_scripts.borrow_mut().remove(&id);
+    }
+
+    pub(crate) fn preload_scripts(&self) -> Vec<Rc<PreloadScriptBody>> {
+        self.preload_scripts.borrow().values().cloned().collect()
     }
 
     pub(crate) fn get_player_context(&self) -> WindowGLContext {
@@ -1386,9 +1406,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             let is_auxiliary = window_proxy.is_auxiliary();
 
             // https://html.spec.whatwg.org/multipage/#script-closable
-            let is_script_closable = (self.is_top_level() && history_length == 1) ||
-                is_auxiliary ||
-                pref!(dom_allow_scripts_to_close_windows);
+            let is_script_closable = (self.is_top_level() && history_length == 1)
+                || is_auxiliary
+                || pref!(dom_allow_scripts_to_close_windows);
 
             // TODO: rest of Step 3:
             // Is the incumbent settings object's responsible browsing context familiar with current?
@@ -1857,8 +1877,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 iframe
                     .browsing_context_id()
                     .as_ref()
-                    .map(BrowsingContextId::to_string) ==
-                    Some(browsing_context_id.to_string())
+                    .map(BrowsingContextId::to_string)
+                    == Some(browsing_context_id.to_string())
             })
             .and_then(|iframe| iframe.GetContentWindow())
     }
@@ -2302,10 +2322,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                     return true;
                 }
                 match type_ {
-                    HTMLElementTypeId::HTMLEmbedElement |
-                    HTMLElementTypeId::HTMLFormElement |
-                    HTMLElementTypeId::HTMLImageElement |
-                    HTMLElementTypeId::HTMLObjectElement => {
+                    HTMLElementTypeId::HTMLEmbedElement
+                    | HTMLElementTypeId::HTMLFormElement
+                    | HTMLElementTypeId::HTMLImageElement
+                    | HTMLElementTypeId::HTMLObjectElement => {
                         elem.get_name().as_ref() == Some(&self.name)
                     },
                     _ => false,
@@ -2567,8 +2587,8 @@ impl Window {
         // layouts (for queries and scrolling) are not blocked, as they do not display
         // anything and script expects the layout to be up-to-date after they run.
         let pipeline_id = self.pipeline_id();
-        if reflow_goal == ReflowGoal::UpdateTheRendering &&
-            self.layout_blocker.get().layout_blocked()
+        if reflow_goal == ReflowGoal::UpdateTheRendering
+            && self.layout_blocker.get().layout_blocked()
         {
             debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
             return Default::default();
@@ -2687,8 +2707,8 @@ impl Window {
         // See http://testthewebforward.org/docs/reftests.html
         // and https://web-platform-tests.org/writing-tests/crashtest.html
         if document.GetDocumentElement().is_some_and(|elem| {
-            elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive) ||
-                elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
+            elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
+                || elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
         }) {
             return;
         }
@@ -2701,8 +2721,8 @@ impl Window {
             return;
         }
 
-        if !self.pending_layout_images.borrow().is_empty() ||
-            !self.pending_images_for_rasterization.borrow().is_empty()
+        if !self.pending_layout_images.borrow().is_empty()
+            || !self.pending_images_for_rasterization.borrow().is_empty()
         {
             return;
         }
@@ -3190,8 +3210,8 @@ impl Window {
     ) {
         // We doesn't need to do anything if the following condition is fulfilled. Since there are no JS listener
         // to fire and we could reconstruct visual viewport from layout viewport in case JS access it.
-        if pinch_zoom_infos.rect == Rect::from_size(self.viewport_details().size) &&
-            self.visual_viewport.get().is_none()
+        if pinch_zoom_infos.rect == Rect::from_size(self.viewport_details().size)
+            && self.visual_viewport.get().is_none()
         {
             return;
         }
@@ -3593,8 +3613,8 @@ impl Window {
     /// <https://html.spec.whatwg.org/multipage/#sticky-activation>
     pub(crate) fn has_sticky_activation(&self) -> bool {
         // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, W is said to have sticky activation.
-        UserActivationTimestamp::TimeStamp(CrossProcessInstant::now()) >=
-            self.last_activation_timestamp.get()
+        UserActivationTimestamp::TimeStamp(CrossProcessInstant::now())
+            >= self.last_activation_timestamp.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#transient-activation>
@@ -3602,10 +3622,9 @@ impl Window {
         // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, and less than the last activation
         // > timestamp in W plus the transient activation duration, then W is said to have transient activation.
         let current_time = CrossProcessInstant::now();
-        UserActivationTimestamp::TimeStamp(current_time) >= self.last_activation_timestamp.get() &&
-            UserActivationTimestamp::TimeStamp(current_time) <
-                self.last_activation_timestamp.get() +
-                    pref!(dom_transient_activation_duration_ms)
+        UserActivationTimestamp::TimeStamp(current_time) >= self.last_activation_timestamp.get()
+            && UserActivationTimestamp::TimeStamp(current_time)
+                < self.last_activation_timestamp.get() + pref!(dom_transient_activation_duration_ms)
     }
 
     pub(crate) fn consume_last_activation_timestamp(&self) {
@@ -3659,6 +3678,7 @@ impl Window {
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+        webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
         script_to_constellation_sender: ScriptToConstellationSender,
         embedder_chan: ScriptToEmbedderChan,
         control_chan: GenericSender<ScriptThreadMessage>,
@@ -3695,6 +3715,7 @@ impl Window {
                 time_profiler_chan,
                 script_to_constellation_sender,
                 embedder_chan,
+                webdriver_chan,
                 resource_threads,
                 storage_threads,
                 origin,
@@ -3775,6 +3796,7 @@ impl Window {
             pending_media_query_evaluation: Default::default(),
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
             devtools_wants_updates: Default::default(),
+            preload_scripts: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
@@ -3937,10 +3959,10 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
     };
     matches!(
         type_,
-        HTMLElementTypeId::HTMLEmbedElement |
-            HTMLElementTypeId::HTMLFormElement |
-            HTMLElementTypeId::HTMLImageElement |
-            HTMLElementTypeId::HTMLObjectElement
+        HTMLElementTypeId::HTMLEmbedElement
+            | HTMLElementTypeId::HTMLFormElement
+            | HTMLElementTypeId::HTMLImageElement
+            | HTMLElementTypeId::HTMLObjectElement
     )
 }
 

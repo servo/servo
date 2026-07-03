@@ -40,6 +40,7 @@ use servo_constellation_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
 use uuid::Uuid;
+use webdriver_traits::messages::WebDriverToScriptMessage;
 
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
@@ -94,6 +95,10 @@ use crate::script_runtime::{CanGc, IntroductionType, Runtime, get_reports};
 use crate::task::TaskCanceller;
 use crate::task_manager::TaskManager;
 use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
+use crate::webdriver_handlers::{
+    handle_webdriver_bidi_script_call_function, handle_webdriver_bidi_script_disown,
+    handle_webdriver_bidi_script_evaluate,
+};
 
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
@@ -108,6 +113,7 @@ pub(crate) fn prepare_workerscope_init(
         to_devtools_sender: global.devtools_chan().cloned(),
         time_profiler_chan: global.time_profiler_chan().clone(),
         from_devtools_sender: devtools_sender,
+        to_webdriver_sender: global.webdriver_chan().cloned(),
         script_to_constellation_chan: global.script_to_constellation_chan().sender,
         script_to_embedder_chan: global.script_to_embedder_chan().clone(),
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
@@ -174,8 +180,8 @@ impl FetchResponseListener for ScriptFetchContext {
         if response
             .as_ref()
             .inspect_err(|e| error!("error loading script {} ({:?})", self.url, e))
-            .is_err() ||
-            self.response.is_none()
+            .is_err()
+            || self.response.is_none()
         {
             scope.on_complete(cx, None);
             return;
@@ -302,6 +308,10 @@ pub(crate) struct WorkerGlobalScope {
     /// A `Receiver` for receiving messages from devtools.
     devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
 
+    #[ignore_malloc_size_of = "Defined in base"]
+    #[no_trace]
+    webdriver_receiver: RoutedReceiver<WebDriverToScriptMessage>,
+
     #[no_trace]
     navigation_start: CrossProcessInstant,
     performance: MutNullableDom<Performance>,
@@ -353,6 +363,7 @@ impl WorkerGlobalScope {
         worker_url: ServoUrl,
         runtime: Runtime,
         devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        webdriver_receiver: RoutedReceiver<WebDriverToScriptMessage>,
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         insecure_requests_policy: InsecureRequestsPolicy,
@@ -374,6 +385,7 @@ impl WorkerGlobalScope {
                 init.time_profiler_chan,
                 init.script_to_constellation_chan,
                 init.script_to_embedder_chan,
+                init.to_webdriver_sender,
                 init.resource_threads,
                 init.storage_threads,
                 MutableOrigin::new(init.origin),
@@ -399,6 +411,7 @@ impl WorkerGlobalScope {
             policy_container: Default::default(),
             devtools_receiver,
             _devtools_sender: init.from_devtools_sender,
+            webdriver_receiver,
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
             timer_scheduler: RefCell::default(),
@@ -464,6 +477,10 @@ impl WorkerGlobalScope {
 
     pub(crate) fn devtools_receiver(&self) -> Option<&RoutedReceiver<DevtoolScriptControlMsg>> {
         self.devtools_receiver.as_ref()
+    }
+
+    pub(crate) fn webdriver_receiver(&self) -> &RoutedReceiver<WebDriverToScriptMessage> {
+        &self.webdriver_receiver
     }
 
     pub(crate) fn is_closing(&self) -> bool {
@@ -1119,6 +1136,40 @@ impl WorkerGlobalScope {
                 );
             },
             _ => debug!("got an unusable devtools control message inside the worker!"),
+        }
+    }
+
+    pub(crate) fn handle_webdriver_message(
+        &self,
+        msg: WebDriverToScriptMessage,
+        cx: &mut JSContext,
+    ) {
+        match msg {
+            WebDriverToScriptMessage::Disown(resume_id, _, handles) => {
+                handle_webdriver_bidi_script_disown(
+                    self.upcast::<GlobalScope>(),
+                    resume_id,
+                    handles,
+                );
+            },
+            WebDriverToScriptMessage::Evaluate(resume_id, _, body) => {
+                handle_webdriver_bidi_script_evaluate(
+                    cx,
+                    self.upcast::<GlobalScope>(),
+                    resume_id,
+                    body,
+                );
+            },
+            WebDriverToScriptMessage::CallFunction(resume_id, _, body) => {
+                handle_webdriver_bidi_script_call_function(
+                    cx,
+                    self.upcast::<GlobalScope>(),
+                    resume_id,
+                    body,
+                );
+            },
+            // preload script is only available for script thread
+            _ => {},
         }
     }
 }

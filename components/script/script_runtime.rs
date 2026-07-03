@@ -149,6 +149,7 @@ pub(crate) enum ScriptThreadEventCategory {
     PerformanceTimelineTask,
     #[cfg(feature = "webgpu")]
     WebGPUMsg,
+    WebDriverMsg,
 }
 
 impl From<ScriptThreadEventCategory> for ProfilerCategory {
@@ -197,6 +198,7 @@ impl From<ScriptThreadEventCategory> for ProfilerCategory {
             ScriptThreadEventCategory::WorkletEvent => ProfilerCategory::ScriptWorkletEvent,
             #[cfg(feature = "webgpu")]
             ScriptThreadEventCategory::WebGPUMsg => ProfilerCategory::ScriptWebGPUMsg,
+            ScriptThreadEventCategory::WebDriverMsg => ProfilerCategory::ScriptWebDriverMsg,
         }
     }
 }
@@ -247,6 +249,7 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
             ScriptThreadEventCategory::PortMessage => ScriptHangAnnotation::PortMessage,
             #[cfg(feature = "webgpu")]
             ScriptThreadEventCategory::WebGPUMsg => ScriptHangAnnotation::WebGPUMsg,
+            ScriptThreadEventCategory::WebDriverMsg => ScriptHangAnnotation::WebDriverMsg,
         }
     }
 }
@@ -559,8 +562,8 @@ unsafe extern "C" fn content_security_policy_allows(
         let csp_list = global.get_csp_list();
 
         // If we don't have any CSP checks to run, short-circuit all logic here
-        allowed = csp_list.is_none() ||
-            match runtime_code {
+        allowed = csp_list.is_none()
+            || match runtime_code {
                 RuntimeCode::JS => {
                     let parameter_strings = unsafe { Handle::from_raw(parameter_strings) };
                     let parameter_strings_length = parameter_strings.len();

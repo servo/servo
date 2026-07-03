@@ -107,6 +107,8 @@ use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
+use webdriver_traits::bidi::script::{BaseRealmInfo, RealmInfo, WindowRealmInfo};
+use webdriver_traits::messages::{ScriptToWebDriverMessage, WebDriverToScriptMessage};
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 
@@ -161,7 +163,11 @@ use crate::script_runtime::{
 };
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_queue::TaskQueue;
-use crate::webdriver_handlers::jsval_to_webdriver;
+use crate::webdriver_handlers::{
+    handle_webdriver_bidi_script_call_function, handle_webdriver_bidi_script_disown,
+    handle_webdriver_bidi_script_evaluate, jsval_to_webdriver, notify_webdriver_realm_destroyed,
+    run_webdriver_preload_script,
+};
 use crate::{devtools, webdriver_handlers};
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
@@ -789,6 +795,7 @@ impl ScriptThread {
                         mem_profiler_chan: script_thread.senders.memory_profiler_sender.clone(),
                         time_profiler_chan: script_thread.senders.time_profiler_sender.clone(),
                         devtools_chan: script_thread.senders.devtools_server_sender.clone(),
+                        webdriver_chan: script_thread.senders.webdriver_sender.clone(),
                         script_to_constellation_sender: script_thread
                             .senders
                             .pipeline_to_constellation_sender
@@ -917,6 +924,10 @@ impl ScriptThread {
         let (ipc_devtools_sender, ipc_devtools_receiver) = generic_channel::channel().unwrap();
         let devtools_server_receiver = ipc_devtools_receiver.route_preserving_errors();
 
+        let webdriver_sender = state.webdriver_sender;
+        let (ipc_webdriver_sender, ipc_webdriver_receiver) = generic_channel::channel().unwrap();
+        let webdriver_receiver = ipc_webdriver_receiver.route_preserving_errors();
+
         let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
 
         let closing = Arc::new(AtomicBool::new(false));
@@ -940,6 +951,7 @@ impl ScriptThread {
             constellation_receiver,
             image_cache_receiver,
             devtools_server_receiver,
+            webdriver_receiver,
             // Initialized to `never` until WebGPU is initialized.
             #[cfg(feature = "webgpu")]
             webgpu_receiver: RefCell::new(crossbeam_channel::never()),
@@ -958,6 +970,8 @@ impl ScriptThread {
             memory_profiler_sender: state.memory_profiler_sender,
             devtools_server_sender,
             devtools_client_to_script_thread_sender: ipc_devtools_sender,
+            webdriver_sender,
+            webdriver_to_script_thread_sender: ipc_webdriver_sender,
         };
 
         let microtask_queue = runtime.microtask_queue.clone();
@@ -1330,10 +1344,10 @@ impl ScriptThread {
             .iter()
             .any(|(_, document)| document.needs_rendering_update());
         let running_animations = self.documents.borrow().iter().any(|(_, document)| {
-            document.is_fully_active() &&
-                !document.window().throttled() &&
-                (document.animations().running_animation_count() != 0 ||
-                    document.has_active_request_animation_frame_callbacks())
+            document.is_fully_active()
+                && !document.window().throttled()
+                && (document.animations().running_animation_count() != 0
+                    || document.has_active_request_animation_frame_callbacks())
         });
 
         // If we are not running animations and no rendering update is
@@ -1518,6 +1532,9 @@ impl ScriptThread {
                         self.handle_msg_from_webgpu_server(inner_msg, cx)
                     },
                     MixedMessage::TimerFired => {},
+                    MixedMessage::FromWebDriver(inner_msg) => {
+                        self.handle_msg_from_webdriver(inner_msg, cx);
+                    },
                 }
 
                 false
@@ -1581,6 +1598,7 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(_) => ScriptThreadEventCategory::WebGPUMsg,
             MixedMessage::TimerFired => ScriptThreadEventCategory::TimerEvent,
+            MixedMessage::FromWebDriver(_) => ScriptThreadEventCategory::WebDriverMsg,
         }
     }
 
@@ -1744,15 +1762,18 @@ impl ScriptThread {
                 ScriptThreadEventCategory::WebGPUMsg => {
                     time_profile!(ProfilerCategory::ScriptWebGPUMsg, None, profiler_chan, f)
                 },
+                ScriptThreadEventCategory::WebDriverMsg => {
+                    time_profile!(ProfilerCategory::ScriptWebDriverMsg, None, profiler_chan, f)
+                },
             }
         } else {
             f()
         };
         let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
-            if let Some(pipeline_id) = pipeline_id &&
-                pipeline_id == doc_id &&
-                task_duration.as_nanos() > MAX_TASK_NS
+            if let Some(pipeline_id) = pipeline_id
+                && pipeline_id == doc_id
+                && task_duration.as_nanos() > MAX_TASK_NS
             {
                 if opts::get()
                     .debug
@@ -1933,9 +1954,9 @@ impl ScriptThread {
                     document.handle_no_longer_waiting_on_asynchronous_image_updates();
                 }
             },
-            msg @ ScriptThreadMessage::SpawnPipeline(..) |
-            msg @ ScriptThreadMessage::ExitFullScreen(..) |
-            msg @ ScriptThreadMessage::ExitScriptThread => {
+            msg @ ScriptThreadMessage::SpawnPipeline(..)
+            | msg @ ScriptThreadMessage::ExitFullScreen(..)
+            | msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
@@ -2309,6 +2330,50 @@ impl ScriptThread {
             DevtoolScriptControlMsg::Unblackbox(spidermonkey_id, coverage) => {
                 self.debugger_global
                     .fire_unblackbox(cx, spidermonkey_id, coverage);
+            },
+        }
+    }
+
+    fn handle_msg_from_webdriver(
+        &self,
+        msg: WebDriverToScriptMessage,
+        cx: &mut js::context::JSContext,
+    ) {
+        match msg {
+            WebDriverToScriptMessage::Disown(resume_id, realm_id, handles) => {
+                if let Some(window) = self.documents.borrow().find_window_by_realm(realm_id) {
+                    handle_webdriver_bidi_script_disown(
+                        window.as_global_scope(),
+                        resume_id,
+                        handles,
+                    );
+                }
+            },
+            WebDriverToScriptMessage::Evaluate(resume_id, realm_id, body) => {
+                if let Some(window) = self.documents.borrow().find_window_by_realm(realm_id) {
+                    let global_scope = window.as_global_scope();
+                    handle_webdriver_bidi_script_evaluate(cx, global_scope, resume_id, body);
+                }
+            },
+            WebDriverToScriptMessage::CallFunction(resume_id, realm_id, body) => {
+                if let Some(window) = self.documents.borrow().find_window_by_realm(realm_id) {
+                    let global_scope = window.as_global_scope();
+                    handle_webdriver_bidi_script_call_function(cx, global_scope, resume_id, body);
+                }
+            },
+            WebDriverToScriptMessage::AddPreloadScripts(realm_id, preload_scripts) => {
+                if let Some(window) = self.documents.borrow().find_window_by_realm(realm_id) {
+                    for (preload_script_id, preload_script_body) in preload_scripts {
+                        window.add_preload_scripts(preload_script_id, preload_script_body);
+                    }
+                }
+            },
+            WebDriverToScriptMessage::RemovePreloadScripts(realm_id, preload_scripts) => {
+                if let Some(window) = self.documents.borrow().find_window_by_realm(realm_id) {
+                    for preload_script_id in preload_scripts {
+                        window.remove_preload_scripts(preload_script_id);
+                    }
+                }
             },
         }
     }
@@ -3232,6 +3297,8 @@ impl ScriptThread {
 
             debug!("{pipeline_id}: Clearing JavaScript runtime");
             window.clear_js_runtime();
+
+            notify_webdriver_realm_destroyed(window.as_global_scope());
         }
 
         // Prevent any further work for this Pipeline.
@@ -3468,6 +3535,7 @@ impl ScriptThread {
             self.senders.memory_profiler_sender.clone(),
             self.senders.time_profiler_sender.clone(),
             self.senders.devtools_server_sender.clone(),
+            self.senders.webdriver_sender.clone(),
             self.senders.pipeline_to_constellation_sender.clone(),
             self.senders.pipeline_to_embedder_sender.clone(),
             self.senders.constellation_sender.clone(),
@@ -3562,7 +3630,7 @@ impl ScriptThread {
             HasBrowsingContext::Yes,
             Some(final_url.clone()),
             incomplete.load_data.about_base_url,
-            origin,
+            origin.clone(),
             is_html_document,
             content_type,
             last_modified,
@@ -3667,6 +3735,31 @@ impl ScriptThread {
                 incomplete.webview_id,
             ),
         );
+
+        // notify webdriver realm started
+        if let Some(webdriver_sender) = &self.senders.webdriver_sender {
+            if let Err(err) = webdriver_sender.send(ScriptToWebDriverMessage::RealmCreated(
+                RealmInfo::Window(WindowRealmInfo {
+                    base: BaseRealmInfo {
+                        realm: window.upcast::<GlobalScope>().realm_id(),
+                        origin: origin.immutable().ascii_serialization(),
+                    },
+                    context: incomplete.browsing_context_id,
+                    user_context: None,
+                    sandbox: None,
+                }),
+                is_top_level_global,
+                Some(incomplete.webview_id),
+                self.senders.webdriver_to_script_thread_sender.clone(),
+            )) {
+                warn!("Sending RealmCreated event to webdriver failed ({err:?})");
+            }
+        }
+
+        // run preload scripts
+        for preload_script in window.preload_scripts() {
+            run_webdriver_preload_script(&mut cx.current_realm(), &window, preload_script);
+        }
 
         document.set_navigation_start(incomplete.navigation_start);
 
@@ -3983,8 +4076,8 @@ impl ScriptThread {
             // we need to register an iframe entry to the performance timeline if present
             if let Some(window_proxy) = context
                 .get_document()
-                .and_then(|document| document.browsing_context()) &&
-                let Some(frame_element) = window_proxy.frame_element()
+                .and_then(|document| document.browsing_context())
+                && let Some(frame_element) = window_proxy.frame_element()
             {
                 let iframe_ctx = IframeContext::new(
                     frame_element
@@ -4187,8 +4280,8 @@ impl ScriptThread {
             return;
         };
 
-        if let Some(window) = self.documents.borrow().find_window(pipeline_id) &&
-            window.live_devtools_updates()
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id)
+            && window.live_devtools_updates()
         {
             let css_error = CSSError {
                 filename,

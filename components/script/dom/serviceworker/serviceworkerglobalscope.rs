@@ -21,7 +21,9 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
 use rand::random;
-use servo_base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
+use servo_base::generic_channel::{
+    self, GenericReceiver, GenericSend, GenericSender, RoutedReceiver,
+};
 use servo_base::id::{PipelineId, ServiceWorkerId};
 use servo_config::pref;
 use servo_constellation_traits::{
@@ -29,6 +31,8 @@ use servo_constellation_traits::{
 };
 use servo_url::ServoUrl;
 use style::thread_state::{self, ThreadState};
+use webdriver_traits::bidi::script::{BaseRealmInfo, RealmInfo, ServiceWorkerRealmInfo};
+use webdriver_traits::messages::{ScriptToWebDriverMessage, WebDriverToScriptMessage};
 
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
@@ -63,6 +67,7 @@ use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
+use crate::webdriver_handlers::notify_webdriver_realm_destroyed;
 
 /// Messages used to control service worker event loop
 pub(crate) enum ServiceWorkerScriptMsg {
@@ -147,6 +152,7 @@ pub(crate) enum ServiceWorkerControlMsg {
 pub(crate) enum MixedMessage {
     ServiceWorker(ServiceWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
+    WebDriver(WebDriverToScriptMessage),
     Control(ServiceWorkerControlMsg),
     Timer,
 }
@@ -221,6 +227,10 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         MixedMessage::Devtools(msg)
     }
 
+    fn from_webdriver_msg(msg: WebDriverToScriptMessage) -> MixedMessage {
+        MixedMessage::WebDriver(msg)
+    }
+
     fn from_timer_msg() -> MixedMessage {
         MixedMessage::Timer
     }
@@ -236,6 +246,7 @@ impl ServiceWorkerGlobalScope {
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
         from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        from_webdriver_receiver: RoutedReceiver<WebDriverToScriptMessage>,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -255,6 +266,7 @@ impl ServiceWorkerGlobalScope {
                 worker_url,
                 runtime,
                 from_devtools_receiver,
+                from_webdriver_receiver,
                 closing,
                 #[cfg(feature = "webgpu")]
                 Arc::new(IdentityHub::default()),
@@ -278,6 +290,7 @@ impl ServiceWorkerGlobalScope {
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
         from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        from_webdriver_receiver: RoutedReceiver<WebDriverToScriptMessage>,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -295,6 +308,7 @@ impl ServiceWorkerGlobalScope {
             init,
             worker_url,
             from_devtools_receiver,
+            from_webdriver_receiver,
             runtime,
             own_sender,
             receiver,
@@ -383,12 +397,16 @@ impl ServiceWorkerGlobalScope {
 
                 let devtools_mpsc_port = devtools_receiver.route_preserving_errors();
 
+                let (webdriver_sender, webdriver_receiver) = generic_channel::channel().unwrap();
+                let webdriver_mpsc_port = webdriver_receiver.route_preserving_errors();
+
                 let resource_threads_sender = init.resource_threads.sender();
                 let devtools_enabled = init.to_devtools_sender.is_some();
                 let global = ServiceWorkerGlobalScope::new(
                     init,
                     script_url.clone(),
                     devtools_mpsc_port,
+                    webdriver_mpsc_port,
                     runtime,
                     own_sender,
                     receiver,
@@ -413,6 +431,24 @@ impl ServiceWorkerGlobalScope {
                         pipeline_id,
                         Some(worker_scope.worker_id()),
                     );
+                }
+
+                if let Some(to_webdriver_sender) = global_scope.webdriver_chan() {
+                    if let Err(err) =
+                        to_webdriver_sender.send(ScriptToWebDriverMessage::RealmCreated(
+                            RealmInfo::ServiceWorker(ServiceWorkerRealmInfo {
+                                base: BaseRealmInfo {
+                                    realm: global_scope.realm_id(),
+                                    origin: origin.ascii_serialization(),
+                                },
+                            }),
+                            false,
+                            None,
+                            webdriver_sender,
+                        ))
+                    {
+                        warn!("Sending RealmCreated event to webdriver failed ({err:?})");
+                    }
                 }
 
                 let referrer = referrer_url
@@ -494,6 +530,8 @@ impl ServiceWorkerGlobalScope {
                 );
 
                 worker_scope.clear_js_runtime();
+
+                notify_webdriver_realm_destroyed(global_scope);
             })
             .expect("Thread spawning failed")
     }
@@ -503,6 +541,9 @@ impl ServiceWorkerGlobalScope {
             MixedMessage::Devtools(msg) => self
                 .upcast::<WorkerGlobalScope>()
                 .handle_devtools_message(msg, cx),
+            MixedMessage::WebDriver(msg) => self
+                .upcast::<WorkerGlobalScope>()
+                .handle_webdriver_message(msg, cx),
             MixedMessage::ServiceWorker(msg) => {
                 self.handle_script_event(msg, cx);
             },

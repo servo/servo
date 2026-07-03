@@ -46,6 +46,7 @@ pub enum ScriptHangAnnotation {
     PerformanceTimelineTask,
     PortMessage,
     WebGPUMsg,
+    WebDriverMsg,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]

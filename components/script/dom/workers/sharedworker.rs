@@ -74,10 +74,10 @@ impl SharedWorkerKey {
         constructor_url: &ServoUrl,
         name: &str,
     ) -> bool {
-        self.storage_key == *storage_key &&
-            self.constructor_origin == *constructor_origin &&
-            self.constructor_url == *constructor_url &&
-            self.name == name
+        self.storage_key == *storage_key
+            && self.constructor_origin == *constructor_origin
+            && self.constructor_url == *constructor_url
+            && self.name == name
     }
 }
 
@@ -493,9 +493,9 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
                 // workerGlobalScope's type is not equal to options["type"];
                 // workerGlobalScope's credentials is not equal to options["credentials"]; or
                 // workerGlobalScope's extended lifetime is not equal to options["extendedLifetime"],
-                if registration.worker_type != worker_type ||
-                    registration.credentials != credentials ||
-                    registration.extended_lifetime != extended_lifetime
+                if registration.worker_type != worker_type
+                    || registration.credentials != credentials
+                    || registration.extended_lifetime != extended_lifetime
                 {
                     // Step 11.4.1. Queue a global task on the DOM manipulation task source given worker's relevant global object to fire an event named error at worker.
                     SharedWorker::queue_simple_error(global, worker_addr);

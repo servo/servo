@@ -1,0 +1,22 @@
+[package]
+name = "servo-webdriver-traits"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+description.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "webdriver_traits"
+path = "lib.rs"
+
+[dependencies]
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+servo-base = { workspace = true }
+uuid = { workspace = true }

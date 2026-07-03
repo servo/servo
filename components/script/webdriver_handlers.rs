@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::ffi::CString;
-use std::ptr::NonNull;
+use std::ffi::{CStr, CString};
+use std::ops::ControlFlow;
+use std::ptr::{self, NonNull, null_mut};
+use std::rc::Rc;
 
 use cookie::Cookie;
 use embedder_traits::{
@@ -16,28 +19,67 @@ use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use js::context::JSContext;
 use js::conversions::{FromJSValConvertible, jsstr_to_string};
-use js::jsapi::{HandleValueArray, JSITER_OWNONLY, JSType, PropertyDescriptor};
-use js::jsval::UndefinedValue;
+use js::error::throw_type_error;
+use js::gc::{MutableHandleValue, RootedVec};
+use js::glue::IsProxyHandlerFamily;
+use js::jsapi::{
+    CallArgs, ESClass, GetFunctionNativeReserved, HandleValueArray, IdentifyStandardPrototype,
+    IsArrayBufferObject, IsCallable, IsWeakMapObject, IsWindowProxy, JS_GetFunctionObject,
+    JS_IsTypedArrayObject, JSITER_OWNONLY, JSObject, JSProtoKey, JSType, PropertyDescriptor,
+    SetFunctionNativeReserved, ToWindowIfWindowProxy, Value,
+};
+use js::jsval::{self, NullValue, ObjectValue, UndefinedValue};
+use js::panic::{maybe_resume_unwind, wrap_panic};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
-    GetPropertyKeys, JS_CallFunctionName, JS_GetOwnPropertyDescriptorById, JS_GetProperty,
-    JS_GetPropertyById, JS_HasOwnProperty, JS_IsExceptionPending, JS_TypeOfValue,
+    BigIntToString, Call, Compile1, Construct1, GetBuiltinClass, GetPropertyKeys, IsArray,
+    IsPromiseObject, JS_CallFunctionName, JS_DefineProperty, JS_GetClassObject, JS_GetElement,
+    JS_GetOwnPropertyDescriptorById, JS_GetProperty, JS_GetPropertyById, JS_GetPrototype,
+    JS_HasOwnProperty, JS_IsExceptionPending, JS_NewPlainObject, JS_NewStringCopyUTF8N,
+    JS_TypeOfValue, NewArrayObject, NewFunctionWithReserved, ObjectIsDate, ObjectIsRegExp,
+    ReportErrorASCII, ToBigInt,
 };
-use js::rust::{HandleObject, HandleValue, IdVector, ToString};
+use js::rust::{
+    HandleObject, HandleValue, IdVector, ToString, error_info_from_exception_stack, for_of,
+    transform_str_to_source_text,
+};
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{DeleteCookie, DeleteCookies, GetCookiesForUrl, SetCookieForUrl};
-use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
-use script_bindings::conversions::is_array_like;
+use script_bindings::callback::ThisReflector;
+use script_bindings::codegen::GenericBindings::ShadowRootBinding::{
+    ShadowRootMethods, ShadowRootMode,
+};
+use script_bindings::conversions::{get_dom_class, is_array_like};
 use script_bindings::num::Finite;
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
+use servo_url::ServoUrl;
 use webdriver::error::ErrorStatus;
+use webdriver_traits::bidi::script::{
+    ArrayBufferRemoteValue, ArrayRemoteValue, BigIntValue, BooleanValue, ChannelProperties,
+    ChannelValue, DateLocalValue, DateRemoteValue, ErrorRemoteValue, ExceptionDetails,
+    FunctionRemoteValue, GeneratorRemoteValue, HtmlCollectionRemoteValue, IncludeShadowTree,
+    ListLocalValue, LocalValue, LocalValueOrText, MapRemoteValue, MappingLocalValue,
+    NodeListRemoteValue, NodeProperties, NodeRemoteValue, NumberValue, NumberValueKind,
+    ObjectRemoteValue, PrimitiveProtocolValue, PromiseRemoteValue, ProxyRemoteValue,
+    RegExpLocalValue, RegExpRemoteValue, RegExpValue, RemoteObjectReference, RemoteReference,
+    RemoteValue, RemoteValueOrText, ResultOwnership, SerializationOptions, SetRemoteValue,
+    SharedId, SharedReference, SpecialNumber, StackTrace, StringValue, SymbolRemoteValue,
+    TypedArrayRemoteValue, WeakMapRemoteValue, WeakSetRemoteValue, WindowProxyProperties,
+    WindowProxyRemoteValue,
+};
+use webdriver_traits::bidi::{ErrorCode, script};
+use webdriver_traits::ids::{HandleId, InternalId, ResumeId};
+use webdriver_traits::messages::{
+    CallFunctionBody, EvaluateBody, EvaluationResultBody, MessageBody, PreloadScriptBody,
+    ScriptToWebDriverMessage,
+};
 
 use crate::DomTypeHolder;
 use crate::document_collection::DocumentCollection;
-use crate::dom::attr::is_boolean_attribute;
+use crate::dom::attr::{Attr, is_boolean_attribute};
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -61,7 +103,7 @@ use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
 use crate::dom::bindings::codegen::UnionTypes::BooleanOrScrollIntoViewOptions;
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, get_property, get_property_jsval, jsid_to_string,
-    root_from_object,
+    root_from_handleobject, root_from_object,
 };
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -87,11 +129,13 @@ use crate::dom::input_element::input_type::InputType;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
-use crate::dom::types::ShadowRoot;
+use crate::dom::script_execution::{ErrorReporting, evaluate_script, fill_compile_options};
+use crate::dom::types::{HTMLCollection, ShadowRoot};
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::enter_auto_realm;
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -152,8 +196,8 @@ pub(crate) fn handle_get_known_window(
                 .map_or(Err(ErrorStatus::NoSuchWindow), |window| {
                     let window_proxy = window.window_proxy();
                     // Step 3-4: Window must be top level browsing context.
-                    if window_proxy.browsing_context_id() != window_proxy.webview_id() ||
-                        window_proxy.webview_id().to_string() != webview_id
+                    if window_proxy.browsing_context_id() != window_proxy.webview_id()
+                        || window_proxy.webview_id().to_string() != webview_id
                     {
                         Err(ErrorStatus::NoSuchWindow)
                     } else {
@@ -200,8 +244,8 @@ fn get_known_shadow_root(
 
     // Step 3. If node is not null and node does not implement ShadowRoot
     // return error with error code no such shadow root.
-    if let Some(ref node) = node &&
-        !node.is::<ShadowRoot>()
+    if let Some(ref node) = node
+        && !node.is::<ShadowRoot>()
     {
         return Err(ErrorStatus::NoSuchShadowRoot);
     }
@@ -254,8 +298,8 @@ fn get_known_element(
 
     // Step 3. If node is not null and node does not implement Element
     // return error with error code no such element.
-    if let Some(ref node) = node &&
-        !node.is::<Element>()
+    if let Some(ref node) = node
+        && !node.is::<Element>()
     {
         return Err(ErrorStatus::NoSuchElement);
     }
@@ -507,8 +551,8 @@ fn clone_an_object(
     // Step 2. Append value to `seen`.
     seen.insert(hashable.clone());
 
-    let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
-        is_arguments_object(cx, val)
+    let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val)
+        || is_arguments_object(cx, val)
     {
         let mut result: Vec<JSValue> = Vec::new();
 
@@ -1781,24 +1825,24 @@ pub(crate) fn handle_get_url(
 /// <https://w3c.github.io/webdriver/#dfn-mutable-form-control-element>
 fn element_is_mutable_form_control(element: &Element) -> bool {
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-        input_element.is_mutable() &&
-            matches!(
+        input_element.is_mutable()
+            && matches!(
                 *input_element.input_type(),
-                InputType::Text(_) |
-                    InputType::Search(_) |
-                    InputType::Url(_) |
-                    InputType::Tel(_) |
-                    InputType::Email(_) |
-                    InputType::Password(_) |
-                    InputType::Date(_) |
-                    InputType::Month(_) |
-                    InputType::Week(_) |
-                    InputType::Time(_) |
-                    InputType::DatetimeLocal(_) |
-                    InputType::Number(_) |
-                    InputType::Range(_) |
-                    InputType::Color(_) |
-                    InputType::File(_)
+                InputType::Text(_)
+                    | InputType::Search(_)
+                    | InputType::Url(_)
+                    | InputType::Tel(_)
+                    | InputType::Email(_)
+                    | InputType::Password(_)
+                    | InputType::Date(_)
+                    | InputType::Month(_)
+                    | InputType::Week(_)
+                    | InputType::Time(_)
+                    | InputType::DatetimeLocal(_)
+                    | InputType::Number(_)
+                    | InputType::Range(_)
+                    | InputType::Color(_)
+                    | InputType::File(_)
             )
     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
         textarea_element.is_mutable()
@@ -1820,8 +1864,8 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
             if input_element.Value().is_empty() {
                 return Ok(());
             }
-        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() &&
-            textarea_element.Value().is_empty()
+        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>()
+            && textarea_element.Value().is_empty()
         {
             return Ok(());
         }
@@ -1944,8 +1988,8 @@ pub(crate) fn handle_element_click(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 // Step 4. If the element is an input element in the file upload state
                 // return error with error code invalid argument.
-                if let Some(input_element) = element.downcast::<HTMLInputElement>() &&
-                    matches!(*input_element.input_type(), InputType::File(_))
+                if let Some(input_element) = element.downcast::<HTMLInputElement>()
+                    && matches!(*input_element.input_type(), InputType::File(_))
                 {
                     return Err(ErrorStatus::InvalidArgument);
                 }
@@ -2188,5 +2232,2182 @@ pub(crate) fn set_protocol_handler_automation_mode(
 ) {
     if let Some(document) = documents.find_document(pipeline) {
         document.set_protocol_handler_automation_mode(mode);
+    }
+}
+
+/// <https://www.w3.org/TR/webdriver-bidi/#run-webdriver-bidi-preload-scripts>.
+/// Starting from 5.1.5
+#[expect(unsafe_code)]
+pub(crate) fn run_webdriver_preload_script(
+    cx: &mut CurrentRealm,
+    window: &Window,
+    preload_script: Rc<PreloadScriptBody>,
+) {
+    let global_scope = window.upcast::<GlobalScope>();
+    // Step 5.1.5.
+    let arguments = &preload_script.arguments;
+    // Step 5.1.6.
+    rooted_vec!(let mut deserialized_arguments);
+    // Step 5.1.7. create channel for each
+    for argument in arguments {
+        // Step 5.1.7.1
+        rooted!(&in(cx) let mut channel = UndefinedValue());
+        if let Err(_err) = create_a_channel(cx, argument, channel.handle_mut()) {
+            report_pending_exception(cx);
+            return;
+        }
+        // Step 5.1.7.2
+        deserialized_arguments.push(channel.get());
+    }
+
+    // Step 5.1.{8,9}.
+    let base_url = global_scope.api_base_url();
+    let options = ScriptFetchOptions::default_classic_script();
+
+    // Step 5.1.10
+    let function_declaration = &preload_script.function_declaration;
+
+    // Step 5.1.11.
+    rooted!(&in(cx) let mut function_val = UndefinedValue());
+    let function_body_evaluation_status = evaluate_function_body(
+        cx,
+        global_scope,
+        base_url,
+        options,
+        function_declaration,
+        // Step 5.1.13.
+        function_val.handle_mut(),
+    );
+
+    // Step 5.1.12. if is abrupt
+    if !function_body_evaluation_status {
+        report_pending_exception(cx);
+        return;
+    }
+    // Step 5.1.14.
+    if function_val.is_object()
+        && let function_obj = function_val.to_object()
+        && unsafe { IsCallable(function_obj) }
+    {
+    } else {
+        unsafe { throw_type_error(cx.raw_cx(), c"preload script is not an function") };
+        return;
+    };
+
+    let mut evaluation_status = false;
+    rooted!(&in(cx) let mut value = UndefinedValue());
+
+    // Step 5.1.{15,17}.
+    run_a_script::<DomTypeHolder, _, _>(cx, global_scope, |cx| {
+        rooted!(&in(cx) let this = UndefinedValue());
+        // Step 5.1.16.
+        evaluation_status = unsafe {
+            Call(
+                cx.as_mut(),
+                this.handle(),
+                function_val.handle(),
+                &(&deserialized_arguments).into(),
+                value.handle_mut(),
+            )
+        };
+    });
+    // Step 5.1.18.
+    if evaluation_status {
+        report_pending_exception(cx);
+    }
+}
+
+/// Part of <https://www.w3.org/TR/webdriver-bidi/#command-script-disown>.
+pub(crate) fn handle_webdriver_bidi_script_disown(
+    global_scope: &GlobalScope,
+    resume_id: ResumeId,
+    handles: Vec<HandleId>,
+) {
+    // Step 3.
+    for handle in handles {
+        global_scope.disown_handle(&handle);
+    }
+    // Step 4.
+    if let Some(chan) = global_scope.webdriver_chan()
+        && let Err(err) = chan.send(ScriptToWebDriverMessage::Disowned(resume_id))
+    {
+        warn!("Sending disown response to webdriver failed ({err:?})");
+    }
+}
+
+/// Part of <https://www.w3.org/TR/webdriver-bidi/#command-script-evaluate>.
+#[expect(unsafe_code)]
+pub(crate) fn handle_webdriver_bidi_script_evaluate(
+    cx: &mut JSContext,
+    global_scope: &GlobalScope,
+    resume_id: ResumeId,
+    body: EvaluateBody,
+) {
+    let mut realm = enter_auto_realm(cx, global_scope);
+    let cx = &mut realm.current_realm();
+
+    let send_error = |err| {
+        _ = global_scope
+            .webdriver_chan()
+            .as_ref()
+            .unwrap()
+            .send(ScriptToWebDriverMessage::Evaluated(resume_id, Err(err)));
+    };
+
+    // Step 3. skip abstract step
+
+    // Step {4,5,6,7}.
+    let source = body.expression;
+    let await_promise = body.await_promise;
+    let serialization_options = body.serialization_options;
+    let result_ownership = body.result_ownership;
+
+    // Step 8. default script fetch options
+    let options = ScriptFetchOptions::default_classic_script();
+    // Step 9. api base url
+    let base_url = global_scope.api_base_url();
+    // Step 10. not used in compile args
+    let _bypass_disabled_scripting = true;
+
+    // Step 11. create a classic script.
+    let mut source = transform_str_to_source_text(&source);
+    let compile_options = fill_compile_options(cx, "", None, ErrorReporting::Unmuted, false, 1);
+    rooted!(&in(cx) let script = unsafe { Compile1(cx, compile_options.ptr, &mut source) });
+    let Some(script) = NonNull::new(*script) else {
+        debug!("error compiling Dom string");
+        report_pending_exception(cx);
+
+        send_error(ErrorCode::UnknownError);
+        return;
+    };
+
+    let mut evaluation_status = false;
+    rooted!(&in(cx) let mut value = UndefinedValue());
+
+    // Step {13,16}. prepare and cleanup
+    run_a_script::<DomTypeHolder, _, _>(cx, global_scope, |cx| {
+        // Step 14. script evaluation
+        evaluation_status = evaluate_script(cx, script, base_url, options, value.handle_mut());
+        // Step 15. maybe await promise
+        if evaluation_status && await_promise {
+            // TODO: and check if is promise
+            // NOTE: await should not be handled here, pending instead
+        }
+
+        maybe_resume_unwind();
+    });
+
+    // Step 17. if throw
+    if !evaluation_status {
+        // Step 17.1. get exception details
+        let exception_details = get_exception_details(cx, evaluation_status, result_ownership);
+        report_pending_exception(cx);
+        // Step 17.2. return
+        _ = global_scope.webdriver_chan().as_ref().unwrap().send(
+            ScriptToWebDriverMessage::Evaluated(
+                resume_id,
+                exception_details.map(EvaluationResultBody::Exception),
+            ),
+        );
+    }
+
+    // Step 18. assert normal
+    debug_assert!(evaluation_status);
+    // Step 19. serialize
+    let result =
+        serialize_as_a_remote_value(cx, value.handle(), serialization_options, result_ownership);
+    report_pending_exception(cx);
+    // Step 20. return
+    _ = global_scope
+        .webdriver_chan()
+        .as_ref()
+        .unwrap()
+        .send(ScriptToWebDriverMessage::Evaluated(
+            resume_id,
+            result.map(EvaluationResultBody::Success),
+        ));
+}
+
+/// Part of <https://www.w3.org/TR/webdriver-bidi/#command-script-callFunction>.
+#[expect(unsafe_code)]
+pub(crate) fn handle_webdriver_bidi_script_call_function(
+    cx: &mut JSContext,
+    global_scope: &GlobalScope,
+    resume_id: ResumeId,
+    body: CallFunctionBody,
+) {
+    let mut realm = enter_auto_realm(cx, global_scope);
+    let cx = &mut realm.current_realm();
+
+    let send_error = |err| {
+        _ = global_scope
+            .webdriver_chan()
+            .as_ref()
+            .unwrap()
+            .send(ScriptToWebDriverMessage::Evaluated(resume_id, Err(err)));
+    };
+
+    // Step {5,6}. deserialize arguments
+    rooted_vec!(let mut deserialized_arguments);
+    if let Err(err) = deserialize_arguments(cx, body.arguments, &mut deserialized_arguments) {
+        report_pending_exception(cx);
+        send_error(err);
+        return;
+    }
+
+    // Step {7,8,9}. deserialize this
+    rooted!(&in(cx) let mut this_object = UndefinedValue());
+    if let Some(this_parameter) = body.this {
+        if let Err(err) = deserialize_local_value(cx, this_parameter, this_object.handle_mut()) {
+            report_pending_exception(cx);
+            send_error(err);
+            return;
+        }
+    }
+
+    // Step {10,11,12,13}.
+    let function_declaration = body.function_declaration;
+    let await_promise = body.await_promise;
+    let serialization_options = body.serialization_options;
+    let result_ownership = body.result_ownership;
+
+    // Step 14. api base url
+    let base_url = global_scope.api_base_url();
+    // Step 15. default script fetch options
+    let options = ScriptFetchOptions::default_classic_script();
+
+    rooted!(&in(cx) let mut function_val = UndefinedValue());
+    // Step 16. "evaluate function body"
+    let function_body_evaluation_status = evaluate_function_body(
+        cx,
+        global_scope,
+        base_url,
+        options,
+        &function_declaration,
+        function_val.handle_mut(),
+    );
+
+    // Step 17. if is throw
+    if !function_body_evaluation_status {
+        // Step 17.1. "get exception details"
+        let exception_details =
+            get_exception_details(cx, function_body_evaluation_status, result_ownership);
+        report_pending_exception(cx);
+        // Step 17.2. return
+        _ = global_scope.webdriver_chan().as_ref().unwrap().send(
+            ScriptToWebDriverMessage::Evaluated(
+                resume_id,
+                exception_details.map(EvaluationResultBody::Exception),
+            ),
+        );
+    }
+    // Step 18.
+    let function_obj = if function_val.is_object() {
+        function_val.to_object()
+    } else {
+        send_error(ErrorCode::UnknownError);
+        return;
+    };
+    // Step 19. check callable
+    if !unsafe { IsCallable(function_obj) } {
+        // Step 19.1. error "invalid argument"
+        send_error(ErrorCode::InvalidArgument);
+        return;
+    }
+    // Step 20. user activation
+    if body.user_activation {
+        // TODO: run activation notification
+    }
+
+    let mut evaluation_status = false;
+    rooted!(&in(cx) let mut value = UndefinedValue());
+
+    // Step {21,24}. prepare and cleanup
+    run_a_script::<DomTypeHolder, _, _>(cx, global_scope, |cx| {
+        // Step 22. call function
+        evaluation_status = unsafe {
+            Call(
+                cx.as_mut(),
+                this_object.handle(),
+                function_val.handle(),
+                &(&deserialized_arguments).into(),
+                value.handle_mut(),
+            )
+        };
+        // Step 23. maybe await promise
+        if evaluation_status && await_promise {
+            // TODO: await to pend
+        }
+    });
+
+    // Step 25. if throw
+    if !evaluation_status {
+        // Step 25.1. "get exception details"
+        let exception_details =
+            get_exception_details(cx, function_body_evaluation_status, result_ownership);
+        report_pending_exception(cx);
+        // Step 25.2. return
+        _ = global_scope.webdriver_chan().as_ref().unwrap().send(
+            ScriptToWebDriverMessage::Evaluated(
+                resume_id,
+                exception_details.map(EvaluationResultBody::Exception),
+            ),
+        );
+    }
+
+    // Step 26.
+    debug_assert!(evaluation_status);
+    // Step 27. serialize
+    let result =
+        serialize_as_a_remote_value(cx, value.handle(), serialization_options, result_ownership);
+    report_pending_exception(cx);
+    // Step 28. return
+    _ = global_scope
+        .webdriver_chan()
+        .as_ref()
+        .unwrap()
+        .send(ScriptToWebDriverMessage::Evaluated(
+            resume_id,
+            result.map(EvaluationResultBody::Success),
+        ));
+}
+
+/// <https://www.w3.org/TR/webdriver-bidi/#deserialize-arguments>
+fn deserialize_arguments(
+    cx: &mut CurrentRealm,
+    serialized_arguments_list: Vec<LocalValue>,
+    deserialize_arguments_list: &mut RootedVec<Value>,
+) -> Result<(), ErrorCode> {
+    // Step 2.
+    for serialized_argument in serialized_arguments_list {
+        // Step 2.1. deserialize local value
+        rooted!(&in(cx) let mut deserialized_argument = UndefinedValue());
+        deserialize_local_value(cx, serialized_argument, deserialized_argument.handle_mut())?;
+        // Step 2.2. append
+        deserialize_arguments_list.push(deserialized_argument.get());
+    }
+    // Step 3. return success.
+    Ok(())
+}
+
+/// <https://www.w3.org/TR/webdriver-bidi/#evaluate-function-body>
+#[expect(unsafe_code)]
+fn evaluate_function_body(
+    cx: &mut CurrentRealm,
+    global_scope: &GlobalScope,
+    base_url: ServoUrl,
+    options: ScriptFetchOptions,
+    function_declaration: &str,
+    function_rval: MutableHandleValue,
+) -> bool {
+    // Step 1. not used
+    let _bypass_disabled_scripting = true;
+    // Step 2. paren
+    let parenthesized_function_declaration = format!("({function_declaration})");
+
+    // Step 3. create a classic script
+    let mut source = transform_str_to_source_text(&parenthesized_function_declaration);
+    let compile_options = fill_compile_options(cx, "", None, ErrorReporting::Unmuted, false, 1);
+    rooted!(&in(cx) let script = unsafe { Compile1(cx, compile_options.ptr, &mut source) });
+    let Some(script) = NonNull::new(*script) else {
+        debug!("error compiling Dom string");
+        report_pending_exception(cx);
+        return false;
+    };
+
+    let mut function_body_evaluation_status = false;
+
+    // Step {4,6}. prepare and cleanup
+    run_a_script::<DomTypeHolder, _, _>(cx, global_scope, |cx| {
+        // Step 5. ScriptEvaluation
+        function_body_evaluation_status =
+            evaluate_script(cx, script, base_url, options, function_rval);
+
+        maybe_resume_unwind();
+    });
+
+    // Step 7. return
+    function_body_evaluation_status
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#get-exception-details>
+#[expect(unsafe_code)]
+fn get_exception_details(
+    cx: &mut CurrentRealm,
+    record: bool,
+    ownership_type: ResultOwnership,
+) -> Result<ExceptionDetails, ErrorCode> {
+    // Step 1.
+    debug_assert!(!record);
+
+    rooted!(&in(cx) let mut error = UndefinedValue());
+    let error_info =
+        unsafe { error_info_from_exception_stack(cx.raw_cx(), error.handle_mut().into()) }
+            .ok_or(ErrorCode::UnknownError)?;
+
+    // Step 2.
+    let text = error_info.message;
+
+    // Step 3.
+    let serialization_options = SerializationOptions::default();
+
+    // Step 4.
+    let exception =
+        serialize_as_a_remote_value(cx, error.handle(), serialization_options, ownership_type)?;
+
+    // Step 5.
+    // TODO: mozjs does not expose ExceptinStack::stack_, though
+    // we can get it through raw jsapi, it should not be done at this
+    // layer.
+    let stack_trace = StackTrace {
+        call_frames: vec![],
+    };
+
+    // Step 6.
+    let line_number = error_info.line;
+    let column_number = error_info.col;
+
+    // Step 7.
+    let exception_details = ExceptionDetails {
+        column_number,
+        exception,
+        line_number,
+        stack_trace,
+        text,
+    };
+
+    // Step 8.
+    Ok(exception_details)
+}
+
+pub(crate) fn notify_webdriver_realm_destroyed(global_scope: &GlobalScope) {
+    if let Some(sender) = global_scope.webdriver_chan() {
+        if let Err(err) = sender.send(ScriptToWebDriverMessage::RealmDestroyed(
+            global_scope.realm_id(),
+        )) {
+            warn!("Sending RealmDestroyed event to webdriver failed ({err})");
+        }
+    }
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#serialize-as-a-remote-value>
+pub(crate) fn serialize_as_a_remote_value(
+    realm: &mut CurrentRealm,
+    value: HandleValue,
+    serialization_options: SerializationOptions,
+    ownership_type: ResultOwnership,
+) -> Result<RemoteValue, ErrorCode> {
+    serialize_as_a_remote_value_partial(
+        realm,
+        value,
+        serialization_options,
+        ownership_type,
+        &mut Default::default(),
+    )
+    .and_then(|v| v.to_remote_value())
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#serialize-as-a-remote-value>
+#[expect(unsafe_code)]
+fn serialize_as_a_remote_value_partial(
+    cx: &mut CurrentRealm,
+    value: HandleValue,
+    serialization_options: SerializationOptions,
+    ownership_type: ResultOwnership,
+    serialization_internal_map: &mut InternalMap,
+) -> Result<PartialRemoteValue, ErrorCode> {
+    let global = GlobalScope::from_current_realm(cx);
+
+    // Step 1.
+    let remote_value = serialize_primitive_protocol_value(cx, value)?;
+    // Step 2.
+    if let Some(remote_value) = remote_value {
+        return Ok(PartialRemoteValue::PrimitiveProtocol(remote_value));
+    }
+
+    // Step 3. "handle for an object"
+    rooted!(&in(cx) let obj = value.to_object());
+    let handle_id = global.handle_for_an_object(ownership_type, obj.handle().into());
+
+    // Step 4. set ownership type to none
+    let ownership_type = ResultOwnership::None;
+    // Step 5. check known object
+    let known_object = serialization_internal_map.contains_key(&value.get().asBits_);
+
+    // Step 6.
+    let mut cls = ESClass::Object;
+    rooted!(&in(cx) let mut prototype = unsafe { JS_NewPlainObject(cx.as_mut()) });
+    if prototype.is_null() {
+        return Err(ErrorCode::UnknownError);
+    }
+
+    macro_rules! simple_value {
+        ($variant:ident, $ty:ident) => {
+            PartialRemoteValue::$variant(Rc::new(RefCell::new($ty {
+                handle: handle_id,
+                internal_id: None,
+            })))
+        };
+    }
+    macro_rules! array_like_value {
+        ($ty:ident) => {
+            serialize_an_array_like::<$ty>(
+                cx,
+                handle_id,
+                known_object,
+                value,
+                serialization_options,
+                ownership_type,
+                serialization_internal_map,
+            )?
+        };
+    }
+
+    macro_rules! err {
+        () => {
+            return Err(ErrorCode::UnknownError);
+        };
+    }
+
+    let remote_value;
+    'm: {
+        // Step 6.Symbol.
+        if value.is_symbol() {
+            remote_value = simple_value!(Symbol, SymbolRemoteValue);
+            break 'm;
+        }
+
+        // Step 6.Array.
+        let mut is_array = false;
+        if unsafe { IsArray(cx.as_mut(), obj.handle(), &mut is_array) } {
+            if is_array {
+                remote_value = array_like_value!(PartialArrayRemoteValue);
+                break 'm;
+            }
+        } else {
+            err!();
+        }
+
+        // Step 6.RegExp.
+        let mut is_reg_exp = false;
+        if unsafe { ObjectIsRegExp(cx.as_mut(), obj.handle(), &mut is_reg_exp) } {
+            if is_reg_exp {
+                // Step 6.RegExp.1.
+                let pattern = serialize_property_string(cx.as_mut(), obj.handle(), c"source")?
+                    // the spec does not specify how to handle error
+                    .unwrap_or_default();
+                // Step 6.RegExp.2.
+                let flags = serialize_property_string(cx.as_mut(), obj.handle(), c"flags")?;
+                // Step 6.RegExp.3.
+                let serialized = RegExpValue { pattern, flags };
+                // Step 6.RegExp.4.
+                remote_value =
+                    PartialRemoteValue::RegExp(Rc::new(RefCell::new(RegExpRemoteValue {
+                        local: RegExpLocalValue { value: serialized },
+                        handle: handle_id,
+                        internal_id: None,
+                    })));
+                break 'm;
+            }
+        } else {
+            err!();
+        }
+
+        // Step 6.Date.
+        let mut is_date = false;
+        if unsafe { ObjectIsDate(cx.as_mut(), obj.handle(), &mut is_date) } {
+            if is_date {
+                // Step 6.Date.1.
+                let serialized = {
+                    rooted!(&in(cx) let mut out = UndefinedValue());
+                    if unsafe {
+                        JS_CallFunctionName(
+                            cx.as_mut(),
+                            obj.handle(),
+                            c"toISOString".as_ptr(),
+                            &HandleValueArray::empty(),
+                            out.handle_mut(),
+                        )
+                    } {
+                        serialize_string(cx, out.handle())?
+                    } else {
+                        err!();
+                    }
+                };
+                // Step 6.Date.2. skip assert
+                // Step 6.Date.3.
+                remote_value = PartialRemoteValue::Date(Rc::new(RefCell::new(DateRemoteValue {
+                    local: DateLocalValue { value: serialized },
+                    handle: handle_id,
+                    internal_id: None,
+                })));
+                break 'm;
+            };
+        } else {
+            err!();
+        }
+
+        // Step 6.Map.
+        if unsafe { GetBuiltinClass(cx.as_mut(), obj.handle(), &mut cls) } {
+            if cls == ESClass::Map {
+                // Step 6.Map.1.
+                let map_remote_value = Rc::new(RefCell::new(PartialMapRemoteValue {
+                    handle: handle_id,
+                    internal_id: None,
+                    value: None,
+                }));
+
+                // Step 6.Map.2. set internal
+                set_internal_ids_if_needed(
+                    serialization_internal_map,
+                    PartialRemoteValue::Map(map_remote_value.clone()),
+                    value.get(),
+                );
+
+                // Step 6.Map.3.
+                let mut serialized = None;
+                // Step 6.Map.4.
+                if !known_object && serialization_options.max_object_depth != Some(0) {
+                    // Step 6.Set.4.1. "serialize as a mapping"
+                    serialized = Some(serialize_as_a_mapping(
+                        cx,
+                        value,
+                        serialization_options,
+                        ownership_type,
+                        serialization_internal_map,
+                    )?);
+                }
+                // Step 6.Map.5.
+                if serialized.is_some() {
+                    map_remote_value.borrow_mut().value = serialized;
+                }
+                remote_value = PartialRemoteValue::Map(map_remote_value);
+                break 'm;
+            };
+        } else {
+            err!();
+        }
+
+        // Step 6.Set.
+        if unsafe { GetBuiltinClass(cx.as_mut(), obj.handle(), &mut cls) } {
+            if cls == ESClass::Set {
+                // Step 6.Set.1.
+                let set_remote_value = Rc::new(RefCell::new(PartialSetRemoteValue {
+                    handle: handle_id,
+                    internal_id: None,
+                    value: None,
+                }));
+
+                // Step 6.Set.2.
+                set_internal_ids_if_needed(
+                    serialization_internal_map,
+                    PartialRemoteValue::Set(set_remote_value.clone()),
+                    value.get(),
+                );
+
+                // Step 6.Set.3.
+                let mut serialized = None;
+                // Step 6.Set.4.
+                if !known_object && serialization_options.max_object_depth != Some(0) {
+                    // Step 6.Set.4.1. "serialize as a list"
+                    serialized = Some(serialize_as_a_list(
+                        cx,
+                        value,
+                        serialization_options,
+                        ownership_type,
+                        serialization_internal_map,
+                    )?);
+                }
+                // Step 6.Set.5.
+                if serialized.is_some() {
+                    set_remote_value.borrow_mut().value = serialized;
+                }
+                remote_value = PartialRemoteValue::Set(set_remote_value);
+                break 'm;
+            }
+        } else {
+            err!();
+        }
+
+        // Step 6.WeakMap.
+        if unsafe { IsWeakMapObject(obj.get()) } {
+            remote_value = simple_value!(WeakMap, WeakMapRemoteValue);
+            break 'm;
+        }
+
+        // Step 6.WeakSet
+        if unsafe { JS_GetPrototype(cx.as_mut(), obj.handle(), prototype.handle_mut()) } {
+            if unsafe { IdentifyStandardPrototype(prototype.get()) } == JSProtoKey::JSProto_WeakSet
+            {
+                remote_value = simple_value!(WeakSet, WeakSetRemoteValue);
+                break 'm;
+            }
+        } else {
+            err!();
+        }
+
+        // Step 6.Generator.
+        if unsafe { JS_GetPrototype(cx.as_mut(), obj.handle(), prototype.handle_mut()) } {
+            let proto_key = unsafe { IdentifyStandardPrototype(prototype.get()) };
+            if proto_key == JSProtoKey::JSProto_GeneratorFunction
+                || proto_key == JSProtoKey::JSProto_AsyncGeneratorFunction
+            {
+                remote_value = simple_value!(Generator, GeneratorRemoteValue);
+                break 'm;
+            }
+        } else {
+            err!();
+        }
+
+        // Step 6.Error.
+        if unsafe { GetBuiltinClass(cx.as_mut(), obj.handle(), &mut cls) } {
+            if cls == ESClass::Error {
+                remote_value = simple_value!(Error, ErrorRemoteValue);
+                break 'm;
+            };
+        } else {
+            err!();
+        }
+
+        // Step 6.Proxy.
+        if unsafe { IsProxyHandlerFamily(obj.get()) } {
+            remote_value = simple_value!(Proxy, ProxyRemoteValue);
+            break 'm;
+        }
+
+        // Step 6.Promise.
+        if unsafe { IsPromiseObject(obj.handle()) } {
+            remote_value = simple_value!(Promise, PromiseRemoteValue);
+            break 'm;
+        }
+
+        // Step 6.TypedArray.
+        if unsafe { JS_IsTypedArrayObject(obj.get()) } {
+            remote_value = simple_value!(TypedArray, TypedArrayRemoteValue);
+            break 'm;
+        }
+
+        // Step 6.ArrayBuffer.
+        if unsafe { IsArrayBufferObject(obj.get()) } {
+            remote_value = simple_value!(ArrayBuffer, ArrayBufferRemoteValue);
+            break 'm;
+        }
+
+        // Step 6.NodeList.
+        if unsafe { root_from_object::<NodeList>(obj.get(), cx.as_mut().raw_cx()) }.is_ok() {
+            remote_value = array_like_value!(PartialNodeListRemoteValue);
+            break 'm;
+        }
+
+        // Step 6.HTMLCollection.
+        if unsafe { root_from_object::<HTMLCollection>(obj.get(), cx.as_mut().raw_cx()) }.is_ok() {
+            remote_value = array_like_value!(PartialHtmlCollectionRemoteValue);
+            break 'm;
+        }
+
+        // Step 6.Node.
+        if let Ok(node) = root_from_handleobject::<Node>(obj.handle(), unsafe { cx.raw_cx() }) {
+            remote_value = PartialRemoteValue::Node(serialize_node_partial(
+                cx,
+                value.get(),
+                &node,
+                handle_id,
+                serialization_options,
+                ownership_type,
+                serialization_internal_map,
+            )?);
+            break 'm;
+        };
+
+        // Step 6.WindowProxy.
+        if unsafe { IsWindowProxy(obj.get()) } {
+            rooted!(&in(cx) let window = unsafe { ToWindowIfWindowProxy(obj.get()) });
+            if window.is_null() {
+                err!();
+            }
+
+            let window = root_from_handleobject::<Window>(window.handle(), unsafe { cx.raw_cx() })
+                .map_err(|_| ErrorCode::UnknownError)?;
+
+            let navigable_id = BrowsingContextId::from(window.webview_id());
+
+            remote_value =
+                PartialRemoteValue::Window(Rc::new(RefCell::new(WindowProxyRemoteValue {
+                    value: WindowProxyProperties {
+                        context: navigable_id,
+                    },
+                    handle: handle_id,
+                    internal_id: None,
+                })));
+            break 'm;
+        }
+
+        // Step 6.platformobject
+        if unsafe { get_dom_class(obj.get()) }.is_ok() {
+            remote_value =
+                PartialRemoteValue::Object(Rc::new(RefCell::new(PartialObjectRemoteValue {
+                    handle: handle_id,
+                    internal_id: None,
+                    value: None,
+                })));
+            break 'm;
+        }
+
+        // Step 6.Callable.
+        if unsafe { IsCallable(obj.get()) } {
+            remote_value = simple_value!(Function, FunctionRemoteValue);
+            break 'm;
+        }
+
+        // Step 6.Otherwise.
+        // Step 6.Otherwise.1. skip assert
+        // Step 6.Otherwise.2.
+        let obj_remote_value = Rc::new(RefCell::new(PartialObjectRemoteValue {
+            handle: handle_id,
+            internal_id: None,
+            value: None,
+        }));
+
+        // Step 6.Otherwise.3. set internal id
+        set_internal_ids_if_needed(
+            serialization_internal_map,
+            PartialRemoteValue::Object(obj_remote_value.clone()),
+            value.get(),
+        );
+
+        // Step 6.Otherwise.4.
+        let mut serialized = None;
+        // Step 6.Otherwise.5.
+        if !known_object && serialization_options.max_object_depth != Some(0) {
+            // Step 6.Otherwise.5.1. serialize enumerable properties
+            // currently we use Object.entries
+            // XXX: is there internal fn for `EnumerableOwnPropertyNames(value, key+value)`?
+            rooted_vec!(let mut args);
+            args.push(value.get());
+            rooted!(&in(cx) let mut entries = UndefinedValue());
+            constructor_or_static_method(
+                cx,
+                JSProtoKey::JSProto_Object,
+                Some(c"entries"),
+                (&args).into(),
+                entries.handle_mut(),
+            )?;
+            serialized = Some(serialize_as_a_mapping(
+                cx,
+                entries.handle(),
+                serialization_options,
+                ownership_type,
+                serialization_internal_map,
+            )?);
+        }
+        // Step 6.Otherwise.6.
+        if let Some(serialized) = serialized {
+            obj_remote_value.borrow_mut().value = Some(serialized);
+        }
+        remote_value = PartialRemoteValue::Object(obj_remote_value)
+    }
+
+    // Step 7. return
+    Ok(remote_value)
+}
+
+fn serialize_node_partial(
+    realm: &mut CurrentRealm,
+    value: Value,
+    node: &Node,
+    handle_id: Option<HandleId>,
+    serialization_options: SerializationOptions,
+    ownership_type: ResultOwnership,
+    serialization_internal_map: &mut InternalMap,
+) -> Result<Rc<RefCell<PartialNodeRemoteValue>>, ErrorCode> {
+    // Step 6.Node.1.
+    // TODO: shared id, blocked until we implement sandbox
+    let shared_id = None;
+    // Step 6.Node.2.
+    let remote_value = Rc::new(RefCell::new(PartialNodeRemoteValue {
+        shared_id: shared_id,
+        handle: handle_id,
+        internal_id: None,
+        value: None,
+    }));
+
+    // Step 6.Node.3. set internal id
+    set_internal_ids_if_needed(
+        serialization_internal_map,
+        PartialRemoteValue::Node(remote_value.clone()),
+        value,
+    );
+
+    // Step 6.Node.{4,5}. serialize properties
+    let known_object = serialization_internal_map.contains_key(&value.asBits_);
+    if !known_object {
+        // Step 6.Node.5.1.
+        let mut serialized = PartialNodeProperties::default();
+
+        // Step 6.Node.5.2. nodeType
+        serialized.node_type = node.NodeType();
+        // Step 6.Node.5.{3,4}. nodeValue
+        serialized.node_value = node.GetNodeValue().map(String::from);
+
+        // Step 6.Node.5.5.element
+        if let Some(element) = node.downcast::<Element>() {
+            // Step 6.Node.5.5.element.1.
+            serialized.local_name = Some(String::from(&**element.local_name()));
+            // Step 6.Node.5.5.element.2.
+            serialized.namespace_uri = Some(String::from(&**element.namespace()));
+        }
+
+        // Step 6.Node.5.5.attr
+        if let Some(attr) = node.downcast::<Attr>() {
+            // Step 6.Node.5.5.attr.1.
+            serialized.local_name = Some(String::from(&**attr.local_name()));
+            // Step 6.Node.5.5.attr.2.
+            serialized.namespace_uri = Some(String::from(&**attr.namespace()));
+        }
+
+        // Step 6.Node.5.{6,7}. child node count
+        serialized.child_node_count = node.children_count();
+
+        // Step 6.Node.5.8. shadow root
+        let children = if serialization_options.max_dom_depth.unwrap_or_default() == 0
+            || node.is::<ShadowRoot>()
+                && serialization_options
+                    .include_shadow_tree
+                    .unwrap_or_default()
+                    == script::IncludeShadowTree::None
+        {
+            None
+        }
+        // otherwise
+        else {
+            let mut children = vec![];
+            for child in node.children() {
+                // Step 6.Node.5.8.1. clone child serialization options
+                let mut child_serialization_options = serialization_options.clone();
+                // Step 6.Node.5.8.2. sub maxDomDepth
+                if let Some(max_dom_depth) = &mut child_serialization_options.max_dom_depth {
+                    *max_dom_depth = max_dom_depth.saturating_sub(1);
+                }
+
+                // Step 6.Node.5.8.3. serialize child
+                let serialized = serialize_node_partial(
+                    realm,
+                    ObjectValue(child.jsobject()),
+                    &child,
+                    handle_id,
+                    serialization_options.clone(),
+                    ownership_type,
+                    serialization_internal_map,
+                )?;
+
+                // Step 6.Node.5.8.4. append
+                children.push(serialized);
+            }
+            Some(children)
+        };
+
+        // Step 6.Node.5.9.
+        if children.is_some() {
+            serialized.children = children;
+        }
+
+        // Step 6.Node.5.10. if element
+        if let Some(element) = node.downcast::<Element>() {
+            // Step 6.Node.5.10.1.
+            let mut attributes = HashMap::new();
+            // Step 6.Node.5.10.2.
+            for attr in element.attrs().borrow().iter() {
+                // Step 6.Node.5.10.2.1
+                let name = String::from(&**attr.name());
+                // Step 6.Node.5.10.2.2
+                let value = String::from(&**attr.value());
+                // Step 6.Node.5.10.2.3
+                attributes.insert(name, value);
+            }
+
+            // Step 6.Node.5.10.3.
+            serialized.attributes = Some(attributes);
+
+            // Step 6.Node.5.10.4.
+            let shadow_root = element.shadow_root();
+            // Step 6.Node.5.10.5.
+            let serialized_shadow = match shadow_root {
+                None => None,
+                // Step 6.Node.5.10.5.1
+                Some(shadow_root) => {
+                    let shadow_root_node = shadow_root.upcast::<Node>();
+                    Some(serialize_node_partial(
+                        realm,
+                        ObjectValue(shadow_root_node.jsobject()),
+                        node,
+                        handle_id,
+                        serialization_options,
+                        ownership_type,
+                        serialization_internal_map,
+                    )?)
+                },
+            };
+
+            // Step 6.Node.5.10.6.
+            serialized.shadow_root = serialized_shadow;
+        }
+
+        // Step 6.Node.5.11. if shadow root
+        if let Some(shadow_root) = node.downcast::<ShadowRoot>() {
+            serialized.mode = Some(match shadow_root.shadow_root_mode() {
+                ShadowRootMode::Open => script::ShadowRootMode::Open,
+                ShadowRootMode::Closed => script::ShadowRootMode::Closed,
+            });
+        }
+
+        // Step 6.Node.6.
+        remote_value.borrow_mut().value = Some(serialized);
+    }
+    Ok(remote_value)
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#serialize-primitive-protocol-value>.
+#[expect(unsafe_code)]
+fn serialize_primitive_protocol_value(
+    cx: &mut CurrentRealm,
+    value: HandleValue,
+) -> Result<Option<PrimitiveProtocolValue>, ErrorCode> {
+    // Step 1
+    let mut remote_value = None;
+
+    // Step 2.undefined
+    if value.is_undefined() {
+        remote_value = Some(PrimitiveProtocolValue::Undefined);
+    }
+
+    // Step 2.null
+    if value.is_null() {
+        remote_value = Some(PrimitiveProtocolValue::Null);
+    }
+
+    // Step 2.string
+    if value.is_string() {
+        remote_value = Some(
+            serialize_string(cx, value)
+                .map(|s| PrimitiveProtocolValue::String(StringValue { value: s }))?,
+        );
+    }
+
+    // Step 2.number
+    if value.is_number() {
+        let value = value.to_number();
+        // Step 2.number.1.
+        let serialized = match value {
+            v if v.is_nan() => NumberValueKind::SpecialNumber(SpecialNumber::Nan),
+            v if v == 0.0 && v.is_sign_negative() => {
+                NumberValueKind::SpecialNumber(SpecialNumber::NegZero)
+            },
+            f64::INFINITY => NumberValueKind::SpecialNumber(SpecialNumber::Infinity),
+            f64::NEG_INFINITY => NumberValueKind::SpecialNumber(SpecialNumber::NegInfinity),
+            _ => NumberValueKind::Number(value),
+        };
+        // Step 2.number.2.
+        remote_value = Some(PrimitiveProtocolValue::Number(NumberValue {
+            value: serialized,
+        }));
+    }
+
+    // Step 2.boolean
+    if value.is_boolean() {
+        let value = value.to_boolean();
+        remote_value = Some(PrimitiveProtocolValue::Boolean(BooleanValue { value }));
+    }
+
+    // Step 2.bigint
+    if value.is_bigint() {
+        let value = value.to_bigint();
+        rooted!(&in(cx) let value = value);
+        let Some(jsstr) = NonNull::new(unsafe { BigIntToString(cx, value.handle(), 10) }) else {
+            return Err(ErrorCode::UnknownError);
+        };
+
+        let value = unsafe { jsstr_to_string(cx, jsstr) };
+        remote_value = Some(PrimitiveProtocolValue::Bigint(BigIntValue { value }));
+    }
+
+    // Step 3. return
+    Ok(remote_value)
+}
+
+trait ArrayLike {
+    fn new_with_handle(handle_id: Option<HandleId>) -> Self;
+    fn value_mut(&mut self) -> &mut Option<Vec<PartialRemoteValue>>;
+    fn into_value(self) -> PartialRemoteValue;
+}
+
+macro_rules! impl_arraylike {
+    ($name:ident, $variant:ident) => {
+        impl ArrayLike for $name {
+            fn new_with_handle(handle_id: Option<HandleId>) -> Self {
+                Self {
+                    handle: handle_id,
+                    internal_id: None,
+                    value: None,
+                }
+            }
+            fn value_mut(&mut self) -> &mut Option<Vec<PartialRemoteValue>> {
+                &mut self.value
+            }
+            fn into_value(self) -> PartialRemoteValue {
+                PartialRemoteValue::$variant(Rc::new(RefCell::new(self)))
+            }
+        }
+    };
+}
+
+impl_arraylike!(PartialArrayRemoteValue, Array);
+impl_arraylike!(PartialNodeListRemoteValue, NodeList);
+impl_arraylike!(PartialHtmlCollectionRemoteValue, HtmlCollection);
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#serialize-an-array-like>.
+fn serialize_an_array_like<T: ArrayLike>(
+    realm: &mut CurrentRealm,
+    handle_id: Option<HandleId>,
+    known_object: bool,
+    value: HandleValue,
+    serialization_options: SerializationOptions,
+    ownership_type: ResultOwnership,
+    serialization_internal_map: &mut InternalMap,
+) -> Result<PartialRemoteValue, ErrorCode> {
+    // Step 1. production
+    let mut remote_value = T::new_with_handle(handle_id);
+    // Step 3.
+    if !known_object && serialization_options.max_object_depth != Some(0) {
+        // Step 3.1. serialize as a list
+        let serialized = serialize_as_a_list(
+            realm,
+            value,
+            serialization_options,
+            ownership_type,
+            serialization_internal_map,
+        )?;
+        // Step 3.2. set field
+        *remote_value.value_mut() = Some(serialized);
+    }
+    // Step 2. set internal id
+    let remote_value = remote_value.into_value();
+    set_internal_ids_if_needed(
+        serialization_internal_map,
+        remote_value.clone(),
+        value.get(),
+    );
+    Ok(remote_value)
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#serialize-as-a-list>.
+#[expect(unsafe_code)]
+fn serialize_as_a_list(
+    realm: &mut CurrentRealm,
+    iterable: HandleValue,
+    serialization_options: SerializationOptions,
+    ownership_type: ResultOwnership,
+    serialization_internal_map: &mut InternalMap,
+) -> Result<PartialListRemoteValue, ErrorCode> {
+    // Step 1. check options
+    if let Some(max_object_depth) = &serialization_options.max_object_depth {
+        debug_assert!(*max_object_depth > 0);
+    }
+    // Step 2. let serialized
+    let mut serialized = vec![];
+
+    // Step 3. for each child value
+    for_of(unsafe { realm.as_mut().raw_cx() }, iterable, |item| {
+        // TODO:
+        // Step 3.1. clone child serialization options
+        let mut child_serialization_options = serialization_options.clone();
+        // Step 3.2. sub maxObjectDepth
+        if let Some(max_object_depth) = &mut child_serialization_options.max_object_depth {
+            *max_object_depth = max_object_depth.saturating_sub(1);
+        }
+        // Step 3.3. serialize child
+        let serialized_child = serialize_as_a_remote_value_partial(
+            realm,
+            item,
+            child_serialization_options,
+            ownership_type,
+            serialization_internal_map,
+        )?;
+        // Step 3.4. append
+        serialized.push(serialized_child);
+
+        Ok(ControlFlow::Continue(()))
+    })
+    .map_err(|_| ErrorCode::UnknownError)?;
+
+    Ok(serialized)
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#serialize-as-a-mapping>.
+#[expect(unsafe_code)]
+fn serialize_as_a_mapping(
+    cx: &mut CurrentRealm,
+    iterable: HandleValue,
+    serialization_options: SerializationOptions,
+    ownership_type: ResultOwnership,
+    serialization_internal_map: &mut InternalMap,
+) -> Result<PartialMappingRemoteValue, ErrorCode> {
+    // Step 1. check options
+    if let Some(max_object_depth) = &serialization_options.max_object_depth {
+        debug_assert!(*max_object_depth > 0);
+    }
+    // Step 2. let serialized
+    let mut serialized = vec![];
+
+    macro_rules! report_and_err {
+        () => {
+            return Err(ErrorCode::UnknownError.into());
+        };
+    }
+
+    // Step 3. iter
+    for_of(unsafe { cx.as_mut().raw_cx() }, iterable, |item| {
+        if !item.is_object() {
+            return Err(ErrorCode::UnknownError.into());
+        }
+        rooted!(&in(cx) let item_obj = item.to_object());
+
+        // Step 3.1. assert array
+        let mut is_array = false;
+        if !unsafe { IsArray(cx.as_mut(), item_obj.handle(), &mut is_array) } || !is_array {
+            report_and_err!();
+        }
+        // Step 3.1. assert array
+        let mut is_array = false;
+        if !unsafe { IsArray(cx.as_mut(), item_obj.handle(), &mut is_array) } || !is_array {
+            report_and_err!();
+        }
+
+        // Step 3.2 & 3.3. skip abstract step
+        // Step 3.4. key and value
+        rooted!(&in(cx) let mut key = UndefinedValue());
+        if !unsafe { JS_GetElement(cx.as_mut(), item_obj.handle(), 0, key.handle_mut()) } {
+            report_and_err!();
+        }
+        rooted!(&in(cx) let mut value = UndefinedValue());
+        if !unsafe { JS_GetElement(cx.as_mut(), item_obj.handle(), 0, value.handle_mut()) } {
+            report_and_err!();
+        }
+        // Step 3.5. clone child serialization options
+        let mut child_serialization_options = serialization_options.clone();
+        // Step 3.6. sub maxObjectDepth
+        if let Some(max_object_depth) = &mut child_serialization_options.max_object_depth {
+            *max_object_depth = max_object_depth.saturating_sub(1);
+        }
+        // Step 3.7. serialize key
+        let serialized_key = if key.is_string() {
+            PartialRemoteValueOrText::Text(serialize_string(cx, key.handle())?)
+        } else {
+            PartialRemoteValueOrText::Value(serialize_as_a_remote_value_partial(
+                cx,
+                key.handle(),
+                serialization_options.clone(),
+                ownership_type,
+                serialization_internal_map,
+            )?)
+        };
+        // Step 3.8. serialize value
+        let serialized_value = serialize_as_a_remote_value_partial(
+            cx,
+            value.handle(),
+            serialization_options.clone(),
+            ownership_type,
+            serialization_internal_map,
+        )?;
+        // Step 3.9.
+        let serialized_child = (serialized_key, serialized_value);
+        // Step 3.10. append
+        serialized.push(serialized_child);
+
+        Ok(ControlFlow::Continue(()))
+    })
+    .map_err(|_| ErrorCode::UnknownError)?;
+
+    // Step 4. return
+    Ok(serialized)
+}
+
+#[expect(unsafe_code)]
+fn serialize_string(cx: &mut CurrentRealm, value: HandleValue) -> Result<String, ErrorCode> {
+    let Some(jsstr) = NonNull::new(match value.is_string() {
+        true => value.to_string(),
+        false => unsafe { ToString(cx, value) },
+    }) else {
+        return Err(ErrorCode::UnknownError);
+    };
+    Ok(unsafe { jsstr_to_string(cx, jsstr) })
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#deserialize-local-value>.
+fn deserialize_local_value(
+    cx: &mut CurrentRealm,
+    local_protocol_value: LocalValue,
+    rval: MutableHandleValue,
+) -> Result<(), ErrorCode> {
+    match local_protocol_value {
+        // Step 1. RemoteReference
+        LocalValue::RemoteReference(val) => deserialize_remote_reference(cx, val, rval),
+        // Step 2. Primitive
+        LocalValue::PrimitiveProtocol(value) => {
+            deserialize_primitive_protocol_value(cx, value, rval)
+        },
+        // Step 3. Channel
+        LocalValue::Channel(val) => create_a_channel(cx, &val, rval),
+        // Step 6.array.
+        LocalValue::Array(value) => deserialize_value_list(cx, value.value, rval, false),
+        // Step 6.date.
+        LocalValue::Date(value) => {
+            rooted_vec!(let mut args);
+            rooted!(&in(cx) let mut s = UndefinedValue());
+            deserialize_string(cx, &value.value, s.handle_mut().into())?;
+            args.push(s.get());
+            constructor_or_static_method(cx, JSProtoKey::JSProto_Date, None, (&args).into(), rval)
+        },
+        // Step 6.map.
+        LocalValue::Map(value) => deserialize_key_value_list(cx, value.value, rval, true),
+        // Step 6.object.
+        LocalValue::Object(value) => deserialize_key_value_list(cx, value.value, rval, false),
+        // Step 6.regexp.
+        LocalValue::Regexp(value) => {
+            let RegExpValue { pattern, flags } = value.value;
+            rooted_vec!(let mut args);
+            // Step 6.regexp.1. pattern
+            rooted!(&in(cx) let mut pattern_rval = UndefinedValue());
+            deserialize_string(cx, &pattern, pattern_rval.handle_mut().into())?;
+            args.push(pattern_rval.get());
+            // Step 6.regexp.1. flags
+            if let Some(flags) = flags {
+                rooted!(&in(cx) let mut flags_rval = UndefinedValue());
+                deserialize_string(cx, &flags, flags_rval.handle_mut().into())?;
+                args.push(pattern_rval.get());
+            } else {
+                args.push(UndefinedValue());
+            }
+            let args = HandleValueArray::from(&args);
+            // Step 6.regexp.3.
+            constructor_or_static_method(cx, JSProtoKey::JSProto_RegExp, None, args, rval)
+        },
+        // Step 6.set.
+        LocalValue::Set(value) => deserialize_value_list(cx, value.value, rval, true),
+    }
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#deserialize-primitive-protocol-value>.
+#[expect(unsafe_code)]
+pub(crate) fn deserialize_primitive_protocol_value(
+    cx: &mut CurrentRealm,
+    primitive_protocol_value: PrimitiveProtocolValue,
+    mut rval: MutableHandleValue,
+) -> Result<(), ErrorCode> {
+    // Step 4.
+    match primitive_protocol_value {
+        PrimitiveProtocolValue::Undefined => {
+            rval.set(UndefinedValue());
+        },
+        PrimitiveProtocolValue::Null => {
+            rval.set(NullValue());
+        },
+        PrimitiveProtocolValue::String(value) => {
+            deserialize_string(cx, &value.value, rval)?;
+        },
+        PrimitiveProtocolValue::Number(value) => {
+            let value = match value.value {
+                NumberValueKind::Number(value) => jsval::DoubleValue(value),
+                NumberValueKind::SpecialNumber(special_number) => {
+                    jsval::DoubleValue(match special_number {
+                        SpecialNumber::Nan => f64::NAN,
+                        SpecialNumber::NegZero => -0.0,
+                        SpecialNumber::Infinity => f64::INFINITY,
+                        SpecialNumber::NegInfinity => f64::NEG_INFINITY,
+                    })
+                },
+            };
+            rval.set(value);
+        },
+        PrimitiveProtocolValue::Boolean(value) => {
+            rval.set(jsval::BooleanValue(value.value));
+        },
+        PrimitiveProtocolValue::Bigint(value) => {
+            let s = js::conversions::Utf8Chars::from(&*value.value);
+            rooted!(&in(cx) let mut val = UndefinedValue());
+            let Some(jsstr) = NonNull::new(unsafe { JS_NewStringCopyUTF8N(cx.as_mut(), &*s) })
+            else {
+                return Err(ErrorCode::InvalidArgument);
+            };
+            val.set(jsval::StringValue(unsafe { jsstr.as_ref() }));
+            if let Some(bigint) = NonNull::new(unsafe { ToBigInt(cx.as_mut(), val.handle()) }) {
+                rval.set(jsval::BigIntValue(unsafe { bigint.as_ref() }));
+            } else {
+                return Err(ErrorCode::InvalidArgument);
+            }
+        },
+    }
+    Ok(())
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#deserialize-remote-reference>.
+pub(crate) fn deserialize_remote_reference(
+    realm: &mut CurrentRealm,
+    local_protocol_value: RemoteReference,
+    rval: MutableHandleValue,
+) -> Result<(), ErrorCode> {
+    match local_protocol_value {
+        // Step 2.
+        RemoteReference::RemoteObject(remote) => {
+            deserialize_remote_object_reference(realm, remote, rval)
+        },
+        // Step 3.
+        RemoteReference::Shared(shared) => deserialize_shared_reference(realm, shared, rval),
+    }
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#deserialize-remote-object-reference>.
+pub(crate) fn deserialize_remote_object_reference(
+    realm: &mut CurrentRealm,
+    remote_object_reference: RemoteObjectReference,
+    rval: MutableHandleValue,
+) -> Result<(), ErrorCode> {
+    // Step 1.
+    let handle_id = remote_object_reference.handle;
+    // Step 2. get handle map
+    let global_scope = GlobalScope::from_current_realm(realm);
+    if !global_scope.get_handle(&handle_id, rval) {
+        // Step 3.
+        return Err(ErrorCode::NoSuchHandle);
+    }
+    // Step 4. return success
+    Ok(())
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#deserialize-shared-reference>.
+pub(crate) fn deserialize_shared_reference(
+    _realm: &mut CurrentRealm,
+    _shared_reference: SharedReference,
+    mut _rval: MutableHandleValue,
+) -> Result<(), ErrorCode> {
+    // TODO: shared reference is not implemented in this version
+    Err(ErrorCode::UnknownError)
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#deserialize-key-value-list>.
+#[expect(unsafe_code)]
+pub(crate) fn deserialize_key_value_list(
+    cx: &mut CurrentRealm,
+    serialized_key_value_list: MappingLocalValue,
+    rval: MutableHandleValue,
+    map_or_object: bool,
+) -> Result<(), ErrorCode> {
+    // Step 1.
+    rooted_vec!(let mut deserialized_key_value_list);
+    // Step 2. for each "serialized key-value"
+    for serialzed_key_value in serialized_key_value_list {
+        // Step 2.1. skip assert size
+        // Step 2.2.
+        let serialized_key = serialzed_key_value.0;
+        // Step 2.3.
+        rooted!(&in(cx) let mut deserialized_key = UndefinedValue());
+        // Step 2.4.
+        match serialized_key {
+            LocalValueOrText::LocalValue(key) => {
+                deserialize_local_value(cx, key, deserialized_key.handle_mut().into())?
+            },
+            LocalValueOrText::Text(s) => {
+                deserialize_string(cx, &s, deserialized_key.handle_mut().into())?
+            },
+        };
+        // Step 2.5.
+        let serialized_value = serialzed_key_value.1;
+        // Step 2.6.
+        rooted!(&in(cx) let mut deserialized_value = UndefinedValue());
+        deserialize_local_value(cx, serialized_value, deserialized_value.handle_mut().into())?;
+        // Step 2.7.
+        rooted_vec!(let mut pair);
+        pair.push(deserialized_key.get());
+        pair.push(deserialized_value.get());
+        rooted!(&in(cx) let array_obj = unsafe { NewArrayObject(cx.as_mut(), &(&pair).into()) });
+        if array_obj.is_null() {
+            return Err(ErrorCode::UnknownError);
+        }
+        rooted!(&in(cx) let array = jsval::ObjectValue(array_obj.get()));
+        deserialized_key_value_list.push(array.get());
+    }
+    // actual construct
+    rooted_vec!(let mut args);
+    rooted!(&in(cx) let arg0_obj = unsafe { NewArrayObject(cx.as_mut(), &(&deserialized_key_value_list).into()) });
+    if arg0_obj.is_null() {
+        return Err(ErrorCode::UnknownError);
+    }
+    rooted!(&in(cx) let arg0 = jsval::ObjectValue(arg0_obj.get()));
+    args.push(arg0.get());
+    match map_or_object {
+        // map => new Map
+        true => {
+            constructor_or_static_method(cx, JSProtoKey::JSProto_Map, None, (&args).into(), rval)
+        },
+        // object => Object.fromEntries
+        false => constructor_or_static_method(
+            cx,
+            JSProtoKey::JSProto_Object,
+            Some(c"fromEntries"),
+            (&args).into(),
+            rval,
+        ),
+    }
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#deserialize-value-list>.
+#[expect(unsafe_code)]
+pub(crate) fn deserialize_value_list(
+    cx: &mut CurrentRealm,
+    serialized_value_list: ListLocalValue,
+    mut rval: MutableHandleValue,
+    set_or_array: bool,
+) -> Result<(), ErrorCode> {
+    // Step 1.
+    rooted_vec!(let mut deserialized_values);
+    // Step 2. for each "serialized value"
+    for serialized_value in serialized_value_list {
+        rooted!(&in(cx) let mut rval = UndefinedValue());
+        deserialize_local_value(cx, serialized_value, rval.handle_mut())?;
+        deserialized_values.push(rval.get());
+    }
+    // Step 3.
+    // array
+    rooted!(&in(cx) let array_obj = unsafe { NewArrayObject(cx.as_mut(), &(&deserialized_values).into()) });
+    if array_obj.is_null() {
+        return Err(ErrorCode::UnknownError);
+    }
+    if !set_or_array {
+        rval.set(jsval::ObjectValue(array_obj.get()));
+        Ok(())
+    }
+    // set
+    else {
+        rooted_vec!(let mut args);
+        rooted!(&in(cx) let array = jsval::ObjectValue(array_obj.get()));
+        args.push(array.get());
+        constructor_or_static_method(cx, JSProtoKey::JSProto_Set, None, (&args).into(), rval)
+    }
+}
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#create-a-channel>.
+#[expect(unsafe_code)]
+pub(crate) fn create_a_channel(
+    cx: &mut CurrentRealm,
+    protocol_value: &ChannelValue,
+    mut rval: MutableHandleValue,
+) -> Result<(), ErrorCode> {
+    // create native function
+    let func =
+        unsafe { NewFunctionWithReserved(cx.as_mut(), Some(channel_inner), 1, 0, c"".as_ptr()) };
+    if func.is_null() {
+        return Err(ErrorCode::UnknownError);
+    }
+
+    // serialize channel properties
+    rooted!(&in(cx) let mut channel = UndefinedValue());
+    serialize_channel_properties(cx, &protocol_value.value, channel.handle_mut())?;
+
+    // store channel properties
+    rooted!(&in(cx) let func_obj = unsafe { JS_GetFunctionObject(func) });
+    unsafe {
+        SetFunctionNativeReserved(func_obj.get(), 0, &channel.get());
+    };
+
+    rval.set(jsval::ObjectValue(func_obj.get()));
+    Ok(())
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn channel_inner(
+    cx: *mut js::jsapi::JSContext,
+    argc: u32,
+    vp: *mut Value,
+) -> bool {
+    let mut result = false;
+    wrap_panic(&mut || {
+        result = (|| {
+            let args = unsafe { CallArgs::from_vp(vp, argc) };
+            let callee = args.callee();
+            let global = unsafe { GlobalScope::from_object(callee) };
+
+            let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+            let mut auto_realm = enter_auto_realm(&mut cx, &*global);
+            let mut realm = auto_realm.current_realm();
+
+            if argc != 1 {
+                unsafe {
+                    ReportErrorASCII(
+                        realm.as_mut(),
+                        c"Channel function can only be called one argument".as_ptr(),
+                    )
+                };
+                return false;
+            }
+
+            let reserved = unsafe { GetFunctionNativeReserved(callee, 0) as *mut Value };
+            if reserved.is_null() {
+                report_pending_exception(&mut realm);
+                return false;
+            }
+            let Ok(channel_properties) = deserialize_channel_properties(&mut realm, reserved)
+            else {
+                report_pending_exception(&mut realm);
+                return false;
+            };
+
+            let arg0 = args.get(0);
+            let Ok(serialized) = serialize_as_a_remote_value(
+                &mut realm,
+                unsafe { HandleValue::from_raw(arg0) },
+                channel_properties.serialization_options.unwrap_or_default(),
+                channel_properties
+                    .ownership
+                    .unwrap_or(ResultOwnership::None),
+            ) else {
+                unsafe {
+                    ReportErrorASCII(realm.as_mut(), c"Serializing remote value failed".as_ptr())
+                };
+                return false;
+            };
+
+            if let Some(chan) = global.webdriver_chan() {
+                _ = chan.send(ScriptToWebDriverMessage::Message(MessageBody {
+                    channel: channel_properties.channel.clone(),
+                    data: serialized,
+                    realm: global.realm_id(),
+                }));
+            }
+
+            return true;
+        })()
+    });
+    result
+}
+
+#[expect(unsafe_code)]
+fn deserialize_string(
+    cx: &mut CurrentRealm,
+    s: &str,
+    mut rval: MutableHandleValue,
+) -> Result<(), ErrorCode> {
+    let s = js::conversions::Utf8Chars::from(s);
+    if let Some(jsstr) = NonNull::new(unsafe { JS_NewStringCopyUTF8N(cx.as_mut(), &*s) }) {
+        rval.set(jsval::StringValue(unsafe { jsstr.as_ref() }));
+        Ok(())
+    } else {
+        Err(ErrorCode::InvalidArgument)
+    }
+}
+
+/// Construct a builtin class with either constructor or static method.
+#[expect(unsafe_code)]
+fn constructor_or_static_method(
+    cx: &mut CurrentRealm,
+    proto: JSProtoKey,
+    // new or other static method
+    method: Option<&CStr>,
+    args: HandleValueArray,
+    mut rval: MutableHandleValue,
+) -> Result<(), ErrorCode> {
+    rooted!(&in(cx) let mut ctor_obj = null_mut::<JSObject>());
+    if !unsafe { JS_GetClassObject(cx.as_mut(), proto, ctor_obj.handle_mut()) } {
+        return Err(ErrorCode::UnknownError);
+    }
+    match method {
+        // new constructor
+        None => {
+            rooted!(&in(cx) let ctor = jsval::ObjectValue(ctor_obj.get()));
+            rooted!(&in(cx) let mut obj = null_mut::<JSObject>());
+            if !unsafe { Construct1(cx.as_mut(), ctor.handle(), &args, obj.handle_mut()) } {
+                return Err(ErrorCode::InvalidArgument);
+            }
+            rval.set(jsval::ObjectValue(obj.get()));
+        },
+        // static method, e.g. Object.fromEntries
+        Some(method) => {
+            if !unsafe {
+                JS_CallFunctionName(cx.as_mut(), ctor_obj.handle(), method.as_ptr(), &args, rval)
+            } {
+                return Err(ErrorCode::UnknownError);
+            }
+        },
+    }
+    Ok(())
+}
+
+/// Serialize [`ChannelProperties`] into js object so that we can
+/// store that in reserved slot of function.
+#[expect(unsafe_code)]
+fn serialize_channel_properties(
+    realm: &mut CurrentRealm,
+    channel: &ChannelProperties,
+    mut rval: MutableHandleValue,
+) -> Result<(), ErrorCode> {
+    rooted!(&in(realm) let obj = unsafe { JS_NewPlainObject(realm) });
+    if obj.is_null() {
+        return Err(ErrorCode::UnknownError);
+    }
+    // channel
+    rooted!(&in(realm) let mut channel_id = UndefinedValue());
+    deserialize_string(realm, &channel.channel, channel_id.handle_mut())?;
+    if !unsafe {
+        JS_DefineProperty(
+            realm.as_mut(),
+            obj.handle(),
+            c"channel".as_ptr(),
+            channel_id.handle(),
+            0,
+        )
+    } {
+        return Err(ErrorCode::UnknownError);
+    }
+
+    if let Some(serialization_options) = &channel.serialization_options {
+        macro_rules! store_u32_field {
+            ($name:ident, $cstr:literal) => {
+                if let Some($name) = serialization_options.$name{
+                    rooted!(&in(realm) let mut ownership = jsval::UInt32Value($name as u32));
+                    if !unsafe {
+                        JS_DefineProperty(
+                            realm.as_mut(),
+                            obj.handle(),
+                            $cstr.as_ptr(),
+                            ownership.handle(),
+                            0,
+                        )
+                    } {
+                        return Err(ErrorCode::UnknownError);
+                    }
+                }
+            };
+        }
+        store_u32_field!(max_dom_depth, c"max_dom_depth");
+        store_u32_field!(max_object_depth, c"max_object_depth");
+        if let Some(include_shadow_tree) = serialization_options.include_shadow_tree {
+            let val = match include_shadow_tree {
+                IncludeShadowTree::None => 0,
+                IncludeShadowTree::Open => 1,
+                IncludeShadowTree::All => 2,
+            };
+            rooted!(&in(realm) let mut ownership = jsval::UInt32Value(val));
+            if !unsafe {
+                JS_DefineProperty(
+                    realm.as_mut(),
+                    obj.handle(),
+                    c"include_shadow_tree".as_ptr(),
+                    ownership.handle(),
+                    0,
+                )
+            } {
+                return Err(ErrorCode::UnknownError);
+            }
+        }
+    }
+
+    // ownership
+    if let Some(ownership) = channel.ownership {
+        let value = match ownership {
+            ResultOwnership::Root => true,
+            ResultOwnership::None => false,
+        };
+        rooted!(&in(realm) let mut ownership = jsval::BooleanValue(value));
+        if !unsafe {
+            JS_DefineProperty(
+                realm.as_mut(),
+                obj.handle(),
+                c"ownership".as_ptr(),
+                ownership.handle(),
+                0,
+            )
+        } {
+            return Err(ErrorCode::UnknownError);
+        }
+    }
+
+    rval.set(ObjectValue(obj.get()));
+    Ok(())
+}
+
+/// Deserialize js object into [`ChannelProperties`] from function's
+/// reserved slot.
+#[expect(unsafe_code)]
+fn deserialize_channel_properties(
+    cx: &mut CurrentRealm,
+    value: *const Value,
+) -> Result<ChannelProperties, ErrorCode> {
+    let Some(value) = NonNull::new(value as *mut Value) else {
+        return Err(ErrorCode::UnknownError);
+    };
+    let jsval = unsafe { value.as_ref() };
+    if !jsval.is_object() {
+        return Err(ErrorCode::UnknownError);
+    }
+
+    rooted!(&in(cx) let obj = jsval.to_object());
+
+    // channel
+    rooted!(&in(cx) let mut channel_val = UndefinedValue());
+    if !unsafe {
+        JS_GetProperty(
+            cx,
+            obj.handle(),
+            c"channel".as_ptr(),
+            channel_val.handle_mut(),
+        )
+    } || !channel_val.is_string()
+    {
+        return Err(ErrorCode::UnknownError);
+    }
+    let channel = serialize_string(cx, channel_val.handle())?;
+
+    // serialization_options
+    let mut serialization_options = SerializationOptions::default();
+    macro_rules! load_u32_field {
+        ($name:ident, $cstr:literal) => {
+            rooted!(&in(cx) let mut val = UndefinedValue());
+            if unsafe { JS_GetProperty(cx, obj.handle(), $cstr.as_ptr(), val.handle_mut()) }
+                && val.is_number()
+            {
+                serialization_options.$name = Some(val.to_int32() as u64);
+            }
+        };
+    }
+    load_u32_field!(max_dom_depth, c"max_dom_depth");
+    load_u32_field!(max_object_depth, c"max_object_depth");
+
+    rooted!(&in(cx) let mut val = UndefinedValue());
+    if unsafe {
+        JS_GetProperty(
+            cx,
+            obj.handle(),
+            c"include_shadow_tree".as_ptr(),
+            val.handle_mut(),
+        )
+    } && val.is_number()
+    {
+        let include_shadow_tree = &mut serialization_options.include_shadow_tree;
+        match val.to_int32() {
+            0 => *include_shadow_tree = Some(IncludeShadowTree::None),
+            1 => *include_shadow_tree = Some(IncludeShadowTree::Open),
+            2 => *include_shadow_tree = Some(IncludeShadowTree::All),
+            _ => {},
+        }
+    }
+
+    rooted!(&in(cx) let mut ownership_val = UndefinedValue());
+    let ownership = if unsafe {
+        JS_GetProperty(
+            cx,
+            obj.handle(),
+            c"ownership".as_ptr(),
+            ownership_val.handle_mut(),
+        )
+    } && ownership_val.is_boolean()
+    {
+        Some(match ownership_val.to_boolean() {
+            true => ResultOwnership::Root,
+            false => ResultOwnership::None,
+        })
+    } else {
+        None
+    };
+
+    Ok(ChannelProperties {
+        channel,
+        serialization_options: Some(serialization_options),
+        ownership,
+    })
+}
+
+// p => ToString(Get(value, p))
+#[expect(unsafe_code)]
+fn serialize_property_string(
+    cx: &mut JSContext,
+    obj: HandleObject,
+    p: &CStr,
+) -> Result<Option<String>, ErrorCode> {
+    rooted!(&in(cx) let mut out = UndefinedValue());
+    if !unsafe { JS_GetProperty(cx, obj, p.as_ptr(), out.handle_mut()) } {
+        return Err(ErrorCode::UnknownError);
+    }
+    if out.is_undefined() {
+        return Ok(None);
+    }
+    let jsstr =
+        NonNull::new(unsafe { ToString(cx, out.handle()) }).ok_or(ErrorCode::UnknownError)?;
+    Ok(Some(unsafe { jsstr_to_string(cx, jsstr) }))
+}
+
+type InternalMap = HashMap<u64, PartialRemoteValue>;
+
+/// See <https://www.w3.org/TR/webdriver-bidi/#set-internal-ids-if-needed>.
+fn set_internal_ids_if_needed(
+    serialization_internal_map: &mut InternalMap,
+    remote_value: PartialRemoteValue,
+    value: Value,
+) {
+    let obj_id = value.asBits_;
+    match serialization_internal_map.get(&obj_id) {
+        // Step 1. set internal ids
+        None => {
+            serialization_internal_map.insert(obj_id, remote_value);
+        },
+        // Step 2. otherwise
+        Some(previously_serialized_remote_value) => {
+            // Step 2.2. new internal id
+            let internal_id = InternalId::new();
+            // Step 2.3. set internal id of previously serialized
+            previously_serialized_remote_value.set_internal_id(internal_id);
+        },
+    }
+}
+
+/// The "serialize as a remote value" algorith is described
+/// in a JavaScript manner, with shared ownership and mutability.
+/// while in Rust we need to do that explicitly.
+#[derive(Clone)]
+enum PartialRemoteValue {
+    Symbol(Rc<RefCell<SymbolRemoteValue>>),
+    Array(Rc<RefCell<PartialArrayRemoteValue>>),
+    Object(Rc<RefCell<PartialObjectRemoteValue>>),
+    Function(Rc<RefCell<FunctionRemoteValue>>),
+    RegExp(Rc<RefCell<RegExpRemoteValue>>),
+    Date(Rc<RefCell<DateRemoteValue>>),
+    Map(Rc<RefCell<PartialMapRemoteValue>>),
+    Set(Rc<RefCell<PartialSetRemoteValue>>),
+    WeakMap(Rc<RefCell<WeakMapRemoteValue>>),
+    WeakSet(Rc<RefCell<WeakSetRemoteValue>>),
+    Generator(Rc<RefCell<GeneratorRemoteValue>>),
+    Error(Rc<RefCell<ErrorRemoteValue>>),
+    Proxy(Rc<RefCell<ProxyRemoteValue>>),
+    Promise(Rc<RefCell<PromiseRemoteValue>>),
+    TypedArray(Rc<RefCell<TypedArrayRemoteValue>>),
+    ArrayBuffer(Rc<RefCell<ArrayBufferRemoteValue>>),
+    NodeList(Rc<RefCell<PartialNodeListRemoteValue>>),
+    HtmlCollection(Rc<RefCell<PartialHtmlCollectionRemoteValue>>),
+    Node(Rc<RefCell<PartialNodeRemoteValue>>),
+    Window(Rc<RefCell<WindowProxyRemoteValue>>),
+    PrimitiveProtocol(PrimitiveProtocolValue),
+}
+
+type PartialListRemoteValue = Vec<PartialRemoteValue>;
+
+type PartialMappingRemoteValue = Vec<(PartialRemoteValueOrText, PartialRemoteValue)>;
+
+enum PartialRemoteValueOrText {
+    Value(PartialRemoteValue),
+    Text(String),
+}
+
+macro_rules! define_partial {
+    ($name:ident, $items:ty) => {
+        struct $name {
+            handle: Option<HandleId>,
+            internal_id: Option<InternalId>,
+            value: Option<$items>,
+        }
+    };
+}
+
+define_partial!(PartialArrayRemoteValue, PartialListRemoteValue);
+define_partial!(PartialSetRemoteValue, PartialListRemoteValue);
+define_partial!(PartialNodeListRemoteValue, PartialListRemoteValue);
+define_partial!(PartialHtmlCollectionRemoteValue, PartialListRemoteValue);
+define_partial!(PartialObjectRemoteValue, PartialMappingRemoteValue);
+define_partial!(PartialMapRemoteValue, PartialMappingRemoteValue);
+
+struct PartialNodeRemoteValue {
+    shared_id: Option<SharedId>,
+    handle: Option<HandleId>,
+    internal_id: Option<InternalId>,
+    value: Option<PartialNodeProperties>,
+}
+
+#[derive(Default)]
+pub struct PartialNodeProperties {
+    node_type: u16,
+    child_node_count: u32,
+    attributes: Option<HashMap<String, String>>,
+    children: Option<Vec<Rc<RefCell<PartialNodeRemoteValue>>>>,
+    local_name: Option<String>,
+    mode: Option<script::ShadowRootMode>,
+    namespace_uri: Option<String>,
+    node_value: Option<String>,
+    shadow_root: Option<Rc<RefCell<PartialNodeRemoteValue>>>,
+}
+
+impl PartialRemoteValue {
+    fn set_internal_id(&self, id: InternalId) {
+        macro_rules! match_internal_id {
+            ($($name:ident,)*) => {
+                match self {
+                    $( Self::$name(val) => val.borrow_mut().internal_id = Some(id), )*
+                    _ => { },
+                }
+            };
+        }
+        match_internal_id! {
+            Symbol, Array, Object, Function, RegExp, Date,
+            Map, Set, WeakMap, WeakSet, Generator, Error,
+            Proxy, Promise, TypedArray, ArrayBuffer, NodeList,
+            HtmlCollection, Node, Window,
+        }
+    }
+}
+
+impl PartialRemoteValue {
+    fn to_remote_value(self) -> Result<RemoteValue, ErrorCode> {
+        macro_rules! match_inner {
+            (
+                simple: [$($sname:ident,)*],
+                list: {$($lname:ident:$lty:ident,)*},
+                map: {$($mname:ident:$mty:ident,)*},
+            ) => {
+                Ok(match self {
+                    // simple
+                    $(
+                        PartialRemoteValue::$sname(val) =>
+                            RemoteValue::$sname(
+                                Rc::into_inner(val)
+                                    .ok_or(ErrorCode::UnknownError)?
+                                    .into_inner()
+                            ),
+                    )*
+                    // list
+                    $(
+                        PartialRemoteValue::$lname(val) => {
+                            let val = Rc::into_inner(val)
+                                .ok_or(ErrorCode::UnknownError)?
+                                .into_inner();
+                            RemoteValue::$lname($lty {
+                                handle: val.handle,
+                                internal_id: val.internal_id,
+                                value: val
+                                    .value
+                                    .map(|v| {
+                                        v.into_iter()
+                                            .map(PartialRemoteValue::to_remote_value)
+                                            .collect()
+                                    })
+                                    .transpose()?,
+                            })
+                        },
+                    )*
+                    // map
+                    $(
+                        PartialRemoteValue::$mname(val) => {
+                            let val = Rc::into_inner(val)
+                                .ok_or(ErrorCode::UnknownError)?
+                                .into_inner();
+                            RemoteValue::$mname($mty {
+                                handle: val.handle,
+                                internal_id: val.internal_id,
+                                value: val
+                                    .value
+                                    .map(|v| {
+                                        v.into_iter()
+                                            .map(|(k, v)| Ok((
+                                                k.to_remote_value()?,
+                                                v.to_remote_value()?)
+                                            ))
+                                            .collect()
+                                    })
+                                    .transpose()?,
+                            })
+                        },
+                    )*
+                    // primitive, specially handled
+                    PartialRemoteValue::PrimitiveProtocol(val) => {
+                        RemoteValue::PrimitiveProtocol(val)
+                    }
+                    // node, specially handled
+                    PartialRemoteValue::Node(val) => {
+                        let val = Rc::into_inner(val)
+                            .ok_or(ErrorCode::UnknownError)?
+                            .into_inner();
+                        RemoteValue::Node(val.to_remote_value()?)
+                    }
+                })
+            }
+        }
+        match_inner! {
+            simple: [
+                Symbol, Function, RegExp, Date, WeakMap,
+                WeakSet, Generator, Error, Proxy, Promise,
+                TypedArray, ArrayBuffer, Window,
+            ],
+            list: {
+                Array: ArrayRemoteValue,
+                Set: SetRemoteValue,
+                NodeList: NodeListRemoteValue,
+                HtmlCollection: HtmlCollectionRemoteValue,
+            },
+            map: {
+                Object: ObjectRemoteValue,
+                Map: MapRemoteValue,
+            },
+        }
+    }
+}
+
+impl PartialNodeRemoteValue {
+    fn to_remote_value(self) -> Result<NodeRemoteValue, ErrorCode> {
+        Ok(NodeRemoteValue {
+            shared_id: self.shared_id,
+            handle: self.handle,
+            internal_id: self.internal_id,
+            value: self
+                .value
+                .map(|p| {
+                    Ok(NodeProperties {
+                        node_type: p.node_type,
+                        child_node_count: p.child_node_count,
+                        attributes: p.attributes,
+                        children: p
+                            .children
+                            .map(|children| {
+                                children
+                                    .into_iter()
+                                    .map(|child| {
+                                        Rc::into_inner(child)
+                                            .ok_or(ErrorCode::UnknownError)?
+                                            .into_inner()
+                                            .to_remote_value()
+                                    })
+                                    .collect()
+                            })
+                            .transpose()?,
+                        local_name: p.local_name,
+                        mode: p.mode,
+                        namespace_uri: p.namespace_uri,
+                        node_value: p.node_value,
+                        shadow_root: p
+                            .shadow_root
+                            .map(|r| {
+                                Rc::into_inner(r)
+                                    .ok_or(ErrorCode::UnknownError)?
+                                    .into_inner()
+                                    .to_remote_value()
+                            })
+                            .transpose()?
+                            .map(Box::new),
+                    })
+                })
+                .transpose()?,
+        })
+    }
+}
+
+impl PartialRemoteValueOrText {
+    fn to_remote_value(self) -> Result<RemoteValueOrText, ErrorCode> {
+        Ok(match self {
+            PartialRemoteValueOrText::Value(k) => RemoteValueOrText::Value(k.to_remote_value()?),
+            PartialRemoteValueOrText::Text(t) => RemoteValueOrText::Text(t),
+        })
     }
 }

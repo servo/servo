@@ -63,6 +63,7 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.time_profiler_chan().clone(),
                 global_to_clone_from.script_to_constellation_chan().sender,
                 global_to_clone_from.script_to_embedder_chan().clone(),
+                global_to_clone_from.webdriver_chan().cloned(),
                 global_to_clone_from.resource_threads().clone(),
                 global_to_clone_from.storage_threads().clone(),
                 global_to_clone_from.origin().clone(),

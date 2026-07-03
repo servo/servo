@@ -24,6 +24,7 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_constellation_traits::ScriptToConstellationMessage;
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
+use webdriver_traits::messages::{ScriptToWebDriverMessage, WebDriverToScriptMessage};
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
 
@@ -45,6 +46,7 @@ pub(crate) enum MixedMessage {
     FromConstellation(ScriptThreadMessage),
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
+    FromWebDriver(WebDriverToScriptMessage),
     FromImageCache(ImageCacheResponseMessage),
     #[cfg(feature = "webgpu")]
     FromWebGPUServer(WebGPUMsg),
@@ -138,7 +140,9 @@ impl MixedMessage {
                     Some(response.pipeline_id)
                 },
             },
-            MixedMessage::FromDevtools(_) | MixedMessage::TimerFired => None,
+            MixedMessage::FromDevtools(_)
+            | MixedMessage::TimerFired
+            | MixedMessage::FromWebDriver(_) => None,
             #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(..) => None,
         }
@@ -410,6 +414,12 @@ pub(crate) struct ScriptThreadSenders {
 
     #[no_trace]
     pub(crate) devtools_client_to_script_thread_sender: GenericSender<DevtoolScriptControlMsg>,
+
+    #[no_trace]
+    pub(crate) webdriver_sender: Option<GenericCallback<ScriptToWebDriverMessage>>,
+
+    #[no_trace]
+    pub(crate) webdriver_to_script_thread_sender: GenericSender<WebDriverToScriptMessage>,
 }
 
 #[derive(JSTraceable)]
@@ -426,6 +436,9 @@ pub(crate) struct ScriptThreadReceivers {
     /// exists. When devtools are not active this will be [`crossbeam_channel::never()`].
     #[no_trace]
     pub(crate) devtools_server_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+
+    #[no_trace]
+    pub(crate) webdriver_receiver: RoutedReceiver<WebDriverToScriptMessage>,
 
     /// Receiver to receive commands from optional WebGPU server. When there is no active
     /// WebGPU context, this will be [`crossbeam_channel::never()`].
@@ -450,6 +463,7 @@ impl ScriptThreadReceivers {
         let constellation_index = select.recv(&self.constellation_receiver);
         let devtools_index = select.recv(&self.devtools_server_receiver);
         let image_cache_index = select.recv(&self.image_cache_receiver);
+        let webdriver_index = select.recv(&self.webdriver_receiver);
 
         #[cfg(feature = "webgpu")]
         let webgpu_receiver = self.webgpu_receiver.borrow();
@@ -481,6 +495,10 @@ impl ScriptThreadReceivers {
                 )
             } else if index == image_cache_index {
                 MixedMessage::FromImageCache(operation.recv(&self.image_cache_receiver).unwrap())
+            } else if index == webdriver_index {
+                MixedMessage::FromWebDriver(
+                    operation.recv(&self.webdriver_receiver).unwrap().unwrap(),
+                )
             } else {
                 #[cfg(feature = "webgpu")]
                 {

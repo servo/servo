@@ -22,11 +22,14 @@ use net_traits::request::{
     PreloadedResources, Referrer, RequestBuilder, RequestClient, RequestMode,
 };
 use script_bindings::cell::DomRefCell;
-use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
+use servo_base::generic_channel::{self, GenericReceiver, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, PipelineId, ScriptEventLoopId, WebViewId};
 use servo_constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
+use webdriver_traits::bidi::script::{BaseRealmInfo, DedicatedWorkerRealmInfo, RealmInfo};
+use webdriver_traits::ids::RealmId;
+use webdriver_traits::messages::{ScriptToWebDriverMessage, WebDriverToScriptMessage};
 
 use crate::conversions::Convert;
 use crate::dom::abstractworker::{MessageData, SimpleWorkerErrorHandler, WorkerScriptMsg};
@@ -62,6 +65,7 @@ use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
+use crate::webdriver_handlers::notify_webdriver_realm_destroyed;
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -108,6 +112,7 @@ pub(crate) enum DedicatedWorkerScriptMsg {
 pub(crate) enum MixedMessage {
     Worker(DedicatedWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
+    WebDriver(WebDriverToScriptMessage),
     Control(DedicatedWorkerControlMsg),
     Timer,
 }
@@ -250,6 +255,10 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         MixedMessage::Devtools(msg)
     }
 
+    fn from_webdriver_msg(msg: WebDriverToScriptMessage) -> MixedMessage {
+        MixedMessage::WebDriver(msg)
+    }
+
     fn from_timer_msg() -> MixedMessage {
         MixedMessage::Timer
     }
@@ -268,6 +277,7 @@ impl DedicatedWorkerGlobalScope {
         worker_type: WorkerType,
         worker_url: ServoUrl,
         from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        from_webdriver_receiver: RoutedReceiver<WebDriverToScriptMessage>,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -288,6 +298,7 @@ impl DedicatedWorkerGlobalScope {
                 worker_url,
                 runtime,
                 from_devtools_receiver,
+                from_webdriver_receiver,
                 closing,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
@@ -315,6 +326,7 @@ impl DedicatedWorkerGlobalScope {
         worker_type: WorkerType,
         worker_url: ServoUrl,
         from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        from_webdriver_receiver: RoutedReceiver<WebDriverToScriptMessage>,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -336,6 +348,7 @@ impl DedicatedWorkerGlobalScope {
             worker_type,
             worker_url,
             from_devtools_receiver,
+            from_webdriver_receiver,
             runtime,
             parent_event_loop_sender,
             own_sender,
@@ -380,6 +393,7 @@ impl DedicatedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         policy_container: PolicyContainer,
         font_context: Option<Arc<FontContext>>,
+        owner: RealmId,
     ) -> JoinHandle<()> {
         let event_loop_id = ScriptEventLoopId::installed()
             .expect("Should always be in a ScriptThread or in a dedicated worker");
@@ -455,6 +469,10 @@ impl DedicatedWorkerGlobalScope {
 
                 let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
 
+                let (from_webdriver_sender, from_webdriver_receiver) =
+                    generic_channel::channel().unwrap();
+                let webdriver_mpsc_port = from_webdriver_receiver.route_preserving_errors();
+
                 // Step 8 "Set up a worker environment settings object [...]"
                 //
                 // <https://html.spec.whatwg.org/multipage/#script-settings-for-workers>
@@ -480,6 +498,7 @@ impl DedicatedWorkerGlobalScope {
                     worker_type,
                     worker_url.url(),
                     devtools_mpsc_port,
+                    webdriver_mpsc_port,
                     runtime,
                     parent_event_loop_sender,
                     own_sender,
@@ -506,6 +525,25 @@ impl DedicatedWorkerGlobalScope {
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 
+                if let Some(to_webdriver_sender) = global_scope.webdriver_chan() {
+                    let origin = global_scope.origin().immutable().ascii_serialization();
+                    if let Err(err) =
+                        to_webdriver_sender.send(ScriptToWebDriverMessage::RealmCreated(
+                            RealmInfo::DedicatedWorker(DedicatedWorkerRealmInfo {
+                                base: BaseRealmInfo {
+                                    realm: global_scope.realm_id(),
+                                    origin,
+                                },
+                                owners: vec![owner],
+                            }),
+                            false,
+                            None,
+                            from_webdriver_sender,
+                        ))
+                    {
+                        warn!("Sending RealmCreated event to webdriver failed ({err:?})");
+                    }
+                }
                 let fetch_client = ModuleFetchClient {
                     insecure_requests_policy,
                     has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
@@ -568,6 +606,8 @@ impl DedicatedWorkerGlobalScope {
                 }
 
                 scope.clear_js_runtime();
+
+                notify_webdriver_realm_destroyed(global_scope);
             })
             .expect("Thread spawning failed")
     }
@@ -687,6 +727,9 @@ impl DedicatedWorkerGlobalScope {
                 return false;
             },
             MixedMessage::Timer => {},
+            MixedMessage::WebDriver(msg) => self
+                .upcast::<WorkerGlobalScope>()
+                .handle_webdriver_message(msg, cx),
         }
         true
     }

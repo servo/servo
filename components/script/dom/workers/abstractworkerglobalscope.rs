@@ -6,6 +6,7 @@ use crossbeam_channel::{Receiver, select};
 use devtools_traits::DevtoolScriptControlMsg;
 use rustc_hash::FxHashSet;
 use script_bindings::reflector::DomObject;
+use webdriver_traits::messages::WebDriverToScriptMessage;
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
@@ -28,6 +29,7 @@ pub(crate) trait WorkerEventLoopMethods {
     fn from_control_msg(msg: Self::ControlMsg) -> Self::Event;
     fn from_worker_msg(msg: Self::WorkerMsg) -> Self::Event;
     fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> Self::Event;
+    fn from_webdriver_msg(msg: WebDriverToScriptMessage) -> Self::Event;
     fn from_timer_msg() -> Self::Event;
     fn control_receiver(&self) -> &Receiver<Self::ControlMsg>;
 }
@@ -50,6 +52,8 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     let never = crossbeam_channel::never();
     let devtools_receiver = scope.devtools_receiver().unwrap_or(&never);
 
+    let webdriver_receiver = scope.webdriver_receiver();
+
     let event = select! {
         recv(worker_scope.control_receiver()) -> msg => match msg {
             Ok(msg) => Some(T::from_control_msg(msg)),
@@ -64,6 +68,10 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         },
         recv(devtools_receiver) -> msg => match msg {
             Ok(msg) => msg.ok().map(T::from_devtools_msg),
+            Err(_) => None,
+        },
+        recv(webdriver_receiver) -> msg => match msg {
+            Ok(msg) => msg.ok().map(T::from_webdriver_msg),
             Err(_) => None,
         },
         recv(scope.timer_scheduler().wait_channel()) -> _ => Some(T::from_timer_msg()),

@@ -14,15 +14,19 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
+async-tungstenite = { workspace = true }
 base64 = { workspace = true }
+bitflags = { workspace = true }
 bytes = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
+futures-util  = { workspace = true }
 http = { workspace = true }
 http02 = { workspace = true }
 image = { workspace = true }
+indexmap = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 rustc-hash = { workspace = true }
@@ -39,3 +43,4 @@ url = { workspace = true }
 uuid = { workspace = true }
 warp = { workspace = true, features = ["server"] }
 webdriver = { workspace = true }
+webdriver_traits = { workspace = true }

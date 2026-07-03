@@ -92,6 +92,7 @@ impl EventLoop {
             script_to_embedder_sender,
             namespace_request_sender: constellation.namespace_ipc_sender.clone(),
             devtools_server_sender: constellation.script_to_devtools_callback(),
+            webdriver_sender: constellation.script_to_webdriver_callback(),
             #[cfg(feature = "bluetooth")]
             bluetooth_sender: constellation.bluetooth_ipc_sender.clone(),
             system_font_service: constellation.system_font_service.to_sender(),
@@ -202,8 +203,8 @@ impl EventLoop {
         &self,
         message: &BackgroundHangMonitorControlMsg,
     ) {
-        if let Some(background_hang_monitor_sender) = &self.background_hang_monitor_sender &&
-            let Err(error) = background_hang_monitor_sender.send(message.clone())
+        if let Some(background_hang_monitor_sender) = &self.background_hang_monitor_sender
+            && let Err(error) = background_hang_monitor_sender.send(message.clone())
         {
             error!("Could not send message ({message:?}) to BHM: {error}");
         }

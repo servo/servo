@@ -20,6 +20,7 @@ use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use stylo_atoms::Atom;
+use webdriver_traits::messages::ScriptToWebDriverMessage;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -107,6 +108,7 @@ impl WorkletGlobalScope {
                 init.time_profiler_chan.clone(),
                 init.script_to_constellation_sender.clone(),
                 init.to_embedder_sender.clone(),
+                init.webdriver_chan.clone(),
                 init.resource_threads.clone(),
                 init.storage_threads.clone(),
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
@@ -206,6 +208,8 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) time_profiler_chan: time::ProfilerChan,
     /// Channel to devtools
     pub(crate) devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+    /// Channel to devtools
+    pub(crate) webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
     /// Messages to send to the Embedder
     pub(crate) to_embedder_sender: ScriptToEmbedderChan,
     /// The image cache

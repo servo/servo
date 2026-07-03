@@ -41,6 +41,7 @@ use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
+use webdriver_traits::messages::ScriptToWebDriverMessage;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 
@@ -219,6 +220,7 @@ pub struct ScopeThings {
     pub init: WorkerGlobalScopeInit,
     /// the port to receive devtools message from
     pub devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+    pub webdriver_chan: Option<GenericCallback<ScriptToWebDriverMessage>>,
     /// service worker id
     pub worker_id: WorkerId,
     /// the browsing context id of the page that registered the service worker
@@ -521,6 +523,8 @@ pub struct WorkerGlobalScopeInit {
     pub script_to_constellation_chan: ScriptToConstellationSender,
     /// Messages to send to the Embedder
     pub script_to_embedder_chan: ScriptToEmbedderChan,
+    /// Messages to send to webdriver
+    pub to_webdriver_sender: Option<GenericCallback<ScriptToWebDriverMessage>>,
     /// The worker id
     pub worker_id: WorkerId,
     /// The pipeline id

@@ -112,6 +112,10 @@ pub struct Preferences {
     pub devtools_server_enabled: bool,
     /// The address:port the devtools server listens to, default to 127.0.0.1:7000.
     pub devtools_server_listen_address: String,
+    /// Start the webdriver at startup
+    pub webdriver_server_enabled: bool,
+    /// The port the webdriver server listens to, default to 4444
+    pub webdriver_server_listen_port: u64,
     // feature: WebGPU | #24706 | Web/API/WebGPU_API
     pub dom_webgpu_enabled: bool,
     /// List of comma-separated backends to be used by wgpu.
@@ -460,8 +464,8 @@ impl Preferences {
             dom_testutils_enabled: false,
             // Following Firefox and Chrome, we are enabling the touch events legacy APIs for android.
             // Additionally, enabling it in ohos for compatibility as well.
-            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android") |
-                cfg!(target_env = "ohos"),
+            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android")
+                | cfg!(target_env = "ohos"),
             dom_transient_activation_duration_ms: 5000,
             dom_web_animations_enabled: false,
             dom_webgl2_enabled: false,
@@ -568,6 +572,8 @@ impl Preferences {
             user_agent: String::new(),
             viewport_meta_enabled: false,
             expose_servointernals_globally: false,
+            webdriver_server_enabled: false,
+            webdriver_server_listen_port: 4444,
         }
     }
 

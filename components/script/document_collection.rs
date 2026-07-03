@@ -6,6 +6,7 @@ use std::collections::hash_map;
 
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use servo_base::id::{BrowsingContextId, PipelineId};
+use webdriver_traits::ids::RealmId;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -49,6 +50,17 @@ impl DocumentCollection {
     pub(crate) fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
         self.find_window(pipeline_id)
             .map(|window| DomRoot::from_ref(window.upcast()))
+    }
+
+    pub(crate) fn find_window_by_realm(&self, realm_id: RealmId) -> Option<DomRoot<Window>> {
+        for (_, doc) in self.map.iter() {
+            let window = doc.window();
+            let global = window.as_global_scope();
+            if global.realm_id() == realm_id {
+                return Some(DomRoot::from_ref(window));
+            }
+        }
+        None
     }
 
     pub(crate) fn find_iframe(
