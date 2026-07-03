@@ -293,16 +293,7 @@ impl CanvasPaintThread {
             CanvasCommand::PopClips(clips) => self.canvas(canvas_id).pop_clips(clips),
             CanvasCommand::ProcessBatchMessages(messages) => {
                 // println!("CanvasCommand[{canvas_id:?}]: Batch({} messages)", messages.len());
-                let mut iter = messages.into_iter().peekable();
-                while let Some(message) = iter.next() {
-                    // Skip empty ClipPath + PopClips(n) consecutive pairs.
-                    if let CanvasCommand::ClipPath(..) = message &&
-                        let Some(CanvasCommand::PopClips(n)) = iter.peek()
-                    {
-                        self.canvas(canvas_id).pop_clips(n - 1);
-                        let _ = iter.next();
-                        continue;
-                    }
+                for message in messages {
                     self.process_command(message, canvas_id);
                 }
             },
