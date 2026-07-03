@@ -80,6 +80,7 @@ use url::{Host, Position};
 
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
+use crate::dom::FlatTreeParent;
 use crate::dom::animationtimeline::AnimationTimeline;
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -779,8 +780,9 @@ impl Document {
         }
 
         let parent = match node.parent_in_flat_tree() {
-            Some(parent) => parent,
-            None => {
+            FlatTreeParent::Parent(parent) => parent,
+            FlatTreeParent::NotInFlatTree => return,
+            FlatTreeParent::RootNode => {
                 // There is no parent so this is the Document node, so we
                 // behave as if we were called with the document element.
                 let Some(document_element) = self.GetDocumentElement() else {
@@ -865,10 +867,13 @@ impl Document {
             }
         }
 
+        // Find the new dirty root. If `Node::common_ancestors_in_flat_tree` returns `None`, this
+        // means that the old dirty root is no longer part of the flat tree and `element` is the new
+        // dirty root.
         let new_dirty_root = element
             .upcast::<Node>()
             .common_ancestor_in_flat_tree(dirty_root.upcast())
-            .expect("Couldn't find common ancestor");
+            .unwrap_or_else(|| DomRoot::from_ref(element.upcast()));
 
         let mut has_dirty_descendants = true;
         for ancestor in dirty_root

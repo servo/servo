@@ -524,20 +524,15 @@ impl DocumentEventHandler {
 
         // We need to create a target chain in case the event target shares
         // its boundaries with its ancestors.
-        let mut targets = vec![];
-        let mut current = Some(event_target);
-        while let Some(node) = current {
-            if node == common_ancestor {
-                break;
-            }
-            current = node.parent_in_flat_tree();
-            targets.push(node);
-        }
+        let mut targets: Vec<_> = event_target
+            .inclusive_ancestors_in_flat_tree()
+            .take_while(|node| *node != common_ancestor)
+            .collect();
 
         // The order for dispatching mouseenter/pointerenter events starts from the topmost
         // common ancestor of the event target and the related target.
         if event_type == FireMouseEventType::Enter {
-            targets = targets.into_iter().rev().collect();
+            targets.reverse();
         }
 
         let pointer_event_name = match event_type {
@@ -2359,13 +2354,10 @@ impl DocumentEventHandler {
         input_event: &ConstellationInputEvent,
         hit_test_result: &HitTestResult,
     ) {
-        // Collect ancestors from target to root
-        let mut targets: Vec<DomRoot<Node>> = vec![];
-        let mut current: Option<DomRoot<Node>> = Some(DomRoot::from_ref(target_element.upcast()));
-        while let Some(node) = current {
-            targets.push(DomRoot::from_ref(&*node));
-            current = node.parent_in_flat_tree();
-        }
+        let mut targets: Vec<_> = target_element
+            .upcast::<Node>()
+            .inclusive_ancestors_in_flat_tree()
+            .collect();
 
         // Reverse to dispatch from topmost ancestor to target
         if event_name == "pointerenter" {
