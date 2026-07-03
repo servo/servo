@@ -990,11 +990,11 @@ fn append_form_data_entry_from_part(
         // The type attribute of the File object must have the value of the `Content-Type` header of the part if the part has such header, and `text/plain` (the default defined by [RFC7578] section 4.4) otherwise.
         let content_type = content_type_from_headers(headers)?;
         let file = File::new(
+            cx,
             root,
             BlobImpl::new_from_bytes(body, normalize_type_string(&content_type)),
             DOMString::from(filename),
             None,
-            CanGc::from_cx(cx),
         );
         let blob = file.upcast::<Blob>();
         formdata.Append_(USVString(name), blob, None);

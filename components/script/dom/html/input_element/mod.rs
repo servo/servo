@@ -1230,7 +1230,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             ValueMode::Filename => {
                 if value.is_empty() {
                     let window = self.owner_window();
-                    let fl = FileList::new(&window, vec![], CanGc::from_cx(cx));
+                    let fl = FileList::new(cx, &window, vec![]);
                     self.input_type().as_specific().set_files(&fl)
                 } else {
                     return Err(Error::InvalidState(None));
@@ -1765,11 +1765,9 @@ impl HTMLInputElement {
         }
 
         if matches!(input_type, InputType::File(_)) {
-            input_type.as_specific().set_files(&FileList::new(
-                &self.owner_window(),
-                vec![],
-                CanGc::from_cx(cx),
-            ));
+            input_type
+                .as_specific()
+                .set_files(&FileList::new(cx, &self.owner_window(), vec![]));
         }
 
         self.value_changed(cx);
@@ -1788,7 +1786,7 @@ impl HTMLInputElement {
         // Step 4. Empty selected files
         if self.input_type().as_specific().get_files().is_some() {
             let window = self.owner_window();
-            let filelist = FileList::new(&window, vec![], CanGc::from_cx(cx));
+            let filelist = FileList::new(cx, &window, vec![]);
             self.input_type().as_specific().set_files(&filelist);
         }
 
