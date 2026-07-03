@@ -17,7 +17,7 @@ use net_traits::request::is_cors_safelisted_request_header;
 use net_traits::trim_http_whitespace;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -25,7 +25,6 @@ use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, is_token};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct Headers {
@@ -54,16 +53,16 @@ impl Headers {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
-        Self::new_with_proto(global, None, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Headers> {
+        Self::new_with_proto(cx, global, None)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Headers> {
-        reflect_dom_object_with_proto(Box::new(Headers::new_inherited()), global, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(Box::new(Headers::new_inherited()), global, proto, cx)
     }
 }
 
@@ -75,7 +74,7 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         proto: Option<HandleObject>,
         init: Option<HeadersInit>,
     ) -> Fallible<DomRoot<Headers>> {
-        let dom_headers_new = Headers::new_with_proto(global, proto, CanGc::from_cx(cx));
+        let dom_headers_new = Headers::new_with_proto(cx, global, proto);
         dom_headers_new.fill(init)?;
         Ok(dom_headers_new)
     }
@@ -287,14 +286,14 @@ impl Headers {
         }
     }
 
-    pub(crate) fn for_request(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
-        let headers_for_request = Headers::new(global, can_gc);
+    pub(crate) fn for_request(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Headers> {
+        let headers_for_request = Headers::new(cx, global);
         headers_for_request.guard.set(Guard::Request);
         headers_for_request
     }
 
-    pub(crate) fn for_response(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
-        let headers_for_response = Headers::new(global, can_gc);
+    pub(crate) fn for_response(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Headers> {
+        let headers_for_response = Headers::new(cx, global);
         headers_for_response.guard.set(Guard::Response);
         headers_for_response
     }

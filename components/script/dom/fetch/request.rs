@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use http::Method as HttpMethod;
 use http::header::{HeaderName, HeaderValue};
 use http::method::InvalidMethod;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::fetch::headers::is_forbidden_method;
@@ -20,7 +21,7 @@ use net_traits::request::{
 };
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_url::ServoUrl;
 
 use crate::body::{
@@ -44,7 +45,6 @@ use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::fetch::RequestWithGlobalScope;
-use crate::script_runtime::CanGc;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]
@@ -73,26 +73,26 @@ impl Request {
     }
 
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         url: ServoUrl,
-        can_gc: CanGc,
     ) -> DomRoot<Request> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(Request::new_inherited(global, url)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     fn from_net_request(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         net_request: NetTraitsRequest,
-        can_gc: CanGc,
     ) -> DomRoot<Request> {
-        let r = Request::new(global, proto, net_request.current_url(), can_gc);
+        let r = Request::new(cx, global, proto, net_request.current_url());
         *r.request.borrow_mut() = net_request;
         r
     }
@@ -349,7 +349,7 @@ impl Request {
         // TODO
 
         // Step 28. Set this’s request to request.
-        let r = Request::from_net_request(global, proto, request, CanGc::from_cx(cx));
+        let r = Request::from_net_request(cx, global, proto, request);
 
         // Step 29. Let signals be « signal » if signal is non-null; otherwise « ».
         let signals = signal.map_or(vec![], |s| vec![s]);
@@ -365,8 +365,7 @@ impl Request {
         //
         // "or_init" looks unclear here, but it always enters the block since r
         // hasn't had any other way to initialize its headers
-        r.headers
-            .or_init(|| Headers::for_request(&r.global(), CanGc::from_cx(cx)));
+        r.headers.or_init(|| Headers::for_request(cx, &r.global()));
 
         // Step 33. If init is not empty, then:
         //
@@ -551,7 +550,7 @@ impl Request {
         let mut new_req_inner = req.clone();
         let body = new_req_inner.body.take();
 
-        let r_clone = Request::new(&r.global(), None, url, CanGc::from_cx(cx));
+        let r_clone = Request::new(cx, &r.global(), None, url);
         *r_clone.request.borrow_mut() = new_req_inner;
 
         // Step 2. If request’s body is non-null, set newRequest’s body
@@ -637,8 +636,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
 
     /// <https://fetch.spec.whatwg.org/#dom-request-headers>
     fn Headers(&self, cx: &mut js::context::JSContext) -> DomRoot<Headers> {
-        self.headers
-            .or_init(|| Headers::new(&self.global(), CanGc::from_cx(cx)))
+        self.headers.or_init(|| Headers::new(cx, &self.global()))
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-destination>
