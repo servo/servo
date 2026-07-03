@@ -21,6 +21,7 @@ pub(crate) mod gpuconvert;
 pub(crate) mod gpudevice;
 pub(crate) mod gpudevicelostinfo;
 pub(crate) mod gpuerror;
+pub(crate) mod gpuexternaltexture;
 pub(crate) mod gpuinternalerror;
 pub(crate) mod gpumapmode;
 pub(crate) mod gpuoutofmemoryerror;

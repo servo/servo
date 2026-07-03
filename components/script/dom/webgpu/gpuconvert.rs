@@ -763,6 +763,9 @@ pub(crate) fn convert_bind_group_entry<'a>(
                 offset: 0,
                 size: None,
             }),
+            GPUBindingResource::GPUExternalTexture(ref t) => {
+                BindingResource::ExternalTexture(t.id().0)
+            },
         },
     }
 }
