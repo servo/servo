@@ -10,24 +10,46 @@
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
- <test xmlns="http://www.example.org/">
-  <line type="odd">This line should be green.</line>
-  <line type="even">This line should be unstyled.</line>
-  <line type="odd" hidden="hidden">This line should be green.</line>
-  <line type="even">This line should be unstyled.</line>
-  <line type="odd">This line should be green.</line>
-  <line type="even">This line should be unstyled.</line>
-  <line type="odd">This line should be green.</line>
-  <line type="even" hidden="hidden">This line should be unstyled.</line>
-  <line type="odd">This line should be green.</line>
-  <line type="even">This line should be unstyled.</line>
-  <line type="odd">This line should be green.</line>
-  <line type="even" hidden="hidden">This line should be unstyled.</line>
-  <line type="odd" hidden="hidden">This line should be green.</line>
-  <line type="even">This line should be unstyled.</line>
-  <line type="odd">This line should be green.</line>
- </test>
-</body>
+  <test xmlns="http://www.example.org/">
+   <line id="t1" type="odd">This line should be green.</line>
+   <line id="t2" type="even">This line should be unstyled.</line>
+   <line id="t3" type="odd" hidden="hidden">This line should be green.</line>
+   <line id="t4" type="even">This line should be unstyled.</line>
+   <line id="t5" type="odd">This line should be green.</line>
+   <line id="t6" type="even">This line should be unstyled.</line>
+   <line id="t7" type="odd">This line should be green.</line>
+   <line id="t8" type="even" hidden="hidden">This line should be unstyled.</line>
+   <line id="t9" type="odd">This line should be green.</line>
+   <line id="t10" type="even">This line should be unstyled.</line>
+   <line id="t11" type="odd">This line should be green.</line>
+   <line id="t12" type="even" hidden="hidden">This line should be unstyled.</line>
+   <line id="t13" type="odd" hidden="hidden">This line should be green.</line>
+   <line id="t14" type="even">This line should be unstyled.</line>
+   <line id="t15" type="odd">This line should be green.</line>
+  </test>
+  <script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_not_background_color('t2', RED);
+  assert_background_color('t3', LIME);
+  assert_not_background_color('t4', RED);
+  assert_background_color('t5', LIME);
+  assert_not_background_color('t6', RED);
+  assert_background_color('t7', LIME);
+  assert_not_background_color('t8', RED);
+  assert_background_color('t9', LIME);
+  assert_not_background_color('t10', RED);
+  assert_background_color('t11', LIME);
+  assert_not_background_color('t12', RED);
+  assert_background_color('t13', LIME);
+  assert_not_background_color('t14', RED);
+  assert_background_color('t15', LIME);
+}, 'nth-of-type() counting includes hidden elements');
+]]></script>
+ </body>
 </html>

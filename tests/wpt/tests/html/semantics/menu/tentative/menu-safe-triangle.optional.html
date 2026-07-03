@@ -18,35 +18,37 @@ menuitem { interest-delay: 0ms; }
 <menubar>
   <menuitem>File</menuitem>
   <menuitem>Edit</menuitem>
-  <menuitem command="toggle-menu" commandfor="view-menu">View</menuitem>
+  <submenu>
+    <menuitem id="view-trigger">View</menuitem>
+    <menulist id="view-menu">
+      <menuitem>Full Screen</menuitem>
+      <submenu>
+        <menuitem id="zoom-trigger">Zoom</menuitem>
+        <menulist id="zoom-menu">
+          <menuitem>25%</menuitem>
+          <menuitem>50%</menuitem>
+          <menuitem>75%</menuitem>
+          <menuitem>90%</menuitem>
+          <menuitem>100%</menuitem>
+          <menuitem>110%</menuitem>
+          <menuitem>125%</menuitem>
+          <menuitem>150%</menuitem>
+          <menuitem>200%</menuitem>
+        </menulist>
+      </submenu>
+    </menulist>
+  </submenu>
   <menuitem>Help</menuitem>
 </menubar>
-
-<menulist id="view-menu">
-  <menuitem>Full Screen</menuitem>
-  <menuitem command="toggle-menu" commandfor="zoom-menu">Zoom</menuitem>
-</menulist>
-
-<menulist id="zoom-menu">
-  <menuitem>25%</menuitem>
-  <menuitem>50%</menuitem>
-  <menuitem>75%</menuitem>
-  <menuitem>90%</menuitem>
-  <menuitem>100%</menuitem>
-  <menuitem>110%</menuitem>
-  <menuitem>125%</menuitem>
-  <menuitem>150%</menuitem>
-  <menuitem>200%</menuitem>
-</menulist>
 
 <script>
 
 promise_test(async (t) => {
-  let view_item = document.querySelector("[commandfor='view-menu']");
+  let view_item = document.getElementById("view-trigger");
   let view_menu = document.getElementById("view-menu");
-  let zoom_item = document.querySelector("[commandfor='zoom-menu']");
+  let zoom_item = document.getElementById("zoom-trigger");
   let zoom_menu = document.getElementById("zoom-menu");
-  let full_screen_item = zoom_item.previousElementSibling;
+  let full_screen_item = zoom_item.parentElement.previousElementSibling;
   let actions = new test_driver.Actions();
 
   assert_false(view_item.matches(":open"), "view menu closed before click");
@@ -68,9 +70,9 @@ promise_test(async (t) => {
 }, 'moving mouse out of safe triangle lets menu close');
 
 promise_test(async (t) => {
-  let view_item = document.querySelector("[commandfor='view-menu']");
+  let view_item = document.getElementById("view-trigger");
   let view_menu = document.getElementById("view-menu");
-  let zoom_item = document.querySelector("[commandfor='zoom-menu']");
+  let zoom_item = document.getElementById("zoom-trigger");
   let zoom_menu = document.getElementById("zoom-menu");
   let actions = new test_driver.Actions();
 

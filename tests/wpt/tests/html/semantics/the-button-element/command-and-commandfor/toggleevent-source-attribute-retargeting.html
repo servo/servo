@@ -68,7 +68,7 @@ promise_test(async () => {
   const innerhost = host2.shadowRoot.getElementById('innerhost');
   const target = innerhost.shadowRoot.getElementById('target');
 
-  const targets = [host2, innerhost, target];
+  const targets = [innerhost, target];
   const targetToEvent = new Map();
   const targetToCaptureSource = new Map();
   const targetToBubbleSource = new Map();
@@ -86,15 +86,17 @@ promise_test(async () => {
   const toggleEvent = new ToggleEvent('toggle', {composed: true, source});
   target.dispatchEvent(toggleEvent);
 
+  assert_false(targetToEvent.has(host2),
+    'host2: event should not have fired because target and source retarget to the same node in host2\'s scope.');
+
   for (const target of targets) {
-    const expectedSource = target == host2 ? host2 : source;
     assert_true(targetToEvent.has(target),
       `${target.id}: event should have fired.`);
-    assert_equals(targetToCaptureSource.get(target), expectedSource,
+    assert_equals(targetToCaptureSource.get(target), source,
       `${target.id}: event.source at capture.`);
-    assert_equals(targetToBubbleSource.get(target), expectedSource,
+    assert_equals(targetToBubbleSource.get(target), source,
       `${target.id}: event.source at bubble.`);
-    assert_equals(targetToEvent.get(target).source, host2,
+    assert_equals(targetToEvent.get(target).source, null,
       `${target.id}: event.source after dispatch.`);
   }
 }, 'Toggle.source should be retargeted when manually dispatched with composed set to true.');

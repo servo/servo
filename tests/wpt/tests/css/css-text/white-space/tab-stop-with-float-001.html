@@ -2,7 +2,17 @@
 <title>Tab stops should be anchored to the block's content edge regardless of floats</title>
 <link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-processing">
 <link rel="match" href="tab-stop-with-float-001-ref.html">
+<meta name="variant" content="?class=ltr">
+<meta name="variant" content="?class=rtl">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script>
+const params = new URLSearchParams(window.location.search);
+let classes = ['ltr'];
+if (params.has('class')) {
+  classes = params.getAll('class').flatMap(value => value.split(','));
+}
+document.documentElement.classList.add(...classes);
+</script>
 <style>
 body {
     margin: 0;
@@ -13,8 +23,11 @@ div {
     tab-size: 4;
     width: 400px;
 }
+.rtl div {
+    direction: rtl;
+}
 .float {
-    float: left;
+    float: inline-start;
     width: 40px;
     height: 20px;
 }

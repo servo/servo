@@ -6,11 +6,14 @@
 p:nth-last-of-type(3) { background-color : lime }
 dl > :nth-last-of-type(3n+1) { background-color : lime }
 ]]></style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
  </head>
  <body>
-<p class="red">This paragraph should have green background</p>
+<p id="t1" class="red">This paragraph should have green background</p>
 <address>But this address is here only to fill space in the dom..</address>
 <p>So does this paragraph !</p>
 <p>And so does this one too.</p>
@@ -19,14 +22,27 @@ dl > :nth-last-of-type(3n+1) { background-color : lime }
     <dd>First definition</dd>
   <dt>Second definition term</dt>
     <dd>Second definition</dd>
-  <dt class="red">Third definition term that should have green background</dt>
-    <dd class="red">Third definition that should have green background</dd>
+  <dt id="t2" class="red">Third definition term that should have green background</dt>
+    <dd id="t3" class="red">Third definition that should have green background</dd>
   <dt>Fourth definition term</dt>
     <dd>Fourth definition</dd>
   <dt>Fifth definition term</dt>
     <dd>Fifth definition</dd>
-  <dt class="red">Sixth definition term that should have green background</dt>
-    <dd class="red">Sixth definition that should have green background</dd>
+  <dt id="t4" class="red">Sixth definition term that should have green background</dt>
+    <dd id="t5" class="red">Sixth definition that should have green background</dd>
 </dl>
+<script><![CDATA[
+promise_test(async () => {
+  // We need to determine <body> children.
+  if (document.readyState !== 'complete') {
+    await new Promise(resolve => window.addEventListener('load', resolve));
+  }
+  assert_background_color('t1', LIME, 't1: p:nth-last-of-type(3)');
+  assert_background_color('t2', LIME, 't2: dt:nth-last-of-type(4)');
+  assert_background_color('t3', LIME, 't3: dd:nth-last-of-type(4)');
+  assert_background_color('t4', LIME, 't4: dt:nth-last-of-type(1)');
+  assert_background_color('t5', LIME, 't5: dd:nth-last-of-type(1)');
+}, 'nth-last-of-type');
+]]></script>
 </body>
 </html>

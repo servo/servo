@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="http://crbug.com/527735384">
+<link rel=match href=select-appearance-change-ref.html>
+<style>
+  .base {
+    appearance: base-select;
+  }
+  select::picker(select) {
+    background: red;
+    border: none;
+    padding: 0;
+    flex: 1;
+  }
+  #target {
+    display: inline-flex;
+    height: 100px;
+    width: 100px;
+    border: none;
+    padding: 0;
+  }
+</style>
+<select id=target size=2>
+  <option style="height: 20px; margin: 0; background: blue;">one</option>
+</select>
+<script>
+  // Force initial layout with appearance:auto, then switch to appearance:base-select.
+  document.body.offsetTop;
+  document.getElementById('target').classList.add('base');
+</script>

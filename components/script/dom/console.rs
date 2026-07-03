@@ -211,7 +211,7 @@ fn console_argument_from_handle_value(
 
             if let Some((class, preview)) = console_object {
                 return Ok(DebuggerValue::ObjectValue {
-                    uuid: uuid::Uuid::new_v4().to_string(),
+                    actor: None,
                     class,
                     own_property_length: preview.own_properties_length,
                     preview: Some(Box::new(preview)),

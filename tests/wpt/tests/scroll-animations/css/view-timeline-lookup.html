@@ -182,11 +182,12 @@
 <script>
   promise_test(async (t) => {
     await inflate(t, timeline_ancestor_sibling_conflict);
-    assert_equals(getComputedStyle(target).zIndex, 'auto');
-  }, 'timeline-scope on ancestor sibling, conflict remains unresolved');
+    // Resolve to last match in flat-tree order.
+    assert_equals(getComputedStyle(target).zIndex, '50');
+  }, 'timeline-scope on ancestor sibling, resolve to last match in tree order');
 </script>
 
-<template id=timeline_ancestor_closer_timeline_wins>
+<template id=timeline_ancestor_search_stops_at_timeline_scope>
   <style>
     #scroller {
       timeline-scope: --t1;
@@ -215,10 +216,11 @@
   </div>
 </template>
 <script>
-  promise_test(async (t) => {
-    await inflate(t, timeline_ancestor_closer_timeline_wins);
-    assert_equals(getComputedStyle(target).zIndex, '0');
-  }, 'timeline-scope on ancestor sibling, closer timeline wins');
+  // https://drafts.csswg.org/scroll-animations-1/#timeline-scoping
+   promise_test(async (t) => {
+     await inflate(t, timeline_ancestor_search_stops_at_timeline_scope);
+     assert_equals(getComputedStyle(target).zIndex, 'auto');
+   }, 'ancestor search stops at timeline-scope');
 </script>
 
 <template id=timeline_ancestor_scroll_timeline_wins_on_same_element>

@@ -1988,7 +1988,7 @@ impl Element {
             namespace: namespace.clone(),
             old_value: old_value.map(|old_value| DOMString::from(&**old_value)),
         });
-        MutationObserver::queue_a_mutation_record(&self.node, mutation);
+        MutationObserver::queue_a_mutation_record(cx, &self.node, mutation);
 
         // Avoid double borrow
         let has_new_value = new_value.is_some();

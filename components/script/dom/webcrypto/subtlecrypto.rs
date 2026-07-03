@@ -2582,9 +2582,11 @@ pub(crate) fn check_support_for_algorithm(
                 SignAlgorithm::RsassaPkcs1V1_5(_) |
                 SignAlgorithm::RsaPss(_) |
                 SignAlgorithm::Ecdsa(_) |
-                SignAlgorithm::Ed25519(_) |
-                SignAlgorithm::Hmac(_) |
-                SignAlgorithm::MlDsa(_) => true,
+                SignAlgorithm::Ed25519(_) => true,
+                SignAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
+                    .context
+                    .is_none_or(|context| context.len() <= 255),
+                SignAlgorithm::Hmac(_) | SignAlgorithm::MlDsa(_) => true,
             }
         },
         "verify" => {
@@ -2597,9 +2599,11 @@ pub(crate) fn check_support_for_algorithm(
                 VerifyAlgorithm::RsassaPkcs1V1_5(_) |
                 VerifyAlgorithm::RsaPss(_) |
                 VerifyAlgorithm::Ecdsa(_) |
-                VerifyAlgorithm::Ed25519(_) |
-                VerifyAlgorithm::Hmac(_) |
-                VerifyAlgorithm::MlDsa(_) => true,
+                VerifyAlgorithm::Ed25519(_) => true,
+                VerifyAlgorithm::Ed448(normalized_algorithm) => normalized_algorithm
+                    .context
+                    .is_none_or(|context| context.len() <= 255),
+                VerifyAlgorithm::Hmac(_) | VerifyAlgorithm::MlDsa(_) => true,
             }
         },
         "digest" => {
@@ -2686,7 +2690,9 @@ pub(crate) fn check_support_for_algorithm(
                 GenerateKeyAlgorithm::Ecdh(normalized_algorithm) => {
                     SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
                 },
-                GenerateKeyAlgorithm::Ed25519(_) | GenerateKeyAlgorithm::X25519(_) => true,
+                GenerateKeyAlgorithm::Ed25519(_) |
+                GenerateKeyAlgorithm::X25519(_) |
+                GenerateKeyAlgorithm::Ed448(_) => true,
                 GenerateKeyAlgorithm::AesCtr(normalized_algorithm) |
                 GenerateKeyAlgorithm::AesCbc(normalized_algorithm) |
                 GenerateKeyAlgorithm::AesGcm(normalized_algorithm) |
@@ -4017,6 +4023,31 @@ impl SafeToJSValConvertible for SubtleEncapsulatedBits {
     }
 }
 
+/// <https://wicg.github.io/webcrypto-secure-curves/#dfn-Ed448Params>
+#[derive(Clone, MallocSizeOf)]
+struct SubtleEd448Params {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: CryptoAlgorithm,
+
+    /// <https://wicg.github.io/webcrypto-secure-curves/#dfn-Ed448Params-context>
+    context: Option<Vec<u8>>,
+}
+
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEd448Params {
+    type Error = Error;
+
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+    ) -> Result<Self, Self::Error> {
+        Ok(SubtleEd448Params {
+            name: algorithm_name,
+            context: get_optional_buffer_source(cx, object, c"context")?,
+        })
+    }
+}
+
 /// Helper to retrieve a required paramter from WebIDL dictionary.
 fn get_required_parameter<T: FromJSValConvertible>(
     cx: &mut js::context::JSContext,
@@ -4823,6 +4854,7 @@ enum SignAlgorithm {
     RsaPss(SubtleRsaPssParams),
     Ecdsa(SubtleEcdsaParams),
     Ed25519(SubtleAlgorithm),
+    Ed448(SubtleEd448Params),
     Hmac(SubtleAlgorithm),
     MlDsa(SubtleContextParams),
 }
@@ -4846,6 +4878,9 @@ impl NormalizedAlgorithm for SignAlgorithm {
             CryptoAlgorithm::Ed25519 => Ok(SignAlgorithm::Ed25519(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
+            CryptoAlgorithm::Ed448 => Ok(SignAlgorithm::Ed448(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::Hmac => Ok(SignAlgorithm::Hmac(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
@@ -4865,6 +4900,7 @@ impl NormalizedAlgorithm for SignAlgorithm {
             SignAlgorithm::RsaPss(algorithm) => algorithm.name,
             SignAlgorithm::Ecdsa(algorithm) => algorithm.name,
             SignAlgorithm::Ed25519(algorithm) => algorithm.name,
+            SignAlgorithm::Ed448(algorithm) => algorithm.name,
             SignAlgorithm::Hmac(algorithm) => algorithm.name,
             SignAlgorithm::MlDsa(algorithm) => algorithm.name,
         }
@@ -4880,6 +4916,7 @@ impl SignAlgorithm {
             SignAlgorithm::RsaPss(algorithm) => rsa_pss_operation::sign(algorithm, key, message),
             SignAlgorithm::Ecdsa(algorithm) => ecdsa_operation::sign(algorithm, key, message),
             SignAlgorithm::Ed25519(_algorithm) => ed25519_operation::sign(key, message),
+            SignAlgorithm::Ed448(algorithm) => ed448_operation::sign(algorithm, key, message),
             SignAlgorithm::Hmac(_algorithm) => hmac_operation::sign(key, message),
             SignAlgorithm::MlDsa(algorithm) => ml_dsa_operation::sign(algorithm, key, message),
         }
@@ -4900,6 +4937,7 @@ enum VerifyAlgorithm {
     RsaPss(SubtleRsaPssParams),
     Ecdsa(SubtleEcdsaParams),
     Ed25519(SubtleAlgorithm),
+    Ed448(SubtleEd448Params),
     Hmac(SubtleAlgorithm),
     MlDsa(SubtleContextParams),
 }
@@ -4923,6 +4961,9 @@ impl NormalizedAlgorithm for VerifyAlgorithm {
             CryptoAlgorithm::Ed25519 => Ok(VerifyAlgorithm::Ed25519(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
+            CryptoAlgorithm::Ed448 => Ok(VerifyAlgorithm::Ed448(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::Hmac => Ok(VerifyAlgorithm::Hmac(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
@@ -4942,6 +4983,7 @@ impl NormalizedAlgorithm for VerifyAlgorithm {
             VerifyAlgorithm::RsaPss(algorithm) => algorithm.name,
             VerifyAlgorithm::Ecdsa(algorithm) => algorithm.name,
             VerifyAlgorithm::Ed25519(algorithm) => algorithm.name,
+            VerifyAlgorithm::Ed448(algorithm) => algorithm.name,
             VerifyAlgorithm::Hmac(algorithm) => algorithm.name,
             VerifyAlgorithm::MlDsa(algorithm) => algorithm.name,
         }
@@ -4962,6 +5004,9 @@ impl VerifyAlgorithm {
             },
             VerifyAlgorithm::Ed25519(_algorithm) => {
                 ed25519_operation::verify(key, message, signature)
+            },
+            VerifyAlgorithm::Ed448(algorithm) => {
+                ed448_operation::verify(algorithm, key, message, signature)
             },
             VerifyAlgorithm::Hmac(_algorithm) => hmac_operation::verify(key, message, signature),
             VerifyAlgorithm::MlDsa(algorithm) => {
@@ -5278,6 +5323,7 @@ enum GenerateKeyAlgorithm {
     Ecdh(SubtleEcKeyGenParams),
     Ed25519(SubtleAlgorithm),
     X25519(SubtleAlgorithm),
+    Ed448(SubtleAlgorithm),
     AesCtr(SubtleAesKeyGenParams),
     AesCbc(SubtleAesKeyGenParams),
     AesGcm(SubtleAesKeyGenParams),
@@ -5315,6 +5361,9 @@ impl NormalizedAlgorithm for GenerateKeyAlgorithm {
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             CryptoAlgorithm::X25519 => Ok(GenerateKeyAlgorithm::X25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ed448 => Ok(GenerateKeyAlgorithm::Ed448(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             CryptoAlgorithm::AesCtr => Ok(GenerateKeyAlgorithm::AesCtr(
@@ -5362,6 +5411,7 @@ impl NormalizedAlgorithm for GenerateKeyAlgorithm {
             GenerateKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
             GenerateKeyAlgorithm::Ed25519(algorithm) => algorithm.name,
             GenerateKeyAlgorithm::X25519(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::Ed448(algorithm) => algorithm.name,
             GenerateKeyAlgorithm::AesCtr(algorithm) => algorithm.name,
             GenerateKeyAlgorithm::AesCbc(algorithm) => algorithm.name,
             GenerateKeyAlgorithm::AesGcm(algorithm) => algorithm.name,
@@ -5416,6 +5466,10 @@ impl GenerateKeyAlgorithm {
             },
             GenerateKeyAlgorithm::X25519(_algorithm) => {
                 x25519_operation::generate_key(cx, global, extractable, usages)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
+            },
+            GenerateKeyAlgorithm::Ed448(_algorithm) => {
+                ed448_operation::generate_key(cx, global, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
             GenerateKeyAlgorithm::AesCtr(algorithm) => {

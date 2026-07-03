@@ -37,8 +37,8 @@ globalThis.runTestsWithWebExtension = function(extensionPath) {
 
     cleanupListeners();
     installPromise
-        .then((result) => {
-          return test_driver.uninstall_web_extension(result.extension);
+        .then((extension_id) => {
+          return test_driver.uninstall_web_extension(extension_id);
         })
         .then(() => {
           done();

@@ -6,8 +6,19 @@
 ]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
-<p>You should see after this paragraph the words GENERATED CONTENT over green background</p>
+<p id="t1">You should see after this paragraph the words GENERATED CONTENT over green background</p>
+<script><![CDATA[
+test(function() {
+  const t1 = document.getElementById('t1');
+  const computedStyle = window.getComputedStyle(t1, '::after');
+  assert_equals(computedStyle.backgroundColor, LIME);
+  assert_equals(computedStyle.content, '"GENERATED CONTENT "');
+}, 'p:after pseudo-element');
+]]></script>
 </body>
 </html>

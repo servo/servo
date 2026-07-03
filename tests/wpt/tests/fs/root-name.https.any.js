@@ -1,3 +1,4 @@
+// META: global=window,worker
 'use strict';
 
 promise_test(async test => {

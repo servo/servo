@@ -132,6 +132,7 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
         logger = wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
 
     handler = ServoHandler(detect_flakes=kwargs["retry_unexpected"] >= 1)
+    assert logger is not None
     logger.add_handler(handler)
 
     with tempfile.TemporaryDirectory(prefix="servo-") as config_dir:

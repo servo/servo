@@ -12,15 +12,10 @@ promise_test(async t => {
   const controller = new AbortController();
 
   // Register a dummy tool so we have something to execute.
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'dummy_tool',
     description: 'Dummy tool',
     execute: async () => 'hello'
-  });
-
-  // Wait for toolchange to be sure it's registered.
-  await new Promise(resolve => {
-    document.modelContext.addEventListener('toolchange', resolve, {once: true});
   });
 
   const tools = await document.modelContext.getTools();

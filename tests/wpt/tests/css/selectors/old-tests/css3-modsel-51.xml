@@ -8,15 +8,26 @@ div.stub *|*:not([test="1"]) { color : lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 <div class="stub">
 <q xmlns="http://www.example.org/a" test="1">
-  <r test="11">This text should be</r>
-  <r>in green characters</r>
+  <r test="11" id="t1">This text should be</r>
+  <r id="t2">in green characters</r>
 </q>
-<s xmlns="http://www.example.org/a">This text should be in green characters</s>
-<p>This text should be in green characters</p>
+<s xmlns="http://www.example.org/a" id="t3">This text should be in green characters</s>
+<p id="t4">This text should be in green characters</p>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('t1')).color, LIME);
+  assert_equals(getComputedStyle(document.getElementById('t2')).color, LIME);
+  assert_equals(getComputedStyle(document.getElementById('t3')).color, LIME);
+  assert_equals(getComputedStyle(document.getElementById('t4')).color, LIME);
+}, 'NEGATED attribute value selector');
+]]></script>
 </body>
 </html>

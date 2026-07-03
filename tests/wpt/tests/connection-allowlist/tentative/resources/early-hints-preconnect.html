@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+const RESOURCES_PATH = '/connection-allowlist/tentative/resources';
+const params = new URLSearchParams(window.location.search);
+const allow = params.get("allow");
+const key = params.get("key");
+const alt_host = params.get("alt_host");
+const https_port = params.get("https_port");
+const expected = allow === "true" ? "allowed" : "blocked";
+
+promise_test(async (t) => {
+  const base_url = `https://${key}.${alt_host}:${https_port}`;
+  const resource_url = `${base_url}${RESOURCES_PATH}/empty.js?${key}`;
+
+  // We fetch a cross-origin resource (`empty.js`) to evaluate whether the
+  // preconnect was allowed or blocked by the connection allowlist.
+  //
+  // This is done by using Resource Timing API:
+  // - `empty.js.headers` returns `Timing-Allow-Origin: *` to allow this page to
+  //   read detailed network timing values (like connectStart and connectEnd).
+  // - If the Early Hint preconnect was allowed: The connection handshake (DNS,
+  //   TCP, TLS) has been completed already by the preconnect. The subsequent
+  //   `fetch()` will reuse this existing socket. Which means
+  //   `connectStart == connectEnd`.
+  // - If the Early Hint preconnect was blocked: The `fetch()` must establish a
+  //   new socket, performing the full handshake. This takes time, resulting
+  //   in `connectStart < connectEnd`.
+  const response = await fetch(resource_url);
+  assert_true(response.ok, `Fetch should succeed. Status: ${response.status}`);
+  await response.text();
+
+  const resource_entries = performance.getEntriesByName(resource_url);
+  assert_equals(resource_entries.length, 1);
+
+  const connect_start = resource_entries[0].connectStart;
+  const connect_end = resource_entries[0].connectEnd;
+
+  if (expected === "allowed") {
+    assert_equals(connect_start, connect_end,
+        "Connection allowlist should allow the Early Hints preconnect.");
+  } else if (expected === "blocked") {
+    assert_true(connect_start < connect_end,
+        "Connection allowlist should block the Early Hints preconnect.");
+  }
+}, `Early Hints preconnect connection allowlist test: ${expected}`);
+</script>
+</body>

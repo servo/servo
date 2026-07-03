@@ -39,11 +39,10 @@ function test_each(method, testcases) {
 
       context[method].call(context, testcase.data, { sanitizer: config });
       assert_testcase(context, testcase);
-    }, `Testcase #${index}, ${method}("${testcase.data})".`);
+    }, `Testcase #${index}, ${method}("${testcase.data}").`);
   });
 }
 </script>
 </head>
 <body>
 </body>
-

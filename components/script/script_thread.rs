@@ -51,6 +51,7 @@ use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader
 use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::router::ROUTER;
+use js::context::JSContext;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{GCReason, JSContext as UnsafeJSContext};
 use js::jsval::UndefinedValue;
@@ -73,7 +74,6 @@ use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
-use script_bindings::script_runtime::JSContext;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
@@ -604,11 +604,9 @@ impl ScriptThread {
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
-    pub(crate) fn await_stable_state(task: Microtask) {
+    pub(crate) fn await_stable_state(cx: &JSContext, task: Microtask) {
         with_script_thread(|script_thread| {
-            script_thread
-                .microtask_queue
-                .enqueue(task, script_thread.get_cx());
+            script_thread.microtask_queue.enqueue(cx, task);
         });
     }
 
@@ -849,13 +847,14 @@ impl ScriptThread {
     }
 
     pub(crate) fn enqueue_upgrade_reaction(
+        cx: &js::context::JSContext,
         element: &Element,
         definition: Rc<CustomElementDefinition>,
     ) {
         with_script_thread(|script_thread| {
             script_thread
                 .custom_element_reaction_stack
-                .enqueue_upgrade_reaction(element, definition);
+                .enqueue_upgrade_reaction(cx, element, definition);
         })
     }
 
@@ -1050,11 +1049,6 @@ impl ScriptThread {
         )
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
-    }
-
     /// Check if we are closing.
     fn can_continue_running_inner(&self) -> bool {
         if self.closing.load(Ordering::SeqCst) {
@@ -1238,7 +1232,7 @@ impl ScriptThread {
             if resized {
                 // https://html.spec.whatwg.org/multipage/#img-environment-changes
                 // As per the spec, this can be run at any time.
-                document.react_to_environment_changes();
+                document.react_to_environment_changes(cx);
             }
 
             let mut realm = enter_auto_realm(cx, &*document);
@@ -4296,18 +4290,16 @@ impl ScriptThread {
         action: MediaSessionActionType,
     ) {
         if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
-            let media_session = window.Navigator().MediaSession();
+            let media_session = window.Navigator().MediaSession(cx);
             media_session.handle_action(cx, action);
         } else {
             warn!("No MediaSession for this pipeline ID");
         };
     }
 
-    pub(crate) fn enqueue_microtask(job: Microtask) {
+    pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Microtask) {
         with_script_thread(|script_thread| {
-            script_thread
-                .microtask_queue
-                .enqueue(job, script_thread.get_cx());
+            script_thread.microtask_queue.enqueue(cx, job);
         });
     }
 

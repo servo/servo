@@ -1,0 +1,987 @@
+#data
+<body><?something>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?something?>
+
+#data
+<body><?something><span>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?something?>
+|     <span>
+
+#data
+<body><?something good>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?something good?>
+
+#data
+<body><?something else is good>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?something else is good?>
+
+#data
+<body><?one><?two>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?one?>
+|     <?two?>
+
+#data
+<body><?a$><?b$><?good?>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?a$ -->
+|     <!-- ?b$ -->
+|     <?good?>
+
+#data
+<body><?hey there?>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?hey there?>
+
+#data
+<body><?hey   there?>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?hey there?>
+
+#data
+<body><?hey?there>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?hey ?there?>
+
+#data
+<body><?hey\tthere=1?>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?hey there=1?>
+
+#data
+<body><?hey\nthere=1?>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?hey there=1?>
+
+#data
+<body><?hey\rthere=1?>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?hey there=1?>
+
+#data
+<body><?hey\fthere=1?>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?hey there=1?>
+
+#data
+<body><?something ? >
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?something ? ?>
+
+#data
+<body><?something x >
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?something x ?>
+
+#data
+<body><?something ?\t   ??>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?something ?\t   ??>
+
+#data
+<body><?t d > ?>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?t d ?>
+|     " ?>"
+
+#data
+<body><?module-handler>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?module-handler?>
+
+#data
+<body><?module-handler data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?module-handler data?>
+
+#data
+<body><?view-port>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?view-port?>
+
+#data
+<body><?view-port data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?view-port data?>
+
+#data
+<body><?config-v2>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?config-v2?>
+
+#data
+<body><?config-v2 data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?config-v2 data?>
+
+#data
+<body><?x>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?x?>
+
+#data
+<body><?x data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?x data?>
+
+#data
+<body><?zz2op>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?zz2op?>
+
+#data
+<body><?zz2op data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?zz2op data?>
+
+#data
+<body><?xla->
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?xla-?>
+
+#data
+<body><?xla- data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?xla- data?>
+
+#data
+<body><?a-b-c>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?a-b-c?>
+
+#data
+<body><?a-b-c data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?a-b-c data?>
+
+#data
+<body><?v-123>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?v-123?>
+
+#data
+<body><?v-123 data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?v-123 data?>
+
+#data
+<body><?a0-b1-c2>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?a0-b1-c2?>
+
+#data
+<body><?a0-b1-c2 data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?a0-b1-c2 data?>
+
+#data
+<body><?page-404>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?page-404?>
+
+#data
+<body><?page-404 data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?page-404 data?>
+
+#data
+<body><?r2-d2>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?r2-d2?>
+
+#data
+<body><?r2-d2 data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?r2-d2 data?>
+
+#data
+<body><?level-99>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?level-99?>
+
+#data
+<body><?level-99 data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?level-99 data?>
+
+#data
+<body><?UPPERCASE>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?UPPERCASE?>
+
+#data
+<body><?UPPERCASE data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?UPPERCASE data?>
+
+#data
+<body><?all-KINDS-of-CaSeS>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?all-KINDS-of-CaSeS?>
+
+#data
+<body><?all-KINDS-of-CaSeS data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?all-KINDS-of-CaSeS data?>
+
+#data
+<body><?user_name>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?user_name?>
+
+#data
+<body><?user_name data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?user_name data?>
+
+#data
+<body><?S_S-S_S>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?S_S-S_S?>
+
+#data
+<body><?S_S-S_S data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?S_S-S_S data?>
+
+#data
+<body><?b_>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?b_?>
+
+#data
+<body><?b_ data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?b_ data?>
+
+#data
+<body><?_prefix>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?_prefix?>
+
+#data
+<body><?_prefix data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?_prefix data?>
+
+#data
+<body><?_x132>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?_x132?>
+
+#data
+<body><?_x132 data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?_x132 data?>
+
+#data
+<body><?_-_>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?_-_?>
+
+#data
+<body><?_-_ data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?_-_ data?>
+
+#data
+<body><?_>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?_?>
+
+#data
+<body><?_ data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?_ data?>
+
+#data
+<body><?A---------------->
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?A----------------?>
+
+#data
+<body><?A---------------- data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?A---------------- data?>
+
+#data
+<body><?z0123456789>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?z0123456789?>
+
+#data
+<body><?z0123456789 data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?z0123456789 data?>
+
+#data
+<body><?m-0>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?m-0?>
+
+#data
+<body><?m-0 data>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?m-0 data?>
+
+#data
+<body><?xml>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?xml -->
+
+#data
+<body><?xml-stylesheet>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?xml-stylesheet -->
+
+#data
+<body><?XML>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?XML -->
+
+#data
+<body><?XML-stylesheet>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?XML-stylesheet -->
+
+#data
+<body><?xML>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?xML -->
+
+#data
+<body><?xml-STYLesheet>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?xml-STYLesheet -->
+
+#data
+<body><?1st-place>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?1st-place -->
+
+#data
+<body><?2-factor>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?2-factor -->
+
+#data
+<body><?99-problems>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?99-problems -->
+
+#data
+<body><?\u0665-star>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?٥-star -->
+
+#data
+<body><?-prefix>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?-prefix -->
+
+#data
+<body><?--internal>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?--internal -->
+
+#data
+<body><?-data->
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?-data- -->
+
+#data
+<body><?-100>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?-100 -->
+
+#data
+<body><?\u00B7middle-dot>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?·middle-dot -->
+
+#data
+<body><?\u0375greek-numeral>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?͵greek-numeral -->
+
+#data
+<body><?\u0301accent-start>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?́accent-start -->
+
+#data
+<body><?price$value>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?price$value -->
+
+#data
+<body><?user@domain>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?user@domain -->
+
+#data
+<body><?tag#id>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?tag#id -->
+
+#data
+<body><?a+b>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?a+b -->
+
+#data
+<body><?100%>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?100% -->
+
+#data
+<body><?data.v1>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?data.v1 -->
+
+#data
+<body><?namespace:tag>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?namespace:tag -->
+
+#data
+<body><?error!code>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?error!code -->
+
+#data
+<body><?x=y>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?x=y -->
+
+#data
+<body><?a<b>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?a<b -->
+
+#data
+<body><?true&false>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?true&false -->
+
+#data
+<body><?not|or>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?not|or -->
+
+#data
+<body><?lit$123456789>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?lit$123456789 -->
+
+#data
+<body><?lit$$4x>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?lit$$4x -->
+
+#data
+<body><?\uD83D\uDE80-launch>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?🚀-launch -->
+
+#data
+<body><?error-\u26A0\uFE0F>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?error-⚠️ -->
+
+#data
+<body><?fire-\uD83D\uDD25>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?fire-🔥 -->
+
+#data
+<body><?v1-\u2705>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?v1-✅ -->
+
+#data
+<body><?start
+#document
+| <html>
+|   <head>
+|   <body>
+
+#data
+<body><?start?
+#document
+| <html>
+|   <head>
+|   <body>
+
+#data
+<body><?start 
+#document
+| <html>
+|   <head>
+|   <body>
+
+#data
+<body><?start data
+#document
+| <html>
+|   <head>
+|   <body>
+
+#data
+<body><?start ? ?
+#document
+| <html>
+|   <head>
+|   <body>
+
+#data
+<body><?
+#document
+| <html>
+|   <head>
+|   <body>
+
+#data
+<body><? 
+#document
+| <html>
+|   <head>
+|   <body>
+|     <!-- ?  -->
+
+#data
+<div><?something></div>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       <?something?>
+
+#data
+<div><?something good></div>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       <?something good?>
+
+#data
+<table><?something></table>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       <?something?>
+
+#data
+<table><tr><?something></tr></table>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       <tbody>
+|         <tr>
+|           <?something?>
+
+#data
+<script><?something></script>
+#document
+| <html>
+|   <head>
+|     <script>
+|       "<?something>"
+|   <body>
+
+#data
+<style><?something></style>
+#document
+| <html>
+|   <head>
+|     <style>
+|       "<?something>"
+|   <body>
+
+#data
+<?something>
+#document
+| <?something?>
+| <html>
+|   <head>
+|   <body>
+
+#data
+<head><?something>
+#document
+| <html>
+|   <head>
+|     <?something?>
+|   <body>
+
+#data
+<html><?something><head>
+#document
+| <html>
+|   <?something?>
+|   <head>
+|   <body>
+
+#data
+<html><head></head><?something><body>
+#document
+| <html>
+|   <head>
+|   <?something?>
+|   <body>
+
+#data
+<html><body></body><?something>
+#document
+| <html>
+|   <head>
+|   <body>
+|   <?something?>
+
+#data
+<html><body></body></html><?something>
+#document
+| <html>
+|   <head>
+|   <body>
+| <?something?>
+
+#data
+<body><template><?something></template>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <template>
+|       content
+|         <?something?>
+
+#data
+<body><textarea><?something></textarea>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <textarea>
+|       "<?something>"
+
+#data
+<body><title><?something></title>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <title>
+|       "<?something>"
+

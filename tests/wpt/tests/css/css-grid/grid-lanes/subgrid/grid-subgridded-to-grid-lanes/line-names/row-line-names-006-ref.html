@@ -1,0 +1,96 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <style>
+html,body {
+  color:black; background-color:white; font:12px/1 monospace; padding:0; margin:0;
+}
+
+.grid-lanes {
+  display: grid-lanes;
+  grid-template-rows: repeat(10, 5px);
+}
+
+.grid-lanes > div { background: grey; grid-row: 2 / span 2; }
+
+x { background: silver; }
+
+.vr { writing-mode: vertical-rl; direction:rtl; }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes">
+  <div style="display:grid; grid:subgrid/auto; grid-template-areas: '.' 'a' 'a' 'a' 'a';">
+    <x style="grid-row: 2 / 3">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div style="display:grid; grid:subgrid [a]/auto;">
+    <x style="grid-row: 1 / 2">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div style="display:grid; grid:subgrid [a]/auto; grid-row:1/span 2">
+    <x style="grid-row: 1 / 2">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div style="display:grid; grid:subgrid [a] [a]/auto; grid-row-end:span 3">
+    <x style="grid-row: 2 / 3">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div style="display:grid; grid:subgrid [a] [a] [a] [a]/auto; grid-row-end:span 3">
+    <x style="grid-row: 3 / 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div style="display:grid; grid:subgrid [] [a] [a]/auto; grid-row-end:span 6">
+    <x style="grid-row: 2 / 3">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="vr" style="display:grid; grid:subgrid/auto; grid-template-areas: '.' 'a' 'a' 'a' 'a';">
+    <x style="grid-row: 2 / 3">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="vr" style="display:grid; grid:subgrid [a]/auto;">
+    <x style="grid-row: 1 / 2">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="vr" style="display:grid; grid:subgrid [a]/auto; grid-row:1/span 2">
+    <x style="grid-row: 1 / 2">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="vr" style="display:grid; grid:subgrid [a] [a]/auto; grid-row-end:span 3">
+    <x style="grid-row: 2 / 3">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="vr" style="display:grid; grid:subgrid [a] [a] [a] [a]/auto; grid-row-end:span 3">
+    <x style="grid-row: 3 / 4">x</x>
+  </div>
+</div>
+
+<div class="grid-lanes">
+  <div class="vr" style="display:grid; grid:subgrid [] [a] [a]/auto; grid-row-end:span 6">
+    <x style="grid-row: 2 / 3">x</x>
+  </div>
+</div>
+
+</body>
+</html>

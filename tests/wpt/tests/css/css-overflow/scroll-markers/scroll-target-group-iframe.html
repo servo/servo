@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>CSS Overflow: scroll-target-group: auto with iframe sibling</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #nav {
+    scroll-target-group: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: white;
+  }
+
+  #nav a {
+    display: block;
+    padding: 5px;
+  }
+
+  #nav a:target-current {
+    background-color: yellow;
+  }
+
+  #scroller {
+    height: 400px;
+    overflow: scroll;
+    border: 1px solid black;
+  }
+
+  section {
+    height: 600px;
+    border: 1px solid red;
+  }
+
+  iframe {
+    height: 600px;
+    width: 100%;
+    border: 1px solid blue;
+  }
+</style>
+<div id="nav">
+  <a id="link1" href="#s1">Section 1</a>
+  <a id="link2" href="#s2">Section 2</a>
+  <a id="link3" href="#s3">Section 3</a>
+</div>
+<div id="scroller">
+  <section id="s1">Section 1</section>
+  <iframe id="ifr"></iframe>
+  <section id="s2">Section 2</section>
+  <section id="s3">Section 3</section>
+</div>
+<script>
+  promise_test(async () => {
+    const scroller = document.getElementById('scroller');
+    const link1 = document.getElementById('link1');
+    const link2 = document.getElementById('link2');
+    const link3 = document.getElementById('link3');
+    const ifr = document.getElementById('ifr');
+
+    // Wait for initial scroll marker update.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    // Now set the iframe source to load it.
+    ifr.src = "/common/blank.html?pipe=delay(1)";
+    await new Promise(resolve => ifr.addEventListener('load', resolve));
+
+    // Scroll to section 2.
+    // Since section 1 is 600px and iframe is 600px, section 2 starts at 1200px.
+    // Let's scroll to 1400px.
+    scroller.scrollTop = 1400;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    assert_true(link2.matches(':target-current'), "Link 2 should be active after scroll past iframe");
+    assert_false(link1.matches(':target-current'), "Link 1 should not be active");
+
+    scroller.scrollTop = 2000;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    assert_true(link3.matches(':target-current'), "Link 3 should be active after further scroll");
+  }, "scroll-target-group: auto updates :target-current when there is an iframe sibling in the scroller");
+</script>

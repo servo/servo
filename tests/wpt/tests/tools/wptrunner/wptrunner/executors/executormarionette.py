@@ -822,7 +822,7 @@ class MarionetteWebExtensionsProtocolPart(WebExtensionsProtocolPart):
             extension_path = self.parent.test_dir + path
             extension_id = self.addons.install(extension_path, temp=True)
 
-        return {'extension': extension_id}
+        return extension_id
 
     def uninstall_web_extension(self, extension_id):
         return self.addons.uninstall(extension_id)

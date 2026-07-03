@@ -3,7 +3,7 @@ Introduction
 
 This directory contains testsuites for CSS WG specifications, including ones
 that do not strictly speaking define CSS features, e.g.,
-[Geometry Interfaces](https://drafts.fxtf.org/geometry/).
+[Geometry Interfaces](https://drafts.csswg.org/geometry/).
 
 The directories should be named like the specification's shortname, but without
 any level suffix.

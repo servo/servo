@@ -9,7 +9,7 @@
   background: green;
 }
 </style>
-<video autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();"></video>
+<video autoplay onplaying="this.onplaying = null; waitForActiveCueAndTakeScreenshot();"></video>
 <script>
 var video = document.querySelector("video");
 var track = video.addTextTrack("captions");

@@ -57,20 +57,12 @@
       const ACTIVATION_RANGE_START_PX = COVER_START_OFFSET + CSS_TRIGGER_START_PX;
       const ACTIVATION_RANGE_END_PX = COVER_START_OFFSET + CSS_TRIGGER_END_PX;
 
-      // TODO(crbug.com/451238244): Replace these with common methods in
-      // support.js.
-      const enter = () => {
-        return runAndWaitForFrameUpdate(() => {
-          scroller.scrollTop =
-              (ACTIVATION_RANGE_START_PX + ACTIVATION_RANGE_END_PX) / 2;
-        }).then(waitForCompositorCommit);
-      }
-
-      const exit = () => {
-        return runAndWaitForFrameUpdate(() => {
-          scroller.scrollTop = ACTIVATION_RANGE_END_PX + 100;
-        }).then(waitForCompositorCommit);
-      }
+      const rangeBoundaries = getRangeBoundariesForTest(
+          COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+          COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+          COVER_START_OFFSET + CSS_TRIGGER_START_PX,
+          COVER_START_OFFSET + CSS_TRIGGER_END_PX,
+          scroller);
 
       const reset = () => {
         const animation = target.getAnimations()[0];
@@ -84,7 +76,7 @@
         assert_equals(animation.playState, "paused");
 
         // Entering the activation range should result in playing.
-        await enter();
+        await enter(rangeBoundaries);
         assert_equals(animation.playState, "running");
         animation.pause();
         animation.currentTime = CSS_ANIMATION_DURATION / 2;
@@ -92,13 +84,12 @@
         assert_equals(animation.playState, "paused");
 
         // Exiting the active range should have no effect.
-        await exit();
+        await exit(rangeBoundaries);
         assert_equals(animation.playState, "paused");
         assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION / 2);
 
         // Re-entering the activation range should restart the animation.
-        await enter();
-        await waitForAnimationFrames(2);
+        await enter(rangeBoundaries);
         assert_equals(animation.playState, "running");
         assert_greater_than(animation.currentTime, 0);
         assert_less_than(animation.currentTime, CSS_ANIMATION_DURATION / 2);
@@ -110,7 +101,7 @@
         assert_equals(animation.playState, "paused");
 
         // Entering the activation range should result in playing.
-        await enter();
+        await enter(rangeBoundaries);
         assert_equals(animation.playState, "running");
 
         animation.finish();
@@ -118,13 +109,12 @@
         assert_equals(animation.playState, "finished");
 
         // Exiting the active range should have no effect.
-        await exit();
+        await exit(rangeBoundaries);
         assert_equals(animation.playState, "finished");
         assert_times_equal(animation.currentTime, CSS_ANIMATION_DURATION);
 
         // Re-entering the activation range should restart the animation.
-        await enter();
-        await waitForAnimationFrames(2);
+        await enter(rangeBoundaries);
         assert_equals(animation.playState, "running");
         assert_greater_than(animation.currentTime, 0);
         assert_less_than(animation.currentTime, CSS_ANIMATION_DURATION / 2);

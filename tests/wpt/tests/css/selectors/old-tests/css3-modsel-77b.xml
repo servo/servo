@@ -10,27 +10,43 @@ table.t1 td { border : thin black solid }
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
  <div>
   <table class="t1" border="1">
    <tr>
-    <td>1.1</td>
-    <td class="green">green cell</td>
-    <td class="green">green cell</td>
+    <td id="first1">1.1</td>
+    <td id="green1" class="green">green cell</td>
+    <td id="green2" class="green">green cell</td>
    </tr>
    <tr>
-    <td>2.1</td>
-    <td class="green">green cell</td>
-    <td class="green">green cell</td>
+    <td id="first2">2.1</td>
+    <td id="green3" class="green">green cell</td>
+    <td id="green4" class="green">green cell</td>
    </tr>
    <tr>
-    <td>3.1</td>
-    <td class="green">green cell</td>
-    <td class="green">green cell</td>
+    <td id="first3">3.1</td>
+    <td id="green5" class="green">green cell</td>
+    <td id="green6" class="green">green cell</td>
    </tr>
  </table>
  </div>
- <p>This paragraph <span>should be</span> unstyled.</p>
+ <p>This paragraph <span id="span1">should be</span> unstyled.</p>
+ <script><![CDATA[
+test(function() {
+  const greenElements = ['green1', 'green2', 'green3', 'green4', 'green5', 'green6'];
+  greenElements.forEach(function(id) {
+    assert_background_color(id, LIME, `${id} should be green`);
+  });
+
+  const notRedElements = ['first1', 'first2', 'first3', 'span1'];
+  notRedElements.forEach(function(id) {
+    assert_not_background_color(id, RED, `${id} should not be red`);
+  });
+}, 'NEGATED :first-child pseudo-class');
+]]></script>
 </body>
 </html>

@@ -74,7 +74,7 @@ impl CharacterData {
 
     #[inline]
     pub(crate) fn append_data(&self, cx: &mut JSContext, data: &str) {
-        self.queue_mutation_record();
+        self.queue_mutation_record(cx);
         self.data.borrow_mut().push_str(data);
         self.content_changed(cx);
     }
@@ -95,11 +95,11 @@ impl CharacterData {
     }
 
     // Queue a MutationObserver record before changing the content.
-    fn queue_mutation_record(&self) {
+    fn queue_mutation_record(&self, cx: &JSContext) {
         let mutation = LazyCell::new(|| Mutation::CharacterData {
             old_value: self.data.borrow().clone(),
         });
-        MutationObserver::queue_a_mutation_record(self.upcast::<Node>(), mutation);
+        MutationObserver::queue_a_mutation_record(cx, self.upcast::<Node>(), mutation);
     }
 }
 
@@ -111,7 +111,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-data>
     fn SetData(&self, cx: &mut JSContext, data: DOMString) {
-        self.queue_mutation_record();
+        self.queue_mutation_record(cx);
         let old_length = self.Length();
         let new_length = data.str().encode_utf16().count() as u32;
         *self.data.borrow_mut() = String::from(data.str());
@@ -224,7 +224,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
                 },
             };
             // Step 4: Mutation observers.
-            self.queue_mutation_record();
+            self.queue_mutation_record(cx);
 
             // Step 5 to 7.
             new_data = String::with_capacity(

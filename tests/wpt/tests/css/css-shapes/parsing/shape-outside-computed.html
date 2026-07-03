@@ -53,6 +53,11 @@ test_computed_value("shape-outside", "shape(from 0 0, line to 100% 100%)", "shap
 test_computed_value("shape-outside", "shape(from 20px 40px, smooth to center 20%)", "shape(from 20px 40px, smooth to 50% 20%)");
 test_computed_value("shape-outside", "shape(from 20px 40px, line to 100px 40px, line to 100px 100px, close)");
 test_computed_value("shape-outside", "shape(from 1em 2em, line to 3em 1em)", "shape(from 40px 80px, line to 120px 40px)");
+
+test_computed_value("shape-outside", "circle() content-box");
+test_computed_value("shape-outside", "circle() padding-box");
+test_computed_value("shape-outside", "circle() border-box");
+test_computed_value("shape-outside", "circle() margin-box", "circle()");
 </script>
 </body>
 </html>

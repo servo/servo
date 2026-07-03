@@ -138,7 +138,16 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
                     .with_max_level(log::LevelFilter::Debug)
                     .with_filter(filter_builder.build())
                     .with_tag("servoshell"),
-            )
+            );
+
+            // In production mode we don't redirect stdout / stderr, so any
+            // panic messages would be lost without this hook.
+            std::panic::set_hook(Box::new(|info| {
+                let current_thread = std::thread::current();
+                let thread_name = current_thread.name().unwrap_or("<unnamed>");
+                error!("Panic in Rust code (thread: {thread_name}):");
+                error!("{info}");
+            }));
         }
 
         info!("init");

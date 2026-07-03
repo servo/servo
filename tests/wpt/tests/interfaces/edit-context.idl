@@ -8,9 +8,9 @@ partial interface HTMLElement {
 };
 
 dictionary EditContextInit {
-    DOMString text;
-    unsigned long selectionStart;
-    unsigned long selectionEnd;
+    DOMString text = "";
+    unsigned long selectionStart = 0;
+    unsigned long selectionEnd = 0;
 };
 
 [Exposed=Window]
@@ -40,11 +40,11 @@ interface EditContext : EventTarget {
 };
 
 dictionary TextUpdateEventInit : EventInit {
-    unsigned long updateRangeStart;
-    unsigned long updateRangeEnd;
-    DOMString text;
-    unsigned long selectionStart;
-    unsigned long selectionEnd;
+    unsigned long updateRangeStart = 0;
+    unsigned long updateRangeEnd = 0;
+    DOMString text = "";
+    unsigned long selectionStart = 0;
+    unsigned long selectionEnd = 0;
 };
 
 [Exposed=Window]
@@ -61,10 +61,10 @@ enum UnderlineStyle { "none", "solid", "dotted", "dashed", "wavy" };
 enum UnderlineThickness { "none", "thin", "thick" };
 
 dictionary TextFormatInit {
-    unsigned long rangeStart;
-    unsigned long rangeEnd;
-    UnderlineStyle underlineStyle;
-    UnderlineThickness underlineThickness;
+    unsigned long rangeStart = 0;
+    unsigned long rangeEnd = 0;
+    UnderlineStyle underlineStyle = "none";
+    UnderlineThickness underlineThickness = "none";
 };
 
 [Exposed=Window]
@@ -77,7 +77,7 @@ interface TextFormat {
 };
 
 dictionary TextFormatUpdateEventInit : EventInit {
-    sequence<TextFormat> textFormats;
+    sequence<TextFormat> textFormats = [];
 };
 
 [Exposed=Window]
@@ -87,8 +87,8 @@ interface TextFormatUpdateEvent : Event {
 };
 
 dictionary CharacterBoundsUpdateEventInit : EventInit {
-    unsigned long rangeStart;
-    unsigned long rangeEnd;
+    unsigned long rangeStart = 0;
+    unsigned long rangeEnd = 0;
 };
 
 [Exposed=Window]

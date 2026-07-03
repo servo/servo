@@ -22,18 +22,13 @@ async function setupIframe(t) {
 
 promise_test(async t => {
   const controller = new AbortController();
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'parent_tool_default',
     description: 'Parent tool with default exposure',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
     annotations: { readOnlyHint: true, untrustedContentHint: false },
     execute: async () => 'hello'
   }, { signal: controller.signal });
-
-  // Wait for `toolchange` event, so that the tool is definitely registered.
-  await new Promise(resolve => {
-    document.modelContext.addEventListener('toolchange', resolve, {once: true});
-  });
 
   const iframe = await setupIframe(t);
 
@@ -78,7 +73,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const controller = new AbortController();
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'parent_tool_empty',
     description: 'Parent tool with empty exposedTo',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },

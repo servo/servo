@@ -49,6 +49,10 @@ test_math_used('calc(acos(cos(180deg * sign(1em - 1px))))', '180deg', {type:'ang
 test_math_used('calc(atan(tan(180deg * sign(1em - 1px))))', '0deg', {type:'angle', approx:0.1});
 test_math_used('calc(atan2(1, sign(1em - 1px)))', '45deg', {type:'angle', approx:0.1});
 
+// Test unresolved at computed-value time.
+test_math_computed('calc(tan(atan2(round(up,1px,100%),round(up,1px,100%)))*1px)',
+                   'calc(tan(atan2(round(up,1px,100%),round(up,1px,100%)))*1px)', {type:'length'});
+
 // Test nesting
 test_math_used('calc(cos(sin(acos(cos(pi)))))', '1', {type:'number', approx:0.1});
 

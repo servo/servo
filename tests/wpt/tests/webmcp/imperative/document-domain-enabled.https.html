@@ -3,17 +3,14 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-test(() => {
+promise_test(t => {
   const tool = {
     name: 'test_tool',
     description: 'a test tool',
     execute: () => 'success',
   };
-
-  assert_throws_dom('SecurityError', () => {
-    document.modelContext.registerTool(tool);
-  });
-}, 'modelContext.registerTool throws SecurityError when document.domain is enabled');
+  return promise_rejects_dom(t, 'SecurityError', document.modelContext.registerTool(tool));
+}, 'modelContext.registerTool rejects with SecurityError when document.domain is enabled');
 
 promise_test(t => {
   return promise_rejects_dom(t, 'SecurityError', document.modelContext.getTools());

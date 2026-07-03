@@ -1822,12 +1822,9 @@ impl Document {
     pub(crate) fn fetch<Listener: FetchResponseListener>(
         &self,
         load: LoadType,
-        mut request: RequestBuilder,
+        request: RequestBuilder,
         listener: Listener,
     ) {
-        request = request
-            .insecure_requests_policy(self.insecure_requests_policy())
-            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(Some(listener))),
             task_source: self
@@ -1843,12 +1840,9 @@ impl Document {
 
     pub(crate) fn fetch_background<Listener: FetchResponseListener>(
         &self,
-        mut request: RequestBuilder,
+        request: RequestBuilder,
         listener: Listener,
     ) {
-        request = request
-            .insecure_requests_policy(self.insecure_requests_policy())
-            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(Some(listener))),
             task_source: self
@@ -2992,9 +2986,9 @@ impl Document {
             .set(counter - 1);
     }
 
-    pub(crate) fn react_to_environment_changes(&self) {
+    pub(crate) fn react_to_environment_changes(&self, cx: &JSContext) {
         for image in self.responsive_images.borrow().iter() {
-            image.react_to_environment_changes();
+            image.react_to_environment_changes(cx);
         }
     }
 

@@ -8,6 +8,9 @@ div > p.test { background-color: red; }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
  <div>
@@ -20,10 +23,15 @@ div > p.test { background-color: red; }]]></style>
   <tbody>
    <tr>
     <td>
-     <p class="green test">This paragraph should have a green background.</p>
+     <p id="t1" class="green test">This paragraph should have a green background.</p>
     </td>
    </tr>
   </tbody>
  </table>
+ <script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+}, 'Child combinator');
+]]></script>
 </body>
 </html>

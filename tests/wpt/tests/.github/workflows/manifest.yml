@@ -16,7 +16,7 @@ jobs:
       with:
         python-version: '3.12'
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 50
     - name: Install dependencies

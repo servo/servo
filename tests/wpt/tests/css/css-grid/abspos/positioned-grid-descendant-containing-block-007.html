@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<!-- grid-column: 1 / 10 — line 10 is beyond the explicit grid (only 2 columns = 3 lines),
+     so it is treated as auto (padding edge). The containing block goes from line 1 to the
+     end padding edge, which is the full 100px width. -->
+<div style="position: relative; display: grid; width: 100px; height: 100px; grid-template-columns: 50px 50px; grid-template-rows: 100px;">
+  <div style="grid-column: 1/2; grid-row: 1/2;">
+    <div style="position: absolute; grid-column: 1 / 10; width: 100%; height: 100%; background: green;"></div>
+  </div>
+</div>

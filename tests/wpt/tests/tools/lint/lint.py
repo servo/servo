@@ -714,7 +714,7 @@ def check_script_metadata(repo_root: Text, path: Text, f: IO[bytes]) -> List[rul
                     errors.append(rules.MultipleTestharness.error(path, line_no=line_no))
                 elif value == b"/resources/testharnessreport.js":
                     errors.append(rules.MultipleTestharnessReport.error(path, line_no=line_no))
-            elif key not in (b"title", b"quic"):
+            elif key not in (b"title", b"quic", b"spec"):
                 errors.append(rules.UnknownMetadata.error(path, line_no=line_no))
         else:
             done = True
@@ -1018,7 +1018,8 @@ def main(venv: Any = None, **kwargs: Any) -> int:
 
     jobs = kwargs.get("jobs", 0)
 
-    return lint(repo_root, paths, output_format, ignore_glob, github_checks_outputter, jobs)
+    error_count = lint(repo_root, paths, output_format, ignore_glob, github_checks_outputter, jobs)
+    return 1 if error_count > 0 else 0
 
 
 # best experimental guess at a decent cut-off for using the parallel path
@@ -1149,14 +1150,12 @@ def all_paths_lints() -> Any:
 
 def _run_main(argv: List[Text]) -> None:
     try:
-        error_count = main(**vars(create_parser().parse_args(argv)))
+        sys.exit(main(**vars(create_parser().parse_args(argv))))
     except SystemExit:
         raise
     except Exception:
         traceback.print_exc()
-        sys.exit(3)
-    if error_count > 0:
-        sys.exit(1)
+        sys.exit(getattr(os, "EX_SOFTWARE", 70))
 
 
 if __name__ == "__main__":

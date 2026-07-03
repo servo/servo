@@ -1,6 +1,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Universal selector with declared namespace</title>
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <script src="common.js"></script>
   <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
 @namespace b url(http://www.example.org/b);
 p, q { display : block ; margin-bottom : 1em }
@@ -12,9 +15,16 @@ b|* { background-color : lime }]]></style>
  </head>
  <body>
 <p>This line should be unstyled.</p>
-<p xmlns="http://www.example.org/b">This line should have a green background.</p>
-<q xmlns="http://www.example.org/b">This line should have a green background.</q>
+<p id="t1" xmlns="http://www.example.org/b">This line should have a green background.</p>
+<q id="t2" xmlns="http://www.example.org/b">This line should have a green background.</q>
 <p xmlns="http://www.example.org/a">This line should be unstyleed.</p>
-<p xmlns="http://www.example.org/b">This line should have a green background.</p>
+<p id="t3" xmlns="http://www.example.org/b">This line should have a green background.</p>
+  <script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+}, 'Universal selector with declared namespace');
+]]></script>
 </body>
 </html>

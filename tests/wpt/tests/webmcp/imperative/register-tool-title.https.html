@@ -12,7 +12,7 @@
 <body>
 <script>
 promise_test(async () => {
-  navigator.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'with-title',
     title: 'My Custom Title',
     description: 'tool with title',
@@ -26,7 +26,7 @@ promise_test(async () => {
 }, 'Tool title is preserved when provided');
 
 promise_test(async () => {
-  navigator.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'without-title',
     description: 'tool without title',
     execute: async () => 'empty'
@@ -42,7 +42,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   // \uD800 is an unpaired high surrogate.
-  navigator.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'with-unpaired-surrogate',
     title: 'Title with \uD800 unpaired surrogate',
     description: 'tool with unpaired surrogate in title',

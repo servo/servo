@@ -73,12 +73,12 @@
     await waitForCSSScrollTimelineStyle();
     assert_equals(getComputedStyle(target).zIndex, '75', 'div75');
 
-    // Identical timelines in div75 and div25 creates an ambiguity.
+    // Identical timelines in div75 and div25 creates a naming conflict that is
+    // resolved to the last match in tree order.
     div25.classList.add('timeline');
     await waitForCSSScrollTimelineStyle();
-    assert_equals(getComputedStyle(target).zIndex, '-1', 'ambiguous');
-    // Removing the timeline from div75 unambiguously links div25 to the
-    // timeline, making scrollTop=50 at 25% for div25.
+    assert_equals(getComputedStyle(target).zIndex, '25', 'div25');
+    // Removing the timeline from div75 removes the conflict resolution.
     div75.classList.remove('timeline');
     await waitForCSSScrollTimelineStyle();
     assert_equals(getComputedStyle(target).zIndex, '25', 'div25');

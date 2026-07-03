@@ -8,16 +8,10 @@
 
 promise_test(async () => {
   const rewriter = await createRewriter();
-  const streamingResponse =
-    rewriter.rewriteStreaming(kTestPrompt, { context: kTestContext });
-  assert_equals(
-    Object.prototype.toString.call(streamingResponse),
-    '[object ReadableStream]');
-  let result = '';
-  for await (const chunk of streamingResponse) {
-    result += chunk;
-  }
-  assert_greater_than(result.length, 0);
+  const streamingResponse = rewriter.rewriteStreaming(kTestPrompt);
+  assert_true(streamingResponse instanceof ReadableStream);
+  const result = (await Array.fromAsync(streamingResponse)).join('');
+  assert_greater_than(result.length, 0, 'The result should not be empty.');
 }, 'Simple Rewriter.rewriteStreaming() call');
 
 promise_test(async (t) => {
@@ -33,10 +27,7 @@ promise_test(async (t) => {
 promise_test(async t => {
   const rewriter = await createRewriter();
   const streamingResponse = rewriter.rewriteStreaming('');
-  assert_equals(
-    Object.prototype.toString.call(streamingResponse),
-    "[object ReadableStream]"
-  );
+  assert_true(streamingResponse instanceof ReadableStream);
   const { result, done } = await streamingResponse.getReader().read();
   assert_true(done);
 }, 'Rewriter.rewriteStreaming() returns a ReadableStream without any chunk on an empty input');
@@ -53,8 +44,7 @@ promise_test(async () => {
   const rewriter = await createRewriter();
   const streamingResponse = rewriter.rewriteStreaming(kTestPrompt);
   garbageCollect();
-  assert_equals(Object.prototype.toString.call(streamingResponse),
-                '[object ReadableStream]');
+  assert_true(streamingResponse instanceof ReadableStream);
   let result = '';
   for await (const value of streamingResponse) {
     result += value;

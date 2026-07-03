@@ -12,12 +12,24 @@
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b">
-<p lang="en-us">This paragraph should have a green background</p>
-<q xmlns="http://www.example.org/a" a:foo="un-deux-trois">This paragraph should be unstyled.</q>
-<q xmlns="http://www.example.org/a" a:foo="un-second-deuxieme-trois">This paragraph should be unstyled.</q>
-<r xmlns="http://www.example.org/a" a:foo="un-d-trois">This paragraph should have a green background.</r>
-<s xmlns="http://www.example.org/b" b:foo="un-d-trois">This paragraph should be unstyled.</s>
+<p id="t1" lang="en-us">This paragraph should have a green background</p>
+<q id="t2" xmlns="http://www.example.org/a" a:foo="un-deux-trois">This paragraph should be unstyled.</q>
+<q id="t3" xmlns="http://www.example.org/a" a:foo="un-second-deuxieme-trois">This paragraph should be unstyled.</q>
+<r id="t4" xmlns="http://www.example.org/a" a:foo="un-d-trois">This paragraph should have a green background.</r>
+<s id="t5" xmlns="http://www.example.org/b" b:foo="un-d-trois">This paragraph should be unstyled.</s>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t4', LIME);
+  assert_not_background_color('t2', LIME);
+  assert_not_background_color('t3', LIME);
+  assert_not_background_color('t5', LIME);
+}, 'Attribute dash-separated value selector with universal namespace');
+]]></script>
 </body>
 </html>

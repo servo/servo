@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>Link headers on a cross-origin subresource resolve relative URLs against the subresource's URL, not the document's</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<body>
+<script>
+setup({single_test: true});
+
+const remoteOrigin = get_host_info().HTTP_REMOTE_ORIGIN;
+
+// The preloaded path, resolved against each candidate base.
+const subresourcePreloadURL = remoteOrigin + "/preload/resources/dummy.css?cross-origin-link-header";
+const documentPreloadURL = "/preload/resources/dummy.css?cross-origin-link-header";
+
+// A cross-origin stylesheet whose Link response header preloads the path above.
+const linkHeader = "<" + documentPreloadURL + ">; rel=preload; as=style";
+const subresourceURL = remoteOrigin + "/preload/resources/echo-preload-header.py" +
+    "?type=" + encodeURIComponent("text/css") +
+    "&content=" + encodeURIComponent("/* dummy stylesheet carrying a preload Link header */") +
+    "&link=" + encodeURIComponent(linkHeader);
+
+let iterations = 0;
+
+function check_finished() {
+    if (numberOfResourceTimingEntries(subresourcePreloadURL) >= 1) {
+        // Preload was resolved against the subresource's origin, as required.
+        // Confirm it was NOT also issued (erroneously) to the document's origin.
+        verifyNumberOfResourceTimingEntries(documentPreloadURL, 0);
+        done();
+        return;
+    }
+    if (++iterations == 20) {
+        // Surface the exact failure: with the bug the preload is issued against
+        // the document's origin instead of the subresource's origin.
+        verifyNumberOfResourceTimingEntries(documentPreloadURL, 0);
+        verifyNumberOfResourceTimingEntries(subresourcePreloadURL, 1);
+        done();
+        return;
+    }
+    step_timeout(check_finished, 250);
+}
+
+window.addEventListener("load", function() {
+    verifyPreloadAndRTSupport();
+    assert_not_equals(remoteOrigin, get_host_info().HTTP_ORIGIN,
+        "test requires the subresource to be cross-origin to the document");
+
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = subresourceURL;
+    document.head.appendChild(link);
+
+    step_timeout(check_finished, 250);
+});
+</script>

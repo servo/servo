@@ -101,15 +101,15 @@ impl IFrameCollection {
 
     /// Set the size of an `<iframe>` in the collection given its `BrowsingContextId` and
     /// the new size. Returns the old size.
-    pub(crate) fn set_viewport_details(
+    fn set_viewport_details(
         &mut self,
         browsing_context_id: BrowsingContextId,
         new_size: ViewportDetails,
     ) -> Option<ViewportDetails> {
+        // Top-level document destruction can destroy an entire tree of frames, which
+        // means that the the `<iframe>` we are targeting at this moment might not exist.
         self.get_mut(browsing_context_id)
-            .expect("Tried to set a size for an unknown <iframe>")
-            .size
-            .replace(new_size)
+            .and_then(|iframe| iframe.size.replace(new_size))
     }
 
     /// Update the recorded iframe sizes of the contents of layout. Return a

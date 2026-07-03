@@ -17,13 +17,13 @@ promise_test(async t => {
 
   const iframe_navigator = iframe.contentWindow.navigator;
 
-  // Should not throw!
-  iframe_navigator.modelContext.registerTool({
+  // Should not reject!
+  await iframe_navigator.modelContext.registerTool({
     name: 'connected_tool',
     description: 'Tool registered in connected frame',
     execute: async () => 'hello'
   });
-}, 'registerTool() does not throw in connected same-origin iframe navigated away of about:blank');
+}, 'registerTool() does not reject in connected same-origin iframe navigated away of about:blank');
 </script>
 </body>
 </html>

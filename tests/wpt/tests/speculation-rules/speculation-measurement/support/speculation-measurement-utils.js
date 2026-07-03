@@ -99,6 +99,43 @@ function findPreloadByUrl(preloads, urlSubstring) {
   return preloads.find(p => p.url.includes(urlSubstring));
 }
 
+// Generate a unique cross-origin URL to preconnect to. Each call returns a
+// distinct origin (via a random subdomain) so tests don't collide. The
+// connection itself is fire-and-forget and need not succeed for the renderer
+// to record it, so the host does not need to resolve.
+let preconnectOriginCounter = 0;
+function uniquePreconnectUrl({path = '/', scheme = 'https'} = {}) {
+  const host = `host-${++preconnectOriginCounter}-${Date.now()}.preconnect.test`;
+  return `${scheme}://${host}${path}`;
+}
+
+// Add a <link rel=preconnect>. Preconnect has no load/error event, but the
+// renderer records it synchronously while processing the inserted element, so
+// the entry is observable as soon as this resolves.
+//
+// Options:
+//   t:           test object (for cleanup)
+//   href:        the origin/URL to preconnect to
+//   crossorigin: the crossorigin attribute value, or null for none
+async function addPreconnect({t, href, crossorigin = null} = {}) {
+  const link = document.createElement('link');
+  link.rel = 'preconnect';
+  link.href = href;
+  if (crossorigin !== null) {
+    link.crossOrigin = crossorigin;
+  }
+  document.head.appendChild(link);
+  t.add_cleanup(() => link.remove());
+  // Recording is synchronous on insertion; yield a frame for robustness.
+  await new Promise(resolve => requestAnimationFrame(() => resolve()));
+  return {link, href};
+}
+
+// Find all PreconnectData entries matching the given serialized origin.
+function findPreconnectsByOrigin(preconnects, origin) {
+  return preconnects.filter(p => p.origin === origin);
+}
+
 // Map crossorigin attribute value to expected CrossOriginMode enum string.
 function expectedCrossOriginMode(crossorigin) {
   if (crossorigin === null || crossorigin === undefined) return 'none';

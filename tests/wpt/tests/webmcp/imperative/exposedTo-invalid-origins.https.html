@@ -8,24 +8,24 @@
 </head>
 <body>
 <script>
-test(t => {
-  const test_cases = [
-    {success: false, origin: '/'},
-    {success: false, origin: '*'},
-    {success: false, origin: 'https://example:bogus'},
-    {success: false, origin: 'https://\ud800.com'},
-    {success: false, origin: 'http://example.com'},
-    {success: false, origin: 'ftp://example.com'},
-    {success: false, origin: 'about:blank'},
-    {success: false, origin: 'about:srcdoc'},
+const test_cases = [
+  {success: false, origin: '/'},
+  {success: false, origin: '*'},
+  {success: false, origin: 'https://example:bogus'},
+  {success: false, origin: 'https://\ud800.com'},
+  {success: false, origin: 'http://example.com'},
+  {success: false, origin: 'ftp://example.com'},
+  {success: false, origin: 'about:blank'},
+  {success: false, origin: 'about:srcdoc'},
 
-    {success: true, origin: 'https://example.com'},
-    {success: true, origin: 'http://localhost:3000'},
-  ];
+  {success: true, origin: 'https://example.com'},
+  {success: true, origin: 'http://localhost:3000'},
+];
 
-  for (const test of test_cases) {
+for (const test of test_cases) {
+  promise_test(async t => {
     const register = () => {
-      document.modelContext.registerTool({
+      return document.modelContext.registerTool({
         name: 'test_tool_' + Math.random(),
         description: 'Test tool',
         execute: async () => 'hello'
@@ -33,26 +33,25 @@ test(t => {
     };
 
     if (!test.success) {
-      assert_throws_dom('SecurityError', register, `Should throw SecurityError for origin: ${test.origin}`);
+      return promise_rejects_dom(t, 'SecurityError', register(), `Should throw SecurityError for origin: ${test.origin}`);
     } else {
       try {
-        register();
+        await register();
       } catch (e) {
         throw new Error(`Should not have thrown for ${test.origin}`);
       }
-    }
-  }
-}, 'registerTool() throws SecurityError for invalid or ' +
-   'non-potentially-trustworthy origins in exposedTo');
+  }}, `registerTool() throws SecurityError for invalid or ` +
+  `non-potentially-trustworthy origins like ${test.origin} in exposedTo`);
+}
 
-test(t => {
-  // Does not throw, because the given abort signal is processed before `exposedTo` is.
-  navigator.modelContext.registerTool({
+promise_test(async t => {
+  const signal = AbortSignal.abort('aborted');
+  return promise_rejects_exactly(t, 'aborted', navigator.modelContext.registerTool({
     name: "name",
     description: "description",
     execute: () => {}
-  }, {signal: AbortSignal.abort('already-aborted'), exposedTo: ['about:blank#invalidOrigin']})
-}, "registerTool() does not throw for invalid exposedTo, if aborted signal is passed in");
+  }, { signal, exposedTo: ['about:blank#invalidOrigin']}) )
+}, "registerTool() with abort signal reason because signal is processed before `exposedTo`");
 </script>
 </body>
 </html>

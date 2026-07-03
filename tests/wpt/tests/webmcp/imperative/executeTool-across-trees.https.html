@@ -17,18 +17,12 @@ promise_test(async t => {
       windowB.onload = resolve;
   });
 
-  // Register tool directly in window B using synchronous scripting.
-  const toolchange_promise = new Promise(resolve => {
-    windowB.document.modelContext.addEventListener('toolchange', resolve, { once: true });
-  });
-
-  windowB.document.modelContext.registerTool({
+  // Register tool directly in window B.
+  await windowB.document.modelContext.registerTool({
     name: 'target_tool',
     description: 'Target tool in other window',
     execute: async () => 'test'
   });
-
-  await toolchange_promise;
 
   const tools = await document.modelContext.getTools();
   assert_array_equals(tools, [], "We do not see the other document's tool");
