@@ -58,7 +58,7 @@ partial interface mixin WindowOrWorkerGlobalScope {
 
 // https://w3c.github.io/ServiceWorker/#global-caches-attribute
 partial interface mixin WindowOrWorkerGlobalScope {
-  [SecureContext, SameObject] readonly attribute CacheStorage caches;
+  [Pref="dom_serviceworker_enabled", SecureContext, SameObject] readonly attribute CacheStorage caches;
 };
 
 Window includes WindowOrWorkerGlobalScope;
