@@ -2523,14 +2523,6 @@ impl DocumentEventHandler {
             .remove(&pointer_id);
     }
 
-    /// Get the pending pointer capture target override for a pointer.
-    pub(crate) fn get_pending_pointer_capture(&self, pointer_id: i32) -> Option<DomRoot<Element>> {
-        self.pending_pointer_capture
-            .borrow()
-            .get(&pointer_id)
-            .map(|el| DomRoot::from_ref(&**el))
-    }
-
     /// Check if an element has pointer capture for a given pointer ID.
     /// <https://w3c.github.io/pointerevents/#dom-element-haspointercapture>
     pub(crate) fn has_pointer_capture(&self, pointer_id: i32, element: &Element) -> bool {
