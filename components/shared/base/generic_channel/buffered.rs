@@ -139,12 +139,7 @@ impl<T: Serialize, U> GenericBufferedSender<T, U> {
 
     /// If the last buffered item satisfies `pred`, remove it and return `true`.
     pub fn pop_last_if_matches(&self, pred: impl Fn(&U) -> bool) -> bool {
-        let is_match = self
-            .buffer
-            .borrow()
-            .last()
-            .map(|x| pred(x))
-            .unwrap_or(false);
+        let is_match = self.buffer.borrow().last().map(pred).unwrap_or(false);
         if is_match {
             self.buffer.borrow_mut().pop();
         }

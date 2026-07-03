@@ -1412,8 +1412,7 @@ impl CanvasState {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-restore>
     pub(super) fn restore(&self) {
-        let mut saved_states = self.saved_states.borrow_mut();
-        if let Some(state) = saved_states.pop() {
+        if let Some(saved_state) = self.saved_states.borrow_mut().pop() {
             let mut clips_to_pop = self.state.borrow().clips_pushed;
             while clips_to_pop > 0 &&
                 self.buffered_sender
@@ -1421,11 +1420,10 @@ impl CanvasState {
             {
                 clips_to_pop -= 1;
             }
-            if clips_to_pop > 0 {
+            if clips_to_pop != 0 {
                 self.send_canvas_command(CanvasCommand::PopClips(clips_to_pop));
             }
-
-            self.state.borrow_mut().clone_from(&state);
+            self.state.borrow_mut().clone_from(&saved_state);
         }
     }
 
