@@ -40,6 +40,7 @@ pub use keyboard_types::{
 pub use media::{
     GlApi as MediaGlApi, GlContext as MediaGlContext, NativeDisplay as MediaNativeDisplay,
 };
+pub use net::image_cache::should_panic_hook_suppress_termination;
 pub use net_traits::CookieSource;
 // This API should probably not be exposed in this way. Instead there should be a fully
 // fleshed out public domains API if we want to expose it.
