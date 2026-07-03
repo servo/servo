@@ -163,7 +163,12 @@ class Windows(Base):
         return None
 
     def is_gstreamer_installed(self, target: BuildTarget) -> bool:
-        return self.gstreamer_root(target) is not None
+        root = self.gstreamer_root(target)
+        if root is None:
+            return False
+        # In the case of a failed installation, the runtime may be present without the development
+        # files, so also make sure that the pkg-config files have been installed.
+        return os.path.exists(os.path.join(root, "lib", "pkgconfig", "gobject-2.0.pc"))
 
     def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
         if not force and self.is_gstreamer_installed(target):
@@ -186,7 +191,7 @@ class Windows(Base):
             for installer in [libs_msi, devel_msi]:
                 arguments = [
                     "/a",
-                    f'"{installer}"TARGETDIR="{DEPENDENCIES_DIR}"',  # Install destination
+                    f'"{installer} "TARGETDIR="{DEPENDENCIES_DIR}"',  # Install destination
                     "/qn",  # Quiet mode
                 ]
                 quoted_arguments = ",".join((f"'{arg}'" for arg in arguments))
