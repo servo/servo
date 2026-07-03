@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<link rel="help" href="https://github.com/servo/servo/issues/46207">
+<meta name="assert" content="No crash during GC tracing after a media element's load blocker is dropped during GC">
+<script src="/common/gc.js"></script>
+<script>
+function createAndDropBlockingMediaElement() {
+  const container = document.getElementById("container");
+  container.innerHTML = '<audio autoplay src="data:audio/mp3;base64,AAAA"></audio>';
+  container.innerHTML = "";
+  garbageCollect();
+}
+async function main() {
+  for (let round = 0; round < 200; round++) {
+    createAndDropBlockingMediaElement();
+    await garbageCollect();
+    await new Promise(r => setTimeout(r, 0));
+  }
+  document.documentElement.classList.remove("test-wait");
+}
+</script>
+<body onload="main()">
+<div id="container"></div>
