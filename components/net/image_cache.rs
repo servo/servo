@@ -1028,7 +1028,22 @@ impl ImageCache for ImageCacheImpl {
             return None;
         }
 
-        if requested_size.width == 0 || requested_size.height == 0 {
+        let natural_size = vector_image.svg_tree.size().to_int_size();
+        let tinyskia_requested_size = {
+            let width = requested_size
+                .width
+                .try_into()
+                .unwrap_or(0)
+                .min(MAX_SVG_PIXMAP_DIMENSION);
+            let height = requested_size
+                .height
+                .try_into()
+                .unwrap_or(0)
+                .min(MAX_SVG_PIXMAP_DIMENSION);
+            tiny_skia::IntSize::from_wh(width, height).unwrap_or(natural_size)
+        };
+
+        if tinyskia_requested_size.width() == 0 || tinyskia_requested_size.height() == 0 {
             debug!(
                 "Asked for requested size {:?} which has zero size. Not returning image",
                 requested_size
@@ -1038,20 +1053,6 @@ impl ImageCache for ImageCacheImpl {
 
         let store = self.store.clone();
         self.thread_pool.spawn(move || {
-            let natural_size = vector_image.svg_tree.size().to_int_size();
-            let tinyskia_requested_size = {
-                let width = requested_size
-                    .width
-                    .try_into()
-                    .unwrap_or(0)
-                    .min(MAX_SVG_PIXMAP_DIMENSION);
-                let height = requested_size
-                    .height
-                    .try_into()
-                    .unwrap_or(0)
-                    .min(MAX_SVG_PIXMAP_DIMENSION);
-                tiny_skia::IntSize::from_wh(width, height).unwrap_or(natural_size)
-            };
             let transform = tiny_skia::Transform::from_scale(
                 tinyskia_requested_size.width() as f32 / natural_size.width() as f32,
                 tinyskia_requested_size.height() as f32 / natural_size.height() as f32,
