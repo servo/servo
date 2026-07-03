@@ -84,6 +84,8 @@ class JobConfig(object):
         modifier = []
         if self.profile != "checked-release":
             modifier.append(self.profile.title())
+        if "--debug-mozjs" in self.build_args:
+            modifier.append("Debug Mozjs")
         if self.unit_tests:
             modifier.append("Unit Tests")
         if self.devtools_tests:
@@ -166,6 +168,11 @@ def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
         config.devtools_tests = True
     if "build-libservo" in s:
         config.build_libservo = True
+    if "debugmozjs" in s:
+        # We need to remove the modifier here, so the profile check
+        # below doesn't match on `debug` and force the `dev` profile.
+        s = s.replace("debugmozjs", "")
+        config.build_args = f"{config.build_args} --debug-mozjs".strip()
     if "production" in s:
         config.profile = "production"
     elif "release" in s:
@@ -493,6 +500,21 @@ class TestParser(unittest.TestCase):
 
     def test_wpt_alias(self) -> None:
         self.assertDictEqual(json.loads(Config("wpt").to_json()), json.loads(Config("linux-wpt").to_json()))
+
+    def test_debugmozjs(self) -> None:
+        matrix_result = json.loads(Config("linux-debugmozjs").to_json())["matrix"][0]
+
+        self.assertEqual(matrix_result["name"], "Linux (Debug Mozjs)")
+        self.assertEqual(matrix_result["workflow"], "linux")
+        self.assertEqual(matrix_result["build_args"], "--debug-mozjs")
+        # `debugmozjs` should not force the `dev` profile.
+        self.assertEqual(matrix_result["profile"], "checked-release")
+
+        matrix_result = json.loads(Config("linux-debugmozjs-wpt").to_json())["matrix"][0]
+        self.assertEqual(matrix_result["name"], "Linux (Debug Mozjs, WPT)")
+        self.assertEqual(matrix_result["build_args"], "--debug-mozjs")
+        self.assertEqual(matrix_result["profile"], "checked-release")
+        self.assertTrue(matrix_result["wpt"])
 
     def test_devtools_tests(self) -> None:
         matrix_result = json.loads(Config("linux-devtools").to_json())["matrix"][0]
