@@ -480,7 +480,7 @@ class MachCommands(CommandBase):
             with tempfile.TemporaryDirectory() as temp_dir:
                 kwargs["log_raw"] = [os.path.join(temp_dir, "wpt.log")]
 
-        if isinstance(self.target, CrossBuildTarget):
+        if self.target.is_cross_build():
             print("test-wpt doesn't support any cross build targets (yet).")
             return 1
         else:

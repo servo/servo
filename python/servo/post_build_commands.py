@@ -73,7 +73,7 @@ class PostBuildCommands(CommandBase):
     @CommandArgument("--headless", "-z", action="store_true", help="Launch in headless mode")
     @CommandArgument("--software", "-s", action="store_true", help="Launch with software rendering")
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
-    # Keep `allow_target_configuration` above `common_command_arguments - binary_selection requires the target
+    # Keep `allow_target_configuration` above `common_command_arguments` - `binary_selection` requires the target
     # to be configured already!
     @CommandBase.allow_target_configuration
     @CommandBase.common_command_arguments(binary_selection=True)
