@@ -170,11 +170,8 @@ impl DebuggerGlobalScope {
     ) {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm;
-        let debuggee_pipeline_id = crate::dom::pipelineid::PipelineId::new(
-            cx,
-            self.upcast(),
-            debuggee_pipeline_id,
-        );
+        let debuggee_pipeline_id =
+            crate::dom::pipelineid::PipelineId::new(cx, self.upcast(), debuggee_pipeline_id);
         let event = DomRoot::upcast::<Event>(DebuggerAddDebuggeeEvent::new(
             cx,
             self.upcast(),
@@ -204,11 +201,8 @@ impl DebuggerGlobalScope {
         );
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm;
-        let debuggee_pipeline_id = crate::dom::pipelineid::PipelineId::new(
-            cx,
-            self.upcast(),
-            debuggee_pipeline_id,
-        );
+        let debuggee_pipeline_id =
+            crate::dom::pipelineid::PipelineId::new(cx, self.upcast(), debuggee_pipeline_id);
         let event = DomRoot::upcast::<Event>(DebuggerEvalEvent::new(
             cx,
             self.upcast(),
@@ -268,10 +262,7 @@ impl DebuggerGlobalScope {
     }
 
     pub(crate) fn fire_interrupt(&self, cx: &mut js::context::JSContext) {
-        let event = DomRoot::upcast::<Event>(DebuggerInterruptEvent::new(
-            cx,
-            self.upcast(),
-        ));
+        let event = DomRoot::upcast::<Event>(DebuggerInterruptEvent::new(cx, self.upcast()));
         assert!(
             event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerInterruptEvent::new"
@@ -293,8 +284,7 @@ impl DebuggerGlobalScope {
         );
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
-        let pipeline_id =
-            crate::dom::pipelineid::PipelineId::new(cx, self.upcast(), pipeline_id);
+        let pipeline_id = crate::dom::pipelineid::PipelineId::new(cx, self.upcast(), pipeline_id);
         let event = DomRoot::upcast::<Event>(DebuggerFrameEvent::new(
             cx,
             self.upcast(),
