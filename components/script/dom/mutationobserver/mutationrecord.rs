@@ -4,7 +4,8 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecord_Binding::MutationRecordMethods;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -73,20 +74,20 @@ impl MutationRecord {
     }
 
     pub(crate) fn child_list_mutated(
+        cx: &mut JSContext,
         target: &Node,
         added_nodes: Option<&[&Node]>,
         removed_nodes: Option<&[&Node]>,
         next_sibling: Option<&Node>,
         prev_sibling: Option<&Node>,
-        can_gc: CanGc,
     ) -> DomRoot<MutationRecord> {
         let window = target.owner_window();
         let added_nodes =
-            added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list, can_gc));
+            added_nodes.map(|list| NodeList::new_simple_list_slice(cx, &window, list));
         let removed_nodes =
-            removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list, can_gc));
+            removed_nodes.map(|list| NodeList::new_simple_list_slice(cx, &window, list));
 
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(MutationRecord::new_inherited(
                 "childList",
                 target,
@@ -99,7 +100,7 @@ impl MutationRecord {
                 prev_sibling,
             )),
             &*window,
-            can_gc,
+            cx
         )
     }
 
@@ -157,15 +158,15 @@ impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes>
-    fn AddedNodes(&self) -> DomRoot<NodeList> {
+    fn AddedNodes(&self, cx: &mut JSContext) -> DomRoot<NodeList> {
         self.added_nodes
-            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::deprecated_note()))
+            .or_init(|| NodeList::empty(cx, &self.target.owner_window()))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes>
-    fn RemovedNodes(&self) -> DomRoot<NodeList> {
+    fn RemovedNodes(&self, cx: &mut JSContext) -> DomRoot<NodeList> {
         self.removed_nodes
-            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::deprecated_note()))
+            .or_init(|| NodeList::empty(cx, &self.target.owner_window()))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling>

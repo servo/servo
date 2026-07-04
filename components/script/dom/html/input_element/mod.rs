@@ -1469,9 +1469,9 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         } else {
             Some(self.labels_node_list.or_init(|| {
                 NodeList::new_labels_list(
+                    cx,
                     self.upcast::<Node>().owner_doc().window(),
                     self.upcast::<HTMLElement>(),
-                    CanGc::from_cx(cx),
                 )
             }))
         }

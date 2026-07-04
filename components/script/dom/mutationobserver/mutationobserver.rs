@@ -102,7 +102,7 @@ impl MutationObserver {
 
     /// <https://dom.spec.whatwg.org/#queueing-a-mutation-record>
     pub(crate) fn queue_a_mutation_record<'a, F>(
-        cx: &JSContext,
+        cx: &mut JSContext,
         target: &Node,
         attr_type: LazyCell<Mutation<'a>, F>,
     ) where
@@ -232,12 +232,12 @@ impl MutationObserver {
                     ref next,
                     ref prev,
                 } => MutationRecord::child_list_mutated(
+                    cx,
                     target,
                     *added,
                     *removed,
                     *next,
                     *prev,
-                    CanGc::deprecated_note(),
                 ),
             };
             // Step 4.2 Enqueue record to observer’s record queue.

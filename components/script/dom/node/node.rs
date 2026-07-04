@@ -119,7 +119,6 @@ use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent, ProcessingInstruction};
 use crate::dom::window::Window;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode};
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 //
@@ -1627,9 +1626,9 @@ impl Node {
         // NodeList::new_simple_list immediately collects the iterator, so we're not leaking LayoutDom
         // elements here.
         Ok(NodeList::new_simple_list(
+            cx,
             &self.owner_window(),
             iter,
-            CanGc::from_cx(cx),
         ))
     }
 
@@ -3459,7 +3458,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         let doc = self.owner_doc();
         let window = doc.window();
-        let list = NodeList::new_child_list(window, self, CanGc::from_cx(cx));
+        let list = NodeList::new_child_list(cx, window, self);
         self.ensure_rare_data().child_list.set(Some(&list));
         list
     }
