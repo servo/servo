@@ -100,6 +100,10 @@ impl Document {
         // > and there is some editing host that is an inclusive ancestor of both its start node and its end node.
         // TODO
 
+        if !command_name.is_enabled(cx, &range, &start_container_editing_host) {
+            return None;
+        }
+
         // Some commands are only enabled if the editing host is *not* in plaintext-only state.
         if !command_name.is_enabled_in_plaintext_only_state() &&
             (start_container_editing_host.is_in_plaintext_only_state() ||

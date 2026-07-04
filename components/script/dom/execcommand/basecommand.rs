@@ -42,6 +42,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::range::Range;
 use crate::dom::selection::Selection;
 
 #[derive(Default, Clone, Copy, MallocSizeOf)]
@@ -626,6 +627,46 @@ impl CommandName {
                 CommandName::ForeColor |
                 CommandName::HiliteColor
         )
+    }
+
+    pub(crate) fn is_enabled(&self, cx: &JSContext, range: &Range, editing_host: &Node) -> bool {
+        match self {
+            // The delete command is not enabled in the situation that the cursor is inside the
+            // editing host at the start, where a backspace would do nothing. However, if the
+            // editing host itself is selected then it is enabled.
+            //
+            // Therefore, start at the start_container and traverse its ancestors up to editing
+            // host. If the index remains 0, then there is no effective character to delete and
+            // the command is disabled.
+            CommandName::Delete => {
+                if !range.collapsed() {
+                    return true;
+                }
+                let start_container = range.start_container();
+                if *start_container == *editing_host {
+                    // TODO: This should return true. However, that crashes deletes at the start
+                    // of the editing host. There currently is no way to distinguish between a
+                    // range that is collapsed to a full node and set to before a node. Chromium
+                    // tracks this with a concept of "anchor position before/after node":
+                    // https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/editing/position.h;l=39;drc=a5c6d7b223bfc6028ecae4b1f17d711374238c0d
+                    return false;
+                }
+                let mut current_offset = range.start_offset();
+                for current_ancestor in
+                    start_container.inclusive_ancestors_unrooted(cx, ShadowIncluding::Yes)
+                {
+                    if current_offset != 0 {
+                        return true;
+                    }
+                    if *current_ancestor == editing_host {
+                        return false;
+                    }
+                    current_offset = current_ancestor.index();
+                }
+                false
+            },
+            _ => true,
+        }
     }
 
     pub(crate) fn is_enabled_in_plaintext_only_state(&self) -> bool {
