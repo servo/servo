@@ -500,6 +500,10 @@ jobs:
           jackd -d dummy &
           pulseaudio --start
           gst-inspect-1.0 | grep Total
+      - name: Set LIBCLANG_PATH env # needed for bindgen
+        shell: bash
+        if: ${{ runner.environment != 'self-hosted' }}
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Run Examples
         run: |
           ls components/media/examples/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p servo-media-examples --example {}
