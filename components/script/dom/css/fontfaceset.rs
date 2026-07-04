@@ -143,16 +143,19 @@ impl FontFaceSet {
 impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-ready>
     fn Ready(&self, cx: &mut JSContext) -> Rc<Promise> {
-        // FIXME: Figure out what to do for worker scopes.
-        if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
+        if self.promise.borrow().is_fulfilled() {
             // There may be pending style changes that cause new web fonts to start loading,
+            // re-initializing document.fonts.ready.
             // FIXME: Use a new sort of ReflowGoal that only runs the CSS cascade without
             //        building a new box tree or running any sort of layout really.
-            //        We query for the box area here, which is a lie.
-            let document = window.Document();
-            if document.stylesheets_changed_since_last_reflow() {
-                window.reflow(cx, ReflowGoal::LayoutQuery(QueryMsg::BoxArea));
-                document.switch_font_face_set_to_loading_if_needed(cx);
+            //        We query for the box area here, but we're not interested in the result.
+            // FIXME: Figure out what to do for worker scopes.
+            if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
+                let document = window.Document();
+                if document.stylesheets_changed_since_last_reflow() {
+                    window.reflow(cx, ReflowGoal::LayoutQuery(QueryMsg::BoxArea));
+                    document.switch_font_face_set_to_loading_if_needed(cx);
+                }
             }
         }
 

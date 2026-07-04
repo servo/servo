@@ -4550,11 +4550,6 @@ impl Document {
         }
     }
 
-    /// Given a stylesheet, load all web fonts from it in Layout.
-    pub(crate) fn load_web_fonts_from_stylesheet(&self, cx: &mut JSContext) {
-        self.switch_font_face_set_to_loading_if_needed(cx);
-    }
-
     pub(crate) fn add_stylesheet_to_stylist(
         &self,
         cx: &mut JSContext,
