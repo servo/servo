@@ -2595,7 +2595,7 @@ impl Node {
             // TODO(xiaochengh): If we follow the spec and move it out of the if block, some WPT fail. Investigate.
             vtable_for(parent).children_changed(
                 cx,
-                &ChildrenMutation::insert(previous_sibling.as_deref(), new_nodes, child),
+                &ChildrenMutation::insert(previous_sibling.as_deref(), child),
             );
 
             // Step 8. If suppress observers flag is unset, then queue a tree mutation record for parent
@@ -2781,7 +2781,6 @@ impl Node {
                 &ChildrenMutation::replace(
                     old_previous_sibling.as_deref(),
                     &Some(node),
-                    &[],
                     old_next_sibling.as_deref(),
                 ),
             );
@@ -3701,7 +3700,6 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             &ChildrenMutation::replace(
                 previous_sibling.as_deref(),
                 &removed_child,
-                nodes,
                 reference_child,
             ),
         );

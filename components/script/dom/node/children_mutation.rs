@@ -33,10 +33,7 @@ pub(crate) enum ChildrenMutation<'a> {
 }
 
 impl<'a> ChildrenMutation<'a> {
-    pub(super) fn insert(
-        prev: Option<&'a Node>,
-        next: Option<&'a Node>,
-    ) -> ChildrenMutation<'a> {
+    pub(super) fn insert(prev: Option<&'a Node>, next: Option<&'a Node>) -> ChildrenMutation<'a> {
         match (prev, next) {
             (None, None) => ChildrenMutation::ReplaceAll,
             (Some(prev), None) => ChildrenMutation::Append { prev },
@@ -48,7 +45,6 @@ impl<'a> ChildrenMutation<'a> {
     pub(super) fn replace(
         prev: Option<&'a Node>,
         removed: &'a Option<&'a Node>,
-        added: &'a [&'a Node],
         next: Option<&'a Node>,
     ) -> ChildrenMutation<'a> {
         if removed.is_some() {
