@@ -9,7 +9,6 @@ use layout_api::{
 };
 use script::layout_dom::ServoLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
-use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
@@ -77,10 +76,6 @@ where
 
     fn process_postorder(&self, _style_context: &mut StyleContext<E>, _node: E::ConcreteNode) {
         panic!("this should never be called")
-    }
-
-    fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData) -> bool {
-        node.layout_node().layout_data().is_none() || !parent_data.damage.is_empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext<'_> {
