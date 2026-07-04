@@ -872,13 +872,13 @@ impl FetchThread {
 
     fn run(&mut self) {
         loop {
-            match self.receiver.recv().unwrap() {
-                ToFetchThreadMessage::StartFetch(
+            match self.receiver.recv() {
+                Ok(ToFetchThreadMessage::StartFetch(
                     request_builder,
                     response_init,
                     callback,
                     core_resource_thread,
-                ) => {
+                )) => {
                     let request_builder_id = request_builder.id;
 
                     // Only redirects have a `response_init` field.
@@ -894,7 +894,12 @@ impl FetchThread {
                         ),
                     };
 
-                    core_resource_thread.send(message).unwrap();
+                    if core_resource_thread.send(message).is_err() {
+                        // In this case the connection with the resource threads has been
+                        // broken, so just assume that we are shutting down as any further
+                        // messaging is likely to be unreliable.
+                        break;
+                    }
 
                     let preexisting_fetch =
                         self.active_fetches.insert(request_builder_id, callback);
@@ -903,7 +908,7 @@ impl FetchThread {
                     // process the second call. This should be handled by [`DeferredFetchRecord::process`]
                     assert!(preexisting_fetch.is_none());
                 },
-                ToFetchThreadMessage::FetchResponse(fetch_response_msg) => {
+                Ok(ToFetchThreadMessage::FetchResponse(fetch_response_msg)) => {
                     let request_id = fetch_response_msg.request_id();
                     let fetch_finished =
                         matches!(fetch_response_msg, FetchResponseMsg::ProcessResponseEOF(..));
@@ -918,13 +923,13 @@ impl FetchThread {
                         self.active_fetches.remove(&request_id);
                     }
                 },
-                ToFetchThreadMessage::Cancel(request_ids, core_resource_thread) => {
+                Ok(ToFetchThreadMessage::Cancel(request_ids, core_resource_thread)) => {
                     // Errors are ignored here, because Servo sends many cancellation requests when shutting down.
                     // At this point the networking task might be shut down completely, so just ignore errors
                     // during this time.
                     let _ = core_resource_thread.send(CoreResourceMsg::Cancel(request_ids));
                 },
-                ToFetchThreadMessage::Exit => break,
+                Ok(ToFetchThreadMessage::Exit) | Err(_) => break,
             }
         }
     }
