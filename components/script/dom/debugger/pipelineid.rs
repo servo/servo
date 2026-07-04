@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::DebuggerAddDebuggeeEventBinding::PipelineIdMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct PipelineId {
@@ -19,17 +19,17 @@ pub(crate) struct PipelineId {
 
 impl PipelineId {
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         pipeline_id: servo_base::id::PipelineId,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self {
                 reflector_: Reflector::new(),
                 inner: pipeline_id,
             }),
             global,
-            can_gc,
+            cx,
         )
     }
 }

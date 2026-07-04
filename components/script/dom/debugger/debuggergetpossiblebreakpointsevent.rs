@@ -5,14 +5,14 @@
 use std::fmt::Debug;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::reflect_dom_object;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGetPossibleBreakpointsEventBinding::DebuggerGetPossibleBreakpointsEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::Event;
 use crate::dom::types::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 /// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
@@ -23,15 +23,15 @@ pub(crate) struct DebuggerGetPossibleBreakpointsEvent {
 
 impl DebuggerGetPossibleBreakpointsEvent {
     pub(crate) fn new(
+        cx: &mut JSContext,
         debugger_global: &GlobalScope,
         spidermonkey_id: u32,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
             spidermonkey_id,
         });
-        let result = reflect_dom_object(result, debugger_global, can_gc);
+        let result = reflect_dom_object_with_cx(result, debugger_global, cx);
         result
             .event
             .init_event("getPossibleBreakpoints".into(), false, false);
