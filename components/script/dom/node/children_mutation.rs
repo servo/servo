@@ -18,7 +18,6 @@ pub(crate) enum ChildrenMutation<'a> {
     },
     Insert {
         prev: &'a Node,
-        added: &'a [&'a Node],
         next: &'a Node,
     },
     Prepend {
@@ -27,8 +26,6 @@ pub(crate) enum ChildrenMutation<'a> {
     },
     Replace {
         prev: Option<&'a Node>,
-        removed: &'a Node,
-        added: &'a [&'a Node],
         next: Option<&'a Node>,
     },
     ReplaceAll {
@@ -55,7 +52,7 @@ impl<'a> ChildrenMutation<'a> {
             },
             (Some(prev), None) => ChildrenMutation::Append { prev, added },
             (None, Some(next)) => ChildrenMutation::Prepend { added, next },
-            (Some(prev), Some(next)) => ChildrenMutation::Insert { prev, added, next },
+            (Some(prev), Some(next)) => ChildrenMutation::Insert { prev, next },
         }
     }
 
@@ -72,12 +69,7 @@ impl<'a> ChildrenMutation<'a> {
                     added,
                 }
             } else {
-                ChildrenMutation::Replace {
-                    prev,
-                    removed,
-                    added,
-                    next,
-                }
+                ChildrenMutation::Replace { prev, next }
             }
         } else {
             ChildrenMutation::insert(prev, added, next)
