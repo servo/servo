@@ -5,15 +5,15 @@
 use devtools_traits::BlackboxCoverage;
 use devtools_traits::BlackboxCoverage::{Full, Partial};
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::DebuggerUnblackboxEventBinding::DebuggerUnblackboxEventMethods;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding::DebuggerSourceLocation;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::Event;
 use crate::dom::types::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 /// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
@@ -31,10 +31,10 @@ pub(crate) struct DebuggerUnblackboxEvent {
 
 impl DebuggerUnblackboxEvent {
     pub(crate) fn new(
+        cx: &mut JSContext,
         debugger_global: &GlobalScope,
         spidermonkey_id: u32,
         coverage: BlackboxCoverage,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let result = Box::new(match coverage {
             Partial((start_line, start_column), (end_line, end_column)) => Self {
@@ -57,7 +57,7 @@ impl DebuggerUnblackboxEvent {
             },
         });
 
-        let result = reflect_dom_object(result, debugger_global, can_gc);
+        let result = reflect_dom_object_with_cx(result, debugger_global, cx);
         result.event.init_event("unblackbox".into(), false, false);
 
         result
