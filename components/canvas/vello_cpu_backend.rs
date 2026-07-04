@@ -27,16 +27,6 @@ thread_local! {
     static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::FontData>> = RefCell::default();
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-enum State {
-    /// Scene is drawing. It will be consumed when rendered.
-    Drawing,
-    /// Scene is already rendered
-    /// Before next draw we need to put current rendering
-    /// in the background by calling [`VelloCPUDrawTarget::ensure_drawing`].
-    Rendered,
-}
-
 pub(crate) struct VelloCPUDrawTarget {
     /// Because this is stateful context
     /// caller cannot assume anything about transform, paint, stroke,
@@ -49,8 +39,7 @@ pub(crate) struct VelloCPUDrawTarget {
     ctx: vello_cpu::RenderContext,
     resources: vello_cpu::Resources,
     pixmap: vello_cpu::Pixmap,
-    clips: Vec<(Path, kurbo::Affine)>,
-    state: State,
+    clips: Vec<(Path, kurbo::Affine, peniko::Fill)>,
 }
 
 impl VelloCPUDrawTarget {
@@ -71,54 +60,32 @@ impl VelloCPUDrawTarget {
     }
 
     fn ignore_clips(&mut self, f: impl FnOnce(&mut Self)) {
-        // pop all clip layers
+        // pop all clip paths
         for _ in &self.clips {
-            self.ctx.pop_layer();
+            self.ctx.pop_clip_path();
         }
         f(self);
-        // push all clip layers back
-        for (path, affine) in &self.clips {
+        
+        // push all clip paths back
+        for (path, affine, fill_rule) in &self.clips {
             self.ctx.set_transform(*affine);
-            self.ctx.push_clip_layer(&path.0);
+            self.ctx.set_fill_rule(*fill_rule);
+            self.ctx.push_clip_path(&path.0);
         }
+        self.ctx.set_fill_rule(peniko::Fill::NonZero);
     }
 
-    fn ensure_drawing(&mut self) {
-        match self.state {
-            State::Drawing => {},
-            State::Rendered => {
-                self.ignore_clips(|self_| {
-                    self_.ctx.set_transform(kurbo::Affine::IDENTITY);
-                    self_.ctx.set_paint(vello_cpu::Image {
-                        image: vello_cpu::ImageSource::Pixmap(Arc::new(self_.pixmap.clone())),
-                        sampler: peniko::ImageSampler {
-                            x_extend: peniko::Extend::Pad,
-                            y_extend: peniko::Extend::Pad,
-                            quality: peniko::ImageQuality::Low,
-                            alpha: 1.0,
-                        },
-                    });
-                    self_.ctx.fill_rect(&kurbo::Rect::from_origin_size(
-                        (0., 0.),
-                        self_.size().cast(),
-                    ));
-                });
-                self.state = State::Drawing;
-            },
-        }
+    fn push_clip_path(&mut self, path: &Path, affine: kurbo::Affine, fill_rule: peniko::Fill) {
+        self.ctx.set_transform(affine);
+        self.ctx.set_fill_rule(fill_rule);
+        self.ctx.push_clip_path(&path.0);
+        self.ctx.set_fill_rule(peniko::Fill::NonZero);
     }
-
+    
     fn pixmap(&mut self) -> &[u8] {
-        if self.state == State::Drawing {
-            self.ignore_clips(|self_| {
-                self_.ctx.flush();
-                self_
-                    .ctx
-                    .render_to_pixmap(&mut self_.resources, &mut self_.pixmap);
-                self_.ctx.reset();
-                self_.state = State::Rendered;
-            });
-        }
+        self.ctx.flush();
+        self.ctx
+            .render_to_pixmap(&mut self.resources, &mut self.pixmap);
 
         self.pixmap.data_as_u8_slice()
     }
@@ -133,11 +100,15 @@ impl VelloCPUDrawTarget {
             return false;
         }
         let viewport: Rect<f64> = Rect::from_size(self.get_size().cast());
-        let Some(clip) = self.clips.iter().try_fold(viewport, |acc, (path, affine)| {
-            let mut bez = path.0.clone();
-            bez.apply_affine(*affine);
-            acc.intersection(&bez.bounding_box().into())
-        }) else {
+        let Some(clip) = self
+            .clips
+            .iter()
+            .try_fold(viewport, |acc, (path, affine, _)| {
+                let mut bez = path.0.clone();
+                bez.apply_affine(*affine);
+                acc.intersection(&bez.bounding_box().into())
+            })
+        else {
             // clip makes no visible side effects
             return false;
         };
@@ -156,7 +127,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
             resources: vello_cpu::Resources::new(),
             pixmap: vello_cpu::Pixmap::new(size.width, size.height),
             clips: Vec::new(),
-            state: State::Rendered,
         }
     }
 
@@ -166,10 +136,8 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         if self.is_viewport_cleared(rect, transform) {
             self.ctx.reset();
             self.clips.clear(); // no clips are affecting rendering
-            self.state = State::Drawing;
             return;
         }
-        self.ensure_drawing();
         let rect: kurbo::Rect = rect.cast().into();
         let mut clip_path = rect.to_path(0.1);
         clip_path.apply_affine(transform.cast().into());
@@ -190,7 +158,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         source: Rect<i32>,
         destination: Point2D<i32>,
     ) {
-        self.ensure_drawing();
         let destination: kurbo::Point = destination.cast::<f64>().into();
         let rect = kurbo::Rect::from_origin_size(destination, source.size.cast());
         self.ctx.set_transform(kurbo::Affine::IDENTITY);
@@ -227,7 +194,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     ) {
-        self.ensure_drawing();
         let scale_up = dest.size.width > source.size.width || dest.size.height > source.size.height;
         if composition_options.alpha != 1.0 {
             Arc::get_mut(&mut surface)
@@ -285,7 +251,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     ) {
-        self.ensure_drawing();
         self.with_composition(composition_options.composition_operation, |self_| {
             self_.ctx.set_transform(transform.cast().into());
             self_.ctx.set_fill_rule(fill_rule.convert());
@@ -302,7 +267,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     ) {
-        self.ensure_drawing();
         self.ctx.set_paint(paint(style, composition_options.alpha));
         self.ctx.set_transform(transform.cast().into());
         self.with_composition(composition_options.composition_operation, |self_| {
@@ -344,7 +308,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     ) {
-        self.ensure_drawing();
         self.with_composition(composition_options.composition_operation, |self_| {
             self_.ctx.set_transform(transform.cast().into());
             self_.ctx.set_paint(paint(style, composition_options.alpha));
@@ -358,17 +321,15 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
 
     fn pop_clip(&mut self) {
         if self.clips.pop().is_some() {
-            self.ctx.pop_layer();
+            self.ctx.pop_clip_path();
         }
     }
 
     fn push_clip(&mut self, path: &Path, fill_rule: FillRule, transform: Transform2D<f64>) {
         let affine = transform.cast().into();
-        self.ctx.set_transform(affine);
-        self.ctx.set_fill_rule(fill_rule.convert());
-        self.ctx.push_clip_layer(&path.0);
-        self.clips.push((path.clone(), affine));
-        self.ctx.set_fill_rule(peniko::Fill::NonZero);
+        let fill_rule = fill_rule.convert();
+        self.push_clip_path(path, affine, fill_rule);
+        self.clips.push((path.clone(), affine, fill_rule));
     }
 
     fn push_clip_rect(&mut self, rect: &Rect<i32>) {
@@ -391,7 +352,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     ) {
-        self.ensure_drawing();
         self.with_composition(composition_options.composition_operation, |self_| {
             self_.ctx.set_transform(transform.cast().into());
             self_.ctx.set_paint(paint(style, composition_options.alpha));
@@ -408,7 +368,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     ) {
-        self.ensure_drawing();
         self.ctx.set_paint(paint(style, composition_options.alpha));
         self.ctx.set_stroke(line_options.convert());
         self.ctx.set_transform(transform.cast().into());
@@ -452,7 +411,6 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         composition_options: CompositionOptions,
         transform: Transform2D<f64>,
     ) {
-        self.ensure_drawing();
         self.with_composition(composition_options.composition_operation, |self_| {
             self_.ctx.set_transform(transform.cast().into());
             self_.ctx.set_paint(paint(style, composition_options.alpha));
