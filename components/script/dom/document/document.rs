@@ -5906,8 +5906,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname>
-    fn GetElementsByName(&self, name: DOMString, can_gc: CanGc) -> DomRoot<NodeList> {
-        NodeList::new_elements_by_name_list(self.window(), self, name, can_gc)
+    fn GetElementsByName(&self, cx: &mut JSContext, name: DOMString) -> DomRoot<NodeList> {
+        NodeList::new_elements_by_name_list(cx, self.window(), self, name)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-images>

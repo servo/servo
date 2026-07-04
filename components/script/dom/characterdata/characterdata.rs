@@ -95,7 +95,7 @@ impl CharacterData {
     }
 
     // Queue a MutationObserver record before changing the content.
-    fn queue_mutation_record(&self, cx: &JSContext) {
+    fn queue_mutation_record(&self, cx: &mut JSContext) {
         let mutation = LazyCell::new(|| Mutation::CharacterData {
             old_value: self.data.borrow().clone(),
         });

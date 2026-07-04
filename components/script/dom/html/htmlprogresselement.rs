@@ -24,7 +24,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLProgressElement {

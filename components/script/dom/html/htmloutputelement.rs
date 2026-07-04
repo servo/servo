@@ -22,7 +22,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLOutputElement {

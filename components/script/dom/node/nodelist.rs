@@ -5,7 +5,8 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use stylo_atoms::Atom;
 
 use crate::dom::ChildrenMutation;
@@ -17,7 +18,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::HTMLFormElement;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -47,71 +47,71 @@ impl NodeList {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         list_type: NodeListType,
-        can_gc: CanGc,
     ) -> DomRoot<NodeList> {
-        reflect_dom_object(Box::new(NodeList::new_inherited(list_type)), window, can_gc)
+        reflect_dom_object_with_cx(Box::new(NodeList::new_inherited(list_type)), window, cx)
     }
 
-    pub(crate) fn new_simple_list<T>(window: &Window, iter: T, can_gc: CanGc) -> DomRoot<NodeList>
+    pub(crate) fn new_simple_list<T>(
+        cx: &mut JSContext,
+        window: &Window,
+        iter: T,
+    ) -> DomRoot<NodeList>
     where
         T: Iterator<Item = DomRoot<Node>>,
     {
         NodeList::new(
+            cx,
             window,
             NodeListType::Simple(iter.map(|r| Dom::from_ref(&*r)).collect()),
-            can_gc,
         )
     }
 
     pub(crate) fn new_simple_list_slice(
+        cx: &mut JSContext,
         window: &Window,
         slice: &[&Node],
-        can_gc: CanGc,
     ) -> DomRoot<NodeList> {
         NodeList::new(
+            cx,
             window,
             NodeListType::Simple(slice.iter().map(|r| Dom::from_ref(*r)).collect()),
-            can_gc,
         )
     }
 
-    pub(crate) fn new_child_list(window: &Window, node: &Node, can_gc: CanGc) -> DomRoot<NodeList> {
-        NodeList::new(
-            window,
-            NodeListType::Children(ChildrenList::new(node)),
-            can_gc,
-        )
+    pub(crate) fn new_child_list(
+        cx: &mut JSContext,
+        window: &Window,
+        node: &Node,
+    ) -> DomRoot<NodeList> {
+        NodeList::new(cx, window, NodeListType::Children(ChildrenList::new(node)))
     }
 
     pub(crate) fn new_labels_list(
+        cx: &mut JSContext,
         window: &Window,
         element: &HTMLElement,
-        can_gc: CanGc,
     ) -> DomRoot<NodeList> {
-        NodeList::new(
-            window,
-            NodeListType::Labels(LabelsList::new(element)),
-            can_gc,
-        )
+        NodeList::new(cx, window, NodeListType::Labels(LabelsList::new(element)))
     }
 
     pub(crate) fn new_elements_by_name_list(
+        cx: &mut JSContext,
         window: &Window,
         document: &Document,
         name: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<NodeList> {
         NodeList::new(
+            cx,
             window,
             NodeListType::ElementsByName(ElementsByNameList::new(document, name)),
-            can_gc,
         )
     }
 
-    pub(crate) fn empty(window: &Window, can_gc: CanGc) -> DomRoot<NodeList> {
-        NodeList::new(window, NodeListType::Simple(vec![]), can_gc)
+    pub(crate) fn empty(cx: &mut JSContext, window: &Window) -> DomRoot<NodeList> {
+        NodeList::new(cx, window, NodeListType::Simple(vec![]))
     }
 }
 
