@@ -2166,7 +2166,7 @@ impl ScriptThread {
                 )
             },
             DevtoolScriptControlMsg::GetStyleSheets(id, reply) => {
-                devtools::handle_get_stylesheets(&documents, id, reply);
+                devtools::handle_get_stylesheets(cx, &documents, id, reply);
             },
             DevtoolScriptControlMsg::GetStyleSheetText(id, index, reply) => {
                 devtools::handle_get_stylesheet_text(cx, &documents, id, index, reply);

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
@@ -32,10 +33,16 @@ impl StyleSheetListOwner {
         }
     }
 
-    pub(crate) fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn stylesheet_at(
+        &self,
+        cx: &mut JSContext,
+        index: usize,
+    ) -> Option<DomRoot<CSSStyleSheet>> {
         match *self {
-            StyleSheetListOwner::Document(ref doc) => doc.stylesheet_at(index),
-            StyleSheetListOwner::ShadowRoot(ref shadow_root) => shadow_root.stylesheet_at(index),
+            StyleSheetListOwner::Document(ref doc) => doc.stylesheet_at(cx, index),
+            StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
+                shadow_root.stylesheet_at(cx, index)
+            },
         }
     }
 
@@ -126,16 +133,16 @@ impl StyleSheetListMethods<crate::DomTypeHolder> for StyleSheetList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheetlist-item>
-    fn Item(&self, index: u32) -> Option<DomRoot<StyleSheet>> {
+    fn Item(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<StyleSheet>> {
         // XXXManishearth this  doesn't handle the origin clean flag and is a
         // cors vulnerability
         self.document_or_shadow_root
-            .stylesheet_at(index as usize)
+            .stylesheet_at(cx, index as usize)
             .map(DomRoot::upcast)
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<StyleSheet>> {
-        self.Item(index)
+    fn IndexedGetter(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<StyleSheet>> {
+        self.Item(cx, index)
     }
 }

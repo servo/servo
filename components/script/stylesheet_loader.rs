@@ -85,7 +85,7 @@ pub(crate) trait StylesheetOwner {
     fn load_finished(&self, successful: bool) -> Option<bool>;
 
     /// Sets origin_clean flag.
-    fn set_origin_clean(&self, origin_clean: bool);
+    fn set_origin_clean(&self, cx: &mut JSContext, origin_clean: bool);
 }
 
 pub(crate) enum StylesheetContextSource {
@@ -317,7 +317,7 @@ impl StylesheetContext {
         } else {
             document.invalidate_stylesheets();
         }
-        owner.set_origin_clean(self.origin_clean);
+        owner.set_origin_clean(cx, self.origin_clean);
 
         // Remaining steps are a combination of
         // https://html.spec.whatwg.org/multipage/#link-type-stylesheet%3Aprocess-the-linked-resource
