@@ -24,7 +24,6 @@ use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{TransformStream, TransformStreamDefaultController};
 
 /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
-#[expect(unsafe_code)]
 pub(crate) fn decode_and_enqueue_a_chunk(
     cx: &mut js::context::JSContext,
     global: &GlobalScope,
@@ -59,12 +58,11 @@ pub(crate) fn decode_and_enqueue_a_chunk(
         return Ok(());
     }
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    unsafe { output_chunk.to_jsval(cx.raw_cx(), rval.handle_mut()) };
+    output_chunk.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())
 }
 
 /// <https://encoding.spec.whatwg.org/#flush-and-enqueue>
-#[expect(unsafe_code)]
 pub(crate) fn flush_and_enqueue(
     cx: &mut js::context::JSContext,
     global: &GlobalScope,
@@ -89,7 +87,7 @@ pub(crate) fn flush_and_enqueue(
         return Ok(());
     }
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    unsafe { output_chunk.to_jsval(cx.raw_cx(), rval.handle_mut()) };
+    output_chunk.safe_to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())
 }
 
