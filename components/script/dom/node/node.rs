@@ -1430,12 +1430,8 @@ impl Node {
             },
         }
 
-        let mut context = MoveContext::new(
-            Some(&old_parent),
-            prev_sibling.as_deref(),
-            next_sibling.as_deref(),
-            cached_index,
-        );
+        let mut context =
+            MoveContext::new(Some(&old_parent), prev_sibling.as_deref(), cached_index);
 
         // Step 13. Remove node from oldParent’s children.
         old_parent.move_child(cx, node);

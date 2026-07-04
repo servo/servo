@@ -120,8 +120,6 @@ pub(crate) struct MoveContext<'a> {
     pub(crate) old_parent: Option<&'a Node>,
     /// The previous sibling of the inclusive ancestor that was moved.
     prev_sibling: Option<&'a Node>,
-    /// The next sibling of the inclusive ancestor that was moved.
-    pub(crate) next_sibling: Option<&'a Node>,
 }
 
 impl<'a> MoveContext<'a> {
@@ -129,14 +127,12 @@ impl<'a> MoveContext<'a> {
     pub(crate) fn new(
         old_parent: Option<&'a Node>,
         prev_sibling: Option<&'a Node>,
-        next_sibling: Option<&'a Node>,
         cached_index: Option<u32>,
     ) -> Self {
         MoveContext {
             index: Cell::new(cached_index),
             old_parent,
             prev_sibling,
-            next_sibling,
         }
     }
 
