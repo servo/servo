@@ -13,7 +13,7 @@ use paint_api::SerializableImageData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_canvas_traits::canvas::{
-    CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
+    CompositionOptions, CompositionOrBlending, FillOrStrokeStyle, FillRule,
     LineOptions, Path, ShadowOptions, TextRun,
 };
 use vello_cpu::{kurbo, peniko};
@@ -48,15 +48,9 @@ impl VelloCPUDrawTarget {
         composition_operation: CompositionOrBlending,
         f: impl FnOnce(&mut Self),
     ) {
-        // Fast-path for default and most common composition operation
-        if composition_operation == CompositionOrBlending::Composition(CompositionStyle::SourceOver)
-        {
-            f(self);
-            return;
-        }
-        self.ctx.push_blend_layer(composition_operation.convert());
+        self.ctx.set_blend_mode(composition_operation.convert());
         f(self);
-        self.ctx.pop_layer();
+        self.ctx.set_blend_mode(vello_cpu::peniko::BlendMode::default());
     }
 
     fn ignore_clips(&mut self, f: impl FnOnce(&mut Self)) {
