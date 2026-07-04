@@ -3667,13 +3667,12 @@ dependencies = [
 [[package]]
 name = "harfbuzz-sys"
 version = "0.7.0"
-source = "git+https://github.com/jschwe/rust-harfbuzz?branch=bump-harfbuzz-0.7#d41827bf01dfc701577cc3b3509281decfb2c172"
+source = "git+https://github.com/servo/rust-harfbuzz?branch=main#cd0e5b64d070c6e34e08c23e013b43d99ced6c07"
 dependencies = [
  "cc",
- "core-graphics",
- "core-text",
- "foreign-types",
  "freetype-sys",
+ "objc2-core-graphics",
+ "objc2-core-text",
  "pkg-config",
  "windows 0.62.2",
 ]
