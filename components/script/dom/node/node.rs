@@ -2484,7 +2484,7 @@ impl Node {
             for kid in new_nodes {
                 Node::remove(cx, kid, node, SuppressObserver::Suppressed);
             }
-            vtable_for(node).children_changed(cx, &ChildrenMutation::replace_all(new_nodes, &[]));
+            vtable_for(node).children_changed(cx, &ChildrenMutation::ReplaceAll);
 
             // Step 4.2. Queue a tree mutation record for node with « », nodes, null, and null.
             let mutation = LazyCell::new(|| Mutation::ChildList {
@@ -2665,10 +2665,7 @@ impl Node {
             Node::insert(cx, node, parent, None, SuppressObserver::Suppressed);
         }
 
-        vtable_for(parent).children_changed(
-            cx,
-            &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes),
-        );
+        vtable_for(parent).children_changed(cx, &ChildrenMutation::ReplaceAll);
 
         // Step 7. If either addedNodes or removedNodes is not empty, then queue a tree mutation record
         // for parent with addedNodes, removedNodes, null, and null.
