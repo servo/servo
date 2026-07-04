@@ -1026,7 +1026,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     let desc = unsafe { MutableHandle::from_raw(desc) };
     if let Some((window, attrs)) = window {
         rooted!(&in(cx) let mut val = UndefinedValue());
-        unsafe { window.to_jsval(cx.raw_cx(), val.handle_mut()) };
+        window.safe_to_jsval(cx, val.handle_mut());
         set_property_descriptor(desc, val.handle(), attrs, unsafe { &mut *is_none });
         return true;
     }
@@ -1110,7 +1110,7 @@ unsafe extern "C" fn get(
     let window = unsafe { GetSubframeWindowProxy(cx, proxy, id) };
     let vp = unsafe { MutableHandle::from_raw(vp) };
     if let Some((window, _attrs)) = window {
-        unsafe { window.to_jsval(cx.raw_cx(), vp) };
+        window.safe_to_jsval(cx, vp);
         return true;
     }
 
