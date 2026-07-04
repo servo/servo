@@ -12,7 +12,9 @@ use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::StyleSheetBinding::StyleSheetMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{
+    reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+};
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
@@ -43,7 +45,6 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
 use crate::dom::types::Promise;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 use crate::test::TrustedPromise;
 
 #[dom_struct]
@@ -106,6 +107,7 @@ impl CSSStyleSheet {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         owner: Option<&Element>,
         type_: DOMString,
@@ -113,9 +115,8 @@ impl CSSStyleSheet {
         title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
-        can_gc: CanGc,
     ) -> DomRoot<CSSStyleSheet> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(CSSStyleSheet::new_inherited(
                 owner,
                 type_,
@@ -125,7 +126,7 @@ impl CSSStyleSheet {
                 constructor_document,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
