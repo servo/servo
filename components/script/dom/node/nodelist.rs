@@ -155,14 +155,6 @@ impl NodeList {
         }
     }
 
-    pub(crate) fn as_radio_list(&self) -> &RadioList {
-        if let NodeListType::Radio(ref list) = self.list_type {
-            list
-        } else {
-            panic!("called as_radio_list() on a non-radio node list")
-        }
-    }
-
     pub(crate) fn iter(&self) -> impl Iterator<Item = DomRoot<Node>> + '_ {
         let len = self.Length();
         // There is room for optimization here in non-simple cases,

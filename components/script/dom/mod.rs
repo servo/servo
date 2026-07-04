@@ -288,7 +288,6 @@ pub(crate) mod mutationobserver;
 pub(crate) use self::mutationobserver::*;
 pub(crate) mod navigator;
 pub(crate) use self::navigator::*;
-#[expect(dead_code)]
 pub(crate) mod node;
 pub(crate) use self::node::*;
 pub(crate) mod notification;

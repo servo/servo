@@ -29,7 +29,7 @@ use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, GenericLayoutData, NodeRenderingType,
     PhysicalSides, TrustedNodeAddress, with_layout_state,
 };
-use libc::{self, c_void, uintptr_t};
+use libc::{self, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
@@ -38,7 +38,6 @@ use script_bindings::codegen::GenericBindings::ProcessingInstructionBinding::Pro
 use script_bindings::codegen::InheritTypes::{DocumentFragmentTypeId, TextTypeId};
 use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto_and_cx};
 use script_traits::DocumentActivity;
-use servo_arc::Arc as ServoArc;
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use smallvec::SmallVec;
@@ -47,7 +46,6 @@ use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::dom_apis::{QueryAll, QueryFirst};
 use style::selector_parser::PseudoElement;
-use style::stylesheets::Stylesheet;
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -551,10 +549,6 @@ impl Node {
         Self::complete_move_subtree(cx, child)
     }
 
-    pub(crate) fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
-        UntrustedNodeAddress(self.reflector().get_jsobject().get() as *const c_void)
-    }
-
     pub(crate) fn to_opaque(&self) -> OpaqueNode {
         OpaqueNode(self.reflector().get_jsobject().get() as usize)
     }
@@ -721,27 +715,6 @@ impl Node {
         self.ensure_rare_data()
             .mutation_observers
             .retain(|reg_obs| &*reg_obs.observer != observer)
-    }
-
-    /// Dumps the subtree rooted at this node, for debugging.
-    pub(crate) fn dump(&self) {
-        self.dump_indent(0);
-    }
-
-    /// Dumps the node tree, for debugging, with indentation.
-    pub(crate) fn dump_indent(&self, indent: u32) {
-        let mut s = String::new();
-        for _ in 0..indent {
-            s.push_str("    ");
-        }
-
-        s.push_str(&self.debug_str());
-        debug!("{:?}", s);
-
-        // FIXME: this should have a pure version?
-        for kid in self.children() {
-            kid.dump_indent(indent + 1)
-        }
     }
 
     /// Returns a string that describes this node.
@@ -950,12 +923,6 @@ impl Node {
             |n, no_gc| n.get_next_sibling_unrooted(no_gc),
             no_gc,
         )
-    }
-
-    pub(crate) fn inclusively_preceding_siblings(
-        &self,
-    ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), |n| n.GetPreviousSibling())
     }
 
     pub(crate) fn inclusively_preceding_siblings_unrooted<'b>(
@@ -1463,12 +1430,8 @@ impl Node {
             },
         }
 
-        let mut context = MoveContext::new(
-            Some(&old_parent),
-            prev_sibling.as_deref(),
-            next_sibling.as_deref(),
-            cached_index,
-        );
+        let mut context =
+            MoveContext::new(Some(&old_parent), prev_sibling.as_deref(), cached_index);
 
         // Step 13. Remove node from oldParent’s children.
         old_parent.move_child(cx, node);
@@ -1962,16 +1925,6 @@ impl Node {
 
         element.upcast::<Node>().remove_self(cx);
         Ok(())
-    }
-
-    pub(crate) fn get_stylesheet(&self) -> Option<ServoArc<Stylesheet>> {
-        if let Some(node) = self.downcast::<HTMLStyleElement>() {
-            node.get_stylesheet()
-        } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_stylesheet()
-        } else {
-            None
-        }
     }
 
     pub(crate) fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
@@ -2554,7 +2507,7 @@ impl Node {
             for kid in new_nodes {
                 Node::remove(cx, kid, node, SuppressObserver::Suppressed);
             }
-            vtable_for(node).children_changed(cx, &ChildrenMutation::replace_all(new_nodes, &[]));
+            vtable_for(node).children_changed(cx, &ChildrenMutation::ReplaceAll);
 
             // Step 4.2. Queue a tree mutation record for node with « », nodes, null, and null.
             let mutation = LazyCell::new(|| Mutation::ChildList {
@@ -2665,7 +2618,7 @@ impl Node {
             // TODO(xiaochengh): If we follow the spec and move it out of the if block, some WPT fail. Investigate.
             vtable_for(parent).children_changed(
                 cx,
-                &ChildrenMutation::insert(previous_sibling.as_deref(), new_nodes, child),
+                &ChildrenMutation::insert(previous_sibling.as_deref(), child),
             );
 
             // Step 8. If suppress observers flag is unset, then queue a tree mutation record for parent
@@ -2735,10 +2688,7 @@ impl Node {
             Node::insert(cx, node, parent, None, SuppressObserver::Suppressed);
         }
 
-        vtable_for(parent).children_changed(
-            cx,
-            &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes),
-        );
+        vtable_for(parent).children_changed(cx, &ChildrenMutation::ReplaceAll);
 
         // Step 7. If either addedNodes or removedNodes is not empty, then queue a tree mutation record
         // for parent with addedNodes, removedNodes, null, and null.
@@ -2854,7 +2804,6 @@ impl Node {
                 &ChildrenMutation::replace(
                     old_previous_sibling.as_deref(),
                     &Some(node),
-                    &[],
                     old_next_sibling.as_deref(),
                 ),
             );
@@ -3774,7 +3723,6 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             &ChildrenMutation::replace(
                 previous_sibling.as_deref(),
                 &removed_child,
-                nodes,
                 reference_child,
             ),
         );
