@@ -269,7 +269,8 @@ impl Promise {
         cx: &mut CurrentRealm,
         handler: &PromiseNativeHandler,
     ) {
-        run_a_script::<DomTypeHolder, _, _>(cx, &GlobalScope::from_current_realm(cx), |cx| {
+        let global = GlobalScope::from_current_realm(cx);
+        run_a_script::<DomTypeHolder, _, _>(cx, &global, |cx| {
             rooted!(&in(cx) let resolve_func =
                 create_native_handler_function(cx,
                                                handler.reflector().get_jsobject(),
@@ -340,10 +341,9 @@ unsafe extern "C" fn native_handler_callback(
     rooted!(&in(cx) let native_handler_value = native_handler_value);
     assert!(native_handler_value.get().is_object());
 
-    let handler = unsafe {
-        root_from_object::<PromiseNativeHandler>(native_handler_value.to_object(), cx.raw_cx())
-    }
-    .expect("unexpected value for native handler in promise native handler callback");
+    let handler =
+        unsafe { root_from_object::<PromiseNativeHandler>(cx, native_handler_value.to_object()) }
+            .expect("unexpected value for native handler in promise native handler callback");
 
     let native_handler_task_value =
         unsafe { *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK) };
@@ -392,8 +392,8 @@ impl FromJSValConvertibleRc for Promise {
             return Ok(ConversionResult::Failure(c"null not allowed".into()));
         }
 
-        let realm = CurrentRealm::assert(cx);
-        let global_scope = GlobalScope::from_current_realm(&realm);
+        let mut realm = CurrentRealm::assert(cx);
+        let global_scope = GlobalScope::from_current_realm(&mut realm);
 
         let promise = Promise::new_resolved(cx, &global_scope, value);
         Ok(ConversionResult::Success(promise))

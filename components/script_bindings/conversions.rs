@@ -9,8 +9,7 @@ use js::conversions::{
 };
 use js::error::throw_type_error;
 use js::glue::{
-    GetProxyHandlerExtra, GetProxyReservedSlot, IsProxyHandlerFamily, IsWrapper,
-    JS_GetReservedSlot, UnwrapObjectDynamic,
+    GetProxyHandlerExtra, GetProxyReservedSlot, IsProxyHandlerFamily, IsWrapper, JS_GetReservedSlot,
 };
 use js::jsapi::{
     Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_NewStringCopyN, JSContext, JSObject,
@@ -18,6 +17,7 @@ use js::jsapi::{
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::wrappers2::{
     IsArrayObject, JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength,
+    UnwrapObjectDynamic,
 };
 use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
@@ -285,8 +285,8 @@ pub enum PrototypeCheck {
 #[inline]
 #[allow(clippy::result_unit_err)]
 pub unsafe fn private_from_proto_check(
+    cx: &mut js::context::JSContext,
     mut obj: *mut JSObject,
-    cx: *mut JSContext,
     proto_check: PrototypeCheck,
 ) -> Result<*const libc::c_void, ()> {
     let dom_class = get_dom_class(obj).or_else(|_| {
@@ -329,12 +329,15 @@ pub unsafe fn private_from_proto_check(
 /// obj must point to a valid, non-null JS object.
 /// cx must point to a valid, non-null JS context.
 #[allow(clippy::result_unit_err)]
-pub unsafe fn native_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<*const T, ()>
+pub unsafe fn native_from_object<T>(
+    cx: &mut js::context::JSContext,
+    obj: *mut JSObject,
+) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
     unsafe {
-        private_from_proto_check(obj, cx, PrototypeCheck::Derive(T::derives))
+        private_from_proto_check(cx, obj, PrototypeCheck::Derive(T::derives))
             .map(|ptr| ptr as *const T)
     }
 }
@@ -350,11 +353,14 @@ where
 /// obj must point to a valid, non-null JS object.
 /// cx must point to a valid, non-null JS context.
 #[allow(clippy::result_unit_err)]
-pub unsafe fn root_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<DomRoot<T>, ()>
+pub unsafe fn root_from_object<T>(
+    cx: &mut js::context::JSContext,
+    obj: *mut JSObject,
+) -> Result<DomRoot<T>, ()>
 where
     T: DomObject + IDLInterface,
 {
-    native_from_object(obj, cx).map(|ptr| unsafe { DomRoot::from_ref(&*ptr) })
+    native_from_object(cx, obj).map(|ptr| unsafe { DomRoot::from_ref(&*ptr) })
 }
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleValue`.
@@ -375,7 +381,7 @@ where
     }
     #[expect(unsafe_code)]
     unsafe {
-        root_from_object(v.get().to_object(), cx.raw_cx())
+        root_from_object(cx, v.get().to_object())
     }
 }
 
@@ -489,7 +495,7 @@ where
 
     #[expect(unsafe_code)]
     unsafe {
-        native_from_object(v.get().to_object(), cx.raw_cx())
+        native_from_object(cx, v.get().to_object())
     }
 }
 
@@ -543,22 +549,22 @@ pub fn is_array_like<D: crate::DomTypes>(
 
     unsafe {
         // TODO: HTMLAllCollection
-        if root_from_object::<D::DOMTokenList>(object, cx.raw_cx()).is_ok() {
+        if root_from_object::<D::DOMTokenList>(cx, object).is_ok() {
             return true;
         }
-        if root_from_object::<D::FileList>(object, cx.raw_cx()).is_ok() {
+        if root_from_object::<D::FileList>(cx, object).is_ok() {
             return true;
         }
-        if root_from_object::<D::HTMLCollection>(object, cx.raw_cx()).is_ok() {
+        if root_from_object::<D::HTMLCollection>(cx, object).is_ok() {
             return true;
         }
-        if root_from_object::<D::HTMLFormControlsCollection>(object, cx.raw_cx()).is_ok() {
+        if root_from_object::<D::HTMLFormControlsCollection>(cx, object).is_ok() {
             return true;
         }
-        if root_from_object::<D::HTMLOptionsCollection>(object, cx.raw_cx()).is_ok() {
+        if root_from_object::<D::HTMLOptionsCollection>(cx, object).is_ok() {
             return true;
         }
-        if root_from_object::<D::NodeList>(object, cx.raw_cx()).is_ok() {
+        if root_from_object::<D::NodeList>(cx, object).is_ok() {
             return true;
         }
     }

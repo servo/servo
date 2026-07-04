@@ -399,7 +399,7 @@ pub fn convert_value_to_key_range(
     if input.is_object() {
         rooted!(&in(cx) let object = input.to_object());
         unsafe {
-            if let Ok(obj) = root_from_object::<IDBKeyRange>(object.get(), cx.raw_cx()) {
+            if let Ok(obj) = root_from_object::<IDBKeyRange>(cx, object.get()) {
                 let obj = obj.inner().clone();
                 return Ok(obj);
             }

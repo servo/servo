@@ -846,8 +846,8 @@ fn run_package_data_algorithm(
     mime_type: Vec<u8>,
 ) -> Fallible<FetchedData> {
     let mime = &*mime_type;
-    let realm = CurrentRealm::assert(cx);
-    let global = GlobalScope::from_current_realm(&realm);
+    let mut realm = CurrentRealm::assert(cx);
+    let global = GlobalScope::from_current_realm(&mut realm);
     match body_type {
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),

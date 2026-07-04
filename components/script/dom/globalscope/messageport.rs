@@ -131,7 +131,7 @@ impl MessagePort {
 
         let ports = transfer
             .iter()
-            .filter_map(|&obj| unsafe { root_from_object::<MessagePort>(obj, cx.raw_cx()).ok() });
+            .filter_map(|&obj| unsafe { root_from_object::<MessagePort>(cx, obj).ok() });
         for port in ports {
             // Step 2
             if port.message_port_id() == self.message_port_id() {

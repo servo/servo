@@ -410,7 +410,7 @@ fn jsval_to_webdriver_inner(
             _ => unreachable!(),
         });
 
-        if let Ok(element) = unsafe { root_from_object::<Element>(*object, cx.raw_cx()) } {
+        if let Ok(element) = unsafe { root_from_object::<Element>(cx, *object) } {
             // If the element is stale, return error with error code stale element reference.
             if is_stale(&element) {
                 Err(JavaScriptEvaluationError::SerializationError(
@@ -423,9 +423,7 @@ fn jsval_to_webdriver_inner(
                         .unique_id(element.owner_window().pipeline_id()),
                 ))
             }
-        } else if let Ok(shadow_root) =
-            unsafe { root_from_object::<ShadowRoot>(*object, cx.raw_cx()) }
-        {
+        } else if let Ok(shadow_root) = unsafe { root_from_object::<ShadowRoot>(cx, *object) } {
             // If the shadow root is detached, return error with error code detached shadow root.
             if is_detached(&shadow_root) {
                 Err(JavaScriptEvaluationError::SerializationError(
@@ -438,7 +436,7 @@ fn jsval_to_webdriver_inner(
                         .unique_id(shadow_root.owner_window().pipeline_id()),
                 ))
             }
-        } else if let Ok(window) = unsafe { root_from_object::<Window>(*object, cx.raw_cx()) } {
+        } else if let Ok(window) = unsafe { root_from_object::<Window>(cx, *object) } {
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
                 Err(JavaScriptEvaluationError::SerializationError(

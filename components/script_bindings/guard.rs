@@ -72,8 +72,8 @@ pub(crate) enum Condition {
 }
 
 fn is_secure_context<D: DomTypes>(cx: &mut JSContext) -> bool {
-    let realm = CurrentRealm::assert(cx);
-    D::GlobalScope::from_current_realm(&realm).is_secure_context()
+    let mut realm = CurrentRealm::assert(cx);
+    D::GlobalScope::from_current_realm(&mut realm).is_secure_context()
 }
 
 impl Condition {

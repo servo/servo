@@ -535,7 +535,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     });
     let depth = (*info).__bindgen_anon_3.depth as usize;
     let proto_check = PrototypeCheck::Depth { depth, proto_id };
-    let this = match private_from_proto_check(obj.get(), cx.raw_cx_no_gc(), proto_check) {
+    let this = match private_from_proto_check(cx, obj.get(), proto_check) {
         Ok(val) => val,
         Err(()) => {
             // [this_implements_operation == false]

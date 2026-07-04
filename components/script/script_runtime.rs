@@ -405,8 +405,8 @@ unsafe extern "C" fn enqueue_promise_job(
                 GlobalScope::from_object(incumbent_global.to_object())
             }
         } else {
-            let realm = CurrentRealm::assert(cx);
-            GlobalScope::from_current_realm(&realm)
+            let mut realm = CurrentRealm::assert(cx);
+            GlobalScope::from_current_realm(&mut realm)
         };
         let pipeline = global.pipeline_id();
         let interaction = if promise.get().is_null() {
@@ -449,7 +449,7 @@ unsafe extern "C" fn promise_rejection_tracker(
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let mut realm = CurrentRealm::assert(&mut cx);
 
-    let global = GlobalScope::from_current_realm(&realm);
+    let global = GlobalScope::from_current_realm(&mut realm);
     let cx = &mut realm;
 
     wrap_panic(&mut || {
@@ -533,9 +533,7 @@ unsafe extern "C" fn code_for_eval_gets(
     // SAFETY: We are in SM hook
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let cx = &mut cx;
-    if let Ok(trusted_script) =
-        unsafe { root_from_object::<TrustedScript>(code.get(), cx.raw_cx()) }
-    {
+    if let Ok(trusted_script) = unsafe { root_from_object::<TrustedScript>(cx, code.get()) } {
         let script_str = trusted_script.data().str();
         let s = js::conversions::Utf8Chars::from(&*script_str);
         let new_string = unsafe { JS_NewStringCopyUTF8N(cx, &*s as *const _) };
@@ -562,8 +560,8 @@ unsafe extern "C" fn content_security_policy_allows(
     let cx = &mut cx;
     wrap_panic(&mut || {
         // SpiderMonkey provides null pointer when executing webassembly.
-        let realm = CurrentRealm::assert(cx);
-        let global = GlobalScope::from_current_realm(&realm);
+        let mut realm = CurrentRealm::assert(cx);
+        let global = GlobalScope::from_current_realm(&mut realm);
         let csp_list = global.get_csp_list();
 
         // If we don't have any CSP checks to run, short-circuit all logic here
@@ -592,9 +590,9 @@ unsafe extern "C" fn content_security_policy_allows(
                         };
                         let value = arg.into_handle().get();
                         if value.is_object() {
-                            if let Ok(trusted_script) = unsafe {
-                                root_from_object::<TrustedScript>(value.to_object(), cx.raw_cx())
-                            } {
+                            if let Ok(trusted_script) =
+                                unsafe { root_from_object::<TrustedScript>(cx, value.to_object()) }
+                            {
                                 parameter_args_vec
                                     .push(TrustedScriptOrString::TrustedScript(trusted_script));
                             } else {
@@ -1362,12 +1360,12 @@ unsafe extern "C" fn consume_stream(
         JSContext::from_ptr(NonNull::new(cx).expect("JSContext should not be null in SM hook"))
     };
     let cx = &mut cx;
-    let realm = CurrentRealm::assert(cx);
-    let global = GlobalScope::from_current_realm(&realm);
+    let mut realm = CurrentRealm::assert(cx);
+    let global = GlobalScope::from_current_realm(&mut realm);
 
     // Step 2.1 Upon fulfillment of source, store the Response with value unwrappedSource.
     if let Ok(unwrapped_source) =
-        unsafe { root_from_handleobject::<Response>(RustHandleObject::from_raw(obj), cx.raw_cx()) }
+        unsafe { root_from_handleobject::<Response>(cx, RustHandleObject::from_raw(obj)) }
     {
         // Step 2.2 Let mimeType be the result of extracting a MIME type from response’s header list.
         let mimetype = unwrapped_source.Headers(cx).extract_mime_type();

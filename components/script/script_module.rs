@@ -995,7 +995,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let mut realm = CurrentRealm::assert(&mut cx);
-    let global_scope = GlobalScope::from_current_realm(&realm);
+    let global_scope = GlobalScope::from_current_realm(&mut realm);
 
     let cx = &mut realm;
 
@@ -1055,8 +1055,8 @@ unsafe extern "C" fn HostPopulateImportMeta(
 ) -> bool {
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
-    let realm = CurrentRealm::assert(&mut cx);
-    let global_scope = GlobalScope::from_current_realm(&realm);
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let global_scope = GlobalScope::from_current_realm(&mut realm);
 
     // Step 2.
     let base_url = match unsafe { module_script_from_reference_private(&reference_private) } {
@@ -1110,7 +1110,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
     // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
     let mut realm = CurrentRealm::assert(&mut cx);
-    let global_scope = GlobalScope::from_current_realm(&realm);
+    let global_scope = GlobalScope::from_current_realm(&mut realm);
 
     let cx = &mut realm;
 
