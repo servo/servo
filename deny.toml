@@ -218,6 +218,17 @@ skip = [
 
     # Duplicated by bindgen
     "shlex",
+
+    # Duplicated by vello (disabled by default) which uses old wgpu.
+    "bit-set",
+    "naga",
+    "wgpu-core",
+    "wgpu-core-deps-apple",
+    "wgpu-core-deps-emscripten",
+    "wgpu-core-deps-windows-linux-android",
+    "wgpu-hal",
+    "wgpu-naga-bridge",
+    "wgpu-types",
 ]
 
 # github.com organizations to allow git sources for

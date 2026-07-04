@@ -116,7 +116,8 @@ impl WGPU {
                 },
 
                 flags: wgt::InstanceFlags::from_build_config() |
-                    wgt::InstanceFlags::AUTOMATIC_TIMESTAMP_NORMALIZATION,
+                    wgt::InstanceFlags::AUTOMATIC_TIMESTAMP_NORMALIZATION |
+                    wgt::InstanceFlags::STRICT_WEBGPU_COMPLIANCE,
                 // TODO(sagudev): firefox actually sets this, but it can cause OOM for us
                 // meaning that we are likely leaking something
                 memory_budget_thresholds: wgt::MemoryBudgetThresholds {
