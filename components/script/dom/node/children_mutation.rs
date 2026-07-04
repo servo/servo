@@ -12,14 +12,12 @@ use crate::dom::element::Element;
 pub(crate) enum ChildrenMutation<'a> {
     Append {
         prev: &'a Node,
-        added: &'a [&'a Node],
     },
     Insert {
         prev: &'a Node,
         next: &'a Node,
     },
     Prepend {
-        added: &'a [&'a Node],
         next: &'a Node,
     },
     Replace {
@@ -37,13 +35,12 @@ pub(crate) enum ChildrenMutation<'a> {
 impl<'a> ChildrenMutation<'a> {
     pub(super) fn insert(
         prev: Option<&'a Node>,
-        added: &'a [&'a Node],
         next: Option<&'a Node>,
     ) -> ChildrenMutation<'a> {
         match (prev, next) {
             (None, None) => ChildrenMutation::ReplaceAll,
-            (Some(prev), None) => ChildrenMutation::Append { prev, added },
-            (None, Some(next)) => ChildrenMutation::Prepend { added, next },
+            (Some(prev), None) => ChildrenMutation::Append { prev },
+            (None, Some(next)) => ChildrenMutation::Prepend { next },
             (Some(prev), Some(next)) => ChildrenMutation::Insert { prev, next },
         }
     }
@@ -61,7 +58,7 @@ impl<'a> ChildrenMutation<'a> {
                 ChildrenMutation::Replace { prev, next }
             }
         } else {
-            ChildrenMutation::insert(prev, added, next)
+            ChildrenMutation::insert(prev, next)
         }
     }
 
@@ -99,7 +96,7 @@ impl<'a> ChildrenMutation<'a> {
                 .find(|node| node.is::<Element>())
                 .map(|node| node.as_rooted()),
             // Add/remove at end of container: Return the last preceding element.
-            ChildrenMutation::Append { prev, .. } |
+            ChildrenMutation::Append { prev } |
             ChildrenMutation::Replace {
                 prev: Some(prev),
                 next: None,
