@@ -1625,11 +1625,7 @@ impl Node {
 
         // NodeList::new_simple_list immediately collects the iterator, so we're not leaking LayoutDom
         // elements here.
-        Ok(NodeList::new_simple_list(
-            cx,
-            &self.owner_window(),
-            iter,
-        ))
+        Ok(NodeList::new_simple_list(cx, &self.owner_window(), iter))
     }
 
     pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {

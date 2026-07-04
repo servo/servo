@@ -100,7 +100,7 @@ impl MutationRecord {
                 prev_sibling,
             )),
             &*window,
-            cx
+            cx,
         )
     }
 

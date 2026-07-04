@@ -231,14 +231,7 @@ impl MutationObserver {
                     ref removed,
                     ref next,
                     ref prev,
-                } => MutationRecord::child_list_mutated(
-                    cx,
-                    target,
-                    *added,
-                    *removed,
-                    *next,
-                    *prev,
-                ),
+                } => MutationRecord::child_list_mutated(cx, target, *added, *removed, *next, *prev),
             };
             // Step 4.2 Enqueue record to observer’s record queue.
             observer

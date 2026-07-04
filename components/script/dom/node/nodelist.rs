@@ -54,7 +54,11 @@ impl NodeList {
         reflect_dom_object_with_cx(Box::new(NodeList::new_inherited(list_type)), window, cx)
     }
 
-    pub(crate) fn new_simple_list<T>(cx: &mut JSContext, window: &Window, iter: T) -> DomRoot<NodeList>
+    pub(crate) fn new_simple_list<T>(
+        cx: &mut JSContext,
+        window: &Window,
+        iter: T,
+    ) -> DomRoot<NodeList>
     where
         T: Iterator<Item = DomRoot<Node>>,
     {
@@ -77,12 +81,12 @@ impl NodeList {
         )
     }
 
-    pub(crate) fn new_child_list(cx: &mut JSContext, window: &Window, node: &Node) -> DomRoot<NodeList> {
-        NodeList::new(
-            cx,
-            window,
-            NodeListType::Children(ChildrenList::new(node)),
-        )
+    pub(crate) fn new_child_list(
+        cx: &mut JSContext,
+        window: &Window,
+        node: &Node,
+    ) -> DomRoot<NodeList> {
+        NodeList::new(cx, window, NodeListType::Children(ChildrenList::new(node)))
     }
 
     pub(crate) fn new_labels_list(
@@ -90,11 +94,7 @@ impl NodeList {
         window: &Window,
         element: &HTMLElement,
     ) -> DomRoot<NodeList> {
-        NodeList::new(
-            cx,
-            window,
-            NodeListType::Labels(LabelsList::new(element)),
-        )
+        NodeList::new(cx, window, NodeListType::Labels(LabelsList::new(element)))
     }
 
     pub(crate) fn new_elements_by_name_list(
