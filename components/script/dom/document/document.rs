@@ -211,7 +211,6 @@ use crate::image_animation::ImageAnimationManager;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::script_runtime::CanGc;
 use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_loader::StylesheetContextId;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -3433,11 +3432,11 @@ impl Document {
             },
             ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
                 let binding = LargestContentfulPaint::new(
+                    cx,
                     self.window.as_global_scope(),
                     metric_value,
                     area,
                     url,
-                    CanGc::from_cx(cx),
                 );
                 metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
@@ -4806,10 +4805,10 @@ impl Document {
         // Step 3 Queue a new VisibilityStateEntry whose visibility state is visibilityState and whose timestamp is
         // the current high resolution time given document's relevant global object.
         let entry = VisibilityStateEntry::new(
+            cx,
             &self.global(),
             visibility_state,
             CrossProcessInstant::now(),
-            CanGc::from_cx(cx),
         );
         self.window
             .Performance()
