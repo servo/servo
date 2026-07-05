@@ -21,7 +21,6 @@ pub(crate) mod keyboardevent;
 pub(crate) mod messageevent;
 pub(crate) mod mouseevent;
 pub(crate) mod pagetransitionevent;
-#[expect(dead_code)]
 pub(crate) mod pointerevent;
 pub(crate) mod popstateevent;
 pub(crate) mod progressevent;

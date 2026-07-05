@@ -73,10 +73,6 @@ impl PointerEvent {
         }
     }
 
-    pub(crate) fn new_uninitialized(cx: &mut JSContext, window: &Window) -> DomRoot<PointerEvent> {
-        Self::new_uninitialized_with_proto(cx, window, None)
-    }
-
     fn new_uninitialized_with_proto(
         cx: &mut JSContext,
         window: &Window,
