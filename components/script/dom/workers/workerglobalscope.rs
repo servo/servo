@@ -707,14 +707,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location>
-    fn Location(&self) -> DomRoot<WorkerLocation> {
-        self.location.or_init(|| {
-            WorkerLocation::new(
-                self,
-                self.worker_url.borrow().clone(),
-                CanGc::deprecated_note(),
-            )
-        })
+    fn Location(&self, cx: &mut JSContext) -> DomRoot<WorkerLocation> {
+        self.location
+            .or_init(|| WorkerLocation::new(cx, self, self.worker_url.borrow().clone()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts>
@@ -861,9 +856,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     );
 
     /// <https://html.spec.whatwg.org/multipage/#dom-worker-navigator>
-    fn Navigator(&self) -> DomRoot<WorkerNavigator> {
-        self.navigator
-            .or_init(|| WorkerNavigator::new(self, CanGc::deprecated_note()))
+    fn Navigator(&self, cx: &mut JSContext) -> DomRoot<WorkerNavigator> {
+        self.navigator.or_init(|| WorkerNavigator::new(cx, self))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dfn-Crypto>

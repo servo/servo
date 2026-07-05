@@ -58,7 +58,6 @@ use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::script_runtime::CanGc;
 // TODO: Service Worker API (persistent notification)
 // https://notifications.spec.whatwg.org/#service-worker-api
 
@@ -708,7 +707,7 @@ fn request_notification_permission(
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
     };
-    let status = PermissionStatus::new(global, &descriptor, CanGc::from_cx(cx));
+    let status = PermissionStatus::new(cx, global, &descriptor);
 
     // The implementation of `request_notification_permission` seemed to be synchronous
     Permissions::permission_request(cx, promise, &descriptor, &status);

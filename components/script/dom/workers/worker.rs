@@ -15,7 +15,7 @@ use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_base::generic_channel;
 use servo_constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use uuid::Uuid;
@@ -42,7 +42,7 @@ use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, ThreadSafeJSContext};
+use crate::script_runtime::ThreadSafeJSContext;
 use crate::task::TaskOnce;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
@@ -75,17 +75,17 @@ impl Worker {
     }
 
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         sender: Sender<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
-        can_gc: CanGc,
     ) -> DomRoot<Worker> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(Worker::new_inherited(sender, closing)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -190,13 +190,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
 
         let (sender, receiver) = unbounded();
         let closing = Arc::new(AtomicBool::new(false));
-        let worker = Worker::new(
-            global,
-            proto,
-            sender.clone(),
-            closing.clone(),
-            CanGc::from_cx(cx),
-        );
+        let worker = Worker::new(cx, global, proto, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(&*worker);
 
         let worker_load_origin = WorkerScriptLoadOrigin {

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_config::pref;
 
 use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
@@ -20,7 +20,6 @@ use crate::dom::storagemanager::StorageManager;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
@@ -43,8 +42,8 @@ impl WorkerNavigator {
         }
     }
 
-    pub(crate) fn new(global: &WorkerGlobalScope, can_gc: CanGc) -> DomRoot<WorkerNavigator> {
-        reflect_dom_object(Box::new(WorkerNavigator::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
+        reflect_dom_object_with_cx(Box::new(WorkerNavigator::new_inherited()), global, cx)
     }
 }
 
@@ -115,9 +114,9 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     }
 
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
-    fn Permissions(&self) -> DomRoot<Permissions> {
+    fn Permissions(&self, cx: &mut JSContext) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| Permissions::new(cx, &self.global()))
     }
 
     /// <https://storage.spec.whatwg.org/#api>

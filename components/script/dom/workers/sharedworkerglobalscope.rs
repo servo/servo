@@ -58,8 +58,8 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::script_module::fetch_a_module_worker_script_graph;
+use crate::script_runtime::Runtime;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{CanGc, Runtime};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -649,10 +649,10 @@ impl SharedWorkerGlobalScope {
     ) -> DomRoot<MessagePort> {
         // Let inside port be a new MessagePort object in inside settings's realm.
         let inside_port = MessagePort::new_transferred(
+            cx,
             self.upcast::<GlobalScope>(),
             *port_impl.message_port_id(),
             port_impl.entangled_port_id(),
-            CanGc::from_cx(cx),
         );
         self.upcast::<GlobalScope>()
             .track_message_port(&inside_port, Some(port_impl));

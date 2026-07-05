@@ -465,9 +465,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // Step 8. Return gamepads.
     }
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
-    fn Permissions(&self) -> DomRoot<Permissions> {
+    fn Permissions(&self, cx: &mut JSContext) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| Permissions::new(cx, &self.global()))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
