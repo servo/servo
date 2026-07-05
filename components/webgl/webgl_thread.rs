@@ -598,10 +598,9 @@ impl WebGLThread {
             .create_attached_swap_chain(context_id, &*device, &mut ctx, surface_access)
             .map_err(|err| format!("Failed to create swap chain: {:?}", err))?;
 
-        let swap_chain = self
-            .webrender_swap_chains
-            .get(context_id)
-            .expect("Failed to get the swap chain");
+        let Some(swap_chain) = self.webrender_swap_chains.get(context_id) else {
+            return Err("Failed to get the swap chain".into());
+        };
 
         debug!(
             "Created webgl context {:?}/{:?}",
@@ -623,6 +622,8 @@ impl WebGLThread {
         let limits = GLLimits::detect(&gl, webgl_version);
 
         let size = clamp_viewport(&gl, requested_size);
+        debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
+
         if safe_size != size {
             debug!("Resizing swap chain from {:?} to {:?}", safe_size, size);
             swap_chain
@@ -655,11 +656,12 @@ impl WebGLThread {
         }
 
         let default_vao = if let Some(vao) = WebGLImpl::create_vertex_array(&gl) {
-            WebGLImpl::bind_vertex_array(&gl, Some(vao.glow()));
+            unsafe { gl.bind_vertex_array(Some(vao.glow())) }
             Some(vao.glow())
         } else {
             None
         };
+        debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
 
         let state = GLState {
             _gl_version: gl_version,
@@ -703,15 +705,14 @@ impl WebGLThread {
         context_id: WebGLContextId,
         requested_size: Size2D<u32>,
     ) -> Result<(), String> {
-        self.make_current_if_needed(context_id)
-            .expect("Missing WebGL context!");
+        self.make_current_if_needed(context_id);
 
-        let data = self
-            .contexts
-            .get_mut(&context_id)
-            .expect("Missing WebGL context!");
+        let Some(data) = self.contexts.get_mut(&context_id) else {
+            return Err("Missing WebGL context!".into());
+        };
 
         let size = clamp_viewport(&data.gl, requested_size);
+        debug_assert_eq!(unsafe { data.gl.get_error() }, gl::NO_ERROR);
 
         // Check to see if any of the current framebuffer bindings are the surface we're about to
         // throw out. If so, we'll have to reset them after destroying the surface.
@@ -1873,11 +1874,11 @@ impl WebGLImpl {
                 let _ = chan.send(id);
             },
             WebGLCommand::DeleteVertexArray(id) => {
-                Self::delete_vertex_array(gl, id);
+                unsafe { gl.delete_vertex_array(id.glow()) };
             },
             WebGLCommand::BindVertexArray(id) => {
                 let id = id.map(WebGLVertexArrayId::glow).or(state.default_vao);
-                Self::bind_vertex_array(gl, id);
+                unsafe { gl.bind_vertex_array(id) }
             },
             WebGLCommand::GetParameterBool(param, ref sender) => {
                 let value = match param {
@@ -2772,16 +2773,6 @@ impl WebGLImpl {
         vao
     }
 
-    fn bind_vertex_array(gl: &Gl, vao: Option<NativeVertexArray>) {
-        unsafe { gl.bind_vertex_array(vao) }
-        debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
-    }
-
-    fn delete_vertex_array(gl: &Gl, vao: WebGLVertexArrayId) {
-        unsafe { gl.delete_vertex_array(vao.glow()) };
-        debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
-    }
-
     #[inline]
     fn bind_framebuffer(
         gl: &Gl,
@@ -3209,7 +3200,6 @@ fn clamp_viewport(gl: &Gl, size: Size2D<u32>) -> Size2D<u32> {
     unsafe {
         gl.get_parameter_i32_slice(gl::MAX_VIEWPORT_DIMS, &mut max_viewport);
         gl.get_parameter_i32_slice(gl::MAX_RENDERBUFFER_SIZE, &mut max_renderbuffer);
-        debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
     }
     Size2D::new(
         size.width
