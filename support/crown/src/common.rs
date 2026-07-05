@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use rustc_hir::def::DefKind;
-use rustc_hir::def_id::{CrateNum, DefId};
+use rustc_hir::def_id::{CrateNum, DefId, LOCAL_CRATE};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_infer::traits::{EvaluationResult, Obligation, ObligationCause};
 use rustc_lint::LateContext;
@@ -82,6 +82,22 @@ pub fn trait_in_crate<'tcx>(
         .iter()
         .find(|id| tcx.opt_item_name(**id) == Some(trait_sym))
         .copied()
+}
+
+fn find_jstraceable<'tcx>(cx: &LateContext<'tcx>) -> Option<DefId> {
+    // mozjs_sys::trace::Traceable
+    if let Some(mozjs) = find_first_crate(&cx.tcx, Symbol::intern("mozjs_sys")) {
+        return trait_in_crate(&cx.tcx, mozjs, Symbol::intern("Traceable"));
+    }
+    // when running tests
+    trait_in_crate(&cx.tcx, LOCAL_CRATE, Symbol::intern("JSTraceable"))
+}
+
+pub fn is_jstraceable<'tcx>(cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
+    if let Some(trait_id) = find_jstraceable(cx) {
+        return implements_trait(cx, ty, trait_id, &[]);
+    }
+    false
 }
 
 /*
