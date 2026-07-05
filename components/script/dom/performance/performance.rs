@@ -27,7 +27,7 @@ use super::performancenavigationtiming::PerformanceNavigationTiming;
 use super::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::PERFORMANCE_TIMING_ATTRIBUTES;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
-    DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
+    DOMHighResTimeStamp, PerformanceMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::StringOrDouble;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -35,7 +35,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -47,14 +47,17 @@ use crate::script_runtime::CanGc;
 /// Implementation of a list of PerformanceEntry items shared by the
 /// Performance and PerformanceObserverEntryList interfaces implementations.
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct PerformanceEntryList {
     /// <https://w3c.github.io/performance-timeline/#dfn-performance-entry-buffer>
-    entries: DOMPerformanceEntryList,
+    entries: Vec<Dom<PerformanceEntry>>,
 }
 
 impl PerformanceEntryList {
-    pub(crate) fn new(entries: DOMPerformanceEntryList) -> Self {
-        PerformanceEntryList { entries }
+    pub(crate) fn new(entries: Vec<DomRoot<PerformanceEntry>>) -> Self {
+        PerformanceEntryList {
+            entries: entries.into_iter().map(|entry| entry.as_traced()).collect(),
+        }
     }
 
     /// <https://www.w3.org/TR/performance-timeline/#dfn-filter-buffer-map-by-name-and-type>
@@ -72,7 +75,7 @@ impl PerformanceEntryList {
                         .as_ref()
                         .is_none_or(|type_| e.entry_type() == *type_)
             })
-            .cloned()
+            .map(|entry| entry.as_rooted())
             .collect::<Vec<DomRoot<PerformanceEntry>>>();
 
         // Step 6. Sort results's entries in chronological order with respect to startTime
@@ -110,8 +113,8 @@ impl PerformanceEntryList {
 }
 
 impl IntoIterator for PerformanceEntryList {
-    type Item = DomRoot<PerformanceEntry>;
-    type IntoIter = ::std::vec::IntoIter<DomRoot<PerformanceEntry>>;
+    type Item = Dom<PerformanceEntry>;
+    type IntoIter = ::std::vec::IntoIter<Dom<PerformanceEntry>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.entries.into_iter()
@@ -143,7 +146,7 @@ pub(crate) struct Performance {
     /// <https://w3c.github.io/resource-timing/#performance-resource-timing-buffer-full-event-pending-flag>
     resource_timing_buffer_pending_full_event: Cell<bool>,
     /// <https://w3c.github.io/resource-timing/#performance-resource-timing-secondary-buffer>
-    resource_timing_secondary_entries: DomRefCell<VecDeque<DomRoot<PerformanceEntry>>>,
+    resource_timing_secondary_entries: DomRefCell<VecDeque<Dom<PerformanceEntry>>>,
 }
 
 impl Performance {
@@ -229,11 +232,10 @@ impl Performance {
     ) {
         if buffered {
             let buffer = self.buffer.borrow();
-            let mut new_entries = buffer.get_entries_by_name_and_type(None, Some(entry_type));
+            let new_entries = buffer.get_entries_by_name_and_type(None, Some(entry_type));
             if !new_entries.is_empty() {
-                let mut obs_entries = observer.entries();
-                obs_entries.append(&mut new_entries);
-                observer.set_entries(obs_entries);
+                let new_entries = new_entries.into_iter().map(|entry| entry.as_traced());
+                observer.entries_mut().extend(new_entries);
             }
 
             if !self.pending_notification_observers_task.get() {
@@ -306,10 +308,7 @@ impl Performance {
 
         // Step 4.
         // add the new entry to the buffer.
-        self.buffer
-            .borrow_mut()
-            .entries
-            .push(DomRoot::from_ref(entry));
+        self.buffer.borrow_mut().entries.push(Dom::from_ref(entry));
 
         let entry_last_index = self.buffer.borrow_mut().entries.len() - 1;
 
@@ -374,16 +373,13 @@ impl Performance {
         // Step 1. While resource timing secondary buffer is not empty and can add resource timing entry returns true, run the following substeps:
         while self.can_add_resource_timing_entry() {
             // Step 1.1. Let entry be the oldest PerformanceResourceTiming in resource timing secondary buffer.
-            let entry = self
+            if let Some(ref entry) = self
                 .resource_timing_secondary_entries
                 .borrow_mut()
-                .pop_front();
-            if let Some(ref entry) = entry {
+                .pop_front()
+            {
                 // Step 1.2. Add entry to the end of performance entry buffer.
-                self.buffer
-                    .borrow_mut()
-                    .entries
-                    .push(DomRoot::from_ref(entry));
+                self.buffer.borrow_mut().entries.push(Dom::from_ref(entry));
                 // Step 1.3. Increment resource timing buffer current size by 1.
                 self.resource_timing_buffer_current_size
                     .set(self.resource_timing_buffer_current_size.get() + 1);
@@ -444,7 +440,7 @@ impl Performance {
         // Step 3. Add new entry to the resource timing secondary buffer.
         self.resource_timing_secondary_entries
             .borrow_mut()
-            .push_back(DomRoot::from_ref(entry));
+            .push_back(Dom::from_ref(entry));
 
         // Step 4. Increase resource timing secondary buffer current size by 1.
         //   This is tracked automatically via `.len()`.
@@ -453,7 +449,7 @@ impl Performance {
 
     pub(crate) fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
         if let Some(e) = self.buffer.borrow_mut().entries.get_mut(index) {
-            *e = DomRoot::from_ref(entry);
+            *e = Dom::from_ref(entry);
         }
     }
 

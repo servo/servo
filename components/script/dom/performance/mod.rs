@@ -11,7 +11,6 @@ pub(crate) mod performancemark;
 pub(crate) mod performancemeasure;
 pub(crate) mod performancenavigation;
 pub(crate) mod performancenavigationtiming;
-#[expect(dead_code)]
 pub(crate) mod performanceobserver;
 pub(crate) mod performanceobserverentrylist;
 pub(crate) mod performancepainttiming;
