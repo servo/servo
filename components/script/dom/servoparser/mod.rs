@@ -182,10 +182,6 @@ impl ElementAttribute {
 }
 
 impl ServoParser {
-    pub(crate) fn parser_is_not_active(&self) -> bool {
-        self.can_write()
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#parse-html-from-a-string>
     pub(crate) fn parse_html_document(
         cx: &mut JSContext,
