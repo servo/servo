@@ -91,7 +91,6 @@ pub(crate) fn expand_dom_object(
         impl<T: ?Sized> NoDomObjectInDomObject<()> for T {}
 
         // Used for the specialized impl when DomObject is implemented.
-        #[expect(dead_code)]
         struct Invalid;
         // forbids DomObject
         impl<T> NoDomObjectInDomObject<Invalid> for T where T: ?Sized + crate::DomObject {}
