@@ -172,7 +172,7 @@ jobs:
         run: |
           sudo apt update
           echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
-          sudo apt install -qy tshark
+          sudo apt install -qy tshark shellcheck
           ./mach bootstrap --yes --skip-lints --skip-nextest
 
       # Always install crown, even on self-hosted runners, because it is tightly
