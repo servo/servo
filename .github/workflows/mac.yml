@@ -31,9 +31,9 @@ on:
         default: false
         type: boolean
       force-github-hosted-runner:
-          required: false
-          type: boolean
-          default: false
+        required: false
+        type: boolean
+        default: false
       bencher:
         required: false
         default: false
@@ -65,9 +65,9 @@ on:
         default: false
         type: boolean
       force-github-hosted-runner:
-          required: false
-          type: boolean
-          default: false
+        required: false
+        type: boolean
+        default: false
       bencher:
         required: false
         default: false
@@ -144,7 +144,7 @@ jobs:
         name: Bootstrap
         run: |
           ./mach bootstrap --yes --skip-lints --skip-nextest
-          brew install gnu-tar
+          brew install gnu-tar shellcheck
       - name: Build (${{ inputs.profile }})
         env:
           RUSTFLAGS: ${{ inputs.profile == 'checked-release' && '-D warnings' || '' }}
@@ -230,7 +230,7 @@ jobs:
     if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
-      target: 'macos'
+      target: "macos"
       profile: ${{ inputs.profile }}
       compressed-file-path: ${{ inputs.profile }}-binary-macos/target.tar.gz
       binary-path: target/${{ inputs.profile }}/servoshell
