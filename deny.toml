@@ -205,9 +205,3 @@ skip = [
     # of ml-kem.
     "sha3",
 ]
-
-# github.com organizations to allow git sources for
-[sources.allow-org]
-github = [
-    "servo",
-]
