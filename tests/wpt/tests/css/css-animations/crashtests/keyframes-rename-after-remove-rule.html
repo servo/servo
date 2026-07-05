@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Renaming @keyframes rule after removeRule should not crash</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=62384">
+<style>
+@keyframes foo {
+  0% { foo: bar; }
+}
+</style>
+<script>
+  window.addEventListener('load', function() {
+    var e = document.styleSheets[0].cssRules[0];
+    e.cssRules.item(0).parentStyleSheet.deleteRule(0);
+    e.name = 'bar';
+  });
+</script>

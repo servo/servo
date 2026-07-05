@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>The compatibility mouse event should </title>
+<style>
+div.target {
+  width: 64px;
+  height: 64px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+function waitForTick() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      })
+    });
+  });
+}
+
+function stringifyEvents(events) {
+  function stringifyEvent(event) {
+    return `{ type: "${event.type}", target: ${
+      event.target.id ? `#${event.target.id}` : `${event.target.localName}.${event.target.getAttribute("class")}`
+    } }`;
+  }
+  let result = "[";
+  for (const e of events) {
+    if (result != "[") {
+      result += ",";
+    }
+    result += stringifyEvent(e);
+  }
+  return result + "]";
+}
+
+addEventListener("load", () => {
+  const initialContainer = document.getElementById("placeholder");
+  const container = document.getElementById("container");
+  promise_test(async t => {
+    await new test_driver.Actions()
+      .addPointer("mousePointer1", "mouse")
+      .pointerMove(0, 0, {origin: initialContainer})
+      .send();
+    const target = document.querySelector("div.target");
+    let events = [];
+    function onEvent(event) {
+      events.push(event);
+      test(() => {
+        assert_equals(
+          document.querySelector(".target:hover"),
+          event.type == "mouseout" ? null : target
+        );
+      }, `${t.name}: ${event.type}: The tapped element should ${
+        event.type == "mouseout" ? "not " : ""
+      } have :hover state`);
+    }
+    for (const type of ["mousedown", "mousemove", "mouseup", "mouseover", "mouseout", "mouseleave", "click"]) {
+      container.addEventListener(type, onEvent, {capture: true});
+      t.add_cleanup(() => {
+        container.removeEventListener(type, onEvent, {capture: true});
+      });
+    }
+    await new test_driver.Actions()
+        .addPointer("touchPointer1", "touch")
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerUp()
+        .send();
+    test(() => {
+      assert_equals(
+        stringifyEvents(events),
+        stringifyEvents([
+          {type: "mouseover", target: target},
+          {type: "mousemove", target: target},
+          {type: "mousedown", target: target},
+          {type: "mouseup",   target: target},
+          {type: "click",     target: target},
+          // Although the mouse event is caused by a touch, "mouseup" shouldn't
+          // be fired and :hover state should be preserved for the backward
+          // compatibility.
+          // {type: "mouseout",  target: target},
+        ]));
+    }, `${t.name}: The compatibility mouse events should be fired`);
+    await waitForTick();
+    assert_equals(
+      document.querySelector(".target:hover"),
+      target,
+      `${t.name}: The target should keep having :hover state after "click"`
+    );
+  }, "The compatibility mouse events should set :hover");
+
+  promise_test(async t => {
+    await new test_driver.Actions()
+      .addPointer("mousePointer2", "mouse")
+      .pointerMove(0, 0, {origin: initialContainer})
+      .send();
+    const target = document.querySelector("div.target");
+    let events = [];
+    function onEvent(event) {
+      events.push(event);
+      test(() => {
+        assert_equals(
+          document.querySelector(".target:hover"),
+          event.type == "mouseout" ? null : target
+        );
+      }, `${t.name}: ${event.type}: The tapped element should ${
+        event.type == "mouseout" ? "not " : ""
+      } have :hover state`);
+    }
+    for (const type of ["mousedown", "mousemove", "mouseup", "mouseover", "mouseout", "mouseleave", "click"]) {
+      container.addEventListener(type, onEvent, {capture: true});
+      t.add_cleanup(() => {
+        container.removeEventListener(type, onEvent, {capture: true});
+      });
+    }
+    target.addEventListener("click", () => {
+      const newTarget = document.createElement("div");
+      newTarget.setAttribute("class", "target");
+      target.remove();
+      container.appendChild(newTarget);
+    }, {once: true});
+    await new test_driver.Actions()
+        .addPointer("touchPointer2", "touch")
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerUp()
+        .send();
+    test(() => {
+      assert_equals(
+        stringifyEvents(events),
+        stringifyEvents([
+          {type: "mouseover", target: target},
+          {type: "mousemove", target: target},
+          {type: "mousedown", target: target},
+          {type: "mouseup",   target: target},
+          {type: "click",     target: target},
+        ]));
+    }, `${t.name}: The compatibility mouse events should be fired`);
+    await waitForTick();
+    assert_equals(
+      document.querySelector(".target:hover"),
+      null, // This is important not to highlight new target without a new touch,
+            // e.g., when user taps a menu item causes replacing all menuitems to
+            // the sum-items. Then, any new sub-item shouldn't be highlighted by
+            // :hover state.
+      `${t.name}: The target should not have :hover state after "click"`
+    );
+    // If the container should not have :hover state anymore, I think `mouseup`
+    // event caused by a touch should cause `mouseout` and/or `mouseleave`
+    // after dispatching the `click` because the above don't expected
+    // `mouseleave` on the container.
+    assert_equals(
+      document.querySelector("#container:hover"),
+      container,
+      `${t.name}: The target parent should keep having :hover state even after the target is removed`
+    );
+  }, "The compatibility mouse events should set :hover, but shouldn't be preserved after the target is replaced");
+}, {once: true});
+</script>
+</head>
+<body>
+  <div id="placeholder" style="height: 64px"></div>
+  <div id="container">
+    <div class="target"></div>
+  </div>
+</body>
+</html>

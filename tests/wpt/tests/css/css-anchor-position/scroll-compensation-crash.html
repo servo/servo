@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+<title>WebKit crash in anchor scroll compensation code</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+
+<style>
+  #scroller {
+    overflow: scroll;
+    width: 500px;
+    height: 500px;
+  }
+
+  #anchor {
+    width: 50px;
+    height: 50px;
+    anchor-name: --anchor;
+  }
+
+  .anchored {
+    position: absolute;
+    /* Has to have a default anchor to trigger scroll compensation */
+    position-anchor: --anchor;
+    left: anchor(left);
+    width: 50px;
+    height: 50px;
+  }
+</style>
+
+<div id="scroller">
+  <div id="anchor"></div>
+</div>
+
+<div class="anchored"></div>
+<div class="anchored"></div>
+<div class="anchored"></div>
+<div class="anchored"></div>
+<div class="anchored"></div>
+
+<script>
+  scroller.scrollTop = 200;
+  // Force layout.
+  scroller.offsetTop;
+
+  scroller.remove();
+  // Force layout.
+  document.body.offsetTop;
+</script>
