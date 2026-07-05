@@ -28,7 +28,6 @@ use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
@@ -89,13 +88,18 @@ impl GlobalScope {
         line_number: u32,
         external: bool,
     ) -> ClassicScript {
-        let mut script_source = ModuleSource {
-            source: Rc::new(DOMString::from(source)),
-            unminified_dir: self.unminified_js_dir(),
-            external,
-            url: url.clone(),
+        let mut source = if self.unminified_js_dir().is_some() {
+            let mut script_source = ModuleSource {
+                source,
+                unminified_dir: self.unminified_js_dir(),
+                external,
+                url: url.clone(),
+            };
+            unminify_js(&mut script_source);
+            transform_str_to_source_text(&script_source.source)
+        } else {
+            transform_str_to_source_text(&source)
         };
-        unminify_js(&mut script_source);
 
         // TODO Step 1. If mutedErrors is true, then set baseURL to about:blank.
 
@@ -113,7 +117,6 @@ impl GlobalScope {
             true, // noScriptRval
             line_number,
         );
-        let mut source = transform_str_to_source_text(&script_source.source.str());
 
         // Step 10. Let result be ParseScript(source, settings's realm, script).
         rooted!(&in(cx) let compiled_script = unsafe { Compile1(cx, options.ptr, &mut source) });
