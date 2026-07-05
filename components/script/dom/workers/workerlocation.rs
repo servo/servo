@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
@@ -11,7 +12,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#worker-locations
 #[dom_struct]
@@ -30,11 +30,11 @@ impl WorkerLocation {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &WorkerGlobalScope,
         url: ServoUrl,
-        can_gc: CanGc,
     ) -> DomRoot<WorkerLocation> {
-        reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)), global, can_gc)
+        reflect_dom_object_with_cx(Box::new(WorkerLocation::new_inherited(url)), global, cx)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin

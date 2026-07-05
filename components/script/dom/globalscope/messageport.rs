@@ -14,7 +14,7 @@ use js::rust::wrappers2::JS_NewObject;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_cx};
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::{MessagePortImpl, PortMessageTask};
 
@@ -33,7 +33,6 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 /// The MessagePort used in the DOM.
@@ -64,12 +63,12 @@ impl MessagePort {
 
     /// Create a new port for an incoming transfer-received one.
     pub(crate) fn new_transferred(
+        cx: &mut JSContext,
         owner: &GlobalScope,
         transferred_port: MessagePortId,
         entangled_port: Option<MessagePortId>,
-        can_gc: CanGc,
     ) -> DomRoot<MessagePort> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(MessagePort {
                 message_port_id: transferred_port,
                 eventtarget: EventTarget::new_inherited(),
@@ -77,7 +76,7 @@ impl MessagePort {
                 entangled_port: RefCell::new(entangled_port),
             }),
             owner,
-            can_gc,
+            cx,
         )
     }
 
@@ -271,12 +270,8 @@ impl Transferable for MessagePort {
         id: MessagePortId,
         port_impl: MessagePortImpl,
     ) -> Result<DomRoot<Self>, ()> {
-        let transferred_port = MessagePort::new_transferred(
-            owner,
-            id,
-            port_impl.entangled_port_id(),
-            CanGc::from_cx(cx),
-        );
+        let transferred_port =
+            MessagePort::new_transferred(cx, owner, id, port_impl.entangled_port_id());
         owner.track_message_port(&transferred_port, Some(port_impl));
         Ok(transferred_port)
     }

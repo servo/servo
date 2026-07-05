@@ -12,7 +12,7 @@ use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel;
 use servo_config::pref;
 
@@ -33,7 +33,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 pub(crate) trait PermissionAlgorithm {
     type Descriptor;
@@ -77,8 +76,8 @@ impl Permissions {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Permissions> {
-        reflect_dom_object(Box::new(Permissions::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Permissions> {
+        reflect_dom_object_with_cx(Box::new(Permissions::new_inherited()), global, cx)
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-query
@@ -107,7 +106,7 @@ impl Permissions {
         };
 
         // (Query, Request) Step 5.
-        let status = PermissionStatus::new(&self.global(), &root_desc, CanGc::from_cx(cx));
+        let status = PermissionStatus::new(cx, &self.global(), &root_desc);
 
         // (Query, Request, Revoke) Step 2.
         match root_desc.name {
