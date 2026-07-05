@@ -5,14 +5,13 @@
 use rustc_ast::token::TokenKind;
 use rustc_ast::tokenstream::TokenTree;
 use rustc_error_messages::MultiSpan;
-use rustc_hir::def_id::{DefId, LOCAL_CRATE};
 use rustc_hir::{self as hir};
 use rustc_lint::{LateContext, LateLintPass, Lint, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
 use rustc_session::declare_tool_lint;
 use rustc_span::symbol::Symbol;
 
-use crate::common::{find_first_crate, implements_trait, trait_in_crate};
+use crate::common::is_jstraceable;
 use crate::symbols;
 
 declare_tool_lint! {
@@ -94,22 +93,6 @@ fn get_must_not_have_traceable(sym: &Symbols, attrs: &[hir::Attribute]) -> Optio
                 panic!("must_not_have_traceable does not support key-value arguments")
             },
         })
-}
-
-fn find_jstraceable<'tcx>(cx: &LateContext<'tcx>) -> Option<DefId> {
-    // mozjs_sys::trace::Traceable
-    if let Some(mozjs) = find_first_crate(&cx.tcx, Symbol::intern("mozjs_sys")) {
-        return trait_in_crate(&cx.tcx, mozjs, Symbol::intern("Traceable"));
-    }
-    // when running tests
-    trait_in_crate(&cx.tcx, LOCAL_CRATE, Symbol::intern("JSTraceable"))
-}
-
-fn is_jstraceable<'tcx>(cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
-    if let Some(trait_id) = find_jstraceable(cx) {
-        return implements_trait(cx, ty, trait_id, &[]);
-    }
-    panic!("JSTraceable not found");
 }
 
 /// Gives warrning or errors for incorect usage of NoTrace like `NoTrace<impl Traceable>`.
