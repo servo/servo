@@ -2,20 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use rustc_hir::def_id::DefId;
 use rustc_hir::{Item, ItemKind};
 use rustc_lint::{LateContext, LateLintPass, Lint, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
 use rustc_session::declare_tool_lint;
 use rustc_span::symbol::Symbol;
 
-use crate::common::{find_first_crate, implements_trait, match_def_path, trait_in_crate};
+use crate::common::{is_jstraceable, match_def_path};
 use crate::symbols;
 
 declare_tool_lint! {
     pub crown::DOMROOT_INSIDE_DOM_STRUCT,
     Warn,
-    "Warn about usage of `DomRoot` inside dom_struct"
+    "Warn about usage of `Root` inside Traceable types"
 }
 
 pub fn register(lint_store: &mut LintStore) {
@@ -44,20 +43,6 @@ impl LintPass for NoDomRootPass {
     }
 }
 
-fn find_domobject<'tcx>(cx: &LateContext<'tcx>) -> Option<DefId> {
-    if let Some(script_crate) = find_first_crate(&cx.tcx, Symbol::intern("script_bindings")) {
-        return trait_in_crate(&cx.tcx, script_crate, Symbol::intern("DomObject"));
-    }
-    None
-}
-
-fn implements_domobject<'tcx>(cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
-    if let Some(trait_id) = find_domobject(cx) {
-        return implements_trait(cx, ty, trait_id, &[]);
-    }
-    false
-}
-
 fn is_dom_root_ty<'tcx>(sym: &'_ Symbols, cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
     let mut walker = ty.walk();
     while let Some(generic_arg) = walker.next() {
@@ -82,8 +67,8 @@ impl<'tcx> LateLintPass<'tcx> for NoDomRootPass {
         if let ItemKind::Struct(_, _, variant_data) = &item.kind {
             let struct_type = cx.tcx.type_of(item.owner_id.def_id);
 
-            // Check if this struct implements `DomObject` (it's enough?)
-            if !implements_domobject(cx, struct_type.skip_binder()) {
+            // Filter out types that are not visible to GC
+            if !is_jstraceable(cx, struct_type.skip_binder()) {
                 return;
             }
 
@@ -92,7 +77,9 @@ impl<'tcx> LateLintPass<'tcx> for NoDomRootPass {
                 let field_type = cx.tcx.type_of(field.def_id);
                 if is_dom_root_ty(&self.symbols, cx, field_type.skip_binder()) {
                     cx.lint(DOMROOT_INSIDE_DOM_STRUCT, |lint| {
-                        lint.primary_message("DomRoot is not recommended on dom_struct");
+                        lint.primary_message(
+                            "Storing a rooted type can lead to circular references",
+                        );
                         lint.span(field.span);
                     })
                 }
