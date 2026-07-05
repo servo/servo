@@ -112,15 +112,6 @@ impl PerformanceEntryList {
     }
 }
 
-impl IntoIterator for PerformanceEntryList {
-    type Item = Dom<PerformanceEntry>;
-    type IntoIter = ::std::vec::IntoIter<Dom<PerformanceEntry>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.entries.into_iter()
-    }
-}
-
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PerformanceObserver {
