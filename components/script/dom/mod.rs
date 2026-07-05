@@ -314,7 +314,6 @@ pub(crate) mod selection;
 pub(crate) mod serviceworker;
 pub(crate) use self::serviceworker::*;
 pub(crate) mod servointernals;
-#[expect(dead_code)]
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
 pub(crate) mod storage;
