@@ -221,3 +221,8 @@ skip = [
 github = [
     "servo",
 ]
+
+# On our releases we switch to crates.io dependencies,
+# so explicitly allow unused allow-org entries to avoid errors.
+[sources]
+unused-allowed-org = "allow"
