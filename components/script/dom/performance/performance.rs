@@ -122,8 +122,9 @@ impl IntoIterator for PerformanceEntryList {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PerformanceObserver {
-    observer: DomRoot<DOMPerformanceObserver>,
+    observer: Dom<DOMPerformanceObserver>,
     entry_types: Vec<EntryType>,
 }
 
@@ -218,7 +219,7 @@ impl Performance {
             Some(p) => observers[p].entry_types = entry_types,
             // Otherwise, we create and insert the new PerformanceObserver.
             None => observers.push(PerformanceObserver {
-                observer: DomRoot::from_ref(observer),
+                observer: Dom::from_ref(observer),
                 entry_types,
             }),
         };
@@ -262,7 +263,7 @@ impl Performance {
             },
             // Otherwise, we create and insert the new PerformanceObserver.
             None => observers.push(PerformanceObserver {
-                observer: DomRoot::from_ref(observer),
+                observer: Dom::from_ref(observer),
                 entry_types: vec![entry_type],
             }),
         };
