@@ -319,6 +319,33 @@ impl WebGLThread {
         }
     }
 
+    /// Enable GL_POINT_SPRITE and GL_PROGRAM_POINT_SIZE on desktop OpenGL.
+    ///
+    /// FIXME(nox): Should probably be done by surfman.
+    /// FIXME(sagudev): Do we even need to do this?
+    fn ensure_point_sprite_and_program_point_size_enabled(gl_context_data: &GLContextData) {
+        // Points sprites are enabled by default in OpenGL 3.2 core
+        // and in GLES.
+        if gl_context_data.gl.version().is_embedded {
+            return;
+        }
+
+        // Rather than doing version detection, it does not hurt to enable GL_POINT_SPRITE and
+        // PROGRAM_POINT_SIZE always.
+        const GL_POINT_SPRITE: u32 = 0x8861;
+        unsafe { gl_context_data.gl.enable(GL_POINT_SPRITE) };
+        let error = unsafe { gl_context_data.gl.get_error() };
+        if error != 0 {
+            warn!("Error enabling GL point sprites: {error}");
+        }
+
+        unsafe { gl_context_data.gl.enable(gl::PROGRAM_POINT_SIZE) };
+        let error = unsafe { gl_context_data.gl.get_error() };
+        if error != 0 {
+            warn!("Error enabling GL program point size: {error}");
+        }
+    }
+
     /// Handles a generic WebGLMsg message
     fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
         trace!("processing {:?}", msg);
@@ -331,35 +358,15 @@ impl WebGLThread {
                         let data = self
                             .make_current_if_needed(id)
                             .expect("WebGLContext not found");
+
+                        Self::ensure_point_sprite_and_program_point_size_enabled(data);
+
                         let glsl_version = Self::get_glsl_version(&data.gl);
                         let api_type = if data.gl.version().is_embedded {
                             GlType::Gles
                         } else {
                             GlType::Gl
                         };
-
-                        // FIXME(nox): Should probably be done by surfman.
-                        if api_type != GlType::Gles {
-                            // Points sprites are enabled by default in OpenGL 3.2 core
-                            // and in GLES. Rather than doing version detection, it does
-                            // not hurt to enable them anyways.
-
-                            unsafe {
-                                // XXX: Do we even need to this?
-                                const GL_POINT_SPRITE: u32 = 0x8861;
-                                data.gl.enable(GL_POINT_SPRITE);
-                                let err = data.gl.get_error();
-                                if err != 0 {
-                                    warn!("Error enabling GL point sprites: {}", err);
-                                }
-
-                                data.gl.enable(gl::PROGRAM_POINT_SIZE);
-                                let err = data.gl.get_error();
-                                if err != 0 {
-                                    warn!("Error enabling GL program point size: {}", err);
-                                }
-                            }
-                        }
 
                         WebGLCreateContextResult {
                             sender: WebGLMsgSender::new(id, webgl_chan.clone()),
