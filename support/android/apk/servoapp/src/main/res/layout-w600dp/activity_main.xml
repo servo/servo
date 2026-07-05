@@ -17,34 +17,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <LinearLayout
+            <androidx.compose.ui.platform.ComposeView
                 android:id="@+id/toolbarButtons"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:orientation="horizontal"
                 app:layout_constraintStart_toStartOf="parent"
-                >
-
-                <androidx.compose.ui.platform.ComposeView
-                    android:id="@+id/history_back_menu_item"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    />
-
-                <androidx.compose.ui.platform.ComposeView
-                    android:id="@+id/history_forward_menu_item"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    />
-
-                <androidx.compose.ui.platform.ComposeView
-                    android:id="@+id/refresh_menu_item"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    />
-
-
-            </LinearLayout>
+                />
 
             <EditText
                 android:id="@+id/urlfield"
