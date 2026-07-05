@@ -244,6 +244,40 @@ def toBindingModuleFileFromDescriptor(desc: Descriptor) -> str:
         return toBindingModuleFile(desc.name)
 
 
+def getSlotIndex(member: IDLInterfaceMember, descriptor: Descriptor) -> int:
+    assert member.slotIndices is not None  # pyrefly: ignore  # missing-attribute
+    slotIndex = member.slotIndices[descriptor.interface.identifier.name]  # pyrefly: ignore  # missing-attribute
+    return slotIndex[0] if isinstance(slotIndex, tuple) else slotIndex
+
+
+def instanceReservedSlotBase(descriptor: Descriptor) -> str:
+    if descriptor.isGlobal():
+        return "JSCLASS_GLOBAL_SLOT_COUNT + 1"
+    if descriptor.weakReferenceable:
+        return "2"
+    return "1"
+
+
+def memberReservedSlot(member: IDLInterfaceMember, descriptor: Descriptor) -> str:
+    base = instanceReservedSlotBase(descriptor)
+    offset = getSlotIndex(member, descriptor)
+    if offset == 0:
+        return base
+    return f"{base} + {offset}"
+
+
+def getReservedSlotFunc(descriptor: Descriptor) -> str:
+    return "GetProxyReservedSlot" if descriptor.proxy else "JS_GetReservedSlot"
+
+
+def setReservedSlotFunc(descriptor: Descriptor) -> str:
+    return "SetProxyReservedSlot" if descriptor.proxy else "JS_SetReservedSlot"
+
+
+def python_bool_to_rust(b: bool) -> str:
+    return "true" if b else "false"
+
+
 def stripTrailingWhitespace(text: str) -> str:
     tail = '\n' if text.endswith('\n') else ''
     lines = text.splitlines()
@@ -254,13 +288,12 @@ def stripTrailingWhitespace(text: str) -> str:
 
 
 def innerContainerType(type: IDLType) -> IDLType:
-    assert type.isSequence() or type.isRecord()
-    assert isinstance(type, (IDLSequenceType, IDLRecordType, IDLNullableType))
-    return type.inner.inner if type.nullable() else type.inner
+    assert type.isSequence() or type.isRecord() or type.isObservableArray()
+    return type.inner.inner if type.nullable() else type.inner  # pyrefly: ignore  # missing-attribute
 
 
 def wrapInNativeContainerType(type: IDLType, inner: CGThing) -> CGThing:
-    if type.isSequence():
+    if type.isSequence() or type.isObservableArray():
         return CGWrapper(inner, pre="Vec<", post=">")
     elif type.isRecord():
         if type.nullable():
@@ -899,7 +932,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
     assert not (isEnforceRange and isClamp)  # These are mutually exclusive
 
-    if type.isSequence() or type.isRecord():
+    if type.isSequence() or type.isRecord() or type.isObservableArray():
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
                                                 isMember="Sequence",
@@ -1535,9 +1568,8 @@ def typeNeedsCx(type: IDLType | None, retVal: bool = False) -> Context:
     if type.nullable():
         assert isinstance(type, IDLNullableType)
         type = type.inner
-    if type.isSequence():
-        assert isinstance(type, IDLSequenceType)
-        type = type.inner
+    if type.isSequence() or type.isObservableArray():
+        type = type.inner  # pyrefly: ignore  # missing-attribute
     if type.isUnion():
         assert isinstance(type, IDLUnionType)
         flatMemberTypes = type.unroll().flatMemberTypes
@@ -1557,9 +1589,8 @@ def returnTypeNeedsOutparam(type: IDLType | None) -> bool:
         type = type.inner
     if type.isObject():
         return True
-    if type.isSequence():
-        assert isinstance(type, IDLSequenceType)
-        return returnTypeNeedsOutparam(type.inner)
+    if type.isSequence() or type.isObservableArray():
+        return returnTypeNeedsOutparam(type.inner)  # pyrefly: ignore  # missing-attribute
     return type.isAny()
 
 
@@ -1568,9 +1599,8 @@ def outparamTypeFromReturnType(type: IDLType, isInnerType: bool = False) -> str:
         typename = "Value"
     elif type.isObject():
         typename = "*mut JSObject"
-    elif type.isSequence():
-        assert isinstance(type, IDLSequenceType)
-        inner_typename = outparamTypeFromReturnType(type.inner, isInnerType=True)
+    elif type.isSequence() or type.isObservableArray():
+        inner_typename = outparamTypeFromReturnType(type.inner, isInnerType=True)  # pyrefly: ignore  # missing-attribute
         return f"&mut RootedVec<Box<Heap<{inner_typename}>>>"
     else:
         raise TypeError(f"Don't know how to handle {type} as an outparam")
@@ -1583,7 +1613,7 @@ def outparamTypeFromReturnType(type: IDLType, isInnerType: bool = False) -> str:
 
 # Returns a conversion behavior suitable for a type
 def getConversionConfigForType(type: IDLType, isEnforceRange: bool, isClamp: bool, treatNullAs: str) -> str:
-    if type.isSequence() or type.isRecord():
+    if type.isSequence() or type.isRecord() or type.isObservableArray():
         return getConversionConfigForType(innerContainerType(type), isEnforceRange, isClamp, treatNullAs)
     if type.isDOMString():
         assert not isEnforceRange and not isClamp
@@ -2442,6 +2472,8 @@ class CGImports(CGWrapper):
             if isinstance(type, IDLType) and type.isSequence():
                 assert isinstance(type, IDLSequenceType)
                 return componentTypes(type.inner)
+            if isinstance(type, IDLType) and type.isObservableArray():
+                return componentTypes(type.inner)  # pyrefly: ignore  # missing-attribute
             return [type]
 
         def isImportable(type: TopLevelType) -> bool:
@@ -2648,6 +2680,10 @@ class CGDOMJSClass(CGThing):
         if not parentName:
             parentName = "Reflector"
 
+        slot_base = instanceReservedSlotBase(self.descriptor)
+        member_slots = self.descriptor.interface.totalMembersInSlots
+        slots = slot_base if member_slots == 0 else f"{slot_base} + {member_slots}"
+
         args = {
             "domClass": DOMClass(self.descriptor),
             "enumerateHook": "None",
@@ -2656,13 +2692,12 @@ class CGDOMJSClass(CGThing):
             "name": str_to_cstr_ptr(self.descriptor.interface.identifier.name),
             "resolveHook": "None",
             "mayResolveHook": "None",
-            "slots": "1",
+            "slots": slots,
             "traceHook": f"{TRACE_HOOK_NAME}::<D>",
         }
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
             args["flags"] = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL | JSCLASS_FOREGROUND_FINALIZE"
-            args["slots"] = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
             if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
                 args["enumerateHook"] = "Some(enumerate_window::<D>)"
                 args["resolveHook"] = "Some(resolve_window::<D>)"
@@ -2672,8 +2707,6 @@ class CGDOMJSClass(CGThing):
                 args["resolveHook"] = "Some(resolve_global)"
                 args["mayResolveHook"] = "Some(may_resolve_global)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
-        elif self.descriptor.weakReferenceable:
-            args["slots"] = "2"
         return f"""
 static CLASS_OPS: ThreadUnsafeOnceLock<JSClassOps> = ThreadUnsafeOnceLock::new();
 pub static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
@@ -4355,6 +4388,8 @@ class CGPerSignatureCall(CGThing):
                 cgThings.append(CGIterableMethodGenerator(descriptor,
                                                           idlNode.maplikeOrSetlikeOrIterable,
                                                           idlNode.identifier.name))
+        elif isinstance(idlNode, IDLAttribute) and setter and idlNode.type.isObservableArray():
+            cgThings.append(CGObservableArraySetterGenerator(descriptor, idlNode))
         else:
             hasCEReactions = idlNode.getExtendedAttribute("CEReactions") or False
             is_event_listener = isinstance(idlNode, IDLAttribute) and isEventHandlerCallback(idlNode)
@@ -4708,6 +4743,223 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
         return CGList([safeContext, setupArgs, call])
 
 
+def observableArrayBindingNamespace(attr: IDLAttribute) -> str:
+    return f"ObservableArray{MakeNativeName(attr.identifier.name)}"
+
+
+class CGObservableArrayProxyHandler_callback(CGThing):
+    def __init__(self, descriptor: Descriptor, attr: IDLAttribute, callbackType: str, invalidTypeFatal: bool = False) -> None:
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+        self.attr = attr
+        self.callbackType = callbackType
+        self.invalidTypeFatal = invalidTypeFatal
+
+    def preConversion(self) -> str:
+        return ""
+
+    def preCallback(self) -> str:
+        return ""
+
+    def postCallback(self) -> str:
+        raise NotImplementedError
+
+    def define(self, functionName: str, args: str) -> str:  # pyrefly: ignore  # bad-override
+        exceptionCode = (
+            fill(
+                """
+                debug_assert!(false, "ObservableArray backing list element had the wrong type");
+                return false;
+                """
+            )
+            if self.invalidTypeFatal
+            else None
+        )
+        convertType = instantiateJSToNativeConversionTemplate(
+            getJSToNativeConversionInfo(
+                self.attr.type.inner,  # pyrefly: ignore  # missing-attribute
+                self.descriptor,
+                sourceDescription="Element in ObservableArray backing list",
+                exceptionCode=exceptionCode,
+            ).template,
+            {"val": "value"},
+            getJSToNativeConversionInfo(
+                self.attr.type.inner,  # pyrefly: ignore  # missing-attribute
+                self.descriptor,
+                sourceDescription="Element in ObservableArray backing list",
+                exceptionCode=exceptionCode,
+            ).declType,
+            "decl",
+            needsAutoRoot=type_needs_auto_root(self.attr.type.inner),  # pyrefly: ignore  # missing-attribute
+        ).define()
+        callbackArgs = ["SafeJSContext::from_ptr(cx.raw_cx())", "decl", "index"]
+        traitName = f"{self.descriptor.interface.identifier.name}Methods"
+        nativeType = self.descriptor.concreteType
+        methodName = f"On{self.callbackType}{MakeNativeName(self.attr.identifier.name)}"
+        return fill(
+            """
+            unsafe fn ${functionName}<D: DomTypes>(${args}) -> bool {
+                ${preConversion}
+                ${convertType}
+                ${preCallback}
+                let mut owner = UndefinedValue();
+                GetProxyReservedSlot(proxy.get(), crate::observablearray::OBSERVABLE_ARRAY_OWNER_SLOT, &mut owner);
+                if !owner.is_undefined() {
+                    let interface = &*(owner.to_private() as *const ${nativeType});
+                    if let Err(e) = <${nativeType} as ${traitName}<D>>::${methodName}(interface, ${callbackArgs}) {
+                        let global = D::GlobalScope::from_object(proxy.get());
+                        <D as DomHelpers<D>>::throw_dom_exception(cx, &global, e);
+                        return false;
+                    }
+                }
+                ${postCallback}
+            }
+            """,
+            functionName=functionName,
+            args=args,
+            preConversion=self.preConversion(),
+            convertType=convertType,
+            preCallback=self.preCallback(),
+            nativeType=nativeType,
+            traitName=traitName,
+            methodName=methodName,
+            callbackArgs=", ".join(callbackArgs),
+            postCallback=self.postCallback(),
+        )
+
+
+class CGObservableArrayProxyHandler_OnDeleteItem(CGObservableArrayProxyHandler_callback):
+    def __init__(self, descriptor: Descriptor, attr: IDLAttribute) -> None:
+        CGObservableArrayProxyHandler_callback.__init__(self, descriptor, attr, "Delete", True)
+
+    def postCallback(self) -> str:
+        return "return true;"
+
+
+class CGObservableArrayProxyHandler_SetIndexedValue(CGObservableArrayProxyHandler_callback):
+    def __init__(self, descriptor: Descriptor, attr: IDLAttribute) -> None:
+        CGObservableArrayProxyHandler_callback.__init__(self, descriptor, attr, "Set")
+
+    def preConversion(self) -> str:
+        return dedent(
+            """
+            let mut old_len = 0;
+            if !GetArrayLength(cx, backing_list, &mut old_len) {
+                return false;
+            }
+            if index > old_len {
+                return unsafe { (*result).fail_bad_index() };
+            }
+            """
+        )
+
+    def preCallback(self) -> str:
+        return dedent(
+            """
+            if index < old_len {
+                rooted!(&in(cx) let mut old_value = UndefinedValue());
+                if !JS_GetElement(cx, backing_list, index, old_value.handle_mut()) {
+                    return false;
+                }
+                if !on_delete_item::<D>(cx, proxy, old_value.handle(), index) {
+                    return false;
+                }
+            }
+            """
+        )
+
+    def postCallback(self) -> str:
+        return dedent(
+            """
+            if !JS_SetElement(cx, backing_list, index, value) {
+                return false;
+            }
+            unsafe { (*result).succeed() }
+            """
+        )
+
+
+class CGObservableArrayProxyHandlerGenerator(CGThing):
+    def __init__(self, descriptor: Descriptor, attr: IDLAttribute) -> None:
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+        self.attr = attr
+
+    def define(self) -> str:
+        namespace = observableArrayBindingNamespace(self.attr)
+        on_delete = CGObservableArrayProxyHandler_OnDeleteItem(self.descriptor, self.attr).define(
+            "on_delete_item",
+            "cx: &mut JSContext, proxy: HandleObject, value: HandleValue, index: u32",
+        )
+        set_indexed = CGObservableArrayProxyHandler_SetIndexedValue(self.descriptor, self.attr).define(
+            "set_indexed_value",
+            "cx: &mut JSContext, proxy: HandleObject, backing_list: HandleObject, index: u32, value: HandleValue, result: *mut ObjectOpResult",
+        )
+        return f"""
+mod {namespace} {{
+    use super::*;
+
+    pub(crate) static HANDLER: ThreadUnsafeOnceLock<*const libc::c_void> = ThreadUnsafeOnceLock::new();
+
+    pub(crate) fn init_proxy_handler<D: DomTypes>() {{
+        let config = Box::new(crate::observablearray::ObservableArrayProxyHandlerConfig {{
+            on_delete_item: on_delete_item::<D>,
+            set_indexed_value: set_indexed_value::<D>,
+        }});
+        HANDLER.set(crate::observablearray::create_proxy_handler(Box::into_raw(config)));
+    }}
+
+    {on_delete}
+
+    {set_indexed}
+}} // mod {namespace}
+"""
+
+
+class CGObservableArraySetterGenerator(CGGeneric):
+    def __init__(self, descriptor: Descriptor, attr: IDLAttribute) -> None:
+        namespace = observableArrayBindingNamespace(attr)
+        slot = memberReservedSlot(attr, descriptor)
+        conversion = wrapForType(
+            "val.handle_mut()",
+            result="(&arg0)[i]",
+            successCode="""
+if !JS_SetElement(cx, proxy.handle(), i as u32, val.handle()) {
+    return false;
+}
+""",
+        )
+        CGGeneric.__init__(self, fill(
+            """
+            let obj = HandleObject::from_raw(obj);
+            rooted!(&in(cx) let mut proxy = ptr::null_mut::<JSObject>());
+            if !crate::observablearray::get_or_create_proxy_object(
+                cx,
+                obj,
+                ${isProxy},
+                ${slot},
+                unsafe { *${namespace}::HANDLER.get() },
+                this as *const ${nativeType} as *const libc::c_void,
+                proxy.handle_mut(),
+            ) {
+                return false;
+            }
+            if !crate::observablearray::set_length(cx, proxy.handle(), 0) {
+                return false;
+            }
+            rooted!(&in(cx) let mut val = UndefinedValue());
+            for i in 0..arg0.len() {
+                ${conversion}
+            }
+            """,
+            isProxy=python_bool_to_rust(descriptor.proxy),
+            slot=slot,
+            namespace=namespace,
+            nativeType=descriptor.concreteType,
+            conversion=conversion,
+        ))
+
+
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
     A class for generating the code for a specialized attribute getter
@@ -4723,6 +4975,36 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         CGAbstractExternMethod.__init__(self, descriptor, name, "bool", args, templateArgs=["D: DomTypes"])
 
     def definition_body(self) -> CGThing:
+        if self.attr.type.isObservableArray():
+            namespace = observableArrayBindingNamespace(self.attr)
+            slot = memberReservedSlot(self.attr, self.descriptor)
+            return CGGeneric(fill(
+                """
+let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+let cx = &mut cx;
+let this = &*(this as *const ${nativeType});
+let obj = HandleObject::from_raw(_obj);
+rooted!(&in(cx) let mut proxy = ptr::null_mut::<JSObject>());
+if !crate::observablearray::get_or_create_proxy_object(
+    cx,
+    obj,
+    ${isProxy},
+    ${slot},
+    unsafe { *${namespace}::HANDLER.get() },
+    this as *const ${nativeType} as *const libc::c_void,
+    proxy.handle_mut(),
+) {
+    return false;
+}
+args.rval().set(ObjectValue(proxy.get()));
+true
+                """,
+                nativeType=self.descriptor.concreteType,
+                isProxy=python_bool_to_rust(self.descriptor.proxy),
+                slot=slot,
+                namespace=namespace,
+            ))
+
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
 
@@ -4986,10 +5268,13 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
 
             isAlwaysInSlot = self.member.getExtendedAttribute("StoreInSlot") or False
             if self.member.slotIndices is not None:
-                assert isAlwaysInSlot or self.member.getExtendedAttribute("Cached")
+                assert (
+                    isAlwaysInSlot or
+                    self.member.getExtendedAttribute("Cached") or
+                    self.member.type.isObservableArray()
+                )
                 isLazilyCachedInSlot = not isAlwaysInSlot
-                # pyrefly: ignore  # unknown-name
-                slotIndex = memberReservedSlot(self.member)  # noqa: F821 FIXME: memberReservedSlot is not defined
+                slotIndex = memberReservedSlot(self.member, self.descriptor)
                 # We'll statically assert that this is not too big in
                 # CGUpdateMemberSlotsMethod, in the case when
                 # isAlwaysInSlot is true.
@@ -5106,6 +5391,8 @@ pub(crate) fn init_{infoName}<D: DomTypes>() {{
             # No return, every time
             return "JSVAL_TYPE_UNDEFINED"
         if t.isSequence():
+            return "JSVAL_TYPE_OBJECT"
+        if t.isObservableArray():
             return "JSVAL_TYPE_OBJECT"
         if t.isRecord():
             return "JSVAL_TYPE_OBJECT"
@@ -6859,13 +7146,30 @@ let this = native_from_object_static::<{self.descriptor.concreteType}>(obj).unwr
 
 
 def finalizeHook(descriptor: Descriptor, hookName: str, context: str) -> str:
+    cleanup = []
+    for m in descriptor.interface.members:
+        if m.isAttr() and m.type.isObservableArray():
+            cleanup.append(fill(
+                """
+                {
+                    let mut slot = UndefinedValue();
+                    ${getReservedSlot}(obj, ${slotIndex}, &mut slot);
+                    if !slot.is_undefined() {
+                        unsafe { crate::observablearray::clear_owner_slot(slot.to_object()) };
+                    }
+                }
+                """,
+                getReservedSlot=getReservedSlotFunc(descriptor),
+                slotIndex=memberReservedSlot(m, descriptor),
+            ))
+
     if descriptor.isGlobal():
         release = "finalize_global(obj, this);"
     elif descriptor.weakReferenceable:
         release = "finalize_weak_referenceable(obj, this);"
     else:
         release = "finalize_common(this);"
-    return release
+    return "\n".join(cleanup + [release])
 
 
 class CGClassTraceHook(CGAbstractClassHook):
@@ -7040,6 +7344,22 @@ class CGInterfaceTrait(CGThing):
                         rettype = return_type(descriptor, rettype, infallible)
                         yield f"{name}{'_' * idx}", arguments, rettype, m.isStatic()
                 elif m.isAttr():
+                    if m.type.isObservableArray():
+                        nativeName = MakeNativeName(m.identifier.name)
+                        callback_args = [("cx", "SafeJSContext")]
+                        callback_value_type = getJSToNativeConversionInfo(
+                            m.type.inner,
+                            descriptor,
+                        ).declType
+                        assert callback_value_type is not None
+                        callback_args.extend([
+                            ("value", callback_value_type.define()),
+                            ("index", "u32"),
+                        ])
+                        yield (f"OnSet{nativeName}", callback_args, "ErrorResult", m.isStatic())
+                        yield (f"OnDelete{nativeName}", callback_args, "ErrorResult", m.isStatic())
+                        continue
+
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
 
                     # If this attribute is a repetition due to capitalization differences in the JavaScript
@@ -7262,9 +7582,14 @@ class CGInitStatics(CGThing):
                 or m.getExtendedAttribute("Replaceable")
             ) and not m.isStatic()
         ]
+        observable_arrays = [
+            f'ObservableArray{MakeNativeName(m.identifier.name)}::init_proxy_handler::<D>();'
+            for m in descriptor.interface.members if m.isAttr() and m.type.isObservableArray()
+        ]
         methods = '\n'.join(methods)
         getters = '\n'.join(getters)
         setters = '\n'.join(setters)
+        observable_arrays = '\n'.join(observable_arrays)
         crossorigin = [
             "init_sCrossOriginMethods::<D>();",
             "init_sCrossOriginAttributes::<D>();",
@@ -7294,6 +7619,7 @@ class CGInitStatics(CGThing):
             {getters}
             {setters}
             {crossorigin_joined}
+            {observable_arrays}
             {specs}
         }}
         """
@@ -7342,6 +7668,8 @@ class CGDescriptor(CGThing):
                         )
                     cgThings.append(CGMemberJITInfo(descriptor, m))
             elif m.isAttr():
+                if m.type.isObservableArray():
+                    cgThings.append(CGObservableArrayProxyHandlerGenerator(descriptor, m))
                 if m.getExtendedAttribute("Unscopable"):
                     assert not m.isStatic()
                     unscopableNames.append(m.identifier.name)
