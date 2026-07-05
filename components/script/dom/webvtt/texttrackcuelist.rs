@@ -61,6 +61,10 @@ impl TextTrackCueList {
     pub(crate) fn remove(&self, idx: usize) {
         self.dom_cues.borrow_mut().remove(idx);
     }
+
+    pub(crate) fn empty(&self) {
+        self.dom_cues.borrow_mut().clear();
+    }
 }
 
 impl TextTrackCueListMethods<crate::DomTypeHolder> for TextTrackCueList {

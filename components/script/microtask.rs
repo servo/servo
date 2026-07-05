@@ -23,6 +23,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlimageelement::ImageElementMicrotask;
 use crate::dom::html::htmlmediaelement::MediaElementMicrotask;
+use crate::dom::html::htmltrackelement::TrackElementMicrotask;
 use crate::dom::promise::WaitForAllSuccessStepsMicrotask;
 use crate::dom::stream::byteteereadintorequest::ByteTeeReadIntoRequestMicrotask;
 use crate::dom::stream::byteteereadrequest::ByteTeeReadRequestMicrotask;
@@ -46,6 +47,7 @@ pub(crate) enum Microtask {
     User(UserMicrotask),
     MediaElement(MediaElementMicrotask),
     ImageElement(ImageElementMicrotask),
+    TrackElement(TrackElementMicrotask),
     ReadableStreamTeeReadRequest(DefaultTeeReadRequestMicrotask),
     WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask),
     ReadableStreamByteTeeReadRequest(ByteTeeReadRequestMicrotask),
@@ -141,6 +143,11 @@ impl MicrotaskQueue {
                         task.handler(cx);
                     },
                     Microtask::ImageElement(ref task) => {
+                        let mut realm = task.enter_realm(cx);
+                        let cx = &mut realm;
+                        task.handler(cx);
+                    },
+                    Microtask::TrackElement(ref task) => {
                         let mut realm = task.enter_realm(cx);
                         let cx = &mut realm;
                         task.handler(cx);
