@@ -394,6 +394,11 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
         self.replace_drawing_buffer();
     }
 
+    /// <https://www.w3.org/TR/webgpu/#dom-gpucanvascontext-getconfiguration>
+    fn GetConfiguration(&self) -> Option<GPUCanvasConfiguration> {
+        self.configuration.borrow().clone()
+    }
+
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
     fn GetCurrentTexture(&self, cx: &mut JSContext) -> Fallible<DomRoot<GPUTexture>> {
         // 1. If this.[[configuration]] is null, throw an InvalidStateError and return.

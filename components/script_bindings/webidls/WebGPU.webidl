@@ -1224,6 +1224,9 @@ partial interface GPUCanvasContext {
     [Throws, Pref="dom_webgpu_enabled"]
     undefined configure(GPUCanvasConfiguration descriptor);
     [Pref="dom_webgpu_enabled"] undefined unconfigure();
+
+    [Pref="dom_webgpu_enabled"]
+    GPUCanvasConfiguration? getConfiguration();
     [Throws, Pref="dom_webgpu_enabled"]
     GPUTexture getCurrentTexture();
 };
