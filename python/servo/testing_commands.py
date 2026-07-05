@@ -896,7 +896,9 @@ class MachCommands(CommandBase):
     # target to be configured already.
     @CommandBase.allow_target_configuration
     @CommandBase.common_command_arguments(binary_selection=True, build_type=True)
-    def smoketest(self, servo_binary: Optional[str], build_type: BuildType, multiprocess: bool, params: list[str], **kwargs: Any) -> int | None:
+    def smoketest(
+        self, servo_binary: Optional[str], build_type: BuildType, multiprocess: bool, params: list[str], **kwargs: Any
+    ) -> int | None:
         if is_android(self.target):
             return self.android_smoketest(self.target, build_type)
         elif is_openharmony(self.target):
