@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Custom highlight on an object element rendering fallback does not tint the host.</title>
+    <link rel="author" title="Fernando Fiori" href="mailto:ffiori@microsoft.com">
+    <link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+    <link rel="match" href="highlight-fallback-not-tinted-ref.html">
+    <meta name="assert" content="A custom highlight whose range covers an object element that is rendering fallback content must not tint the host. The fallback text is highlighted as normal text.">
+    <style>
+    ::highlight(example-highlight) {
+        background-color: rgba(200, 0, 0, 1);
+        color: green;
+    }
+    object { display: block; width: 100px; height: 50px; }
+    </style>
+</head>
+<body><object><span>fallback</span></object><script>
+    const highlight = new Highlight(new StaticRange({
+        startContainer: document.body, startOffset: 0,
+        endContainer: document.body, endOffset: 1,
+    }));
+    CSS.highlights.set("example-highlight", highlight);
+</script>
+</body>
+</html>

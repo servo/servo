@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Clearing transition-duration in transitionend callback should not crash</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=22398">
+<div id="t" style="background-color:#000"></div>
+<script>
+  document.body.offsetHeight;
+  var el = document.getElementById('t');
+  el.addEventListener('transitionend', function() {
+    el.style.transitionDuration = '';
+    document.documentElement.classList.remove('test-wait');
+  });
+  el.style.cssText += ';transition:background-color 0.2s;background-color:#fff';
+</script>
+</html>

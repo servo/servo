@@ -4,7 +4,7 @@
 <link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
 <body></body>
@@ -12,6 +12,10 @@
   import { makeGetOptions } from "./support/helper.js";
 
   promise_test(async (t) => {
+    // Park the first request ("wait") so the second hits the concurrency guard.
+    await test_driver.set_virtual_wallet_behavior("wait");
+    t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+
     const abortController = new AbortController();
     const firstOptions = makeGetOptions({ signal: abortController.signal });
     const secondOptions = makeGetOptions();

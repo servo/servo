@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Getting cssText with 'all' shorthand should not crash</title>
+<link rel="help" href="https://crbug.com/40406764">
+<div id="test" style="all: initial; left: 10px;"></div>
+<script>
+  document.getElementById('test').style.cssText;
+</script>

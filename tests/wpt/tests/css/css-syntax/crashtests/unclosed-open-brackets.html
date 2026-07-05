@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Many unclosed brackets in CSS content property should not crash</title>
+<link rel="help" href="https://crbug.com/41343497">
+<script>
+  document.documentElement.style = 'content: ' + '('.repeat(60000) + '";';
+</script>

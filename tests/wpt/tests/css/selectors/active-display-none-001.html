@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Selectors: :active on ancestor with display:none does not prevent event
+  dispatch
+</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://drafts.csswg.org/selectors/#the-active-pseudo" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  #wrapper {
+    width: 100px;
+    height: 100px;
+  }
+  #wrapper:active {
+    display: none;
+  }
+  #parent {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+
+<div id="parent">
+  <div id="wrapper">
+    <button id="target">click me</button>
+  </div>
+</div>
+
+<script>
+  promise_test(async (t) => {
+    let activeInsidePointerdown = null;
+    target.addEventListener(
+      "pointerdown",
+      () => {
+        activeInsidePointerdown = wrapper.matches(":active");
+      },
+      { signal: t.signal },
+    );
+
+    await test_driver.click(target);
+
+    assert_true(
+      activeInsidePointerdown,
+      "wrapper matches :active inside pointerdown listener",
+    );
+  }, ":active on ancestor with display:none does not prevent click from bubbling");
+</script>

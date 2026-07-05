@@ -56,3 +56,11 @@ def test_ia2(ia2, session, inline, test_html):
         assert "FOCUSABLE" not in msaa_state
 
     assert ia2.get_hyperlink_interface(node) is not None
+
+# @pytest.mark.parametrize("test_html", TEST_HTML.values(), ids=TEST_HTML.keys())
+# def test_uia(uia, session, inline, test_html):
+#     session.url = inline(test_html)
+#
+#     # Spec:
+#     # Control Type: HyperLink
+#     # Control Pattern: Value

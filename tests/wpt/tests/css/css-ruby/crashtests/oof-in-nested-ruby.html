@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Out-of-flow box in nested rubies should not crash</title>
+<link rel="help" href="https://crbug.com/341126031">
+<body>
+<script>
+  document.body.insertAdjacentHTML('beforeend',
+      '<ruby><ruby><rt><select style="position:fixed"></select></ruby></ruby>');
+  document.body.offsetWidth;
+</script>

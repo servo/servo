@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>shape-outside with extreme percentage values should not crash</title>
+<link rel="help" href="https://crbug.com/41185781">
+<script>
+  document.documentElement.style.shapeOutside = 'circle(at 1e200% -1e200%)';
+  getComputedStyle(document.documentElement).shapeOutside;
+</script>
