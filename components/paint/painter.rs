@@ -18,6 +18,7 @@ use gleam::gl::RENDERER;
 use image::RgbaImage;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
+use paint_api::container_timing_candidate::ContainerTimingRecord;
 use paint_api::display_list::{PaintDisplayListInfo, ScrollType};
 use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
@@ -55,6 +56,7 @@ use webrender_api::{
 use wr_malloc_size_of::MallocSizeOfOps;
 
 use crate::Paint;
+use crate::container_timing_calculator::ContainerTimingCalculator;
 use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
 use crate::paint::{RepaintReason, WebRenderDebugOption};
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
@@ -122,8 +124,12 @@ pub(crate) struct Painter {
     /// The channel on which messages can be sent to the constellation.
     embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
 
-    /// Calculater for largest-contentful-paint.
+    /// Calculator for largest-contentful-paint.
     lcp_calculator: LargestContentfulPaintCalculator,
+
+    /// Calculator for container timing.
+    /// <https://wicg.github.io/container-timing/>
+    container_timing_calculator: ContainerTimingCalculator,
 
     /// A cache that stores data for all animating images uploaded to WebRender. This is used
     /// for animated images, which only need to update their offset in the data.
@@ -279,6 +285,7 @@ impl Painter {
             last_mouse_move_position: None,
             frame_delayer: Default::default(),
             lcp_calculator: LargestContentfulPaintCalculator::new(),
+            container_timing_calculator: ContainerTimingCalculator::new(),
             animation_image_cache: FxHashMap::default(),
             web_content_animator: WebContentAnimator::new(
                 paint.event_loop_waker.clone_box(),
@@ -544,6 +551,33 @@ impl Painter {
                         pipeline
                             .largest_contentful_paint_metric
                             .set(PaintMetricState::Sent);
+                    },
+                    _ => {},
+                }
+
+                match pipeline.container_timing_metric.get() {
+                    PaintMetricState::Seen(epoch, _) if epoch <= current_epoch => {
+                        for entry in self
+                            .container_timing_calculator
+                            .calculate(paint_time, pipeline_id.into())
+                        {
+                            self.send_to_constellation(
+                                EmbedderToConstellationMessage::PaintMetric(
+                                    *pipeline_id,
+                                    PaintMetricEvent::ContainerTiming(
+                                        entry.identifier.clone(),
+                                        entry.first_render_time,
+                                        entry.paint_time,
+                                        entry.size,
+                                        entry.rect_x,
+                                        entry.rect_y,
+                                        entry.rect_width,
+                                        entry.rect_height,
+                                    ),
+                                ),
+                            );
+                        }
+                        pipeline.container_timing_metric.set(PaintMetricState::Sent);
                     },
                     _ => {},
                 }
@@ -1362,6 +1396,11 @@ impl Painter {
         self.lcp_calculator.enabled_for_webview(webview_id)
     }
 
+    pub(crate) fn enable_container_timing_calculation(&mut self, webview_id: &WebViewId) {
+        self.container_timing_calculator
+            .enable_for_webview(webview_id);
+    }
+
     pub(crate) fn adjust_pinch_zoom(
         &mut self,
         webview_id: WebViewId,
@@ -1507,6 +1546,30 @@ impl Painter {
                     .set(PaintMetricState::Seen(epoch.into(), false));
             }
         };
+    }
+
+    /// Append a container timing candidate sent from the layout thread.
+    /// <https://wicg.github.io/container-timing/>
+    pub(crate) fn append_container_timing_candidate(
+        &mut self,
+        candidate: ContainerTimingRecord,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
+    ) {
+        if self
+            .container_timing_calculator
+            .enabled_for_webview(&webview_id)
+        {
+            self.container_timing_calculator
+                .append_candidate(candidate, pipeline_id.into());
+            if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
+                webview_renderer
+                    .ensure_pipeline_details(pipeline_id)
+                    .container_timing_metric
+                    .set(PaintMetricState::Seen(epoch.into(), false));
+            }
+        }
     }
 }
 

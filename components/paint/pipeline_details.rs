@@ -47,6 +47,10 @@ pub(crate) struct PipelineDetails {
     /// The paint metric status of the largest contentful paint.
     pub largest_contentful_paint_metric: Cell<PaintMetricState>,
 
+    /// The paint metric status of container timing entries.
+    /// <https://wicg.github.io/container-timing/>
+    pub container_timing_metric: Cell<PaintMetricState>,
+
     /// The CSS pixel to device pixel scale of the viewport of this pipeline, including
     /// page zoom, but not including any pinch zoom amount. This is used to detect
     /// situations where the current display list is for an old scale.
@@ -92,6 +96,7 @@ impl PipelineDetails {
             first_paint_metric: Cell::new(PaintMetricState::Waiting),
             first_contentful_paint_metric: Cell::new(PaintMetricState::Waiting),
             largest_contentful_paint_metric: Cell::new(PaintMetricState::Waiting),
+            container_timing_metric: Cell::new(PaintMetricState::Waiting),
             exited: PipelineExitSource::empty(),
             display_list_epoch: None,
             animations: Default::default(),

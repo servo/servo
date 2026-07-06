@@ -26,6 +26,7 @@ use servo_url::ServoUrl;
 use style;
 use style::context::SharedStyleContext;
 use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
+use js::jsapi::JSObject;
 use style::dom_apis::{MayUseInvalidation, SelectorQuery, query_selector};
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, SelectorParser};
@@ -303,6 +304,12 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
             .map(Self::new)
     }
 
+    /// Returns the parent node of this node, if any.
+    /// Used for container timing ancestor traversal.
+    pub fn parent_node(&self) -> Option<Self> {
+        self.node.parent_node().map(Self::new)
+    }
+
     /// Whether this is a container for the text within a single-line text input. This
     /// is used to solve the special case of line height for a text entry widget.
     /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
@@ -349,6 +356,70 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
 
         get_selected_style().unwrap_or_else(|| style_data.primary().clone())
     }
+}
+
+/// Walk DOM ancestors of `opaque` to find the nearest element with a `containertiming`
+/// attribute and return that element's node.
+/// Called during display-list building from `check_for_container_timing_candidate`.
+/// <https://wicg.github.io/container-timing/>
+pub fn container_timing_root_for_node(
+    opaque: style::dom::OpaqueNode,
+) -> Option<style::dom::OpaqueNode> {
+    use html5ever::{LocalName, ns};
+    use script_bindings::conversions::private_from_object;
+
+    // Safety: `opaque.0` is a JSObject pointer for a live DOM node. Layout and
+    // display-list building run synchronously on the layout thread while the script
+    // thread is paused, so the GC cannot collect these objects.
+    let threadsafe_node = unsafe {
+        let obj = opaque.0 as *mut JSObject;
+        let raw = private_from_object(obj) as *const std::ffi::c_void;
+        let addr = TrustedNodeAddress(raw);
+        ServoLayoutNode::new(&addr).to_threadsafe()
+    };
+
+    let mut ancestor = threadsafe_node.parent_node();
+    loop {
+        match ancestor {
+            None => break None,
+            Some(ref a) => {
+                if let Some(element) = a.as_html_element() {
+                    if element
+                        .get_attr(&ns!(), &LocalName::from("containertiming"))
+                        .is_some()
+                    {
+                        break Some(a.opaque());
+                    }
+                }
+                ancestor = a.parent_node();
+            },
+        }
+    }
+}
+
+/// Read the `containertiming` attribute value directly from `opaque`, which must already
+/// be a container timing root element.
+/// <https://wicg.github.io/container-timing/>
+pub fn container_timing_identifier_for_root(
+    opaque: style::dom::OpaqueNode,
+) -> Option<std::sync::Arc<str>> {
+    use html5ever::{LocalName, ns};
+    use script_bindings::conversions::private_from_object;
+
+    // Safety: same as container_timing_root_for_node.
+    let threadsafe_node = unsafe {
+        let obj = opaque.0 as *mut JSObject;
+        let raw = private_from_object(obj) as *const std::ffi::c_void;
+        let addr = TrustedNodeAddress(raw);
+        ServoLayoutNode::new(&addr).to_threadsafe()
+    };
+
+    if let Some(element) = threadsafe_node.as_html_element() {
+        if let Some(id) = element.get_attr(&ns!(), &LocalName::from("containertiming")) {
+            return Some(std::sync::Arc::from(id));
+        }
+    }
+    None
 }
 
 impl style::dom::NodeInfo for ServoThreadSafeLayoutNode<'_> {

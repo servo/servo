@@ -4222,6 +4222,10 @@ where
                 });
                 self.paint_proxy
                     .send(PaintMessage::EnableLCPCalculation(webview_id));
+
+                self.paint_proxy
+                    .send(PaintMessage::EnableContainerTimingCalculation(webview_id));
+
                 Some(new_pipeline_id)
             },
         }
@@ -4697,6 +4701,8 @@ where
         );
         self.paint_proxy
             .send(PaintMessage::EnableLCPCalculation(webview_id));
+        self.paint_proxy
+            .send(PaintMessage::EnableContainerTimingCalculation(webview_id))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
@@ -6192,6 +6198,28 @@ where
                 ProgressiveWebMetricType::LargestContentfulPaint { area, url, id },
                 metric_value,
                 false, // LCP doesn't care about first reflow
+            ),
+            PaintMetricEvent::ContainerTiming(
+                identifier,
+                first_render_time,
+                paint_time,
+                size,
+                rect_x,
+                rect_y,
+                rect_width,
+                rect_height,
+            ) => (
+                ProgressiveWebMetricType::ContainerTiming {
+                    identifier,
+                    size,
+                    paint_time,
+                    rect_x,
+                    rect_y,
+                    rect_width,
+                    rect_height,
+                },
+                first_render_time,
+                false,
             ),
         };
         if let Err(error) = pipeline.event_loop.send(ScriptThreadMessage::PaintMetric(

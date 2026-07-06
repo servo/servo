@@ -21,7 +21,7 @@ use embedder_traits::UntrustedNodeAddress;
 use euclid::default::Size2D;
 use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
-use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
+use html5ever::{LocalName, Namespace, Prefix, QualName, ns, serialize as html_serialize};
 use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -368,7 +368,17 @@ impl Node {
             node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, parent_in_shadow_tree);
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
             node.set_flag(NodeFlags::IS_IN_UA_WIDGET, parent_is_in_ua_widget);
-            node.set_flag(NodeFlags::HAS_CONTAINER_TIMING, parent_has_container_timing);
+            // HAS_CONTAINER_TIMING can be set by the element's own `containertiming` attribute,
+            // not just by ancestor inheritance. Because traverse_preorder visits parents before
+            // children, re-deriving from the actual parent (already processed in this loop) gives
+            // the correct inherited value for each node.
+            let self_has_ct = node
+                .downcast::<Element>()
+                .is_none_or(|e| e.has_attribute(&LocalName::from("containertiming")));
+            node.set_flag(
+                NodeFlags::HAS_CONTAINER_TIMING,
+                parent_has_container_timing || self_has_ct,
+            );
 
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));

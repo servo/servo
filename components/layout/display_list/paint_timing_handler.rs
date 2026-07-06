@@ -6,8 +6,10 @@ use std::collections::HashSet;
 
 use app_units::Au;
 use euclid::Rect;
+use paint_api::container_timing_candidate::ContainerTimingRecord;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
 use servo_geometry::FastLayoutTransform;
+use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use webrender_api::units::{LayoutRect, LayoutSize};
@@ -31,6 +33,10 @@ pub(crate) struct PaintTimingHandler {
     lcp_candidate_updated: bool,
     /// The set of nodes that have been reported as LCP candidates.
     reported_lcp_nodes: HashSet<OpaqueNode>,
+    /// Container timing records accumulated during this display list build, keyed by
+    /// container root node. Sent to the paint thread at the end of the build.
+    /// <https://wicg.github.io/container-timing/>
+    container_timing_records: FxHashMap<OpaqueNode, ContainerTimingRecord>,
 }
 
 impl PaintTimingHandler {
@@ -43,6 +49,7 @@ impl PaintTimingHandler {
             lcp_candidate_updated: false,
             viewport_rect: LayoutRect::from_size(viewport_size),
             reported_lcp_nodes: HashSet::new(),
+            container_timing_records: FxHashMap::default(),
         }
     }
 
@@ -226,6 +233,65 @@ impl PaintTimingHandler {
         self.lcp_candidate_updated = true;
     }
 
+    /// Record a container timing candidate for a painted text or image fragment.
+    /// Walks ancestors to find the container root; detached nodes (no root) are ignored.
+    /// <https://wicg.github.io/container-timing/>
+    pub(crate) fn update_container_timing(
+        &mut self,
+        node: OpaqueNode,
+        bounds: LayoutRect,
+        clip_rect: LayoutRect,
+        transform: FastLayoutTransform,
+    ) {
+        let Some(container_root) = get_container_root(node) else {
+            return;
+        };
+
+        let intersection_rect = self.calculate_intersection_rect(bounds, clip_rect, transform);
+
+        let size = (intersection_rect.size.width * intersection_rect.size.height).round() as usize;
+        if size == 0 {
+            return;
+        }
+
+        let record = self.get_or_create_record(container_root);
+        record.size += size;
+        let (new_x, new_y, new_w, new_h) = (
+            intersection_rect.origin.x,
+            intersection_rect.origin.y,
+            intersection_rect.size.width,
+            intersection_rect.size.height,
+        );
+        if record.rect_width == 0.0 && record.rect_height == 0.0 {
+            record.rect_x = new_x;
+            record.rect_y = new_y;
+            record.rect_width = new_w;
+            record.rect_height = new_h;
+        } else {
+            let min_x = record.rect_x.min(new_x);
+            let min_y = record.rect_y.min(new_y);
+            let max_x = (record.rect_x + record.rect_width).max(new_x + new_w);
+            let max_y = (record.rect_y + record.rect_height).max(new_y + new_h);
+            record.rect_x = min_x;
+            record.rect_y = min_y;
+            record.rect_width = max_x - min_x;
+            record.rect_height = max_y - min_y;
+        }
+    }
+
+    /// Returns the entry for `container_root`, creating a default one if absent.
+    fn get_or_create_record(&mut self, container_root: OpaqueNode) -> &mut ContainerTimingRecord {
+        self.container_timing_records
+            .entry(container_root)
+            .or_insert_with(|| {
+                let identifier =
+                    script::layout_dom::container_timing_identifier_for_root(container_root)
+                        .map(|id| id.to_string())
+                        .unwrap_or_default();
+                ContainerTimingRecord::new(identifier, 0, 0.0, 0.0, 0.0, 0.0)
+            })
+    }
+
     pub(crate) fn did_lcp_candidate_update(&self) -> bool {
         self.lcp_candidate_updated
     }
@@ -241,4 +307,19 @@ impl PaintTimingHandler {
     pub(crate) fn lcp_node(&self) -> Option<OpaqueNode> {
         self.lcp_node
     }
+    /// Returns accumulated container timing candidates and clears the internal map.
+    pub(crate) fn take_container_timing_candidates(&mut self) -> Vec<ContainerTimingRecord> {
+        self.container_timing_records
+            .drain()
+            .map(|(_, record)| record)
+            .collect()
+    }
+}
+
+/// Walk DOM ancestors of `node` to find the nearest element with a `containertiming`
+/// attribute. Returns `None` for detached nodes (no document root in the ancestor chain).
+/// Equivalent to Chromium's `getContainerRoot`.
+/// <https://wicg.github.io/container-timing/>
+fn get_container_root(node: OpaqueNode) -> Option<OpaqueNode> {
+    script::layout_dom::container_timing_root_for_node(node)
 }

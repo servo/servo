@@ -135,6 +135,19 @@ pub enum PaintMetricEvent {
         Option<ServoUrl>,
         LCPCandidateID,
     ),
+    /// A container timing update: identifier, first_render_time, paint_time,
+    /// size (painted area in px²), and intersection rect (x, y, width, height).
+    /// <https://wicg.github.io/container-timing/>
+    ContainerTiming(
+        String,              /* identifier */
+        CrossProcessInstant, /* first_render_time */
+        CrossProcessInstant, /* paint_time */
+        usize,               /* size */
+        f32,                 /* rect_x */
+        f32,                 /* rect_y */
+        f32,                 /* rect_width */
+        f32,                 /* rect_height */
+    ),
 }
 
 impl fmt::Debug for EmbedderToConstellationMessage {

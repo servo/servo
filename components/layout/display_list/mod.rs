@@ -989,6 +989,34 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         BuilderForBoxFragment::new(fragment, state.origin)
             .build_collapsed_table_borders(self, state)
     }
+
+    fn check_for_container_timing_candidate(
+        &mut self,
+        clip_rect: LayoutRect,
+        bounds: LayoutRect,
+        tag: Option<Tag>,
+        flags: FragmentFlags,
+    ) {
+        if !pref!(container_timing_enabled) {
+            return;
+        }
+
+        if !flags.contains(FragmentFlags::HAS_CONTAINER_TIMING) {
+            return;
+        }
+
+        let Some(tag) = tag else {
+            return;
+        };
+
+        let transform = self
+            .paint_info
+            .scroll_tree
+            .cumulative_node_to_root_transform(self.current_scroll_node_id);
+
+        self.paint_timing_handler
+            .update_container_timing(tag.node, bounds, clip_rect, transform);
+    }
 }
 
 impl InspectorHighlight {
@@ -1173,6 +1201,13 @@ impl Fragment {
         // An element target is contentful when one or more of the following apply:
         // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
         builder.mark_is_contentful();
+
+        builder.check_for_container_timing_candidate(
+            common.clip_rect,
+            glyph_bounds,
+            fragment.base.tag,
+            fragment.base.flags,
+        );
 
         for text_decoration in state.text_decorations.iter() {
             if text_decoration
@@ -1916,6 +1951,12 @@ impl<'a> BuilderForBoxFragment<'a> {
                             None,
                             natural_width,
                             natural_height,
+                        );
+                        builder.check_for_container_timing_candidate(
+                            layer.common.clip_rect,
+                            layer.bounds,
+                            self.fragment.base.tag,
+                            self.fragment.base.flags,
                         );
                     }
                 },

@@ -55,6 +55,8 @@ mod from_constellation {
                 Self::ScreenshotReadinessReponse(..) => target!("ScreenshotReadinessResponse"),
                 Self::SendLCPCandidate(..) => target!("SendLCPCandidate"),
                 Self::EnableLCPCalculation(..) => target!("EnableLCPCalculation"),
+                Self::SendContainerTimingCandidate(..) => target!("SendContainerTimingCandidate"),
+                Self::EnableContainerTimingCalculation(..) => target!("EnableContainerTimingCalculation"),
             }
         }
     }
