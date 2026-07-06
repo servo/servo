@@ -6,7 +6,7 @@ use std::slice::Iter;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::id::{FileListId, FileListIndex};
 use servo_constellation_traits::SerializableFileList;
 
@@ -17,7 +17,6 @@ use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/FileAPI/#dfn-filelist
 #[dom_struct]
@@ -36,30 +35,30 @@ impl FileList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         files: Vec<DomRoot<File>>,
-        can_gc: CanGc,
     ) -> DomRoot<FileList> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(FileList::new_inherited(
                 files.iter().map(|r| Dom::from_ref(&**r)).collect(),
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn new_in_global(
+        cx: &mut JSContext,
         global: &GlobalScope,
         files: Vec<DomRoot<File>>,
-        can_gc: CanGc,
     ) -> DomRoot<FileList> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(FileList::new_inherited(
                 files.iter().map(|r| Dom::from_ref(&**r)).collect(),
             )),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -93,7 +92,7 @@ impl Serializable for FileList {
             .into_iter()
             .map(|file| File::deserialize(cx, owner, file))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(FileList::new_in_global(owner, files, CanGc::from_cx(cx)))
+        Ok(FileList::new_in_global(cx, owner, files))
     }
 
     fn serialized_storage<'a>(

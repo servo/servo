@@ -18,7 +18,6 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::domstring::DOMString;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::Dom;
-use script_bindings::script_runtime::CanGc;
 use style::selector_parser::PseudoElement;
 use style::str::split_commas;
 
@@ -110,7 +109,7 @@ impl FileInputType {
         files.extend(
             response_files
                 .into_iter()
-                .map(|file| File::new_from_selected(&window, file, CanGc::from_cx(cx))),
+                .map(|file| File::new_from_selected(cx, &window, file)),
         );
 
         // Only use the last file if this isn't a multi-select file input. This could
@@ -122,8 +121,7 @@ impl FileInputType {
                 .unwrap_or_default();
         }
 
-        self.set_files(&FileList::new(&window, files, CanGc::from_cx(cx)));
-
+        self.set_files(&FileList::new(cx, &window, files));
         let target = input.upcast::<EventTarget>();
         target.fire_event_with_params(
             cx,

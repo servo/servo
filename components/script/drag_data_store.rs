@@ -14,7 +14,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#the-drag-data-item-kind>
 #[derive(MallocSizeOf)]
@@ -55,11 +54,11 @@ impl Kind {
         match self {
             Kind::Text { .. } => None,
             Kind::File { bytes, name, type_ } => Some(File::new(
+                cx,
                 global,
                 BlobImpl::new_from_bytes(bytes.clone(), type_.clone()),
                 name.clone(),
                 None,
-                CanGc::from_cx(cx),
             )),
         }
     }

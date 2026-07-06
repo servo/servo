@@ -4,8 +4,9 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::str::{DOMString, USVString};
 
 use crate::dom::bindings::codegen::Bindings::CredentialBinding::CredentialMethods;
@@ -14,7 +15,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct Credential {
@@ -34,15 +34,15 @@ impl Credential {
 
     #[expect(dead_code)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         id: USVString,
         credential_type: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<Credential> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Credential::new_inherited(id, credential_type)),
             global,
-            can_gc,
+            cx,
         )
     }
 }
