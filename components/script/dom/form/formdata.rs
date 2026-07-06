@@ -7,7 +7,7 @@ use html5ever::LocalName;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use servo_constellation_traits::BlobImpl;
 
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
@@ -28,7 +28,6 @@ use crate::dom::html::htmlformelement::{
     FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement,
 };
 use crate::dom::html::input_element::HTMLInputElement;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct FormData {
@@ -53,24 +52,24 @@ impl FormData {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         form_datums: Option<Vec<FormDatum>>,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> DomRoot<FormData> {
-        Self::new_with_proto(form_datums, global, None, can_gc)
+        Self::new_with_proto(cx, form_datums, global, None)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         form_datums: Option<Vec<FormDatum>>,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<FormData> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(FormData::new_inherited(form_datums)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -125,22 +124,17 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             // Step 1.2. Let list be the result of constructing the entry list for form and submitter.
             return match opt_form.get_form_dataset(cx, submitter_element, None) {
                 Some(form_datums) => Ok(FormData::new_with_proto(
+                    cx,
                     Some(form_datums),
                     global,
                     proto,
-                    CanGc::from_cx(cx),
                 )),
                 // Step 1.3. If list is null, then throw an "InvalidStateError" DOMException.
                 None => Err(Error::InvalidState(None)),
             };
         }
 
-        Ok(FormData::new_with_proto(
-            None,
-            global,
-            proto,
-            CanGc::from_cx(cx),
-        ))
+        Ok(FormData::new_with_proto(cx, None, global, proto))
     }
 
     /// <https://xhr.spec.whatwg.org/#dom-formdata-append>

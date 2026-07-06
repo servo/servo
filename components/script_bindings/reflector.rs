@@ -255,6 +255,7 @@ pub trait DomObjectIteratorWrap<D: DomTypes>: DomObjectWrap<D> + JSTraceable + I
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
+#[deprecated(note = "Use reflect_dom_object_with_cx")]
 pub fn reflect_dom_object<D, T, U>(obj: Box<T>, global: &U, _can_gc: CanGc) -> DomRoot<T>
 where
     D: DomTypes,
@@ -266,6 +267,7 @@ where
     unsafe { T::WRAP(&mut cx, global_scope, None, obj) }
 }
 
+#[deprecated(note = "Use reflect_dom_object_with_proto_and_cx")]
 pub fn reflect_dom_object_with_proto<D, T, U>(
     obj: Box<T>,
     global: &U,

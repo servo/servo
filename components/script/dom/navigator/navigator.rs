@@ -23,7 +23,7 @@ use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use regex::Regex;
 #[cfg(feature = "gamepad")]
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -68,7 +68,6 @@ use crate::dom::window::Window;
 use crate::dom::xrsystem::XRSystem;
 use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::script_runtime::CanGc;
 
 pub(crate) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
@@ -170,8 +169,8 @@ impl Navigator {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Navigator> {
-        reflect_dom_object(Box::new(Navigator::new_inherited()), window, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<Navigator> {
+        reflect_dom_object_with_cx(Box::new(Navigator::new_inherited()), window, cx)
     }
 
     #[cfg(feature = "webxr")]

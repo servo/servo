@@ -280,7 +280,7 @@ impl XRSession {
                 // Step 3-4
                 self.global()
                     .as_window()
-                    .Navigator()
+                    .Navigator(cx)
                     .Xr(cx)
                     .end_session(self);
                 // Step 5: We currently do not have any such promises
@@ -916,7 +916,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         self.ended.set(true);
         self.global()
             .as_window()
-            .Navigator()
+            .Navigator(cx)
             .Xr(cx)
             .end_session(self);
         self.session.borrow_mut().end_session();

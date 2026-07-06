@@ -123,7 +123,6 @@ pub(crate) mod module {
     #[cfg(feature = "testbinding")]
     pub(crate) use crate::root::{Dom, DomSlice};
     pub(crate) use crate::root::{MaybeUnreflectedDom, Root};
-    pub(crate) use crate::script_runtime::CanGc;
     pub(crate) use crate::utils::{
         DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, DOMClass, DOMJSClass, JSCLASS_DOM_GLOBAL,
         ProtoOrIfaceArray, call_policies, enumerate_global, enumerate_window, exception_to_promise,

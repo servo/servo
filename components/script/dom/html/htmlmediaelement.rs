@@ -2623,7 +2623,7 @@ impl HTMLMediaElement {
         let window = global.as_window();
 
         // Update the media session metadata title with the obtained metadata.
-        window.Navigator().MediaSession(cx).update_title(
+        window.Navigator(cx).MediaSession(cx).update_title(
             metadata
                 .title
                 .clone()
@@ -2955,7 +2955,7 @@ impl HTMLMediaElement {
 
     fn send_media_session_event(&self, cx: &mut JSContext, event: MediaSessionEvent) {
         let global = self.global();
-        let media_session = global.as_window().Navigator().MediaSession(cx);
+        let media_session = global.as_window().Navigator(cx).MediaSession(cx);
 
         media_session.register_media_instance(self);
 

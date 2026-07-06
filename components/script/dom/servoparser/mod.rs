@@ -33,7 +33,7 @@ use profile_traits::time::{
 };
 use profile_traits::time_profile;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
 use servo_base::id::{PipelineId, WebViewId};
@@ -93,7 +93,7 @@ use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
 use crate::navigation::determine_the_origin;
 use crate::network_listener::FetchResponseListener;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::IntroductionType;
 use crate::script_thread::ScriptThread;
 
 mod async_html;
@@ -198,6 +198,7 @@ impl ServoParser {
 
         // Step 2. Create an HTML parser parser, associated with document.
         let parser = ServoParser::new(
+            cx,
             document,
             if pref!(dom_servoparser_async_html_tokenizer_enabled) {
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None))
@@ -212,7 +213,6 @@ impl ServoParser {
             ParserKind::Normal,
             encoding_hint_from_content_type,
             encoding_of_container_document,
-            CanGc::from_cx(cx),
         );
 
         // Step 3. Place html into the input stream for parser. The encoding confidence is irrelevant.
@@ -292,6 +292,7 @@ impl ServoParser {
         };
 
         let parser = ServoParser::new(
+            cx,
             &document,
             Tokenizer::Html(self::html::Tokenizer::new(
                 &document,
@@ -302,7 +303,6 @@ impl ServoParser {
             ParserKind::Normal,
             None,
             None,
-            CanGc::from_cx(cx),
         );
         parser.parse_complete_string_chunk(cx, String::from(input));
 
@@ -313,8 +313,9 @@ impl ServoParser {
         }
     }
 
-    pub(crate) fn parse_html_script_input(document: &Document, url: ServoUrl) {
+    pub(crate) fn parse_html_script_input(cx: &mut JSContext, document: &Document, url: ServoUrl) {
         let parser = ServoParser::new(
+            cx,
             document,
             if pref!(dom_servoparser_async_html_tokenizer_enabled) {
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None))
@@ -329,7 +330,6 @@ impl ServoParser {
             ParserKind::ScriptCreated,
             None,
             None,
-            CanGc::deprecated_note(),
         );
         document.set_current_parser(Some(&parser));
     }
@@ -342,12 +342,12 @@ impl ServoParser {
         encoding_hint_from_content_type: Option<&'static Encoding>,
     ) {
         let parser = ServoParser::new(
+            cx,
             document,
             Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
             ParserKind::Normal,
             encoding_hint_from_content_type,
             None,
-            CanGc::from_cx(cx),
         );
 
         // Set as the document's current parser and initialize with `input`, if given.
@@ -544,14 +544,14 @@ impl ServoParser {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new(
+        cx: &mut JSContext,
         document: &Document,
         tokenizer: Tokenizer,
         kind: ParserKind,
         encoding_hint_from_content_type: Option<&'static Encoding>,
         encoding_of_container_document: Option<&'static Encoding>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ServoParser::new_inherited(
                 document,
                 tokenizer,
@@ -560,7 +560,7 @@ impl ServoParser {
                 encoding_of_container_document,
             )),
             document.window(),
-            can_gc,
+            cx,
         )
     }
 

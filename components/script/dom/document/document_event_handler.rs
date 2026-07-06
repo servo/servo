@@ -1730,7 +1730,7 @@ impl DocumentEventHandler {
 
                 // Step 3.1. Let gamepad be a new Gamepad representing the gamepad.
                 // Step 3.2. Let navigator be gamepad's relevant global object's Navigator object.
-                let navigator = window.Navigator();
+                let navigator = window.Navigator(cx);
                 let selected_index = navigator.select_gamepad_index();
                 let gamepad = Gamepad::new(
                     cx,
@@ -1775,7 +1775,7 @@ impl DocumentEventHandler {
             .gamepad_task_source()
             .queue(task!(gamepad_disconnected: move |cx| {
                 let window = trusted_window.root();
-                let navigator = window.Navigator();
+                let navigator = window.Navigator(cx);
 
                 if let Some(gamepad) = navigator.get_gamepad(index) {
                     // Step 2.1. Set gamepad.[[connected]] to false.
@@ -1837,7 +1837,7 @@ impl DocumentEventHandler {
 
         // Step 6. Let navigator be gamepad's relevant global object's
         //         Navigator object.
-        let navigator = self.window.Navigator();
+        let navigator = self.window.Navigator(cx);
 
         if let Some(gamepad) = navigator.get_gamepad(gamepad_index) {
             // Step 2. Set gamepad.[[timestamp]] to now.

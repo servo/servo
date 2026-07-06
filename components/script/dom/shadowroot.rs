@@ -12,7 +12,7 @@ use js::context::JSContext;
 use js::rust::{HandleValue, MutableHandleValue};
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::error::{ErrorResult, Fallible};
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -60,7 +60,6 @@ use crate::dom::sanitizer::Sanitizer;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
 
 /// Whether a shadow root hosts an User Agent widget.
@@ -160,15 +159,15 @@ impl ShadowRoot {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         host: &Element,
         document: &Document,
         mode: ShadowRootMode,
         slot_assignment_mode: SlotAssignmentMode,
         clonable: bool,
         is_user_agent_widget: IsUserAgentWidget,
-        can_gc: CanGc,
     ) -> DomRoot<ShadowRoot> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ShadowRoot::new_inherited(
                 host,
                 document,
@@ -178,7 +177,7 @@ impl ShadowRoot {
                 is_user_agent_widget,
             )),
             document.window(),
-            can_gc,
+            cx,
         )
     }
 
@@ -300,7 +299,7 @@ impl ShadowRoot {
     }
 
     /// Associate an element present in this shadow tree with the provided id.
-    pub(crate) fn register_element_id(&self, element: &Element, id: &Atom, _can_gc: CanGc) {
+    pub(crate) fn register_element_id(&self, element: &Element, id: &Atom) {
         self.document_fragment.id_map().add(id, element)
     }
 

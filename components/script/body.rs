@@ -52,7 +52,6 @@ use crate::dom::readablestream::{
 use crate::dom::urlsearchparams::URLSearchParams;
 use crate::mime_multipart::{Node, read_multipart_body};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
 /// <https://fetch.spec.whatwg.org/#concept-body-clone>
@@ -1064,7 +1063,7 @@ fn run_form_data_algorithm(
             let closing_boundary = format!("--{}--", boundary.as_str()).into_bytes();
             let trimmed_bytes = bytes.strip_suffix(b"\r\n").unwrap_or(&bytes);
             if trimmed_bytes == closing_boundary {
-                let formdata = FormData::new(None, root, CanGc::from_cx(cx));
+                let formdata = FormData::new(cx, None, root);
                 return Ok(FetchedData::FormData(formdata));
             }
         }
@@ -1077,7 +1076,7 @@ fn run_form_data_algorithm(
         // a more detailed parsing specification is to be written. Volunteers welcome.
 
         // Return a new FormData object, appending each entry, resulting from the parsing operation, to its entry list.
-        let formdata = FormData::new(None, root, CanGc::from_cx(cx));
+        let formdata = FormData::new(cx, None, root);
 
         append_multipart_nodes(cx, root, &formdata, nodes)?;
 
@@ -1090,7 +1089,7 @@ fn run_form_data_algorithm(
         //
         // Return a new FormData object whose entry list is entries.
         let entries = form_urlencoded::parse(&bytes);
-        let formdata = FormData::new(None, root, CanGc::from_cx(cx));
+        let formdata = FormData::new(cx, None, root);
         for (k, e) in entries {
             formdata.Append(cx, USVString(k.into_owned()), USVString(e.into_owned()));
         }

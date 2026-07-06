@@ -1477,8 +1477,6 @@ impl Runnable {
     }
 }
 
-pub(crate) use script_bindings::script_runtime::CanGc;
-
 /// `introductionType` values in SpiderMonkey TransitiveCompileOptions.
 ///
 /// Value definitions are based on the SpiderMonkey Debugger API docs:

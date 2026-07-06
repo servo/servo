@@ -48,7 +48,6 @@ use crate::dom::types::FocusEvent;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::node::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, SelectElementRequest};
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
@@ -595,7 +594,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         element: HTMLOptionElementOrHTMLOptGroupElement,
         before: Option<HTMLElementOrLong>,
     ) -> ErrorResult {
-        self.Options().Add(cx, element, before)
+        self.Options(cx).Add(cx, element, before)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -646,15 +645,10 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     make_labels_getter!(Labels, labels_node_list);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-options>
-    fn Options(&self) -> DomRoot<HTMLOptionsCollection> {
+    fn Options(&self, cx: &mut JSContext) -> DomRoot<HTMLOptionsCollection> {
         self.options.or_init(|| {
             let window = self.owner_window();
-            HTMLOptionsCollection::new(
-                &window,
-                self,
-                Box::new(OptionsFilter),
-                CanGc::deprecated_note(),
-            )
+            HTMLOptionsCollection::new(cx, &window, self, Box::new(OptionsFilter))
         })
     }
 
@@ -672,23 +666,23 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-length>
-    fn Length(&self, cx: &JSContext) -> u32 {
-        self.Options().Length(cx)
+    fn Length(&self, cx: &mut JSContext) -> u32 {
+        self.Options(cx).Length(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-length>
     fn SetLength(&self, cx: &mut JSContext, length: u32) {
-        self.Options().SetLength(cx, length)
+        self.Options(cx).SetLength(cx, length)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-item>
-    fn Item(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Element>> {
-        self.Options().upcast().Item(cx, index)
+    fn Item(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<Element>> {
+        self.Options(cx).upcast().Item(cx, index)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-item>
-    fn IndexedGetter(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Element>> {
-        self.Options().IndexedGetter(cx, index)
+    fn IndexedGetter(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<Element>> {
+        self.Options(cx).IndexedGetter(cx, index)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-setter>
@@ -698,19 +692,19 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         index: u32,
         value: Option<&HTMLOptionElement>,
     ) -> ErrorResult {
-        self.Options().IndexedSetter(cx, index, value)
+        self.Options(cx).IndexedSetter(cx, index, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-nameditem>
-    fn NamedItem(&self, cx: &JSContext, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
-        self.Options()
+    fn NamedItem(&self, cx: &mut JSContext, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
+        self.Options(cx)
             .NamedGetter(cx, name)
             .and_then(DomRoot::downcast::<HTMLOptionElement>)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
     fn Remove_(&self, cx: &mut JSContext, index: i32) {
-        self.Options().Remove(cx, index)
+        self.Options(cx).Remove(cx, index)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
