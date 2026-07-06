@@ -77,7 +77,6 @@ use crate::dom::types::{FocusEvent, MouseEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::textinput::{ClipboardEventFlags, IsComposing, KeyReaction, Lines, TextInput};
 
 pub(crate) mod button_input_type;
