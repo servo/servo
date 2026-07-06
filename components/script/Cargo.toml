@@ -173,6 +173,7 @@ webxr-api = { workspace = true, optional = true }
 wgpu-core = { workspace = true, optional = true }
 wgpu-types = { workspace = true, optional = true }
 x25519-dalek = { workspace = true }
+x448 = { workspace = true }
 xml5ever = { workspace = true }
 xpath = { workspace = true }
 zeroize = { workspace = true }
