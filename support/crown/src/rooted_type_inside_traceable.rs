@@ -62,6 +62,34 @@ fn is_dom_root_ty<'tcx>(sym: &'_ Symbols, cx: &LateContext<'tcx>, ty: ty::Ty<'tc
             if match_def_path(cx, did.did(), &[sym.script_bindings, sym.root, sym.Root]) {
                 return true;
             }
+
+            // The lint relies on the property that each type recursively implements `Traceable` and
+            // only checks its direct fields, avoiding recursive searches.
+            // Code-generated types are currently allowed, due to the changes required to avoid
+            // storing a `Root<T>`.
+            // This should be safe as long as we ensure they are not used elsewhere.
+            let def_path = cx.tcx.def_path(did.did());
+            if cx.tcx.crate_name(def_path.krate) == sym.script_bindings {
+                let maybe_codegen = def_path.data.get(0).and_then(|e| e.data.get_opt_name());
+                let inner_module = def_path.data.get(1).and_then(|e| e.data.get_opt_name());
+
+                if maybe_codegen == Some(sym.codegen) {
+                    if inner_module == Some(sym.GenericUnionTypes) ||
+                        inner_module == Some(sym.GenericBindings)
+                    {
+                        let adt_def = cx.tcx.adt_def(did.did());
+
+                        for variant in adt_def.variants() {
+                            for field in &variant.fields {
+                                let field_type = cx.tcx.type_of(field.did);
+                                if is_dom_root_ty(sym, cx, field_type.skip_binder()) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     false
@@ -102,4 +130,7 @@ symbols! {
     script_bindings
     root
     Root
+    codegen
+    GenericUnionTypes
+    GenericBindings
 }
