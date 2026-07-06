@@ -59,10 +59,10 @@ impl From<LayoutDamage> for RestyleDamage {
 bitflags! {
     #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
     pub struct AccessibilityDamage: u16 {
-        const SELF = 0b0001;
-        const CHILDREN = 0b0010;
-        const SUBTREE = 0b0100;
-        const REBUILD = 0b1111;
+        const Text = 0b0001;
+        const Children = 0b0010;
+        const Subtree = 0b0100;
+        const Rebuild = 0b1111;
     }
 }
 malloc_size_of::malloc_size_of_is_0!(AccessibilityDamage);

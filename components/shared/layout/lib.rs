@@ -189,7 +189,6 @@ impl SVGElementData<'_> {
 /// The address of a node known to be valid. These are sent from script to layout.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct TrustedNodeAddress(pub *const c_void);
-malloc_size_of::malloc_size_of_is_0!(TrustedNodeAddress);
 
 #[expect(unsafe_code)]
 unsafe impl Send for TrustedNodeAddress {}

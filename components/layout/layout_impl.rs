@@ -20,10 +20,10 @@ use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
 use layout_api::{
-    AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode,
-    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode,
-    NodeRenderingType, OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun,
-    ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, IFrameSizes, Layout,
+    LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
+    OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
+    ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
     ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
 };
 use log::{debug, warn};
@@ -984,26 +984,24 @@ impl LayoutThread {
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
-        unsafe {
-            let damage: VecDeque<(ServoLayoutNode, AccessibilityDamage)> = damage
-                .iter()
-                .map(|(address, damage)| (ServoLayoutNode::new(address), *damage))
-                .collect();
+        let damage: VecDeque<_> = damage
+            .iter()
+            .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
+            .collect();
 
-            if let Some(tree_update) =
-                accessibility_tree.update_tree(root_element, damage, rooted_nodes)
-            {
-                // FIXME: Handle send error. Could have a method on accessibility tree to
-                // finalise after sending, removing accessibility damage? On fail, retain damage
-                // for next reflow, as well as retaining document.needs_accessibility_update.
-                let _ = self
-                    .embedder_chan
-                    .send(EmbedderMsg::AccessibilityTreeUpdate(
-                        self.webview_id,
-                        tree_update,
-                        accessibility_tree.embedder_epoch(),
-                    ));
-            }
+        if let Some(tree_update) =
+            accessibility_tree.update_tree(root_element, damage, rooted_nodes)
+        {
+            // FIXME: Handle send error. Could have a method on accessibility tree to
+            // finalise after sending, removing accessibility damage? On fail, retain damage
+            // for next reflow, as well as retaining document.needs_accessibility_update.
+            let _ = self
+                .embedder_chan
+                .send(EmbedderMsg::AccessibilityTreeUpdate(
+                    self.webview_id,
+                    tree_update,
+                    accessibility_tree.embedder_epoch(),
+                ));
         }
         self.needs_accessibility_update.set(false);
         true

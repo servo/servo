@@ -22,7 +22,7 @@ pub(crate) struct AccessibilityData {
 
     /// Damage to the accessibility tree as a result of DOM mutations. This is drained and sent to
     /// the accessibility tree during reflow.
-    pending_damage: NoTrace<DomRefCell<FxHashMap<TrustedNodeAddress, AccessibilityDamage>>>,
+    pending_damage: DomRefCell<FxHashMap<Dom<Node>, NoTrace<AccessibilityDamage>>>,
 }
 
 impl AccessibilityData {
@@ -92,16 +92,19 @@ impl AccessibilityData {
     ) {
         assert!(pref!(accessibility_enabled));
 
-        let map = &mut self.pending_damage.0.borrow_mut();
-        let pending_damage = map.entry(node.to_trusted_node_address()).or_default();
-        *pending_damage |= damage;
+        let map = &mut self.pending_damage.borrow_mut();
+        let pending_damage = map.entry(Dom::from_ref(node)).or_default();
+        pending_damage.0 |= damage;
     }
 
     /// Drain all pending accessibility damage so that it can be passed to the accessibility tree.
     pub(crate) fn drain_pending_accessibility_damage(
         &mut self,
     ) -> Vec<(TrustedNodeAddress, AccessibilityDamage)> {
-        let pending_damage = &mut self.pending_damage.0.borrow_mut();
-        pending_damage.drain().collect()
+        let pending_damage = &mut self.pending_damage.borrow_mut();
+        pending_damage
+            .drain()
+            .map(|(node, damage)| (node.to_trusted_node_address(), damage.0))
+            .collect()
     }
 }

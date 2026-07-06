@@ -292,6 +292,9 @@ impl Node {
         assert!(new_child.parent_node.get().is_none());
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
+
+        self.add_pending_accessibility_damage(AccessibilityDamage::Children);
+
         match before {
             Some(before) => {
                 assert!(before.parent_node.get().as_deref() == Some(self));
@@ -498,6 +501,7 @@ impl Node {
     fn remove_child(&self, cx: &mut JSContext, child: &Node, cached_index: Option<u32>) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.note_dirty_descendants();
+        self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
         let prev_sibling = child.GetPreviousSibling();
         match prev_sibling {
@@ -540,6 +544,7 @@ impl Node {
     fn move_child(&self, cx: &mut JSContext, child: &Node) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.note_dirty_descendants();
+        self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
@@ -681,10 +686,6 @@ impl Node {
 }
 
 impl Node {
-    fn rare_data(&self) -> Ref<'_, Option<Box<NodeRareData>>> {
-        self.rare_data.borrow()
-    }
-
     fn ensure_rare_data(&self) -> RefMut<'_, Box<NodeRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {
@@ -894,7 +895,7 @@ impl Node {
                     .unwrap()
                     .dirty(NodeDamage::ContentOrHeritage);
 
-                self.add_pending_accessibility_damage(AccessibilityDamage::SELF);
+                self.add_pending_accessibility_damage(AccessibilityDamage::Text);
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => self
@@ -1582,9 +1583,6 @@ impl Node {
             next: child,
         });
         MutationObserver::queue_a_mutation_record(cx, new_parent, mutation);
-
-        old_parent.add_pending_accessibility_damage(AccessibilityDamage::CHILDREN);
-        new_parent.add_pending_accessibility_damage(AccessibilityDamage::CHILDREN);
 
         Ok(())
     }
@@ -4200,7 +4198,6 @@ impl VirtualMethods for Node {
         {
             list.as_children_list().children_changed(mutation);
         }
-        self.add_pending_accessibility_damage(AccessibilityDamage::CHILDREN);
 
         self.owner_doc().content_and_heritage_changed(self);
     }
