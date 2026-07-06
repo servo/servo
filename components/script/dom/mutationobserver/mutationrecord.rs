@@ -5,14 +5,13 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace};
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecord_Binding::MutationRecordMethods;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct MutationRecord {
@@ -31,11 +30,11 @@ pub(crate) struct MutationRecord {
 impl MutationRecord {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn attribute_mutated(
+        cx: &mut JSContext,
         target: &Node,
         attribute_name: &LocalName,
         attribute_namespace: Option<&Namespace>,
         old_value: Option<DOMString>,
-        can_gc: CanGc,
     ) -> DomRoot<MutationRecord> {
         let record = Box::new(MutationRecord::new_inherited(
             "attributes",
@@ -48,15 +47,15 @@ impl MutationRecord {
             None,
             None,
         ));
-        reflect_dom_object(record, &*target.owner_window(), can_gc)
+        reflect_dom_object_with_cx(record, &*target.owner_window(), cx)
     }
 
     pub(crate) fn character_data_mutated(
+        cx: &mut JSContext,
         target: &Node,
         old_value: Option<DOMString>,
-        can_gc: CanGc,
     ) -> DomRoot<MutationRecord> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(MutationRecord::new_inherited(
                 "characterData",
                 target,
@@ -69,7 +68,7 @@ impl MutationRecord {
                 None,
             )),
             &*target.owner_window(),
-            can_gc,
+            cx,
         )
     }
 

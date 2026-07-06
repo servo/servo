@@ -157,7 +157,7 @@ use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::enter_auto_realm;
 use crate::script_mutation_observers::ScriptMutationObservers;
 use crate::script_runtime::{
-    CanGc, IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
+    IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
 };
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_queue::TaskQueue;
@@ -2005,7 +2005,7 @@ impl ScriptThread {
                     .remove(&user_content_manager_id);
             },
             ScriptThreadMessage::UpdatePinchZoomInfos(id, pinch_zoom_infos) => {
-                self.handle_update_pinch_zoom_infos(id, pinch_zoom_infos, CanGc::from_cx(cx));
+                self.handle_update_pinch_zoom_infos(cx, id, pinch_zoom_infos);
             },
             ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active, epoch) => {
                 self.set_accessibility_active(pipeline_id, active, epoch);
@@ -4415,16 +4415,16 @@ impl ScriptThread {
 
     pub(crate) fn handle_update_pinch_zoom_infos(
         &self,
+        cx: &mut JSContext,
         pipeline_id: PipelineId,
         pinch_zoom_infos: PinchZoomInfos,
-        can_gc: CanGc,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Visual viewport update for closed pipeline {pipeline_id}.");
             return;
         };
 
-        window.maybe_update_visual_viewport(pinch_zoom_infos, can_gc);
+        window.maybe_update_visual_viewport(cx, pinch_zoom_infos);
     }
 
     pub(crate) fn devtools_want_updates_for_node(pipeline: PipelineId, node: &Node) -> bool {

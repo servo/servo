@@ -7,14 +7,14 @@ use std::cell::Cell;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use euclid::{Rect, Scale, Size2D};
+use js::context::JSContext;
 use paint_api::PinchZoomInfos;
 use script_bindings::codegen::GenericBindings::VisualViewportBinding::VisualViewportMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
 use style_traits::CSSPixel;
 use webrender_api::units::DevicePixel;
 
@@ -67,18 +67,18 @@ impl VisualViewport {
     /// The initial visual viewport based on a layout viewport relative to the initial containing block, where
     /// the dimension would be the same as layout viewport leaving the offset and the scale to its default value.
     pub(crate) fn new_from_layout_viewport(
+        cx: &mut JSContext,
         window: &Window,
         viewport_size: Size2D<f32, CSSPixel>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(
                 window,
                 Rect::from_size(viewport_size),
                 Scale::identity(),
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 

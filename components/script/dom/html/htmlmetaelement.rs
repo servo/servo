@@ -26,7 +26,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlheadelement::HTMLHeadElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLMetaElement {
@@ -148,7 +147,7 @@ impl HTMLMetaElement {
             let window = self.owner_window();
             window.paint_api().viewport(window.webview_id(), viewport);
             window
-                .get_or_init_visual_viewport(CanGc::from_cx(cx))
+                .get_or_init_visual_viewport(cx)
                 .update_scale(initial_scale);
         }
     }
