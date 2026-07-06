@@ -35,7 +35,7 @@ pub(crate) struct XRInputSource {
     hand: MutNullableDom<XRHand>,
     #[ignore_malloc_size_of = "mozjs"]
     profiles: Heap<JSVal>,
-    gamepad: DomRoot<Gamepad>,
+    gamepad: Dom<Gamepad>,
 }
 
 impl XRInputSource {
@@ -68,7 +68,7 @@ impl XRInputSource {
             grip_space: Default::default(),
             hand: Default::default(),
             profiles: Heap::default(),
-            gamepad,
+            gamepad: gamepad.as_traced(),
         }
     }
 
@@ -116,7 +116,7 @@ impl XRInputSource {
         });
     }
 
-    pub(crate) fn gamepad(&self) -> &DomRoot<Gamepad> {
+    pub(crate) fn gamepad(&self) -> &Gamepad {
         &self.gamepad
     }
 }
