@@ -5962,6 +5962,10 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
 
         assert self.type.flatMemberTypes is not None
 
+        allowRootedInTraceable = ""
+        if containsDomInterface(self.type):
+            allowRootedInTraceable = "#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]\n"
+
         templateVars = [(getUnionTypeTemplateVars(t, self.descriptorProvider),
                          getTypeWrapper(t)) for t in self.type.flatMemberTypes]
         enumValues = [
@@ -5978,7 +5982,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
         manualImpls = "\n".join(map(lambda t: self.manualImpl(t, templateVars), self.manualImpls))
         return f"""
 #[derive({", ".join(derives)})]
-pub enum {self.type}{self.generic} {{
+{allowRootedInTraceable}pub enum {self.type}{self.generic} {{
 {joinedEnumValues}
 }}
 
@@ -8074,6 +8078,10 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         memberDecls = [f"    pub {self.makeMemberName(m[0].identifier.name)}: {self.getMemberType(m)},"
                        for m in self.memberInfo]
 
+        allowRootedInTraceable = ""
+        if containsDomInterface(self.dictionary):
+            allowRootedInTraceable = "#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]\n"
+
         derive = ["JSTraceable"] + self.derives
         default = ""
         mustRoot = ""
@@ -8113,6 +8121,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         return (
             f"#[derive({', '.join(derive)})]\n"
             f"{mustRoot}"
+            f"{allowRootedInTraceable}"
             f"pub struct {self.makeClassName(d)}{self.generic} {{\n"
             f"{inheritance}"
             f"{joinedMemberDecls}\n"
