@@ -23,7 +23,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 
-
 /// <https://w3c.github.io/ServiceWorker/#cachestorage-interface>
 #[dom_struct]
 pub(crate) struct CacheStorage {

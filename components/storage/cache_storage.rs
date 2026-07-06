@@ -115,7 +115,7 @@ where
                 CacheStorageThreadMessage::Exit(sender) => {
                     let _ = sender.send(());
                     break;
-                }
+                },
             }
         }
     }
