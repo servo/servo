@@ -57,6 +57,10 @@ impl<T> DomRefCell<T> {
         }
     }
 
+    /// Returns a reference to the contents. For use in layout only.
+    /// # Panics
+    ///
+    /// Panics if this is called from anywhere other than the layout thread or if the cell is already mutable borrowed.
     pub fn borrow_for_layout_safe(&self) -> Ref<'_, T> {
         assert_in_layout();
         self.value.borrow()
@@ -82,29 +86,12 @@ impl<T> DomRefCell<T> {
 
     /// Mutably borrow a cell for layout. Ideally this would use
     /// `RefCell::try_borrow_mut_unguarded` but that doesn't exist yet.
-    ///
-    /// # Safety
-    ///
-    /// Unlike RefCell::borrow, this method is unsafe because it does not return a Ref, thus leaving
-    /// the borrow flag untouched. Mutably borrowing the RefCell while the reference returned by
-    /// this method is alive is undefined behaviour.
-    ///
     /// # Panics
     ///
     /// Panics if this is called from anywhere other than the layout thread.
-    #[expect(unsafe_code)]
-    #[allow(clippy::mut_from_ref)]
-    pub unsafe fn borrow_mut_for_layout(&self) -> RefMut<'_, T> {
+    pub fn borrow_mut_for_layout(&self) -> RefMut<'_, T> {
         assert_in_layout();
         self.value.borrow_mut()
-
-        /*
-        debug_assert!(
-            self.value.try_borrow_mut().is_ok(),
-            "Mutably borrowed for layout when we are not allowed to"
-        );
-         */
-        //unsafe { &mut *self.value.as_ptr() }
     }
 
     /// Mutably borrows the wrapped value.

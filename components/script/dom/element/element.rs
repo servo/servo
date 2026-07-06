@@ -1162,7 +1162,7 @@ impl<'dom> LayoutDom<'dom, Element> {
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) unsafe fn initialize_style_data(self) {
-        let mut data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
+        let mut data = self.unsafe_get().style_data.borrow_mut_for_layout();
         debug_assert!(data.is_none());
         *data = Some(Box::default());
     }
@@ -1170,9 +1170,7 @@ impl<'dom> LayoutDom<'dom, Element> {
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) unsafe fn clear_style_data(self) {
-        unsafe {
-            self.unsafe_get().style_data.borrow_mut_for_layout().take();
-        }
+        self.unsafe_get().style_data.borrow_mut_for_layout().take();
     }
 
     pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
