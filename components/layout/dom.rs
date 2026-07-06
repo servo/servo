@@ -341,6 +341,15 @@ pub(crate) trait NodeExt<'dom> {
     /// Remove boxes for the element itself, and all of its pseudo-element boxes.
     fn unset_all_boxes(&self);
 
+    /// Clear laid out `Fragment`s and dirty `Fragment` caches for all of this node's boxes,
+    /// ensuring that the next `FragmentTree` layout that happens at this node is complete.
+    fn clear_fragments_and_dirty_fragment_caches(&self);
+
+    /// Clear laid out `Fragment`s and dirty `Fragment` caches for all this node's boxes and
+    /// descendant's boxes, ensuring that the next `FragmentTree` layout that happens at and
+    /// below this node is complete.
+    fn clear_fragments_and_dirty_fragment_caches_recursively(&self);
+
     /// Returns the [`NodeRenderingType`] for this [`LayoutNode`] which describes whether
     /// the node is being rendered, delegating rendering, or not being rendered at all
     /// based on whether it has a [`LayoutBox`] and what kind.
@@ -531,6 +540,19 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
 
         // Stylo already takes care of removing all layout data
         // for DOM descendants of elements with `display: none`.
+    }
+
+    fn clear_fragments_and_dirty_fragment_caches_recursively(&self) {
+        self.clear_fragments_and_dirty_fragment_caches();
+        for child in self.flat_tree_children() {
+            child.clear_fragments_and_dirty_fragment_caches_recursively();
+        }
+    }
+
+    fn clear_fragments_and_dirty_fragment_caches(&self) {
+        self.with_layout_box_base_including_pseudos(|base| {
+            base.clear_fragments_and_dirty_fragment_cache()
+        });
     }
 
     fn rendering_type(&self) -> NodeRenderingType {
