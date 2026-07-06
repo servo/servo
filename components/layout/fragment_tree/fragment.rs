@@ -434,16 +434,17 @@ impl TextFragment {
         &self,
         point_in_fragment: Point2D<Au, CSSPixel>,
     ) -> Au {
+        // point_in_fragment is alerady in a coordinate space where the fragment origin is (0, 0)
+        let rect = Rect::new(Default::default(), self.base.rect().size);
         // This is the distance between the closest point on the edge of the rectangle and
         // the point. From <https://stackoverflow.com/a/18157551>.
-        let rect = &self.base.rect();
         let dx = (rect.min_x() - point_in_fragment.x)
             .max(Au::zero())
             .max(point_in_fragment.x - rect.max_x());
         let dy = (rect.min_y() - point_in_fragment.y)
             .max(Au::zero())
             .max(point_in_fragment.y - rect.max_y());
-        Au::from_f64_px((dx.to_f64_px().powi(2) + dy.to_f64_px().powi(2)).sqrt())
+        Au::from_f64_px(dx.to_f64_px().hypot(dy.to_f64_px()))
     }
 
     /// Given a point relative to this [`TextFragment`], find the most appropriate
