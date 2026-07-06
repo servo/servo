@@ -774,7 +774,7 @@ impl HTMLFormElement {
                 atom!("submit"),
                 true,
                 true,
-                submitter_button.map(DomRoot::from_ref),
+                submitter_button,
             );
             let event = event.upcast::<Event>();
             event.fire(cx, self.upcast::<EventTarget>());

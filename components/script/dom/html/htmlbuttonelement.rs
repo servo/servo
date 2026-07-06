@@ -559,7 +559,7 @@ impl Activatable for HTMLButtonElement {
                 atom!("command"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::Cancelable,
-                Some(DomRoot::from_ref(self.upcast())),
+                Some(self.upcast()),
                 self.upcast::<Element>()
                     .get_string_attribute(&local_name!("command")),
             );
