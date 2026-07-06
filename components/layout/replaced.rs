@@ -328,6 +328,7 @@ impl ReplacedContents {
                 .unwrap_or_else(|| Self::zero_sized_invalid_image(node));
 
             replaced_contents.is_content_replacement = true;
+            node.clear_fragments_and_dirty_fragment_caches_of_descendants();
             return Some(replaced_contents);
         }
         None

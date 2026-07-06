@@ -350,6 +350,10 @@ pub(crate) trait NodeExt<'dom> {
     /// below this node is complete.
     fn clear_fragments_and_dirty_fragment_caches_recursively(&self);
 
+    /// Clear laid out `Fragment`s and dirty `Fragment` caches for all this node's descendant's
+    /// boxes.
+    fn clear_fragments_and_dirty_fragment_caches_of_descendants(&self);
+
     /// Returns the [`NodeRenderingType`] for this [`LayoutNode`] which describes whether
     /// the node is being rendered, delegating rendering, or not being rendered at all
     /// based on whether it has a [`LayoutBox`] and what kind.
@@ -544,15 +548,19 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
 
     fn clear_fragments_and_dirty_fragment_caches_recursively(&self) {
         self.clear_fragments_and_dirty_fragment_caches();
-        for child in self.flat_tree_children() {
-            child.clear_fragments_and_dirty_fragment_caches_recursively();
-        }
+        self.clear_fragments_and_dirty_fragment_caches_of_descendants();
     }
 
     fn clear_fragments_and_dirty_fragment_caches(&self) {
         self.with_layout_box_base_including_pseudos(|base| {
             base.clear_fragments_and_dirty_fragment_cache()
         });
+    }
+
+    fn clear_fragments_and_dirty_fragment_caches_of_descendants(&self) {
+        for child in self.flat_tree_children() {
+            child.clear_fragments_and_dirty_fragment_caches_recursively();
+        }
     }
 
     fn rendering_type(&self) -> NodeRenderingType {
