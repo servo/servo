@@ -902,7 +902,7 @@ async fn wait_for_response(
         loop {
             match ch.1.recv().await {
                 Some(Data::ContentLength(length)) => {
-                    target.process_length_field(request, length);
+                    target.process_response_length_hint(request, length);
                 },
                 Some(Data::Payload(vec)) => {
                     if let Some(body) = devtools_body.as_mut() {

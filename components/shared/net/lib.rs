@@ -316,8 +316,8 @@ pub trait FetchTaskTarget {
 
     fn process_csp_violations(&mut self, request: &Request, violations: Vec<csp::Violation>);
 
-    /// Tell the listener that we know the length of the content. This will be send at most once but could be send not at all.
-    fn process_length_field(&mut self, request_id: &Request, length: usize);
+    /// Tell the listener that have a hint of how long the content is. This will be sent at most once.
+    fn process_response_length_hint(&mut self, request_id: &Request, length: usize);
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -396,7 +396,7 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
         ));
     }
 
-    fn process_length_field(&mut self, request: &Request, length: usize) {
+    fn process_response_length_hint(&mut self, request: &Request, length: usize) {
         let _ = self.send(FetchResponseMsg::ProcessContentLength(request.id, length));
     }
 }
@@ -474,7 +474,7 @@ impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
     fn process_csp_violations(&mut self, _: &Request, violations: Vec<csp::Violation>) {
         let _ = self.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
     }
-    fn process_length_field(&mut self, _: &Request, _: usize) {}
+    fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
 }
 
 /// A fetch task that discards all data it's sent,
@@ -488,7 +488,7 @@ impl FetchTaskTarget for DiscardFetch {
     fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
     fn process_response_eof(&mut self, _: &Request, _: &Response) {}
     fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
-    fn process_length_field(&mut self, _: &Request, _: usize) {}
+    fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
 }
 
 /// Handle to an async runtime,

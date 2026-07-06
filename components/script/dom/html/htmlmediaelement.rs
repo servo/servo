@@ -4092,9 +4092,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         true
     }
 
-    fn process_content_length(&mut self, _request_id: RequestId, _size: usize) {
-        // todo
-    }
+    fn process_content_length(&mut self, _request_id: RequestId, _size: usize) {}
 }
 
 impl ResourceTimingListener for HTMLMediaElementFetchListener {

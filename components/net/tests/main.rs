@@ -158,7 +158,7 @@ impl FetchTaskTarget for FetchResponseCollector {
     }
     fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
 
-    fn process_length_field(&mut self, _: &Request, _: usize) {}
+    fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
 }
 
 fn fetch_with_context(request: Request, mut context: &mut FetchContext) -> Response {

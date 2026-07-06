@@ -175,7 +175,7 @@ fn test_fetch_blob() {
         }
         fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
 
-        fn process_length_field(&mut self, _: &Request, _: usize) {}
+        fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
     }
 
     let context = new_fetch_context(None, None);
