@@ -460,7 +460,7 @@ impl HTMLSelectElement {
         self.owner_document()
             .embedder_controls()
             .show_embedder_control(
-                ControlElement::Select(DomRoot::from_ref(self)),
+                ControlElement::Select(Dom::from_ref(self)),
                 EmbedderControlRequest::SelectElement(SelectElementRequest {
                     options,
                     selected_options,
