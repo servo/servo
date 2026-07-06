@@ -634,8 +634,6 @@ impl FetchResponseListener for FetchContext {
         let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
-
-    fn process_content_length(&mut self, _request_id: RequestId, _size: usize) {}
 }
 
 impl ResourceTimingListener for FetchContext {
@@ -690,8 +688,6 @@ impl FetchResponseListener for FetchLaterListener {
         let global = self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
-
-    fn process_content_length(&mut self, _request_id: RequestId, _size: usize) {}
 }
 
 impl ResourceTimingListener for FetchLaterListener {

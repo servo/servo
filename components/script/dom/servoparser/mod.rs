@@ -1566,10 +1566,6 @@ impl FetchResponseListener for ParserContext {
     fn process_csp_violations(&mut self, _: &mut JSContext, _: RequestId, _: Vec<Violation>) {
         unreachable!("Script_thread should handle reporting violations for parser contexts");
     }
-
-    fn process_content_length(&mut self, _request_id: RequestId, _size: usize) {
-        // todo
-    }
 }
 
 pub(crate) struct FragmentContext<'a> {

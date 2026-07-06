@@ -157,10 +157,6 @@ impl FetchResponseListener for XHRContext {
     fn should_invoke(&self) -> bool {
         self.xhr.root().generation_id.get() == self.gen_id
     }
-
-    fn process_content_length(&mut self, _request_id: RequestId, _size: usize) {
-        // todo
-    }
 }
 
 impl ResourceTimingListener for XHRContext {

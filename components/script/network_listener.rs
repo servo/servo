@@ -122,7 +122,7 @@ pub(crate) trait FetchResponseListener: Send + 'static {
         violations: Vec<Violation>,
     );
 
-    fn process_content_length(&mut self, request_id: RequestId, size: usize) {}
+    fn process_content_length(&mut self, _request_id: RequestId, _size: usize) {}
 }
 
 /// An off-thread sink for async network event tasks. All such events are forwarded to

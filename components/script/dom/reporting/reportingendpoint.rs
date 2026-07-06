@@ -348,8 +348,6 @@ impl FetchResponseListener for CSPReportEndpointFetchListener {
         _violations: Vec<Violation>,
     ) {
     }
-
-    fn process_content_length(&mut self, _request_id: RequestId, _size: usize) {}
 }
 
 impl ResourceTimingListener for CSPReportEndpointFetchListener {
