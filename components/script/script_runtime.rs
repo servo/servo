@@ -827,8 +827,6 @@ impl Runtime {
                 Some(empty_wrapper_callback),
                 Some(empty_has_released_callback),
             );
-            // Pre barriers aren't working correctly at the moment
-            JS_SetGCParameter(cx, JSGCParamKey::JSGC_INCREMENTAL_GC_ENABLED, 0);
         }
 
         unsafe extern "C" fn dispatch_to_event_loop(
@@ -980,12 +978,15 @@ impl Runtime {
                     .map(|val| (val * 1024 * 1024) as u32)
                     .unwrap_or(u32::MAX),
             );
-            // NOTE: This is disabled above, so enabling it here will do nothing for now.
+
+            // Pre-barriers aren't implemented correctly at the moment, so this preference
+            // defaults to false.
             JS_SetGCParameter(
                 cx,
                 JSGCParamKey::JSGC_INCREMENTAL_GC_ENABLED,
                 pref!(js_mem_gc_incremental_enabled) as u32,
             );
+
             JS_SetGCParameter(
                 cx,
                 JSGCParamKey::JSGC_PER_ZONE_GC_ENABLED,
