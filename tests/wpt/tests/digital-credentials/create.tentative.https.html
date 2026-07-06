@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta charset="utf-8">
 <title>Digital Credential API tests for create.</title>
 <link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
 <script src="/common/get-host-info.sub.js"></script>
@@ -13,7 +14,7 @@
 </body>
 
 <script type="module">
-  import { makeCreateOptions, sendMessage, loadIframe } from "./support/helper.js";
+  import { makeCreateOptions, makeCanonicalCreateRequest, sendMessage, loadIframe } from "./support/helper.js";
 
   const iframeSameOrigin = document.querySelector("iframe#same-origin");
   const iframeCrossOrigin = document.querySelector("iframe#cross-origin");
@@ -283,4 +284,78 @@
     controller.abort();
     await promise_rejects_dom(t, "AbortError", promise);
   }, "navigator.credentials.create() with one unknown protocol with malformed data and one known protocol with proper data should skip the unknown one and not fail.");
+
+  promise_test(async (t) => {
+    const options = {
+      digital: {
+        requests: [{ protocol: "unknown-protocol", data: {} }]
+      }
+    };
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.create(options)
+    );
+  }, "All unsupported protocols filtered results in TypeError.");
+
+  promise_test(async (t) => {
+    const options = {
+      digital: {
+        requests: [
+          { protocol: "fake-protocol-1", data: {} },
+          { protocol: "fake-protocol-2", data: {} },
+          { protocol: "another-unknown", data: {} }
+        ]
+      }
+    };
+    await promise_rejects_js(
+      t,
+      TypeError,
+      navigator.credentials.create(options)
+    );
+  }, "Multiple unsupported protocols all filtered results in TypeError.");
+
+  promise_test(async (t) => {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    const options = {
+      digital: {
+        requests: [makeCanonicalCreateRequest("openid4vci")]
+      },
+      signal
+    };
+    await test_driver.bless("user activation");
+    const promise = navigator.credentials.create(options);
+    abortController.abort();
+    await promise_rejects_dom(
+      t,
+      "AbortError",
+      promise,
+      "Valid 'openid4vci' protocol should not be filtered out"
+    );
+  }, "Valid 'openid4vci' protocol passes through filtering.");
+
+  promise_test(async (t) => {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    const options = {
+      digital: {
+        requests: [
+          { protocol: "unknown-protocol", data: {} },
+          makeCanonicalCreateRequest("openid4vci"),
+          { protocol: "another-fake", data: {} }
+        ]
+      },
+      signal
+    };
+    await test_driver.bless("user activation");
+    const promise = navigator.credentials.create(options);
+    abortController.abort();
+    await promise_rejects_dom(
+      t,
+      "AbortError",
+      promise,
+      "Valid protocol among invalid ones should survive filtering"
+    );
+  }, "Mix of valid and invalid protocols - valid survives filtering.");
 </script>

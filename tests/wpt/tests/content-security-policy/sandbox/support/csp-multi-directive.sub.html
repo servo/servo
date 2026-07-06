@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; img-src 'self'; style-src 'self' 'unsafe-inline'; frame-src 'self'">
+    <link rel="stylesheet" href="iframe-self-style.css" id="styleLink">
+</head>
+<body>
+    <script>window.__scriptLoaded = false;</script>
+    <script src="iframe-self-pass.js"></script>
+    <script>
+        function postPass(label) { window.parent.postMessage("PASS " + label, "*"); }
+        function postFail(label) { window.parent.postMessage("FAIL " + label, "*"); }
+
+        if (window.__scriptLoaded)
+            postPass("script-src self");
+        else
+            postFail("script-src self");
+
+        var img = new Image();
+        img.onload = function() { postPass("img-src self"); };
+        img.onerror = function() { postFail("img-src self"); };
+        img.src = "/content-security-policy/support/pass.png";
+
+        var styleLink = document.getElementById("styleLink");
+        function reportStyle() {
+            if (styleLink.sheet)
+                postPass("style-src self");
+            else
+                postFail("style-src self");
+        }
+        if (styleLink.sheet)
+            reportStyle();
+        else {
+            styleLink.addEventListener("load", reportStyle);
+            styleLink.addEventListener("error", function() { postFail("style-src self"); });
+        }
+
+        var frame = document.createElement("iframe");
+        frame.onload = function() { postPass("frame-src self"); };
+        frame.onerror = function() { postFail("frame-src self"); };
+        frame.src = "empty.html";
+        document.body.appendChild(frame);
+    </script>
+</body>
+</html>

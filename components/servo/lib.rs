@@ -4,13 +4,42 @@
 
 //! Servo, the mighty web browser engine from the future.
 //!
-//! This is a very simple library that wires all of Servo's components together as
-//! type `Servo`, along with a Webview implementation, `WebView` to create a working
-//! web browser.
+//! This crate wires all of Servo's components together as type [`Servo`], along with
+//! a Webview implementation, [`WebView`], to create a working web engine.
 //!
-//! The `Servo` type is responsible for configuring a `Constellation`, which does the
-//! heavy lifting of coordinating all of Servo's internal subsystems, including the
-//! `ScriptThread` and the `LayoutThread`, as well maintains the navigation context.
+//! To embed Servo in your application, you need to:
+//! 1) Create an instance of a type that implements the [`EventLoopWaker`] trait.
+//!    This trait allows Servo to integrate with your application's event loop. Your
+//!    [`EventLoopWaker::wake`] implementation needs to ensure that
+//!    [`Servo::spin_event_loop`] is eventually called to let Servo process user input,
+//!    network events etc.
+//! 2) Create a [`Servo`] instance using the [`ServoBuilder`] type. You can optionally
+//!    register a [`ServoDelegate`] implementation to subscribe to notifications about
+//!    events and customize certain behaviours.
+//! 3) Create an instance of a type that implements the [`RenderingContext`] trait.
+//!    Note: You can either use one of the existing types in this crate (such as
+//!    [`WindowRenderingContext`], [`OffscreenRenderingContext`] or [`SoftwareRenderingContext`])
+//!    or provide a custom implementation.
+//! 4) For each [`WebView`] in your application, create a [`WebViewBuilder`] by passing
+//!    it the [`RenderingContext`] and [`Servo`] instance, and then configure the
+//!    builder and use it to create a [`WebView`] instance. The builder must be provided
+//!    with a [`WebViewDelegate`] implementation which, at a minimum, should handle
+//!    [`WebViewDelegate::notify_new_frame_ready`] by calling [`WebView::paint`]
+//!    and presenting the rendered page using [`RenderingContext::present`]. Refer to the
+//!    documentation of the [`WebView`] type to learn more about the relation
+//!    between a [`WebView`] and its [`RenderingContext`].
+//! 5) Run the application's event loop. Your application's event handlers need to
+//!    forward input events for a particular [`WebView`] using one of the `notify_*` methods
+//!    on that [`WebView`] instance. For example, to forward a mouse event to a [`WebView`],
+//!    call the [`WebView::notify_input_event`]. You can also invoke methods on a [`WebView`]
+//!    to request certain actions. For instance, the [`WebView::load`] method requests that
+//!    Servo navigate to a new page. In both cases, the calls to the [`WebView`] methods
+//!    must be followed by calls to [`Servo::spin_event_loop`] to allow Servo to process
+//!    those requests.
+//!
+//! For a minimal working example, refer to the [`winit_minimal`] code.
+//!
+//! [`winit_minimal`]: https://github.com/servo/servo/blob/main/components/servo/examples/winit_minimal.rs
 
 mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
@@ -40,6 +69,7 @@ pub use keyboard_types::{
 pub use media::{
     GlApi as MediaGlApi, GlContext as MediaGlContext, NativeDisplay as MediaNativeDisplay,
 };
+pub use net::image_cache::should_panic_hook_suppress_termination;
 pub use net_traits::CookieSource;
 // This API should probably not be exposed in this way. Instead there should be a fully
 // fleshed out public domains API if we want to expose it.

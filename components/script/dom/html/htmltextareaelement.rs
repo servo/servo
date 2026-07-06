@@ -51,7 +51,6 @@ use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::types::{FocusEvent, MouseEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
-use crate::script_runtime::CanGc;
 use crate::textinput::{ClipboardEventFlags, IsComposing, KeyReaction, Lines, TextInput};
 
 #[dom_struct]

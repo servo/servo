@@ -27,7 +27,7 @@ async function setupIframe(t) {
 
 promise_test(async t => {
   const controller = new AbortController();
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'parent_tool_exposed',
     description: 'Parent tool exposed to child',
     inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
@@ -127,7 +127,7 @@ promise_test(async t => {
 promise_test(async t => {
   // Parent exposes tool to an origin that is neither its own, nor its cross-origin iframe's.
   const controller = new AbortController();
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'parent_tool',
     description: 'Parent tool exposed',
     execute: async () => 'hello'
@@ -207,7 +207,7 @@ promise_test(async t => {
   const timeout_promise = () => new Promise(resolve => t.step_timeout(() => resolve({ result: 'timeout' }), 4000));
 
   const controller = new AbortController();
-  document.modelContext.registerTool({
+  await document.modelContext.registerTool({
     name: 'parent_tool_no_policy',
     description: 'Parent tool',
     execute: async () => 'hello'

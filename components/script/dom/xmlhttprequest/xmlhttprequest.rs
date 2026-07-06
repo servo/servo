@@ -714,7 +714,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .headers((*self.request_headers.borrow()).clone())
         .unsafe_request(true)
         // XXXManishearth figure out how to avoid this clone
-        .body(extracted_or_serialized.map(|e| e.into_net_request_body().0))
+        .body(extracted_or_serialized.map(|e| e.into_net_request_body(cx).0))
         .synchronous(self.sync.get())
         .mode(RequestMode::CorsMode)
         .use_cors_preflight(self.upload_listener.get())

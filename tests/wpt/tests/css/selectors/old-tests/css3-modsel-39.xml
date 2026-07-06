@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>::first-letter pseudo-element</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[p:first-letter { font-size : xx-large ; background-color : lime }]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
@@ -9,7 +12,7 @@
  </head>
  <body>
 
-<p>This very long paragraph
+<p id="t1">This very long paragraph
 should have a big first letter T with a green background. Dummy
 text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
 text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
@@ -31,5 +34,10 @@ text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
 text. Dummy text. Dummy text. Dummy text. Dummy text. Dummy
 text. Dummy text. Dummy text. Dummy text. Dummy text.</p>
 
+<script><![CDATA[
+test(function() {
+  assert_equals(getComputedStyle(document.getElementById('t1'), '::first-letter').backgroundColor, LIME);
+}, '::first-letter pseudo-element background-color should be lime');
+]]></script>
 </body>
 </html>

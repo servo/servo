@@ -35,6 +35,16 @@ ignore = [
     # This is a dependency of `usvg`, `rustybuzz`, `fontdb`.
     # We will need to wait for upstream actions.
     "RUSTSEC-2026-0192",
+    # Vulnerability in `quick-xml`: Quadratic run time when checking a start
+    # tag for duplicate attribute names.
+    #
+    # We must use this version of quick-xml until `winit` upgrades `sctk`.
+    "RUSTSEC-2026-0194",
+    # Vulnerability in `quick-xml`: Unbounded namespace-declaration allocation
+    # in `NsReader` enables memory-exhaustion denial of service.
+    #
+    # We must use this version of quick-xml until `winit` upgrades `sctk`.
+    "RUSTSEC-2026-0195",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -204,6 +214,9 @@ skip = [
     # Duplicated by ml-kem. This should be gone in next version (>0.3.2)
     # of ml-kem.
     "sha3",
+
+    # Duplicated by bindgen
+    "shlex",
 ]
 
 # github.com organizations to allow git sources for

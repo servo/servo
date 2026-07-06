@@ -291,10 +291,10 @@ impl ReportingObserverMethods<crate::DomTypeHolder> for ReportingObserver {
 impl GlobalScope {
     fn append_reporting_observer(&self, reporting_observer: &ReportingObserver) {
         if let Some(window) = self.downcast::<Window>() {
-            return window.append_reporting_observer(DomRoot::from_ref(reporting_observer));
+            return window.append_reporting_observer(reporting_observer);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.append_reporting_observer(DomRoot::from_ref(reporting_observer));
+            return worker.append_reporting_observer(reporting_observer);
         }
         unreachable!();
     }

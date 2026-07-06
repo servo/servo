@@ -11,6 +11,7 @@ use http::HeaderMap;
 use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use js::context::JSContext;
 use js::jsapi::{Heap, JSObject, Value as JSValue};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -406,7 +407,10 @@ impl ExtractedBody {
     ///
     /// Transmitting a body over fetch, and consuming it in script,
     /// are mutually exclusive operations, since each will lock the stream to a reader.
-    pub(crate) fn into_net_request_body(self) -> (RequestBody, DomRoot<ReadableStream>) {
+    pub(crate) fn into_net_request_body(
+        self,
+        cx: &mut JSContext,
+    ) -> (RequestBody, DomRoot<ReadableStream>) {
         let ExtractedBody {
             stream,
             total_bytes,
@@ -426,7 +430,7 @@ impl ExtractedBody {
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SM.
         // Empty extracted bodies are always representable as an in-memory empty payload.
-        let in_memory = stream.get_in_memory_bytes().or_else(|| {
+        let in_memory = stream.get_in_memory_bytes(cx).or_else(|| {
             if total_bytes == Some(0) {
                 Some(GenericSharedMemory::from_bytes(&[]))
             } else {
@@ -842,8 +846,8 @@ fn run_package_data_algorithm(
     mime_type: Vec<u8>,
 ) -> Fallible<FetchedData> {
     let mime = &*mime_type;
-    let realm = CurrentRealm::assert(cx);
-    let global = GlobalScope::from_current_realm(&realm);
+    let mut realm = CurrentRealm::assert(cx);
+    let global = GlobalScope::from_current_realm(&mut realm);
     match body_type {
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),
@@ -986,19 +990,19 @@ fn append_form_data_entry_from_part(
         // The type attribute of the File object must have the value of the `Content-Type` header of the part if the part has such header, and `text/plain` (the default defined by [RFC7578] section 4.4) otherwise.
         let content_type = content_type_from_headers(headers)?;
         let file = File::new(
+            cx,
             root,
             BlobImpl::new_from_bytes(body, normalize_type_string(&content_type)),
             DOMString::from(filename),
             None,
-            CanGc::from_cx(cx),
         );
         let blob = file.upcast::<Blob>();
-        formdata.Append_(USVString(name), blob, None);
+        formdata.Append_(cx, USVString(name), blob, None);
     } else {
         // Each part whose `Content-Disposition` header does not contain a `filename` parameter must be parsed into an entry whose value is the UTF-8 decoded without BOM content of the part. This is done regardless of the presence or the value of a `Content-Type` header and regardless of the presence or the value of a `charset` parameter.
 
         let (value, _) = UTF_8.decode_without_bom_handling(&body);
-        formdata.Append(USVString(name), USVString(value.to_string()));
+        formdata.Append(cx, USVString(name), USVString(value.to_string()));
     }
     Ok(())
 }
@@ -1088,7 +1092,7 @@ fn run_form_data_algorithm(
         let entries = form_urlencoded::parse(&bytes);
         let formdata = FormData::new(None, root, CanGc::from_cx(cx));
         for (k, e) in entries {
-            formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
+            formdata.Append(cx, USVString(k.into_owned()), USVString(e.into_owned()));
         }
         return Ok(FetchedData::FormData(formdata));
     }

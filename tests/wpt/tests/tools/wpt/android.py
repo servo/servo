@@ -53,6 +53,7 @@ def do_delayed_imports(paths):
             "ro.test_harness=true",
             "-no-snapstorage",
             "-no-snapshot",
+            "-no-metrics",
             "-skin",
             "800x1280"
         ],

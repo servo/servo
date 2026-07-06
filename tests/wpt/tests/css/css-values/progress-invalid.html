@@ -31,6 +31,14 @@ test_invalid_number('progress(0,,, 10,, 200)');
 test_invalid_number('progress(0,,, 10,,, 200)');
 test_invalid_number('progress(0,, 10,, 200)');
 test_invalid_number('progress(0 from 10 to 200)');
+test_invalid_number('progress(no-clamp)');
+test_invalid_number('progress(no-clamp 1)');
+test_invalid_number('progress(no-clamp 1, 0)');
+test_invalid_number('progress(no-clamp 1 0 1)');
+test_invalid_number('progress(no-clamp 1, 0 1)');
+test_invalid_number('progress(no-clamp, 1, 0 1)');
+test_invalid_number('progress(1 no-clamp, 0, 1)');
+test_invalid_number('progress(1, 0, 1 no-clamp)');
 
 // General tests
 test_invalid_number('progress(5%, 0, 8');

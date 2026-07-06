@@ -911,6 +911,10 @@ impl CreateNewWebViewRequest {
     }
 }
 
+/// A trait that the embedder can implement to customize the behaviour of a [`WebView`] or to
+/// listen to events from a [`WebView`]. Multiple [`WebView`]s can share the same delegate
+/// instance. A [`WebView`]'s delegate needs to be set at the time of creation using
+/// [`WebViewBuilder::delegate`].
 pub trait WebViewDelegate {
     /// Get the [`ScreenGeometry`] for this [`WebView`]. If this is unimplemented or returns `None`
     /// the screen will have the size of the [`WebView`]'s `RenderingContext` and `WebView` will be

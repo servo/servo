@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathMLAnchorElement href target navigation test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<math>
+    <a href="support/target.html?success" target="_blank">
+        <mtext>Click Me</mtext>
+    </a>
+</math>
+<script>
+promise_test(async t => {
+  const channel = new BroadcastChannel('mathml_nav_test');
+  const messageReceived = new Promise(resolve => { channel.onmessage = e => resolve(e) });
+  const a = document.querySelector('a')
+  a.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+  const message = await messageReceived;
+  channel.close();
+  const expected = new URL("support/target.html?success", window.location.href).href;
+  assert_equals(event.data, expected, "The new window should report the correct URL");
+}, "Test MathMLAnchorElement _blank navigation via BroadcastChannel");
+</script>
+</body>

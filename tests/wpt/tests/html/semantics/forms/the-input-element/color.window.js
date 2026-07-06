@@ -260,3 +260,20 @@ test(() => {
   input.setAttribute("alpha", "");
   assert_equals(input.value, "color(srgb 0 0 1)");
 }, "Setting alpha by setAttribute should update the value");
+
+// When the value is not dirty, changing colorspace/alpha re-sanitizes from the
+// original `value` content attribute rather than the current value, so
+// information dropped under the previous attributes (such as an alpha channel)
+// is recovered. See https://github.com/whatwg/html/issues/12057.
+test(() => {
+  const input = document.createElement("input");
+  input.type = "color";
+  // Setting the content attribute (rather than the IDL value) leaves the value
+  // non-dirty. Without the alpha attribute the value sanitizes to opaque.
+  input.setAttribute("value", "#ffffff08");
+  assert_equals(input.value, "#ffffff");
+  input.setAttribute("alpha", "");
+  // Reparsing the original "#ffffff08" recovers the alpha channel; reparsing the
+  // now-opaque current value would instead give "color(srgb 1 1 1)".
+  assert_colors(input.value, "color(srgb 1 1 1 / 0.031373)");
+}, "Adding alpha reparses the original value attribute for a non-dirty value");

@@ -1,0 +1,46 @@
+<!doctype html>
+<title>SVGPathElement.setPathData() during SMIL animation</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#__svg__SVGPathData__setPathData">
+<link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<svg id="svg" width="200" height="200">
+  <path id="path" d="M 0 0 L 50 50">
+    <animate id="anim" attributeName="d"
+             from="M 0 0 L 50 50"
+             to="M 0 0 L 100 100"
+             dur="10s" begin="indefinite" fill="freeze"/>
+  </path>
+</svg>
+<script>
+// setPathData() writes to the base value; animVal continues to drive rendering.
+
+promise_test(async () => {
+  await new Promise(resolve => addEventListener("load", resolve));
+  await waitForAtLeastOneFrame();
+
+  const svg = document.getElementById("svg");
+  const path = document.getElementById("path");
+  const anim = document.getElementById("anim");
+
+  // Pause time so SMIL doesn't tick while we mutate.
+  svg.pauseAnimations();
+  svg.setCurrentTime(0);
+  anim.beginElement();
+  svg.setCurrentTime(5);  // halfway through animation
+
+  // Now overwrite the base value via setPathData.
+  path.setPathData([
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [200, 200] }
+  ]);
+
+  // Base attribute reflects the new value.
+  assert_equals(path.getAttribute("d"), "M 0 0 L 200 200",
+      "setPathData() updates the d-attribute (base value)");
+
+  svg.unpauseAnimations();
+}, "setPathData() updates base value while SMIL animation is running");
+</script>

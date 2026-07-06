@@ -11,7 +11,7 @@ TEST_FILE = 'text-emphasis-ruby-{:03}{}.html'
 TEST_TEMPLATE = '''<!DOCTYPE html>
 <meta charset="utf-8">
 <!-- This file was generated automatically by the script
-     ./support/generate-text-emphasis-ruby-tests.py -->
+     ./tools/generate-text-emphasis-ruby-tests.py -->
 <title>CSS Test: text-emphasis and ruby, {wm}, {pos}</title>
 <link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
@@ -26,13 +26,13 @@ REF_FILE = 'text-emphasis-ruby-{:03}-ref.html'
 REF_TEMPLATE = '''<!DOCTYPE html>
 <meta charset="utf-8">
 <!-- This file was generated automatically by the script
-     ./support/generate-text-emphasis-ruby-tests.py -->
+     ./tools/generate-text-emphasis-ruby-tests.py -->
 <title>CSS Reference: text-emphasis and ruby, {wm}, {pos}</title>
 <link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
 <style> rtc {{ font-variant-east-asian: inherit; }} </style>
 <p>Pass if the emphasis marks are outside the ruby:</p>
-<div lang="ja" style="line-height: 5; writing-mode: {wm}; ruby-position: {posval}">ルビ<ruby>と<rtc>&#x25CF;</rtc>圏<rt>けん</rt><rtc>&#x25CF;</rtc>点<rt>てん</rt><rtc>&#x25CF;</rtc>を<rtc>&#x25CF;</rtc></ruby>同時</div>
+<div lang="ja" style="line-height: 5; writing-mode: {wm}; ruby-position: {posval}">ルビ<ruby>と<rt>&#x25CF;</rt></ruby><ruby><ruby>圏<rt>けん</rt></ruby><rt>&#x25CF;</rt></ruby><ruby><ruby>点<rt>てん</rt></ruby><rt>&#x25CF;</rt></ruby><ruby>を<rt>&#x25CF;</rt></ruby>同時</div>
 '''
 
 TEST_CASES = [

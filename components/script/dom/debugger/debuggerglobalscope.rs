@@ -52,7 +52,7 @@ use crate::dom::types::{
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::IntroductionType;
 use crate::script_thread::with_script_thread;
 
 #[dom_struct]
@@ -170,11 +170,8 @@ impl DebuggerGlobalScope {
     ) {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm;
-        let debuggee_pipeline_id = crate::dom::pipelineid::PipelineId::new(
-            self.upcast(),
-            debuggee_pipeline_id,
-            CanGc::from_cx(cx),
-        );
+        let debuggee_pipeline_id =
+            crate::dom::pipelineid::PipelineId::new(cx, self.upcast(), debuggee_pipeline_id);
         let event = DomRoot::upcast::<Event>(DebuggerAddDebuggeeEvent::new(
             cx,
             self.upcast(),
@@ -204,18 +201,15 @@ impl DebuggerGlobalScope {
         );
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm;
-        let debuggee_pipeline_id = crate::dom::pipelineid::PipelineId::new(
-            self.upcast(),
-            debuggee_pipeline_id,
-            CanGc::from_cx(cx),
-        );
+        let debuggee_pipeline_id =
+            crate::dom::pipelineid::PipelineId::new(cx, self.upcast(), debuggee_pipeline_id);
         let event = DomRoot::upcast::<Event>(DebuggerEvalEvent::new(
+            cx,
             self.upcast(),
             code,
             &debuggee_pipeline_id,
             debuggee_worker_id.map(|id| id.to_string().into()),
             frame_actor_id.map(|id| id.into()),
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -237,9 +231,9 @@ impl DebuggerGlobalScope {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
         let event = DomRoot::upcast::<Event>(DebuggerGetPossibleBreakpointsEvent::new(
+            cx,
             self.upcast(),
             spidermonkey_id,
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -255,11 +249,11 @@ impl DebuggerGlobalScope {
         offset: u32,
     ) {
         let event = DomRoot::upcast::<Event>(DebuggerSetBreakpointEvent::new(
+            cx,
             self.upcast(),
             spidermonkey_id,
             script_id,
             offset,
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -268,10 +262,7 @@ impl DebuggerGlobalScope {
     }
 
     pub(crate) fn fire_interrupt(&self, cx: &mut js::context::JSContext) {
-        let event = DomRoot::upcast::<Event>(DebuggerInterruptEvent::new(
-            self.upcast(),
-            CanGc::from_cx(cx),
-        ));
+        let event = DomRoot::upcast::<Event>(DebuggerInterruptEvent::new(cx, self.upcast()));
         assert!(
             event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerInterruptEvent::new"
@@ -293,14 +284,13 @@ impl DebuggerGlobalScope {
         );
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
-        let pipeline_id =
-            crate::dom::pipelineid::PipelineId::new(self.upcast(), pipeline_id, CanGc::from_cx(cx));
+        let pipeline_id = crate::dom::pipelineid::PipelineId::new(cx, self.upcast(), pipeline_id);
         let event = DomRoot::upcast::<Event>(DebuggerFrameEvent::new(
+            cx,
             self.upcast(),
             &pipeline_id,
             start,
             count,
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -322,9 +312,9 @@ impl DebuggerGlobalScope {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
         let event = DomRoot::upcast::<Event>(DebuggerGetEnvironmentEvent::new(
+            cx,
             self.upcast(),
             frame_actor_id.into(),
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -339,10 +329,10 @@ impl DebuggerGlobalScope {
         frame_actor_id: Option<String>,
     ) {
         let event = DomRoot::upcast::<Event>(DebuggerResumeEvent::new(
+            cx,
             self.upcast(),
             resume_limit_type.map(DOMString::from),
             frame_actor_id.map(DOMString::from),
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -358,11 +348,11 @@ impl DebuggerGlobalScope {
         offset: u32,
     ) {
         let event = DomRoot::upcast::<Event>(DebuggerClearBreakpointEvent::new(
+            cx,
             self.upcast(),
             spidermonkey_id,
             script_id,
             offset,
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -377,10 +367,10 @@ impl DebuggerGlobalScope {
         coverage: BlackboxCoverage,
     ) {
         let event = DomRoot::upcast::<Event>(DebuggerBlackboxEvent::new(
+            cx,
             self.upcast(),
             spidermonkey_id,
             coverage,
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -395,10 +385,10 @@ impl DebuggerGlobalScope {
         coverage: BlackboxCoverage,
     ) {
         let event = DomRoot::upcast::<Event>(DebuggerUnblackboxEvent::new(
+            cx,
             self.upcast(),
             spidermonkey_id,
             coverage,
-            CanGc::from_cx(cx),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -566,6 +556,25 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         };
 
         let _ = sender.send(reply);
+    }
+
+    fn RegisterObjectActor(&self, serialized_value: DOMString) -> Option<DOMString> {
+        let chan = self.upcast::<GlobalScope>().devtools_chan()?;
+        let (tx, rx) = channel::<String>().unwrap();
+
+        let value =
+            match serde_json::from_str::<devtools_traits::DebuggerValue>(&serialized_value.str()) {
+                Ok(value) => value,
+                Err(error) => {
+                    warn!("Failed to parse serialized debugger object value: {error}");
+                    return None;
+                },
+            };
+
+        let msg = ScriptToDevtoolsControlMsg::CreateObjectActor(tx, value);
+        let _ = chan.send(msg);
+
+        rx.recv().ok().map(DOMString::from)
     }
 
     fn PauseAndRespond(

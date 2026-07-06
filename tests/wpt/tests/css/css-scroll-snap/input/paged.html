@@ -18,8 +18,11 @@
 html, body {
   margin: 0;
 }
+/* Heights are rounded to whole pixels so snap points stay integral; a
+   fractional vh height can make a center snap land sub-pixel short of
+   maxScroll, which then trips the strict <= bounds check in visiblePages(). */
 .scroller {
-  height: 100vh;
+  height: round(100vh, 1px);
   overflow: auto;
   position: relative;
   scroll-snap-type: y mandatory;
@@ -27,19 +30,19 @@ html, body {
 }
 
 .gap {
-  height: 100vh;
+  height: round(100vh, 1px);
 }
 
 .page {
   counter-increment: --page;
-  height: 90vh;
+  height: round(90vh, 1px);
   scroll-snap-align: center;
   padding: 8px;
   position: relative;
   --page: counter(--page);
 }
 .short {
-  height: 25vh;
+  height: round(25vh, 1px);
 }
 .page > div::before {
   content: "Page " counter(--page);

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!--
+      Content-Security-Policy:
+        object-src 'self';
+        img-src 'none';
+        script-src 'self' 'unsafe-inline';
+        report-uri /reporting/resources/report.py?op=put&reportID={{$id}}
+    -->
+</head>
+
+<body>
+    <object type="image/png" data="/content-security-policy/support/pass.png"></object>
+    <!--
+      Per CSP3 section 6.1.9, object-src is the only directive that governs
+      object and embed elements, even when loading image content. img-src
+      must not be applied to object elements.
+    -->
+    <script src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+
+</html>

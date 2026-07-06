@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Loading an IFRAME element twice should not crash</title>
+<link rel="help" href="https://crbug.com/40084937">
+<script>
+  var iframe1;
+  window.addEventListener('load', () => {
+    var fragment = document.createDocumentFragment();
+    var script = fragment.appendChild(document.createElement('script'));
+    iframe1 = fragment.appendChild(document.createElement('iframe'));
+    fragment.appendChild(document.createTextNode('foo'));
+    script.textContent = 'document.body.appendChild(iframe1);';
+    document.body.appendChild(fragment);
+  });
+</script>

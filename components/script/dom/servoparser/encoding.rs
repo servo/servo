@@ -274,13 +274,6 @@ impl NetworkDecoderState {
             Self::Decoding(network_decoder) => network_decoder.decoder.is_none(),
         }
     }
-
-    pub(super) fn decoder(&mut self) -> &mut DecodingState {
-        match self {
-            Self::Detecting(_) => unreachable!("Cannot access decoder before decoding"),
-            Self::Decoding(decoder) => decoder,
-        }
-    }
 }
 
 /// An implementor of `TendrilSink` with the sole purpose of buffering decoded data

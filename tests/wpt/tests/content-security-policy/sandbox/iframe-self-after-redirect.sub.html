@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS script-src self after redirect"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+        window.onmessage = function(e) {
+            log(e.data);
+        }
+    </script>
+
+    <iframe sandbox="allow-scripts" src="/common/redirect.py?location=http://{{hosts[alt][]}}:{{ports[http][0]}}/content-security-policy/sandbox/support/csp-self-redirect-target.html"></iframe>
+</body>
+
+</html>

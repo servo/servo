@@ -47,9 +47,9 @@ pub(crate) enum StylesheetSource {
 }
 
 impl StylesheetSource {
-    pub(crate) fn get_cssom_object(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn get_cssom_object(&self, cx: &mut JSContext) -> Option<DomRoot<CSSStyleSheet>> {
         match self {
-            StylesheetSource::Element(el) => el.upcast::<Node>().get_cssom_stylesheet(),
+            StylesheetSource::Element(el) => el.upcast::<Node>().get_cssom_stylesheet(cx),
             StylesheetSource::Constructed(ss) => Some(ss.as_rooted()),
         }
     }

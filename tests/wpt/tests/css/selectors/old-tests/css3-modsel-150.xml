@@ -9,10 +9,18 @@
 ]]></style>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
- <address><!-- --><?test random PI?></address>
+ <address id="t1"><!-- --><?test random PI?></address>
  <div class="text">This line should have a green background.</div>
  <p>(Note: This test is based on unpublished errata.)</p>
+ <script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+}, ':empty matches elements with only comments and PIs');
+]]></script>
 </body>
 </html>

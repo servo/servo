@@ -101,10 +101,10 @@ async function runScrollSnapSelectionVerificationTest(t, scroller,
     aligned_elements_y);
   t.step(() => {
     if (axis == "y" || axis == "both") {
-      verifySelectedSnapTarget(t, scroller, expected_target_y, axis);
+      verifySelectedSnapTarget(t, scroller, expected_target_y, "y");
     }
     if (axis == "x" || axis == "both") {
-      verifySelectedSnapTarget(t, scroller, expected_target_x, axis);
+      verifySelectedSnapTarget(t, scroller, expected_target_x, "x");
     }
   });
   // Restore initial scroll offsets.

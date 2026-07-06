@@ -1,0 +1,41 @@
+<!doctype html>
+<title>Attribute value case-sensitivity when applying style (SVG vs HTML)</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics-other.html#case-sensitivity-of-selectors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  /* "type" is in the legacy ASCII case-insensitive attribute list. The
+     selector value is lowercase; the elements below use an uppercase value. */
+  [type="foo"] { color: rgb(0, 128, 0); }
+</style>
+
+<!-- HTML element: legacy list => value matched case-insensitively. -->
+<span id="html-el" type="FOO"></span>
+<!-- SVG element: must be matched case-sensitively, so no match. -->
+<svg><a id="svg-el" type="FOO"></a></svg>
+<!-- Empty-namespace element: also not an HTML element => case-sensitive. -->
+<script>
+  const noNs = document.createElementNS("", "unknown");
+  noNs.id = "nons-el";
+  noNs.setAttribute("type", "FOO");
+  document.currentScript.before(noNs);
+</script>
+
+<script>
+const GREEN = "rgb(0, 128, 0)";
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("html-el")).color,
+                GREEN);
+}, "HTML element matches legacy attribute value case-insensitively.");
+
+test(() => {
+  assert_not_equals(getComputedStyle(document.getElementById("svg-el")).color,
+                    GREEN);
+}, "SVG element matches legacy attribute value case-sensitively (no match).");
+
+test(() => {
+  assert_not_equals(getComputedStyle(document.getElementById("nons-el")).color,
+                    GREEN);
+}, "Empty-namespace element matches legacy attribute value case-sensitively.");
+</script>

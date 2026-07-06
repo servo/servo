@@ -26,7 +26,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -48,7 +48,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -70,7 +70,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -92,7 +92,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -115,7 +115,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -140,7 +140,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -164,7 +164,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -186,7 +186,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -208,7 +208,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -230,7 +230,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -252,7 +252,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -275,7 +275,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -299,7 +299,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -321,7 +321,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -343,7 +343,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -365,7 +365,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {
@@ -390,7 +390,7 @@ const isInfiniteTests = [
       },
       'operators': [{
         'name': 'isInfinite',
-        'arguments': [{'input': 'isInfiniteInput'}],
+        'arguments': [{'a': 'isInfiniteInput'}],
         'outputs': 'isInfiniteOutput'
       }],
       'expectedOutputs': {

@@ -12,8 +12,16 @@ function runAllTests() {
                 assert_equals(doc.characterSet, expectation, 'Check');
                 if (expectation == "windows-1251" || expectation == "windows-1252" && !(src.endsWith("/XML.htm") || src.endsWith("/XML-trail.htm"))) {
                     let fc = doc.firstChild;
-                    assert_equals(fc.nodeType, Node.COMMENT_NODE, 'Should have comment node');
-                    assert_true(fc.nodeValue.startsWith("?xml"), 'Should start with ?xml');
+                    switch (fc.nodeType) {
+                        case Node.COMMENT_NODE:
+                            assert_true(fc.nodeValue.startsWith("?xml"), 'Should start with ?xml');
+                            break;
+                        case Node.PROCESSING_INSTRUCTION_NODE:
+                            assert_true(fc.target.startsWith("xml"), 'Should start with xml');
+                            break;
+                        default:
+                            assert(false, "Should start with xml-* processing instruction, or an xml/xml-stylesheet comment")
+                    }
                 } else if (expectation == "UTF-16BE" || expectation == "UTF-16LE") {
                     let fc = doc.firstChild;
                     assert_equals(fc.nodeType, Node.COMMENT_NODE, 'Should have comment node');

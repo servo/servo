@@ -6,12 +6,36 @@
 a { background-color: lime; }
 ]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content=" interact" />
  </head>
  <body>
-<p>The background color of all <a href="#foo">anchors</a>
-  should become <a href="#foo"> green</a> when they have the
-  <a href="#foo">focus</a>.</p>
+<p>The background color of all <a id="t1" href="#foo">anchors</a>
+  should become <a id="t2" href="#foo"> green</a> when they have the
+  <a id="t3" href="#foo">focus</a>.</p>
+<script><![CDATA[
+test(() => {
+  const TRANSPARENT = 'rgba(0, 0, 0, 0)';
+  const t1 = document.getElementById('t1');
+  const t2 = document.getElementById('t2');
+  const t3 = document.getElementById('t3');
+
+  assert_background_color(t1, TRANSPARENT, 't1 initially transparent');
+  assert_background_color(t2, TRANSPARENT, 't2 initially transparent');
+  assert_background_color(t3, TRANSPARENT, 't3 initially transparent');
+
+  t1.focus();
+  assert_background_color(t1, LIME, 't1 focused is lime');
+  assert_background_color(t2, TRANSPARENT, 't2 transparent when t1 focused');
+  assert_background_color(t3, TRANSPARENT, 't3 transparent when t1 focused');
+
+  t2.focus();
+  assert_background_color(t1, TRANSPARENT, 't1 transparent when t2 focused');
+  assert_background_color(t2, LIME, 't2 focused is lime');
+  assert_background_color(t3, TRANSPARENT, 't3 transparent when t2 focused');
+}, 'NEGATED :focus pseudo-class');
+]]></script>
 </body>
 </html>

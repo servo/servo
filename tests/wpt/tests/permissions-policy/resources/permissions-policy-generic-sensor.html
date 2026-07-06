@@ -4,8 +4,8 @@
 try {
   const sensorName = location.hash.substring(1);
   const sensor = new window[sensorName]();
-  window.parent.postMessage({ enabled: true }, "*");
+  window.parent.postMessage({ type: 'availability-result', enabled: true }, "*");
 } catch (e) {
-  window.parent.postMessage({ enabled: false }, "*");
+  window.parent.postMessage({ type: 'availability-result', enabled: false }, "*");
 }
 </script>

@@ -442,14 +442,50 @@ def test_main_all():
         sys.argv = orig_argv
 
 
+def test_main_returns_zero_on_clean():
+    orig_argv = sys.argv
+    try:
+        sys.argv = ['./lint']
+        with _mock_lint('lint', return_value=0):
+            with _mock_lint('changed_files', return_value=['foo', 'bar']):
+                rv = lint_mod.main(**vars(create_parser().parse_args()))
+                assert rv == 0
+    finally:
+        sys.argv = orig_argv
 
-def test_run_main_no_errors_returns():
+
+def test_main_returns_one_on_errors():
+    orig_argv = sys.argv
+    try:
+        sys.argv = ['./lint']
+        with _mock_lint('lint', return_value=5):
+            with _mock_lint('changed_files', return_value=['foo', 'bar']):
+                rv = lint_mod.main(**vars(create_parser().parse_args()))
+                assert rv == 1
+    finally:
+        sys.argv = orig_argv
+
+
+def test_main_json_markdown_exits_2():
+    orig_argv = sys.argv
+    try:
+        sys.argv = ['./lint', '--json', '--markdown']
+        with pytest.raises(SystemExit) as excinfo:
+            lint_mod.main(**vars(create_parser().parse_args()))
+        assert excinfo.value.code == 2
+    finally:
+        sys.argv = orig_argv
+
+
+def test_run_main_no_errors_exits_0():
     with mock.patch.object(lint_mod, 'main', return_value=0):
-        lint_mod._run_main(['--all'])  # should not raise
+        with pytest.raises(SystemExit) as exc_info:
+            lint_mod._run_main(['--all'])
+    assert exc_info.value.code == 0
 
 
 def test_run_main_errors_exits_1():
-    with mock.patch.object(lint_mod, 'main', return_value=5):
+    with mock.patch.object(lint_mod, 'main', return_value=1):
         with pytest.raises(SystemExit) as exc_info:
             lint_mod._run_main(['--all'])
     assert exc_info.value.code == 1
@@ -461,11 +497,11 @@ def test_run_main_argument_error_exits_2():
     assert exc_info.value.code == 2
 
 
-def test_run_main_exception_exits_3(capsys):
+def test_run_main_exception_exits_ex_software(capsys):
     with mock.patch.object(lint_mod, 'main', side_effect=RuntimeError('simulated crash')):
         with pytest.raises(SystemExit) as exc_info:
             lint_mod._run_main(['--all'])
-    assert exc_info.value.code == 3
+    assert exc_info.value.code == getattr(os, "EX_SOFTWARE", 70)
 
     captured = capsys.readouterr()
     assert 'Traceback (most recent call last):' in captured.err

@@ -44,7 +44,8 @@ def venv():
 
 @pytest.fixture(scope="module")
 def logger():
-    run.setup_logging({})
+    with run.GlobalLogger({}) as logger:
+        yield logger
 
 
 @pytest.mark.parametrize("platform", ["Windows", "Linux", "Darwin"])

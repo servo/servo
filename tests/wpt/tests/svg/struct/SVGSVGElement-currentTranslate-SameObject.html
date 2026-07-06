@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGSVGElement.currentTranslate is [SameObject]</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#__svg__SVGSVGElement__currentTranslate">
+<link rel="help" href="https://webidl.spec.whatwg.org/#SameObject">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg" xmlns="http://www.w3.org/2000/svg" width="100" height="100"></svg>
+<script>
+const svg = document.getElementById("svg");
+
+test(() => {
+  assert_equals(svg.currentTranslate, svg.currentTranslate);
+}, "currentTranslate returns the same object on consecutive reads ([SameObject])");
+
+test(() => {
+  const p = svg.currentTranslate;
+  p.x = 10;
+  assert_equals(svg.currentTranslate, p, "same object after mutating x");
+}, "currentTranslate identity is stable across value changes");
+
+test(() => {
+  svg.currentTranslate.x = 42;
+  assert_equals(svg.currentTranslate.x, 42);
+}, "mutations through currentTranslate are observable on re-read");
+
+test(() => {
+  svg.currentTranslate.x = 7;
+  svg.currentTranslate.y = 9;
+  const replacement = svg.createSVGPoint();
+  replacement.x = 100;
+  replacement.y = 200;
+  // Assignment to a readonly attribute is ignored (silently in non-strict mode).
+  // Asserted on the value, not object identity, so this isolates readonly from
+  // [SameObject]: an engine that fails identity still passes this if it honors readonly.
+  try { svg.currentTranslate = replacement; } catch (e) {}
+  assert_equals(svg.currentTranslate.x, 7, "x value unchanged");
+  assert_equals(svg.currentTranslate.y, 9, "y value unchanged");
+}, "currentTranslate is readonly; assignment does not change the value");
+</script>

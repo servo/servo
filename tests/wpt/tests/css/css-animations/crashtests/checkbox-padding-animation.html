@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Animating padding on a checkbox input should not crash</title>
+<link rel="help" href="https://crbug.com/40409824">
+<style>
+@keyframes anim {
+  to { padding-top: 50px; }
+}
+input { animation: anim 1s; }
+</style>
+<input type="checkbox" id="target"></input>
+<script>
+  getComputedStyle(target);
+</script>

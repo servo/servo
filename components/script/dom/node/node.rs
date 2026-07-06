@@ -29,7 +29,7 @@ use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, GenericLayoutData, NodeRenderingType,
     PhysicalSides, TrustedNodeAddress, with_layout_state,
 };
-use libc::{self, c_void, uintptr_t};
+use libc::{self, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
@@ -38,7 +38,6 @@ use script_bindings::codegen::GenericBindings::ProcessingInstructionBinding::Pro
 use script_bindings::codegen::InheritTypes::{DocumentFragmentTypeId, TextTypeId};
 use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto_and_cx};
 use script_traits::DocumentActivity;
-use servo_arc::Arc as ServoArc;
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use smallvec::SmallVec;
@@ -47,7 +46,6 @@ use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::dom_apis::{QueryAll, QueryFirst};
 use style::selector_parser::PseudoElement;
-use style::stylesheets::Stylesheet;
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -121,7 +119,6 @@ use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent, ProcessingInstruction};
 use crate::dom::window::Window;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode};
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 //
@@ -551,10 +548,6 @@ impl Node {
         Self::complete_move_subtree(cx, child)
     }
 
-    pub(crate) fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
-        UntrustedNodeAddress(self.reflector().get_jsobject().get() as *const c_void)
-    }
-
     pub(crate) fn to_opaque(&self) -> OpaqueNode {
         OpaqueNode(self.reflector().get_jsobject().get() as usize)
     }
@@ -721,27 +714,6 @@ impl Node {
         self.ensure_rare_data()
             .mutation_observers
             .retain(|reg_obs| &*reg_obs.observer != observer)
-    }
-
-    /// Dumps the subtree rooted at this node, for debugging.
-    pub(crate) fn dump(&self) {
-        self.dump_indent(0);
-    }
-
-    /// Dumps the node tree, for debugging, with indentation.
-    pub(crate) fn dump_indent(&self, indent: u32) {
-        let mut s = String::new();
-        for _ in 0..indent {
-            s.push_str("    ");
-        }
-
-        s.push_str(&self.debug_str());
-        debug!("{:?}", s);
-
-        // FIXME: this should have a pure version?
-        for kid in self.children() {
-            kid.dump_indent(indent + 1)
-        }
     }
 
     /// Returns a string that describes this node.
@@ -950,12 +922,6 @@ impl Node {
             |n, no_gc| n.get_next_sibling_unrooted(no_gc),
             no_gc,
         )
-    }
-
-    pub(crate) fn inclusively_preceding_siblings(
-        &self,
-    ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), |n| n.GetPreviousSibling())
     }
 
     pub(crate) fn inclusively_preceding_siblings_unrooted<'b>(
@@ -1463,12 +1429,8 @@ impl Node {
             },
         }
 
-        let mut context = MoveContext::new(
-            Some(&old_parent),
-            prev_sibling.as_deref(),
-            next_sibling.as_deref(),
-            cached_index,
-        );
+        let mut context =
+            MoveContext::new(Some(&old_parent), prev_sibling.as_deref(), cached_index);
 
         // Step 13. Remove node from oldParent’s children.
         old_parent.move_child(cx, node);
@@ -1484,7 +1446,7 @@ impl Node {
             let Some(slot_element) = old_parent.downcast::<HTMLSlotElement>() &&
             !slot_element.has_assigned_nodes()
         {
-            slot_element.signal_a_slot_change();
+            slot_element.signal_a_slot_change(cx);
         }
 
         // Step 16. If node has an inclusive descendant that is a slot:
@@ -1541,7 +1503,7 @@ impl Node {
             let Some(slot_element) = new_parent.downcast::<HTMLSlotElement>() &&
             !slot_element.has_assigned_nodes()
         {
-            slot_element.signal_a_slot_change();
+            slot_element.signal_a_slot_change(cx);
         }
 
         // Step 23. Run assign slottables for a tree with node’s root.
@@ -1587,7 +1549,7 @@ impl Node {
             prev: old_previous_sibling.as_deref(),
             next: old_next_sibling.as_deref(),
         });
-        MutationObserver::queue_a_mutation_record(&old_parent, mutation);
+        MutationObserver::queue_a_mutation_record(cx, &old_parent, mutation);
 
         // Step 26. Queue a tree mutation record for newParent with « node », « »,
         // newPreviousSibling, and child.
@@ -1597,7 +1559,7 @@ impl Node {
             prev: new_previous_sibling.as_deref(),
             next: child,
         });
-        MutationObserver::queue_a_mutation_record(new_parent, mutation);
+        MutationObserver::queue_a_mutation_record(cx, new_parent, mutation);
 
         Ok(())
     }
@@ -1637,7 +1599,7 @@ impl Node {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn query_selector_all(
         &self,
-        no_gc: &NoGC,
+        cx: &mut JSContext,
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
         // > The querySelectorAll(selectors) method steps are to return the static result of running scope-match
@@ -1648,10 +1610,9 @@ impl Node {
         // layout runs, so that the map can gather their elements in DOM order.
         self.owner_document()
             .id_map()
-            .resolve_all(no_gc, self.owner_doc().upcast());
+            .resolve_all(cx.no_gc(), self.owner_doc().upcast());
 
-        // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
-        let traced_node = Dom::from_ref(self);
+        let traced_node = UnrootedDom::from_dom(Dom::from_ref(self), cx.no_gc());
         let matching_elements = with_layout_state(|| {
             let layout_node: LayoutDom<'_, _> = unsafe { traced_node.to_layout() };
             ServoDangerousStyleNode::from(layout_node)
@@ -1664,11 +1625,7 @@ impl Node {
 
         // NodeList::new_simple_list immediately collects the iterator, so we're not leaking LayoutDom
         // elements here.
-        Ok(NodeList::new_simple_list(
-            &self.owner_window(),
-            iter,
-            CanGc::deprecated_note(),
-        ))
+        Ok(NodeList::new_simple_list(cx, &self.owner_window(), iter))
     }
 
     pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
@@ -1965,21 +1922,14 @@ impl Node {
         Ok(())
     }
 
-    pub(crate) fn get_stylesheet(&self) -> Option<ServoArc<Stylesheet>> {
+    pub(crate) fn get_cssom_stylesheet(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<CSSStyleSheet>> {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
-            node.get_stylesheet()
+            node.get_cssom_stylesheet(cx)
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_stylesheet()
-        } else {
-            None
-        }
-    }
-
-    pub(crate) fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
-        if let Some(node) = self.downcast::<HTMLStyleElement>() {
-            node.get_cssom_stylesheet()
-        } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_cssom_stylesheet(CanGc::deprecated_note())
+            node.get_cssom_stylesheet(cx)
         } else {
             None
         }
@@ -2068,29 +2018,52 @@ impl Node {
 
     /// Gets the parent of this node from the perspective of layout and style.
     ///
-    /// The returned node is the node's assigned slot, if any, or the
-    /// shadow host if it's a shadow root. Otherwise, it is the node's
-    /// parent.
-    pub(crate) fn parent_in_flat_tree(&self) -> Option<DomRoot<Node>> {
+    /// If the node and its parent have a flat tree relationship, this returns:
+    ///  - The node's assigned slot.
+    ///  - The parent node's shadow host if it's a shadow root.
+    ///  - Or the node's parent.
+    ///
+    /// The parent might not have a flat tree relationship with the node if
+    ///  - It's a light tree child of a shadow host.
+    ///  - It's fallback content for an assigned slot.
+    pub(crate) fn parent_in_flat_tree(&self) -> FlatTreeParent {
         if let Some(assigned_slot) = self.assigned_slot() {
-            return Some(DomRoot::upcast(assigned_slot));
+            return FlatTreeParent::Parent(DomRoot::upcast(assigned_slot));
         }
 
-        let parent_or_none = self.GetParentNode();
-        if let Some(parent) = parent_or_none.as_deref() &&
-            let Some(shadow_root) = parent.downcast::<ShadowRoot>()
+        let Some(parent) = self.GetParentNode() else {
+            return FlatTreeParent::RootNode;
+        };
+
+        if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
+            return FlatTreeParent::Parent(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
+        }
+
+        if parent
+            .downcast::<Element>()
+            .is_some_and(|element| element.is_shadow_host())
         {
-            return Some(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
+            return FlatTreeParent::NotInFlatTree;
         }
 
-        parent_or_none
+        if parent
+            .downcast::<HTMLSlotElement>()
+            .is_some_and(|slot| slot.has_assigned_nodes())
+        {
+            return FlatTreeParent::NotInFlatTree;
+        }
+
+        FlatTreeParent::Parent(parent)
     }
 
     pub(crate) fn inclusive_ancestors_in_flat_tree(
         &self,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), move |n| {
-            n.parent_in_flat_tree()
+        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), move |node| {
+            match node.parent_in_flat_tree() {
+                FlatTreeParent::Parent(parent) => Some(parent),
+                FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
+            }
         })
     }
 
@@ -2532,7 +2505,7 @@ impl Node {
             for kid in new_nodes {
                 Node::remove(cx, kid, node, SuppressObserver::Suppressed);
             }
-            vtable_for(node).children_changed(cx, &ChildrenMutation::replace_all(new_nodes, &[]));
+            vtable_for(node).children_changed(cx, &ChildrenMutation::ReplaceAll);
 
             // Step 4.2. Queue a tree mutation record for node with « », nodes, null, and null.
             let mutation = LazyCell::new(|| Mutation::ChildList {
@@ -2541,7 +2514,7 @@ impl Node {
                 prev: None,
                 next: None,
             });
-            MutationObserver::queue_a_mutation_record(node, mutation);
+            MutationObserver::queue_a_mutation_record(cx, node, mutation);
         }
 
         // Step 5. If child is non-null:
@@ -2600,7 +2573,7 @@ impl Node {
                 let Some(slot_element) = parent_as_slot &&
                 !slot_element.has_assigned_nodes()
             {
-                slot_element.signal_a_slot_change();
+                slot_element.signal_a_slot_change(cx);
             }
 
             // Step 7.6 Run assign slottables for a tree with node’s root.
@@ -2632,7 +2605,7 @@ impl Node {
                             );
                         }
                     } else {
-                        try_upgrade_element(&descendant);
+                        try_upgrade_element(cx, &descendant);
                     }
                 }
             }
@@ -2643,7 +2616,7 @@ impl Node {
             // TODO(xiaochengh): If we follow the spec and move it out of the if block, some WPT fail. Investigate.
             vtable_for(parent).children_changed(
                 cx,
-                &ChildrenMutation::insert(previous_sibling.as_deref(), new_nodes, child),
+                &ChildrenMutation::insert(previous_sibling.as_deref(), child),
             );
 
             // Step 8. If suppress observers flag is unset, then queue a tree mutation record for parent
@@ -2654,7 +2627,7 @@ impl Node {
                 prev: previous_sibling.as_deref(),
                 next: child,
             });
-            MutationObserver::queue_a_mutation_record(parent, mutation);
+            MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
 
         // We use a delayed task for this step to work around an awkward interaction between
@@ -2713,10 +2686,7 @@ impl Node {
             Node::insert(cx, node, parent, None, SuppressObserver::Suppressed);
         }
 
-        vtable_for(parent).children_changed(
-            cx,
-            &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes),
-        );
+        vtable_for(parent).children_changed(cx, &ChildrenMutation::ReplaceAll);
 
         // Step 7. If either addedNodes or removedNodes is not empty, then queue a tree mutation record
         // for parent with addedNodes, removedNodes, null, and null.
@@ -2727,7 +2697,7 @@ impl Node {
                 prev: None,
                 next: None,
             });
-            MutationObserver::queue_a_mutation_record(parent, mutation);
+            MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker(cx);
     }
@@ -2806,7 +2776,7 @@ impl Node {
             let Some(slot_element) = parent.downcast::<HTMLSlotElement>() &&
             !slot_element.has_assigned_nodes()
         {
-            slot_element.signal_a_slot_change();
+            slot_element.signal_a_slot_change(cx);
         }
 
         // Step 10. If node has an inclusive descendant that is a slot:
@@ -2832,7 +2802,6 @@ impl Node {
                 &ChildrenMutation::replace(
                     old_previous_sibling.as_deref(),
                     &Some(node),
-                    &[],
                     old_next_sibling.as_deref(),
                 ),
             );
@@ -2844,7 +2813,7 @@ impl Node {
                 prev: old_previous_sibling.as_deref(),
                 next: old_next_sibling.as_deref(),
             });
-            MutationObserver::queue_a_mutation_record(parent, mutation);
+            MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker(cx);
     }
@@ -3485,7 +3454,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         let doc = self.owner_doc();
         let window = doc.window();
-        let list = NodeList::new_child_list(window, self, CanGc::from_cx(cx));
+        let list = NodeList::new_child_list(cx, window, self);
         self.ensure_rare_data().child_list.set(Some(&list));
         list
     }
@@ -3752,7 +3721,6 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             &ChildrenMutation::replace(
                 previous_sibling.as_deref(),
                 &removed_child,
-                nodes,
                 reference_child,
             ),
         );
@@ -3767,7 +3735,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             next: reference_child,
         });
 
-        MutationObserver::queue_a_mutation_record(self, mutation);
+        MutationObserver::queue_a_mutation_record(cx, self, mutation);
 
         // Step 15. Return child.
         Ok(DomRoot::from_ref(child))
@@ -4345,4 +4313,15 @@ where
 
         self.insert(insertion_index, Dom::from_ref(node));
     }
+}
+
+/// The return value of [`Node::parent_in_flat_tree`].
+pub(crate) enum FlatTreeParent {
+    /// The parent in the flat tree.
+    Parent(DomRoot<Node>),
+    /// This node has a parent (it's not the root), but it does not share a flat tree
+    /// relationship with its parent.
+    NotInFlatTree,
+    /// This node is in the flat tree, but has no parent node.
+    RootNode,
 }

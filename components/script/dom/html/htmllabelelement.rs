@@ -21,7 +21,7 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::html::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
+use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::Node;
 use crate::dom::node::virtualmethods::VirtualMethods;
@@ -87,9 +87,21 @@ impl Activatable for HTMLLabelElement {
 }
 
 impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
-    /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
+    /// <https://html.spec.whatwg.org/multipage/#dom-label-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
-        self.form_owner()
+        // > The form IDL attribute must run the following steps:
+        // > 1. If the label element has no labeled control, then return null.
+        // > 2. If the label element's labeled control is not a form-associated element, then
+        // >    return null.
+        // > 3. Return the label element's labeled control's form owner (which can still be
+        // >    null).
+        self.GetControl()
+            .map(DomRoot::upcast::<Element>)
+            .and_then(|element| {
+                element
+                    .as_maybe_form_control()
+                    .and_then(|control| control.form_owner())
+            })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-label-htmlfor
@@ -166,9 +178,6 @@ impl VirtualMethods for HTMLLabelElement {
         self.super_type()
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
-        if *attr.local_name() == local_name!("form") {
-            self.form_attribute_mutated(cx, mutation);
-        }
     }
 }
 
@@ -178,25 +187,5 @@ impl HTMLLabelElement {
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLElement>)
             .find(|elem| elem.is_labelable_element())
-    }
-}
-
-impl FormControl for HTMLLabelElement {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
-        self.GetControl()
-            .map(DomRoot::upcast::<Element>)
-            .and_then(|elem| {
-                elem.as_maybe_form_control()
-                    .and_then(|control| control.form_owner())
-            })
-    }
-
-    fn set_form_owner(&self, _: Option<&HTMLFormElement>) {
-        // Label is a special case for form owner, it reflects its control's
-        // form owner. Therefore it doesn't hold form owner itself.
-    }
-
-    fn to_html_element(&self) -> &HTMLElement {
-        self.upcast::<HTMLElement>()
     }
 }

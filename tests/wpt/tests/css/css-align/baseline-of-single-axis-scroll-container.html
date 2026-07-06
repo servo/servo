@@ -1,0 +1,91 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Align: baseline of single-axis scroll containers</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-rules">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<meta name="assert" content="baseline-source:auto only forces the legacy synthesized baseline for block-axis scroll containers.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+html, body {
+  margin: 0;
+}
+.line {
+  font: 20px/20px Ahem;
+  line-height: 160px;
+  white-space: nowrap;
+  margin: 0 0 20px;
+}
+.vertical {
+  writing-mode: vertical-lr;
+}
+.box {
+  display: inline-block;
+  width: 150px;
+  height: 100px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  box-sizing: border-box;
+  vertical-align: baseline;
+  font: 20px/20px Ahem;
+}
+.content {
+  display: block;
+  width: 200px;
+  height: 120px;
+  font: inherit;
+}
+.x-scroller {
+  overflow-x: scroll;
+  overflow-y: clip;
+}
+.y-scroller {
+  overflow-x: clip;
+  overflow-y: scroll;
+}
+</style>
+
+<div class="line">
+  <span>Outer</span>
+  <span id="h-content-ref" class="box"><span class="content">Inner</span></span>
+  <span id="h-inline" class="box x-scroller"><span class="content">Inner</span></span>
+  <span id="h-synth-ref" class="box"></span>
+  <span id="h-block" class="box y-scroller"><span class="content">Inner</span></span>
+</div>
+
+<div class="line vertical">
+  <span>Outer</span>
+  <span id="v-content-ref" class="box"><span class="content">Inner</span></span>
+  <span id="v-inline" class="box y-scroller"><span class="content">Inner</span></span>
+  <span id="v-synth-ref" class="box"></span>
+  <span id="v-block" class="box x-scroller"><span class="content">Inner</span></span>
+</div>
+
+<script>
+const rect = id => document.getElementById(id).getBoundingClientRect();
+
+promise_test(async () => {
+  await document.fonts.ready;
+
+  assert_approx_equals(
+      rect("h-inline").top, rect("h-content-ref").top, 1,
+      "The horizontal inline-axis scroller uses its content baseline.");
+  assert_approx_equals(
+      rect("h-block").top, rect("h-synth-ref").top, 1,
+      "The horizontal block-axis scroller uses the synthesized baseline.");
+}, "horizontal writing mode");
+
+promise_test(async () => {
+  await document.fonts.ready;
+
+  assert_approx_equals(
+      rect("v-inline").left, rect("v-content-ref").left, 1,
+      "The vertical inline-axis scroller uses its content baseline.");
+  assert_approx_equals(
+      rect("v-block").left, rect("v-synth-ref").left, 1,
+      "The vertical block-axis scroller uses the synthesized baseline.");
+}, "vertical writing mode");
+</script>

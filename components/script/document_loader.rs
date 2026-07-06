@@ -9,7 +9,7 @@
 use net_traits::request::RequestBuilder;
 use net_traits::{BoxedFetchCallback, ResourceThreads, fetch_async};
 use script_bindings::cell::DomRefCell;
-use script_bindings::script_runtime::runtime_is_alive;
+use script_bindings::script_runtime::{during_gc_collection, runtime_is_alive};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::root::Dom;
@@ -77,7 +77,11 @@ impl Drop for LoadBlocker {
         // a dropped runtime. Therefore, we should only run the drop logic
         // in case this element is dropped, but its containing document
         // is still alive.
+        //
+        // This destructor can also run from during GC (see #46207), which can lead to
+        // accessing already freed memory if we run `finish_load_for_dropped_blocker`.
         if runtime_is_alive() &&
+            !during_gc_collection() &&
             let Some(load) = self.load.take()
         {
             self.doc.finish_load_for_dropped_blocker(load);

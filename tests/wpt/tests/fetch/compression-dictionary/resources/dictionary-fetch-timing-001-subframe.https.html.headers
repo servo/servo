@@ -1,0 +1,2 @@
+Clear-Site-Data: "cache"
+Link: <./register-dictionary.py?linkHeader>; rel="compression-dictionary"

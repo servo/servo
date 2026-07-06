@@ -5,7 +5,8 @@
 use std::ops::Deref;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::reflect_dom_object;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -17,7 +18,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct VisibilityStateEntry {
@@ -44,15 +44,15 @@ impl VisibilityStateEntry {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         state: DocumentVisibilityState,
         timestamp: CrossProcessInstant,
-        can_gc: CanGc,
     ) -> DomRoot<VisibilityStateEntry> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(VisibilityStateEntry::new_inherited(state, timestamp)),
             global,
-            can_gc,
+            cx,
         )
     }
 }

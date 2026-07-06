@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG glyph-orientation-horizontal is not supported</title>
+<link rel="help" href="https://www.w3.org/TR/SVG11/text.html#GlyphOrientationHorizontalProperty">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#GlyphOrientationHorizontalProperty">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg">
+  <text id="text">text</text>
+</svg>
+<script>
+// glyph-orientation-horizontal was a property in SVG 1.1 but was removed in
+// SVG 2.
+
+test(() => {
+  assert_false(CSS.supports("glyph-orientation-horizontal", "0deg"));
+  assert_false(CSS.supports("glyph-orientation-horizontal", "90deg"));
+  assert_false(CSS.supports("glyph-orientation-horizontal", "initial"));
+}, "glyph-orientation-horizontal is not a supported CSS property");
+
+test(() => {
+  const text = document.getElementById("text");
+  text.style.setProperty("glyph-orientation-horizontal", "90deg");
+  assert_equals(text.style.getPropertyValue("glyph-orientation-horizontal"), "",
+    "value should not parse in a style declaration");
+  assert_equals(text.style.length, 0,
+    "declaration should remain empty");
+}, "glyph-orientation-horizontal is not parsed in a style declaration");
+
+test(() => {
+  const text = document.getElementById("text");
+  // An unsupported presentation attribute must not contribute a value to the
+  // computed style of the element.
+  text.setAttribute("glyph-orientation-horizontal", "90deg");
+  assert_equals(
+    getComputedStyle(text).getPropertyValue("glyph-orientation-horizontal"), "",
+    "computed value should be empty for an unsupported property");
+  text.removeAttribute("glyph-orientation-horizontal");
+}, "glyph-orientation-horizontal is not a supported SVG presentation attribute");
+</script>

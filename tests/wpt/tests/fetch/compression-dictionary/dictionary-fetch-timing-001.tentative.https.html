@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://github.com/whatwg/html/pull/11620#discussion_r3385960016">
+<body>
+  <script>
+    compression_dictionary_promise_test(async t => {
+      let sortedEvents = await new Promise(resolve => {
+        const iframe = document.createElement("iframe");
+        iframe.src = "resources/dictionary-fetch-timing-001-subframe.https.html";
+        window.addEventListener("message", message => resolve(message.data.sortedEvents));
+        document.body.appendChild(iframe);
+        t.add_cleanup(() => iframe.remove());
+      });
+
+      // First verify observed fetches and load event...
+      const fetchedNonDictionaryResources = [
+        "/common/utils.js",
+        "/html/semantics/document-metadata/interactions-of-styling-and-scripting/stylesheet.py?delay=1",
+        "/images/wide-gamut-pattern.png",
+      ];
+      const fetchedLinkElement = "/fetch/compression-dictionary/resources/register-dictionary.py?linkElement";
+      const fetchedLinkHeader = "/fetch/compression-dictionary/resources/register-dictionary.py?linkHeader";
+      const loadEvent = "load event";
+      let expectedEvents = fetchedNonDictionaryResources.concat([fetchedLinkElement, fetchedLinkHeader, loadEvent]);
+      assert_array_equals(sortedEvents.toSorted(), expectedEvents.toSorted(), "Expected fetches and loaded events observed.");
+
+      // Non-dictionary resources are fetched before dictionary resources.
+      let indexOfLinkElement = sortedEvents.indexOf(fetchedLinkElement);
+      let indexOfLinkHeader = sortedEvents.indexOf(fetchedLinkHeader);
+      for (const resource of fetchedNonDictionaryResources) {
+        let indexOfResource = sortedEvents.indexOf(resource);
+        assert_less_than(indexOfResource, indexOfLinkElement, `${resource} fetched before link element with rel=compression-dictionary.`);
+        assert_less_than(indexOfResource, indexOfLinkHeader, `${resource} fetched before Link header with rel=compression-dictionary.`);
+      };
+
+      // Fetching link header is postponed after page load.
+      let indexOfLoadEvent = sortedEvents.indexOf(loadEvent);
+      assert_less_than(indexOfLoadEvent, indexOfLinkHeader, `Link header with rel=compression-dictionary is fetched after page load.`);
+    }, "Timing of compression dictionary fetches for <link> element and Link header.");
+  </script>
+</body>

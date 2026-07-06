@@ -520,7 +520,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
         // `thisobj` is not a platform object, so the security check is not
         // invoked in this case
-        throw_invalid_this(cx.into(), proto_id);
+        throw_invalid_this(cx, proto_id);
         return if EXCEPTION_TO_REJECTION {
             exception_to_promise(cx, args.rval())
         } else {
@@ -535,7 +535,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     });
     let depth = (*info).__bindgen_anon_3.depth as usize;
     let proto_check = PrototypeCheck::Depth { depth, proto_id };
-    let this = match private_from_proto_check(obj.get(), cx.raw_cx_no_gc(), proto_check) {
+    let this = match private_from_proto_check(cx, obj.get(), proto_check) {
         Ok(val) => val,
         Err(()) => {
             // [this_implements_operation == false]
@@ -554,7 +554,7 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
                 *vp = UndefinedValue();
                 return true;
             } else {
-                throw_invalid_this(cx.into(), proto_id);
+                throw_invalid_this(cx, proto_id);
                 return if EXCEPTION_TO_REJECTION {
                     exception_to_promise(cx, args.rval())
                 } else {

@@ -26,17 +26,15 @@ use embedder_traits::{
 use fonts::FontContext;
 use indexmap::IndexSet;
 use ipc_channel::router::ROUTER;
-use js::context::NoGC;
-use js::jsapi::{
-    CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap, JSContext, JSObject,
-};
+use js::context::{JSContext, NoGC};
+use js::jsapi::{GetNonCCWObjectGlobal, HandleObject, Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::realm::CurrentRealm;
-use js::rust::wrappers2::Compile1;
+use js::rust::wrappers2::{Compile1, CurrentGlobalOrNull};
 use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue, ParentRuntime,
-    Runtime, get_object_class, transform_str_to_source_text,
+    get_object_class, transform_str_to_source_text,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use net_traits::blob_url_store::BlobBuf;
@@ -44,7 +42,7 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
 use net_traits::image_cache::ImageCache;
-use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     InsecureRequestsPolicy, Origin as RequestOrigin, Referrer, RequestBuilder, RequestClient,
 };
@@ -153,7 +151,7 @@ use crate::realms::enter_auto_realm;
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
+use crate::script_runtime::ThreadSafeJSContext;
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
@@ -875,13 +873,13 @@ impl GlobalScope {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn get_serviceworker_registration(
         &self,
+        cx: &mut js::context::JSContext,
         script_url: &ServoUrl,
         scope: &ServoUrl,
         registration_id: ServiceWorkerRegistrationId,
         installing_worker: Option<ServiceWorkerId>,
         _waiting_worker: Option<ServiceWorkerId>,
         _active_worker: Option<ServiceWorkerId>,
-        can_gc: CanGc,
     ) -> DomRoot<ServiceWorkerRegistration> {
         // Step 1
         let mut registrations = self.registration_map.borrow_mut();
@@ -893,11 +891,11 @@ impl GlobalScope {
 
         // Step 2.1 -> 2.5
         let new_registration =
-            ServiceWorkerRegistration::new(self, scope.clone(), registration_id, can_gc);
+            ServiceWorkerRegistration::new(cx, self, scope.clone(), registration_id);
 
         // Step 2.6
         if let Some(worker_id) = installing_worker {
-            let worker = self.get_serviceworker(script_url, scope, worker_id, can_gc);
+            let worker = self.get_serviceworker(cx, script_url, scope, worker_id);
             new_registration.set_installing(&worker);
         }
 
@@ -915,10 +913,10 @@ impl GlobalScope {
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-object>
     pub(crate) fn get_serviceworker(
         &self,
+        cx: &mut js::context::JSContext,
         script_url: &ServoUrl,
         scope: &ServoUrl,
         worker_id: ServiceWorkerId,
-        can_gc: CanGc,
     ) -> DomRoot<ServiceWorker> {
         // Step 1
         let mut workers = self.worker_map.borrow_mut();
@@ -930,7 +928,7 @@ impl GlobalScope {
             // Step 2.1
             // TODO: step 2.2, worker state.
             let new_worker =
-                ServiceWorker::new(self, script_url.clone(), scope.clone(), worker_id, can_gc);
+                ServiceWorker::new(cx, self, script_url.clone(), scope.clone(), worker_id);
 
             // Step 2.3
             workers.insert(worker_id, Dom::from_ref(&*new_worker));
@@ -2361,9 +2359,9 @@ impl GlobalScope {
     ///
     /// Eventually we could return Handle here as global is already rooted by realm.
     #[expect(unsafe_code)]
-    pub(crate) fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
-        let global = realm.global();
-        unsafe { global_scope_from_global(global.get(), realm.raw_cx_no_gc()) }
+    pub(crate) fn from_current_realm(realm: &'_ mut CurrentRealm) -> DomRoot<Self> {
+        let global = realm.global().get();
+        unsafe { global_scope_from_global(realm, global) }
     }
 
     pub(crate) fn add_uncaught_rejection(&self, rejection: HandleObject) {
@@ -2421,14 +2419,6 @@ impl GlobalScope {
 
     pub(crate) fn get_module_map_entry(&self, request: &ModuleRequest) -> Option<ModuleStatus> {
         self.module_map.borrow().get(request).cloned()
-    }
-
-    #[expect(unsafe_code)]
-    pub(crate) fn get_cx() -> SafeJSContext {
-        let cx = Runtime::get()
-            .expect("Can't obtain context after runtime shutdown")
-            .as_ptr();
-        unsafe { SafeJSContext::from_ptr(cx) }
     }
 
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
@@ -2649,10 +2639,11 @@ impl GlobalScope {
         let is_nested_browsing_context = window.is_some_and(|window| !window.is_top_level());
         RequestClient {
             preloaded_resources,
-            policy_container: RequestPolicyContainer::PolicyContainer(self.policy_container()),
+            policy_container: self.policy_container(),
             origin: RequestOrigin::Origin(self.origin().immutable().clone()),
             is_nested_browsing_context,
             insecure_requests_policy: self.insecure_requests_policy(),
+            has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_or_current_origin(),
         }
     }
 
@@ -3092,9 +3083,9 @@ impl GlobalScope {
     }
 
     /// Enqueue a microtask for subsequent execution.
-    pub(crate) fn enqueue_microtask(&self, cx: &mut js::context::JSContext, job: Microtask) {
+    pub(crate) fn enqueue_microtask(&self, cx: &js::context::JSContext, job: Microtask) {
         if self.is::<Window>() {
-            ScriptThread::enqueue_microtask(job);
+            ScriptThread::enqueue_microtask(cx, job);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             worker.enqueue_microtask(cx, job);
         }
@@ -3145,13 +3136,13 @@ impl GlobalScope {
     /// ["current"]: https://html.spec.whatwg.org/multipage/#current
     #[expect(unsafe_code)]
     pub(crate) fn current() -> Option<DomRoot<Self>> {
-        let cx = Runtime::get()?;
+        let mut cx = unsafe { JSContext::get_from_thread()? };
         unsafe {
-            let global = CurrentGlobalOrNull(cx.as_ptr());
+            let global = CurrentGlobalOrNull(&cx);
             if global.is_null() {
                 None
             } else {
-                Some(global_scope_from_global(global, cx.as_ptr()))
+                Some(global_scope_from_global(&mut cx, global))
             }
         }
     }
@@ -3575,8 +3566,8 @@ impl GlobalScope {
 /// Returns the Rust global scope from a JS global object.
 #[expect(unsafe_code)]
 unsafe fn global_scope_from_global(
+    cx: &mut js::context::JSContext,
     global: *mut JSObject,
-    cx: *mut JSContext,
 ) -> DomRoot<GlobalScope> {
     unsafe {
         assert!(!global.is_null());
@@ -3585,7 +3576,7 @@ unsafe fn global_scope_from_global(
             ((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)),
             0
         );
-        root_from_object(global, cx).unwrap()
+        root_from_object(cx, global).unwrap()
     }
 }
 
@@ -3607,7 +3598,7 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
 
 #[expect(unsafe_code)]
 impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
-    fn from_current_realm(realm: &'_ CurrentRealm) -> DomRoot<Self> {
+    fn from_current_realm(realm: &'_ mut CurrentRealm) -> DomRoot<Self> {
         GlobalScope::from_current_realm(realm)
     }
 

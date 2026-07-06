@@ -5,13 +5,13 @@
 use webgpu_traits::{ComputePass, ComputePassId, RenderPass, RenderPassId};
 use wgpu_core::id::markers::{
     Adapter, BindGroup, BindGroupLayout, Buffer, CommandBuffer, CommandEncoder, ComputePipeline,
-    Device, PipelineLayout, QuerySet, Queue, RenderBundle, RenderPipeline, Sampler, ShaderModule,
-    Texture, TextureView,
+    Device, ExternalTexture, PipelineLayout, QuerySet, Queue, RenderBundle, RenderPipeline,
+    Sampler, ShaderModule, Texture, TextureView,
 };
 use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
-    ComputePipelineId, DeviceId, PipelineLayoutId, QuerySetId, QueueId, RenderBundleId,
-    RenderPipelineId, SamplerId, ShaderModuleId, TextureId, TextureViewId,
+    ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId, QuerySetId, QueueId,
+    RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId, TextureId, TextureViewId,
 };
 use wgpu_core::identity::IdentityManager;
 
@@ -36,6 +36,7 @@ pub(crate) struct IdentityHub {
     compute_passes: IdentityManager<ComputePass>,
     render_passes: IdentityManager<RenderPass>,
     query_sets: IdentityManager<QuerySet>,
+    external_textures: IdentityManager<ExternalTexture>,
 }
 
 impl Default for IdentityHub {
@@ -60,6 +61,7 @@ impl Default for IdentityHub {
             compute_passes: IdentityManager::new(),
             render_passes: IdentityManager::new(),
             query_sets: IdentityManager::new(),
+            external_textures: IdentityManager::new(),
         }
     }
 }
@@ -215,5 +217,13 @@ impl IdentityHub {
 
     pub(crate) fn free_query_set_id(&self, id: QuerySetId) {
         self.query_sets.free(id);
+    }
+
+    pub(crate) fn create_external_texture_id(&self) -> ExternalTextureId {
+        self.external_textures.process()
+    }
+
+    pub(crate) fn free_external_texture_id(&self, id: ExternalTextureId) {
+        self.external_textures.free(id);
     }
 }

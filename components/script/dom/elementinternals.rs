@@ -339,7 +339,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-labels>
-    fn GetLabels(&self, can_gc: CanGc) -> Fallible<DomRoot<NodeList>> {
+    fn GetLabels(&self, cx: &mut JSContext) -> Fallible<DomRoot<NodeList>> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported(Some(
                 "The target element is not a form-associated custom element".to_owned(),
@@ -347,9 +347,9 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         }
         Ok(self.labels_node_list.or_init(|| {
             NodeList::new_labels_list(
+                cx,
                 self.target_element.upcast::<Node>().owner_doc().window(),
                 &self.target_element,
-                can_gc,
             )
         }))
     }
@@ -395,12 +395,12 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-elementinternals-states>
-    fn States(&self, can_gc: CanGc) -> DomRoot<CustomStateSet> {
+    fn States(&self, cx: &mut JSContext) -> DomRoot<CustomStateSet> {
         self.states.or_init(|| {
             CustomStateSet::new(
+                cx,
                 &self.target_element.owner_window(),
                 &self.target_element,
-                can_gc,
             )
         })
     }

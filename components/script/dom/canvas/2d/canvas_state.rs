@@ -2206,7 +2206,7 @@ impl CanvasState {
         cx: &mut JSContext,
     ) -> DomRoot<DOMMatrix> {
         let transform = self.state.borrow_mut().transform;
-        DOMMatrix::new(global, true, transform.to_3d(), cx)
+        DOMMatrix::new(cx, global, true, transform.to_3d())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>

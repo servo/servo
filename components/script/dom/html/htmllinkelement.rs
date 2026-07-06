@@ -62,7 +62,6 @@ use crate::dom::types::{EventTarget, GlobalScope};
 use crate::links::LinkRelations;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
-use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -196,10 +195,14 @@ impl HTMLLinkElement {
         self.stylesheet.borrow().clone()
     }
 
-    pub(crate) fn get_cssom_stylesheet(&self, can_gc: CanGc) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn get_cssom_stylesheet(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
+                    cx,
                     &self.owner_window(),
                     Some(self.upcast::<Element>()),
                     "text/css".into(),
@@ -207,7 +210,6 @@ impl HTMLLinkElement {
                     None, // todo handle title
                     sheet,
                     None, // constructor_document
-                    can_gc,
                 )
             })
         })
@@ -518,8 +520,6 @@ impl HTMLLinkElement {
             source_set: None, // FIXME
             origin: document.borrow().origin().immutable().to_owned(),
             base_url: document.borrow().base_url(),
-            insecure_requests_policy: document.insecure_requests_policy(),
-            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
             request_client: global.request_client(None),
             referrer: global.get_referrer(),
         };
@@ -1096,8 +1096,8 @@ impl StylesheetOwner for HTMLLinkElement {
         ReferrerPolicy::EmptyString
     }
 
-    fn set_origin_clean(&self, origin_clean: bool) {
-        if let Some(stylesheet) = self.get_cssom_stylesheet(CanGc::deprecated_note()) {
+    fn set_origin_clean(&self, cx: &mut js::context::JSContext, origin_clean: bool) {
+        if let Some(stylesheet) = self.get_cssom_stylesheet(cx) {
             stylesheet.set_origin_clean(origin_clean);
         }
     }
@@ -1242,8 +1242,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
 
     /// <https://drafts.csswg.org/cssom/#dom-linkstyle-sheet>
     fn GetSheet(&self, cx: &mut JSContext) -> Option<DomRoot<DOMStyleSheet>> {
-        self.get_cssom_stylesheet(CanGc::from_cx(cx))
-            .map(DomRoot::upcast)
+        self.get_cssom_stylesheet(cx).map(DomRoot::upcast)
     }
 }
 

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS animation with null effect should not crash</title>
+<link rel="help" href="https://crbug.com/41403431">
+
+<style>
+@keyframes anim {
+  from {
+    margin-left: 0px;
+  }
+  to {
+    margin-left: 100px;
+  }
+}
+</style>
+
+<div id="box" style="width:100px; height: 100px; background: black; animation: anim 1s"></div>
+
+<script>
+  const animation = box.getAnimations()[0];
+  animation.effect = null;
+  // Cause an update of the CSS animation by changing the duration.
+  box.style.animationDuration = "2s";
+</script>

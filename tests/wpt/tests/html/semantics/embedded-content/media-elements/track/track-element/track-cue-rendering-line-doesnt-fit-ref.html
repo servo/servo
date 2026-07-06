@@ -24,7 +24,7 @@
 }
 </style>
 <div class="container">
-  <video autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+  <video autoplay onplaying="this.onplaying = null; waitForActiveCueAndTakeScreenshot();">
     <source src="/media/white.webm" type="video/webm">
     <source src="/media/white.mp4" type="video/mp4">
   </video>

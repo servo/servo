@@ -1,0 +1,41 @@
+<!doctype html>
+<html class="reftest-wait">
+  <meta charset="utf-8">
+  <title>CSS Animations: svg &lt;use&gt; animate independently</title>
+  <link rel="help" href="https://drafts.csswg.org/css-animations-1/">
+  <link rel="help" href="https://drafts.csswg.org/css-variables-1/">
+  <link rel="match" href="svg-use-transform-keyframes-custom-property-override-ref.html">
+  <style>
+  svg {
+    --x-offset: 8px;
+  }
+
+  @keyframes slide {
+    from { transform: translateX(var(--x-offset)); }
+    to { transform: translateX(calc(var(--x-offset) + 10px)); }
+  }
+
+  .animated {
+    animation: slide 1s steps(1, jump-both) paused;
+  }
+
+  #target {
+    --x-offset: 24px;
+  }
+  </style>
+  <body>
+    <script src="/common/reftest-wait.js"></script>
+    <script src="/web-animations/resources/timing-utils.js"></script>
+    <svg xmlns="http://www.w3.org/2000/svg" width="120" height="20" viewBox="0 0 120 20">
+      <defs>
+        <rect id="shape" width="10" height="10" fill="green"></rect>
+      </defs>
+      <use class="animated" href="#shape" x="10" y="5"></use>
+      <use class="animated" href="#shape" id="target" x="40" y="5"></use>
+    </svg>
+
+    <script>
+      document.getAnimations()[0].ready.then(takeScreenshot);
+    </script>
+  </body>
+</html>

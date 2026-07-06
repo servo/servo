@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>NEGATED :last-of-type pseudo-class</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[.red { background-color : red }
 address { margin-bottom : 1em ; margin-left : 1em }
 address:not(:last-of-type) { background-color : lime }
@@ -11,9 +14,16 @@ address:not(:last-of-type) { background-color : lime }
  </head>
  <body>
 <div>
-<address class="red">A first address that should have a green background</address>
-<address class="red">A second address that should have a green background</address>
-<address>A third address with normal background</address>
+<address id="t1" class="red">A first address that should have a green background</address>
+<address id="t2" class="red">A second address that should have a green background</address>
+<address id="u1">A third address with normal background</address>
 This div should have three addresses above it.</div>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_not_background_color('u1', LIME);
+}, 'NEGATED :last-of-type pseudo-class');
+]]></script>
 </body>
 </html>

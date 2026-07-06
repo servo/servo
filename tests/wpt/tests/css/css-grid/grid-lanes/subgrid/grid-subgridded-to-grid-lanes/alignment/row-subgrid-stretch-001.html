@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: row-direction subgrid is always stretched in its subgridded (row) axis</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#subgrid-box-alignment">
+<link rel="match" href="column-subgrid-stretch-001-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .grid-lanes {
+    display: inline-grid-lanes;
+    grid-template-rows: 100px;
+  }
+  .subgrid {
+    display: grid;
+    background-color: blue;
+    grid-template-rows: subgrid;
+    align-self: baseline;
+    width: 100px;
+  }
+  .vrl {
+    writing-mode: vertical-rl;
+    grid-template-columns: subgrid;
+    grid-template-rows: 100px;
+  }
+  </style>
+</head>
+<body>
+  <div class="grid-lanes">
+    <div class="subgrid" style="height: 50px;"></div>
+  </div>
+  <div class="grid-lanes">
+    <div class="subgrid" style="height: 150px;"></div>
+  </div>
+  <div class="grid-lanes">
+    <div class="subgrid" style="max-height: 50px;"></div>
+  </div>
+  <div class="grid-lanes">
+    <div class="subgrid" style="min-height: 150px;"></div>
+  </div>
+
+  <br>
+
+  <div class="grid-lanes">
+    <div class="subgrid vrl" style="height: 50px;"></div>
+  </div>
+  <div class="grid-lanes">
+    <div class="subgrid vrl" style="height: 150px;"></div>
+  </div>
+  <div class="grid-lanes">
+    <div class="subgrid vrl" style="max-height: 50px;"></div>
+  </div>
+  <div class="grid-lanes">
+    <div class="subgrid vrl" style="min-height: 150px;"></div>
+  </div>
+
+</body>
+</html>

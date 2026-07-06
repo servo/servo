@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP toolchange</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+const tool = {
+  name: 'empty',
+  description: 'empty',
+  execute: () => {},
+};
+
+promise_test(async (t) => {
+  const events = [];
+
+  document.modelContext.addEventListener('toolchange', () => {
+    events.push('toolchange');
+  }, { once: true });
+
+  const p = document.modelContext.registerTool(tool);
+
+  p.then(() => {
+    events.push('resolve');
+  });
+
+  await p;
+
+  assert_array_equals(
+    events,
+    ['toolchange', 'resolve'],
+    'toolchange event must trigger before registerTool promise resolves'
+  );
+}, 'registerTool triggers toolchange before promise resolves');
+
+</script>
+</body>
+</html>

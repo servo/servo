@@ -15,19 +15,19 @@
 tests = [
     ["hwb(120 30% 50%)", "rgb(77, 128, 77)"],
     ["hwb(120 30% 50% / 0.5)", "rgba(77, 128, 77, 0.5)"],
-    ["hwb(none none none)", "rgb(255, 0, 0)"],
+    ["hwb(none none none)", "hwb(none none none)"],
     ["hwb(0 0% 0%)", "rgb(255, 0, 0)"],
-    ["hwb(none none none / none)", "rgba(255, 0, 0, 0)"],
+    ["hwb(none none none / none)", "hwb(none none none / none)"],
     ["hwb(0 0% 0% / 0)", "rgba(255, 0, 0, 0)"],
-    ["hwb(120 none none)", "rgb(0, 255, 0)"],
+    ["hwb(120 none none)", "hwb(120 none none)"],
     ["hwb(120 0% 0%)", "rgb(0, 255, 0)"],
-    ["hwb(120 80% none)", "rgb(204, 255, 204)"],
+    ["hwb(120 80% none)", "hwb(120 80 none)"],
     ["hwb(120 80% 0%)", "rgb(204, 255, 204)"],
-    ["hwb(120 none 50%)", "rgb(0, 128, 0)"],
+    ["hwb(120 none 50%)", "hwb(120 none 50)"],
     ["hwb(120 0% 50%)", "rgb(0, 128, 0)"],
-    ["hwb(120 30% 50% / none)", "rgba(77, 128, 77, 0)"],
+    ["hwb(120 30% 50% / none)", "hwb(120 30 50 / none)"],
     ["hwb(120 30% 50% / 0)", "rgba(77, 128, 77, 0)"],
-    ["hwb(none 100% 50% / none)", "rgba(170, 170, 170, 0)"],
+    ["hwb(none 100% 50% / none)", "hwb(none 100 50 / none)"],
     ["hwb(0 100% 50% / 0)", "rgba(170, 170, 170, 0)"],
 
     // Test with number components.
@@ -37,11 +37,11 @@ tests = [
     ["hwb(120 30% 50 / 0.5)", "rgba(77, 128, 77, 0.5)"],
     ["hwb(120 30 50%)", "rgb(77, 128, 77)"],
     ["hwb(120 30 50% / 0.5)", "rgba(77, 128, 77, 0.5)"],
-    ["hwb(120 none 50)", "rgb(0, 128, 0)"],
-    ["hwb(120 none 50 / 0.5)", "rgba(0, 128, 0, 0.5)"],
-    ["hwb(120 30 none)", "rgb(77, 255, 77)"],
-    ["hwb(120 30 none / 0.5)", "rgba(77, 255, 77, 0.5)"],
-    ["hwb(120 30 50 / none)", "rgba(77, 128, 77, 0)"],
+    ["hwb(120 none 50)", "hwb(120 none 50)"],
+    ["hwb(120 none 50 / 0.5)", "hwb(120 none 50 / 0.5)"],
+    ["hwb(120 30 none)", "hwb(120 30 none)"],
+    ["hwb(120 30 none / 0.5)", "hwb(120 30 none / 0.5)"],
+    ["hwb(120 30 50 / none)", "hwb(120 30 50 / none)"],
 
     // Test that rounding happens properly. hwb(320deg 30% 40%) in sRGB has a blue
     // channel of exactly one-half.

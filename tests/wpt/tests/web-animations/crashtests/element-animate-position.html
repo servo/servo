@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>element.animate with position property should not crash</title>
+<link rel="help" href="https://crbug.com/41104143">
+<iframe id="iframe"></iframe>
+<div id="div1"></div>
+<div id="div2"></div>
+<div id="div3"></div>
+<embed id="embed"></embed>
+<script>
+  try { embed.appendChild(null); } catch(e) {}
+  iframe.animate([{"position": "fixed"}, {"position": "static"}], {duration: 1, fill: 'forwards'});
+  div3.appendChild(div1);
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

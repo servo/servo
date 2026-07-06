@@ -8,12 +8,20 @@ address:first-of-type { background-color : lime }
 ]]></style>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 <div>This div contains 3 addresses:
-<address class="red">A first address that should have a green background</address>
+<address id="t1" class="red">A first address that should have a green background</address>
 <address>A second address with normal background</address>
 <address>A third address with normal background</address>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+}, ':first-of-type');
+]]></script>
 </body>
 </html>

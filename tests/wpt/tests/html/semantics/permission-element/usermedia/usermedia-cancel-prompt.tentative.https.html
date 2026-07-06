@@ -10,7 +10,6 @@
 <script>
 promise_test(async (t) => {
   const usermedia = document.createElement('usermedia');
-  usermedia.setAttribute('type', 'camera');
   usermedia.setConstraints({video: {}});
   document.body.appendChild(usermedia);
 

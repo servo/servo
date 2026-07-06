@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::slice;
-
 use js::context::NoGC;
 
 use crate::dom::Node;
@@ -14,27 +12,19 @@ use crate::dom::element::Element;
 pub(crate) enum ChildrenMutation<'a> {
     Append {
         prev: &'a Node,
-        added: &'a [&'a Node],
     },
     Insert {
         prev: &'a Node,
-        added: &'a [&'a Node],
         next: &'a Node,
     },
     Prepend {
-        added: &'a [&'a Node],
         next: &'a Node,
     },
     Replace {
         prev: Option<&'a Node>,
-        removed: &'a Node,
-        added: &'a [&'a Node],
         next: Option<&'a Node>,
     },
-    ReplaceAll {
-        removed: &'a [&'a Node],
-        added: &'a [&'a Node],
-    },
+    ReplaceAll,
     /// Mutation for when a Text node's data is modified.
     /// This doesn't change the structure of the list, which is what the other
     /// variants' fields are stored for at the moment, so this can just have no
@@ -43,52 +33,29 @@ pub(crate) enum ChildrenMutation<'a> {
 }
 
 impl<'a> ChildrenMutation<'a> {
-    pub(super) fn insert(
-        prev: Option<&'a Node>,
-        added: &'a [&'a Node],
-        next: Option<&'a Node>,
-    ) -> ChildrenMutation<'a> {
+    pub(super) fn insert(prev: Option<&'a Node>, next: Option<&'a Node>) -> ChildrenMutation<'a> {
         match (prev, next) {
-            (None, None) => ChildrenMutation::ReplaceAll {
-                removed: &[],
-                added,
-            },
-            (Some(prev), None) => ChildrenMutation::Append { prev, added },
-            (None, Some(next)) => ChildrenMutation::Prepend { added, next },
-            (Some(prev), Some(next)) => ChildrenMutation::Insert { prev, added, next },
+            (None, None) => ChildrenMutation::ReplaceAll,
+            (Some(prev), None) => ChildrenMutation::Append { prev },
+            (None, Some(next)) => ChildrenMutation::Prepend { next },
+            (Some(prev), Some(next)) => ChildrenMutation::Insert { prev, next },
         }
     }
 
     pub(super) fn replace(
         prev: Option<&'a Node>,
         removed: &'a Option<&'a Node>,
-        added: &'a [&'a Node],
         next: Option<&'a Node>,
     ) -> ChildrenMutation<'a> {
-        if let Some(ref removed) = *removed {
+        if removed.is_some() {
             if let (None, None) = (prev, next) {
-                ChildrenMutation::ReplaceAll {
-                    removed: slice::from_ref(removed),
-                    added,
-                }
+                ChildrenMutation::ReplaceAll
             } else {
-                ChildrenMutation::Replace {
-                    prev,
-                    removed,
-                    added,
-                    next,
-                }
+                ChildrenMutation::Replace { prev, next }
             }
         } else {
-            ChildrenMutation::insert(prev, added, next)
+            ChildrenMutation::insert(prev, next)
         }
-    }
-
-    pub(super) fn replace_all(
-        removed: &'a [&'a Node],
-        added: &'a [&'a Node],
-    ) -> ChildrenMutation<'a> {
-        ChildrenMutation::ReplaceAll { removed, added }
     }
 
     /// Get the child that follows the added or removed children.
@@ -101,7 +68,7 @@ impl<'a> ChildrenMutation<'a> {
             ChildrenMutation::Insert { next, .. } => Some(next),
             ChildrenMutation::Prepend { next, .. } => Some(next),
             ChildrenMutation::Replace { next, .. } => next,
-            ChildrenMutation::ReplaceAll { .. } => None,
+            ChildrenMutation::ReplaceAll => None,
             ChildrenMutation::ChangeText => None,
         }
     }
@@ -125,7 +92,7 @@ impl<'a> ChildrenMutation<'a> {
                 .find(|node| node.is::<Element>())
                 .map(|node| node.as_rooted()),
             // Add/remove at end of container: Return the last preceding element.
-            ChildrenMutation::Append { prev, .. } |
+            ChildrenMutation::Append { prev } |
             ChildrenMutation::Replace {
                 prev: Some(prev),
                 next: None,
@@ -167,7 +134,7 @@ impl<'a> ChildrenMutation<'a> {
                 next: None,
                 ..
             } => unreachable!(),
-            ChildrenMutation::ReplaceAll { .. } => None,
+            ChildrenMutation::ReplaceAll => None,
             ChildrenMutation::ChangeText => None,
         }
     }

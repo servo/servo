@@ -11,10 +11,20 @@
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b">
- <p title="a paragraph">This paragraph should be unstyled.</p>
- <q xmlns="http://www.example.org/a" a:title="a paragraph">This paragraph should have a green background.</q>
- <r xmlns="http://www.example.org/b" b:title="a paragraph">This paragraph should be unstyled.</r>
-</body>
+  <p id="t1" title="a paragraph">This paragraph should be unstyled.</p>
+  <q id="t2" xmlns="http://www.example.org/a" a:title="a paragraph">This paragraph should have a green background.</q>
+  <r id="t3" xmlns="http://www.example.org/b" b:title="a paragraph">This paragraph should be unstyled.</r>
+  <script><![CDATA[
+test(function() {
+  assert_not_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_not_background_color('t3', LIME);
+}, 'Attribute existence selector with declared namespace');
+]]></script>
+ </body>
 </html>

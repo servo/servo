@@ -10,7 +10,7 @@ jobs:
       test_jobs: ${{ steps.test_jobs.outputs.test_jobs }}
     steps:
       - name: checkout
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@v7
         with:
           fetch-depth: 2
       - name: ./wpt test-jobs

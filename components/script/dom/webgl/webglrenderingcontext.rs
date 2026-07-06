@@ -2122,7 +2122,10 @@ pub(crate) fn capture_webgl_backtrace() -> WebGLCommandBacktrace {
 pub(crate) fn capture_webgl_backtrace() -> WebGLCommandBacktrace {
     let bt = Backtrace::new();
     unsafe {
-        capture_stack!(in(*GlobalScope::get_cx()) let stack);
+        // TODO: https://github.com/servo/servo/issues/40600
+        #[expect(unsafe_code)]
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        capture_stack!(&in(cx) let stack);
         WebGLCommandBacktrace {
             backtrace: format!("{:?}", bt),
             js_backtrace: stack.and_then(|s| s.as_string(None, js::jsapi::StackFormat::Default)),

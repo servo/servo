@@ -45,7 +45,7 @@
     assert_equals(
       exceptionType,
       "SecurityError",
-      "setAppBadge should throw a SecurityError when called in a cross-origin iframe"
+      "setAppBadge should throw a SecurityError when called in a cross-origin iframe",
     );
     iframe.remove();
   }, "Test that calling setAppBadge in a cross-origin iframe throws a SecurityError");
@@ -77,7 +77,7 @@
     assert_equals(
       event.data.status,
       "success",
-      "setAppBadge should succeed when called in a same-origin iframe"
+      "setAppBadge should succeed when called in a same-origin iframe",
     );
     iframe.remove();
   }, "Test that calling setAppBadge in a same-origin iframe succeeds");

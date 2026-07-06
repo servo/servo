@@ -5,8 +5,9 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
@@ -20,7 +21,6 @@ use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttrackcuelist::TextTrackCueList;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct TextTrack {
@@ -57,6 +57,7 @@ impl TextTrack {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         id: DOMString,
         kind: TextTrackKind,
@@ -64,21 +65,19 @@ impl TextTrack {
         language: DOMString,
         mode: TextTrackMode,
         track_list: Option<&TextTrackList>,
-        can_gc: CanGc,
     ) -> DomRoot<TextTrack> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(TextTrack::new_inherited(
                 id, kind, label, language, mode, track_list,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
-    pub(crate) fn get_cues(&self) -> DomRoot<TextTrackCueList> {
-        self.cue_list.or_init(|| {
-            TextTrackCueList::new(self.global().as_window(), &[], CanGc::deprecated_note())
-        })
+    pub(crate) fn get_cues(&self, cx: &mut JSContext) -> DomRoot<TextTrackCueList> {
+        self.cue_list
+            .or_init(|| TextTrackCueList::new(cx, self.global().as_window(), &[]))
     }
 
     pub(crate) fn id(&self) -> &str {
@@ -126,45 +125,41 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-cues>
-    fn GetCues(&self) -> Option<DomRoot<TextTrackCueList>> {
+    fn GetCues(&self, cx: &mut JSContext) -> Option<DomRoot<TextTrackCueList>> {
         match self.Mode() {
             TextTrackMode::Disabled => None,
-            _ => Some(self.get_cues()),
+            _ => Some(self.get_cues(cx)),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-activecues>
-    fn GetActiveCues(&self) -> Option<DomRoot<TextTrackCueList>> {
+    fn GetActiveCues(&self, cx: &mut JSContext) -> Option<DomRoot<TextTrackCueList>> {
         // XXX implement active cues logic
         //      https://github.com/servo/servo/issues/22314
-        Some(TextTrackCueList::new(
-            self.global().as_window(),
-            &[],
-            CanGc::deprecated_note(),
-        ))
+        Some(TextTrackCueList::new(cx, self.global().as_window(), &[]))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-addcue>
-    fn AddCue(&self, cue: &TextTrackCue) -> ErrorResult {
+    fn AddCue(&self, cx: &mut JSContext, cue: &TextTrackCue) -> ErrorResult {
         // FIXME(#22314, dlrobertson) add Step 1 & 2
         // Step 3
         if let Some(old_track) = cue.get_track() {
             // gecko calls RemoveCue when the given cue
             // has an associated track, but doesn't return
             // the error from it, so we wont either.
-            if old_track.RemoveCue(cue).is_err() {
+            if old_track.RemoveCue(cx, cue).is_err() {
                 warn!("Failed to remove cues for the added cue's text track");
             }
         }
         // Step 4
-        self.get_cues().add(cue);
+        self.get_cues(cx).add(cue);
         Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-removecue>
-    fn RemoveCue(&self, cue: &TextTrackCue) -> ErrorResult {
+    fn RemoveCue(&self, cx: &mut JSContext, cue: &TextTrackCue) -> ErrorResult {
         // Step 1
-        let cues = self.get_cues();
+        let cues = self.get_cues(cx);
         let index = match cues.find(cue) {
             Some(i) => Ok(i),
             None => Err(Error::NotFound(None)),

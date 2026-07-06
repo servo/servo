@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/342383810">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input type=text id=input value="Some text"><br>
+<iframe id=iframe src="about:blank"></iframe>
+
+<script>
+function is_fully_selected(input) {
+  return input.selectionStart === 0 && input.selectionEnd === input.value.length;
+}
+
+promise_test(async (t) => {
+  input.addEventListener('focus', function() {
+    this.select();
+  }, {signal: t.get_signal()});
+
+  // 1. Click inside the input. Text is selected.
+  await test_driver.click(input);
+  assert_true(is_fully_selected(input), 'Initial click');
+
+  // 2. Click inside the iframe. The text loses focus.
+  await test_driver.click(iframe);
+  assert_not_equals(document.activeElement, input, 'Input should lose focus');
+
+  // 3. Click back inside the input. The text should still be selected.
+  await test_driver.click(input);
+  assert_true(is_fully_selected(input), 'Second click');
+}, "Selection behavior when selection doesn't change");
+</script>

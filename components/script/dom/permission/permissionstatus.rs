@@ -5,7 +5,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::reflect_dom_object;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionDescriptor, PermissionName, PermissionState, PermissionStatusMethods,
@@ -13,7 +14,6 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/permissions/#permissionstatus
 #[dom_struct]
@@ -33,14 +33,14 @@ impl PermissionStatus {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         query: &PermissionDescriptor,
-        can_gc: CanGc,
     ) -> DomRoot<PermissionStatus> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(PermissionStatus::new_inherited(query.name)),
             global,
-            can_gc,
+            cx,
         )
     }
 

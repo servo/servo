@@ -233,6 +233,7 @@ pub(crate) fn handle_get_document_element(
 }
 
 pub(crate) fn handle_get_stylesheets(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: GenericSender<Vec<StyleSheetInfo>>,
@@ -241,7 +242,7 @@ pub(crate) fn handle_get_stylesheets(
     if let Some(document) = documents.find_document(pipeline) {
         let node = document.upcast::<Node>();
         for i in 0..node.stylesheet_list_owner().stylesheet_count() {
-            if let Some(s) = node.stylesheet_list_owner().stylesheet_at(i) {
+            if let Some(s) = node.stylesheet_list_owner().stylesheet_at(cx, i) {
                 stylesheets.push(StyleSheetInfo {
                     href: s.href().map(String::from),
                     disabled: s.disabled(),
@@ -268,7 +269,7 @@ pub(crate) fn handle_get_stylesheet_text(
         let stylesheet = document
             .upcast::<Node>()
             .stylesheet_list_owner()
-            .stylesheet_at(index as usize)?;
+            .stylesheet_at(cx, index as usize)?;
 
         // For inline, Prefer the original "authored" source from the owner node (e.g., <style> tag).
         if let Some(node) = stylesheet.owner_node() {
@@ -476,7 +477,7 @@ pub(crate) fn handle_get_selectors(
 
         let mut decl_map = HashMap::new();
         for i in 0..owner.stylesheet_count() {
-            let Some(stylesheet) = owner.stylesheet_at(i) else {
+            let Some(stylesheet) = owner.stylesheet_at(cx, i) else {
                 continue;
             };
             let Ok(list) = stylesheet.GetCssRules(cx) else {
@@ -524,7 +525,7 @@ pub(crate) fn handle_get_stylesheet_style(
         let cx = &mut realm.current_realm();
         let owner = node.stylesheet_list_owner();
 
-        let stylesheet = owner.stylesheet_at(matched_rule.stylesheet_index)?;
+        let stylesheet = owner.stylesheet_at(cx, matched_rule.stylesheet_index)?;
         let list = stylesheet.GetCssRules(cx).ok()?;
 
         let style_rule = find_rule_by_block_id(cx, &list, matched_rule.block_id)?;

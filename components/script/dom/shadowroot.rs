@@ -190,12 +190,16 @@ impl ShadowRoot {
         self.author_styles.borrow().stylesheets.len()
     }
 
-    pub(crate) fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn stylesheet_at(
+        &self,
+        cx: &mut JSContext,
+        index: usize,
+    ) -> Option<DomRoot<CSSStyleSheet>> {
         let stylesheets = &self.author_styles.borrow().stylesheets;
 
         stylesheets
             .get(index)
-            .and_then(|s| s.owner.get_cssom_object())
+            .and_then(|s| s.owner.get_cssom_object(cx))
     }
 
     /// Add a stylesheet owned by `owner_node` to the list of shadow root sheets, in the
@@ -466,12 +470,12 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-document-stylesheets>
-    fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
+    fn StyleSheets(&self, cx: &mut JSContext) -> DomRoot<StyleSheetList> {
         self.stylesheet_list.or_init(|| {
             StyleSheetList::new(
+                cx,
                 &self.window,
                 StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
-                CanGc::deprecated_note(),
             )
         })
     }

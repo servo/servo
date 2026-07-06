@@ -22,7 +22,7 @@ use js::rust::wrappers2::{
     GetRequestedModulesCount, JS_GetModulePrivate, ModuleEvaluate, ModuleLink,
 };
 use js::rust::{HandleValue, IntoHandle};
-use net_traits::request::{Destination, Referrer};
+use net_traits::request::{Destination, Referrer, RequestClient};
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_callback;
 use servo_url::ServoUrl;
@@ -35,7 +35,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::realms::enter_auto_realm;
 use crate::script_module::{
-    ModuleFetchClient, ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
+    ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
 use crate::script_runtime::IntroductionType;
@@ -64,7 +64,7 @@ pub(crate) struct LoadState {
     #[no_trace]
     pub(crate) destination: Destination,
     #[no_trace]
-    pub(crate) fetch_client: ModuleFetchClient,
+    pub(crate) fetch_client: RequestClient,
 }
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
@@ -168,8 +168,8 @@ fn inner_module_loading(
                     unsafe { jsstr_to_string(cx, std::ptr::NonNull::new(jsstr).unwrap()) };
                 let module_type = unsafe { GetRequestedModuleType(cx, module_handle, index) };
 
-                let realm = CurrentRealm::assert(cx);
-                let global = GlobalScope::from_current_realm(&realm);
+                let mut realm = CurrentRealm::assert(cx);
+                let global = GlobalScope::from_current_realm(&mut realm);
 
                 // ii. Else if module.[[LoadedModules]] contains a LoadedModuleRequest Record record
                 // such that ModuleRequestsEqual(record, request) is true, then
@@ -290,28 +290,26 @@ fn finish_loading_imported_module(
 
 /// <https://tc39.es/ecma262/#sec-ContinueDynamicImport>
 fn continue_dynamic_import(
-    cx: &mut CurrentRealm,
+    realm: &mut CurrentRealm,
     promise: Rc<Promise>,
     module_completion: Result<Rc<ModuleTree>, RethrowError>,
 ) {
     // Step 1. If moduleCompletion is an abrupt completion, then
     if let Err(exception) = module_completion {
         // a. Perform ! Call(promiseCapability.[[Reject]], undefined, « moduleCompletion.[[Value]] »).
-        promise.reject(cx, exception.handle());
+        promise.reject(realm, exception.handle());
 
         // b. Return unused.
         return;
     }
-
-    let realm = CurrentRealm::assert(cx);
-    let global = GlobalScope::from_current_realm(&realm);
+    let global = GlobalScope::from_current_realm(realm);
 
     // Step 2. Let module be moduleCompletion.[[Value]].
     let module = module_completion.unwrap();
     let record = ModuleObject::new(module.get_record().map(|module| module.handle()).unwrap());
 
     // Step 3. Let loadPromise be module.LoadRequestedModules().
-    let load_promise = load_requested_modules(cx, module, None);
+    let load_promise = load_requested_modules(realm, module, None);
 
     // Step 4. Let rejectedClosure be a new Abstract Closure with parameters (reason)
     // that captures promiseCapability and performs the following steps when called:
@@ -384,7 +382,7 @@ fn continue_dynamic_import(
         }),
     ));
 
-    let mut realm = enter_auto_realm(cx, &*global);
+    let mut realm = enter_auto_realm(realm, &*global);
     let cx = &mut realm.current_realm();
     run_a_callback::<DomTypeHolder, _>(&*global, || {
         // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
@@ -410,8 +408,8 @@ pub(crate) fn host_load_imported_module(
     payload: Payload,
 ) {
     // Step 1. Let settingsObject be the current settings object.
-    let realm = CurrentRealm::assert(cx);
-    let mut global_scope = GlobalScope::from_current_realm(&realm);
+    let mut realm = CurrentRealm::assert(cx);
+    let mut global_scope = GlobalScope::from_current_realm(&mut realm);
 
     // TODO Step 2. If settingsObject's global object implements WorkletGlobalScope or ServiceWorkerGlobalScope and loadState is undefined, then:
 
@@ -496,7 +494,7 @@ pub(crate) fn host_load_imported_module(
             // Step 11. Let destination be "script".
             Destination::Script,
             // Step 12. Let fetchClient be settingsObject.
-            ModuleFetchClient::from_global_scope(&global_scope),
+            global_scope.request_client(Some(cx.no_gc())),
         ),
     };
 
@@ -561,7 +559,7 @@ pub(crate) fn host_load_imported_module(
 fn fetch_a_single_imported_module_script(
     cx: &mut JSContext,
     url: ServoUrl,
-    fetch_client: ModuleFetchClient,
+    fetch_client: RequestClient,
     global: &GlobalScope,
     destination: Destination,
     options: ScriptFetchOptions,

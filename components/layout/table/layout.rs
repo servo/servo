@@ -1251,18 +1251,17 @@ impl<'a> TableLayout<'a> {
                 self.row_baselines.push(max_ascent);
                 max_row_height.max(max_ascent + max_descent)
             })
-            .collect();
+            .collect::<Vec<_>>();
         self.calculate_row_sizes_after_first_layout(&mut row_sizes, writing_mode);
         row_sizes
     }
 
-    #[allow(clippy::ptr_arg)] // Needs to be a vec because of the function above
     /// After doing layout of table rows, calculate final row size and distribute space across
     /// rowspanned cells. This follows the implementation of LayoutNG and the priority
     /// agorithm described at <https://github.com/w3c/csswg-drafts/issues/4418>.
     fn calculate_row_sizes_after_first_layout(
         &mut self,
-        row_sizes: &mut Vec<Au>,
+        row_sizes: &mut [Au],
         writing_mode: WritingMode,
     ) {
         let mut cells_to_distribute = Vec::new();

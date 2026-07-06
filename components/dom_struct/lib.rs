@@ -100,7 +100,6 @@ fn test_valid_dom_struct_generation() {
                 fn some_item() {}
             }
             impl<T: ?Sized> NoDomObjectInDomObject<()> for T {}
-            #[expect(dead_code)]
             struct Invalid;
             impl<T> NoDomObjectInDomObject<Invalid> for T
             where

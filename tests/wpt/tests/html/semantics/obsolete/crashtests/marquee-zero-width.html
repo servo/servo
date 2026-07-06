@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Positive content-width, zero marquee-width should not crash</title>
+<link rel="help" href="https://crbug.com/40586101">
+<style>
+marquee {
+  display: table-row-group;
+  padding-left: 100px;
+}
+</style>
+<marquee></marquee>

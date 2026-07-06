@@ -352,7 +352,7 @@ impl TrustedTypePolicyFactory {
         cx: &mut JSContext,
         value: HandleValue,
     ) -> Result<DomRoot<TrustedScript>, ()> {
-        root_from_handlevalue::<TrustedScript>(value, cx.into())
+        root_from_handlevalue::<TrustedScript>(cx, value)
     }
 }
 
@@ -368,7 +368,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-ishtml>
     fn IsHTML(&self, cx: &mut JSContext, value: HandleValue) -> bool {
-        root_from_handlevalue::<TrustedHTML>(value, cx.into()).is_ok()
+        root_from_handlevalue::<TrustedHTML>(cx, value).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscript>
     fn IsScript(&self, cx: &mut JSContext, value: HandleValue) -> bool {
@@ -376,7 +376,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-isscripturl>
     fn IsScriptURL(&self, cx: &mut JSContext, value: HandleValue) -> bool {
-        root_from_handlevalue::<TrustedScriptURL>(value, cx.into()).is_ok()
+        root_from_handlevalue::<TrustedScriptURL>(cx, value).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyhtml>
     fn EmptyHTML(&self, cx: &mut JSContext) -> DomRoot<TrustedHTML> {

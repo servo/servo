@@ -33,7 +33,9 @@ pub(crate) use script_bindings::error::*;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, root_from_object};
+use crate::dom::bindings::conversions::{
+    ConversionResult, FromJSValConvertible, root_from_handleobject,
+};
 use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
@@ -293,8 +295,7 @@ impl ErrorInfo {
     }
 
     fn from_dom_exception(cx: &mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
-        let exception =
-            unsafe { root_from_object::<DOMException>(object.get(), cx.raw_cx()).ok()? };
+        let exception = root_from_handleobject::<DOMException>(cx, object).ok()?;
         let scripted_caller = unsafe { describe_scripted_caller(cx.raw_cx()) }.unwrap_or_default();
         Some(ErrorInfo {
             message: exception.stringifier().into(),

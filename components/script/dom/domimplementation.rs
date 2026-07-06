@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use html5ever::{QualName, local_name, ns};
 use js::context::JSContext;
 use script_bindings::error::Error;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_traits::DocumentActivity;
 
 use crate::document_loader::DocumentLoader;
@@ -28,7 +28,6 @@ use crate::dom::node::Node;
 use crate::dom::text::Text;
 use crate::dom::types::Element;
 use crate::dom::xmldocument::XMLDocument;
-use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
@@ -45,12 +44,12 @@ impl DOMImplementation {
         }
     }
 
-    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<DOMImplementation> {
+    pub(crate) fn new(cx: &mut JSContext, document: &Document) -> DomRoot<DOMImplementation> {
         let window = document.window();
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(DOMImplementation::new_inherited(document)),
             window,
-            can_gc,
+            cx,
         )
     }
 }

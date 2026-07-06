@@ -49,6 +49,8 @@ pub(crate) enum Handle {
     Ed25519PublicKey(ed25519_dalek::VerifyingKey),
     X25519PrivateKey(x25519_dalek::StaticSecret),
     X25519PublicKey(x25519_dalek::PublicKey),
+    Ed448PrivateKey(ed448_goldilocks::SigningKey),
+    Ed448PublicKey(ed448_goldilocks::VerifyingKey),
     Aes128Key(aes::cipher::common::Key<aes::Aes128>),
     Aes192Key(aes::cipher::common::Key<aes::Aes192>),
     Aes256Key(aes::cipher::common::Key<aes::Aes256>),
@@ -311,6 +313,8 @@ impl MallocSizeOf for Handle {
             Handle::Ed25519PublicKey(bytes) => bytes.size_of(ops),
             Handle::X25519PrivateKey(private_key) => private_key.size_of(ops),
             Handle::X25519PublicKey(public_key) => public_key.size_of(ops),
+            Handle::Ed448PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::Ed448PublicKey(public_key) => public_key.size_of(ops),
             Handle::Aes128Key(key) => key.size_of(ops),
             Handle::Aes192Key(key) => key.size_of(ops),
             Handle::Aes256Key(key) => key.size_of(ops),
@@ -379,6 +383,17 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
             SerializableCryptoKeyHandle::X25519PublicKey(public_key) => {
                 Ok(Handle::X25519PublicKey((*public_key).into()))
             },
+            SerializableCryptoKeyHandle::Ed448PrivateKey(private_key) => {
+                Ok(Handle::Ed448PrivateKey(
+                    ed448_goldilocks::SigningKey::try_from(private_key).map_err(|_| ())?,
+                ))
+            },
+            SerializableCryptoKeyHandle::Ed448PublicKey(public_key) => Ok(Handle::Ed448PublicKey(
+                ed448_goldilocks::VerifyingKey::from_bytes(
+                    public_key.as_slice().try_into().map_err(|_| ())?,
+                )
+                .map_err(|_| ())?,
+            )),
             SerializableCryptoKeyHandle::Aes128Key(key) => Ok(Handle::Aes128Key(
                 aes::cipher::common::Key::<aes::Aes128>::try_from(key).map_err(|_| ())?,
             )),
@@ -514,6 +529,12 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
             Handle::X25519PublicKey(public_key) => Ok(
                 SerializableCryptoKeyHandle::X25519PublicKey(public_key.to_bytes()),
             ),
+            Handle::Ed448PrivateKey(private_key) => Ok(
+                SerializableCryptoKeyHandle::Ed448PrivateKey(private_key.as_bytes().to_vec()),
+            ),
+            Handle::Ed448PublicKey(public_key) => Ok(SerializableCryptoKeyHandle::Ed448PublicKey(
+                public_key.as_bytes().to_vec(),
+            )),
             Handle::Aes128Key(key) => Ok(SerializableCryptoKeyHandle::Aes128Key(key.to_vec())),
             Handle::Aes192Key(key) => Ok(SerializableCryptoKeyHandle::Aes192Key(key.to_vec())),
             Handle::Aes256Key(key) => Ok(SerializableCryptoKeyHandle::Aes256Key(key.to_vec())),

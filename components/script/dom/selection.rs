@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
+use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
@@ -469,13 +471,10 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             new_range = Range::new(cx, &self.document, node, offset, node, offset);
             direction = Direction::Forwards;
         } else {
-            let is_old_anchor_before_or_equal = {
-                if old_anchor_node == node {
-                    old_anchor_offset <= offset
-                } else {
-                    old_anchor_node.is_before(node)
-                }
-            };
+            let is_old_anchor_before_or_equal = matches!(
+                bp_position(old_anchor_node, old_anchor_offset, node, offset),
+                Some(Ordering::Less) | Some(Ordering::Equal)
+            );
             if is_old_anchor_before_or_equal {
                 // Step 6. Otherwise, if oldAnchor is before or equal to newFocus, set the start
                 // newRange's start to oldAnchor, then set its end to newFocus.
@@ -556,24 +555,10 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 5. If anchor is before focus, set the start the newRange's start to anchor
         // and its end to focus. Otherwise, set the start them to focus and anchor
         // respectively.
-        let is_focus_before_anchor = {
-            if anchor_node == focus_node {
-                focus_offset < anchor_offset
-            } else {
-                focus_node.is_before(anchor_node)
-            }
-        };
-        if is_focus_before_anchor {
-            new_range = Range::new(
-                cx,
-                &self.document,
-                focus_node,
-                focus_offset,
-                anchor_node,
-                anchor_offset,
-            );
-            direction = Direction::Backwards;
-        } else {
+        let is_anchor_before_focus =
+            bp_position(anchor_node, anchor_offset, focus_node, focus_offset) ==
+                Some(Ordering::Less);
+        if is_anchor_before_focus {
             new_range = Range::new(
                 cx,
                 &self.document,
@@ -583,6 +568,16 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                 focus_offset,
             );
             direction = Direction::Forwards;
+        } else {
+            new_range = Range::new(
+                cx,
+                &self.document,
+                focus_node,
+                focus_offset,
+                anchor_node,
+                anchor_offset,
+            );
+            direction = Direction::Backwards;
         }
 
         // Step 6. Set this's range to newRange.
@@ -647,61 +642,45 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // >
         // > Otherwise, if allowPartialContainment is false, the method must return true if and only
         // > if start of its range is before or visually equivalent to the first boundary point in
-        // > the node and end of its range is after or visually equivalent to the last boundary
+        // > the node *and* end of its range is after or visually equivalent to the last boundary
         // > point in the node.
         // >
         // > If allowPartialContainment is true, the method must return true if and only if start of
-        // > its range is before or visually equivalent to the last boundary point in the node and
+        // > its range is before or visually equivalent to the last boundary point in the node *and*
         // > end of its range is after or visually equivalent to the first boundary point in the
         // > node.
 
-        // TODO: Spec requires a "visually equivalent to" check, which is
-        // probably up to a layout query. This is therefore not a full implementation.
         if !self.is_same_root(node) {
             return false;
         }
-        if let Some(range) = self.range.get() {
-            let start_node = &*range.start_container();
-            if !self.is_same_root(start_node) {
-                // node can't be contained in a range with a different root
-                return false;
-            }
-            if allow_partial_containment {
-                // Spec seems to be incorrect here, w3c/selection-api#116
-                if node.is_before(start_node) {
-                    return false;
-                }
-                let end_node = &*range.end_container();
-                if end_node.is_before(node) {
-                    return false;
-                }
-                if node == start_node {
-                    return range.start_offset() < node.len();
-                }
-                if node == end_node {
-                    return range.end_offset() > 0;
-                }
-                true
-            } else {
-                if node.is_before(start_node) {
-                    return false;
-                }
-                let end_node = &*range.end_container();
-                if end_node.is_before(node) {
-                    return false;
-                }
-                if node == start_node {
-                    return range.start_offset() == 0;
-                }
-                if node == end_node {
-                    return range.end_offset() == node.len();
-                }
-                true
-            }
-        } else {
-            // No range
-            false
+        let Some(range) = self.range.get() else {
+            return false;
+        };
+        let start_node = &*range.start_container();
+        if !self.is_same_root(start_node) {
+            // node can't be contained in a range with a different root
+            return false;
         }
+        let end_node = &*range.end_container();
+
+        let first_offset = 0;
+        let last_offset = node.len();
+        let (compare_start_to, compare_end_to) = if allow_partial_containment {
+            (last_offset, first_offset)
+        } else {
+            (first_offset, last_offset)
+        };
+
+        // TODO: find out what "visually equivalent" means for boundary points and implement it.
+        // https://github.com/w3c/selection-api/issues/6
+        // For now it is simplified to "position is equal".
+        matches!(
+            bp_position(start_node, range.start_offset(), node, compare_start_to),
+            Some(Ordering::Less) | Some(Ordering::Equal)
+        ) && matches!(
+            bp_position(end_node, range.end_offset(), node, compare_end_to),
+            Some(Ordering::Greater) | Some(Ordering::Equal)
+        )
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-stringifier>

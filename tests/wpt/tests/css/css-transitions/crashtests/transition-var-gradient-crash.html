@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Transitioning with a var() linear-gradient should not crash</title>
+<link rel="help" href="https://crbug.com/40548124">
+<style>
+#target {
+  background-image: linear-gradient(var(--, black), white);
+  transition: color 1s;
+}
+</style>
+<div id="target"></div>
+<script>
+  'use strict';
+  getComputedStyle(target).color;
+  target.style.color = 'green';
+  getComputedStyle(target).color;
+</script>

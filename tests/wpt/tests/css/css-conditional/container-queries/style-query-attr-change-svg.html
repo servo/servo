@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: style() query with attr() for unregistered custom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+
+  #target {
+    color: red;
+  }
+
+  @container style(--my-props: attr(viewBox)) {
+    #target {
+      color: green;
+    }
+  }
+
+  #container {
+    --my-props: "10 10 10 10"
+  }
+</style>
+<svg id="container" viewBox="">
+    <foreignObject id="target">Should be green</foreignObject>
+</svg>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  }, "Initially, container does not match. Target is red.");
+
+  test(() => {
+    container.setAttribute("viewBox", "10 10 10 10");
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Changing viewBox to '10 10 10 10' in container makes target color green");
+
+  test(() => {
+    container.setAttribute("viewbox", "");
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Changing viewbox to ' ' in container does not affect target");
+</script>

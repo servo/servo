@@ -13,7 +13,7 @@ android {
     ndkPath = getNdkDir()
 
     defaultConfig {
-        minSdk = 30
+        minSdk = getServoMinSdk()
     }
 
     lint {
@@ -145,6 +145,7 @@ project.afterEvaluate {
                 "NDK_LIBS_OUT=" + getJniLibsPath(debug, arch),
                 "NDK_DEBUG=" + if (debug) "1" else "0",
                 "APP_ABI=" + getNDKAbi(arch),
+                "APP_PLATFORM=android-" + getServoMinSdk(),
                 "NDK_LOG=1",
                 "SERVO_TARGET_DIR=" + getNativeTargetDir(debug, arch)
             )

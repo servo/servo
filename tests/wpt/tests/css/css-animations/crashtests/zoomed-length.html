@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>CSS animation with zoom and length should not crash</title>
+<link rel="help" href="https://crbug.com/40419225">
+<style>
+#target {
+  animation: anim 1s -0.25s step-start paused;
+}
+@keyframes anim {
+  50% {
+    left: 1000px;
+  }
+}
+* { zoom: 6318030279180000000; }
+</style>
+<div id="target"></div>
+<script>
+  target.addEventListener('animationstart', () => {
+    getComputedStyle(target).left;
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

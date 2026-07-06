@@ -16,6 +16,7 @@ function test_invalid_fallback(value) {
 // <counter-style-name>
 
 test_valid_fallback('bar');
+test_valid_fallback('foo\\{\\}bar');
 
 // Counter style names are custom identifiers, not strings
 test_invalid_fallback('"bar"');

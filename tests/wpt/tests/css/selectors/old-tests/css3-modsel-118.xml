@@ -12,15 +12,27 @@ div.test *:not(a|p) { background-color : lime }
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" namespace" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 <div class="test">
- <p xmlns="http://www.w3.org/1999/xhtml">This paragraph should have a green background.</p>
- <p xmlns="http://www.example.org/b">This paragraph should have a green background.</p>
- <p xmlns="">This paragraph should have a green background.</p>
- <p xmlns="http://www.example.org/a">
- <l>This paragraph should have a green background.</l>
- </p>
+  <p xmlns="http://www.w3.org/1999/xhtml" id="t1">This paragraph should have a green background.</p>
+  <p xmlns="http://www.example.org/b" id="t2">This paragraph should have a green background.</p>
+  <p xmlns="" id="t3">This paragraph should have a green background.</p>
+  <p xmlns="http://www.example.org/a" id="t4">
+  <l id="t5">This paragraph should have a green background.</l>
+  </p>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+  assert_background_color('t4', RED);
+  assert_background_color('t5', LIME);
+}, "NEGATED type element selector with declared namespace");
+]]></script>
 </body>
 </html>

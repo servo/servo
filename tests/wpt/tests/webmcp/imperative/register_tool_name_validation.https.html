@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>WebMCP registerTool throws on invalid name</title>
+<title>WebMCP registerTool rejects on invalid name</title>
 <link rel="author" href="mailto:dom@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
 <script>
-test(() => {
+promise_test(async () => {
   // Valid names
   const validNames = [
     'a',
@@ -22,7 +22,7 @@ test(() => {
   ];
 
   for (const name of validNames) {
-    document.modelContext.registerTool({
+    await document.modelContext.registerTool({
       name: name,
       description: 'valid name test',
       execute: async () => 'empty'
@@ -30,7 +30,7 @@ test(() => {
   }
 }, 'Valid tool names are accepted.');
 
-test(() => {
+promise_test(async t => {
   // Invalid names
   const invalidNames = [
     '', // Empty
@@ -66,15 +66,13 @@ test(() => {
   ];
 
   for (const name of invalidNames) {
-    assert_throws_dom(
+    await promise_rejects_dom(t,
       'InvalidStateError',
-      () => {
-        document.modelContext.registerTool({
-          name: name,
-          description: 'invalid name test',
-          execute: async () => 'empty'
-        });
-      },
+      document.modelContext.registerTool({
+        name: name,
+        description: 'invalid name test',
+        execute: async () => 'empty'
+      }),
       `Tool name '${name}' is invalid.`
     );
   }

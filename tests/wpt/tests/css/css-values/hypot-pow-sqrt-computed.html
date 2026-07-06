@@ -43,7 +43,7 @@ test_math_used('hypot(0% + 772.333px)', 'calc(0% + 772.333px)');
 test_math_used('hypot(0% + 772.35px)', 'calc(0% + 772.35px)');
 test_math_used('hypot(0% + 600px, 0% + 800px)', '1000px');
 
-//Test unresolved at parse time
+// Test unresolved at parse time
 test_math_used('sqrt(sibling-index())', '2', {type: 'integer'});
 test_math_used('calc(1px * sqrt(sibling-index()))', '2px');
 test_math_used('sqrt(pow(sibling-index(), 2))', '4', {type: 'integer'});
@@ -53,7 +53,11 @@ test_math_used('calc(1px * sqrt(4 * sign(1em - 1px)))', '2px');
 test_math_used('sqrt(pow(4 * sign(1em - 1px), 2))', '4', {type: 'integer'});
 test_math_used('hypot(3, 4 * sign(1em - 1px))', '5', {type: 'integer'});
 
-//Type checking hypot
+// Test unresolved at computed-value time.
+test_math_computed('calc(pow(tan(atan2(round(up,1px,100%),round(up,1px,100%))),2)*1px)',
+                   'calc(pow(tan(atan2(round(up,1px,100%),round(up,1px,100%))),2)*1px)', {type:'length'});
+
+// Type checking hypot
 test_math_used('hypot(1px)', '1px');
 test_math_used('hypot(1cm)', '1cm');
 test_math_used('hypot(1mm)', '1mm');

@@ -18,8 +18,7 @@ use js::glue::{
 };
 use js::jsapi::{
     GCContext, Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
-    HandleValue as RawHandleValue, JS_DefinePropertyById, JS_ForwardGetPropertyTo,
-    JS_ForwardSetPropertyTo, JS_GetOwnPropertyDescriptorById, JS_HasPropertyById,
+    HandleValue as RawHandleValue, JS_DefinePropertyById, JS_ForwardSetPropertyTo,
     JSContext as RawJSContext, JSErrNum, JSObject, JSPROP_ENUMERATE, JSPROP_READONLY, JSTracer,
     MutableHandle as RawMutableHandle, MutableHandleObject as RawMutableHandleObject,
     MutableHandleValue as RawMutableHandleValue, ObjectOpResult, PropertyDescriptor,
@@ -27,8 +26,8 @@ use js::jsapi::{
 use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
-    JS_HasOwnPropertyById, JS_IsExceptionPending, JS_TransplantObject, NewWindowProxy,
-    SetWindowProxy,
+    JS_ForwardGetPropertyTo, JS_GetOwnPropertyDescriptorById, JS_HasOwnPropertyById,
+    JS_HasPropertyById, JS_IsExceptionPending, JS_TransplantObject, NewWindowProxy, SetWindowProxy,
 };
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -958,7 +957,7 @@ fn parse_open_feature_boolean(tokenized_features: &IndexMap<String, String>, nam
 #[expect(unsafe_code)]
 #[expect(non_snake_case)]
 unsafe fn GetSubframeWindowProxy(
-    cx: *mut RawJSContext,
+    cx: &mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
 ) -> Option<(DomRoot<WindowProxy>, u32)> {
@@ -966,9 +965,9 @@ unsafe fn GetSubframeWindowProxy(
     if let Some(index) = index {
         let mut slot = UndefinedValue();
         unsafe { GetProxyPrivate(*proxy, &mut slot) };
-        rooted!(in(cx) let target = slot.to_object());
+        rooted!(&in(cx) let target = slot.to_object());
         let script_window_proxies = ScriptThread::window_proxies();
-        if let Ok(win) = root_from_handleobject::<Window>(target.handle(), cx) {
+        if let Ok(win) = root_from_handleobject::<Window>(cx, target.handle()) {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = generic_channel::channel().unwrap();
 
@@ -986,7 +985,7 @@ unsafe fn GetSubframeWindowProxy(
                 .and_then(|id| script_window_proxies.find_window_proxy(id))
                 .map(|proxy| (proxy, (JSPROP_ENUMERATE | JSPROP_READONLY) as u32));
         } else if let Ok(win) =
-            root_from_handleobject::<DissimilarOriginWindow>(target.handle(), cx)
+            root_from_handleobject::<DissimilarOriginWindow>(cx, target.handle())
         {
             let browsing_context_id = win.window_proxy().browsing_context_id();
             let (result_sender, result_receiver) = generic_channel::channel().unwrap();
@@ -1018,23 +1017,26 @@ unsafe extern "C" fn get_own_property_descriptor(
     desc: RawMutableHandle<PropertyDescriptor>,
     is_none: *mut bool,
 ) -> bool {
+    let mut cx = unsafe {
+        // SAFETY: We are in SM hook
+        JSContext::from_ptr(NonNull::new(cx).expect("JSContext should not be null in SM hook"))
+    };
+    let cx = &mut cx;
     let window = unsafe { GetSubframeWindowProxy(cx, proxy, id) };
+    let desc = unsafe { MutableHandle::from_raw(desc) };
     if let Some((window, attrs)) = window {
-        rooted!(in(cx) let mut val = UndefinedValue());
-        unsafe { window.to_jsval(cx, val.handle_mut()) };
-        set_property_descriptor(
-            unsafe { MutableHandle::from_raw(desc) },
-            val.handle(),
-            attrs,
-            unsafe { &mut *is_none },
-        );
+        rooted!(&in(cx) let mut val = UndefinedValue());
+        window.safe_to_jsval(cx, val.handle_mut());
+        set_property_descriptor(desc, val.handle(), attrs, unsafe { &mut *is_none });
         return true;
     }
 
     let mut slot = UndefinedValue();
     unsafe { GetProxyPrivate(proxy.get(), &mut slot) };
-    rooted!(in(cx) let target = slot.to_object());
-    unsafe { JS_GetOwnPropertyDescriptorById(cx, target.handle().into(), id, desc, is_none) }
+    rooted!(&in(cx) let target = slot.to_object());
+    unsafe {
+        JS_GetOwnPropertyDescriptorById(cx, target.handle(), Handle::from_raw(id), desc, is_none)
+    }
 }
 
 #[expect(unsafe_code)]
@@ -1069,6 +1071,11 @@ unsafe extern "C" fn has(
     id: RawHandleId,
     bp: *mut bool,
 ) -> bool {
+    let mut cx = unsafe {
+        // SAFETY: We are in SM hook
+        JSContext::from_ptr(NonNull::new(cx).expect("JSContext should not be null in SM hook"))
+    };
+    let cx = &mut cx;
     let window = unsafe { GetSubframeWindowProxy(cx, proxy, id) };
     if window.is_some() {
         unsafe { *bp = true };
@@ -1077,9 +1084,9 @@ unsafe extern "C" fn has(
 
     let mut slot = UndefinedValue();
     unsafe { GetProxyPrivate(*proxy.ptr, &mut slot) };
-    rooted!(in(cx) let target = slot.to_object());
+    rooted!(&in(cx) let target = slot.to_object());
     let mut found = false;
-    if !unsafe { JS_HasPropertyById(cx, target.handle().into(), id, &mut found) } {
+    if !unsafe { JS_HasPropertyById(cx, target.handle(), Handle::from_raw(id), &mut found) } {
         return false;
     }
 
@@ -1095,16 +1102,30 @@ unsafe extern "C" fn get(
     id: RawHandleId,
     vp: RawMutableHandleValue,
 ) -> bool {
+    let mut cx = unsafe {
+        // SAFETY: We are in SM hook
+        JSContext::from_ptr(NonNull::new(cx).expect("JSContext should not be null in SM hook"))
+    };
+    let cx = &mut cx;
     let window = unsafe { GetSubframeWindowProxy(cx, proxy, id) };
+    let vp = unsafe { MutableHandle::from_raw(vp) };
     if let Some((window, _attrs)) = window {
-        unsafe { window.to_jsval(cx, MutableHandle::from_raw(vp)) };
+        window.safe_to_jsval(cx, vp);
         return true;
     }
 
     let mut slot = UndefinedValue();
     unsafe { GetProxyPrivate(*proxy.ptr, &mut slot) };
-    rooted!(in(cx) let target = slot.to_object());
-    unsafe { JS_ForwardGetPropertyTo(cx, target.handle().into(), id, receiver, vp) }
+    rooted!(&in(cx) let target = slot.to_object());
+    unsafe {
+        JS_ForwardGetPropertyTo(
+            cx,
+            target.handle(),
+            Handle::from_raw(id),
+            Handle::from_raw(receiver),
+            vp,
+        )
+    }
 }
 
 #[expect(unsafe_code)]

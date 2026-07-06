@@ -8,7 +8,6 @@
 # except according to those terms.
 
 import os
-import shutil
 import subprocess
 import tempfile
 import urllib.parse
@@ -29,8 +28,6 @@ GSTREAMER_URL = f"{DEPS_URL}/gstreamer-1.0-msvc-x86_64-1.22.8.msi"
 GSTREAMER_DEVEL_URL = f"{DEPS_URL}/gstreamer-1.0-devel-msvc-x86_64-1.22.8.msi"
 DEPENDENCIES_DIR = os.path.join(util.get_target_dir(), "dependencies")
 
-WINGET_DEPENDENCIES = ["Kitware.CMake", "LLVM.LLVM", "Ninja-build.Ninja", "WiXToolset.WiXToolset"]
-
 
 def get_dependency_dir(package: str) -> str:
     """Get the directory that a given Windows dependency should extract to."""
@@ -38,18 +35,15 @@ def get_dependency_dir(package: str) -> str:
 
 
 def _winget_import(force: bool = False, yes: bool = False) -> None:
+    winget_json = os.path.join(os.path.dirname(__file__), "windows", "winget.json")
     try:
         # We install tools like LLVM / CMake, so we probably don't want to force-upgrade
         # a user installed version without good reason.
-        cmd = ["winget", "install"]
-        if not yes:
-            cmd.append("--interactive")
-        if force:
-            cmd.append("--force")
-        else:
+        cmd = ["winget", "import", winget_json]
+        if yes:
+            cmd.append("--disable-interactivity")
+        if not force:
             cmd.append("--no-upgrade")
-
-        cmd.extend(WINGET_DEPENDENCIES)
 
         # The output will be printed to the terminal that `./mach bootstrap` is running in.
         subprocess.run(cmd, encoding="utf-8")
@@ -58,22 +52,32 @@ def _winget_import(force: bool = False, yes: bool = False) -> None:
         raise e
 
 
-def _choco_install(force: bool = False) -> None:
-    try:
-        choco_config = os.path.join(util.SERVO_ROOT, "support", "windows", "chocolatey.config")
+def _append_to_user_path(new_path: str) -> None:
+    """Persistently append a directory to the current user's PATH environment variable
+    so that it is available in all future processes, not just the current one."""
 
-        # This is the format that PowerShell wants arguments passed to it.
-        cmd_exe_args = f"'/K','choco','install','-y', '\"{choco_config}\"'"
-        if force:
-            cmd_exe_args += ",'-f'"
+    # Using PowerShell avoids setx's 1024 character limit, but still correctly notifies the system
+    # of the change so that it is available in future processes.
+    subprocess.check_call(
+        [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "[Environment]::SetEnvironmentVariable('PATH', "
+            f"[Environment]::GetEnvironmentVariable('PATH', 'User') + '{os.pathsep}{new_path}', 'User')",
+        ]
+    )
 
-        print(cmd_exe_args)
-        subprocess.check_output(
-            ["powershell", "Start-Process", "-Wait", "-verb", "runAs", "cmd.exe", "-ArgumentList", f"@({cmd_exe_args})"]
-        ).decode("utf-8")
-    except subprocess.CalledProcessError as e:
-        print("Could not run chocolatey.  Follow manual build setup instructions.")
-        raise e
+    # Make the change visible to the current process as well.
+    os.environ["PATH"] = os.environ.get("PATH", "") + os.pathsep + new_path
+
+
+def _ensure_llvm_in_user_path() -> None:
+    """winget doesn't add LLVM to the PATH, so persistently append the default install
+    location to the user's PATH if it's not already there."""
+    llvm_bin = os.path.join(os.environ["PROGRAMFILES"], "LLVM", "bin")
+    if os.path.isdir(llvm_bin) and llvm_bin not in os.environ.get("PATH", ""):
+        _append_to_user_path(llvm_bin)
 
 
 class Windows(Base):
@@ -103,11 +107,8 @@ class Windows(Base):
 
     def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         installed_something = self.passive_bootstrap()
-        # If `winget` works well in practice, we could switch the default in the future.
-        if shutil.which("choco") is not None:
-            _choco_install(force)
-        else:
-            _winget_import(force, yes)
+        _winget_import(force, yes)
+        _ensure_llvm_in_user_path()
 
         target = BuildTarget.from_triple(None)
         installed_something |= self._platform_bootstrap_gstreamer(target, force, yes)
@@ -163,7 +164,12 @@ class Windows(Base):
         return None
 
     def is_gstreamer_installed(self, target: BuildTarget) -> bool:
-        return self.gstreamer_root(target) is not None
+        root = self.gstreamer_root(target)
+        if root is None:
+            return False
+        # In the case of a failed installation, the runtime may be present without the development
+        # files, so also make sure that the pkg-config files have been installed.
+        return os.path.exists(os.path.join(root, "lib", "pkgconfig", "gobject-2.0.pc"))
 
     def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
         if not force and self.is_gstreamer_installed(target):
@@ -186,7 +192,7 @@ class Windows(Base):
             for installer in [libs_msi, devel_msi]:
                 arguments = [
                     "/a",
-                    f'"{installer}"TARGETDIR="{DEPENDENCIES_DIR}"',  # Install destination
+                    f'"{installer} "TARGETDIR="{DEPENDENCIES_DIR}"',  # Install destination
                     "/qn",  # Quiet mode
                 ]
                 quoted_arguments = ",".join((f"'{arg}'" for arg in arguments))

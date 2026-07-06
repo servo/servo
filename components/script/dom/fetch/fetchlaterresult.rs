@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::FetchLaterResultBinding::FetchLaterResultMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use crate::fetch::DeferredFetchRecordId;
-use crate::script_runtime::CanGc;
 
 /// <https://fetch.spec.whatwg.org/#fetchlaterresult>
 #[dom_struct]
@@ -31,14 +31,14 @@ impl FetchLaterResult {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         deferred_record_id: DeferredFetchRecordId,
-        can_gc: CanGc,
     ) -> DomRoot<FetchLaterResult> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(FetchLaterResult::new_inherited(deferred_record_id)),
             window,
-            can_gc,
+            cx,
         )
     }
 }

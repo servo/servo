@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Verify no rounding loss for flex track sizing</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-find-fr-size">
+<link rel="match" href="grid-flexible-track-free-space-distribution-ref.html">
+<link rel="author" title="Yulun Wu" href="mailto:yulun_wu@apple.com">
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-rows: 100px;
+    width: 100px;
+    background: red;
+}
+.item { background: green; }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="grid">
+    <div class="item" style="grid-row: 1 / 2; grid-column: 1 / 2"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 2 / 3"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 3 / 4"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 4 / 5"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 5 / 6"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 6 / 7"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 7 / 8"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 8 / 9"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 9 / 10"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 10 / 11"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 11 / 12"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 12 / 13"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 13 / 14"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 14 / 15"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 15 / 16"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 16 / 17"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 17 / 18"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 18 / 19"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 19 / 20"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 20 / 21"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 21 / 22"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 22 / 23"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 23 / 24"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 24 / 25"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 25 / 26"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 26 / 27"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 27 / 28"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 28 / 29"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 29 / 30"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 30 / 31"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 31 / 32"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 32 / 33"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 33 / 34"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 34 / 35"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 35 / 36"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 36 / 37"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 37 / 38"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 38 / 39"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 39 / 40"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 40 / 41"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 41 / 42"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 42 / 43"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 43 / 44"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 44 / 45"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 45 / 46"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 46 / 47"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 47 / 48"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 48 / 49"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 49 / 50"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 50 / 51"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 51 / 52"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 52 / 53"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 53 / 54"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 54 / 55"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 55 / 56"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 56 / 57"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 57 / 58"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 58 / 59"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 59 / 60"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 60 / 61"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 61 / 62"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 62 / 63"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 63 / 64"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 64 / 65"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 65 / 66"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 66 / 67"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 67 / 68"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 68 / 69"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 69 / 70"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 70 / 71"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 71 / 72"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 72 / 73"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 73 / 74"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 74 / 75"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 75 / 76"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 76 / 77"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 77 / 78"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 78 / 79"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 79 / 80"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 80 / 81"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 81 / 82"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 82 / 83"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 83 / 84"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 84 / 85"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 85 / 86"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 86 / 87"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 87 / 88"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 88 / 89"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 89 / 90"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 90 / 91"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 91 / 92"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 92 / 93"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 93 / 94"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 94 / 95"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 95 / 96"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 96 / 97"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 97 / 98"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 98 / 99"></div>
+    <div class="item" style="grid-row: 1 / 2; grid-column: 99 / 100"></div>
+</div>

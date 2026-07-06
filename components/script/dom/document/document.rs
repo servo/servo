@@ -80,6 +80,7 @@ use url::{Host, Position};
 
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
+use crate::dom::FlatTreeParent;
 use crate::dom::animationtimeline::AnimationTimeline;
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -210,7 +211,6 @@ use crate::image_animation::ImageAnimationManager;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::script_runtime::CanGc;
 use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_loader::StylesheetContextId;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -779,8 +779,9 @@ impl Document {
         }
 
         let parent = match node.parent_in_flat_tree() {
-            Some(parent) => parent,
-            None => {
+            FlatTreeParent::Parent(parent) => parent,
+            FlatTreeParent::NotInFlatTree => return,
+            FlatTreeParent::RootNode => {
                 // There is no parent so this is the Document node, so we
                 // behave as if we were called with the document element.
                 let Some(document_element) = self.GetDocumentElement() else {
@@ -865,10 +866,13 @@ impl Document {
             }
         }
 
+        // Find the new dirty root. If `Node::common_ancestors_in_flat_tree` returns `None`, this
+        // means that the old dirty root is no longer part of the flat tree and `element` is the new
+        // dirty root.
         let new_dirty_root = element
             .upcast::<Node>()
             .common_ancestor_in_flat_tree(dirty_root.upcast())
-            .expect("Couldn't find common ancestor");
+            .unwrap_or_else(|| DomRoot::from_ref(element.upcast()));
 
         let mut has_dirty_descendants = true;
         for ancestor in dirty_root
@@ -1822,12 +1826,9 @@ impl Document {
     pub(crate) fn fetch<Listener: FetchResponseListener>(
         &self,
         load: LoadType,
-        mut request: RequestBuilder,
+        request: RequestBuilder,
         listener: Listener,
     ) {
-        request = request
-            .insecure_requests_policy(self.insecure_requests_policy())
-            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(Some(listener))),
             task_source: self
@@ -1843,12 +1844,9 @@ impl Document {
 
     pub(crate) fn fetch_background<Listener: FetchResponseListener>(
         &self,
-        mut request: RequestBuilder,
+        request: RequestBuilder,
         listener: Listener,
     ) {
-        request = request
-            .insecure_requests_policy(self.insecure_requests_policy())
-            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(Some(listener))),
             task_source: self
@@ -2992,9 +2990,9 @@ impl Document {
             .set(counter - 1);
     }
 
-    pub(crate) fn react_to_environment_changes(&self) {
+    pub(crate) fn react_to_environment_changes(&self, cx: &JSContext) {
         for image in self.responsive_images.borrow().iter() {
-            image.react_to_environment_changes();
+            image.react_to_environment_changes(cx);
         }
     }
 
@@ -3201,11 +3199,6 @@ impl Document {
         self.resize_observers
             .borrow_mut()
             .push(Dom::from_ref(resize_observer));
-    }
-
-    /// Whether or not this [`Document`] has any active [`ResizeObserver`].
-    pub(crate) fn has_resize_observers(&self) -> bool {
-        !self.resize_observers.borrow().is_empty()
     }
 
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
@@ -3439,11 +3432,11 @@ impl Document {
             },
             ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
                 let binding = LargestContentfulPaint::new(
+                    cx,
                     self.window.as_global_scope(),
                     metric_value,
                     area,
                     url,
-                    CanGc::from_cx(cx),
                 );
                 metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
@@ -3602,11 +3595,6 @@ impl<'dom> LayoutDom<'dom, Document> {
         guard: &SharedRwLockReadGuard,
     ) {
         (*self.unsafe_get()).flush_shadow_root_stylesheets_if_necessary_for_layout(stylist, guard)
-    }
-
-    #[inline]
-    pub(crate) fn shadow_roots_styles_changed(self) -> bool {
-        self.unsafe_get().shadow_roots_styles_changed.get()
     }
 
     pub(crate) fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
@@ -4431,10 +4419,6 @@ impl Document {
         self.shadow_roots_styles_changed.set(true);
     }
 
-    pub(crate) fn shadow_roots_styles_changed(&self) -> bool {
-        self.shadow_roots_styles_changed.get()
-    }
-
     pub(crate) fn flush_shadow_root_stylesheets_if_necessary_for_layout(
         &self,
         stylist: &mut Stylist,
@@ -4457,12 +4441,16 @@ impl Document {
         self.stylesheets.borrow().len()
     }
 
-    pub(crate) fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn stylesheet_at(
+        &self,
+        cx: &mut JSContext,
+        index: usize,
+    ) -> Option<DomRoot<CSSStyleSheet>> {
         let stylesheets = self.stylesheets.borrow();
 
         stylesheets
             .get(Origin::Author, index)
-            .and_then(|s| s.owner.get_cssom_object())
+            .and_then(|s| s.owner.get_cssom_object(cx))
     }
 
     /// Add a stylesheet owned by `owner_node` to the list of document sheets, in the
@@ -4817,10 +4805,10 @@ impl Document {
         // Step 3 Queue a new VisibilityStateEntry whose visibility state is visibilityState and whose timestamp is
         // the current high resolution time given document's relevant global object.
         let entry = VisibilityStateEntry::new(
+            cx,
             &self.global(),
             visibility_state,
             CrossProcessInstant::now(),
-            CanGc::from_cx(cx),
         );
         self.window
             .Performance()
@@ -5162,20 +5150,20 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-document-stylesheets>
-    fn StyleSheets(&self, can_gc: CanGc) -> DomRoot<StyleSheetList> {
+    fn StyleSheets(&self, cx: &mut JSContext) -> DomRoot<StyleSheetList> {
         self.stylesheet_list.or_init(|| {
             StyleSheetList::new(
+                cx,
                 &self.window,
                 StyleSheetListOwner::Document(Dom::from_ref(self)),
-                can_gc,
             )
         })
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-implementation>
-    fn Implementation(&self, can_gc: CanGc) -> DomRoot<DOMImplementation> {
+    fn Implementation(&self, cx: &mut JSContext) -> DomRoot<DOMImplementation> {
         self.implementation
-            .or_init(|| DOMImplementation::new(self, can_gc))
+            .or_init(|| DOMImplementation::new(cx, self))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-url>
@@ -5750,12 +5738,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter>
     fn CreateNodeIterator(
         &self,
+        cx: &mut js::context::JSContext,
         root: &Node,
         what_to_show: u32,
         filter: Option<Rc<NodeFilter>>,
-        can_gc: CanGc,
     ) -> DomRoot<NodeIterator> {
-        NodeIterator::new(self, root, what_to_show, filter, can_gc)
+        NodeIterator::new(cx, self, root, what_to_show, filter)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createtreewalker>
@@ -5917,8 +5905,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname>
-    fn GetElementsByName(&self, name: DOMString, can_gc: CanGc) -> DomRoot<NodeList> {
-        NodeList::new_elements_by_name_list(self.window(), self, name, can_gc)
+    fn GetElementsByName(&self, cx: &mut JSContext, name: DOMString) -> DomRoot<NodeList> {
+        NodeList::new_elements_by_name_list(cx, self.window(), self, name)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-images>
@@ -6053,8 +6041,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         cx: &mut JSContext,
         selectors: DOMString,
     ) -> Fallible<DomRoot<NodeList>> {
-        self.upcast::<Node>()
-            .query_selector_all(cx.no_gc(), selectors)
+        self.upcast::<Node>().query_selector_all(cx, selectors)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-readystate>

@@ -19,8 +19,12 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
@@ -28,14 +32,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.getSystemService
 import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoView
 
 class MainActivity : AppCompatActivity(), Servo.Client {
     private lateinit var servoView: ServoView
-    private var bottomNav: BottomNavigationView? = null
 
     private lateinit var urlField: EditText
     private var urlFieldIsFocused = false
@@ -44,6 +46,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     private lateinit var idleText: TextView
     private var canGoBackState = mutableStateOf(false)
     private var canGoForwardState = mutableStateOf(false)
+    private var isRefreshingState = mutableStateOf(false)
     private var mediaSession: MediaSession? = null
     private lateinit var historyManager: HistoryManager
     private var currentUrl = ""
@@ -55,8 +58,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     }
 
     private lateinit var settings: Settings
-
-    private val actionClickListener = View.OnClickListener { v -> dispatchAction(v.id) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,36 +83,84 @@ class MainActivity : AppCompatActivity(), Servo.Client {
           tablets and larger sizes
          */
 
-        bottomNav = findViewById(R.id.bottom_bar)
-        bottomNav?.setOnItemSelectedListener { item -> dispatchAction(item.itemId) }
+        findViewById<ComposeView>(R.id.bottom_bar)?.apply {
+            setContent {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = false,
+                        enabled = canGoBackState.value,
+                        onClick = ::onHistoryBackMenuItemClicked,
+                        icon = { Icon(painterResource(R.drawable.arrow_back), null) },
+                        label = { Text(stringResource(R.string.history_back)) },
+                    )
+                    NavigationBarItem(
+                        selected = false,
+                        enabled = canGoForwardState.value,
+                        onClick = { onHistoryForwardMenuItemClicked() },
+                        icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
+                        label = { Text(stringResource(R.string.history_forward)) },
+                    )
+                    if (isRefreshingState.value) {
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = ::onCancelMenuItemClicked,
+                            icon = { Icon(painterResource(R.drawable.cancel), null) },
+                            label = { Text(stringResource(R.string.cancel)) },
+                        )
+                    } else {
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = ::onRefreshMenuItemClicked,
+                            icon = { Icon(painterResource(R.drawable.refresh), null) },
+                            label = { Text(stringResource(R.string.refresh)) },
+                        )
+                    }
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = ::onSettingsMenuItemClicked,
+                        icon = { Icon(painterResource(R.drawable.settings), null) },
+                        label = { Text(stringResource(R.string.options)) },
+                    )
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = ::onHistoryMenuItemClicked,
+                        icon = { Icon(painterResource(R.drawable.history), null) },
+                        label = { Text(stringResource(R.string.history_title)) },
+                    )
+                }
+            }
+        }
 
         findViewById<View>(R.id.toolbar)?.apply {
-            findViewById<ComposeView>(R.id.history_back_menu_item).apply {
+            findViewById<ComposeView>(R.id.toolbarButtons).apply {
                 setContent {
-                    IconButton(onClick = { dispatchAction(id) }, enabled = canGoBackState.value) {
-                        Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
+                    Row {
+                        IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
+                            Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
+                        }
+                        IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
+                            Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
+                        }
+                        IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
+                            if (isRefreshingState.value) {
+                                Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
+                            } else {
+                                Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
+                            }
+                        }
                     }
                 }
             }
-            findViewById<ComposeView>(R.id.history_forward_menu_item).apply {
-                setContent {
-                    IconButton(onClick = { dispatchAction(id) }, enabled = canGoForwardState.value) {
-                        Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
-                    }
-                }
-            }
-            findViewById<View>(R.id.refresh_menu_item).setOnClickListener(actionClickListener)
-            findViewById<View>(R.id.cancel_menu_item).setOnClickListener(actionClickListener)
             findViewById<ComposeView>(R.id.settings_menu_item).apply {
                 setContent {
-                    IconButton(onClick = { dispatchAction(id) }) {
+                    IconButton(onClick = ::onSettingsMenuItemClicked) {
                         Icon(painterResource(R.drawable.settings), stringResource(R.string.options))
                     }
                 }
             }
             findViewById<ComposeView>(R.id.history_menu_item).apply {
                 setContent {
-                    IconButton(onClick = { dispatchAction(id) }) {
+                    IconButton(onClick = ::onHistoryMenuItemClicked) {
                         Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
                     }
                 }
@@ -145,37 +194,40 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         mediaSession?.hideMediaSessionControls()
     }
 
-    // Handle UI actions (same handlers for MenuItems in phone layout
-    // and View buttons in tablet layout
-    private fun dispatchAction(id: Int): Boolean {
-        when (id) {
-            R.id.history_back_menu_item -> {
-                // We’re unsetting all the loading UI just in case loading got stuck, and we’re
-                // navigating to a cached page, which doesn’t trigger .onLoadEnded(). The "stop
-                // loading" button is implemented (`cancel_menu_item`), but the underlying
-                // Servo view can’t actually `stop()` yet.
-                onLoadEnded()
-                servoView.goBack()
-            }
-            R.id.history_forward_menu_item -> {
-                // See above
-                onLoadEnded()
-                servoView.goForward()
-            }
-            R.id.refresh_menu_item -> {
-                servoView.reload()
-            }
-            R.id.cancel_menu_item -> {
-                servoView.stop()
-            }
-            R.id.settings_menu_item -> {
-                startActivity(Intent(this, SettingsActivity::class.java))
-            }
-            R.id.history_menu_item -> {
-                startActivityForResult(Intent(this, HistoryActivity::class.java), HISTORY_REQUEST_CODE)
-            }
-        }
-        return false
+    /**
+     * We’re unsetting all the loading UI just in case loading got stuck, and we’re
+     * navigating to a cached page, which doesn’t trigger [onLoadEnded]. The "stop
+     * loading" button is implemented by [onCancelMenuItemClicked], but the underlying
+     * Servo view can’t actually [ServoView.stop] yet.
+     */
+    private fun onHistoryItemClicked() {
+        onLoadEnded()
+    }
+
+    private fun onHistoryBackMenuItemClicked() {
+        onHistoryItemClicked()
+        servoView.goBack()
+    }
+
+    private fun onHistoryForwardMenuItemClicked() {
+        onHistoryItemClicked()
+        servoView.goForward()
+    }
+
+    private fun onRefreshMenuItemClicked() {
+        servoView.reload()
+    }
+
+    private fun onCancelMenuItemClicked() {
+        servoView.stop()
+    }
+
+    private fun onSettingsMenuItemClicked() {
+        startActivity(Intent(this, SettingsActivity::class.java))
+    }
+
+    private fun onHistoryMenuItemClicked() {
+        startActivityForResult(Intent(this, HistoryActivity::class.java), HISTORY_REQUEST_CODE)
     }
 
     private fun setupUrlField() {
@@ -234,14 +286,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         // This doesn’t seem to actually happen when navigating
         // back to a page that is already cached.
         Log.i(TAG, "onLoadStarted: ")
-        // Phone view
-        bottomNav?.let { bottomNav ->
-            bottomNav.menu.findItem(R.id.cancel_menu_item).isVisible = true
-            bottomNav.menu.findItem(R.id.refresh_menu_item).isVisible = false
-        }
-        // tablet view
-        findViewById<View>(R.id.cancel_menu_item).isVisible = true
-        findViewById<View>(R.id.refresh_menu_item).isVisible = false
+        isRefreshingState.value = true
 
         progressBar.isVisible = true
     }
@@ -255,14 +300,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             // per page. 
             historyManager.addEntry(currentUrl, currentTitle)
         }
-        // Phone view
-        bottomNav?.let { bottomNav ->
-            bottomNav.menu.findItem(R.id.cancel_menu_item).isVisible = false
-            bottomNav.menu.findItem(R.id.refresh_menu_item).isVisible = true
-        }
-        // tablet view
-        findViewById<View>(R.id.cancel_menu_item).isVisible = false
-        findViewById<View>(R.id.refresh_menu_item).isVisible = true
+        isRefreshingState.value = false
         progressBar.isVisible = false
     }
 
@@ -277,11 +315,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
     override fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean) {
         Log.i(TAG, "onHistoryChanged: $canGoBack<->$canGoForward")
-        // Phone view
-        bottomNav?.let { bottomNav ->
-            bottomNav.menu.findItem(R.id.history_back_menu_item).isEnabled = canGoBack
-            bottomNav.menu.findItem(R.id.history_forward_menu_item).isEnabled = canGoForward
-        }
         canGoBackState.value = canGoBack
         canGoForwardState.value = canGoForward
     }

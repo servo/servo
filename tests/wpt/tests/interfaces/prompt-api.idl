@@ -49,6 +49,8 @@ interface LanguageModel : EventTarget {
   // **EXPERIMENTAL**: Only available in extension and experimental contexts.
   readonly attribute float temperature;
 
+  readonly attribute LanguageModelSamplingMode samplingMode;
+
   Promise<LanguageModel> clone(optional LanguageModelCloneOptions options = {});
 };
 LanguageModel includes DestroyableModel;
@@ -81,6 +83,8 @@ dictionary LanguageModelCreateCoreOptions {
   unrestricted double topK;
   // **EXPERIMENTAL**: Only available in extension and experimental contexts.
   unrestricted double temperature;
+
+  LanguageModelSamplingMode samplingMode = "default";
 
   sequence<LanguageModelExpected> expectedInputs;
   sequence<LanguageModelExpected> expectedOutputs;
@@ -134,6 +138,8 @@ dictionary LanguageModelMessageContent {
   required LanguageModelMessageType type;
   required LanguageModelMessageValue value;
 };
+
+enum LanguageModelSamplingMode { "most-predictable", "predictable", "balanced", "creative", "most-creative" };
 
 enum LanguageModelMessageRole { "system", "user", "assistant" };
 

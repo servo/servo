@@ -38,7 +38,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
-use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::StylesheetOwner;
 
 #[dom_struct]
@@ -245,10 +244,14 @@ impl HTMLStyleElement {
         self.stylesheet.borrow().clone()
     }
 
-    pub(crate) fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn get_cssom_stylesheet(
+        &self,
+        cx: &mut JSContext,
+    ) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
+                    cx,
                     &self.owner_window(),
                     Some(self.upcast::<Element>()),
                     "text/css".into(),
@@ -256,7 +259,6 @@ impl HTMLStyleElement {
                     None, // todo handle title
                     sheet,
                     None, // constructor_document
-                    CanGc::deprecated_note(),
                 )
             })
         })
@@ -440,12 +442,12 @@ impl StylesheetOwner for HTMLStyleElement {
                 .is_some_and(|list| list.Contains("render".into()))
     }
 
-    fn referrer_policy(&self, _cx: &mut js::context::JSContext) -> ReferrerPolicy {
+    fn referrer_policy(&self, _cx: &mut JSContext) -> ReferrerPolicy {
         ReferrerPolicy::EmptyString
     }
 
-    fn set_origin_clean(&self, origin_clean: bool) {
-        if let Some(stylesheet) = self.get_cssom_stylesheet() {
+    fn set_origin_clean(&self, cx: &mut JSContext, origin_clean: bool) {
+        if let Some(stylesheet) = self.get_cssom_stylesheet(cx) {
             stylesheet.set_origin_clean(origin_clean);
         }
     }
@@ -453,19 +455,19 @@ impl StylesheetOwner for HTMLStyleElement {
 
 impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
     /// <https://drafts.csswg.org/cssom/#dom-linkstyle-sheet>
-    fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {
-        self.get_cssom_stylesheet().map(DomRoot::upcast)
+    fn GetSheet(&self, cx: &mut JSContext) -> Option<DomRoot<DOMStyleSheet>> {
+        self.get_cssom_stylesheet(cx).map(DomRoot::upcast)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-style-disabled>
-    fn Disabled(&self) -> bool {
-        self.get_cssom_stylesheet()
+    fn Disabled(&self, cx: &mut JSContext) -> bool {
+        self.get_cssom_stylesheet(cx)
             .is_some_and(|sheet| sheet.disabled())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-style-disabled>
-    fn SetDisabled(&self, _cx: &mut js::context::JSContext, value: bool) {
-        if let Some(sheet) = self.get_cssom_stylesheet() {
+    fn SetDisabled(&self, cx: &mut js::context::JSContext, value: bool) {
+        if let Some(sheet) = self.get_cssom_stylesheet(cx) {
             sheet.set_disabled(value);
         }
     }

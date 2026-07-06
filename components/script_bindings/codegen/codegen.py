@@ -1012,7 +1012,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             return handleOptional(template, declType, handleDefault("None"))
 
         conversionFunction = "root_from_handlevalue"
-        maybeCx = ", SafeJSContext::from_ptr(cx.raw_cx())"
+        maybeCx = "cx, "
         descriptorType = descriptor.returnType
         if isMember == "Variadic":
             conversionFunction = "native_from_handlevalue"
@@ -1033,7 +1033,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         templateBody = fill(
             """
-            match ${function}($${val}${maybeCx}) {
+            match ${function}(${maybeCx}$${val}) {
                 Ok(val) => val,
                 Err(()) => {
                     $*{failureCode}
@@ -3283,8 +3283,8 @@ class CGConstructorEnabled(CGAbstractMethod):
         if secure:
             conditions.append("""
 {
-let realm = CurrentRealm::assert(cx);
-D::GlobalScope::from_current_realm(&realm).is_secure_context()
+let mut realm = CurrentRealm::assert(cx);
+D::GlobalScope::from_current_realm(&mut realm).is_secure_context()
 }
 """)
 
@@ -4274,7 +4274,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = "global.upcast::<D::GlobalScope>()"
             else:
-                glob = "&D::GlobalScope::from_current_realm(&CurrentRealm::assert(cx))"
+                glob = "&D::GlobalScope::from_current_realm(&mut CurrentRealm::assert(cx))"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
@@ -5373,12 +5373,6 @@ impl ToJSValConvertible for super::{ident} {{
 
 impl FromJSValConvertible for super::{ident} {{
     type Config = ();
-    unsafe fn from_jsval(_cx: *mut RawJSContext, value: HandleValue, _option: ())
-                         -> Result<ConversionResult<super::{ident}>, ()> {{
-        // TODO https://github.com/servo/mozjs/issues/749
-        let mut cx = crate::script_runtime::temp_cx();
-        Self::safe_from_jsval(&mut cx, value, _option)
-    }}
 
     fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())
                          -> Result<ConversionResult<super::{ident}>, ()> {{
@@ -5627,7 +5621,7 @@ class CGUnionConversionStruct(CGThing):
         def get_match(name: str) -> str:
             generic = "::<D>" if containsDomInterface(self.type) else ""
             return (
-                f"match {self.type}{generic}::TryConvertTo{name}(&mut cx, value) {{\n"
+                f"match unsafe {{ {self.type}{generic}::TryConvertTo{name}(cx, value) }} {{\n"
                 "    Err(_) => return Err(()),\n"
                 f"    Ok(Some(value)) => return Ok(ConversionResult::Success({self.type}::{name}(value))),\n"
                 "    Ok(None) => (),\n"
@@ -5758,12 +5752,8 @@ class CGUnionConversionStruct(CGThing):
         generic, genericSuffix = genericsForType(self.type)
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
-            pre="unsafe fn from_jsval(_cx: *mut RawJSContext,\n"
-                "                     value: HandleValue,\n"
-                "                     _option: ())\n"
-                f"                     -> Result<ConversionResult<{self.type}{genericSuffix}>, ()> {{\n"
-                "   // TODO https://github.com/servo/mozjs/issues/749\n"
-                "   let mut cx = crate::script_runtime::temp_cx();\n",
+            pre="fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
+                f"                     -> Result<ConversionResult<{self.type}{genericSuffix}>, ()> {{\n",
             post="\n}")
         return CGWrapper(
             CGIndenter(CGList([
@@ -7760,12 +7750,6 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "\n"
             f"impl{self.generic} FromJSValConvertible for {actualType} {{\n"
             "    type Config = ();\n"
-            "    unsafe fn from_jsval(_cx: *mut RawJSContext, value: HandleValue, _option: ())\n"
-            f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
-            "         // TODO https://github.com/servo/mozjs/issues/749\n"
-            "         let mut cx = crate::script_runtime::temp_cx();\n"
-            f"        {selfName}::new(&mut cx, value)\n"
-            "    }\n"
             "    fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
             f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
             f"        {selfName}::new(cx, value)\n"
@@ -8490,7 +8474,7 @@ class CGCallback(CGClass):
         args = list(method.args)
         # Strip out the JSContext*/JSObject* args
         # that got added.
-        assert args[0].name == "cx" and args[0].argType == "SafeJSContext"
+        assert args[0].name == "cx" and args[0].argType == "&mut JSContext"
         assert args[1].name == "aThisObj" and args[1].argType == "HandleValue"
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
@@ -8772,7 +8756,7 @@ class CallbackMember(CGNativeMember):
             return args
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
-        return [Argument("SafeJSContext", "cx"),
+        return [Argument("&mut JSContext", "cx"),
                 Argument("HandleValue", "aThisObj")] + args
 
     def getCallSetup(self) -> str:

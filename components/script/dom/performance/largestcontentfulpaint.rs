@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::reflect_dom_object;
+use js::context::JSContext;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
 use time::Duration;
@@ -12,11 +13,10 @@ use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::codegen::Bindings::LargestContentfulPaintBinding::LargestContentfulPaintMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct LargestContentfulPaint {
@@ -27,7 +27,7 @@ pub(crate) struct LargestContentfulPaint {
     render_time: CrossProcessInstant,
     size: usize,
     url: DOMString,
-    element: Option<DomRoot<Element>>,
+    element: Option<Dom<Element>>,
 }
 
 impl LargestContentfulPaint {
@@ -51,16 +51,22 @@ impl LargestContentfulPaint {
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         render_time: CrossProcessInstant,
         size: usize,
         url: Option<ServoUrl>,
-        can_gc: CanGc,
     ) -> DomRoot<LargestContentfulPaint> {
-        let entry = LargestContentfulPaint::new_inherited(render_time, size, url);
-        reflect_dom_object(Box::new(entry), global, can_gc)
+        reflect_dom_object_with_cx(
+            Box::new(LargestContentfulPaint::new_inherited(
+                render_time,
+                size,
+                url,
+            )),
+            global,
+            cx,
+        )
     }
 }
 
@@ -91,6 +97,6 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-element>
     fn GetElement(&self) -> Option<DomRoot<Element>> {
-        self.element.clone()
+        self.element.as_ref().map(|element| element.as_rooted())
     }
 }

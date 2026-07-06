@@ -179,12 +179,6 @@ struct SerializationIterator {
     shadow_roots: Vec<DomRoot<ShadowRoot>>,
 }
 
-enum SerializationChildrenIterator<C, S> {
-    None,
-    Children(C),
-    ShadowContents(S),
-}
-
 impl SerializationIterator {
     fn new(
         cx: &mut js::context::JSContext,

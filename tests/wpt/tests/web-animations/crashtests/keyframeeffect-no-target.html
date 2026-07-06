@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>KeyframeEffect with no target should not crash</title>
+<link rel="help" href="https://crbug.com/41326160">
+<div id="target">This test passes if it does not crash.</div>
+<style>
+@keyframes frame { }
+</style>
+<script>
+  let effect = new KeyframeEffect(null, null, {duration: 1000});
+  let animation = new Animation(effect);
+
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

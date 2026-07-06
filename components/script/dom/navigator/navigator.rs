@@ -12,7 +12,6 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOrUnregister};
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
-#[cfg(feature = "webgpu")]
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -356,9 +355,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#framework-credential-management>
-    fn Credentials(&self) -> DomRoot<CredentialsContainer> {
+    fn Credentials(&self, cx: &mut js::context::JSContext) -> DomRoot<CredentialsContainer> {
         self.credentials
-            .or_init(|| CredentialsContainer::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| CredentialsContainer::new(cx, &self.global()))
     }
 
     /// <https://www.w3.org/TR/geolocation/#navigator_interface>
@@ -466,9 +465,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // Step 8. Return gamepads.
     }
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
-    fn Permissions(&self) -> DomRoot<Permissions> {
+    fn Permissions(&self, cx: &mut JSContext) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| Permissions::new(cx, &self.global()))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
@@ -479,13 +478,13 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices>
-    fn MediaDevices(&self) -> DomRoot<MediaDevices> {
+    fn MediaDevices(&self, cx: &mut JSContext) -> DomRoot<MediaDevices> {
         self.mediadevices
-            .or_init(|| MediaDevices::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| MediaDevices::new(cx, &self.global()))
     }
 
     /// <https://w3c.github.io/mediasession/#dom-navigator-mediasession>
-    fn MediaSession(&self) -> DomRoot<MediaSession> {
+    fn MediaSession(&self, cx: &mut JSContext) -> DomRoot<MediaSession> {
         self.mediasession.or_init(|| {
             // There is a single MediaSession instance per Pipeline
             // and only one active MediaSession globally.
@@ -496,7 +495,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             // - If a media instance (HTMLMediaElement so far) starts playing media.
             let global = self.global();
             let window = global.as_window();
-            MediaSession::new(window, CanGc::deprecated_note())
+            MediaSession::new(cx, window)
         })
     }
 
@@ -520,7 +519,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://storage.spec.whatwg.org/#api>
     fn Storage(&self, cx: &mut js::context::JSContext) -> DomRoot<StorageManager> {
         self.storage
-            .or_init(|| StorageManager::new(&self.global(), CanGc::from_cx(cx)))
+            .or_init(|| StorageManager::new(cx, &self.global()))
     }
 
     /// <https://w3c.github.io/beacon/#sec-processing-model>
@@ -584,7 +583,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
                     HeaderValue::from_str(&content_type.str()).unwrap(),
                 );
             }
-            request_body = Some(extracted_body.into_net_request_body().0);
+            request_body = Some(extracted_body.into_net_request_body(cx).0);
         }
         // Step 7.1. Let req be a new request, initialized as follows:
         let request = RequestBuilder::new(
@@ -615,9 +614,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://servo.org/internal-no-spec>
-    fn Servo(&self) -> DomRoot<ServoInternals> {
+    fn Servo(&self, cx: &mut js::context::JSContext) -> DomRoot<ServoInternals> {
         self.servo_internals
-            .or_init(|| ServoInternals::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| ServoInternals::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-registerprotocolhandler>

@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
 use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
-    ComputePassEncoderId, ComputePipelineId, DeviceId, PipelineLayoutId, QuerySetId,
-    RenderBundleId, RenderPassEncoderId, RenderPipelineId, SamplerId, ShaderModuleId,
+    ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId,
+    QuerySetId, RenderBundleId, RenderPassEncoderId, RenderPipelineId, SamplerId, ShaderModuleId,
     StagingBufferId, SurfaceId, TextureId, TextureViewId,
 };
 
@@ -40,6 +40,7 @@ pub enum WebGPUMsg {
     FreeQuerySet(QuerySetId),
     FreeComputePass(ComputePassEncoderId),
     FreeRenderPass(RenderPassEncoderId),
+    FreeExternalTexture(ExternalTextureId),
     UncapturedError {
         device: WebGPUDevice,
         pipeline_id: PipelineId,

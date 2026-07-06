@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Digital Credential concurrent request rejection tests</title>
+<link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body></body>
+<script type="module">
+  import { makeGetOptions } from "./support/helper.js";
+
+  promise_test(async (t) => {
+    // Park the first request ("wait") so the second hits the concurrency guard.
+    await test_driver.set_virtual_wallet_behavior("wait");
+    t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+
+    const abortController = new AbortController();
+    const firstOptions = makeGetOptions({ signal: abortController.signal });
+    const secondOptions = makeGetOptions();
+
+    await test_driver.bless("user activation for first request");
+    const firstRequest = navigator.credentials.get(firstOptions);
+
+    // Use bless's action callback so the second get() is called within
+    // the same microtask as activation grant. This prevents the first
+    // request's IPC response from completing (clearing the pending state
+    // in the browser process) before the second call is dispatched.
+    let secondRequest;
+    await test_driver.bless("user activation for second request", () => {
+      assert_true(navigator.userActivation.isActive);
+      secondRequest = navigator.credentials.get(secondOptions);
+    });
+
+    await promise_rejects_dom(
+      t,
+      "NotAllowedError",
+      secondRequest,
+      "Second concurrent request should be rejected with NotAllowedError"
+    );
+
+    abortController.abort();
+    await promise_rejects_dom(
+      t,
+      "AbortError",
+      firstRequest,
+      "First request should be aborted"
+    );
+  }, "A second get() call while another is pending should reject with NotAllowedError.");
+</script>

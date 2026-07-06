@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://github.com/whatwg/html/pull/11620">
+<link id="alreadyBrowsingContextConnected" rel="compression-dictionary" href="./resources/register-dictionary.py?alreadyBrowsingContextConnected"></link>
+<script>
+  const dynamicallyConnected = document.createElement('link');
+  dynamicallyConnected.rel = 'compression-dictionary';
+  dynamicallyConnected.href = `${kRegisterDictionaryPath}?linkDynamicallyBrowsingContextConnected`;
+</script>
+<link id="hrefDynamicallySet" rel="compression-dictionary"></link>
+<link id="hrefDynamicallyChanged" rel="compression-dictionary" href="./resources/register-dictionary.py?hrefDynamicallyChanged"></link>
+<link id="relDynamicallySet" href="./resources/register-dictionary.py?relDynamicallySet">
+<body>
+  <script>
+    let fetchedDictionaries = [];
+    const observer = new PerformanceObserver((list) => {
+      list.getEntries().forEach(entry => {
+        const url = new URL(entry.name);
+        if (url.pathname == "/fetch/compression-dictionary/resources/register-dictionary.py") {
+          fetchedDictionaries.push(url.search);
+        }
+      });
+    });
+    observer.observe({ type: "resource", buffered: true});
+
+    compression_dictionary_promise_test(async t => {
+      // Initially fetched dictionaries.
+      let expectedEntries = [
+        "?alreadyBrowsingContextConnected",
+        "?hrefDynamicallyChanged",
+      ];
+      await t.step_wait(_ => fetchedDictionaries.length >= expectedEntries.length, "initially browsing-context connected <link> should trigger fetch", 5000);
+      assert_array_equals(fetchedDictionaries.toSorted(), expectedEntries, "dictionaries fetched for initially browsing-context connected <link>.");
+      fetchedDictionaries = [];
+      await new Promise(resolve => step_timeout(resolve, 1000));
+      assert_equals(fetchedDictionaries.length, 0, "no more dictionary fetched.");
+
+      // browsing-context connected change.
+      expectedEntries = [
+        "?linkDynamicallyBrowsingContextConnected",
+      ];
+      document.head.appendChild(dynamicallyConnected);
+      await t.step_wait(_ => fetchedDictionaries.length >= expectedEntries.length, "browsing-context connecting a link should trigger fetch", 5000);
+      assert_array_equals(fetchedDictionaries.toSorted(), expectedEntries, "dictionary fetched after <link> becomes browsing-context connected.");
+      fetchedDictionaries = [];
+
+      // Dynamic changes to href.
+      expectedEntries = [
+        "?hrefDynamicallyChangedBis",
+        "?hrefDynamicallySet",
+      ];
+      hrefDynamicallySet.setAttribute("href", `${kRegisterDictionaryPath}?hrefDynamicallySet`);
+      hrefDynamicallyChanged.setAttribute("href", `${kRegisterDictionaryPath}?hrefDynamicallyChangedBis`);
+      await t.step_wait(_ => fetchedDictionaries.length >= expectedEntries.length, "modifying href should trigger fetch", 5000);
+      assert_array_equals(fetchedDictionaries.toSorted(), expectedEntries, "dictionaries fetched after dynamic changes to href attribute.");
+      fetchedDictionaries = [];
+
+      // Dynamic change to rel.
+      expectedEntries = [
+        "?relDynamicallySet",
+      ];
+      relDynamicallySet.setAttribute("rel", "compression-dictionary");
+      await t.step_wait(_ => fetchedDictionaries.length >= expectedEntries.length, "setting rel should trigger fetch", 5000);
+      assert_array_equals(fetchedDictionaries.toSorted(), expectedEntries, "dictionary fetched after setting the rel attribute.");
+      fetchedDictionaries = [];
+    }, "<link rel=compression-dictionary> are fetched after DOM operations.");
+  </script>
+</body>

@@ -8,12 +8,37 @@ div.stub > * > *:not(:hover) { color: black }
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
-  <meta name="flags" content=" interact" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
  <div class="stub">
-  <p> <span>The color of this text should be green when the pointing device hovers over it.</span> </p>
-  <p> <a href="http://dummy.example.org/dummy">The color of this text should be green when the pointing device hovers over it.</a> </p>
+  <p> <span id="t1">The color of this text should be green when the pointing device hovers over it.</span> </p>
+  <p> <a id="t2" href="http://dummy.example.org/dummy">The color of this text should be green when the pointing device hovers over it.</a> </p>
  </div>
+ <script><![CDATA[
+promise_test(async () => {
+  const t1 = document.getElementById('t1');
+  assert_color(t1, 'rgb(0, 0, 0)', 'Initially black');
+
+  await new test_driver.Actions().pointerMove(0, 0, {origin: t1}).send();
+  assert_color(t1, LIME, 'Green on hover');
+
+  // Move away to reset state for next test
+  await new test_driver.Actions().pointerMove(0, 0).send();
+}, 'Negated :hover on span');
+
+promise_test(async () => {
+  const t2 = document.getElementById('t2');
+  assert_color(t2, 'rgb(0, 0, 0)', 'Initially black');
+
+  await new test_driver.Actions().pointerMove(0, 0, {origin: t2}).send();
+  assert_color(t2, LIME, 'Green on hover');
+}, 'Negated :hover on link');
+]]></script>
 </body>
 </html>

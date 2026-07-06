@@ -49,6 +49,9 @@ use crate::{ConstraintSpace, ContainingBlock};
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct ReplacedContents {
     pub kind: ReplacedContentKind,
+    /// Whether or not this [`ReplacedContents`] is due to content replacement, i.e.
+    /// `content: <image>` in style.
+    pub is_content_replacement: bool,
     natural_size: NaturalSizes,
     base_fragment_info: BaseFragmentInfo,
 }
@@ -214,6 +217,7 @@ impl ReplacedContents {
 
         Some(Self {
             kind,
+            is_content_replacement: false,
             natural_size,
             base_fragment_info: node.into(),
         })
@@ -320,10 +324,11 @@ impl ReplacedContents {
             let [GenericContentItem::Image(image)] = items.as_slice()
         {
             // Invalid images are treated as zero-sized.
-            return Some(
-                Self::from_image(node, context, image)
-                    .unwrap_or_else(|| Self::zero_sized_invalid_image(node)),
-            );
+            let mut replaced_contents = Self::from_image(node, context, image)
+                .unwrap_or_else(|| Self::zero_sized_invalid_image(node));
+
+            replaced_contents.is_content_replacement = true;
+            return Some(replaced_contents);
         }
         None
     }
@@ -364,6 +369,7 @@ impl ReplacedContents {
                 showing_broken_image_icon: false,
                 url: Some(image_url.clone().into()),
             }),
+            is_content_replacement: false,
             natural_size: NaturalSizes::from_width_and_height(width, height),
             base_fragment_info: node.into(),
         })
@@ -387,6 +393,7 @@ impl ReplacedContents {
                 showing_broken_image_icon: false,
                 url: None,
             }),
+            is_content_replacement: false,
             natural_size: NaturalSizes::from_width_and_height(0., 0.),
             base_fragment_info: node.into(),
         }

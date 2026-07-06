@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Disposing a calc transition should not cause a heap-use-after-free crash</title>
+<link rel="help" href="https://crbug.com/40332981">
+<style>
+#test { transition: width 1s; }
+</style>
+<div id="test"></div>
+<script>
+  test.style.width = 'calc(100px + 100%)';
+  requestAnimationFrame(function() {
+    test.style.width = '100px';
+    requestAnimationFrame(function() {
+      document.body.removeChild(test);
+      document.documentElement.classList.remove('test-wait');
+    });
+  });
+</script>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid Lanes Test: intrinsic auto-repeat columns sized by multiple subgrid items</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 0;
+    grid-template-columns: repeat(auto-fill, auto);
+    width: 600px;
+    height: 100px;
+}
+
+.grid-lanes > div {
+    width: 100px;
+    height: 100px;
+}
+
+.subgrid {
+    display: grid;
+    grid-template-columns: subgrid;
+}
+
+.subgrid > div {
+    height: 100px;
+}
+</style>
+<div class="grid-lanes">
+  <div class="subgrid" style="grid-column: auto / span 1;">
+    <div style="width: 150px;"></div>
+  </div>
+  <div></div>
+  <div class="subgrid" style="grid-column: auto / span 1;">
+    <div style="width: 120px;"></div>
+  </div>
+</div>
+<script>
+  test(function() {
+    const container = document.querySelector('.grid-lanes');
+    const computedStyle = window.getComputedStyle(container);
+    assert_equals(computedStyle.getPropertyValue('grid-template-columns'),
+      "150px 150px 150px 150px");
+  });
+</script>
+</html>

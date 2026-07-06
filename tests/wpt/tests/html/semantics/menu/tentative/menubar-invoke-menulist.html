@@ -21,6 +21,16 @@
   </fieldset>
 </menulist>
 
+<menubar id="menubar-nested">
+  <submenu>
+    <menuitem id="menubaritem-nested">More commands (nested)</menuitem>
+    <menulist id="more-nested">
+      <menuitem id="menulistitem-nested" disabled>Command 1</menuitem>
+      <menuitem>Command 2</menuitem>
+    </menulist>
+  </submenu>
+</menubar>
+
 <script>
 const menubar = document.querySelector("menubar");
 const menubaritem = document.getElementById("menubaritem");
@@ -72,61 +82,51 @@ test(() => {
 }, "Menuitem with toggle-popover, show-popover, hide-popover commands can invoke menulist popover.");
 
 test(() => {
- menubaritem.setAttribute("command", "toggle-menu");
- menubaritem.setAttribute("commandfor", "more");
+  const menubaritemNested = document.getElementById("menubaritem-nested");
+  const menulistNested = document.getElementById("more-nested");
 
- menubaritem.disabled = true;
- menubaritem.click();
- assert_false(menulist.matches(':popover-open'),
-    'The menulist should not open because the menuitem is disabled.');
+  menubaritemNested.disabled = true;
+  menubaritemNested.click();
+  assert_false(menulistNested.matches(':popover-open'),
+     'The nested menulist should not open because the menuitem is disabled.');
 
- menubaritem.disabled = false;
- menubaritem.click();
- assert_true(menulist.matches(':popover-open'),
-    'toggle-menu opens the menulist');
+  menubaritemNested.disabled = false;
+  menubaritemNested.click();
+  assert_true(menulistNested.matches(':popover-open'),
+     'clicking nested menuitem opens the nested menulist.');
 
- menulist.hidePopover();
-
- menubaritem.setAttribute("command", "show-popover");
- menubaritem.click();
- assert_true(menulist.matches(':popover-open'),
-    "show-popover opens the menulist");
-
- menubaritem.setAttribute("command", "hide-popover");
- menubaritem.click();
- assert_false(menulist.matches(':popover-open'),
-    "hide-popover hides the menulist");
-}, "Menuitem with toggle-menu, show-popover, hide-popover commands can invoke menulist popover.");
+  menulistNested.hidePopover();
+}, "Nested submenu can be invoked by clicking.");
 
 test(() => {
- menubaritem.command = "toggle-menu";
- menubaritem.commandForElement = menulist;
+  const menubaritemNested = document.getElementById("menubaritem-nested");
+  const menulistNested = document.getElementById("more-nested");
 
- menubaritem.click();
- assert_true(menulist.matches(':popover-open'),
-    'toggle-menu opens the menulist.');
+  menubaritemNested.click();
+  assert_true(menulistNested.matches(':popover-open'),
+     'nested menuitem opens the nested menulist.');
 
- menulist.hidePopover();
- assert_false(menulist.matches(':popover-open'),
-    'The global hidePopover() method hides the menulist');
-}, "hidePopover() on menulist closes the popover.");
+  menulistNested.hidePopover();
+  assert_false(menulistNested.matches(':popover-open'),
+     'The global hidePopover() method hides the nested menulist');
+}, "hidePopover() on nested menulist closes the popover.");
 
 test(() => {
- menubaritem.setAttribute("command", "toggle-menu");
- menubaritem.setAttribute("commandfor", "dne");
- menubaritem.click();
- assert_false(menulist.matches(':popover-open'),
-    'The menulist should not open because the menuitem commandfor is invalid');
+  menubaritem.setAttribute("command", "toggle-popover");
+  menubaritem.setAttribute("commandfor", "dne");
+  menubaritem.click();
+  assert_false(menulist.matches(':popover-open'),
+     'The menulist should not open because the menuitem commandfor is invalid');
 
- menubaritem.setAttribute("command", "toggle-menu-dne");
- menubaritem.setAttribute("commandfor", "more");
- menubaritem.click();
- assert_false(menulist.matches(':popover-open'),
-    'The menulist should not open because the menuitem command is invalid');
+  menubaritem.setAttribute("command", "toggle-popover-dne");
+  menubaritem.setAttribute("commandfor", "more");
+  menubaritem.click();
+  assert_false(menulist.matches(':popover-open'),
+     'The menulist should not open because the menuitem command is invalid');
 }, "Menuitem with invalid command/commandfor cannot invoke menulist popover.");
 
 test(() => {
-  assert_equals(checkableMenuitem.commandForElement,null,
+  assert_equals(checkableMenuitem.commandForElement, null,
    "To start, checkable item shouldn't be an invoker")
   opencheckable.click(); // Open the menu
   checkableMenuitem.click();
@@ -142,12 +142,16 @@ test(() => {
   assert_false(menulist.matches(":popover-open"),
       "menulist no longer matches :popover-open");
 
-   // Being a sub-menu invoker makes the item non-checkable.
-  checkableMenuitem.command = "toggle-menu";
-  checkableMenuitem.commandForElement = menulist;
+  // Being a sub-menu invoker makes the item non-checkable.
+  // We do this by nesting it in a <submenu> with 'more' menulist.
+  const submenuElement = document.createElement('submenu');
+  checkableMenuitem.parentNode.replaceChild(submenuElement, checkableMenuitem);
+  submenuElement.appendChild(checkableMenuitem);
+  submenuElement.appendChild(menulist);
+
   checkableMenuitem.click();
   assert_false(checkableMenuitem.checked,
-      "checkable menu item that invokes a menu is not checkable");
+      "nested menu item that invokes a menu is not checkable");
   assert_true(menulist.matches(":popover-open"), "menulist is open");
   checkableMenuitem.click();
   assert_false(checkableMenuitem.checked, "still not checked");

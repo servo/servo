@@ -9,6 +9,9 @@
 div.stub html|*:not([*|class~="deux"]),
    div.stub *|*:not(html|*):not([*|foo~="deux"]) { background-color : lime }
 ]]></style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
@@ -16,12 +19,25 @@ div.stub html|*:not([*|class~="deux"]),
  </head>
  <body xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b">
 <div class="stub">
-<p class="un deux trois">This paragraph should be unstyled</p>
-<p class="un deu trois">This paragraph should have a green background.</p>
-<q xmlns="http://www.example.org/a" a:bar="un deux trois">This paragraph should have a green background.</q>
-<q xmlns="http://www.example.org/a" a:foo="un second deuxieme trois">This paragraph should have a green background.</q>
-<r xmlns="http://www.example.org/a" a:foo="un deux trois">This paragraph should be unstyled.</r>
-<s xmlns="http://www.example.org/b" b:foo="un deux trois">This paragraph should be unstyled.</s>
+<p class="un deux trois" id="t4">This paragraph should be unstyled</p>
+<p class="un deu trois" id="t1">This paragraph should have a green background.</p>
+<q xmlns="http://www.example.org/a" a:bar="un deux trois" id="t2">This paragraph should have a green background.</q>
+<q xmlns="http://www.example.org/a" a:foo="un second deuxieme trois" id="t3">This paragraph should have a green background.</q>
+<r xmlns="http://www.example.org/a" a:foo="un deux trois" id="t5">This paragraph should be unstyled.</r>
+<s xmlns="http://www.example.org/b" b:foo="un deux trois" id="t6">This paragraph should be unstyled.</s>
 </div>
+<script><![CDATA[
+test(function() {
+  assert_background_color('t1', LIME);
+  assert_background_color('t2', LIME);
+  assert_background_color('t3', LIME);
+  assert_not_background_color('t4', LIME);
+  assert_not_background_color('t4', RED);
+  assert_not_background_color('t5', LIME);
+  assert_not_background_color('t5', RED);
+  assert_not_background_color('t6', LIME);
+  assert_not_background_color('t6', RED);
+}, 'NEGATED Attribute space-separated value selector with universal namespace');
+]]></script>
 </body>
 </html>

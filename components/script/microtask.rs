@@ -10,8 +10,9 @@ use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 
-use js::jsapi::JobQueueMayNotBeEmpty;
+use js::context::JSContext;
 use js::realm::AutoRealm;
+use js::rust::wrappers2::JobQueueMayNotBeEmpty;
 use script_bindings::cell::DomRefCell;
 use servo_base::id::PipelineId;
 
@@ -27,7 +28,7 @@ use crate::dom::stream::byteteereadintorequest::ByteTeeReadIntoRequestMicrotask;
 use crate::dom::stream::byteteereadrequest::ByteTeeReadRequestMicrotask;
 use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequestMicrotask;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{JSContext, notify_about_rejected_promises};
+use crate::script_runtime::notify_about_rejected_promises;
 use crate::script_thread::ScriptThread;
 
 /// A collection of microtasks in FIFO order.
@@ -54,8 +55,8 @@ pub(crate) enum Microtask {
 }
 
 pub(crate) trait MicrotaskRunnable {
-    fn handler(&self, _cx: &mut js::context::JSContext) {}
-    fn enter_realm<'cx>(&self, cx: &'cx mut js::context::JSContext) -> AutoRealm<'cx>;
+    fn handler(&self, _cx: &mut JSContext) {}
+    fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx>;
 }
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
@@ -82,9 +83,9 @@ impl MicrotaskQueue {
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
     #[expect(unsafe_code)]
-    pub(crate) fn enqueue(&self, job: Microtask, cx: JSContext) {
+    pub(crate) fn enqueue(&self, cx: &JSContext, job: Microtask) {
         self.microtask_queue.borrow_mut().push(job);
-        unsafe { JobQueueMayNotBeEmpty(*cx) };
+        unsafe { JobQueueMayNotBeEmpty(cx) };
     }
 
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
@@ -92,7 +93,7 @@ impl MicrotaskQueue {
     #[expect(unsafe_code)]
     pub(crate) fn checkpoint<F>(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         target_provider: F,
         globalscopes: Vec<DomRoot<GlobalScope>>,
     ) where

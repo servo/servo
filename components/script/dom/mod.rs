@@ -240,7 +240,6 @@ pub(crate) mod datatransfer;
 pub(crate) use self::datatransfer::*;
 pub(crate) mod debugger;
 pub(crate) use self::debugger::*;
-#[expect(dead_code)]
 pub(crate) mod document;
 pub(crate) use self::document::*;
 pub(crate) mod domexception;
@@ -289,7 +288,6 @@ pub(crate) mod mutationobserver;
 pub(crate) use self::mutationobserver::*;
 pub(crate) mod navigator;
 pub(crate) use self::navigator::*;
-#[expect(dead_code)]
 pub(crate) mod node;
 pub(crate) use self::node::*;
 pub(crate) mod notification;
@@ -316,7 +314,6 @@ pub(crate) mod selection;
 pub(crate) mod serviceworker;
 pub(crate) use self::serviceworker::*;
 pub(crate) mod servointernals;
-#[expect(dead_code)]
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
 pub(crate) mod storage;

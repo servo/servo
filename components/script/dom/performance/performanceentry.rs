@@ -111,11 +111,6 @@ impl PerformanceEntry {
     pub(crate) fn start_time(&self) -> Option<CrossProcessInstant> {
         self.start_time
     }
-
-    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-duration>
-    pub(crate) fn duration(&self) -> Duration {
-        self.duration
-    }
 }
 
 impl PerformanceEntryMethods<crate::DomTypeHolder> for PerformanceEntry {

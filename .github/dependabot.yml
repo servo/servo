@@ -98,6 +98,10 @@ updates:
       patterns:
         - "zbus-lockstep"
         - "zbus-lockstep-macros"
+    wgpu:
+      patterns:
+        - "wgpu*"
+        - "naga*"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: selectors
@@ -111,3 +115,7 @@ updates:
   - dependency-name: stylo_traits
   - dependency-name: to_shmem
   - dependency-name: to_shmem_derive
+  # We only allow automatic patch updates of wgpu crates
+  # all others require at least expectation update
+  - dependency-name: "wgpu*"
+    update-types: ["version-update:semver-minor", "version-update:semver-major"]
