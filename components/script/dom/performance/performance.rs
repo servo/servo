@@ -15,7 +15,7 @@ use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMa
 use script_bindings::codegen::GenericBindings::PerformanceMarkBinding::PerformanceMarkMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -42,7 +42,6 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// Implementation of a list of PerformanceEntry items shared by the
 /// Performance and PerformanceObserverEntryList interfaces implementations.
@@ -157,14 +156,14 @@ impl Performance {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         navigation_start: CrossProcessInstant,
-        can_gc: CanGc,
     ) -> DomRoot<Performance> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Performance::new_inherited(navigation_start)),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -536,8 +535,8 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performance-navigation>
-    fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
-        PerformanceNavigation::new(&self.global(), CanGc::deprecated_note())
+    fn Navigation(&self, cx: &mut JSContext) -> DomRoot<PerformanceNavigation> {
+        PerformanceNavigation::new(cx, &self.global())
     }
 
     /// <https://w3c.github.io/hr-time/#dom-performance-now>
@@ -744,6 +743,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         // The resulting duration value MAY be negative.
 
         let entry = PerformanceMeasure::new(
+            cx,
             &self.global(),
             measure_name,
             start_time,
