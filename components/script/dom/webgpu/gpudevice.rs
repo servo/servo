@@ -13,7 +13,6 @@ use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::reflect_dom_object_with_cx;
-use script_bindings::script_runtime::CanGc;
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
@@ -400,7 +399,7 @@ impl GPUDevice {
                 let this = this.root();
 
                 let lost_promise = &(*this.lost_promise.borrow());
-                let lost = GPUDeviceLostInfo::new(&this.global(), msg.into(), reason, CanGc::deprecated_note());
+                let lost = GPUDeviceLostInfo::new(cx, &this.global(), msg.into(), reason);
                 lost_promise.resolve_native(cx, &*lost);
             }),
         );

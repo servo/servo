@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use html5ever::local_name;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::{
     ElementInternalsMethods, ValidityStateFlags,
@@ -28,7 +28,6 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
-use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 enum SubmissionValue {
@@ -94,12 +93,12 @@ impl ElementInternals {
         }
     }
 
-    pub(crate) fn new(element: &HTMLElement, can_gc: CanGc) -> DomRoot<ElementInternals> {
+    pub(crate) fn new(cx: &mut JSContext, element: &HTMLElement) -> DomRoot<ElementInternals> {
         let global = element.owner_window();
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(ElementInternals::new_inherited(element)),
             &*global,
-            can_gc,
+            cx,
         )
     }
 

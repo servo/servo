@@ -11,7 +11,7 @@ use fonts::{FontContext, FontContextWebFontMethods, FontTemplate, LowercaseFontF
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use style::error_reporting::ParseErrorReporter;
 use style::font_face::SourceList;
 use style::properties::font_face::Descriptors;
@@ -35,7 +35,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::NodeTraits;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// <https://drafts.csswg.org/css-font-loading/#fontface-interface>
 #[dom_struct]
@@ -299,7 +298,7 @@ impl FontFace {
         // otherwise, complete the rest of these steps asynchronously.
         //
         // TODO: The rest of the algorithm is run synchronously currently.
-        let font_face = reflect_dom_object_with_proto(
+        let font_face = reflect_dom_object_with_proto_and_cx(
             Box::new(Self::new_inherited(
                 cx,
                 global,
@@ -309,7 +308,7 @@ impl FontFace {
             )),
             global,
             proto,
-            CanGc::from_cx(cx),
+            cx,
         );
 
         if font_face.Status() == FontFaceLoadStatus::Error {

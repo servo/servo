@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_bindings::script_runtime::CanGc;
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUDeviceLostInfoMethods, GPUDeviceLostReason,
@@ -30,15 +30,15 @@ impl GPUDeviceLostInfo {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         message: DOMString,
         reason: GPUDeviceLostReason,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(GPUDeviceLostInfo::new_inherited(message, reason)),
             global,
-            can_gc,
+            cx,
         )
     }
 }

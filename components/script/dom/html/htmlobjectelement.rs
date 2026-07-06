@@ -186,7 +186,7 @@ impl FormControl for HTMLObjectElement {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, _cx: &mut JSContext, form: Option<&HTMLFormElement>) {
         self.form_owner.set(form);
     }
 

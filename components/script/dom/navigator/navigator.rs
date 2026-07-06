@@ -387,9 +387,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes>
-    fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
+    fn MimeTypes(&self, cx: &mut JSContext) -> DomRoot<MimeTypeArray> {
         self.mime_types
-            .or_init(|| MimeTypeArray::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| MimeTypeArray::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled>
