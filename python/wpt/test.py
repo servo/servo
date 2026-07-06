@@ -624,6 +624,10 @@ def setUpModule() -> None:
     def setup_mock_repo(repo_name: str, local_repo: LocalGitRepo, default_branch: str) -> None:
         subprocess.check_output(["cp", "-R", "-p", os.path.join(TESTS_DIR, repo_name), local_repo.path])
         local_repo.run("init", "-b", default_branch)
+        # Prevent git from doing auto maintenance in the background, which can interfere
+        # with file operations.
+        local_repo.run("config", "gc.auto", "0")
+        local_repo.run("config", "maintenance.auto", "false")
         local_repo.run("add", ".")
         local_repo.run("commit", "-a", "-m", "Initial commit")
 
@@ -636,7 +640,7 @@ def setUpModule() -> None:
 
 def tearDownModule() -> None:
     # pylint: disable=invalid-name
-    shutil.rmtree(TMP_DIR)
+    shutil.rmtree(TMP_DIR, ignore_errors=True)
 
 
 def run_tests() -> bool:
