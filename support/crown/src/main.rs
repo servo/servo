@@ -35,7 +35,8 @@ mod unrooted_must_root;
 #[cfg(feature = "trace_in_no_trace_lint")]
 mod trace_in_no_trace;
 
-mod dom_root_in_dom_struct;
+#[cfg(feature = "rooted_type_inside_traceable_lint")]
+mod rooted_type_inside_traceable;
 
 struct MyCallbacks;
 
@@ -55,8 +56,8 @@ impl Callbacks for MyCallbacks {
             unrooted_must_root::register(lint_store);
             #[cfg(feature = "trace_in_no_trace_lint")]
             trace_in_no_trace::register(lint_store);
-
-            dom_root_in_dom_struct::register(lint_store);
+            #[cfg(feature = "rooted_type_inside_traceable_lint")]
+            rooted_type_inside_traceable::register(lint_store);
         }));
     }
 }
