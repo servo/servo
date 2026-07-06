@@ -42,11 +42,12 @@ use crate::messaging::MainThreadScriptMsg;
 use crate::navigation::navigate;
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) enum ControlElement {
-    Select(DomRoot<HTMLSelectElement>),
-    ColorInput(DomRoot<HTMLInputElement>),
-    FileInput(DomRoot<HTMLInputElement>),
-    Ime(DomRoot<HTMLElement>),
+    Select(Dom<HTMLSelectElement>),
+    ColorInput(Dom<HTMLInputElement>),
+    FileInput(Dom<HTMLInputElement>),
+    Ime(Dom<HTMLElement>),
     ContextMenu(ContextMenuNodes),
 }
 
@@ -61,6 +62,8 @@ impl ControlElement {
         }
     }
 }
+
+impl js::gc::Rootable for ControlElement {}
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -193,7 +196,9 @@ impl DocumentEmbedderControls {
         assert_eq!(self.window.pipeline_id(), id.pipeline_id);
         assert_eq!(self.window.webview_id(), id.webview_id);
 
-        let Some(element) = self.visible_elements.borrow_mut().remove(&id.index.into()) else {
+        rooted!(&in(cx) let visible_element = self.visible_elements.borrow_mut().remove(&id.index.into()));
+
+        let Some(element) = &*visible_element else {
             return;
         };
 
@@ -376,15 +381,13 @@ impl DocumentEmbedderControls {
             },
         ]);
 
-        let context_menu_nodes = ContextMenuNodes {
-            node: hit_test_result.node.clone(),
-            anchor_element,
-            image_element,
-            text_input_element,
-        };
-
         self.show_embedder_control(
-            ControlElement::ContextMenu(context_menu_nodes),
+            ControlElement::ContextMenu(ContextMenuNodes {
+                node: hit_test_result.node.as_traced(),
+                anchor_element: anchor_element.map(|element| element.as_traced()),
+                image_element: image_element.map(|element| element.as_traced()),
+                text_input_element: text_input_element.map(|element| element.as_traced()),
+            }),
             EmbedderControlRequest::ContextMenu(ContextMenuRequest {
                 element_info: info,
                 items,
@@ -395,15 +398,16 @@ impl DocumentEmbedderControls {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ContextMenuNodes {
     /// The node that this menu was triggered on.
-    node: DomRoot<Node>,
+    node: Dom<Node>,
     /// The first inclusive ancestor of this node that is an `<a>` if one exists.
-    anchor_element: Option<DomRoot<HTMLAnchorElement>>,
+    anchor_element: Option<Dom<HTMLAnchorElement>>,
     /// The first inclusive ancestor of this node that is an `<img>` if one exists.
-    image_element: Option<DomRoot<HTMLImageElement>>,
+    image_element: Option<Dom<HTMLImageElement>>,
     /// The first inclusive ancestor of this node which is a text entry field.
-    text_input_element: Option<DomRoot<Element>>,
+    text_input_element: Option<Dom<Element>>,
 }
 
 impl ContextMenuNodes {
@@ -503,21 +507,27 @@ impl ContextMenuNodes {
             ContextMenuAction::Cut => {
                 window.Document().event_handler().handle_editing_action(
                     cx,
-                    self.text_input_element.clone(),
+                    self.text_input_element
+                        .as_ref()
+                        .map(|element| element.as_rooted()),
                     EditingActionEvent::Cut,
                 );
             },
             ContextMenuAction::Copy => {
                 window.Document().event_handler().handle_editing_action(
                     cx,
-                    self.text_input_element.clone(),
+                    self.text_input_element
+                        .as_ref()
+                        .map(|element| element.as_rooted()),
                     EditingActionEvent::Copy,
                 );
             },
             ContextMenuAction::Paste => {
                 window.Document().event_handler().handle_editing_action(
                     cx,
-                    self.text_input_element.clone(),
+                    self.text_input_element
+                        .as_ref()
+                        .map(|element| element.as_rooted()),
                     EditingActionEvent::Paste,
                 );
             },

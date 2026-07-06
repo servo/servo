@@ -43,7 +43,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, N
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
@@ -1986,7 +1986,7 @@ impl HTMLInputElement {
             self.owner_document()
                 .embedder_controls()
                 .show_embedder_control(
-                    ControlElement::Ime(DomRoot::from_ref(self.upcast())),
+                    ControlElement::Ime(Dom::from_ref(self.upcast())),
                     EmbedderControlRequest::InputMethod(InputMethodRequest {
                         input_method_type,
                         text: String::from(self.Value()),
