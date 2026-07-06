@@ -624,7 +624,8 @@ def setUpModule() -> None:
     def setup_mock_repo(repo_name: str, local_repo: LocalGitRepo, default_branch: str) -> None:
         subprocess.check_output(["cp", "-R", "-p", os.path.join(TESTS_DIR, repo_name), local_repo.path])
         local_repo.run("init", "-b", default_branch)
-        # Prevent git from doing auto maintenance in the background.
+        # Prevent git from doing auto maintenance in the background, which can interfere
+        # with file operations.
         local_repo.run("config", "gc.auto", "0")
         local_repo.run("config", "maintenance.auto", "false")
         local_repo.run("add", ".")
