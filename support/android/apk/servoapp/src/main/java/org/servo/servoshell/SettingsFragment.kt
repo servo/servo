@@ -53,11 +53,6 @@ class SettingsFragment : Fragment() {
                         summary = stringResource(R.string.settings_experimental_summary),
                         preferenceKey = "experimental",
                     )
-                    SettingsItem(
-                        title = stringResource(R.string.settings_animating_title),
-                        summary = stringResource(R.string.settings_animating_summary),
-                        preferenceKey = "animating_indicator",
-                    )
                 }
             }
         }
