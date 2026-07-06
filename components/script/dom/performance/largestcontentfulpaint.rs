@@ -72,16 +72,16 @@ impl LargestContentfulPaint {
 
 impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPaint {
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-loadtime>
-    fn LoadTime(&self) -> DOMHighResTimeStamp {
+    fn LoadTime(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.global()
-            .performance()
+            .performance(cx)
             .to_dom_high_res_time_stamp(self.load_time)
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-rendertime>
-    fn RenderTime(&self) -> DOMHighResTimeStamp {
+    fn RenderTime(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.global()
-            .performance()
+            .performance(cx)
             .to_dom_high_res_time_stamp(self.render_time)
     }
 

@@ -1066,9 +1066,9 @@ impl EventMethods<crate::DomTypeHolder> for Event {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-timestamp>
-    fn TimeStamp(&self) -> DOMHighResTimeStamp {
+    fn TimeStamp(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.global()
-            .performance()
+            .performance(cx)
             .to_dom_high_res_time_stamp(self.time_stamp)
     }
 

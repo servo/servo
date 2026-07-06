@@ -469,7 +469,10 @@ impl XRSession {
             mem::swap(&mut *self.raf_callback_list.borrow_mut(), &mut current);
         }
 
-        let time = self.global().performance().to_dom_high_res_time_stamp(time);
+        let time = self
+            .global()
+            .performance(cx)
+            .to_dom_high_res_time_stamp(time);
         let frame = XRFrame::new(cx, self.global().as_window(), self, frame);
 
         // Step 8-9

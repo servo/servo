@@ -175,7 +175,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             // This never pre-fills buffered entries, and
             // any existing types are replaced.
             self.global()
-                .performance()
+                .performance(cx)
                 .add_multiple_type_observer(self, entry_types);
             Ok(())
         } else if let Some(entry_type) = &options.type_ {
@@ -188,7 +188,8 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             // Steps 7.3-7.5
             // This may pre-fill buffered entries, and
             // existing types are appended to.
-            self.global().performance().add_single_type_observer(
+            self.global().performance(cx).add_single_type_observer(
+                cx,
                 self,
                 entry_type,
                 options.buffered.unwrap_or(false),
@@ -201,8 +202,8 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
     }
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-disconnect>
-    fn Disconnect(&self) {
-        self.global().performance().remove_observer(self);
+    fn Disconnect(&self, cx: &mut JSContext) {
+        self.global().performance(cx).remove_observer(self);
         self.entries.borrow_mut().clear();
     }
 

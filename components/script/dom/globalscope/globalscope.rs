@@ -3161,12 +3161,12 @@ impl GlobalScope {
         incumbent_global()
     }
 
-    pub(crate) fn performance(&self) -> DomRoot<Performance> {
+    pub(crate) fn performance(&self, cx: &mut JSContext) -> DomRoot<Performance> {
         if let Some(window) = self.downcast::<Window>() {
-            return window.Performance();
+            return window.Performance(cx);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.Performance();
+            return worker.Performance(cx);
         }
         unreachable!();
     }
