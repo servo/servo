@@ -997,12 +997,12 @@ fn append_form_data_entry_from_part(
             None,
         );
         let blob = file.upcast::<Blob>();
-        formdata.Append_(USVString(name), blob, None);
+        formdata.Append_(cx, USVString(name), blob, None);
     } else {
         // Each part whose `Content-Disposition` header does not contain a `filename` parameter must be parsed into an entry whose value is the UTF-8 decoded without BOM content of the part. This is done regardless of the presence or the value of a `Content-Type` header and regardless of the presence or the value of a `charset` parameter.
 
         let (value, _) = UTF_8.decode_without_bom_handling(&body);
-        formdata.Append(USVString(name), USVString(value.to_string()));
+        formdata.Append(cx, USVString(name), USVString(value.to_string()));
     }
     Ok(())
 }
@@ -1092,7 +1092,7 @@ fn run_form_data_algorithm(
         let entries = form_urlencoded::parse(&bytes);
         let formdata = FormData::new(None, root, CanGc::from_cx(cx));
         for (k, e) in entries {
-            formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
+            formdata.Append(cx, USVString(k.into_owned()), USVString(e.into_owned()));
         }
         return Ok(FetchedData::FormData(formdata));
     }

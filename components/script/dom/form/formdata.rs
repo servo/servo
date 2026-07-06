@@ -144,7 +144,8 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
     }
 
     /// <https://xhr.spec.whatwg.org/#dom-formdata-append>
-    fn Append(&self, name: USVString, str_value: USVString) {
+    // As [`Append_`] needs &mut JSContext, we also need to have it for [`Append`]
+    fn Append(&self, _cx: &mut JSContext, name: USVString, str_value: USVString) {
         let datum = FormDatum {
             ty: DOMString::from("string"),
             name: DOMString::from(name.0.clone()),
@@ -225,7 +226,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
     }
 
     /// <https://xhr.spec.whatwg.org/#dom-formdata-set>
-    fn Set(&self, name: USVString, str_value: USVString) {
+    fn Set(&self, _cx: &mut JSContext, name: USVString, str_value: USVString) {
         let mut data = self.data.borrow_mut();
         let local_name = LocalName::from(name.0.clone());
 
@@ -242,8 +243,8 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
     }
 
     /// <https://xhr.spec.whatwg.org/#dom-formdata-set>
-    fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
-        let file = self.create_an_entry(blob, filename, CanGc::deprecated_note());
+    fn Set_(&self, cx: &mut JSContext, name: USVString, blob: &Blob, filename: Option<USVString>) {
+        let file = self.create_an_entry(cx, blob, filename);
 
         let mut data = self.data.borrow_mut();
         let local_name = LocalName::from(name.0.clone());
