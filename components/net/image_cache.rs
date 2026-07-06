@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::OnceCell;
+use std::cell::{Cell, OnceCell};
 use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::mem;
 use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
+use std::{mem, thread_local};
 
 use imsz::imsz_from_reader;
 use log::{debug, warn};
@@ -35,6 +35,20 @@ use servo_base::threadpool::ThreadPool;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::ImageKey as WebRenderImageKey;
 use webrender_api::units::DeviceIntSize;
+
+thread_local! {
+    pub static SUPPRESS_ABORT_IN_PANIC_HOOK: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Returns `true` if embedder's custom panic hook handler should *not* treat the panic
+/// as a fatal error that requires termination of the engine.
+///
+/// This is needed to catch and silence panics in `resvg` crate. `servoshell
+/// registers a custom panic hook that aborts the process in `hard_fail` mode
+/// even when using `catch_unwind`.
+pub fn should_panic_hook_suppress_termination() -> bool {
+    SUPPRESS_ABORT_IN_PANIC_HOOK.get()
+}
 
 // We bake in rippy.png as a fallback, in case the embedder does not provide a broken
 // image icon resource. This version is 229 bytes, so don't exchange it against
@@ -1059,14 +1073,14 @@ impl ImageCache for ImageCacheImpl {
             // crash the whole engine for such cases. In case of a panic, the completion listeners
             // added for this request will never get called.
             //
-            // We also temporarily replace the panic hook with the default panic hook
-            // because servoshell registers a custom hook that intercepts the panic
-            // and crashes the process when run in hard_fail mode.
+            // We also need to set `SUPPRESS_ABORT_IN_PANIC_HOOK` for the duration of the call
+            // because servoshell registers a custom hook that intercepts the panic and crashes
+            // the process when run in hard_fail mode.
             //
             // `AssertUnwindSafe` should be safe here since we will remove the `vector_image`
             // from `store.vector_images` and won't use it again. This assumes `resvg::render`
             // doesn't use internal global state that could become invalid after the panic.
-            let previous_hook = std::panic::take_hook();
+            SUPPRESS_ABORT_IN_PANIC_HOOK.set(true);
             let resvg_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
                 resvg::render(&vector_image.svg_tree, transform, &mut pixmap.as_mut());
 
@@ -1092,7 +1106,7 @@ impl ImageCache for ImageCacheImpl {
                     loop_count: None,
                 }
             }));
-            std::panic::set_hook(previous_hook);
+            SUPPRESS_ABORT_IN_PANIC_HOOK.set(false);
 
             match resvg_result {
                 Ok(rasterized_image) => {

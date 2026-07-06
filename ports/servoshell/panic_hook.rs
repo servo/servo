@@ -7,7 +7,7 @@ use std::panic::PanicHookInfo;
 use std::{env, thread};
 
 use log::{error, warn};
-use servo::opts;
+use servo::{opts, should_panic_hook_suppress_termination};
 
 use crate::crash_handler::raise_signal_or_exit_with_error;
 
@@ -43,11 +43,12 @@ pub(crate) fn panic_hook(info: &PanicHookInfo) {
 
     // TODO: This shouldn't be using internal Servo options here. Perhaps this functionality should
     // move into libservo itself.
-    if opts::get().hard_fail && !opts::get().multiprocess {
-        // When we are exiting due to a hard-failure mode, we trigger a segfault so that crash
-        // tests detect that we crashed. If we exit normally it just looks like a non-crash exit.
-        raise_signal_or_exit_with_error(libc::SIGSEGV);
+    if !should_panic_hook_suppress_termination() {
+        if opts::get().hard_fail && !opts::get().multiprocess {
+            // When we are exiting due to a hard-failure mode, we trigger a segfault so that crash
+            // tests detect that we crashed. If we exit normally it just looks like a non-crash exit.
+            raise_signal_or_exit_with_error(libc::SIGSEGV);
+        }
+        error!("{}", msg);
     }
-
-    error!("{}", msg);
 }
