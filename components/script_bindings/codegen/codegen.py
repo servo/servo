@@ -90,7 +90,8 @@ ALLOWED_WARNING_LIST = [
     'clippy::needless_return',
     'clippy::too_many_arguments',
     'clippy::unnecessary_cast',
-    'clippy::upper_case_acronyms'
+    'clippy::upper_case_acronyms',
+    'crown::domroot_inside_dom_struct'
 ]
 ALLOWED_WARNINGS = f"#![allow({','.join(ALLOWED_WARNING_LIST)})]\n\n"
 
