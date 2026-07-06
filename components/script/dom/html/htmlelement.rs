@@ -69,7 +69,6 @@ use crate::dom::node::{
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -738,7 +737,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
-        let internals = self.element.ensure_element_internals(CanGc::from_cx(cx));
+        let internals = self.element.ensure_element_internals(cx);
         if internals.attached() {
             return Err(Error::NotSupported(None));
         }
@@ -1462,10 +1461,10 @@ impl FormControl for HTMLElement {
             .and_then(|e| e.form_owner())
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, cx: &mut JSContext, form: Option<&HTMLFormElement>) {
         debug_assert!(self.is_form_associated_custom_element());
         self.element
-            .ensure_element_internals(CanGc::deprecated_note())
+            .ensure_element_internals(cx)
             .set_form_owner(form);
     }
 

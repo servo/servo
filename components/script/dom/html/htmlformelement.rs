@@ -1282,9 +1282,7 @@ impl HTMLFormElement {
                         let custom = child.downcast::<HTMLElement>().unwrap();
                         if custom.is_form_associated_custom_element() {
                             // https://html.spec.whatwg.org/multipage/#face-entry-construction
-                            let internals = custom
-                                .upcast::<Element>()
-                                .ensure_element_internals(CanGc::from_cx(cx));
+                            let internals = custom.upcast::<Element>().ensure_element_internals(cx);
                             internals.perform_entry_construction(&mut data_set);
                             // Otherwise no form value has been set so there is nothing to do.
                         }
@@ -1648,7 +1646,7 @@ impl FormSubmitterElement<'_> {
 
 pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>>;
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>);
+    fn set_form_owner(&self, cx: &mut JSContext, form: Option<&HTMLFormElement>);
     fn to_html_element(&self) -> &HTMLElement;
 
     fn to_element(&self) -> &Element {
@@ -1668,7 +1666,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
         let node = elem.upcast::<Node>();
         node.set_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER, true);
         form.add_control(cx, self);
-        self.set_form_owner(Some(form));
+        self.set_form_owner(cx, Some(form));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-the-form-owner>
@@ -1729,7 +1727,7 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
                     None,
                 )
             }
-            self.set_form_owner(new_owner.as_deref());
+            self.set_form_owner(cx, new_owner.as_deref());
         }
     }
 

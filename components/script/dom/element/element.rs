@@ -2713,13 +2713,13 @@ impl Element {
             .map(|sr| DomRoot::from_ref(&**sr))
     }
 
-    pub(crate) fn ensure_element_internals(&self, can_gc: CanGc) -> DomRoot<ElementInternals> {
+    pub(crate) fn ensure_element_internals(&self, cx: &mut JSContext) -> DomRoot<ElementInternals> {
         let mut rare_data = self.ensure_rare_data();
         DomRoot::from_ref(rare_data.element_internals.get_or_insert_with(|| {
             let elem = self
                 .downcast::<HTMLElement>()
                 .expect("ensure_element_internals should only be called for an HTMLElement");
-            Dom::from_ref(&*ElementInternals::new(elem, can_gc))
+            Dom::from_ref(&*ElementInternals::new(cx, elem))
         }))
     }
 
