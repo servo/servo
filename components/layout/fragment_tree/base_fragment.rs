@@ -223,10 +223,6 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                 _ => {},
             }
 
-            if ThreadSafeLayoutElement::is_root(&element) {
-                flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
-            }
-
             if node.has_container_timing() {
                 flags.insert(FragmentFlags::HAS_CONTAINER_TIMING);
             }

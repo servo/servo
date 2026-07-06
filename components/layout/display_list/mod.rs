@@ -679,6 +679,35 @@ impl DisplayListBuilder<'_> {
         );
     }
 
+    fn check_for_container_timing_candidate(
+        &mut self,
+        state: &TraversalState,
+        clip_rect: LayoutRect,
+        bounds: LayoutRect,
+        tag: Option<Tag>,
+        flags: FragmentFlags,
+    ) {
+        if !pref!(container_timing_enabled) {
+            return;
+        }
+
+        if !flags.contains(FragmentFlags::HAS_CONTAINER_TIMING) {
+            return;
+        }
+
+        let Some(tag) = tag else {
+            return;
+        };
+
+        let transform = self
+            .paint_info
+            .scroll_tree
+            .cumulative_node_to_root_transform(state.spatial_id);
+
+        self.paint_timing_handler
+            .update_container_timing(tag.node, bounds, clip_rect, transform);
+    }
+
     fn visit_stacking_context_reference_frame_info(
         &mut self,
         stacking_context: &StackingContext,
@@ -989,34 +1018,6 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         BuilderForBoxFragment::new(fragment, state.origin)
             .build_collapsed_table_borders(self, state)
     }
-
-    fn check_for_container_timing_candidate(
-        &mut self,
-        clip_rect: LayoutRect,
-        bounds: LayoutRect,
-        tag: Option<Tag>,
-        flags: FragmentFlags,
-    ) {
-        if !pref!(container_timing_enabled) {
-            return;
-        }
-
-        if !flags.contains(FragmentFlags::HAS_CONTAINER_TIMING) {
-            return;
-        }
-
-        let Some(tag) = tag else {
-            return;
-        };
-
-        let transform = self
-            .paint_info
-            .scroll_tree
-            .cumulative_node_to_root_transform(self.current_scroll_node_id);
-
-        self.paint_timing_handler
-            .update_container_timing(tag.node, bounds, clip_rect, transform);
-    }
 }
 
 impl InspectorHighlight {
@@ -1203,6 +1204,7 @@ impl Fragment {
         builder.mark_is_contentful();
 
         builder.check_for_container_timing_candidate(
+            state,
             common.clip_rect,
             glyph_bounds,
             fragment.base.tag,
@@ -1953,6 +1955,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                             natural_height,
                         );
                         builder.check_for_container_timing_candidate(
+                            state,
                             layer.common.clip_rect,
                             layer.bounds,
                             self.fragment.base.tag,
