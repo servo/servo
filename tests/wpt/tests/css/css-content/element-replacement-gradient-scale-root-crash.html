@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/46023">
+
+<style>
+html { scale: 1; }
+div { display: flow-root; }
+</style>
+<div><img id="img"></div>
+<script>
+onload = _ => {
+  document.documentElement.style.cssText = "content: linear-gradient(blue); scale: 0";
+  img.height;
+}
+</script>

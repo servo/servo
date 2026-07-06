@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>The content CSS attribute can replace an element's contents dynamically</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#content-property">
+<meta name="assert" content="
+  Descendants of an element that is replaced because of the content property
+  shouldn't be laid out. Therefore, the resolved height in getComputedStyle
+  should be the computed value (`auto`), not the used amount of pixels from
+  the previous layout.
+">
+
+<div id="wrapper">
+  <div style="display: flow-root">
+    <div id="target">Text</div>
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<script>
+test(function() {
+  // Force layout
+  document.body.offsetWidth;
+
+  wrapper.style.content = "linear-gradient(blue)";
+  assert_equals(getComputedStyle(target).height, "auto");
+}, "getComputedStyle().height after ancestor becomes replaced");
+</script>
