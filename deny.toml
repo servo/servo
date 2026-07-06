@@ -190,6 +190,7 @@ skip = [
     # Duplicated by wgpu/egui+dependencies
     "objc2-ui-kit",
     "read-fonts",
+    "font-types",
     "skrifa",
     "vello_common",
     "vello_cpu",
