@@ -76,7 +76,7 @@ dirs = "6.0"
 dpi = "0.1"
 dwrote = "0.11.5"
 ecdsa = "0.17"
-ed25519-dalek = { version = "=3.0.0-rc.1", features = ["alloc", "pkcs8", "rand_core", "zeroize"] }
+ed25519-dalek = { version = "=3.0.0", features = ["alloc", "pkcs8", "rand_core", "zeroize"] }
 ed448-goldilocks = "=0.14.0-pre.15"
 egui = "0.34.3"
 egui-file-dialog = "0.13.0"
