@@ -2656,7 +2656,7 @@ impl Window {
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
             document
                 .iframes_mut()
-                .handle_new_iframe_sizes_after_layout(self, iframe_sizes);
+                .handle_new_iframe_sizes_after_layout(cx, self, iframe_sizes);
         }
 
         document.update_animations_post_reflow();

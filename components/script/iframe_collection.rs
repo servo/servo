@@ -5,9 +5,9 @@
 use std::default::Default;
 
 use embedder_traits::ViewportDetails;
+use js::context::JSContext;
 use layout_api::IFrameSizes;
 use paint_api::PinchZoomInfos;
-use script_bindings::script_runtime::temp_cx;
 use servo_base::id::BrowsingContextId;
 use servo_constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, WindowSizeType};
 
@@ -115,9 +115,9 @@ impl IFrameCollection {
     /// Update the recorded iframe sizes of the contents of layout. Return a
     /// [`Vec<IFrameSizeMsg>`] containing the messages to send to the `Constellation`. A
     /// message is only sent when the size actually changes.
-    #[expect(unsafe_code)]
     pub(crate) fn handle_new_iframe_sizes_after_layout(
         &mut self,
+        cx: &mut JSContext,
         window: &Window,
         new_iframe_sizes: IFrameSizes,
     ) {
@@ -139,12 +139,11 @@ impl IFrameCollection {
                         WindowSizeType::Resize,
                     );
 
-                    let mut cx = unsafe { temp_cx() };
                     // Additionally, update the `VisualViewport` of the `Iframe`. This allows us
                     // to process the resize for `VisualViewport` in the corrent timing. Note that
                     // `VisualViewport` for iframes would practically follow layout viewport.
                     script_thread.handle_update_pinch_zoom_infos(
-                        &mut cx,
+                        cx,
                         iframe_size.pipeline_id,
                         PinchZoomInfos::new_from_viewport_size(viewport_details.size),
                     )
