@@ -64,15 +64,21 @@ fn is_dom_root_ty<'tcx>(sym: &'_ Symbols, cx: &LateContext<'tcx>, ty: ty::Ty<'tc
 
 impl<'tcx> LateLintPass<'tcx> for NoDomRootPass {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx Item) {
-        if let ItemKind::Struct(_, _, variant_data) = &item.kind {
-            let struct_type = cx.tcx.type_of(item.owner_id.def_id);
+        let variants = match &item.kind {
+            ItemKind::Struct(_, _, variant_data) => vec![variant_data],
+            ItemKind::Enum(_, _, enum_def) => enum_def.variants.iter().map(|v| &v.data).collect(),
+            _ => return,
+        };
 
-            // Filter out types that are not visible to GC
-            if !is_jstraceable(cx, struct_type.skip_binder()) {
-                return;
-            }
+        let item_type = cx.tcx.type_of(item.owner_id.def_id);
 
-            // Then check if any field is DomRoot<T>
+        // Filter out types that are not visible to GC
+        if !is_jstraceable(cx, item_type.skip_binder()) {
+            return;
+        }
+
+        // Then check if any field is DomRoot<T>
+        for variant_data in variants {
             for field in variant_data.fields() {
                 let field_type = cx.tcx.type_of(field.def_id);
                 if is_dom_root_ty(&self.symbols, cx, field_type.skip_binder()) {
