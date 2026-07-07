@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -16,7 +16,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct NamedNodeMap {
@@ -32,8 +31,12 @@ impl NamedNodeMap {
         }
     }
 
-    pub(crate) fn new(window: &Window, elem: &Element, can_gc: CanGc) -> DomRoot<NamedNodeMap> {
-        reflect_dom_object(Box::new(NamedNodeMap::new_inherited(elem)), window, can_gc)
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        elem: &Element,
+    ) -> DomRoot<NamedNodeMap> {
+        reflect_dom_object_with_cx(Box::new(NamedNodeMap::new_inherited(elem)), window, cx)
     }
 }
 

@@ -189,7 +189,7 @@ use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEvent
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, Runtime};
+use crate::script_runtime::Runtime;
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_manager::TaskManager;
@@ -1550,14 +1550,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator>
-    fn Navigator(&self) -> DomRoot<Navigator> {
-        self.navigator
-            .or_init(|| Navigator::new(self, CanGc::deprecated_note()))
+    fn Navigator(&self, cx: &mut JSContext) -> DomRoot<Navigator> {
+        self.navigator.or_init(|| Navigator::new(cx, self))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-clientinformation>
-    fn ClientInformation(&self) -> DomRoot<Navigator> {
-        self.Navigator()
+    fn ClientInformation(&self, cx: &mut JSContext) -> DomRoot<Navigator> {
+        self.Navigator(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-settimeout>
@@ -1731,8 +1730,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     window_event_handlers!();
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Window/screen>
-    fn Screen(&self, can_gc: CanGc) -> DomRoot<Screen> {
-        self.screen.or_init(|| Screen::new(self, can_gc))
+    fn Screen(&self, cx: &mut JSContext) -> DomRoot<Screen> {
+        self.screen.or_init(|| Screen::new(cx, self))
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>

@@ -12,7 +12,6 @@ use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::domstring::DOMString;
 use script_bindings::reflector::Reflector;
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 use time::Duration;
 
 use crate::dom::bindings::codegen::Bindings::ServoTestUtilsBinding::ServoTestUtilsMethods;
@@ -57,12 +56,12 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         }
 
         LayoutResult::new(
+            cx,
             global,
             phases,
             statistics.rebuilt_fragment_count,
             statistics.restyle_fragment_count,
             statistics.only_descendants_changed_count,
-            CanGc::from_cx(cx),
         )
     }
 

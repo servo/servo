@@ -4,14 +4,14 @@
 
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ScreenMetrics};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::JSContext;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel;
 
 use crate::dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct Screen {
@@ -27,8 +27,8 @@ impl Screen {
         }
     }
 
-    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Screen> {
-        reflect_dom_object(Box::new(Screen::new_inherited(window)), window, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<Screen> {
+        reflect_dom_object_with_cx(Box::new(Screen::new_inherited(window)), window, cx)
     }
 
     /// Retrives [`ScreenMetrics`] from the embedder.

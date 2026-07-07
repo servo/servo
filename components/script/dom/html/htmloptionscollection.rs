@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 use dom_struct::dom_struct;
 use html5ever::{QualName, local_name, ns};
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -27,7 +27,6 @@ use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLOptionsCollection {
@@ -45,15 +44,15 @@ impl HTMLOptionsCollection {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         select: &HTMLSelectElement,
         filter: Box<dyn CollectionFilter + 'static>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLOptionsCollection> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
             window,
-            can_gc,
+            cx,
         )
     }
 

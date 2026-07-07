@@ -177,7 +177,6 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::layout_dom::ServoDangerousStyleElement;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 
@@ -698,13 +697,13 @@ impl Element {
         //
         // Step 10. Set shadow’s clonable to clonable
         let shadow_root = ShadowRoot::new(
+            cx,
             self,
             &self.node.owner_doc(),
             mode,
             slot_assignment_mode,
             clonable,
             is_ua_widget,
-            CanGc::from_cx(cx),
         );
 
         // This is not in the specification, but this is where we ensure that the
@@ -2820,7 +2819,7 @@ impl Element {
     pub(crate) fn register_current_id_and_name_attribute(&self, cx: &mut JSContext) {
         if let Some(shadow_root) = self.containing_shadow_root() {
             if let Some(ref id) = *self.id_attribute.borrow() {
-                shadow_root.register_element_id(self, id, CanGc::from_cx(cx));
+                shadow_root.register_element_id(self, id);
             }
         } else {
             let document = self.owner_document();
@@ -2924,9 +2923,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     make_setter!(SetSlot, "slot");
 
     /// <https://dom.spec.whatwg.org/#dom-element-attributes>
-    fn Attributes(&self, can_gc: CanGc) -> DomRoot<NamedNodeMap> {
+    fn Attributes(&self, cx: &mut JSContext) -> DomRoot<NamedNodeMap> {
         self.attr_list
-            .or_init(|| NamedNodeMap::new(&self.owner_window(), self, can_gc))
+            .or_init(|| NamedNodeMap::new(cx, &self.owner_window(), self))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-hasattributes>
@@ -4640,11 +4639,7 @@ impl VirtualMethods for Element {
                             }
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.register_element_id(
-                                        self,
-                                        &value,
-                                        CanGc::from_cx(cx),
-                                    );
+                                    shadow_root.register_element_id(self, &value);
                                 } else {
                                     doc.register_element_id(cx, self, &value);
                                 }

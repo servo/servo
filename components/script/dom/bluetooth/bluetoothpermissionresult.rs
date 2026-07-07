@@ -59,7 +59,7 @@ impl BluetoothPermissionResult {
     }
 
     pub(crate) fn get_bluetooth(&self, cx: &mut JSContext) -> DomRoot<Bluetooth> {
-        self.global().as_window().Navigator().Bluetooth(cx)
+        self.global().as_window().Navigator(cx).Bluetooth(cx)
     }
 
     pub(crate) fn get_bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {

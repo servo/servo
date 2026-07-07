@@ -2394,7 +2394,7 @@ impl Document {
         // https://github.com/immersive-web/navigation/issues/10
         #[cfg(feature = "webxr")]
         if pref!(dom_webxr_sessionavailable) && self.window.is_top_level() {
-            self.window.Navigator().Xr(cx).dispatch_sessionavailable();
+            self.window.Navigator(cx).Xr(cx).dispatch_sessionavailable();
         }
     }
 
@@ -4827,7 +4827,7 @@ impl Document {
         #[cfg(feature = "gamepad")]
         if visibility_state == DocumentVisibilityState::Hidden {
             self.window
-                .Navigator()
+                .Navigator(cx)
                 .GetGamepads(cx)
                 .unwrap_or_default()
                 .iter_mut()
@@ -5749,11 +5749,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-createtreewalker>
     fn CreateTreeWalker(
         &self,
+        cx: &mut JSContext,
         root: &Node,
         what_to_show: u32,
         filter: Option<Rc<NodeFilter>>,
     ) -> DomRoot<TreeWalker> {
-        TreeWalker::new(self, root, what_to_show, filter)
+        TreeWalker::new(cx, self, root, what_to_show, filter)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document.title>
@@ -6450,7 +6451,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let resource_threads = self.window.as_global_scope().resource_threads().clone();
         *self.loader.borrow_mut() =
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
-        ServoParser::parse_html_script_input(self, self.url());
+        ServoParser::parse_html_script_input(cx, self, self.url());
 
         // Step 17. Set the insertion point to point at just before the end of the input stream
         // (which at this point will be empty).

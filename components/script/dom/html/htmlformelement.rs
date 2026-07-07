@@ -84,7 +84,6 @@ use crate::dom::types::{DocumentFragment, HTMLIFrameElement};
 use crate::dom::window::Window;
 use crate::links::{LinkRelations, get_element_target, valid_navigable_target_name_or_keyword};
 use crate::navigation::navigate;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 /// <https://html.spec.whatwg.org/multipage/#the-form-element>
@@ -1343,7 +1342,7 @@ impl HTMLFormElement {
         let window = self.owner_window();
 
         // Step 6
-        let form_data = FormData::new(Some(ret), &window.global(), CanGc::from_cx(cx));
+        let form_data = FormData::new(cx, Some(ret), &window.global());
 
         // Step 7
         let event = FormDataEvent::new(
