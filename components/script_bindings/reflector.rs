@@ -13,7 +13,6 @@ use crate::conversions::DerivedFrom;
 use crate::interfaces::GlobalScopeHelpers;
 use crate::iterable::{Iterable, IterableIterator};
 use crate::root::{Dom, DomRoot, Root};
-use crate::script_runtime::{CanGc, temp_cx};
 use crate::{DomTypes, JSTraceable};
 
 pub trait AssociatedMemorySize: Default {
@@ -255,24 +254,21 @@ pub trait DomObjectIteratorWrap<D: DomTypes>: DomObjectWrap<D> + JSTraceable + I
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-#[deprecated(note = "Use reflect_dom_object_with_cx")]
-pub fn reflect_dom_object<D, T, U>(obj: Box<T>, global: &U, _can_gc: CanGc) -> DomRoot<T>
+pub fn reflect_dom_object<D, T, U>(cx: &mut JSContext, obj: Box<T>, global: &U) -> DomRoot<T>
 where
     D: DomTypes,
     T: DomObject + DomObjectWrap<D>,
     U: DerivedFrom<D::GlobalScope>,
 {
     let global_scope = global.upcast();
-    let mut cx = unsafe { temp_cx() };
-    unsafe { T::WRAP(&mut cx, global_scope, None, obj) }
+    unsafe { T::WRAP(cx, global_scope, None, obj) }
 }
 
-#[deprecated(note = "Use reflect_dom_object_with_proto_and_cx")]
 pub fn reflect_dom_object_with_proto<D, T, U>(
+    cx: &mut JSContext,
     obj: Box<T>,
     global: &U,
     proto: Option<HandleObject>,
-    _can_gc: CanGc,
 ) -> DomRoot<T>
 where
     D: DomTypes,
@@ -280,12 +276,12 @@ where
     U: DerivedFrom<D::GlobalScope>,
 {
     let global_scope = global.upcast();
-    let mut cx = unsafe { temp_cx() };
-    unsafe { T::WRAP(&mut cx, global_scope, proto, obj) }
+    unsafe { T::WRAP(cx, global_scope, proto, obj) }
 }
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
+/// Deprecated, use `reflect_dom_object` instead.
 pub fn reflect_dom_object_with_cx<D, T, U>(
     obj: Box<T>,
     global: &U,
@@ -302,6 +298,7 @@ where
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
+/// Deprecated, use `reflect_dom_object_with_proto` instead.
 pub fn reflect_dom_object_with_proto_and_cx<D, T, U>(
     obj: Box<T>,
     global: &U,
