@@ -33,6 +33,7 @@ pub(crate) enum InitiatorType {
     Navigation,
     XMLHttpRequest,
     Fetch,
+    Track,
     Other,
 }
 
@@ -158,6 +159,7 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
             InitiatorType::Navigation => DOMString::from("navigation"),
             InitiatorType::XMLHttpRequest => DOMString::from("xmlhttprequest"),
             InitiatorType::Fetch => DOMString::from("fetch"),
+            InitiatorType::Track => DOMString::from("track"),
             InitiatorType::Other => DOMString::from("other"),
         }
     }

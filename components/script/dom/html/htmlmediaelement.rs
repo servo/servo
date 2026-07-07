@@ -58,7 +58,9 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConsta
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
+use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
+    TextTrackKind, TextTrackMethods, TextTrackMode,
+};
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
@@ -93,6 +95,7 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
+use crate::dom::referrer_policy_for_element;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::timeranges::{TimeRanges, TimeRangesContainer};
@@ -594,7 +597,7 @@ pub(crate) struct HTMLMediaElement {
     audio_tracks_list: MutNullableDom<AudioTrackList>,
     // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
     video_tracks_list: MutNullableDom<VideoTrackList>,
-    /// <https://html.spec.whatwg.org/multipage/#dom-media-texttracks>
+    /// <https://html.spec.whatwg.org/multipage/#list-of-text-tracks>
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Time of last timeupdate notification.
     #[ignore_malloc_size_of = "Defined in std::time"]
@@ -606,6 +609,8 @@ pub(crate) struct HTMLMediaElement {
     /// the access to the "privileged" document.servoGetMediaControls(id) API by
     /// keeping a whitelist of media controls identifiers.
     media_controls_id: DomRefCell<Option<String>>,
+    /// <https://html.spec.whatwg.org/multipage/#did-perform-automatic-track-selection>
+    did_perform_automatic_track_selection: Cell<bool>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -689,6 +694,7 @@ impl HTMLMediaElement {
             next_timeupdate_event: Cell::new(Instant::now() + Duration::from_millis(250)),
             current_fetch_context: RefCell::new(None),
             media_controls_id: DomRefCell::new(None),
+            did_perform_automatic_track_selection: Default::default(),
         }
     }
 
@@ -1461,7 +1467,7 @@ impl HTMLMediaElement {
         )
         .with_global_scope(&global)
         .headers(headers)
-        .referrer_policy(document.get_referrer_policy());
+        .referrer_policy(referrer_policy_for_element(self.upcast()));
 
         let mut current_fetch_context = self.current_fetch_context.borrow_mut();
         if let Some(ref mut current_fetch_context) = *current_fetch_context {
@@ -2983,6 +2989,87 @@ impl HTMLMediaElement {
 
         true
     }
+
+    pub(crate) fn was_added_to_list_of_text_tracks(&self) {
+        // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks
+        // > When a text track corresponding to a track element is added to a media element's list of text tracks,
+        // > the user agent must queue a media element task given the media element to
+        // > run the following steps for the media element:
+        let this = Trusted::new(self);
+        self.global()
+            .task_manager()
+            .media_element_task_source()
+            .queue(task!(track_event_queue: move |cx| {
+                let element = this.root();
+                // Step 1. If the element's blocked-on-parser flag is true, then return.
+                // TODO
+                // Step 2. If the element's did-perform-automatic-track-selection flag is true, then return.
+                if element.did_perform_automatic_track_selection.get() {
+                    return;
+                }
+                // Step 3. Honor user preferences for automatic text track selection for this element.
+                element.honor_user_preferences_for_automatic_text_track_selection(cx);
+            }));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#honor-user-preferences-for-automatic-text-track-selection>
+    fn honor_user_preferences_for_automatic_text_track_selection(&self, cx: &mut JSContext) {
+        // Step 1. Perform automatic text track selection for subtitles and captions.
+        self.perform_automatic_text_track_selection(
+            cx,
+            vec![TextTrackKind::Subtitles, TextTrackKind::Captions],
+        );
+        // Step 2. Perform automatic text track selection for descriptions.
+        self.perform_automatic_text_track_selection(cx, vec![TextTrackKind::Descriptions]);
+        // Step 3. If there are any text tracks in the media element's list of
+        // text tracks whose text track kind is chapters or metadata that correspond to
+        // track elements with a default attribute set whose text track mode is set to disabled,
+        // then set the text track mode of all such tracks to hidden.
+        // TODO
+        // Step 4. Set the element's did-perform-automatic-track-selection flag to true.
+        self.did_perform_automatic_track_selection.set(true);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#perform-automatic-text-track-selection>
+    fn perform_automatic_text_track_selection(
+        &self,
+        cx: &mut JSContext,
+        text_track_kinds: Vec<TextTrackKind>,
+    ) {
+        // Step 1. Let candidates be a list consisting of the text tracks in the media element's
+        // list of text tracks whose text track kind is one of the kinds that were passed to the algorithm,
+        // if any, in the order given in the list of text tracks.
+        let Some(text_tracks_list) = self.text_tracks_list.get() else {
+            return;
+        };
+        let candidates = text_tracks_list.tracks_for_kinds(text_track_kinds);
+        // Step 2. If candidates is empty, then return.
+        if candidates.is_empty() {
+            return;
+        }
+        // Step 3. If any of the text tracks in candidates have a text track mode set to showing, return.
+        if candidates
+            .iter()
+            .any(|candidate| candidate.Mode() == TextTrackMode::Showing)
+        {
+            return;
+        }
+        // Step 4. If the user has expressed an interest in having a track from candidates enabled
+        // based on its text track kind, text track language, and text track label,
+        // then set its text track mode to showing.
+        // Otherwise, if there are any text tracks in candidates that correspond to track elements with
+        // a default attribute set whose text track mode is set to disabled,
+        // then set the text track mode of the first such track to showing.
+        if let Some(default_candidate) = candidates.iter().find(|candidate| {
+            candidate.associated_track().is_some_and(|track| {
+                track
+                    .upcast::<Element>()
+                    .has_attribute(&local_name!("default"))
+            }) && candidate.Mode() == TextTrackMode::Disabled
+        }) {
+            default_candidate.set_text_track_mode(cx, TextTrackMode::Showing);
+        }
+    }
 }
 
 impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
@@ -3314,6 +3401,10 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-texttracks>
     fn TextTracks(&self, cx: &mut JSContext) -> DomRoot<TextTrackList> {
+        // > The textTracks attribute of media elements must return a
+        // > TextTrackList object representing the TextTrack objects of
+        // > the text tracks in the media element's list of text tracks,
+        // > in the same order as in the list of text tracks.
         let window = self.owner_window();
         self.text_tracks_list
             .or_init(|| TextTrackList::new(cx, &window, &[]))
@@ -3328,8 +3419,12 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         language: DOMString,
     ) -> DomRoot<TextTrack> {
         let window = self.owner_window();
-        // Step 1 & 2
-        // FIXME(#22314, dlrobertson) set the ready state to Loaded
+        // Step 1. Create a new TextTrack object.
+        // Step 2. Create a new text track corresponding to the new object,
+        // and set its text track kind to kind, its text track label to label,
+        // its text track language to language, its text track readiness state
+        // to the text track loaded state, its text track mode to the text
+        // track hidden mode, and its text track list of cues to an empty list.
         let track = TextTrack::new(
             cx,
             &window,
@@ -3340,9 +3435,13 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             TextTrackMode::Hidden,
             None,
         );
-        // Step 3 & 4
-        self.TextTracks(cx).add(&track);
-        // Step 5
+        // Step 3. Add the new text track to the media element's list of text tracks.
+        // Step 4. Queue a media element task given the media element to fire an event
+        // named addtrack at the media element's textTracks attribute's TextTrackList object,
+        // using TrackEvent, with the track attribute initialized to
+        // the new text track's TextTrack object.
+        self.TextTracks(cx).add(self, &track);
+        // Step 5. Return the new TextTrack object.
         DomRoot::from_ref(&track)
     }
 
