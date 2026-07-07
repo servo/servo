@@ -5,7 +5,7 @@
 #![expect(unsafe_code)]
 
 use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
@@ -976,12 +976,22 @@ impl LayoutThread {
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
             return false;
         };
+        let Some(damage) = &reflow_request.accessibility_damage else {
+            return false;
+        };
 
         let accessibility_tree = &mut *accessibility_tree;
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
-        if let Some(tree_update) = accessibility_tree.update_tree(root_element, rooted_nodes) {
+        let damage: VecDeque<_> = damage
+            .iter()
+            .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
+            .collect();
+
+        if let Some(tree_update) =
+            accessibility_tree.update_tree(root_element, damage, rooted_nodes)
+        {
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
             // for next reflow, as well as retaining document.needs_accessibility_update.

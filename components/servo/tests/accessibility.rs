@@ -284,8 +284,7 @@ fn test_accessibility_basic_mutation() {
     let _ = evaluate_javascript(
         &servo_test,
         webview.clone(),
-        "document.getElementById('h2').remove();\
-         window.ServoTestUtils.forceAccessibilityUpdate();",
+        "document.getElementById('h2').remove();",
     );
 
     let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
@@ -330,8 +329,7 @@ fn test_accessibility_with_mutation_move_nodes() {
     let _ = evaluate_javascript(
         &servo_test,
         webview.clone(),
-        "div1.moveBefore(h1,null); div2.appendChild(h2);\
-         window.ServoTestUtils.forceAccessibilityUpdate();",
+        "div1.moveBefore(h1,null); div2.appendChild(h2);",
     );
 
     let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
@@ -376,8 +374,7 @@ fn test_accessibility_text_change() {
     let _ = evaluate_javascript(
         &servo_test,
         webview.clone(),
-        "h1.firstChild.appendData(', now with more text');\
-         window.ServoTestUtils.forceAccessibilityUpdate();",
+        "h1.firstChild.appendData(', now with more text');",
     );
     let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
     assert_eq!(updates.len(), 1);

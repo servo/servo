@@ -9,7 +9,7 @@ use std::sync::{LazyLock, atomic};
 
 use accesskit::{NodeId, Role};
 use bitflags::bitflags;
-use layout_api::{LayoutElement, LayoutNode, LayoutNodeType};
+use layout_api::{AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
@@ -30,11 +30,11 @@ bitflags! {
     #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
     struct LocalAccessibilityDamage: u16 {
         /// This node's children changed, and/or any node in its subtree changed.
-        const SUBTREE_CHANGED = 0b0001;
+        const SubtreeChanged = 0b0001;
         /// This node's computed role changed.
-        const ROLE_CHANGED = 0b0010;
+        const RoleChanged = 0b0010;
         /// This node's computed label or text value (for a text node) changed.
-        const TEXT_CHANGED = 0b0100;
+        const TextChanged = 0b0100;
     }
 }
 
@@ -44,6 +44,8 @@ struct AccessibilityUpdate {
     changed_nodes: FxHashSet<NodeId>,
     /// Nodes that changed their relation to the tree within the current update.
     tree_changes: FxHashMap<NodeId, TreeChange>,
+    /// Damage to nodes caused by changes in the accessibility tree.
+    unresolved_local_damage: FxHashMap<NodeId, LocalAccessibilityDamage>,
     /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
     /// `AccessibilityData`. Only set if `pref::expensive_accessibility_test_assertions_enabled`
     /// is set.
@@ -155,44 +157,161 @@ impl AccessibilityTree {
 
     /// Update this tree based on the current state of the given DOM tree, and if anything changed,
     /// return an [`accesskit::TreeUpdate`] representing what changed.
-    pub(super) fn update_tree(
+    pub(super) fn update_tree<'dom>(
         &mut self,
-        root_dom_node: &ServoLayoutNode<'_>,
+        root_dom_node: &ServoLayoutNode<'dom>,
+        mut damage_from_dom: VecDeque<(ServoLayoutNode<'dom>, AccessibilityDamage)>,
         rooted_nodes: Option<FxHashSet<OpaqueNode>>,
     ) -> Option<accesskit::TreeUpdate> {
         let mut update = AccessibilityUpdate::new(rooted_nodes);
-        let (_, root_node) = self.get_or_create_node(root_dom_node, &mut update);
-        self.root_node = Some(root_node.clone());
 
-        self.update_node_and_descendants_from_dom_node(&root_node, root_dom_node, &mut update);
+        self.ensure_root_node(root_dom_node, &mut damage_from_dom, &mut update);
+
+        self.apply_changes_from_dom_tree(damage_from_dom, &mut update);
+
+        // FIXME: This assumes any local subtree damage always propagates up to the root. This is
+        // currently true, but we might be able to improve at stopping propagation.
+        self.resolve_local_damage_for_node_and_subtree(self.assert_root_node(), &mut update);
 
         update.finalize(self)
     }
 
-    /// Update the given AccessibilityNode from its corresponding DOM node.
+    /// Get the node corresponding to the root DOM node, and set it as this tree's root. If the root
+    /// node is newly created, which probably means this accessibility tree is newly created, append
+    /// an `AccessibilityDamage::REBUILD` value for it to `damage_from_dom`.
+    fn ensure_root_node<'dom>(
+        &mut self,
+        root_dom_node: &ServoLayoutNode<'dom>,
+        damage_from_dom: &mut VecDeque<(ServoLayoutNode<'dom>, AccessibilityDamage)>,
+        update: &mut AccessibilityUpdate,
+    ) {
+        let (root_id, root_node) = self.get_or_create_node(root_dom_node, update);
+        if update.is_new(&root_id) {
+            damage_from_dom.push_front((*root_dom_node, AccessibilityDamage::Rebuild));
+        }
+        self.root_node = Some(root_node);
+    }
+
+    /// Get the root node for this tree, asserting that it has been set.
+    fn assert_root_node(&self) -> ArcRefCell<AccessibilityNode> {
+        self.root_node.clone().expect("Root node was asserted")
+    }
+
+    /// For each DOM node in `damage_from_dom`, update the corresponding accessibility node based on
+    /// its `AccessibilityDamage`. If any [`LocalDamage`] results from the update, propagate
+    /// [`LocalDamage::SUBTREE_CHANGED`] to its ancestors.
+    fn apply_changes_from_dom_tree<'dom>(
+        &mut self,
+        mut damage_from_dom: VecDeque<(ServoLayoutNode<'dom>, AccessibilityDamage)>,
+        update: &mut AccessibilityUpdate,
+    ) {
+        while let Some((dom_node, dom_node_damage)) = damage_from_dom.pop_front() {
+            let Some((_, node)) = self.node_for_dom_node(&dom_node) else {
+                // If we don't have a node for this DOM node yet, it will be created and populated
+                // when it's added to its parent node.
+                continue;
+            };
+            self.update_node_and_descendants_from_dom_node(
+                node.clone(),
+                &dom_node,
+                dom_node_damage,
+                update,
+            );
+        }
+
+        self.propagate_subtree_damage_to_ancestors(update);
+    }
+
+    /// After applying changes from the DOM tree, mark the ancestors of any changed nodes with
+    /// [`LocalDamage::SubtreeChanged`].
+    fn propagate_subtree_damage_to_ancestors(&mut self, update: &mut AccessibilityUpdate) {
+        for (node_id, damage) in update.unresolved_local_damage.clone() {
+            if damage.is_empty() {
+                continue;
+            }
+            let node = self.assert_node_for_id(&node_id);
+
+            let mut parent_node = node.borrow().parent();
+            while let Some(node) = parent_node {
+                let node = node.borrow();
+                let existing_damage = update.unresolved_local_damage.entry(node.id).or_default();
+
+                // If we encounter a node which already has `SubtreeChanged` damage, we know that
+                // all of its ancestors have it too, so we can bail out early from our ancestor walk
+                if existing_damage.contains(LocalAccessibilityDamage::SubtreeChanged) {
+                    break;
+                }
+
+                existing_damage.insert(LocalAccessibilityDamage::SubtreeChanged);
+                parent_node = node.parent();
+            }
+        }
+    }
+
+    /// Update the given AccessibilityNode from its corresponding DOM node and
+    /// ['AccessibilityDamage'].
     /// If it has new children, those will be recursively populated here.
     // Any changed nodes will be added to the given [`AccessibilityUpdate`].
     fn update_node_and_descendants_from_dom_node(
         &mut self,
-        node: &ArcRefCell<AccessibilityNode>,
+        node: ArcRefCell<AccessibilityNode>,
         dom_node: &ServoLayoutNode<'_>,
+        dom_damage: AccessibilityDamage,
         update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
         let weak_node = node.downgrade();
         let mut node = node.borrow_mut();
-        let mut damage = LocalAccessibilityDamage::empty();
+        let mut local_damage = LocalAccessibilityDamage::empty();
 
-        // TODO: read accessibility damage from DOM (right now, assume damage is complete)
-        damage.insert(node.update_node_from_dom_node(dom_node));
-        damage.insert(node.update_descendants_from_dom_node(weak_node, dom_node, self, update));
-
-        damage.insert(node.update_node_local(damage));
+        local_damage.insert(node.update_node_from_dom_node(dom_node, dom_damage));
+        local_damage.insert(
+            node.update_descendants_from_dom_node(weak_node, dom_node, dom_damage, self, update),
+        );
 
         if node.updated {
             update.add(&mut node);
         }
 
-        damage
+        if !local_damage.is_empty() {
+            update
+                .unresolved_local_damage
+                .entry(node.id)
+                .or_default()
+                .insert(local_damage);
+        }
+
+        local_damage
+    }
+
+    /// Update the given node and, where necessary, its descendants, based on damage propagated
+    /// within the accessibility as a result of changes made based on DOM tree changes.
+    /// For example, if a node's descendants changed as a result of the DOM tree changing, its
+    /// computed text may also have changed, so it would have had
+    /// [`LocalAccessibilityDamage::SubtreeChanged`] set when changes from the DOM tree were
+    /// applied. That damage is resolved here.
+    fn resolve_local_damage_for_node_and_subtree(
+        &mut self,
+        node: ArcRefCell<AccessibilityNode>,
+        update: &mut AccessibilityUpdate,
+    ) {
+        let mut node = node.borrow_mut();
+        let Some(&local_damage) = update.unresolved_local_damage.get(&node.id) else {
+            return;
+        };
+
+        node.update_node_local(local_damage);
+
+        if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) {
+            for child in node.children() {
+                self.resolve_local_damage_for_node_and_subtree(child.clone(), update);
+            }
+        }
+
+        if node.updated {
+            update.add(&mut node);
+        }
+
+        update.unresolved_local_damage.remove(&node.id);
     }
 
     fn get_or_create_node(
@@ -200,7 +319,7 @@ impl AccessibilityTree {
         dom_node: &ServoLayoutNode<'_>,
         update: &mut AccessibilityUpdate,
     ) -> (NodeId, ArcRefCell<AccessibilityNode>) {
-        let id = self.id_for_opaque(dom_node.opaque());
+        let id = self.get_or_create_id_for_opaque(dom_node.opaque());
         let node = self.get_or_create_node_with_id(id, update);
 
         {
@@ -229,6 +348,18 @@ impl AccessibilityTree {
         self.nodes.insert(id, node.clone());
 
         node
+    }
+
+    fn node_for_id(&self, id: NodeId) -> Option<ArcRefCell<AccessibilityNode>> {
+        self.nodes.get(&id).cloned()
+    }
+
+    fn node_for_dom_node(
+        &self,
+        dom_node: &ServoLayoutNode<'_>,
+    ) -> Option<(NodeId, ArcRefCell<AccessibilityNode>)> {
+        let id = self.existing_id_for_opaque(dom_node.opaque())?;
+        Some((id, self.node_for_id(id)?))
     }
 
     fn assert_node_for_id(&self, id: &NodeId) -> ArcRefCell<AccessibilityNode> {
@@ -309,15 +440,18 @@ impl AccessibilityTree {
         }
     }
 
-    fn id_for_opaque(&mut self, opaque: OpaqueNode) -> NodeId {
+    fn get_or_create_id_for_opaque(&mut self, opaque: OpaqueNode) -> NodeId {
         let id = self.opaque_node_to_id.entry(opaque).or_insert_with(|| {
             static LAST_ID: AtomicU64 = AtomicU64::new(0);
             let id = LAST_ID.fetch_add(1, atomic::Ordering::SeqCst).into();
             self.id_to_opaque_node.insert(id, opaque);
             id
         });
-
         *id
+    }
+
+    fn existing_id_for_opaque(&self, opaque: OpaqueNode) -> Option<NodeId> {
+        self.opaque_node_to_id.get(&opaque).cloned()
     }
 
     pub(crate) fn embedder_epoch(&self) -> Epoch {
@@ -406,10 +540,14 @@ impl AccessibilityNode {
         &mut self,
         weak_self: WeakRefCell<Self>,
         dom_node: &ServoLayoutNode<'dom>,
+        dom_damage: AccessibilityDamage,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
-        let mut damage = LocalAccessibilityDamage::empty();
+        let mut local_damage = LocalAccessibilityDamage::empty();
+        if !dom_damage.contains(AccessibilityDamage::Children) {
+            return local_damage;
+        }
 
         let dom_children: Vec<ServoLayoutNode> = dom_node.flat_tree_children().collect();
 
@@ -418,18 +556,24 @@ impl AccessibilityNode {
         let mut new_child_nodes = vec![];
         for dom_child in dom_children {
             let (child_id, child_node) = tree.get_or_create_node(&dom_child, update);
-            let child_damage =
-                tree.update_node_and_descendants_from_dom_node(&child_node, &dom_child, update);
-            damage_from_children.insert(child_damage);
+            if update.is_new(&child_id) {
+                let child_damage = tree.update_node_and_descendants_from_dom_node(
+                    child_node.clone(),
+                    &dom_child,
+                    AccessibilityDamage::Rebuild,
+                    update,
+                );
+                damage_from_children.insert(child_damage);
+            }
             new_child_ids.push(child_id);
             new_child_nodes.push(child_node);
         }
         if !damage_from_children.is_empty() {
-            damage.insert(LocalAccessibilityDamage::SUBTREE_CHANGED);
+            local_damage.insert(LocalAccessibilityDamage::SubtreeChanged);
         }
 
-        damage.insert(self.set_children(weak_self, new_child_ids, new_child_nodes, update));
-        damage
+        local_damage.insert(self.set_children(weak_self, new_child_ids, new_child_nodes, update));
+        local_damage
     }
 
     /// Recursively mark this subtree as having the given `TreeChange`.
@@ -461,27 +605,34 @@ impl AccessibilityNode {
     fn update_node_from_dom_node(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
+        dom_damage: AccessibilityDamage,
     ) -> LocalAccessibilityDamage {
-        let mut damage = LocalAccessibilityDamage::empty();
-        damage.insert(self.set_role(role_from_dom_node(dom_node)));
+        let mut local_damage = LocalAccessibilityDamage::empty();
+        if !dom_damage.contains(AccessibilityDamage::Text) {
+            return local_damage;
+        }
+        local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
         if dom_node.type_id() == Some(LayoutNodeType::Text) {
             let text_content = dom_node.text_content();
             trace!("node text content = {text_content:?}");
             // FIXME: this should take into account editing selection units (grapheme clusters?)
-            damage.insert(self.set_value(&text_content));
+            local_damage.insert(self.set_value(&text_content));
         }
 
-        damage
+        local_damage
     }
 
     /// Update this node's properties based on changes already made to the accessibility tree.
     /// For example, if there were nodes added or removed in its subtree, its computed text may have
     /// changed, so that will be recomputed here.
     /// If any changes are made, add this node to the given [`AccessibilityUpdate`].
-    fn update_node_local(&mut self, damage: LocalAccessibilityDamage) -> LocalAccessibilityDamage {
+    fn update_node_local(
+        &mut self,
+        local_damage: LocalAccessibilityDamage,
+    ) -> LocalAccessibilityDamage {
         let mut new_damage = LocalAccessibilityDamage::empty();
-        if damage.contains(LocalAccessibilityDamage::SUBTREE_CHANGED) ||
-            damage.contains(LocalAccessibilityDamage::ROLE_CHANGED)
+        if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) ||
+            local_damage.contains(LocalAccessibilityDamage::RoleChanged)
         {
             if let Some(text) = self.label_from_descendants() {
                 new_damage.insert(self.set_label(text.as_str()));
@@ -529,6 +680,10 @@ impl AccessibilityNode {
             child.borrow().print(print_tree);
         }
         print_tree.end_level();
+    }
+
+    fn parent(&self) -> Option<ArcRefCell<AccessibilityNode>> {
+        self.parent_node.as_ref().and_then(|weak| weak.upgrade())
     }
 
     // TODO: use macros to generate getter/setter methods.
@@ -582,7 +737,7 @@ impl AccessibilityNode {
         self.accesskit_node.set_children(new_child_ids);
         self.updated = true;
 
-        LocalAccessibilityDamage::SUBTREE_CHANGED
+        LocalAccessibilityDamage::SubtreeChanged
     }
 
     fn role(&self) -> Role {
@@ -595,7 +750,7 @@ impl AccessibilityNode {
         }
         self.accesskit_node.set_role(role);
         self.updated = true;
-        LocalAccessibilityDamage::ROLE_CHANGED
+        LocalAccessibilityDamage::RoleChanged
     }
 
     fn label(&self) -> Option<&str> {
@@ -608,7 +763,7 @@ impl AccessibilityNode {
         }
         self.accesskit_node.set_label(label);
         self.updated = true;
-        LocalAccessibilityDamage::TEXT_CHANGED
+        LocalAccessibilityDamage::TextChanged
     }
 
     fn clear_label(&mut self) -> LocalAccessibilityDamage {
@@ -617,7 +772,7 @@ impl AccessibilityNode {
         }
         self.accesskit_node.clear_label();
         self.updated = true;
-        LocalAccessibilityDamage::TEXT_CHANGED
+        LocalAccessibilityDamage::TextChanged
     }
 
     fn html_tag(&self) -> Option<&str> {
@@ -642,7 +797,7 @@ impl AccessibilityNode {
         }
         self.accesskit_node.set_value(value);
         self.updated = true;
-        LocalAccessibilityDamage::TEXT_CHANGED
+        LocalAccessibilityDamage::TextChanged
     }
 
     fn assert_integrity(&self, expected_parent: Option<WeakRefCell<AccessibilityNode>>) {
@@ -694,6 +849,7 @@ impl AccessibilityUpdate {
         Self {
             changed_nodes: FxHashSet::default(),
             tree_changes: FxHashMap::default(),
+            unresolved_local_damage: FxHashMap::default(),
             rooted_nodes,
         }
     }
@@ -740,6 +896,8 @@ impl AccessibilityUpdate {
             .expect("AccessibilityUpdate::finalize() called but no root_node set in tree")
             .borrow()
             .id;
+
+        debug_assert!(self.unresolved_local_damage.is_empty());
 
         if self.changed_nodes.is_empty() {
             assert!(self.tree_changes.is_empty());

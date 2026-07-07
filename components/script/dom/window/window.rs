@@ -41,11 +41,11 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointResult, FragmentType, Layout,
-    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
-    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
-    ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
-    TrustedNodeAddress, combine_id_with_fragment_type,
+    AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointResult,
+    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
+    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
+    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2620,6 +2620,11 @@ impl Window {
 
         let rooted_nodes_for_accessibility_integrity_check =
             document.rooted_nodes_for_accessibility_integrity_check();
+        let mut accessibility_damage: Option<Vec<(TrustedNodeAddress, AccessibilityDamage)>> = None;
+        if self.layout().accessibility_active() {
+            let mut accessibility_data = document.accessibility_data_mut();
+            accessibility_damage = Some(accessibility_data.drain_pending_accessibility_damage());
+        }
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
@@ -2634,6 +2639,7 @@ impl Window {
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
             document_context,
+            accessibility_damage,
             rooted_nodes_for_accessibility_integrity_check,
         };
 

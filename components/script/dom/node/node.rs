@@ -26,8 +26,8 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, GenericLayoutData, NodeRenderingType,
-    PhysicalSides, TrustedNodeAddress, with_layout_state,
+    AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, GenericLayoutData,
+    NodeRenderingType, PhysicalSides, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -292,6 +292,9 @@ impl Node {
         assert!(new_child.parent_node.get().is_none());
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
+
+        self.add_pending_accessibility_damage(AccessibilityDamage::Children);
+
         match before {
             Some(before) => {
                 assert!(before.parent_node.get().as_deref() == Some(self));
@@ -498,6 +501,7 @@ impl Node {
     fn remove_child(&self, cx: &mut JSContext, child: &Node, cached_index: Option<u32>) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.note_dirty_descendants();
+        self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
         let prev_sibling = child.GetPreviousSibling();
         match prev_sibling {
@@ -540,6 +544,7 @@ impl Node {
     fn move_child(&self, cx: &mut JSContext, child: &Node) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.note_dirty_descendants();
+        self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
@@ -665,7 +670,23 @@ impl Node {
         )
     }
 
-    pub(super) fn ensure_rare_data(&self) -> RefMut<'_, Box<NodeRareData>> {
+    fn add_pending_accessibility_damage(&self, damage: AccessibilityDamage) {
+        if !self.owner_doc().accessibility_active() {
+            return;
+        }
+
+        self.owner_doc()
+            .accessibility_data_mut()
+            .add_pending_accessibility_damage_for_node(self, damage);
+
+        self.owner_window()
+            .layout()
+            .set_needs_accessibility_update();
+    }
+}
+
+impl Node {
+    fn ensure_rare_data(&self) -> RefMut<'_, Box<NodeRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {
             *rare_data = Some(Default::default());
@@ -872,7 +893,9 @@ impl Node {
                 self.parent_node
                     .get()
                     .unwrap()
-                    .dirty(NodeDamage::ContentOrHeritage)
+                    .dirty(NodeDamage::ContentOrHeritage);
+
+                self.add_pending_accessibility_damage(AccessibilityDamage::Text);
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => self
