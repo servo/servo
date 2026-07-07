@@ -1,0 +1,61 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<section>
+  <h1 id="h1">This is an h1</h1>
+  <h2 id="h2">This is an h2</h2>
+</section>
+
+<script>
+  setup({ explicit_done: true });
+  window.onload = () => {
+    test((t) => {
+      ServoTestUtils.ensureAccessibilityActive();
+      let initial = ServoTestUtils.forceAccessibilityUpdate();
+
+      assert_equals(
+        initial.accessibilityNodesUpdatedFromDom,
+        19,
+        "accessibilityNodesUpdatedFromDom",
+      );
+      assert_equals(
+        initial.accessibilityNodesUpdatedFromTree,
+        19,
+        "accessibilityNodesUpdatedFromTree",
+      );
+      assert_equals(
+        initial.accessibilityNodesInTreeUpdate,
+        19,
+        "accessibilityNodesInTreeUpdate",
+      );
+
+      document.getElementById("h2").remove();
+      let incremental = ServoTestUtils.forceAccessibilityUpdate();
+
+      // Only the <section> is updated from the DOM
+      assert_equals(
+        incremental.accessibilityNodesUpdatedFromDom,
+        1,
+        "accessibilityNodesUpdatedFromDom",
+      );
+
+      // The <section>, its parent <body> and the document are checked for changes as their subtrees
+      // changed
+      assert_equals(
+        incremental.accessibilityNodesUpdatedFromTree,
+        3,
+        "accessibilityNodesUpdatedFromTree",
+      );
+
+      // The only node in the tree update should be the parent <section> of the removed <h2>
+      assert_equals(
+        incremental.accessibilityNodesInTreeUpdate,
+        1,
+        "accessibilityNodesInTreeUpdate",
+      );
+    }, "Remove h2 should update one node");
+
+    done();
+  };
+</script>

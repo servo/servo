@@ -21,7 +21,10 @@ namespace ServoTestUtils {
 
   undefined panic();
 
-  undefined forceAccessibilityUpdate();
+  undefined ensureAccessibilityActive();
+
+  [Exposed=Window]
+  AccessibilityUpdateResult forceAccessibilityUpdate();
 };
 
 [Exposed=Window, Pref="dom_servo_helpers_enabled"]
@@ -30,4 +33,12 @@ interface LayoutResult {
     readonly attribute unsigned long rebuiltFragmentCount;
     readonly attribute unsigned long restyleFragmentCount;
     readonly attribute unsigned long onlyDescendantsChangedCount;
+
+};
+
+[Exposed=Window, Pref="dom_servo_helpers_enabled"]
+interface AccessibilityUpdateResult {
+    readonly attribute unsigned long accessibilityNodesUpdatedFromDom;
+    readonly attribute unsigned long accessibilityNodesUpdatedFromTree;
+    readonly attribute unsigned long accessibilityNodesInTreeUpdate;
 };
