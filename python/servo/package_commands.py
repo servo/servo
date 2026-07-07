@@ -367,28 +367,41 @@ class PackageCommands(CommandBase):
                 template.render(exe_path=target_dir, dir_to_temp=dir_to_temp, resources_path=dir_to_resources)
             )
 
-            # If the WiX installer set the WIX env var, then add it to PATH.
-            # TODO: When WIX is upgraded to v6, this won't be needed any more.
-            if "WIX" in env:
-                append_paths_to_env(env, "PATH", path.join(env["WIX"], "bin"))
+            # NOTE: `-acceptEula` below is accepting the conditions of WiX's
+            # Open Source Maintenance Fee. Servo is exempt per this clause in
+            # version 1.1 of the text, see https://github.com/wixtoolset/wix/blob/c5b1c40cd44145a24cb82349d988e7abdd0b94d5/OSMFEULA.txt
+            # > The Fee applies only to Users that use the Software as part of
+            # > revenue-generating activities and have an annual gross revenue
+            # > greater than or equal to US$10,000.
 
-            # run candle and light
+            # Create the MSI installer.
             print("Creating MSI")
             try:
                 with cd(dir_to_msi):
-                    subprocess.check_call(["candle", wxs_path])
+                    subprocess.check_call(["wix", "build", "-acceptEula", "wix7", wxs_path])
             except subprocess.CalledProcessError as e:
-                print("WiX candle exited with return value %d" % e.returncode)
-                return e.returncode
-            try:
-                wxsobj_path = "{}.wixobj".format(path.splitext(wxs_path)[0])
-                with cd(dir_to_msi):
-                    subprocess.check_call(["light", wxsobj_path])
-            except subprocess.CalledProcessError as e:
-                print("WiX light exited with return value %d" % e.returncode)
+                print("WiX build exited with return value %d" % e.returncode)
                 return e.returncode
             dir_to_installer = path.join(dir_to_msi, "Installer.msi")
             print("Packaged Servo into " + dir_to_installer)
+
+            # Register the WiX extension used by the bundle below.
+            print("Registering WiX extensions")
+            try:
+                subprocess.check_call(
+                    [
+                        "wix",
+                        "extension",
+                        "add",
+                        "-acceptEula",
+                        "wix7",
+                        "-g",
+                        "WixToolset.BootstrapperApplications.wixext",
+                    ]
+                )
+            except subprocess.CalledProcessError as e:
+                print("WiX extension add exited with return value %d" % e.returncode)
+                return e.returncode
 
             # Generate bundle with Servo installer.
             print("Creating bundle")
@@ -396,16 +409,19 @@ class PackageCommands(CommandBase):
             bundle_wxs_path = path.join(dir_to_msi, "ServoShell.wxs")
             try:
                 with cd(dir_to_msi):
-                    subprocess.check_call(["candle", bundle_wxs_path, "-ext", "WixBalExtension"])
+                    subprocess.check_call(
+                        [
+                            "wix",
+                            "build",
+                            "-acceptEula",
+                            "wix7",
+                            "-ext",
+                            "WixToolset.BootstrapperApplications.wixext",
+                            bundle_wxs_path,
+                        ]
+                    )
             except subprocess.CalledProcessError as e:
-                print("WiX candle exited with return value %d" % e.returncode)
-                return e.returncode
-            try:
-                wxsobj_path = "{}.wixobj".format(path.splitext(bundle_wxs_path)[0])
-                with cd(dir_to_msi):
-                    subprocess.check_call(["light", wxsobj_path, "-ext", "WixBalExtension"])
-            except subprocess.CalledProcessError as e:
-                print("WiX light exited with return value %d" % e.returncode)
+                print("WiX build exited with return value %d" % e.returncode)
                 return e.returncode
             print("Packaged Servo into " + path.join(dir_to_msi, "ServoShell.exe"))
 
@@ -550,7 +566,7 @@ class PackageCommands(CommandBase):
 
         replacements = {
             "ports/servoshell/platform/windows/servoshell.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
-            "support/windows/ServoShell.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
+            "support/windows/ServoShell.wxs.mako": r'<Package(.|\n)*Version="(?P<version>.*?)".*>',
             "ports/servoshell/platform/macos/Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
             "support/android/apk/servoapp/build.gradle.kts": r'versionName\s*=\s*"(?P<version>.*?)"',
             "support/openharmony/oh-package.json5": r'"version"\s*:\s*"(?P<version>.*?)"',
