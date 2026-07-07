@@ -8925,6 +8925,7 @@ dependencies = [
  "wgpu-core",
  "wgpu-types",
  "x25519-dalek",
+ "x448",
  "xml5ever",
  "zeroize",
 ]
@@ -12087,6 +12088,16 @@ dependencies = [
  "curve25519-dalek",
  "getrandom 0.4.1",
  "rand_core 0.10.1",
+ "zeroize",
+]
+
+[[package]]
+name = "x448"
+version = "0.14.0-pre.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c166d06b9fa4328c890d46bda797269fb6aeca96393aeaad0e74b4b11550e06"
+dependencies = [
+ "ed448-goldilocks",
  "zeroize",
 ]
 

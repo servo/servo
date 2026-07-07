@@ -670,6 +670,8 @@ pub enum SerializableCryptoKeyHandle {
     X25519PublicKey([u8; 32]),
     Ed448PrivateKey(Vec<u8>),
     Ed448PublicKey(Vec<u8>),
+    X448PrivateKey(Vec<u8>),
+    X448PublicKey(Vec<u8>),
     Aes128Key(Vec<u8>),
     Aes192Key(Vec<u8>),
     Aes256Key(Vec<u8>),
