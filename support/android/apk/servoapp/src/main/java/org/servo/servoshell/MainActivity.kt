@@ -19,19 +19,22 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
-import androidx.core.view.isVisible
 import androidx.preference.PreferenceManager
-import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoView
 
@@ -41,7 +44,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     private lateinit var urlField: EditText
     private var urlFieldIsFocused = false
 
-    private lateinit var progressBar: CircularProgressIndicator
     private var canGoBackState = mutableStateOf(false)
     private var canGoForwardState = mutableStateOf(false)
     private var isRefreshingState = mutableStateOf(false)
@@ -62,7 +64,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
         servoView = findViewById(R.id.servoview)
         urlField = findViewById(R.id.urlfield)
-        progressBar = findViewById(R.id.progressbar)
 
         historyManager = HistoryManager(this)
 
@@ -160,6 +161,16 @@ class MainActivity : AppCompatActivity(), Servo.Client {
                         Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
                     }
                 }
+            }
+        }
+
+        findViewById<ComposeView>(R.id.progressbar).setContent {
+            if (isRefreshingState.value) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .padding(end = 10.dp)
+                        .size(20.dp),
+                )
             }
         }
 
@@ -283,8 +294,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         // back to a page that is already cached.
         Log.i(TAG, "onLoadStarted: ")
         isRefreshingState.value = true
-
-        progressBar.isVisible = true
     }
 
     // INFO: This currently gets called multiple times on each load.
@@ -297,7 +306,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             historyManager.addEntry(currentUrl, currentTitle)
         }
         isRefreshingState.value = false
-        progressBar.isVisible = false
     }
 
     override fun onTitleChanged(title: String?) {
