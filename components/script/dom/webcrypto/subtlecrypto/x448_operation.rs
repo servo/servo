@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use elliptic_curve::ctutils::CtEq;
 use js::context::JSContext;
 use pkcs8::der::asn1::OctetStringRef;
 use pkcs8::der::{Decode, Encode};
@@ -10,7 +11,7 @@ use x448::{PublicKey, StaticSecret};
 use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, KeyType, KeyUsage,
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
@@ -20,13 +21,183 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleKeyAlgorithm,
+    SubtleEcdhKeyDeriveParams, SubtleKeyAlgorithm,
 };
 
 /// `id-X448` object identifier defined in [RFC8410]
 const X448_OID_STRING: &str = "1.3.101.111";
 
 const PRIVATE_KEY_LENGTH: usize = 56;
+pub(crate) const SECRET_LENGTH: usize = 56;
+
+/// <https://wicg.github.io/webcrypto-secure-curves/#x448>
+pub(crate) fn derive_bits(
+    normalized_algorithm: &SubtleEcdhKeyDeriveParams,
+    key: &CryptoKey,
+    length: Option<u32>,
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
+    // InvalidAccessError.
+    if key.Type() != KeyType::Private {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of key is not \"private\"".into(),
+        )));
+    }
+
+    // Step 2. Let publicKey be the public member of normalizedAlgorithm.
+    let public_key = normalized_algorithm.public.root();
+
+    // Step 3. If the [[type]] internal slot of publicKey is not "public", then throw an
+    // InvalidAccessError.
+    if public_key.Type() != KeyType::Public {
+        return Err(Error::InvalidAccess(Some(
+            "[[type]] internal slot of publicKey is not \"public\"".into(),
+        )));
+    }
+
+    // Step 4. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal to
+    // the name property of the [[algorithm]] internal slot of key, then throw an
+    // InvalidAccessError.
+    if public_key.algorithm().name() != key.algorithm().name() {
+        return Err(Error::InvalidAccess(Some(
+            "[[algorithm]] internal slot of publicKey does not match \
+                [[algorithm]] internal slot of key"
+                .into(),
+        )));
+    }
+
+    // Step 5. Let secret be the result of performing the X448 function specified in [RFC7748]
+    // Section 5 with key as the X448 private key k and the X448 public key represented by the
+    // [[handle]] internal slot of publicKey as the X448 public key u.
+    let Handle::X448PrivateKey(private_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not an X448 private key".into(),
+        )));
+    };
+    let Handle::X448PublicKey(public_key) = public_key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of publicKey is not an X448 public key".into(),
+        )));
+    };
+    let secret = private_key.diffie_hellman(public_key);
+
+    // Step 6. If secret is the all-zero value, then throw a OperationError. This check must be
+    // performed in constant-time, as per [RFC7748] Section 6.2.
+    if secret.as_bytes().ct_eq(&[0u8; SECRET_LENGTH]).into() {
+        return Err(Error::Operation(Some(
+            "The secret is the all-zero value".into(),
+        )));
+    }
+
+    // Step 7.
+    // If length is null:
+    //     Return secret
+    // Otherwise:
+    //     If the length of secret in bits is less than length:
+    //         throw an OperationError.
+    //     Otherwise:
+    //         Return an octet string containing the first length bits of secret.
+    let secret_slice = secret.as_bytes();
+    match length {
+        None => Ok(secret_slice.to_vec()),
+        Some(length) => {
+            if secret_slice.len() * 8 < length as usize {
+                Err(Error::Operation(None))
+            } else {
+                let mut secret = secret_slice[..length.div_ceil(8) as usize].to_vec();
+                if length % 8 != 0 {
+                    // Clean excess bits in last byte of secret.
+                    let mask = u8::MAX << (8 - length % 8);
+                    if let Some(last_byte) = secret.last_mut() {
+                        *last_byte &= mask;
+                    }
+                }
+                Ok(secret)
+            }
+        },
+    }
+}
+
+/// <https://wicg.github.io/webcrypto-secure-curves/#x448-description>
+pub(crate) fn generate_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> Result<CryptoKeyPair, Error> {
+    // Step 1. If usages contains an entry which is not "deriveKey" or "deriveBits" then throw a
+    // SyntaxError.
+    if usages
+        .iter()
+        .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
+    {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"deriveKey\" or \"deriveBits\"".into(),
+        )));
+    }
+
+    // Step 2. Generate an X448 key pair, with the private key being 56 random bytes, and the public
+    // key being X448(a, 5), as defined in [RFC7748], section 6.2.
+    let mut rng = rand::rng();
+    let private_key = StaticSecret::random_from_rng(&mut rng);
+    let public_key = PublicKey::from(&private_key);
+
+    // Step 3. Let algorithm be a new KeyAlgorithm object.
+    // Step 4. Set the name attribute of algorithm to "X448".
+    let algorithm = SubtleKeyAlgorithm {
+        name: CryptoAlgorithm::X448,
+    };
+
+    // Step 5. Let publicKey be a new CryptoKey associated with the relevant global object of this
+    // [HTML], and representing the public key of the generated key pair.
+    // Step 6. Set the [[type]] internal slot of publicKey to "public"
+    // Step 7. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 8. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 9. Set the [[usages]] internal slot of publicKey to be the empty list.
+    let public_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
+        Vec::new(),
+        Handle::X448PublicKey(public_key),
+    );
+
+    // Step 10. Let privateKey be a new CryptoKey associated with the relevant global object of this
+    // [HTML], and representing the private key of the generated key pair.
+    // Step 11. Set the [[type]] internal slot of privateKey to "private"
+    // Step 12. Set the [[algorithm]] internal slot of privateKey to algorithm.
+    // Step 13. Set the [[extractable]] internal slot of privateKey to extractable.
+    // Step 14. Set the [[usages]] internal slot of privateKey to be the usage intersection of
+    // usages and [ "deriveKey", "deriveBits" ].
+    let private_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Private,
+        extractable,
+        KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+        usages
+            .iter()
+            .filter(|usage| matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
+            .cloned()
+            .collect(),
+        Handle::X448PrivateKey(private_key),
+    );
+
+    // Step 15. Let result be a new CryptoKeyPair dictionary.
+    // Step 16. Set the publicKey attribute of result to be publicKey.
+    // Step 17. Set the privateKey attribute of result to be privateKey.
+    let result = CryptoKeyPair {
+        publicKey: Some(public_key),
+        privateKey: Some(private_key),
+    };
+
+    // Step 18. Return the result of converting result to an ECMAScript Object, as defined by
+    // [WebIDL].
+    // NOTE: The conversion of result to an ECMAScript Object is done in SubtleCrypto::Generate.
+    Ok(result)
+}
 
 /// <https://wicg.github.io/webcrypto-secure-curves/#x448-description>
 pub(crate) fn import_key(
