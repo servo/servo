@@ -3428,7 +3428,7 @@ impl Document {
                 );
                 metrics.set_performance_paint_metric(metric_value, first_reflow, metric_type);
                 let entry = binding.upcast::<PerformanceEntry>();
-                self.window.Performance(cx).queue_entry(cx, entry);
+                self.window.Performance(cx).queue_entry(entry);
             },
             ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
                 let binding = LargestContentfulPaint::new(
@@ -3440,7 +3440,7 @@ impl Document {
                 );
                 metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
-                self.window.Performance(cx).queue_entry(cx, entry);
+                self.window.Performance(cx).queue_entry(entry);
             },
             ProgressiveWebMetricType::TimeToInteractive => {
                 unreachable!("Unexpected non-paint metric.")
@@ -4812,7 +4812,7 @@ impl Document {
         );
         self.window
             .Performance(cx)
-            .queue_entry(cx, entry.upcast::<PerformanceEntry>());
+            .queue_entry(entry.upcast::<PerformanceEntry>());
 
         // Step 4 Run the screen orientation change steps with document.
         // TODO ScreenOrientation hasn't implemented yet

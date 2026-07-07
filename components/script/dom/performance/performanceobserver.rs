@@ -189,7 +189,6 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             // This may pre-fill buffered entries, and
             // existing types are appended to.
             self.global().performance(cx).add_single_type_observer(
-                cx,
                 self,
                 entry_type,
                 options.buffered.unwrap_or(false),
