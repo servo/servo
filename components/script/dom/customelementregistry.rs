@@ -747,7 +747,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         else if let Some(shadow_root) = root.downcast::<ShadowRoot>() &&
             shadow_root.custom_element_registry().is_none()
         {
-            shadow_root.set_custom_element_registry(self);
+            shadow_root.set_custom_element_registry(Some(self));
         }
 
         // Step 4. For each inclusive descendant inclusiveDescendant of root, in tree order:

@@ -2949,6 +2949,22 @@ impl Document {
             .set_custom_element_registry(Some(registry));
     }
 
+    /// <https://dom.spec.whatwg.org/#effective-global-custom-element-registry>
+    pub(crate) fn effective_global_custom_element_registry(
+        &self,
+    ) -> Option<DomRoot<CustomElementRegistry>> {
+        // Step 1. If document's custom element registry is a global custom element
+        // registry, then return document's custom element registry.
+
+        if CustomElementRegistry::is_a_global_element_registry(Some(
+            &*self.custom_element_registry()?,
+        )) {
+            return Some(self.custom_element_registry()?);
+        }
+        // Step 2. Return null.
+        None
+    }
+
     /// Cleans up any active promises
     /// <https://github.com/servo/servo/issues/15318>
     pub(crate) fn teardown_custom_element_registry(&self) {
