@@ -44,19 +44,24 @@ body {
 <div id="ba" class="ahem with-pseudo line-height">x</div>
 <div id="ec" class="ahem with-pseudo font-size empty-concat">x</div>
 <script>
-test(function() {
-  assert_equals(fs.offsetHeight, reference.offsetHeight);
-  assert_equals(ba.offsetHeight, reference.offsetHeight);
-  assert_equals(ec.offsetHeight, reference.offsetHeight);
-}, "Empty content pseudo-element does not generate baseline");
+setup({ explicit_done: true });
 
-test(function() {
-  const divs = [fs, ba, ec];
-  for (let d of divs) {
-    d.style = "white-space: pre";
-  }
-  assert_equals(fs.offsetHeight, reference.offsetHeight);
-  assert_equals(ba.offsetHeight, reference.offsetHeight);
-  assert_equals(ec.offsetHeight, reference.offsetHeight);
-}, "Empty content pseudo-element does not generate baseline with white-space: pre");
+document.fonts.ready.then(() => {
+  test(function() {
+    assert_equals(fs.offsetHeight, reference.offsetHeight);
+    assert_equals(ba.offsetHeight, reference.offsetHeight);
+    assert_equals(ec.offsetHeight, reference.offsetHeight);
+  }, "Empty content pseudo-element does not generate baseline");
+
+  test(function() {
+    const divs = [fs, ba, ec];
+    for (let d of divs) {
+      d.style = "white-space: pre";
+    }
+    assert_equals(fs.offsetHeight, reference.offsetHeight);
+    assert_equals(ba.offsetHeight, reference.offsetHeight);
+    assert_equals(ec.offsetHeight, reference.offsetHeight);
+  }, "Empty content pseudo-element does not generate baseline with white-space: pre");
+  done();
+})
 </script>
