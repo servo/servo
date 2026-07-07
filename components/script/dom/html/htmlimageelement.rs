@@ -2076,34 +2076,34 @@ impl VirtualMethods for HTMLImageElement {
             return;
         }
 
-        let area_elements = self.areas();
-        let elements = match area_elements {
-            Some(x) => x,
-            None => return,
+        let Some(area_elements) = self.areas() else {
+            return;
         };
 
         // Fetch click coordinates
-        let mouse_event = match event.downcast::<MouseEvent>() {
-            Some(x) => x,
-            None => return,
+        let Some(mouse_event) = event.downcast::<MouseEvent>() else {
+            return;
         };
 
-        let point = Point2D::new(
+        let click_location = Point2D::new(
             mouse_event.ClientX().to_f32().unwrap(),
             mouse_event.ClientY().to_f32().unwrap(),
         );
-        let bcr = self.upcast::<Element>().GetBoundingClientRect(cx);
-        let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
+        let bounding_rectangle = self.upcast::<Element>().GetBoundingClientRect(cx);
+        let image_extents =
+            Point2D::new(bounding_rectangle.X() as f32, bounding_rectangle.Y() as f32);
 
         // Walk HTMLAreaElements
-        for element in elements {
-            let shape = element.get_shape_from_coords();
-            let shp = match shape {
-                Some(x) => x.absolute_coords(bcr_p),
+        for area_element in area_elements {
+            if !area_element.is_instance_activatable() {
+                continue;
+            }
+            let activatable_area = match area_element.get_shape_from_coords() {
+                Some(shape) => shape.absolute_coords(image_extents),
                 None => return,
             };
-            if shp.hit_test(&point) {
-                element.activation_behavior(cx, event, self.upcast());
+            if activatable_area.hit_test(&click_location) {
+                area_element.activation_behavior(cx, event, self.upcast());
                 return;
             }
         }
