@@ -239,8 +239,7 @@ fn get_response_expiry(response: &Response) -> Duration {
                 max_heuristic
             }
         } else {
-            // fail-safe:
-            // do not use a heuristic freshness lifetime without the Last-Modified header field.
+            // Compatible with other browsers.
             Duration::ZERO
         };
         if is_cacheable_by_default(*code) {
@@ -687,13 +686,12 @@ pub fn refresh(
 
     // Update cached Resource with response and constructed response.
     if let Some(constructed_response) = constructed_response.as_mut() {
+        // Bracket is to minimize lock duration.
         {
             let mut stored_headers = cached_resource.metadata.headers.lock();
             stored_headers.extend(response.headers);
             constructed_response.headers = stored_headers.clone();
         }
-        // We need to compute the expiry from the constructed response that
-        // may have new `expires` or `cache-control`, not the stale one.
         cached_resource.expires = get_response_expiry(constructed_response);
     }
 
