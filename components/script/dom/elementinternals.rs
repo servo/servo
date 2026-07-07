@@ -30,8 +30,9 @@ use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 enum SubmissionValue {
-    File(DomRoot<File>),
+    File(Dom<File>),
     FormData(Vec<FormDatum>),
     USVString(USVString),
     None,
@@ -42,7 +43,7 @@ impl From<Option<&FileOrUSVStringOrFormData>> for SubmissionValue {
         match value {
             None => SubmissionValue::None,
             Some(FileOrUSVStringOrFormData::File(file)) => {
-                SubmissionValue::File(DomRoot::from_ref(file))
+                SubmissionValue::File(Dom::from_ref(file))
             },
             Some(FileOrUSVStringOrFormData::USVString(usv_string)) => {
                 SubmissionValue::USVString(usv_string.clone())
