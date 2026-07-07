@@ -310,6 +310,12 @@ impl CustomElementRegistry {
             }
         }
     }
+
+    pub(crate) fn add_scoped_document(&self, document: &Document) {
+        self.scoped_document_set
+            .borrow_mut()
+            .push(Dom::from_ref(document));
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
