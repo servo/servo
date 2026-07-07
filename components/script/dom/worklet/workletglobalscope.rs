@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::sync::Arc;
 
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
-use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
+use embedder_traits::{ScriptToEmbedderChan};
 use js::context::JSContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
@@ -34,7 +33,6 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::IntroductionType;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -134,25 +132,6 @@ impl WorkletGlobalScope {
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
-    }
-
-    /// Evaluate a JS script in this global.
-    pub(crate) fn evaluate_js(
-        &self,
-        script: Cow<'_, str>,
-        cx: &mut JSContext,
-    ) -> Result<(), JavaScriptEvaluationError> {
-        let mut realm = enter_auto_realm(cx, self);
-        let cx = &mut realm.current_realm();
-
-        debug!("Evaluating Dom in a worklet.");
-        self.globalscope.evaluate_js_on_global(
-            cx,
-            script,
-            "",
-            Some(IntroductionType::WORKLET),
-            None,
-        )
     }
 
     /// Register a paint worklet to the script thread.

@@ -22,15 +22,14 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{GCReason, JSGCParamKey, JSTracer};
+use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{JS_GC, JS_GetGCParameter};
 use malloc_size_of::malloc_size_of_is_0;
-use net_traits::blob_url_store::UrlWithBlobClaim;
-use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
-use net_traits::request::{Destination, RequestBuilder, RequestMode, RequestClient, PreloadedResources, Origin};
+use net_traits::policy_container::PolicyContainer;
+use net_traits::request::{Destination, Origin, PreloadedResources, RequestClient};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use servo_base::generic_channel::GenericSend;
 use servo_base::id::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
@@ -48,7 +47,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
-use crate::dom::csp::Violation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 #[cfg(feature = "testbinding")]
@@ -57,12 +55,11 @@ use crate::dom::window::Window;
 use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType, WorkletTask,
 };
-use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
+use crate::realms::enter_auto_realm;
+use crate::script_module::fetch_a_module_worker_script_graph;
 use crate::script_runtime::{Runtime, ScriptThreadEventCategory};
 use crate::script_thread::ScriptThread;
-use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
-use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 
 // Magic numbers
@@ -450,12 +447,6 @@ struct WorkletThreadInit {
     global_init: WorkletGlobalScopeInit,
 }
 
-struct WorkletCspProcessor {}
-
-impl CspViolationsProcessor for WorkletCspProcessor {
-    fn process_csp_violations(&self, _cx: &mut JSContext, _violations: Vec<Violation>) {}
-}
-
 /// A thread for executing worklets.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct WorkletThread {
@@ -683,17 +674,6 @@ impl WorkletThread {
         // TODO: Fetch the script asynchronously?
         // TODO: Caching.
         let global = global_scope.upcast::<GlobalScope>();
-        let resource_fetcher = self.global_init.resource_threads.sender();
-        let request = RequestBuilder::new(
-            None,
-            UrlWithBlobClaim::from_url_without_having_claimed_blob(script_url),
-            global.get_referrer(),
-        )
-        .destination(Destination::Script)
-        .mode(RequestMode::CorsMode)
-        .credentials_mode(credentials.convert())
-        .policy_container(policy_container)
-        .origin(origin);
 
         let insecure_requests_policy = global.insecure_requests_policy();
         let has_trustworthy_ancestor_origin = global.has_trustworthy_ancestor_origin();
@@ -701,57 +681,110 @@ impl WorkletThread {
 
         let request_client = RequestClient {
             preloaded_resources: PreloadedResources::default(),
-            policy_container: RequestPolicyContainer::PolicyContainer(
-                policy_container.clone(),
-            ),
-            origin: Origin::Origin(origin.clone()),
+            policy_container,
+            origin: Origin::Origin(origin),
             is_nested_browsing_context,
             insecure_requests_policy,
-        };
-
-        let fetch_client = ModuleFetchClient {
-            insecure_requests_policy,
             has_trustworthy_ancestor_origin,
-            policy_container,
-            client: request_client,
-            pipeline_id,
-            origin,
         };
 
         let referrer = global.get_referrer();
         let credentials_mode = credentials.convert();
-        
-        let script = fetch_a_module_worker_script_graph(cx, global, script_url, fetch_client, Destination::Script, referrer, credentials_mode, |cx, module_tree| ());
+        let promise_task = Rc::new(promise);
+        let script_thread_sender = self.global_init.to_script_thread_sender.clone();
+        let rooted_global = DomRoot::from_ref(global);
 
-        // Step 4.
-        // NOTE: the spec parses and executes the script in separate steps,
-        // but our JS API doesn't separate these, so we do the steps out of order.
-        // Also, the spec currently doesn't allow exceptions to be propagated
-        // to the main script thread.
-        // https://github.com/w3c/css-houdini-drafts/issues/407
-        let ok = script.is_some_and(|s| global_scope.evaluate_js(s.into(), cx).is_ok());
+        fetch_a_module_worker_script_graph(
+            cx,
+            global,
+            script_url,
+            request_client,
+            Destination::Script,
+            referrer,
+            credentials_mode,
+            move |cx, module_tree| {
+                // Step 4.
+                // NOTE: the spec parses and executes the script in separate steps,
+                // but our JS API doesn't separate these, so we do the steps out of order.
+                // Also, the spec currently doesn't allow exceptions to be propagated
+                // to the main script thread.
+                // https://github.com/w3c/css-houdini-drafts/issues/407
+                match module_tree {
+                    None => {
+                        // Step 3.
+                        debug!("Failed to load script.");
+                        let old_counter = pending_tasks_struct.set_counter_to(-1);
+                        if old_counter > 0 {
+                            let task = Rc::into_inner(promise_task)
+                                .expect("no promise found" as &str)
+                                .reject_task(Error::Abort(None));
 
-        if !ok {
-            // Step 3.
-            debug!("Failed to load script.");
-            let old_counter = pending_tasks_struct.set_counter_to(-1);
-            if old_counter > 0 {
-                self.run_in_script_thread(promise.reject_task(Error::Abort(None)));
-            }
-        } else {
-            // Step 5.
-            debug!("Finished adding script.");
-            let old_counter = pending_tasks_struct.decrement_counter_by(1);
-            if old_counter == 1 {
-                debug!("Resolving promise.");
-                let msg = MainThreadScriptMsg::WorkletLoaded(pipeline_id);
-                self.global_init
-                    .to_script_thread_sender
-                    .send(msg)
-                    .expect("Worklet thread outlived script thread.");
-                self.run_in_script_thread(promise.resolve_task(()));
-            }
-        }
+                            // NOTE: It's unclear which task source should be used here:
+                            // https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule
+                            let msg = CommonScriptMsg::Task(
+                                ScriptThreadEventCategory::WorkletEvent,
+                                Box::new(task),
+                                None,
+                                TaskSourceName::DOMManipulation,
+                            );
+                            let msg = MainThreadScriptMsg::Common(msg);
+                            script_thread_sender
+                                .send(msg)
+                                .expect("Worklet thread outlived script thread.");
+                        }
+                    },
+                    Some(script) => {
+                        let mut realm = enter_auto_realm(cx, &*rooted_global);
+                        let cx = &mut realm.current_realm();
+
+                        let record = script.get_record().map(|record| record.handle());
+                        if let Some(record) = record {
+                            rooted!(&in(cx) let mut rval = UndefinedValue());
+
+                            let evaluated = script.execute_module(
+                                cx,
+                                &rooted_global,
+                                record,
+                                rval.handle_mut(),
+                            );
+
+                            if let Err(exception) = evaluated {
+                                script.set_rethrow_error(exception);
+                                script.report_error(cx, &rooted_global);
+                            }
+                        }
+
+                        // Step 5.
+                        debug!("Finished adding script.");
+                        let old_counter = pending_tasks_struct.decrement_counter_by(1);
+                        if old_counter == 1 {
+                            debug!("Resolving promise.");
+                            let msg = MainThreadScriptMsg::WorkletLoaded(pipeline_id);
+                            script_thread_sender
+                                .send(msg)
+                                .expect("Worklet thread outlived script thread.");
+
+                            let task = Rc::into_inner(promise_task)
+                                .expect("no promise found" as &str)
+                                .resolve_task(());
+
+                            // NOTE: It's unclear which task source should be used here:
+                            // https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule
+                            let msg = CommonScriptMsg::Task(
+                                ScriptThreadEventCategory::WorkletEvent,
+                                Box::new(task),
+                                None,
+                                TaskSourceName::DOMManipulation,
+                            );
+                            let msg = MainThreadScriptMsg::Common(msg);
+                            script_thread_sender
+                                .send(msg)
+                                .expect("Worklet thread outlived script thread.");
+                        }
+                    },
+                }
+            },
+        );
     }
 
     /// Perform a task.
@@ -802,26 +835,6 @@ impl WorkletThread {
                 )
             },
         }
-    }
-
-    /// Run a task in the main script thread.
-    fn run_in_script_thread<T>(&self, task: T)
-    where
-        T: TaskBox + 'static,
-    {
-        // NOTE: It's unclear which task source should be used here:
-        // https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule
-        let msg = CommonScriptMsg::Task(
-            ScriptThreadEventCategory::WorkletEvent,
-            Box::new(task),
-            None,
-            TaskSourceName::DOMManipulation,
-        );
-        let msg = MainThreadScriptMsg::Common(msg);
-        self.global_init
-            .to_script_thread_sender
-            .send(msg)
-            .expect("Worklet thread outlived script thread.");
     }
 }
 
