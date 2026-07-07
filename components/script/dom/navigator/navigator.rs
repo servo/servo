@@ -381,9 +381,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-plugins>
-    fn Plugins(&self) -> DomRoot<PluginArray> {
+    fn Plugins(&self, cx: &mut JSContext) -> DomRoot<PluginArray> {
         self.plugins
-            .or_init(|| PluginArray::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| PluginArray::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes>
