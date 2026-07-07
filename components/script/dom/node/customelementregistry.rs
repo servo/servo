@@ -861,6 +861,7 @@ impl From<RootedLifecycleCallbacks> for LifecycleCallbacks {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
 pub(crate) enum ConstructionStackEntry {
     Element(DomRoot<Element>),
     AlreadyConstructedMarker,
