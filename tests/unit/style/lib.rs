@@ -22,7 +22,6 @@ extern crate url;
 
 mod animated_properties;
 mod attr;
-mod custom_properties;
 mod logical_geometry;
 mod parsing;
 mod properties;

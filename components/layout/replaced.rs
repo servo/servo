@@ -19,6 +19,8 @@ use servo_url::ServoUrl;
 use style::Zero;
 use style::attr::AttrValue;
 use style::computed_values::object_fit::T as ObjectFit;
+use style::context::TreeCountingCaches;
+use style::dom::DummyElementContext;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::{ComputedValues, StyleBuilder};
 use style::rule_cache::RuleCacheConditions;
@@ -229,6 +231,7 @@ impl ReplacedContents {
         node: ServoLayoutNode<'_>,
     ) -> (ReplacedContentKind, NaturalSizes) {
         let rule_cache_conditions = &mut RuleCacheConditions::default();
+        let mut tree_counting_caches = TreeCountingCaches::default();
 
         let parent_style = node.style(&context.style_context);
         let style_builder = StyleBuilder::new(
@@ -240,12 +243,19 @@ impl ReplacedContents {
             false,
         );
 
+        // TODO: use the correct element context in order to properly resolve
+        // `sibling-index()`, like Blink. Or maybe do it like Gecko, and only
+        // accept literals, see https://github.com/w3c/csswg-drafts/issues/14117
+        let element_context = &DummyElementContext;
+
         let to_computed_context = Context::new(
             style_builder,
             context.style_context.quirks_mode(),
             rule_cache_conditions,
             ContainerSizeQuery::none(),
             RuleCascadeFlags::empty(),
+            element_context,
+            &mut tree_counting_caches,
         );
 
         let attr_to_computed = |attr_val: &AttrValue| {

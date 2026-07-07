@@ -1330,7 +1330,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_rendering::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontStretchRange);
-malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontStyleDescriptor);
+malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontStyleRange);
 malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontWeightRange);
 malloc_size_of_is_stylo_malloc_size_of!(style::font_face::Source);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
