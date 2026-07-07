@@ -162,6 +162,7 @@ pub(crate) struct HTMLInputElement {
 }
 
 #[derive(JSTraceable)]
+#[allow(crown::domroot_inside_dom_struct)]
 pub(crate) struct InputActivationState {
     indeterminate: bool,
     checked: bool,

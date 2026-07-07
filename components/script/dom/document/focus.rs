@@ -53,6 +53,7 @@ bitflags! {
 
 /// <https://html.spec.whatwg.org/multipage/#focusable-area>
 #[derive(Clone, Default, JSTraceable, MallocSizeOf, PartialEq)]
+#[allow(crown::domroot_inside_dom_struct)]
 pub(crate) enum FocusableArea {
     Node {
         node: DomRoot<Node>,

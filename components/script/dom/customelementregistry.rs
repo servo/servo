@@ -797,6 +797,7 @@ pub(crate) struct LifecycleCallbacks {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::domroot_inside_dom_struct)]
 pub(crate) enum ConstructionStackEntry {
     Element(DomRoot<Element>),
     AlreadyConstructedMarker,
