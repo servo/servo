@@ -1260,7 +1260,7 @@ impl ParserContext {
         self.pushed_entry_index = document
             .global()
             .performance(cx)
-            .queue_entry(cx, performance_entry.upcast::<PerformanceEntry>());
+            .queue_entry(performance_entry.upcast::<PerformanceEntry>());
     }
 }
 
