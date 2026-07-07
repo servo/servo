@@ -25,7 +25,6 @@ use crate::dom::iterators::ShadowIncluding;
 use crate::dom::mutationrecord::MutationRecord;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -213,19 +212,11 @@ impl MutationObserver {
                     } else {
                         None
                     };
-                    MutationRecord::attribute_mutated(
-                        target,
-                        name,
-                        namespace,
-                        mapped_old_value,
-                        CanGc::deprecated_note(),
-                    )
+                    MutationRecord::attribute_mutated(cx, target, name, namespace, mapped_old_value)
                 },
-                Mutation::CharacterData { .. } => MutationRecord::character_data_mutated(
-                    target,
-                    mapped_old_value,
-                    CanGc::deprecated_note(),
-                ),
+                Mutation::CharacterData { .. } => {
+                    MutationRecord::character_data_mutated(cx, target, mapped_old_value)
+                },
                 Mutation::ChildList {
                     ref added,
                     ref removed,

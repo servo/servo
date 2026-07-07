@@ -24,7 +24,6 @@ use crate::dom::filelist::FileList;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::window::Window;
 use crate::drag_data_store::{DragDataStore, Mode};
-use crate::script_runtime::CanGc;
 
 const VALID_DROP_EFFECTS: [&str; 4] = ["none", "copy", "link", "move"];
 const VALID_EFFECTS_ALLOWED: [&str; 9] = [
@@ -270,6 +269,6 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
         }
 
         // Step 5
-        FileList::new(self.global().as_window(), files, CanGc::from_cx(cx))
+        FileList::new(cx, self.global().as_window(), files)
     }
 }

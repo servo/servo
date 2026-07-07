@@ -108,10 +108,23 @@ jobs:
         run: |
           ./mach build --use-crown --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
           mv target/cargo-timings target/cargo-timings-android-${{ matrix.target }}
-      # TODO: This is disabled since APK crashes during startup.
-      # See https://github.com/servo/servo/issues/31134
-      # - name: Script tests
-      #   run: ./mach test-android-startup
+      # See https://github.com/ReactiveCircus/android-emulator-runner#running-hardware-accelerated-emulators-on-linux-runners
+      - name: Enable KVM group permissions
+        if: ${{ matrix.target == 'x86_64-linux-android' }}
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android startup smoketest
+        if: ${{ matrix.target == 'x86_64-linux-android' }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          # This should be kept in sync with the `minSdk` version in `servo.properties`.
+          # DO NOT INCREASE THIS without prior discussion on zulip!
+          api-level: 29
+          arch: x86_64
+          target: default
+          script: ./mach smoketest --target ${{ matrix.target }} --profile ${{ inputs.profile }}
       - name: Archive build timing
         uses: actions/upload-artifact@v7
         with:

@@ -21,21 +21,23 @@ pub(crate) struct PerformanceObserverEntryList {
 }
 
 impl PerformanceObserverEntryList {
-    fn new_inherited(entries: PerformanceEntryList) -> PerformanceObserverEntryList {
+    fn new_inherited(entries: Vec<DomRoot<PerformanceEntry>>) -> PerformanceObserverEntryList {
         PerformanceObserverEntryList {
             reflector_: Reflector::new(),
-            entries: DomRefCell::new(entries),
+            entries: DomRefCell::new(PerformanceEntryList::new(entries)),
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        entries: PerformanceEntryList,
+        entries: Vec<DomRoot<PerformanceEntry>>,
     ) -> DomRoot<PerformanceObserverEntryList> {
-        let observer_entry_list = PerformanceObserverEntryList::new_inherited(entries);
-        reflect_dom_object_with_cx(Box::new(observer_entry_list), global, cx)
+        reflect_dom_object_with_cx(
+            Box::new(PerformanceObserverEntryList::new_inherited(entries)),
+            global,
+            cx,
+        )
     }
 }
 

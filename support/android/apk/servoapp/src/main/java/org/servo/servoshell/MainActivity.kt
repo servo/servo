@@ -17,7 +17,6 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Icon
@@ -43,7 +42,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     private var urlFieldIsFocused = false
 
     private lateinit var progressBar: CircularProgressIndicator
-    private lateinit var idleText: TextView
     private var canGoBackState = mutableStateOf(false)
     private var canGoForwardState = mutableStateOf(false)
     private var isRefreshingState = mutableStateOf(false)
@@ -53,7 +51,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     private var currentTitle = ""
 
     private class Settings(preferences: SharedPreferences) {
-        var showAnimatingIndicator = preferences.getBoolean("animating_indicator", false)
         var experimental = preferences.getBoolean("experimental", false)
     }
 
@@ -66,7 +63,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         servoView = findViewById(R.id.servoview)
         urlField = findViewById(R.id.urlfield)
         progressBar = findViewById(R.id.progressbar)
-        idleText = findViewById(R.id.redrawing)
 
         historyManager = HistoryManager(this)
 
@@ -320,7 +316,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     }
 
     override fun onRedrawing(redrawing: Boolean) {
-        idleText.setText(if (redrawing) R.string.loop else R.string.idle)
     }
 
     public override fun onPause() {
@@ -382,10 +377,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         Log.d("onMediaSessionSetPositionState", "$duration $position $playbackRate")
     }
 
-    private fun onAnimatingIndicatorPrefChanged(value: Boolean) {
-        idleText.isVisible = value
-    }
-
     private fun onExperimentalPrefChanged(value: Boolean) {
         servoView.setExperimentalMode(value)
     }
@@ -393,10 +384,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     private fun updateSettingsIfNecessary(force: Boolean) {
         val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         val updated = Settings(preferences)
-
-        if (force || updated.showAnimatingIndicator != settings.showAnimatingIndicator) {
-            onAnimatingIndicatorPrefChanged(updated.showAnimatingIndicator)
-        }
 
         if (force || updated.experimental != settings.experimental) {
             onExperimentalPrefChanged(updated.experimental)

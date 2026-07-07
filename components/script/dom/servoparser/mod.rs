@@ -1259,7 +1259,7 @@ impl ParserContext {
         let performance_entry = PerformanceNavigationTiming::new(cx, &document.global(), document);
         self.pushed_entry_index = document
             .global()
-            .performance()
+            .performance(cx)
             .queue_entry(performance_entry.upcast::<PerformanceEntry>());
     }
 }
@@ -1558,7 +1558,7 @@ impl FetchResponseListener for ParserContext {
                 PerformanceNavigationTiming::new(cx, &document.global(), document);
             document
                 .global()
-                .performance()
+                .performance(cx)
                 .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
         }
     }

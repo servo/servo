@@ -1299,13 +1299,21 @@ impl LayoutThread {
 
             debug_assert!(!layout_roots.is_empty());
             if layout_roots
-                .into_iter()
+                .iter()
                 .all(|layout_root| layout_root.try_layout(&layout_context))
             {
                 return (
                     ReflowPhasesRun::RanLayout,
                     std::mem::take(&mut *layout_context.iframe_sizes.lock()),
                 );
+            }
+
+            // LayoutRoot layout has failed and now the layout root and descendants may have
+            // been only partially laid out. As the next step is to do a full `FragmentTree`
+            // layout, we need to ensure that none of the partial layout results corrupt
+            // the upcoming full layout.
+            for layout_root in layout_roots {
+                layout_root.handle_failed_layout_root_layout();
             }
         }
 

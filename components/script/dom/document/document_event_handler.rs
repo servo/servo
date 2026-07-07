@@ -1815,20 +1815,25 @@ impl DocumentEventHandler {
             .upcast::<GlobalScope>()
             .task_manager()
             .gamepad_task_source()
-            .queue(task!(update_gamepad_state: move || {
+            .queue(task!(update_gamepad_state: move |cx| {
                 let window = trusted_window.root();
                 let document = window.Document();
-                document.event_handler().update_gamepad_state(index, update_type);
+                document.event_handler().update_gamepad_state(cx, index, update_type);
             }));
     }
 
     /// <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
     #[cfg(feature = "gamepad")]
-    fn update_gamepad_state(&self, gamepad_index: usize, update_type: GamepadUpdateType) {
+    fn update_gamepad_state(
+        &self,
+        cx: &mut JSContext,
+        gamepad_index: usize,
+        update_type: GamepadUpdateType,
+    ) {
         use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
         // Step 1. Let now be the current high resolution time given
         //         gamepad's relevant global object.
-        let now = *self.window.Performance().Now();
+        let now = *self.window.Performance(cx).Now();
 
         // Step 6. Let navigator be gamepad's relevant global object's
         //         Navigator object.

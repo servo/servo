@@ -43,24 +43,8 @@
                 android:indeterminate="true"
                 android:visibility="gone"
                 app:indicatorSize="20dp"
-                app:layout_constraintEnd_toStartOf="@+id/redrawing"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/redrawing"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:fontFamily="monospace"
-                android:gravity="center"
-                android:text="@string/idle"
-                android:textAlignment="center"
-                android:textSize="12sp"
-                android:layout_marginEnd="10dp"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:visibility="visible" />
+                app:layout_constraintTop_toTopOf="parent" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.appbar.MaterialToolbar>

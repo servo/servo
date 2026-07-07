@@ -17,6 +17,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::htmltrackelement::HTMLTrackElement;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttrackcuelist::TextTrackCueList;
 use crate::dom::texttracklist::TextTrackList;
@@ -25,13 +26,19 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct TextTrack {
     eventtarget: EventTarget,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-kind>
     kind: TextTrackKind,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-label>
     label: String,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-language>
     language: String,
     id: String,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-mode>
     mode: Cell<TextTrackMode>,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-list-of-cues>
     cue_list: MutNullableDom<TextTrackCueList>,
     track_list: DomRefCell<Option<Dom<TextTrackList>>>,
+    associated_track: DomRefCell<Option<Dom<HTMLTrackElement>>>,
 }
 
 impl TextTrack {
@@ -52,6 +59,7 @@ impl TextTrack {
             mode: Cell::new(mode),
             cue_list: Default::default(),
             track_list: DomRefCell::new(track_list.map(Dom::from_ref)),
+            associated_track: Default::default(),
         }
     }
 
@@ -91,6 +99,35 @@ impl TextTrack {
     pub(crate) fn remove_track_list(&self) {
         *self.track_list.borrow_mut() = None;
     }
+
+    pub(crate) fn associated_track(&self) -> Option<DomRoot<HTMLTrackElement>> {
+        self.associated_track
+            .borrow()
+            .as_ref()
+            .map(|track| DomRoot::from_ref(&**track))
+    }
+
+    pub(crate) fn set_associated_track(&self, track_element: &HTMLTrackElement) {
+        *self.associated_track.borrow_mut() = Some(Dom::from_ref(track_element));
+    }
+
+    pub(crate) fn empty_cue_list(&self) {
+        if let Some(cue_list) = self.cue_list.get() {
+            cue_list.empty();
+        }
+    }
+
+    pub(crate) fn set_text_track_mode(&self, cx: &mut JSContext, value: TextTrackMode) {
+        if self.mode.get() == value {
+            return;
+        }
+        self.mode.set(value);
+        // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks:start-the-track-processing-model
+        // > The text track has its text track mode changed.
+        if let Some(track_element) = self.associated_track.borrow().as_ref() {
+            track_element.start_the_track_processing_model(cx);
+        }
+    }
 }
 
 impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
@@ -120,8 +157,8 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-mode>
-    fn SetMode(&self, value: TextTrackMode) {
-        self.mode.set(value)
+    fn SetMode(&self, cx: &mut JSContext, value: TextTrackMode) {
+        self.set_text_track_mode(cx, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-cues>

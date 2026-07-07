@@ -90,7 +90,7 @@ use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::realms::enter_auto_realm;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::{CanGc, IntroductionType, Runtime, get_reports};
+use crate::script_runtime::{IntroductionType, Runtime, get_reports};
 use crate::task::TaskCanceller;
 use crate::task_manager::TaskManager;
 use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
@@ -999,14 +999,10 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://w3c.github.io/hr-time/#the-performance-attribute>
-    fn Performance(&self) -> DomRoot<Performance> {
+    fn Performance(&self, cx: &mut JSContext) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(
-                global_scope,
-                self.navigation_start,
-                CanGc::deprecated_note(),
-            )
+            Performance::new(cx, global_scope, self.navigation_start)
         })
     }
 

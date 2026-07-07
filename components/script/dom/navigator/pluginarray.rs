@@ -3,15 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::NoGC;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use js::context::{JSContext, NoGC};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::codegen::Bindings::PluginArrayBinding::PluginArrayMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::plugin::Plugin;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct PluginArray {
@@ -25,8 +24,8 @@ impl PluginArray {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<PluginArray> {
-        reflect_dom_object(Box::new(PluginArray::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<PluginArray> {
+        reflect_dom_object_with_cx(Box::new(PluginArray::new_inherited()), global, cx)
     }
 }
 

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::marker::PhantomData;
-
 use js::context::NoGC;
 
 use crate::dom::Node;
@@ -89,35 +87,30 @@ impl Iterator for FollowingNodeIterator {
     }
 }
 
-pub(crate) struct UnrootedFollowingNodeIterator<'a, 'b> {
+pub(crate) struct UnrootedFollowingNodeIterator<'b> {
     current: Option<UnrootedDom<'b, Node>>,
     root: UnrootedDom<'b, Node>,
     shadow_including: ShadowIncluding,
     no_gc: &'b NoGC,
-    phantom: PhantomData<&'a Node>,
 }
 
-impl<'a, 'b> UnrootedFollowingNodeIterator<'a, 'b> {
+impl<'b> UnrootedFollowingNodeIterator<'b> {
     pub(crate) fn new(
         current: Option<UnrootedDom<'b, Node>>,
         root: UnrootedDom<'b, Node>,
         shadow_including: ShadowIncluding,
         no_gc: &'b NoGC,
-    ) -> Self
-    where
-        'b: 'a,
-    {
+    ) -> Self {
         UnrootedFollowingNodeIterator {
             current,
             root,
             shadow_including,
             no_gc,
-            phantom: PhantomData,
         }
     }
 }
 
-impl<'a, 'b> UnrootedFollowingNodeIterator<'a, 'b> {
+impl<'b> UnrootedFollowingNodeIterator<'b> {
     fn next_skipping_children_impl(
         &mut self,
         current: UnrootedDom<'b, Node>,
@@ -146,7 +139,7 @@ impl<'a, 'b> UnrootedFollowingNodeIterator<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Iterator for UnrootedFollowingNodeIterator<'a, 'b> {
+impl<'b> Iterator for UnrootedFollowingNodeIterator<'b> {
     type Item = UnrootedDom<'b, Node>;
 
     /// <https://dom.spec.whatwg.org/#concept-tree-following>
@@ -197,16 +190,16 @@ impl Iterator for PrecedingNodeIterator {
     }
 }
 
-pub(crate) struct UnrootedPrecedingNodeIterator<'a, 'b> {
-    current: Option<UnrootedDom<'a, Node>>,
+pub(crate) struct UnrootedPrecedingNodeIterator<'b> {
+    current: Option<UnrootedDom<'b, Node>>,
     no_gc: &'b NoGC,
-    root: UnrootedDom<'a, Node>,
+    root: UnrootedDom<'b, Node>,
 }
 
-impl<'a, 'b> UnrootedPrecedingNodeIterator<'a, 'b> {
+impl<'b> UnrootedPrecedingNodeIterator<'b> {
     pub(crate) fn new(
-        current: Option<UnrootedDom<'a, Node>>,
-        root: UnrootedDom<'a, Node>,
+        current: Option<UnrootedDom<'b, Node>>,
+        root: UnrootedDom<'b, Node>,
         no_gc: &'b NoGC,
     ) -> Self {
         UnrootedPrecedingNodeIterator {
@@ -217,10 +210,7 @@ impl<'a, 'b> UnrootedPrecedingNodeIterator<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Iterator for UnrootedPrecedingNodeIterator<'a, 'b>
-where
-    'b: 'a,
-{
+impl<'b> Iterator for UnrootedPrecedingNodeIterator<'b> {
     type Item = UnrootedDom<'b, Node>;
 
     /// <https://dom.spec.whatwg.org/#concept-tree-preceding>
@@ -288,7 +278,7 @@ where
 /// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
 /// while this iterator is alive.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-pub(crate) struct UnrootedSimpleNodeIterator<'a, 'b, I>
+pub(crate) struct UnrootedSimpleNodeIterator<'b, I>
 where
     I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
 {
@@ -296,10 +286,9 @@ where
     next_node: I,
     /// This is unused and only used for lifetime guarantee of NoGC
     no_gc: &'b NoGC,
-    phantom: PhantomData<&'a Node>,
 }
 
-impl<'a, 'b, I> UnrootedSimpleNodeIterator<'a, 'b, I>
+impl<'b, I> UnrootedSimpleNodeIterator<'b, I>
 where
     I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
 {
@@ -312,14 +301,12 @@ where
             current,
             next_node,
             no_gc,
-            phantom: PhantomData,
         }
     }
 }
 
-impl<'a, 'b, I> Iterator for UnrootedSimpleNodeIterator<'a, 'b, I>
+impl<'b, I> Iterator for UnrootedSimpleNodeIterator<'b, I>
 where
-    'b: 'a,
     I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
 {
     type Item = UnrootedDom<'b, Node>;
@@ -421,30 +408,25 @@ impl Iterator for TreeIterator {
 /// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
 /// while this iterator is alive.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-pub(crate) struct UnrootedTreeIterator<'a, 'b> {
+pub(crate) struct UnrootedTreeIterator<'b> {
     current: Option<UnrootedDom<'b, Node>>,
     depth: usize,
     shadow_including: ShadowIncluding,
     /// This is unused and only used for lifetime guarantee of NoGC
     no_gc: &'b NoGC,
-    phantom: PhantomData<&'a Node>,
 }
 
-impl<'a, 'b> UnrootedTreeIterator<'a, 'b>
-where
-    'b: 'a,
-{
+impl<'b> UnrootedTreeIterator<'b> {
     pub(crate) fn new(
-        root: &'a Node,
+        root: &Node,
         shadow_including: ShadowIncluding,
         no_gc: &'b NoGC,
-    ) -> UnrootedTreeIterator<'a, 'b> {
+    ) -> UnrootedTreeIterator<'b> {
         UnrootedTreeIterator {
             current: Some(UnrootedDom::from_dom(Dom::from_ref(root), no_gc)),
             depth: 0,
             shadow_including,
             no_gc,
-            phantom: PhantomData,
         }
     }
 
@@ -486,10 +468,7 @@ where
     }
 }
 
-impl<'a, 'b> Iterator for UnrootedTreeIterator<'a, 'b>
-where
-    'b: 'a,
-{
+impl<'b> Iterator for UnrootedTreeIterator<'b> {
     type Item = UnrootedDom<'b, Node>;
 
     /// <https://dom.spec.whatwg.org/#concept-tree-order>

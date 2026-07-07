@@ -1765,7 +1765,7 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub(crate) fn run_the_animation_frame_callbacks(&self, cx: &mut CurrentRealm) {
         self.running_animation_callbacks.set(true);
-        let timing = self.global().performance().Now();
+        let timing = self.global().performance(cx).Now();
 
         let num_callbacks = self.animation_frame_list.borrow().len();
         for _ in 0..num_callbacks {
@@ -3428,7 +3428,7 @@ impl Document {
                 );
                 metrics.set_performance_paint_metric(metric_value, first_reflow, metric_type);
                 let entry = binding.upcast::<PerformanceEntry>();
-                self.window.Performance().queue_entry(entry);
+                self.window.Performance(cx).queue_entry(entry);
             },
             ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
                 let binding = LargestContentfulPaint::new(
@@ -3440,7 +3440,7 @@ impl Document {
                 );
                 metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
-                self.window.Performance().queue_entry(entry);
+                self.window.Performance(cx).queue_entry(entry);
             },
             ProgressiveWebMetricType::TimeToInteractive => {
                 unreachable!("Unexpected non-paint metric.")
@@ -4811,7 +4811,7 @@ impl Document {
             CrossProcessInstant::now(),
         );
         self.window
-            .Performance()
+            .Performance(cx)
             .queue_entry(entry.upcast::<PerformanceEntry>());
 
         // Step 4 Run the screen orientation change steps with document.
@@ -4828,7 +4828,7 @@ impl Document {
         if visibility_state == DocumentVisibilityState::Hidden {
             self.window
                 .Navigator()
-                .GetGamepads()
+                .GetGamepads(cx)
                 .unwrap_or_default()
                 .iter_mut()
                 .for_each(|gamepad| {

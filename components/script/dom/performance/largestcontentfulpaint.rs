@@ -13,7 +13,7 @@ use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::codegen::Bindings::LargestContentfulPaintBinding::LargestContentfulPaintMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
@@ -27,7 +27,7 @@ pub(crate) struct LargestContentfulPaint {
     render_time: CrossProcessInstant,
     size: usize,
     url: DOMString,
-    element: Option<DomRoot<Element>>,
+    element: Option<Dom<Element>>,
 }
 
 impl LargestContentfulPaint {
@@ -51,7 +51,6 @@ impl LargestContentfulPaint {
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -59,23 +58,30 @@ impl LargestContentfulPaint {
         size: usize,
         url: Option<ServoUrl>,
     ) -> DomRoot<LargestContentfulPaint> {
-        let entry = LargestContentfulPaint::new_inherited(render_time, size, url);
-        reflect_dom_object_with_cx(Box::new(entry), global, cx)
+        reflect_dom_object_with_cx(
+            Box::new(LargestContentfulPaint::new_inherited(
+                render_time,
+                size,
+                url,
+            )),
+            global,
+            cx,
+        )
     }
 }
 
 impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPaint {
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-loadtime>
-    fn LoadTime(&self) -> DOMHighResTimeStamp {
+    fn LoadTime(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.global()
-            .performance()
+            .performance(cx)
             .to_dom_high_res_time_stamp(self.load_time)
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-rendertime>
-    fn RenderTime(&self) -> DOMHighResTimeStamp {
+    fn RenderTime(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.global()
-            .performance()
+            .performance(cx)
             .to_dom_high_res_time_stamp(self.render_time)
     }
 
@@ -91,6 +97,6 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-element>
     fn GetElement(&self) -> Option<DomRoot<Element>> {
-        self.element.clone()
+        self.element.as_ref().map(|element| element.as_rooted())
     }
 }

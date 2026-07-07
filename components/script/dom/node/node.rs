@@ -234,8 +234,8 @@ bitflags! {
 }
 
 /// suppress observers flag
-/// <https://dom.spec.whatwg.org/#concept-node-insert>
-/// <https://dom.spec.whatwg.org/#concept-node-remove>
+/// <https://dom.spec.whatwg.org/#insert-suppressobservers>
+/// <https://dom.spec.whatwg.org/#remove-suppressobservers>
 #[derive(Clone, Copy, MallocSizeOf)]
 pub(crate) enum SuppressObserver {
     Suppressed,
@@ -896,14 +896,11 @@ impl Node {
     }
 
     /// Iterates over this node and all its descendants, in preorder. We take &NoGC to prevent GC which allows us to avoid rooting.
-    pub(crate) fn traverse_preorder_non_rooting<'a, 'b>(
-        &'a self,
+    pub(crate) fn traverse_preorder_non_rooting<'b>(
+        &self,
         no_gc: &'b NoGC,
         shadow_including: ShadowIncluding,
-    ) -> UnrootedTreeIterator<'a, 'b>
-    where
-        'b: 'a,
-    {
+    ) -> UnrootedTreeIterator<'b> {
         UnrootedTreeIterator::new(self, shadow_including, no_gc)
     }
 
@@ -1017,15 +1014,12 @@ impl Node {
         )
     }
 
-    pub(crate) fn following_nodes_unrooted<'a, 'b>(
-        &'a self,
+    pub(crate) fn following_nodes_unrooted<'b>(
+        &self,
         no_gc: &'b NoGC,
         root: &Node,
         shadow_including: ShadowIncluding,
-    ) -> UnrootedFollowingNodeIterator<'a, 'b>
-    where
-        'b: 'a,
-    {
+    ) -> UnrootedFollowingNodeIterator<'b> {
         UnrootedFollowingNodeIterator::new(
             Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
             UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
@@ -1038,14 +1032,11 @@ impl Node {
         PrecedingNodeIterator::new(Some(DomRoot::from_ref(self)), DomRoot::from_ref(root))
     }
 
-    pub(crate) fn preceding_nodes_unrooted<'a, 'b>(
+    pub(crate) fn preceding_nodes_unrooted<'b>(
         &self,
         no_gc: &'b NoGC,
-        root: &'a Node,
-    ) -> UnrootedPrecedingNodeIterator<'a, 'b>
-    where
-        'b: 'a,
-    {
+        root: &Node,
+    ) -> UnrootedPrecedingNodeIterator<'b> {
         UnrootedPrecedingNodeIterator::new(
             Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
             UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
@@ -2539,8 +2530,6 @@ impl Node {
             SuppressObserver::Suppressed => None,
         };
 
-        let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
-
         // Step 10. Let staticNodeList be a list of nodes, initially « ».
         let mut static_node_list: SmallVec<[_; 4]> = Default::default();
 
@@ -2583,31 +2572,71 @@ impl Node {
             // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
             // in shadow-including tree order:
             for descendant in kid.traverse_preorder(ShadowIncluding::Yes) {
-                // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
-                //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
-                if descendant.is_connected() {
-                    static_node_list.push(descendant.clone());
-                }
-
                 // Step 7.7.1. Run the insertion steps with inclusiveDescendant.
                 // This is done in `parent.add_child()`.
 
-                // Step 7.7.2, whatwg/dom#833
-                // Enqueue connected reactions for custom elements or try upgrade.
-                if let Some(descendant) = DomRoot::downcast::<Element>(descendant) {
-                    if descendant.is_custom() {
-                        if descendant.is_connected() {
-                            custom_element_reaction_stack.enqueue_callback_reaction(
-                                cx,
-                                &descendant,
-                                CallbackReaction::Connected,
-                                None,
-                            );
+                // From <https://github.com/whatwg/dom/issues/833>:
+                // try_upgrade_element fires even for disconnected elements.
+                if let Some(element) = DomRoot::downcast::<Element>(descendant.clone()) &&
+                    !element.is_custom()
+                {
+                    try_upgrade_element(cx, &element);
+                }
+
+                // Step 7.7.2. If inclusiveDescendant is not connected, then continue.
+                if !descendant.is_connected() {
+                    continue;
+                }
+
+                // Step 7.7.3. If inclusiveDescendant is an element
+                if let Some(element) = DomRoot::downcast::<Element>(descendant.clone()) {
+                    // and inclusiveDescendant’s custom element registry is non-null:
+                    if let Some(registry) = element.custom_element_registry() {
+                        // Step 7.7.3.1. If inclusiveDescendant’s custom element
+                        // registry’s is scoped is true, then append
+                        // inclusiveDescendant’s node document to inclusiveDescendant’s
+                        // custom element registry’s scoped document set.
+                        if registry.is_scoped() {
+                            registry.add_scoped_document(&element.owner_document());
                         }
-                    } else {
-                        try_upgrade_element(cx, &descendant);
+                    }
+                    // TODO: As per the spec, following steps should only be
+                    // executed for non-null custom element registry. But, it
+                    // causes some WPT tests to fail. Needs Investigation.
+                    //
+                    // Step 7.7.3.2. If inclusiveDescendant is custom, then enqueue
+                    // a custom element callback reaction with inclusiveDescendant,
+                    // callback name "connectedCallback", and « ».
+                    if element.is_custom() {
+                        ScriptThread::custom_element_reaction_stack().enqueue_callback_reaction(
+                            cx,
+                            &element,
+                            CallbackReaction::Connected,
+                            None,
+                        );
+                    }
+                    // Step 7.7.3.3. Otherwise, try to upgrade inclusiveDescendant.
+                    else {
+                        try_upgrade_element(cx, &element);
                     }
                 }
+                // Step 7.7.4. Otherwise, if inclusiveDescendant is a shadow
+                // root, inclusiveDescendant’s custom element registry is
+                // non-null, and inclusiveDescendant’s custom element registry’s
+                // is scoped is true, then append inclusiveDescendant’s node
+                // document to inclusiveDescendant’s custom element registry’s
+                // scoped document set.
+                else if let Some(shadow_root) =
+                    DomRoot::downcast::<ShadowRoot>(descendant.clone()) &&
+                    let Some(custom_element_registry) = shadow_root.custom_element_registry() &&
+                    custom_element_registry.is_scoped()
+                {
+                    custom_element_registry.add_scoped_document(shadow_root.owner_doc());
+                }
+
+                // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
+                //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
+                static_node_list.push(descendant.clone());
             }
         }
 
@@ -2644,6 +2673,8 @@ impl Node {
             task!(PostConnectionSteps: |cx, static_node_list: SmallVec<[DomRoot<Node>; 4]>| {
                 // Step 12. For each node of staticNodeList, if node is connected, then run the
                 //          post-connection steps with node.
+                //
+                // Note: We only add the nodes to the static_node_list which are connected.
                 for node in static_node_list {
                     vtable_for(&node).post_connection_steps(cx);
                 }

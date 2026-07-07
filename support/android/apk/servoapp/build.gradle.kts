@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "org.servo.servoshell"
-        minSdk = 30
+        minSdk = getServoMinSdk()
         targetSdk = 34
         versionCode = generatedVersionCode
         versionName = "0.4.0"
@@ -144,6 +144,7 @@ dependencies {
     } else {
         implementation(project(":servoview"))
     }
+    implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.13.0")
     implementation("androidx.compose.material3:material3:1.4.0")

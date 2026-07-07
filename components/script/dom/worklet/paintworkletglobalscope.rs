@@ -50,7 +50,6 @@ use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit, WorkletTask};
-use crate::script_runtime::CanGc;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
@@ -324,7 +323,7 @@ impl PaintWorkletGlobalScope {
         rendering_context.set_bitmap_dimensions(size_in_px, device_pixel_ratio);
 
         // Step 9
-        let paint_size = PaintSize::new(self, size_in_px, CanGc::from_cx(cx));
+        let paint_size = PaintSize::new(cx, self, size_in_px);
 
         // TODO: Step 10
         // Steps 11-12

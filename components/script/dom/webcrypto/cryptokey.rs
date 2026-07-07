@@ -51,6 +51,8 @@ pub(crate) enum Handle {
     X25519PublicKey(x25519_dalek::PublicKey),
     Ed448PrivateKey(ed448_goldilocks::SigningKey),
     Ed448PublicKey(ed448_goldilocks::VerifyingKey),
+    X448PrivateKey(x448::StaticSecret),
+    X448PublicKey(x448::PublicKey),
     Aes128Key(aes::cipher::common::Key<aes::Aes128>),
     Aes192Key(aes::cipher::common::Key<aes::Aes192>),
     Aes256Key(aes::cipher::common::Key<aes::Aes256>),
@@ -315,6 +317,8 @@ impl MallocSizeOf for Handle {
             Handle::X25519PublicKey(public_key) => public_key.size_of(ops),
             Handle::Ed448PrivateKey(private_key) => private_key.size_of(ops),
             Handle::Ed448PublicKey(public_key) => public_key.size_of(ops),
+            Handle::X448PrivateKey(private_key) => private_key.size_of(ops),
+            Handle::X448PublicKey(public_key) => public_key.size_of(ops),
             Handle::Aes128Key(key) => key.size_of(ops),
             Handle::Aes192Key(key) => key.size_of(ops),
             Handle::Aes256Key(key) => key.size_of(ops),
@@ -393,6 +397,14 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
                     public_key.as_slice().try_into().map_err(|_| ())?,
                 )
                 .map_err(|_| ())?,
+            )),
+            SerializableCryptoKeyHandle::X448PrivateKey(private_key) => {
+                Ok(Handle::X448PrivateKey(x448::StaticSecret::from(
+                    <[u8; 56]>::try_from(private_key.as_slice()).map_err(|_| ())?,
+                )))
+            },
+            SerializableCryptoKeyHandle::X448PublicKey(public_key) => Ok(Handle::X448PublicKey(
+                x448::PublicKey::from_bytes_unchecked(public_key).ok_or(())?,
             )),
             SerializableCryptoKeyHandle::Aes128Key(key) => Ok(Handle::Aes128Key(
                 aes::cipher::common::Key::<aes::Aes128>::try_from(key).map_err(|_| ())?,
@@ -533,6 +545,12 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
                 SerializableCryptoKeyHandle::Ed448PrivateKey(private_key.as_bytes().to_vec()),
             ),
             Handle::Ed448PublicKey(public_key) => Ok(SerializableCryptoKeyHandle::Ed448PublicKey(
+                public_key.as_bytes().to_vec(),
+            )),
+            Handle::X448PrivateKey(private_key) => Ok(SerializableCryptoKeyHandle::X448PrivateKey(
+                private_key.as_bytes().to_vec(),
+            )),
+            Handle::X448PublicKey(public_key) => Ok(SerializableCryptoKeyHandle::X448PublicKey(
                 public_key.as_bytes().to_vec(),
             )),
             Handle::Aes128Key(key) => Ok(SerializableCryptoKeyHandle::Aes128Key(key.to_vec())),

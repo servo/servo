@@ -76,7 +76,7 @@ dirs = "6.0"
 dpi = "0.1"
 dwrote = "0.11.5"
 ecdsa = "0.17"
-ed25519-dalek = { version = "=3.0.0-rc.1", features = ["alloc", "pkcs8", "rand_core", "zeroize"] }
+ed25519-dalek = { version = "=3.0.0", features = ["alloc", "pkcs8", "rand_core", "zeroize"] }
 ed448-goldilocks = "=0.14.0-pre.15"
 egui = "0.34.3"
 egui-file-dialog = "0.13.0"
@@ -184,7 +184,7 @@ ohos-window-sys = "0.1.7"
 once_cell = "1.21.4"
 openxr = "0.21"
 p256 = { version = "0.14", features = ["ecdh"] }
-p384 = { version = "=0.14.0-rc.15", features = ["ecdh"] }
+p384 = { version = "=0.14.0", features = ["ecdh"] }
 p521 = { version = "=0.14.0-rc.15", features = ["ecdh"] }
 parking_lot = { version = "0.12", features = ["serde"] }
 peniko = "0.6"
@@ -284,7 +284,8 @@ winit = "0.30.13"
 winresource = "0.1"
 wio = "0.2"
 wr_malloc_size_of = "0.2.2"
-x25519-dalek = { version = "=3.0.0-rc.1", features = ["getrandom", "static_secrets", "zeroize"] }
+x25519-dalek = { version = "=3.0.0", features = ["getrandom", "static_secrets", "zeroize"] }
+x448 = { version = "=0.14.0-pre.12", features = ["static_secrets"] }
 xcomponent-sys = "0.3.6"
 xml = "1.1"
 xml5ever = "0.39"

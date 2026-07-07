@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefMut};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -11,17 +11,15 @@ use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
-use super::performance::PerformanceEntryList;
 use super::performanceentry::{EntryType, PerformanceEntry};
 use super::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::{
     PerformanceObserverCallback, PerformanceObserverInit, PerformanceObserverMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::console::Console;
 use crate::dom::globalscope::GlobalScope;
 
@@ -37,47 +35,37 @@ pub(crate) struct PerformanceObserver {
     reflector_: Reflector,
     #[conditional_malloc_size_of]
     callback: Rc<PerformanceObserverCallback>,
-    entries: DomRefCell<DOMPerformanceEntryList>,
+    entries: DomRefCell<Vec<Dom<PerformanceEntry>>>,
     observer_type: Cell<ObserverType>,
 }
 
 impl PerformanceObserver {
-    fn new_inherited(
-        callback: Rc<PerformanceObserverCallback>,
-        entries: DomRefCell<DOMPerformanceEntryList>,
-    ) -> PerformanceObserver {
+    fn new_inherited(callback: Rc<PerformanceObserverCallback>) -> PerformanceObserver {
         PerformanceObserver {
             reflector_: Reflector::new(),
             callback,
-            entries,
+            entries: Default::default(),
             observer_type: Cell::new(ObserverType::Undefined),
         }
     }
 
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        callback: Rc<PerformanceObserverCallback>,
-        entries: DOMPerformanceEntryList,
-    ) -> DomRoot<PerformanceObserver> {
-        Self::new_with_proto(cx, global, None, callback, entries)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         callback: Rc<PerformanceObserverCallback>,
-        entries: DOMPerformanceEntryList,
     ) -> DomRoot<PerformanceObserver> {
-        let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
-        reflect_dom_object_with_proto_and_cx(Box::new(observer), global, proto, cx)
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(PerformanceObserver::new_inherited(callback)),
+            global,
+            proto,
+            cx,
+        )
     }
 
     /// Buffer a new performance entry.
     pub(crate) fn queue_entry(&self, entry: &PerformanceEntry) {
-        self.entries.borrow_mut().push(DomRoot::from_ref(entry));
+        self.entries.borrow_mut().push(Dom::from_ref(entry));
     }
 
     /// Trigger performance observer callback with the list of performance entries
@@ -86,8 +74,13 @@ impl PerformanceObserver {
         if self.entries.borrow().is_empty() {
             return;
         }
-        let entry_list = PerformanceEntryList::new(self.entries.borrow_mut().drain(..).collect());
-        let observer_entry_list = PerformanceObserverEntryList::new(cx, &self.global(), entry_list);
+        let entries = self
+            .entries
+            .borrow_mut()
+            .drain(..)
+            .map(|entry| entry.as_rooted())
+            .collect();
+        let observer_entry_list = PerformanceObserverEntryList::new(cx, &self.global(), entries);
         // using self both as thisArg and as the second formal argument
         let _ = self.callback.Call_(
             cx,
@@ -98,16 +91,8 @@ impl PerformanceObserver {
         );
     }
 
-    pub(crate) fn callback(&self) -> Rc<PerformanceObserverCallback> {
-        self.callback.clone()
-    }
-
-    pub(crate) fn entries(&self) -> DOMPerformanceEntryList {
-        self.entries.borrow().clone()
-    }
-
-    pub(crate) fn set_entries(&self, entries: DOMPerformanceEntryList) {
-        *self.entries.borrow_mut() = entries;
+    pub(crate) fn entries_mut(&self) -> RefMut<'_, Vec<Dom<PerformanceEntry>>> {
+        self.entries.borrow_mut()
     }
 }
 
@@ -120,11 +105,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         callback: Rc<PerformanceObserverCallback>,
     ) -> Fallible<DomRoot<PerformanceObserver>> {
         Ok(PerformanceObserver::new_with_proto(
-            cx,
-            global,
-            proto,
-            callback,
-            Vec::new(),
+            cx, global, proto, callback,
         ))
     }
 
@@ -194,7 +175,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             // This never pre-fills buffered entries, and
             // any existing types are replaced.
             self.global()
-                .performance()
+                .performance(cx)
                 .add_multiple_type_observer(self, entry_types);
             Ok(())
         } else if let Some(entry_type) = &options.type_ {
@@ -207,7 +188,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             // Steps 7.3-7.5
             // This may pre-fill buffered entries, and
             // existing types are appended to.
-            self.global().performance().add_single_type_observer(
+            self.global().performance(cx).add_single_type_observer(
                 self,
                 entry_type,
                 options.buffered.unwrap_or(false),
@@ -220,18 +201,15 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
     }
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceobserver-disconnect>
-    fn Disconnect(&self) {
-        self.global().performance().remove_observer(self);
+    fn Disconnect(&self, cx: &mut JSContext) {
+        self.global().performance(cx).remove_observer(self);
         self.entries.borrow_mut().clear();
     }
 
     /// <https://w3c.github.io/performance-timeline/#takerecords-method>
     fn TakeRecords(&self) -> Vec<DomRoot<PerformanceEntry>> {
         let mut entries = self.entries.borrow_mut();
-        let taken = entries
-            .iter()
-            .map(|entry| DomRoot::from_ref(&**entry))
-            .collect();
+        let taken = entries.iter().map(|entry| entry.as_rooted()).collect();
         entries.clear();
         taken
     }

@@ -7,16 +7,12 @@
   <string name="options">Options</string>
   <string name="url_or_search">URL or Search</string>
   <string name="refresh">Refresh</string>
-  <string name="idle">idle</string>
   <string name="cancel">Cancel</string>
   
   <!-- Settings -->
   <string name="settings_title">Settings</string>
   <string name="settings_experimental_title">Experimental features</string>
   <string name="settings_experimental_summary">Enable experimental web platform features</string>
-  <string name="settings_animating_title">Idle/animating indicator</string>
-  <string name="settings_animating_summary">Show visual indicator for rendering state</string>
-  <string name="loop">LOOP</string>
   
   <!-- History -->
   <string name="history_title">History</string>

@@ -1719,14 +1719,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
-    fn Performance(&self) -> DomRoot<Performance> {
-        self.performance.or_init(|| {
-            Performance::new(
-                self.as_global_scope(),
-                self.navigation_start.get(),
-                CanGc::deprecated_note(),
-            )
-        })
+    fn Performance(&self, cx: &mut JSContext) -> DomRoot<Performance> {
+        self.performance
+            .or_init(|| Performance::new(cx, self.as_global_scope(), self.navigation_start.get()))
     }
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
@@ -1741,7 +1736,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>
-    fn GetVisualViewport(&self, can_gc: CanGc) -> Option<DomRoot<VisualViewport>> {
+    fn GetVisualViewport(&self, cx: &mut JSContext) -> Option<DomRoot<VisualViewport>> {
         // > If the associated document is fully active, the visualViewport attribute must return the
         // > VisualViewport object associated with the Window object’s associated document. Otherwise,
         // > it must return null.
@@ -1749,7 +1744,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             return None;
         }
 
-        Some(self.get_or_init_visual_viewport(can_gc))
+        Some(self.get_or_init_visual_viewport(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa>
@@ -2661,7 +2656,7 @@ impl Window {
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
             document
                 .iframes_mut()
-                .handle_new_iframe_sizes_after_layout(self, iframe_sizes);
+                .handle_new_iframe_sizes_after_layout(cx, self, iframe_sizes);
         }
 
         document.update_animations_post_reflow();
@@ -3192,17 +3187,20 @@ impl Window {
         self.viewport_details.get()
     }
 
-    pub(crate) fn get_or_init_visual_viewport(&self, can_gc: CanGc) -> DomRoot<VisualViewport> {
+    pub(crate) fn get_or_init_visual_viewport(
+        &self,
+        cx: &mut JSContext,
+    ) -> DomRoot<VisualViewport> {
         self.visual_viewport.or_init(|| {
-            VisualViewport::new_from_layout_viewport(self, self.viewport_details().size, can_gc)
+            VisualViewport::new_from_layout_viewport(cx, self, self.viewport_details().size)
         })
     }
 
     /// Update the [`VisualViewport`] of this [`Window`] if necessary and note the changes to be processed in the event loop.
     pub(crate) fn maybe_update_visual_viewport(
         &self,
+        cx: &mut JSContext,
         pinch_zoom_infos: PinchZoomInfos,
-        can_gc: CanGc,
     ) {
         // We doesn't need to do anything if the following condition is fulfilled. Since there are no JS listener
         // to fire and we could reconstruct visual viewport from layout viewport in case JS access it.
@@ -3212,7 +3210,7 @@ impl Window {
             return;
         }
 
-        let visual_viewport = self.get_or_init_visual_viewport(can_gc);
+        let visual_viewport = self.get_or_init_visual_viewport(cx);
         let changes = visual_viewport.update_from_pinch_zoom_infos(pinch_zoom_infos);
 
         if changes.intersects(VisualViewportChanges::DimensionChanged) {
@@ -3418,7 +3416,7 @@ impl Window {
         let layout_viewport_resized = self.run_resize_steps_for_layout_viewport(cx);
 
         if self.has_changed_visual_viewport_dimension.get() {
-            let visual_viewport = self.get_or_init_visual_viewport(CanGc::from_cx(cx));
+            let visual_viewport = self.get_or_init_visual_viewport(cx);
 
             let uievent = UIEvent::new(
                 cx,

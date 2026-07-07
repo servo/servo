@@ -355,9 +355,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#framework-credential-management>
-    fn Credentials(&self) -> DomRoot<CredentialsContainer> {
+    fn Credentials(&self, cx: &mut js::context::JSContext) -> DomRoot<CredentialsContainer> {
         self.credentials
-            .or_init(|| CredentialsContainer::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| CredentialsContainer::new(cx, &self.global()))
     }
 
     /// <https://www.w3.org/TR/geolocation/#navigator_interface>
@@ -381,15 +381,15 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-plugins>
-    fn Plugins(&self) -> DomRoot<PluginArray> {
+    fn Plugins(&self, cx: &mut JSContext) -> DomRoot<PluginArray> {
         self.plugins
-            .or_init(|| PluginArray::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| PluginArray::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes>
-    fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
+    fn MimeTypes(&self, cx: &mut JSContext) -> DomRoot<MimeTypeArray> {
         self.mime_types
-            .or_init(|| MimeTypeArray::new(&self.global(), CanGc::deprecated_note()))
+            .or_init(|| MimeTypeArray::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled>
@@ -415,7 +415,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://www.w3.org/TR/gamepad/#dom-navigator-getgamepads>
     #[cfg(feature = "gamepad")]
-    fn GetGamepads(&self) -> Fallible<Vec<Option<DomRoot<Gamepad>>>> {
+    fn GetGamepads(&self, cx: &mut JSContext) -> Fallible<Vec<Option<DomRoot<Gamepad>>>> {
         use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 
         // Step 1. Let doc be the current global object's associated Document.
@@ -442,7 +442,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         }
 
         // Step 5. Let now be the current high resolution time given the current global object.
-        let now = *window.Performance().Now();
+        let now = *window.Performance(cx).Now();
 
         // Step 6. Let gamepads be an empty list.
         // Step 7. For each gamepad of this.[[gamepads]]:

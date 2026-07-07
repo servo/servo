@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::marker::PhantomData;
 
 use js::context::JSContext;
+use js::jsapi::JS::{HeapState, RuntimeHeapState};
 
 thread_local!(
     static THREAD_ACTIVE: Cell<bool> = const { Cell::new(true) };
@@ -13,6 +14,16 @@ thread_local!(
 
 pub fn runtime_is_alive() -> bool {
     THREAD_ACTIVE.with(|t| t.get())
+}
+
+/// Whether a GC collection is in progress.
+/// Mainly useful for (debug) assertions.
+pub fn during_gc_collection() -> bool {
+    // SAFETY: `RuntimeHeapState` only reads thread-local runtime state and has no preconditions.
+    matches!(
+        unsafe { RuntimeHeapState() },
+        HeapState::MajorCollecting | HeapState::MinorCollecting
+    )
 }
 
 pub fn mark_runtime_dead() {

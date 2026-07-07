@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use embedder_traits::SelectedFile;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_base::id::{FileId, FileIndex};
 use servo_constellation_traits::{BlobImpl, SerializableFile};
 use time::{Duration, OffsetDateTime};
@@ -25,7 +25,6 @@ use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::blob::{Blob, normalize_type_string, process_blob_parts};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct File {
@@ -55,33 +54,33 @@ impl File {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         blob_impl: BlobImpl,
         name: DOMString,
         modified: Option<SystemTime>,
-        can_gc: CanGc,
     ) -> DomRoot<File> {
         Self::new_with_proto(
+            cx,
             global,
             None,
             blob_impl,
             name,
             modified,
             USVString::default(),
-            can_gc,
         )
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         blob_impl: BlobImpl,
         name: DOMString,
         modified: Option<SystemTime>,
         webkit_relative_path: USVString,
-        can_gc: CanGc,
     ) -> DomRoot<File> {
-        let file = reflect_dom_object_with_proto(
+        let file = reflect_dom_object_with_proto_and_cx(
             Box::new(File::new_inherited(
                 &blob_impl,
                 name,
@@ -90,7 +89,7 @@ impl File {
             )),
             global,
             proto,
-            can_gc,
+            cx,
         );
         global.track_file(&file, blob_impl);
         file
@@ -98,9 +97,9 @@ impl File {
 
     // Construct from selected file message from file manager thread
     pub(crate) fn new_from_selected(
+        cx: &mut JSContext,
         window: &Window,
         selected: SelectedFile,
-        can_gc: CanGc,
     ) -> DomRoot<File> {
         let name = DOMString::from(
             selected
@@ -110,6 +109,7 @@ impl File {
         );
 
         File::new(
+            cx,
             window.upcast(),
             BlobImpl::new_from_file(
                 selected.id,
@@ -119,7 +119,6 @@ impl File {
             ),
             name,
             Some(selected.modified),
-            can_gc,
         )
     }
 
@@ -167,13 +166,13 @@ impl Serializable for File {
     ) -> Result<DomRoot<Self>, ()> {
         let modified = OffsetDateTime::UNIX_EPOCH + Duration::milliseconds(serialized.modified);
         Ok(File::new_with_proto(
+            cx,
             owner,
             None,
             serialized.blob_impl,
             serialized.name.into(),
             Some(modified.into()),
             USVString::from(serialized.webkit_relative_path),
-            CanGc::from_cx(cx),
         ))
     }
 
@@ -211,13 +210,13 @@ impl FileMethods<crate::DomTypeHolder> for File {
 
         let type_string = normalize_type_string(&blobPropertyBag.type_.str());
         Ok(File::new_with_proto(
+            cx,
             global,
             proto,
             BlobImpl::new_from_bytes(bytes, type_string),
             filename,
             modified,
             USVString::default(),
-            CanGc::from_cx(cx),
         ))
     }
 
