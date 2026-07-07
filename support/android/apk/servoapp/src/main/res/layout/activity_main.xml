@@ -12,41 +12,35 @@
         android:layout_height="wrap_content"
         >
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="match_parent"
+            android:gravity="center">
 
             <EditText
                 android:id="@+id/urlfield"
                 style="@android:style/Widget.Material.EditText"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:autofillHints="url"
                 android:hint="@string/url_or_search"
                 android:imeOptions="actionDone"
                 android:inputType="textUri"
                 android:selectAllOnFocus="true"
                 android:singleLine="true"
-                android:layout_marginEnd="10dp"
-                app:layout_constraintEnd_toStartOf="@+id/progressbar"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toStartOf="parent"
-                tools:layout_editor_absoluteY="0dp" />
+                android:layout_marginEnd="10dp" />
 
             <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/progressbar"
                 android:layout_width="0dp"
-                android:layout_height="22dp"
-                android:layout_marginTop="8dp"
+                android:layout_height="match_parent"
                 android:layout_marginEnd="10dp"
-                android:layout_weight="0"
                 android:indeterminate="true"
                 android:visibility="gone"
-                app:indicatorSize="20dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:indicatorSize="20dp" />
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
     </com.google.android.material.appbar.MaterialToolbar>
 
     <org.servo.servoview.ServoView
