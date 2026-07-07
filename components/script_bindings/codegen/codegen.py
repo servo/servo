@@ -3968,6 +3968,9 @@ rooted!(&in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
 unforgeable_holder.handle_mut().set(
     JS_NewObjectWithoutMetadata(cx, {holderClass}, {holderProto}));
 assert!(!unforgeable_holder.is_null());
+<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::{properties['id']} as isize),
+                              ptr::null_mut(),
+                              unforgeable_holder.get());
 """))
             code.append(InitLegacyUnforgeablePropertiesOnHolder(self.descriptor, self.properties))
             code.append(CGGeneric("""\
