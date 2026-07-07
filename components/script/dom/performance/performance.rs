@@ -15,7 +15,7 @@ use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMa
 use script_bindings::codegen::GenericBindings::PerformanceMarkBinding::PerformanceMarkMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
-use script_bindings::reflector::reflect_dom_object;
+use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -42,7 +42,6 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// Implementation of a list of PerformanceEntry items shared by the
 /// Performance and PerformanceObserverEntryList interfaces implementations.
@@ -157,14 +156,14 @@ impl Performance {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         navigation_start: CrossProcessInstant,
-        can_gc: CanGc,
     ) -> DomRoot<Performance> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Performance::new_inherited(navigation_start)),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -218,6 +217,7 @@ impl Performance {
 
     pub(crate) fn add_single_type_observer(
         &self,
+        cx: &mut JSContext,
         observer: &DOMPerformanceObserver,
         entry_type: EntryType,
         buffered: bool,
@@ -233,7 +233,7 @@ impl Performance {
             if !self.pending_notification_observers_task.get() {
                 self.pending_notification_observers_task.set(true);
                 let global = &self.global();
-                let owner = Trusted::new(&*global.performance());
+                let owner = Trusted::new(&*global.performance(cx));
                 self.global()
                     .task_manager()
                     .performance_timeline_task_source()
@@ -279,7 +279,11 @@ impl Performance {
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     /// Also this algorithm has been extented according to :
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry) -> Option<usize> {
+    pub(crate) fn queue_entry(
+        &self,
+        cx: &mut JSContext,
+        entry: &PerformanceEntry,
+    ) -> Option<usize> {
         // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
         if entry.entry_type() == EntryType::Resource && !self.should_queue_resource_entry(entry) {
             return None;
@@ -315,7 +319,7 @@ impl Performance {
         self.pending_notification_observers_task.set(true);
 
         let global = &self.global();
-        let owner = Trusted::new(&*global.performance());
+        let owner = Trusted::new(&*global.performance(cx));
         self.global()
             .task_manager()
             .performance_timeline_task_source()
@@ -536,8 +540,8 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performance-navigation>
-    fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
-        PerformanceNavigation::new(&self.global(), CanGc::deprecated_note())
+    fn Navigation(&self, cx: &mut JSContext) -> DomRoot<PerformanceNavigation> {
+        PerformanceNavigation::new(cx, &self.global())
     }
 
     /// <https://w3c.github.io/hr-time/#dom-performance-now>
@@ -602,7 +606,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
         // Step 2. Queue a PerformanceEntry entry.
         // Step 3. Add entry to the performance entry buffer. (This is done in queue_entry itself)
-        self.queue_entry(entry.upcast::<PerformanceEntry>());
+        self.queue_entry(cx, entry.upcast::<PerformanceEntry>());
 
         // Step 4. Return entry.
         Ok(entry)
@@ -744,6 +748,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         // The resulting duration value MAY be negative.
 
         let entry = PerformanceMeasure::new(
+            cx,
             &self.global(),
             measure_name,
             start_time,
@@ -771,7 +776,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
         // Step 10. Queue a PerformanceEntry entry.
         // Step 11. Add entry to the performance entry buffer. (This is done in queue_entry itself)
-        self.queue_entry(entry.upcast::<PerformanceEntry>());
+        self.queue_entry(cx, entry.upcast::<PerformanceEntry>());
 
         // Step 12. Return entry.
         Ok(entry)

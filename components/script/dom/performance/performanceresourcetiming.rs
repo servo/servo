@@ -138,10 +138,11 @@ impl PerformanceResourceTiming {
     /// always after that time.
     pub(crate) fn to_dom_high_res_time_stamp(
         &self,
+        cx: &mut JSContext,
         instant: Option<CrossProcessInstant>,
     ) -> DOMHighResTimeStamp {
         self.global()
-            .performance()
+            .performance(cx)
             .maybe_to_dom_high_res_time_stamp(instant)
     }
 }
@@ -172,18 +173,18 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupstart>
-    fn DomainLookupStart(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.domain_lookup_start)
+    fn DomainLookupStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.domain_lookup_start)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-domainlookupend>
-    fn DomainLookupEnd(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.domain_lookup_end)
+    fn DomainLookupEnd(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.domain_lookup_end)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-secureconnectionstart>
-    fn SecureConnectionStart(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.secure_connection_start)
+    fn SecureConnectionStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.secure_connection_start)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-transfersize>
@@ -202,42 +203,42 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-requeststart>
-    fn RequestStart(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.request_start)
+    fn RequestStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.request_start)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart>
-    fn RedirectStart(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.redirect_start)
+    fn RedirectStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.redirect_start)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend>
-    fn RedirectEnd(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.redirect_end)
+    fn RedirectEnd(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.redirect_end)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responsestart>
-    fn ResponseStart(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.response_start)
+    fn ResponseStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.response_start)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart>
-    fn FetchStart(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.fetch_start)
+    fn FetchStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.fetch_start)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectstart>
-    fn ConnectStart(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.connect_start)
+    fn ConnectStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.connect_start)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-connectend>
-    fn ConnectEnd(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.connect_end)
+    fn ConnectEnd(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.connect_end)
     }
 
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-responseend>
-    fn ResponseEnd(&self) -> DOMHighResTimeStamp {
-        self.to_dom_high_res_time_stamp(self.response_end)
+    fn ResponseEnd(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(cx, self.response_end)
     }
 }

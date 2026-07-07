@@ -69,8 +69,8 @@ impl VisibilityStateEntryMethods<crate::DomTypeHolder> for VisibilityStateEntry 
     }
 
     /// <https://html.spec.whatwg.org/multipage/#visibilitystateentry-starttime>
-    fn StartTime(&self) -> Finite<f64> {
-        self.entry.StartTime()
+    fn StartTime(&self, cx: &mut JSContext) -> Finite<f64> {
+        self.entry.StartTime(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#visibilitystateentry-duration>

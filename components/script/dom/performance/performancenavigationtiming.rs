@@ -60,27 +60,34 @@ impl PerformanceNavigationTiming {
 // https://w3c.github.io/navigation-timing/
 impl PerformanceNavigationTimingMethods<crate::DomTypeHolder> for PerformanceNavigationTiming {
     /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventstart>
-    fn UnloadEventStart(&self) -> DOMHighResTimeStamp {
+    fn UnloadEventStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
-            .to_dom_high_res_time_stamp(self.document.navigation_timing().unload_event_start.get())
+            .to_dom_high_res_time_stamp(
+                cx,
+                self.document.navigation_timing().unload_event_start.get(),
+            )
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventend>
-    fn UnloadEventEnd(&self) -> DOMHighResTimeStamp {
+    fn UnloadEventEnd(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
-            .to_dom_high_res_time_stamp(self.document.navigation_timing().unload_event_end.get())
+            .to_dom_high_res_time_stamp(
+                cx,
+                self.document.navigation_timing().unload_event_end.get(),
+            )
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-dominteractive>
-    fn DomInteractive(&self) -> DOMHighResTimeStamp {
+    fn DomInteractive(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
-            .to_dom_high_res_time_stamp(self.document.navigation_timing().dom_interactive.get())
+            .to_dom_high_res_time_stamp(cx, self.document.navigation_timing().dom_interactive.get())
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventstart>
-    fn DomContentLoadedEventStart(&self) -> DOMHighResTimeStamp {
+    fn DomContentLoadedEventStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(
+                cx,
                 self.document
                     .navigation_timing()
                     .dom_content_loaded_event_start
@@ -89,9 +96,10 @@ impl PerformanceNavigationTimingMethods<crate::DomTypeHolder> for PerformanceNav
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventend>
-    fn DomContentLoadedEventEnd(&self) -> DOMHighResTimeStamp {
+    fn DomContentLoadedEventEnd(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(
+                cx,
                 self.document
                     .navigation_timing()
                     .dom_content_loaded_event_end
@@ -100,21 +108,24 @@ impl PerformanceNavigationTimingMethods<crate::DomTypeHolder> for PerformanceNav
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcomplete>
-    fn DomComplete(&self) -> DOMHighResTimeStamp {
+    fn DomComplete(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
-            .to_dom_high_res_time_stamp(self.document.navigation_timing().dom_complete.get())
+            .to_dom_high_res_time_stamp(cx, self.document.navigation_timing().dom_complete.get())
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventstart>
-    fn LoadEventStart(&self) -> DOMHighResTimeStamp {
+    fn LoadEventStart(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
-            .to_dom_high_res_time_stamp(self.document.navigation_timing().load_event_start.get())
+            .to_dom_high_res_time_stamp(
+                cx,
+                self.document.navigation_timing().load_event_start.get(),
+            )
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventend>
-    fn LoadEventEnd(&self) -> DOMHighResTimeStamp {
+    fn LoadEventEnd(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
-            .to_dom_high_res_time_stamp(self.document.navigation_timing().load_event_end.get())
+            .to_dom_high_res_time_stamp(cx, self.document.navigation_timing().load_event_end.get())
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-type>
@@ -129,9 +140,10 @@ impl PerformanceNavigationTimingMethods<crate::DomTypeHolder> for PerformanceNav
 
     // check-tidy: no specs after this line
     // Servo-only timing for when top-level content (not iframes) is complete
-    fn TopLevelDomComplete(&self) -> DOMHighResTimeStamp {
+    fn TopLevelDomComplete(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.upcast::<PerformanceResourceTiming>()
             .to_dom_high_res_time_stamp(
+                cx,
                 self.document
                     .navigation_timing()
                     .top_level_dom_complete

@@ -338,14 +338,15 @@ impl IntersectionObserver {
 
         // Step 1. Construct an IntersectionObserverEntry, passing in time, rootBounds,
         // >    boundingClientRect, intersectionRect, isIntersecting, and target.
+        let time = document
+            .owner_global()
+            .performance(cx)
+            .to_dom_high_res_time_stamp(time);
         let entry = IntersectionObserverEntry::new(
             cx,
             self.owner_doc.window(),
             None,
-            document
-                .owner_global()
-                .performance()
-                .to_dom_high_res_time_stamp(time),
+            time,
             Some(&root_bounds),
             &bounding_client_rect,
             &intersection_rect,
