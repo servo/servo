@@ -8,15 +8,17 @@ use std::default::Default;
 use std::ops::Range;
 
 use bitflags::bitflags;
+use embedder_traits::{EmbedderMsg, ScriptToEmbedderChan};
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
 use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
 use script_bindings::trace::CustomTraceable;
+use servo_base::generic_channel::GenericCallback;
+use servo_base::id::WebViewId;
 use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
-use crate::clipboard_provider::ClipboardProvider;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -31,6 +33,36 @@ use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{ClipboardEvent, UIEvent};
 use crate::drag_data_store::Kind;
+
+/// A trait which abstracts access to the embedder's clipboard in order to allow unit
+/// testing clipboard-dependent parts of `script`.
+pub trait ClipboardProvider {
+    /// Get the text content of the clipboard.
+    fn get_text(&mut self) -> Result<String, String>;
+    /// Set the text content of the clipboard.
+    fn set_text(&mut self, _: String);
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) struct EmbedderClipboardProvider {
+    pub embedder_sender: ScriptToEmbedderChan,
+    pub webview_id: WebViewId,
+}
+
+impl ClipboardProvider for EmbedderClipboardProvider {
+    fn get_text(&mut self) -> Result<String, String> {
+        let (callback, rx) = GenericCallback::new_blocking().unwrap();
+        self.embedder_sender
+            .send(EmbedderMsg::GetClipboardText(self.webview_id, callback))
+            .unwrap();
+        rx.recv().unwrap()
+    }
+    fn set_text(&mut self, s: String) {
+        self.embedder_sender
+            .send(EmbedderMsg::SetClipboardText(self.webview_id, s))
+            .unwrap();
+    }
+}
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {

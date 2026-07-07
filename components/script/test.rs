@@ -69,9 +69,10 @@ pub mod timeranges {
     pub use crate::dom::timeranges::TimeRangesContainer;
 }
 
-pub mod textinput {
-    pub use crate::clipboard_provider::ClipboardProvider;
-    pub use crate::textinput::{Direction, SelectionDirection, TextInput};
+pub mod text_input {
+    pub use crate::dom::html::form_controls::text_input::{
+        ClipboardProvider, Direction, Lines, SelectionDirection, TextInput,
+    };
 }
 
 pub mod encoding_detection {

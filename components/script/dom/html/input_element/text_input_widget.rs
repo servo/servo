@@ -17,8 +17,8 @@ use style::selector_parser::PseudoElement;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::html::form_controls::text_control::TextControlElement;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::textcontrol::TextControlElement;
 
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
