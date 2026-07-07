@@ -50,7 +50,7 @@ use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
-use crate::dom::extendablemessageevent::{ExtendableMessageEvent, MessageSource};
+use crate::dom::extendablemessageevent::{ExtendableMessageEvent, MessageSourceRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::globalscope::script_execution::{ErrorReporting, RethrowErrors};
 #[cfg(feature = "webgpu")]
@@ -551,7 +551,7 @@ impl ServiceWorkerGlobalScope {
                         target,
                         scope.upcast(),
                         message.handle(),
-                        Some(MessageSource::Client(client)),
+                        Some(MessageSourceRoot::Client(client)),
                         ports,
                     );
                 } else {
