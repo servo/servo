@@ -3858,7 +3858,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             &selectors.str(),
             &UrlExtraData(url.get_arc()),
         ) {
-            Err(_) => return Err(Error::Syntax(None)),
+            Err(_) => {
+                return Err(Error::Syntax(
+                    format!("'{selectors}' is not a valid selector").into(),
+                ));
+            },
             Ok(selectors) => selectors,
         };
 
