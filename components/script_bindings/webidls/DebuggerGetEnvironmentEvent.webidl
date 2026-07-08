@@ -6,7 +6,8 @@
 // web pages.
 [Exposed=DebuggerGlobalScope]
 interface DebuggerGetEnvironmentEvent : Event {
-    readonly attribute DOMString frameActorId;
+    readonly attribute DOMString? frameActorId;
+    readonly attribute PipelineId? pipelineId;
 };
 
 partial interface DebuggerGlobalScope {
