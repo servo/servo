@@ -134,15 +134,18 @@ pub(crate) fn compress_and_enqueue_a_chunk(
 
     // Step 2. Let buffer be the result of compressing chunk with cs’s format and context.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let mut compression_context = cs.context.borrow_mut();
-    let buffer = compression_context
-        .compress(&chunk)
-        .map_err(|_| Error::Operation(Some("Failed to compress a chunk of input".into())))?;
+    let buffer = {
+        let mut compression_context = cs.context.borrow_mut();
+        let buffer = compression_context
+            .compress(&chunk)
+            .map_err(|_| Error::Operation(Some("Failed to compress a chunk of input".into())))?;
 
-    // Step 3. If buffer is empty, return.
-    if buffer.is_empty() {
-        return Ok(());
-    }
+        // Step 3. If buffer is empty, return.
+        if buffer.is_empty() {
+            return Ok(());
+        }
+        buffer
+    };
 
     // Step 4. Let arrays be the result of splitting buffer into one or more non-empty pieces and
     // converting them into Uint8Arrays.
@@ -168,15 +171,18 @@ pub(crate) fn compress_flush_and_enqueue(
     // Step 1. Let buffer be the result of compressing an empty input with cs’s format and context,
     // with the finish flag.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let mut compression_context = cs.context.borrow_mut();
-    let buffer = compression_context
-        .finalize()
-        .map_err(|_| Error::Operation(Some("Failed to finalize the compression stream".into())))?;
+    let buffer = {
+        let mut compression_context = cs.context.borrow_mut();
+        let buffer = compression_context.finalize().map_err(|_| {
+            Error::Operation(Some("Failed to finalize the compression stream".into()))
+        })?;
 
-    // Step 2. If buffer is empty, return.
-    if buffer.is_empty() {
-        return Ok(());
-    }
+        // Step 2. If buffer is empty, return.
+        if buffer.is_empty() {
+            return Ok(());
+        }
+        buffer
+    };
 
     // Step 3. Let arrays be the result of splitting buffer into one or more non-empty pieces and
     // converting them into Uint8Arrays.

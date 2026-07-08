@@ -108,17 +108,21 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         mut type_: DOMString,
     ) -> Fallible<Option<DomRoot<DataTransferItem>>> {
         // Step 1 If the DataTransferItemList object is not in the read/write mode, return null.
-        let mut option = self.data_store.borrow_mut();
-        let data_store = match option.as_mut() {
-            Some(value) if value.mode() == Mode::ReadWrite => value,
-            _ => return Ok(None),
+        let index = {
+            let mut option = self.data_store.borrow_mut();
+            let data_store = match option.as_mut() {
+                Some(value) if value.mode() == Mode::ReadWrite => value,
+                _ => return Ok(None),
+            };
+
+            // Add an item to the drag data store item list whose kind is text,
+            // whose type string is equal to the value of the method's second argument, converted to ASCII lowercase,
+            // and whose data is the string given by the method's first argument.
+            type_.make_ascii_lowercase();
+            data_store.add(Kind::Text { data, type_ })
         };
 
-        // Add an item to the drag data store item list whose kind is text,
-        // whose type string is equal to the value of the method's second argument, converted to ASCII lowercase,
-        // and whose data is the string given by the method's first argument.
-        type_.make_ascii_lowercase();
-        data_store.add(Kind::Text { data, type_ }).map(|id| {
+        index.map(|id| {
             self.frozen_types.clear();
 
             // Step 3 Determine the value of the indexed property corresponding to the newly added item,
@@ -138,22 +142,24 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
         cx: &mut js::context::JSContext,
         data: &File,
     ) -> Fallible<Option<DomRoot<DataTransferItem>>> {
-        // Step 1 If the DataTransferItemList object is not in the read/write mode, return null.
-        let mut option = self.data_store.borrow_mut();
-        let data_store = match option.as_mut() {
-            Some(value) if value.mode() == Mode::ReadWrite => value,
-            _ => return Ok(None),
+        let index = {
+            // Step 1 If the DataTransferItemList object is not in the read/write mode, return null.
+            let mut option = self.data_store.borrow_mut();
+            let data_store = match option.as_mut() {
+                Some(value) if value.mode() == Mode::ReadWrite => value,
+                _ => return Ok(None),
+            };
+
+            // Add an item to the drag data store item list whose kind is File,
+            // whose type string is the type of the File, converted to ASCII lowercase,
+            // and whose data is the same as the File's data.
+            let mut type_ = data.file_type();
+            type_.make_ascii_lowercase();
+            let bytes = data.file_bytes().unwrap_or_default();
+            let name = data.name().clone();
+            data_store.add(Kind::File { bytes, name, type_ })
         };
-
-        // Add an item to the drag data store item list whose kind is File,
-        // whose type string is the type of the File, converted to ASCII lowercase,
-        // and whose data is the same as the File's data.
-        let mut type_ = data.file_type();
-        type_.make_ascii_lowercase();
-        let bytes = data.file_bytes().unwrap_or_default();
-        let name = data.name().clone();
-
-        data_store.add(Kind::File { bytes, name, type_ }).map(|id| {
+        index.map(|id| {
             self.frozen_types.clear();
 
             // Step 3 Determine the value of the indexed property corresponding to the newly added item,

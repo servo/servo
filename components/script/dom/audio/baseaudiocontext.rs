@@ -533,9 +533,12 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                             this.sample_rate,
                             Some(decoded_audio.as_slice()),
                         );
-                        let mut resolvers = this.decode_resolvers.borrow_mut();
-                        assert!(resolvers.contains_key(&uuid_));
-                        let resolver = resolvers.remove(&uuid_).unwrap();
+                        // Potential borrow hazard
+                        let resolver = {
+                            let mut resolvers = this.decode_resolvers.borrow_mut();
+                            assert!(resolvers.contains_key(&uuid_));
+                            resolvers.remove(&uuid_).unwrap()
+                        };
                         if let Some(callback) = resolver.success_callback {
                             let _ = callback.Call__(cx, &buffer, ExceptionHandling::Report);
                         }
@@ -545,9 +548,12 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .error(move |error| {
                     task_source_clone.queue(task!(audio_decode_eos: move |cx| {
                         let this = this_.root();
-                        let mut resolvers = this.decode_resolvers.borrow_mut();
-                        assert!(resolvers.contains_key(&uuid));
-                        let resolver = resolvers.remove(&uuid).unwrap();
+                        // potential borrow hazard
+                        let resolver = {
+                            let mut resolvers = this.decode_resolvers.borrow_mut();
+                            assert!(resolvers.contains_key(&uuid));
+                            resolvers.remove(&uuid).unwrap()
+                        };
                         if let Some(callback) = resolver.error_callback {
                             let exception = DOMException::new(cx,
                                 &this.global(),

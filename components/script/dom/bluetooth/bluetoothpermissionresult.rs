@@ -110,15 +110,17 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
             BluetoothResponse::RequestDevice(device) => {
                 self.set_state(PermissionState::Granted);
                 let bluetooth = self.get_bluetooth(cx);
-                let mut device_instance_map = bluetooth.get_device_map().borrow_mut();
-                if let Some(existing_device) = device_instance_map.get(&device.id) {
-                    // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
-                    // Step 3.
-                    self.set_devices(vec![Dom::from_ref(existing_device)]);
+                {
+                    let device_instance_map = bluetooth.get_device_map().borrow();
+                    if let Some(existing_device) = device_instance_map.get(&device.id) {
+                        // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
+                        // Step 3.
+                        self.set_devices(vec![Dom::from_ref(existing_device)]);
 
-                    // https://w3c.github.io/permissions/#dom-permissions-request
-                    // Step 8.
-                    return promise.resolve_native(cx, self);
+                        // https://w3c.github.io/permissions/#dom-permissions-request
+                        // Step 8.
+                        return promise.resolve_native(cx, self);
+                    }
                 }
                 let bt_device = BluetoothDevice::new(
                     cx,
@@ -127,7 +129,10 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                     device.name.map(DOMString::from),
                     &bluetooth,
                 );
-                device_instance_map.insert(device.id.clone(), Dom::from_ref(&bt_device));
+                bluetooth
+                    .get_device_map()
+                    .borrow_mut()
+                    .insert(device.id.clone(), Dom::from_ref(&bt_device));
                 self.global()
                     .as_window()
                     .bluetooth_extra_permission_data()
