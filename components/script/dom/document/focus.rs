@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::cmp::Ordering;
 
 use bitflags::bitflags;
@@ -52,7 +52,7 @@ bitflags! {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#focusable-area>
-#[derive(Clone, Default, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[allow(crown::domroot_inside_dom_struct)]
 pub(crate) enum FocusableArea {
     Node {
@@ -65,8 +65,69 @@ pub(crate) enum FocusableArea {
         iframe_element: DomRoot<HTMLIFrameElement>,
         kind: FocusableAreaKind,
     },
+    Viewport,
+}
+
+#[derive(Default, JSTraceable, MallocSizeOf)]
+enum FocusableAreaUnrooted {
+    Node {
+        node: Dom<Node>,
+        kind: FocusableAreaKind,
+    },
+    IFrameViewport {
+        iframe_element: Dom<HTMLIFrameElement>,
+        kind: FocusableAreaKind,
+    },
     #[default]
     Viewport,
+}
+
+impl FocusableAreaUnrooted {
+    fn root(&self) -> FocusableArea {
+        match self {
+            FocusableAreaUnrooted::Node { node, kind } => FocusableArea::Node {
+                node: node.as_rooted(),
+                kind: *kind,
+            },
+            FocusableAreaUnrooted::IFrameViewport {
+                iframe_element,
+                kind,
+            } => FocusableArea::IFrameViewport {
+                iframe_element: iframe_element.as_rooted(),
+                kind: *kind,
+            },
+            FocusableAreaUnrooted::Viewport => FocusableArea::Viewport,
+        }
+    }
+}
+
+impl From<FocusableArea> for FocusableAreaUnrooted {
+    fn from(value: FocusableArea) -> Self {
+        match value {
+            FocusableArea::Node { node, kind } => FocusableAreaUnrooted::Node {
+                node: node.as_traced(),
+                kind,
+            },
+            FocusableArea::IFrameViewport {
+                iframe_element,
+                kind,
+            } => FocusableAreaUnrooted::IFrameViewport {
+                iframe_element: iframe_element.as_traced(),
+                kind,
+            },
+            FocusableArea::Viewport => FocusableAreaUnrooted::Viewport,
+        }
+    }
+}
+
+impl FocusableAreaUnrooted {
+    fn element(&self) -> Option<&Element> {
+        match self {
+            Self::Node { node, .. } => node.downcast(),
+            Self::IFrameViewport { iframe_element, .. } => Some(iframe_element.upcast()),
+            Self::Viewport => None,
+        }
+    }
 }
 
 impl std::fmt::Debug for FocusableArea {
@@ -144,7 +205,7 @@ pub(crate) struct DocumentFocusHandler {
     /// The focused area of the [`Document`].
     ///
     /// <https://html.spec.whatwg.org/multipage/#focused-area-of-the-document>
-    focused_area: DomRefCell<FocusableArea>,
+    focused_area: DomRefCell<FocusableAreaUnrooted>,
     /// The last sequence number sent to the constellation.
     #[no_trace]
     focus_sequence: Cell<FocusSequenceNumber>,
@@ -176,8 +237,8 @@ impl DocumentFocusHandler {
     }
 
     /// Return the element that currently has focus. If `None` is returned the viewport itself has focus.
-    pub(crate) fn focused_area(&self) -> Ref<'_, FocusableArea> {
-        self.focused_area.borrow()
+    pub(crate) fn focused_area(&self) -> FocusableArea {
+        self.focused_area.borrow().root()
     }
 
     /// Set the element that currently has focus and update the focus state for both the previously
@@ -185,7 +246,7 @@ impl DocumentFocusHandler {
     /// the new element is the same as the previous one. Note that this *will not* fire any focus
     /// events. If that is necessary the [`DocumentFocusHandler::focus`] should be used.
     pub(crate) fn set_focused_area(&self, new_focusable_area: FocusableArea) {
-        if new_focusable_area == *self.focused_area.borrow() {
+        if new_focusable_area == self.focused_area.borrow().root() {
             return;
         }
 
@@ -216,7 +277,7 @@ impl DocumentFocusHandler {
             recursively_set_focus_status(newly_focused_element, true);
         }
 
-        *self.focused_area.borrow_mut() = new_focusable_area;
+        *self.focused_area.borrow_mut() = new_focusable_area.into();
     }
 
     /// Get the last sequence number sent to the constellation.
@@ -405,7 +466,7 @@ impl DocumentFocusHandler {
         // Step 3: Apply any relevant platform-specific conventions for focusing new focus
         // target. (For example, some platforms select the contents of a text control when that
         // control is focused.)
-        if &*self.focused_area() != new_focus_target &&
+        if self.focused_area() != *new_focus_target &&
             let Some(html_element) = new_focus_target
                 .element()
                 .and_then(|element| element.downcast::<HTMLElement>())
