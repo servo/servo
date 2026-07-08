@@ -12,7 +12,7 @@ interface KeyframeEffect : AnimationEffect {
 //   attribute Element?           target;
 //   attribute CSSOMString?       pseudoElement;
 //   attribute CompositeOperation composite;
-//   sequence<object> getKeyframes();
+   [Throws] sequence<object> getKeyframes();
    undefined        setKeyframes(object? keyframes);
 };
 
@@ -33,7 +33,15 @@ dictionary BasePropertyIndexedKeyframe {
 //   (CompositeOperationOrAuto or sequence<CompositeOperationOrAuto>) composite = [];
 };
 dictionary BaseKeyframe {
-//   double?                  offset = null;
-//   DOMString                easing = "linear";
-//   CompositeOperationOrAuto composite = "auto";
+   double?                  offset = null;
+   DOMString                easing = "linear";
+   CompositeOperationOrAuto composite = "auto";
+};
+
+// Part of https://drafts.csswg.org/web-animations-1/#dom-keyframeeffect-getkeyframes
+dictionary BaseComputedKeyframe {
+     double?                  offset = null;
+     double                   computedOffset;
+     DOMString                easing = "linear";
+     CompositeOperationOrAuto composite = "auto";
 };

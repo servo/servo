@@ -1320,6 +1320,7 @@ impl<T: stylo_malloc_size_of::MallocSizeOf, const FRACTION_BITS: u16> MallocSize
     }
 }
 
+malloc_size_of_is_stylo_malloc_size_of!(style::properties::PropertyId);
 malloc_size_of_is_stylo_malloc_size_of!(style::animation::DocumentAnimationSet);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrIdentifier);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrValue);
