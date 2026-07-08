@@ -426,7 +426,7 @@ struct WaitForAllFulfillmentHandler {
 
     /// A count of fulfilled promises.
     #[conditional_malloc_size_of]
-    fulfilled_count: Rc<RefCell<usize>>,
+    fulfilled_count: Rc<Cell<usize>>,
 }
 
 impl Callback for WaitForAllFulfillmentHandler {
@@ -439,10 +439,11 @@ impl Callback for WaitForAllFulfillmentHandler {
             result[self.promise_index].set(v.get());
 
             // Set fulfilledCount to fulfilledCount + 1.
-            let mut fulfilled_count = self.fulfilled_count.borrow_mut();
-            *fulfilled_count += 1;
+            let mut fulfilled_count = self.fulfilled_count.get();
+            fulfilled_count += 1;
+            self.fulfilled_count.set(fulfilled_count);
 
-            *fulfilled_count == result.len()
+            fulfilled_count == result.len()
         };
 
         // If fulfilledCount equals total, then perform successSteps given result.
@@ -515,7 +516,7 @@ fn wait_for_all(
     failure_steps: WaitForAllFailureSteps,
 ) {
     // Let fulfilledCount be 0.
-    let fulfilled_count: Rc<RefCell<usize>> = Default::default();
+    let fulfilled_count: Rc<Cell<usize>> = Default::default();
 
     // Let rejected be false.
     // Note: done below when constructing a rejection handler.

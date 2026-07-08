@@ -74,7 +74,7 @@ pub mod line;
 mod line_breaker;
 pub mod text_run;
 
-use std::cell::{OnceCell, RefCell};
+use std::cell::{Cell, OnceCell};
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
@@ -789,7 +789,7 @@ struct InlineContainerState {
 
     /// Whether or not we have processed any content (an atomic element or text) for
     /// this inline box on the current line OR any previous line.
-    has_content: RefCell<bool>,
+    has_content: Cell<bool>,
 
     /// The block size contribution of this container's default font ie the size of the
     /// "strut." Whether this is integrated into the [`Self::nested_strut_block_sizes`]
@@ -1035,7 +1035,7 @@ impl InlineFormattingContextLayout<'_> {
         // the `white-space` property of its parent to future inline children. This is because
         // when a soft wrap opportunity is defined by the boundary between two elements, the
         // `white-space` used is that of their nearest common ancestor.
-        if *inline_box_state.base.has_content.borrow() {
+        if inline_box_state.base.has_content.get() {
             self.propagate_current_nesting_level_white_space_style();
         }
 
@@ -1710,10 +1710,7 @@ impl InlineFormattingContextLayout<'_> {
         self.current_line_segment.inline_size += inline_size;
 
         // Propagate the whitespace setting to the current nesting level.
-        *self
-            .current_inline_container_state()
-            .has_content
-            .borrow_mut() = true;
+        self.current_inline_container_state().has_content.set(true);
         self.propagate_current_nesting_level_white_space_style();
     }
 
@@ -2331,7 +2328,7 @@ impl InlineContainerState {
         Self {
             style,
             flags,
-            has_content: RefCell::new(false),
+            has_content: Cell::new(false),
             nested_strut_block_sizes: nested_block_sizes,
             strut_block_sizes,
             baseline_offset,
