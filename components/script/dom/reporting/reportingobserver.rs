@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::Cell;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -36,7 +36,7 @@ pub(crate) struct ReportingObserver {
 
     #[conditional_malloc_size_of]
     callback: Rc<ReportingObserverCallback>,
-    buffered: RefCell<bool>,
+    buffered: Cell<bool>,
     types: DomRefCell<Vec<DOMString>>,
     report_queue: DomRefCell<Vec<Report>>,
 }
@@ -49,7 +49,7 @@ impl ReportingObserver {
         Self {
             reflector_: Reflector::new(),
             callback,
-            buffered: RefCell::new(options.buffered),
+            buffered: Cell::new(options.buffered),
             types: DomRefCell::new(options.types.clone().unwrap_or_default()),
             report_queue: Default::default(),
         }
@@ -255,11 +255,11 @@ impl ReportingObserverMethods<crate::DomTypeHolder> for ReportingObserver {
         // Step 2. Append this to the global’s registered reporting observer list.
         global.append_reporting_observer(self);
         // Step 3. If this’s buffered option is false, return.
-        if !*self.buffered.borrow() {
+        if !self.buffered.get() {
             return;
         }
         // Step 4. Set this’s buffered option to false.
-        *self.buffered.borrow_mut() = false;
+        self.buffered.set(false);
         // Step 5.For each report in global’s report buffer, queue a task to
         // execute § 4.3 Add report to observer with report and this.
         for report in global.buffered_reports() {
