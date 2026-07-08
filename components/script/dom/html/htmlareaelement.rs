@@ -371,7 +371,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     make_getter!(Target, "target");
 
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
-    make_setter!(cx, SetTarget, "target");
+    make_setter!(SetTarget, "target");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
     make_getter!(Rel, "rel");
@@ -404,7 +404,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-referrerpolicy
-    make_setter!(cx, SetReferrerPolicy, "referrerpolicy");
+    make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
     fn Href(&self) -> USVString {
@@ -515,7 +515,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     make_bool_getter!(NoHref, "nohref");
 
     // https://html.spec.whatwg.org/multipage/#dom-area-nohref
-    make_bool_setter!(cx, SetNoHref, "nohref");
+    make_bool_setter!(SetNoHref, "nohref");
 }
 
 impl Activatable for HTMLAreaElement {

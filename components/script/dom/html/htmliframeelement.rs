@@ -957,7 +957,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
-    make_url_setter!(cx, SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc>
     fn Srcdoc(&self) -> TrustedHTMLOrString {
@@ -1050,12 +1050,12 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-referrerpolicy
-    make_setter!(cx, SetReferrerPolicy, "referrerpolicy");
+    make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-allowfullscreen
     make_bool_getter!(AllowFullscreen, "allowfullscreen");
     // https://html.spec.whatwg.org/multipage/#attr-iframe-allowfullscreen
-    make_bool_setter!(cx, SetAllowFullscreen, "allowfullscreen");
+    make_bool_setter!(SetAllowFullscreen, "allowfullscreen");
 
     // <https://html.spec.whatwg.org/multipage/#dom-dim-width>
     make_getter!(Width, "width");
@@ -1070,12 +1070,12 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:attr-iframe-frameborder
     make_getter!(FrameBorder, "frameborder");
     // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:attr-iframe-frameborder
-    make_setter!(cx, SetFrameBorder, "frameborder");
+    make_setter!(SetFrameBorder, "frameborder");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-name
     // A child browsing context checks the name of its iframe only at the time
     // it is created; subsequent name sets have no special effect.
-    make_atomic_setter!(cx, SetName, "name");
+    make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-name
     // This is specified as reflecting the name content attribute of the
@@ -1095,13 +1095,13 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     );
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-loading
-    make_setter!(cx, SetLoading, "loading");
+    make_setter!(SetLoading, "loading");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-longdesc
     make_url_getter!(LongDesc, "longdesc");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-longdesc
-    make_url_setter!(cx, SetLongDesc, "longdesc");
+    make_url_setter!(SetLongDesc, "longdesc");
 }
 
 impl VirtualMethods for HTMLIFrameElement {

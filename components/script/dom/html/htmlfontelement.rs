@@ -100,7 +100,7 @@ impl HTMLFontElementMethods<crate::DomTypeHolder> for HTMLFontElement {
     make_getter!(Face, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
-    make_atomic_setter!(cx, SetFace, "face");
+    make_atomic_setter!(SetFace, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     make_getter!(Size, "size");

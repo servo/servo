@@ -173,49 +173,49 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     make_getter!(Hreflang, "hreflang");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-hreflang
-    make_setter!(cx, SetHreflang, "hreflang");
+    make_setter!(SetHreflang, "hreflang");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-type
     make_getter!(Type, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-type
-    make_setter!(cx, SetType, "type");
+    make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-coords
     make_getter!(Coords, "coords");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-coords
-    make_setter!(cx, SetCoords, "coords");
+    make_setter!(SetCoords, "coords");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-charset
     make_getter!(Charset, "charset");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-charset
-    make_setter!(cx, SetCharset, "charset");
+    make_setter!(SetCharset, "charset");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-name
     make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-name
-    make_atomic_setter!(cx, SetName, "name");
+    make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rev
     make_getter!(Rev, "rev");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rev
-    make_setter!(cx, SetRev, "rev");
+    make_setter!(SetRev, "rev");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-shape
     make_getter!(Shape, "shape");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-shape
-    make_setter!(cx, SetShape, "shape");
+    make_setter!(SetShape, "shape");
 
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
     make_getter!(Target, "target");
 
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
-    make_setter!(cx, SetTarget, "target");
+    make_setter!(SetTarget, "target");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
     fn Href(&self) -> USVString {
@@ -328,7 +328,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy
-    make_setter!(cx, SetReferrerPolicy, "referrerpolicy");
+    make_setter!(SetReferrerPolicy, "referrerpolicy");
 }
 
 impl Activatable for HTMLAnchorElement {
