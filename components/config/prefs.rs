@@ -236,8 +236,6 @@ pub struct Preferences {
     pub dom_webrtc_enabled: bool,
     // feature: WebRTC Transceiver | #41396 | Web/API/RTCRtpTransceiver
     pub dom_webrtc_transceiver_enabled: bool,
-    // feature: WebVTT | #22312 | Web/API/WebVTT_API
-    pub dom_webvtt_enabled: bool,
     pub dom_webxr_enabled: bool,
     pub dom_webxr_test: bool,
     pub dom_webxr_first_person_observer_view: bool,
@@ -491,7 +489,6 @@ impl Preferences {
             dom_webgpu_wgpu_backend: String::new(),
             dom_webrtc_enabled: false,
             dom_webrtc_transceiver_enabled: false,
-            dom_webvtt_enabled: false,
             dom_webxr_enabled: true,
             dom_webxr_first_person_observer_view: false,
             dom_webxr_glwindow_cubemap: false,

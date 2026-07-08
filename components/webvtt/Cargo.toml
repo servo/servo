@@ -1,0 +1,21 @@
+[package]
+name = "servo-webvtt"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[features]
+test-util = []
+
+[dependencies]
+html5ever = { workspace = true }
+markup5ever = { workspace = true }
+regex = { workspace = true }
+
+[dev-dependencies]
+servo-webvtt = { path = ".", features = ["test-util"] }

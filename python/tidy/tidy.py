@@ -501,7 +501,18 @@ def run_cargo_deny_lints() -> Iterator[tuple[str, int, str]]:
 
     errors = []
     for line in result.stderr.splitlines():
-        error_fields = json.loads(str(line))["fields"]
+        line = str(line)
+        # Ignore empty lines. This is only relevant when `cargo-deny` crashed and we need to below print
+        # what the corrupt line is.
+        if not line.strip():
+            continue
+        try:
+            error_fields = json.loads(line)["fields"]
+        except json.JSONDecodeError as e:
+            # This can happen when `cargo-deny` crashes itself and doesn't produce any output
+            # If we don't catch the exception, we would get no output at all to debug the failure.
+            print(f"Failed to decode {line} as JSON")
+            raise e
         error_code = error_fields.get("code", "unknown")
         error_severity = error_fields.get("severity", "unknown")
         message = error_fields.get("message", "")

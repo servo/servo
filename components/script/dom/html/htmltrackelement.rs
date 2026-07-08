@@ -14,6 +14,7 @@ use net_traits::request::{CorsSettings, RequestId};
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
+use servo_webvtt::{IncrementalWebVTTParser, WebVttCue, WebVttParserSink};
 
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTrackElementBinding::{
@@ -40,6 +41,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::security::csp::GlobalCspReporting;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::webvtt::vttcue::VTTCue;
 use crate::dom::{AttributeMutation, cors_setting_for_element};
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::microtask::{Microtask, MicrotaskRunnable};
@@ -392,6 +394,7 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                     let listener = HTMLTrackElementFetchListener {
                         element: Trusted::new(elem),
                         url: url.clone(),
+                        payload: vec![],
                     };
                     document.fetch_background(request, listener);
                 } else {
@@ -415,11 +418,28 @@ impl MicrotaskRunnable for TrackElementMicrotask {
     }
 }
 
+struct TextTrackCueSink {
+    track_element: Trusted<HTMLTrackElement>,
+}
+
+impl WebVttParserSink<JSContext> for TextTrackCueSink {
+    fn consume_cue(&self, cx: &mut JSContext, cue: WebVttCue) {
+        let element = self.track_element.root();
+        let global = element.global();
+        let text_track = &element.track;
+
+        let cue = VTTCue::create_from_vtt(cx, cue, global.as_window(), Some(text_track));
+        text_track.get_cues(cx).add(cue.upcast());
+    }
+}
+
 struct HTMLTrackElementFetchListener {
     /// The element that initiated the request.
     element: Trusted<HTMLTrackElement>,
     /// URL for the resource.
     url: ServoUrl,
+    /// The payload received
+    payload: Vec<u8>,
 }
 
 impl FetchResponseListener for HTMLTrackElementFetchListener {
@@ -433,8 +453,11 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
     ) {
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, _: Vec<u8>) {}
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, payload: Vec<u8>) {
+        self.payload.extend_from_slice(&payload);
+    }
 
+    /// Step 10.4 of <https://html.spec.whatwg.org/multipage/#start-the-track-processing-model>
     fn process_response_eof(
         self,
         cx: &mut JSContext,
@@ -442,37 +465,72 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        // https://html.spec.whatwg.org/multipage/#start-the-track-processing-model
-        // > If fetching fails for any reason (network error, the server returns an error code, CORS fails, etc.),
-        // > or if URL is the empty string, then queue an element task on the DOM manipulation task source
-        // > given the media element to first change the text track readiness state to failed to load
-        // > and then fire an event named error at the track element.
         let track = self.element.clone();
         let element = self.element.root();
         if status.is_err() {
+            // > If fetching fails for any reason (network error, the server returns an error code, CORS fails, etc.),
+            // > or if URL is the empty string, then queue an element task on the DOM manipulation task source
+            // > given the media element to first change the text track readiness state to failed to load
+            // > and then fire an event named error at the track element.
             element
                 .global()
                 .task_manager()
                 .dom_manipulation_task_source()
                 .queue(task!(failed_to_load: move |cx| {
-                        let track = track.root();
-                        track.readiness_state.set(TextTrackReadinessState::FailedToLoad);
-                        track.upcast::<EventTarget>().fire_event(cx, atom!("error"));
+                    let track = track.root();
+                    track.readiness_state.set(TextTrackReadinessState::FailedToLoad);
+                    track.upcast::<EventTarget>().fire_event(cx, atom!("error"));
                 }));
         } else {
-            // > If fetching does not fail, and the file was successfully processed,
-            // > then the final task that is queued by the networking task source,
-            // > after it has finished parsing the data, must change the text track readiness state to loaded,
-            // > and fire an event named load at the track element.
-            element
-                .global()
-                .task_manager()
-                .networking_task_source()
-                .queue(task!(succesfully_loaded: move |cx| {
+            // > The tasks queued by the fetching algorithm on the networking task source to
+            // > process the data as it is being fetched must determine the type of the resource.
+            // > If the type of the resource is not a supported text track format, the load will fail,
+            // > as described below. Otherwise, the resource's data must be passed to the appropriate parser
+            // > (e.g., the WebVTT parser) as it is received, with the text track list of cues
+            // > being used for that parser's output. [WEBVTT]
+            let result = str::from_utf8(&self.payload)
+                .map_err(|str_error| debug!("WebVTT file contains non-utf8 data: {str_error}"))
+                .and_then(|payload| {
+                    let sink = TextTrackCueSink {
+                        track_element: track.clone(),
+                    };
+                    IncrementalWebVTTParser::new(sink)
+                        .parse_sync(cx, payload)
+                        .map_err(|parser_error| {
+                            debug!("Failed to parse WEBVTT file: {parser_error}")
+                        })
+                });
+            if result.is_ok() {
+                // > If fetching does not fail, and the file was successfully processed,
+                // > then the final task that is queued by the networking task source,
+                // > after it has finished parsing the data, must change the text track readiness state to loaded,
+                // > and fire an event named load at the track element.
+                element
+                    .global()
+                    .task_manager()
+                    .networking_task_source()
+                    .queue(task!(successfully_loaded: move |cx| {
                         let track = track.root();
                         track.readiness_state.set(TextTrackReadinessState::Loaded);
                         track.upcast::<EventTarget>().fire_event(cx, atom!("load"));
-                }));
+                    }));
+            } else {
+                // > If fetching does not fail, but the type of the resource is not a supported text track format,
+                // > or the file was not successfully processed (e.g., the format in question is an XML format
+                // > and the file contained a well-formedness error that XML requires be detected
+                // > and reported to the application), then the task that is queued on the networking task source
+                // > in which the aforementioned problem is found must change the text track readiness state
+                // > to failed to load and fire an event named error at the track element.
+                element
+                    .global()
+                    .task_manager()
+                    .networking_task_source()
+                    .queue(task!(failed_to_parse: move |cx| {
+                        let track = track.root();
+                        track.readiness_state.set(TextTrackReadinessState::FailedToLoad);
+                        track.upcast::<EventTarget>().fire_event(cx, atom!("error"));
+                    }));
+            }
         }
         element.is_running_processing_model_algorithm.set(false);
         network_listener::submit_timing(cx, &self, &status, &timing);
