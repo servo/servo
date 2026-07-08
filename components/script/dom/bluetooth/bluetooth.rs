@@ -580,9 +580,11 @@ impl AsyncBluetoothListener for Bluetooth {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 11, 13 - 14.
             BluetoothResponse::RequestDevice(device) => {
-                let mut device_instance_map = self.device_instance_map.borrow_mut();
-                if let Some(existing_device) = device_instance_map.get(&device.id) {
-                    return promise.resolve_native(cx, &**existing_device);
+                {
+                    let device_instance_map = self.device_instance_map.borrow();
+                    if let Some(existing_device) = device_instance_map.get(&device.id) {
+                        return promise.resolve_native(cx, &**existing_device);
+                    }
                 }
                 let bt_device = BluetoothDevice::new(
                     cx,
@@ -591,7 +593,9 @@ impl AsyncBluetoothListener for Bluetooth {
                     device.name.map(DOMString::from),
                     self,
                 );
-                device_instance_map.insert(device.id.clone(), Dom::from_ref(&bt_device));
+                self.device_instance_map
+                    .borrow_mut()
+                    .insert(device.id.clone(), Dom::from_ref(&bt_device));
 
                 self.global()
                     .as_window()

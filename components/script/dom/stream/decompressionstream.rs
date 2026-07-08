@@ -130,16 +130,18 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     // Step 2. Let buffer be the result of decompressing chunk with ds’s format and context. If
     // this results in an error, then throw a TypeError.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let mut decompression_context = ds.context.borrow_mut();
-    let buffer = decompression_context
-        .decompress(&chunk)
-        .map_err(|_| Error::Type(c"Failed to decompress a chunk of compressed input".into()))?;
+    let buffer = {
+        let mut decompression_context = ds.context.borrow_mut();
+        let buffer = decompression_context
+            .decompress(&chunk)
+            .map_err(|_| Error::Type(c"Failed to decompress a chunk of compressed input".into()))?;
 
-    // Step 3. If buffer is empty, return.
-    if buffer.is_empty() {
-        return Ok(());
-    }
-
+        // Step 3. If buffer is empty, return.
+        if buffer.is_empty() {
+            return Ok(());
+        }
+        buffer
+    };
     // Step 4. Let arrays be the result of splitting buffer into one or more non-empty pieces and
     // converting them into Uint8Arrays.
     // Step 5. For each Uint8Array array of arrays, enqueue array in ds’s transform.
@@ -153,7 +155,7 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
 
     // Step 6. If the end of the compressed input has been reached, and ds’s context has not fully
     // consumed chunk, then throw a TypeError.
-    if decompression_context.is_ended {
+    if ds.context.borrow().is_ended {
         return Err(Error::Type(
             c"The end of the compressed input has been reached".to_owned(),
         ));
@@ -172,11 +174,12 @@ pub(crate) fn decompress_flush_and_enqueue(
     // Step 1. Let buffer be the result of decompressing an empty input with ds’s format and
     // context, with the finish flag.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let mut decompression_context = ds.context.borrow_mut();
-    let buffer = decompression_context
-        .finalize()
-        .map_err(|_| Error::Type(c"Failed to finalize the decompression stream".into()))?;
-
+    let buffer = {
+        let mut decompression_context = ds.context.borrow_mut();
+        decompression_context
+            .finalize()
+            .map_err(|_| Error::Type(c"Failed to finalize the decompression stream".into()))?
+    };
     // Step 2. If buffer is empty, return.
     if !buffer.is_empty() {
         // Step 2.1. Let arrays be the result of splitting buffer into one or more non-empty pieces
@@ -201,7 +204,7 @@ pub(crate) fn decompress_flush_and_enqueue(
     // indicates the end has not been reached. Otherwise, the end has been reached. This test has
     // to been done before calling `try_finish`, so we execute it in Step 1, and store the result
     // in `is_ended`.
-    if !decompression_context.is_ended {
+    if !ds.context.borrow().is_ended {
         return Err(Error::Type(
             c"The end of the compressed input has not been reached".to_owned(),
         ));

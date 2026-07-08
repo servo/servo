@@ -4465,23 +4465,25 @@ impl Document {
         owner_node: &Element,
         sheet: Arc<Stylesheet>,
     ) {
-        let stylesheets = &mut *self.stylesheets.borrow_mut();
+        let insertion_point = {
+            let stylesheets = &mut *self.stylesheets.borrow_mut();
 
-        // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
-        let insertion_point = stylesheets
-            .iter()
-            .map(|(sheet, _origin)| sheet)
-            .find(|sheet_in_doc| {
-                match &sheet_in_doc.owner {
-                    StylesheetSource::Element(other_node) => {
-                        owner_node.upcast::<Node>().is_before(other_node.upcast())
-                    },
-                    // Non-constructed stylesheet should be ordered before the
-                    // constructed ones.
-                    StylesheetSource::Constructed(_) => true,
-                }
-            })
-            .cloned();
+            // FIXME(stevennovaryo): This is almost identical with the one in ShadowRoot::add_stylesheet.
+            stylesheets
+                .iter()
+                .map(|(sheet, _origin)| sheet)
+                .find(|sheet_in_doc| {
+                    match &sheet_in_doc.owner {
+                        StylesheetSource::Element(other_node) => {
+                            owner_node.upcast::<Node>().is_before(other_node.upcast())
+                        },
+                        // Non-constructed stylesheet should be ordered before the
+                        // constructed ones.
+                        StylesheetSource::Constructed(_) => true,
+                    }
+                })
+                .cloned()
+        };
 
         if self.has_browsing_context() {
             self.add_stylesheet_to_stylist(
@@ -4491,6 +4493,7 @@ impl Document {
             );
         }
 
+        let stylesheets = &mut *self.stylesheets.borrow_mut();
         DocumentOrShadowRoot::add_stylesheet(
             StylesheetSource::Element(Dom::from_ref(owner_node)),
             StylesheetSetRef::Document(stylesheets),
@@ -4512,14 +4515,16 @@ impl Document {
     ) {
         debug_assert!(cssom_stylesheet.is_constructed());
 
-        let stylesheets = &mut *self.stylesheets.borrow_mut();
         let sheet = cssom_stylesheet.style_stylesheet().clone();
+        let insertion_point = {
+            let stylesheets = &mut *self.stylesheets.borrow_mut();
 
-        let insertion_point = stylesheets
-            .iter()
-            .last()
-            .map(|(sheet, _origin)| sheet)
-            .cloned();
+            stylesheets
+                .iter()
+                .last()
+                .map(|(sheet, _origin)| sheet)
+                .cloned()
+        };
 
         if self.has_browsing_context() {
             self.add_stylesheet_to_stylist(
@@ -4529,6 +4534,7 @@ impl Document {
             );
         }
 
+        let stylesheets = &mut *self.stylesheets.borrow_mut();
         DocumentOrShadowRoot::add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Document(stylesheets),

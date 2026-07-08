@@ -882,11 +882,13 @@ impl GlobalScope {
         _active_worker: Option<ServiceWorkerId>,
     ) -> DomRoot<ServiceWorkerRegistration> {
         // Step 1
-        let mut registrations = self.registration_map.borrow_mut();
+        {
+            let registrations = self.registration_map.borrow_mut();
 
-        if let Some(registration) = registrations.get(&registration_id) {
-            // Step 3
-            return DomRoot::from_ref(&**registration);
+            if let Some(registration) = registrations.get(&registration_id) {
+                // Step 3
+                return DomRoot::from_ref(&**registration);
+            }
         }
 
         // Step 2.1 -> 2.5
@@ -904,7 +906,9 @@ impl GlobalScope {
         // TODO: 2.8 (active worker)
 
         // Step 2.9
-        registrations.insert(registration_id, Dom::from_ref(&*new_registration));
+        self.registration_map
+            .borrow_mut()
+            .insert(registration_id, Dom::from_ref(&*new_registration));
 
         // Step 3
         new_registration
@@ -919,23 +923,26 @@ impl GlobalScope {
         worker_id: ServiceWorkerId,
     ) -> DomRoot<ServiceWorker> {
         // Step 1
-        let mut workers = self.worker_map.borrow_mut();
+        {
+            let workers = self.worker_map.borrow_mut();
 
-        if let Some(worker) = workers.get(&worker_id) {
-            // Step 3
-            DomRoot::from_ref(&**worker)
-        } else {
-            // Step 2.1
-            // TODO: step 2.2, worker state.
-            let new_worker =
-                ServiceWorker::new(cx, self, script_url.clone(), scope.clone(), worker_id);
-
-            // Step 2.3
-            workers.insert(worker_id, Dom::from_ref(&*new_worker));
-
-            // Step 3
-            new_worker
+            if let Some(worker) = workers.get(&worker_id) {
+                // Step 3
+                return DomRoot::from_ref(&**worker);
+            }
         }
+
+        // Step 2.1
+        // TODO: step 2.2, worker state.
+        let new_worker = ServiceWorker::new(cx, self, script_url.clone(), scope.clone(), worker_id);
+
+        // Step 2.3
+        self.worker_map
+            .borrow_mut()
+            .insert(worker_id, Dom::from_ref(&*new_worker));
+
+        // Step 3
+        new_worker
     }
 
     /// Complete the transfer of a message-port.
