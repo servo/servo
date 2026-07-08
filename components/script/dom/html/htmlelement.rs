@@ -211,12 +211,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#attr-title
     make_getter!(Title, "title");
     // https://html.spec.whatwg.org/multipage/#attr-title
-    make_setter!(cx, SetTitle, "title");
+    make_setter!(SetTitle, "title");
 
     // https://html.spec.whatwg.org/multipage/#attr-lang
     make_getter!(Lang, "lang");
     // https://html.spec.whatwg.org/multipage/#attr-lang
-    make_setter!(cx, SetLang, "lang");
+    make_setter!(SetLang, "lang");
 
     // https://html.spec.whatwg.org/multipage/#the-dir-attribute
     make_enumerated_getter!(
@@ -228,12 +228,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     );
 
     // https://html.spec.whatwg.org/multipage/#the-dir-attribute
-    make_setter!(cx, SetDir, "dir");
+    make_setter!(SetDir, "dir");
 
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_getter!(Hidden, "hidden");
     // https://html.spec.whatwg.org/multipage/#dom-hidden
-    make_bool_setter!(cx, SetHidden, "hidden");
+    make_bool_setter!(SetHidden, "hidden");
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
@@ -797,7 +797,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     make_getter!(AccessKey, "accesskey");
 
     // https://html.spec.whatwg.org/multipage/#dom-accesskey
-    make_setter!(cx, SetAccessKey, "accesskey");
+    make_setter!(SetAccessKey, "accesskey");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-accesskeylabel>
     fn AccessKeyLabel(&self) -> DOMString {
