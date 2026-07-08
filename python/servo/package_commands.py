@@ -378,7 +378,7 @@ class PackageCommands(CommandBase):
             print("Creating MSI")
             try:
                 with cd(dir_to_msi):
-                    subprocess.check_call(["wix", "build", "-acceptEula", "wix7", wxs_path])
+                    subprocess.check_call(["wix", "build", "-arch", "x64", "-acceptEula", "wix7", wxs_path])
             except subprocess.CalledProcessError as e:
                 print("WiX build exited with return value %d" % e.returncode)
                 return e.returncode

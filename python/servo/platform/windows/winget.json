@@ -13,7 +13,8 @@
                     "PackageIdentifier": "Ninja-build.Ninja"
                 },
                 {
-                    "PackageIdentifier": "WiXToolset.WiXCLI"
+                    "PackageIdentifier": "WiXToolset.WiXCLI",
+                    "Version": "7.0.0.0"
                 }
             ],
             "SourceDetails": {

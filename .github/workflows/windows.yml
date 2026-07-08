@@ -134,7 +134,7 @@ jobs:
         # if: ${{ runner.environment != 'self-hosted' }}
         shell: pwsh
         run: |
-          winget install --silent --exact WiXToolset.WiXCLI --accept-source-agreements
+          winget install --silent --exact WiXToolset.WiXCLI --version 7.0.0.0 --accept-source-agreements
           # The WiX installer sets the WIX7 environment variable to the install directory, so add it
           # to the GITHUB_PATH so that it is available in subsequent steps.
           $wixBin = [System.Environment]::GetEnvironmentVariable("WIX7", "Machine")
