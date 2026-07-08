@@ -289,13 +289,23 @@ class Descriptor(DescriptorProvider):
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
 
-        self.no_gcMethods = [name for name in desc.get('no_gc', [])]
-        self.cx_no_gcMethods = [name for name in desc.get('cx_no_gc', [])]
-        self.cxMethods = [name for name in desc.get('cx', [])]
-        self.realmMethods = [name for name in desc.get('realm', [])]
+        # Specified here to make it explicit for the typechecker
+        self.no_gcMethods: list[str] = []
+        self.cx_no_gcMethods: list[str] = []
+        self.cxMethods: list[str] = []
+        self.realmMethods: list[str] = []
 
-        self.inRealmMethods = [name for name in desc.get('inRealms', [])]
-        self.canGcMethods = [name for name in desc.get('canGc', [])]
+        configurationMethods = ["no_gc", "cx_no_gc", "cx", "realm"]
+        for configurationName in configurationMethods:
+            setattr(self, configurationName + "Methods", [name for name in desc.get(configurationName, [])])
+
+        assert ("Constructor" not in self.cxMethods), "Constructor implicitly receives a cx argument. Remove it from the `cx` array"
+        for i in range(0, len(configurationMethods)):
+            for j in range(i + 1, len(configurationMethods)):
+                first_set = set(getattr(self, configurationMethods[i] + "Methods"))
+                second_set = set(getattr(self, configurationMethods[j] + "Methods"))
+                assert first_set.isdisjoint(second_set), f"In {ifaceName} set {configurationMethods[i]} has overlap with {configurationMethods[j]}. Duplicates: {first_set.intersection(second_set)}"
+
         self.additionalTraits = [name for name in desc.get('additionalTraits', [])]
         self.bindingPath = f"{getModuleFromObject(self.interface)}::{ifaceName}_Binding"
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
@@ -403,24 +413,6 @@ class Descriptor(DescriptorProvider):
                 else:
                     add('all', [config], attribute)
 
-        self._binaryNames = desc.get('binaryNames', {})
-        self._binaryNames.setdefault(('__legacycaller', False), 'LegacyCall')
-        self._binaryNames.setdefault(('__stringifier', False), 'Stringifier')
-
-        self._internalNames = desc.get('internalNames', {})
-
-        for member in self.interface.members:
-            if not member.isAttr() and not member.isMethod():
-                continue
-            binaryName = member.getExtendedAttribute("BinaryName")
-            if binaryName:
-                assert isinstance(binaryName, list)
-                assert len(binaryName) == 1
-                self._binaryNames.setdefault((member.identifier.name, member.isStatic()),
-                                             binaryName[0])
-            self._internalNames.setdefault(member.identifier.name,
-                                           member.identifier.name.replace('-', '_'))
-
         # Build the prototype chain.
         self.prototypeChain = []
         parent: IDLInterfaceOrNamespace | None = interface
@@ -431,6 +423,27 @@ class Descriptor(DescriptorProvider):
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
         self.implicitCxSetters = desc.get('implicitCxSetters', "Element" in self.prototypeChain)
+
+        self._binaryNames = desc.get('binaryNames', {})
+        self._binaryNames.setdefault(('__legacycaller', False), 'LegacyCall')
+        self._binaryNames.setdefault(('__stringifier', False), 'Stringifier')
+
+        self._internalNames = desc.get('internalNames', {})
+
+        for member in self.interface.members:
+            if not member.isAttr() and not member.isMethod():
+                continue
+            if member.isAttr() and not member.readonly and self.implicitCxSetters:
+                setterName = f"Set{MakeNativeName(member.identifier.name)}"
+                assert setterName not in self.cxMethods, f"Setter {setterName} in {ifaceName} is implicitly called with cx. Remove it from the list of cx methods"
+            binaryName = member.getExtendedAttribute("BinaryName")
+            if binaryName:
+                assert isinstance(binaryName, list)
+                assert len(binaryName) == 1
+                self._binaryNames.setdefault((member.identifier.name, member.isStatic()),
+                                             binaryName[0])
+            self._internalNames.setdefault(member.identifier.name,
+                                           member.identifier.name.replace('-', '_'))
 
     def maybeGetSuperModule(self) -> str | None:
         """
