@@ -35,7 +35,7 @@ from servo.command_base import (
     CommandBase,
     is_windows,
 )
-from servo.util import delete, append_paths_to_env
+from servo.util import delete
 
 from python.servo.platform.build_target import SanitizerKind
 from servo.platform.build_target import is_android, is_openharmony
