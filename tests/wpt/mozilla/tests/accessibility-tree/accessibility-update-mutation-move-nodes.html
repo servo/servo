@@ -40,10 +40,9 @@
       // - div1 (child added)
       // - div2 (child added)
       // - <section> (children removed)
-      // - text node inside <h1> for some reason?
       assert_equals(
         incremental.accessibilityNodesUpdatedFromDom,
-        4,
+        3,
         "accessibilityNodesUpdatedFromDom",
       );
 

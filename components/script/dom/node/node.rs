@@ -918,7 +918,9 @@ impl Node {
                     .unwrap()
                     .dirty(NodeDamage::ContentOrHeritage);
 
-                self.add_pending_accessibility_damage(AccessibilityDamage::Text);
+                if damage == NodeDamage::Other {
+                    self.add_pending_accessibility_damage(AccessibilityDamage::Text);
+                }
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => self
