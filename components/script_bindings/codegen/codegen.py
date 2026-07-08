@@ -1524,9 +1524,8 @@ def wrapForType(jsvalRef: str, result: str = 'result', successCode: str = 'true'
 
 class Context(IntEnum):
     No = 0
-    OldCx = 1
-    Cx = 2
-    CurrentRealm = 3
+    Cx = 1
+    CurrentRealm = 2
 
 
 def typeNeedsCx(type: IDLType | None, retVal: bool = False) -> Context:
@@ -1544,9 +1543,7 @@ def typeNeedsCx(type: IDLType | None, retVal: bool = False) -> Context:
         assert flatMemberTypes is not None
 
         return max(typeNeedsCx(t) for t in flatMemberTypes)
-    if retVal and type.isSpiderMonkeyInterface():
-        return Context.OldCx
-    return Context.OldCx if type.isAny() or type.isObject() else Context.No
+    return Context.No
 
 
 def returnTypeNeedsOutparam(type: IDLType | None) -> bool:
@@ -4224,15 +4221,17 @@ class CGCallGenerator(CGThing):
                 CGGeneric("let mut realm = CurrentRealm::assert(cx);"),
                 CGGeneric("let cx = &mut realm;"),
             ]))
+
+        needs_cx_arg = (
+            nativeMethodName in descriptor.no_gcMethods
+            or nativeMethodName in descriptor.cx_no_gcMethods
+            or nativeMethodName in descriptor.cxMethods
+            or nativeMethodName in descriptor.realmMethods
+            or nativeMethodName.startswith("Constructor")
+            or descriptor.interface.isIteratorInterface()
+        )
+        if needs_cx_arg:
             args.prepend(CGGeneric("cx"))
-        elif nativeMethodName in descriptor.no_gcMethods or nativeMethodName in descriptor.cx_no_gcMethods or nativeMethodName in descriptor.cxMethods or nativeMethodName.startswith("Constructor"):
-            args.prepend(CGGeneric("cx"))
-        # Workaround for iterators `Next` method until `safe_cx` is the default
-        elif descriptor.interface.isIteratorInterface():
-            args.prepend(CGGeneric("cx"))
-        else:
-            if nativeMethodName in descriptor.canGcMethods:
-                args.append(CGGeneric("CanGc::deprecated_note()"))
 
         if returnType and outparamRootType:
             if returnType.isSequence():
@@ -6991,7 +6990,6 @@ class CGInterfaceTrait(CGThing):
                                 cx_no_gc: bool = False,
                                 cx: bool = False,
                                 realm: bool = False,
-                                canGc: bool = False,
                                 retval: bool = False
                                 ) -> Iterable[tuple[str, str]]:
             if realm:
@@ -7003,13 +7001,8 @@ class CGInterfaceTrait(CGThing):
             elif no_gc:
                 yield "cx", "&NoGC"
 
-            safe_cx = cx or cx_no_gc or realm or no_gc
-
             if argument:
                 yield "value", argument_type(descriptor, argument)
-
-            if canGc and not safe_cx:
-                yield "_can_gc", "CanGc"
 
             if retval and returnTypeNeedsOutparam(attribute_type):
                 yield "retval", outparamTypeFromReturnType(attribute_type)
@@ -7035,8 +7028,7 @@ class CGInterfaceTrait(CGThing):
                                                      no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods or descriptor.interface.isIteratorInterface(),
-                                                     realm=name in descriptor.realmMethods,
-                                                     canGc=name in descriptor.canGcMethods)
+                                                     realm=name in descriptor.realmMethods)
                         rettype = return_type(descriptor, rettype, infallible)
                         yield f"{name}{'_' * idx}", arguments, rettype, m.isStatic()
                 elif m.isAttr():
@@ -7056,7 +7048,6 @@ class CGInterfaceTrait(CGThing):
                                cx_no_gc=name in descriptor.cx_no_gcMethods,
                                cx=name in descriptor.cxMethods or isEventHandlerCallback(m),
                                realm=name in descriptor.realmMethods,
-                               canGc=name in descriptor.canGcMethods,
                                retval=True
                            ),
                            return_type(descriptor, m.type, infallible),
@@ -7077,7 +7068,6 @@ class CGInterfaceTrait(CGThing):
                                    cx_no_gc=name in descriptor.cx_no_gcMethods,
                                    cx=name in descriptor.cxMethods or descriptor.implicitCxSetters or isEventHandlerCallback(m),
                                    realm=name in descriptor.realmMethods,
-                                   canGc=name in descriptor.canGcMethods,
                                    retval=False,
                                ),
                                rettype,
@@ -7099,8 +7089,7 @@ class CGInterfaceTrait(CGThing):
                                                      no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
-                                                     realm=name in descriptor.realmMethods,
-                                                     canGc=name in descriptor.canGcMethods)
+                                                     realm=name in descriptor.realmMethods)
 
                         # If this interface 'supports named properties', then we
                         # should be able to access 'supported property names'
@@ -7114,8 +7103,7 @@ class CGInterfaceTrait(CGThing):
                                                      no_gc=name in descriptor.no_gcMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
-                                                     realm=name in descriptor.realmMethods,
-                                                     canGc=name in descriptor.canGcMethods)
+                                                     realm=name in descriptor.realmMethods)
                     rettype = return_type(descriptor, rettype, infallible)
                     yield name, arguments, rettype, False
 
@@ -8342,8 +8330,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      no_gc: bool = False,
                      cx_no_gc: bool = False,
                      cx: bool = False,
-                     realm: bool = False,
-                     canGc: bool = False
+                     realm: bool = False
                      ) -> Iterator[tuple[str, str]]:
 
     match needCx(returnType, arguments, passJSBits):
@@ -8363,8 +8350,6 @@ def method_arguments(descriptorProvider: DescriptorProvider,
     elif no_gc:
         yield "cx", "&NoGC"
 
-    safe_cx = cx or cx_no_gc or realm or no_gc
-
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,
                            argument.defaultValue, argument.variadic)
@@ -8372,9 +8357,6 @@ def method_arguments(descriptorProvider: DescriptorProvider,
 
     if trailing:
         yield trailing
-
-    if canGc and not safe_cx:
-        yield "_can_gc", "CanGc"
 
     if returnTypeNeedsOutparam(returnType):
         yield "rval", outparamTypeFromReturnType(returnType),

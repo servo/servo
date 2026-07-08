@@ -133,8 +133,6 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
-    // The apparently-unused CanGc parameter reflects the fact that the JS API calls
-    // like JS_NewFunction can trigger a GC.
     fn create_js_promise(cx: &mut JSContext, mut obj: MutableHandleObject) {
         unsafe {
             let do_nothing_func = JS_NewFunction(
