@@ -461,10 +461,12 @@ impl HoistedAbsolutelyPositionedBox {
     ) -> Fragment {
         // The static position rect was calculated assuming that the containing block would be
         // established by the content box of some ancestor, but the actual containing block is
-        // established by the padding box. So we need to add the padding of that ancestor.
-        let mut static_position_rect = self
-            .static_position_rect()
-            .outer_rect(-containing_block_padding);
+        // established by the padding box. So we need to translate the rect by the padding of
+        // that ancestor.
+        let mut static_position_rect = self.static_position_rect().translate(PhysicalVec::new(
+            containing_block_padding.left,
+            containing_block_padding.top,
+        ));
         static_position_rect.size = static_position_rect.size.max(PhysicalSize::zero());
         let fully_adjusted_static_position_rect =
             static_position_rect.to_logical(&containing_block.into());
