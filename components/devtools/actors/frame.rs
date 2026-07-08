@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::{DevtoolScriptControlMsg, FrameInfo};
+use devtools_traits::{DevtoolScriptControlMsg, FrameInfo, GetEnvironmentRequest};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -88,7 +88,7 @@ impl Actor for FrameActor {
                 source_actor
                     .script_sender
                     .send(DevtoolScriptControlMsg::GetEnvironment(
-                        self.name().into(),
+                        GetEnvironmentRequest::Frame(self.name().into()),
                         tx,
                     ))
                     .map_err(|_| ActorError::Internal)?;
