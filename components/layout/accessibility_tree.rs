@@ -399,15 +399,12 @@ impl AccessibilityTree {
             if let Some(opaque_node) = self.id_to_opaque_node.remove(&id) {
                 self.opaque_node_to_id.remove(&opaque_node);
             }
-            for child in node.borrow().children() {
-                let child_id = child.borrow().id;
-                if !update.tree_changes.contains_key(&child_id) {
-                    ids_to_remove.push(child_id);
-                }
-            }
+            ids_to_remove.extend(node.borrow().child_ids());
         }
 
-        debug_assert!(
+        // We should have resolved all damage in nodes still in the tree by this point, and any
+        // nodes not in the tree should have been removed from this map in the loop  above.
+        assert!(
             update.unresolved_local_damage.is_empty(),
             "Damage not empty: {:?}",
             update.unresolved_local_damage
@@ -888,6 +885,7 @@ impl AccessibilityUpdate {
 
         if self.changed_nodes.is_empty() {
             assert!(self.tree_changes.is_empty());
+            assert!(self.unresolved_local_damage.is_empty());
             return None;
         }
 
