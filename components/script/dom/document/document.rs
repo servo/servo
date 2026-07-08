@@ -118,7 +118,9 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout, UnrootedDom};
+use crate::dom::bindings::root::{
+    Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout, ToLayoutOptional, UnrootedDom,
+};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::dom::bindings::weakref::DOMTracker;
@@ -943,6 +945,12 @@ impl Document {
     #[inline]
     pub(crate) fn current_rendering_epoch(&self) -> Epoch {
         self.current_rendering_epoch.get()
+    }
+
+    /// Get the [`Selection`] instance for this [`Document`] if there is one or `None`.
+    #[inline]
+    pub(crate) fn selection(&self) -> Option<DomRoot<Selection>> {
+        self.selection.get()
     }
 
     pub(crate) fn set_activity(&self, cx: &mut JSContext, activity: DocumentActivity) {
@@ -3589,6 +3597,11 @@ impl<'dom> LayoutDom<'dom, Document> {
     #[expect(unsafe_code)]
     pub(crate) fn url_for_layout(self) -> ServoUrl {
         unsafe { self.unsafe_get().url.borrow_for_layout() }.clone()
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn selection_for_layout(&self) -> Option<LayoutDom<'dom, Selection>> {
+        unsafe { self.unsafe_get().selection.to_layout() }
     }
 }
 

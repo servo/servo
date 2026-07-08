@@ -113,19 +113,19 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     fn SetData(&self, cx: &mut JSContext, data: DOMString) {
         self.queue_mutation_record(cx);
         let old_length = self.Length();
-        let new_length = data.str().encode_utf16().count() as u32;
+        let new_length = len_utf16(&data.str()) as u32;
         *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
         self.content_changed(cx);
 
         let node = self.upcast::<Node>();
         if let Some(weak_ranges) = node.weak_ranges_mut() {
-            weak_ranges.replace_code_units(node, 0, old_length, new_length);
+            weak_ranges.replace_code_units(cx.no_gc(), node, 0, old_length, new_length);
         }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
     fn Length(&self) -> u32 {
-        self.data.borrow().encode_utf16().count() as u32
+        len_utf16(&self.data.borrow()) as u32
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-substringdata>
@@ -263,10 +263,11 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         let node = self.upcast::<Node>();
         if let Some(weak_ranges) = node.weak_ranges_mut() {
             weak_ranges.replace_code_units(
+                cx.no_gc(),
                 node,
                 offset,
                 count,
-                arg.str().encode_utf16().count() as u32,
+                len_utf16(&arg.str()) as u32,
             );
         }
 
@@ -360,4 +361,11 @@ fn split_at_utf16_code_unit_offset(s: &str, offset: u32) -> Result<(&str, Option
     } else {
         Err(())
     }
+}
+
+/// Returns the length (in 16-bit code units) of encoding `s` to UTF-16
+///
+/// Equivalent to but does less work than `.encode_utf16().count()`
+fn len_utf16(s: &str) -> usize {
+    s.chars().map(|c| c.len_utf16()).sum()
 }

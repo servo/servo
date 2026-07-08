@@ -33,6 +33,7 @@ use crate::dom::node::{
     BindContext, ForceSlottableNodeReconciliation, IsShadowTree, Node, NodeDamage, NodeTraits,
     UnbindContext,
 };
+use crate::dom::{FlatTreeParent, NodeFlags};
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]
@@ -364,6 +365,13 @@ impl HTMLSlotElement {
                 .node()
                 .remove_style_and_layout_data_from_subtree(cx);
             slottable.node().dirty(NodeDamage::Other);
+        }
+
+        if let Some(selection) = self.owner_document().selection() &&
+            let FlatTreeParent::Parent(parent) = self.upcast::<Node>().parent_in_flat_tree() &&
+            parent.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
+        {
+            selection.set_visible_selection_dirty();
         }
     }
 

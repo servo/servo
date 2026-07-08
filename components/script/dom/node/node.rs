@@ -104,7 +104,8 @@ use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::iterators::{
-    ShadowIncluding, UnrootedFollowingNodeIterator, UnrootedPrecedingNodeIterator,
+    ShadowIncluding, UnrootedFlatTreeTraversal, UnrootedFollowingNodeIterator,
+    UnrootedPrecedingNodeIterator,
 };
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use crate::dom::node::iterators::{
@@ -234,6 +235,15 @@ bitflags! {
 
         /// Whether this node has a pseudo-element style which uses `attr()` in the `content` attribute.
         const USES_ATTR_IN_CONTENT_ATTRIBUTE = 1 << 13;
+
+        /// Whether any part of this node or its flat tree descendants overlaps with
+        /// the [Document selection](https://w3c.github.io/selection-api/#dfn-selection)
+        ///
+        /// By definition, if a node has this flag set
+        /// then all its flat tree ancestors have it set too.
+        /// Conversely, if a node has this flag unset
+        /// then all its flat tree descendants have it unset too.
+        const OVERLAPS_DOCUMENT_SELECTION = 1 << 14;
     }
 }
 
@@ -376,6 +386,7 @@ impl Node {
         if let Some(element) = self.downcast::<Element>() {
             element.clean_up_style_data();
         }
+        self.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
     }
 
     /// Clean up flags and runs steps 11-14 of remove a node.
@@ -390,7 +401,8 @@ impl Node {
             .union(NodeFlags::IS_CONNECTED)
             .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
             .union(NodeFlags::HAS_SNAPSHOT)
-            .union(NodeFlags::HANDLED_SNAPSHOT);
+            .union(NodeFlags::HANDLED_SNAPSHOT)
+            .union(NodeFlags::OVERLAPS_DOCUMENT_SELECTION);
 
         for node in root.traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No) {
             node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
@@ -472,7 +484,8 @@ impl Node {
             .union(NodeFlags::IS_CONNECTED)
             .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
             .union(NodeFlags::HAS_SNAPSHOT)
-            .union(NodeFlags::HANDLED_SNAPSHOT);
+            .union(NodeFlags::HANDLED_SNAPSHOT)
+            .union(NodeFlags::OVERLAPS_DOCUMENT_SELECTION);
 
         for node in root.traverse_preorder(ShadowIncluding::No) {
             node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
@@ -949,7 +962,8 @@ impl Node {
         TreeIterator::new(self, shadow_including)
     }
 
-    /// Iterates over this node and all its descendants, in preorder. We take &NoGC to prevent GC which allows us to avoid rooting.
+    /// Iterates over this node and all its descendants, in preorder.
+    /// We take &NoGC to prevent GC which allows us to avoid rooting.
     pub(crate) fn traverse_preorder_non_rooting<'b>(
         &self,
         no_gc: &'b NoGC,
@@ -1004,6 +1018,13 @@ impl Node {
                 .inclusive_ancestors_in_flat_tree()
                 .any(|node| node == *ancestor)
         })
+    }
+
+    pub(crate) fn flat_tree_traversal_unrooted<'no_gc>(
+        &self,
+        no_gc: &'no_gc NoGC,
+    ) -> UnrootedFlatTreeTraversal<'no_gc> {
+        UnrootedFlatTreeTraversal::new(self, no_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor>
@@ -1436,7 +1457,7 @@ impl Node {
             .expect("old_parent should always be initialized");
 
         // Step 9. Run the live range pre-remove steps, given node.
-        let cached_index = Node::live_range_pre_remove_steps(node, &old_parent);
+        let cached_index = Node::live_range_pre_remove_steps(cx.no_gc(), node, &old_parent);
 
         // TODO Step 10. For each NodeIterator object iterator whose root’s node document is node’s
         // node document: run the NodeIterator pre-remove steps given node and iterator.
@@ -1516,7 +1537,7 @@ impl Node {
             // greater than child’s index: increase its start offset by 1.
             // Step 17.2. For each live range whose end node is newParent and end offset is greater
             // than child’s index: increase its end offset by 1.
-            new_parent_ranges.increase_above(new_parent, child.index(), 1)
+            new_parent_ranges.increase_above(cx.no_gc(), new_parent, child.index(), 1)
         }
 
         // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
@@ -1704,7 +1725,7 @@ impl Node {
                     let Some(shadow_root) = n.downcast::<ShadowRoot>()
                 {
                     return Some(UnrootedDom::from_dom(
-                        Dom::from_ref(shadow_root.Host().upcast::<Node>()),
+                        Dom::from_ref(shadow_root.host_unrooted(no_gc).upcast::<Node>()),
                         no_gc,
                     ));
                 }
@@ -2587,7 +2608,12 @@ impl Node {
         if let Some(child) = child &&
             let Some(parent_weak_ranges) = parent.weak_ranges_mut()
         {
-            parent_weak_ranges.increase_above(parent, child.index(), count.try_into().unwrap());
+            parent_weak_ranges.increase_above(
+                cx.no_gc(),
+                parent,
+                child.index(),
+                count.try_into().unwrap(),
+            );
         }
 
         // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
@@ -2709,6 +2735,8 @@ impl Node {
             }
         }
 
+        Self::update_selection_flags_for_newly_inserted_nodes(parent, new_nodes);
+
         if let SuppressObserver::Unsuppressed = suppress_observers {
             // Step 9. Run the children changed steps for parent.
             // TODO(xiaochengh): If we follow the spec and move it out of the if block, some WPT fail. Investigate.
@@ -2752,6 +2780,27 @@ impl Node {
 
         parent_document.remove_script_and_layout_blocker(cx);
         from_document.remove_script_and_layout_blocker(cx);
+    }
+
+    pub(crate) fn update_selection_flags_for_newly_inserted_nodes(
+        parent: &Node,
+        inserted_nodes: &[&Node],
+    ) {
+        let Some(selection) = parent.owner_document().selection() else {
+            return;
+        };
+
+        for node in inserted_nodes {
+            match node.parent_in_flat_tree() {
+                FlatTreeParent::RootNode | FlatTreeParent::NotInFlatTree => {},
+                FlatTreeParent::Parent(parent) => {
+                    if parent.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
+                        selection.set_visible_selection_dirty();
+                        return;
+                    }
+                },
+            }
+        }
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
@@ -2851,7 +2900,7 @@ impl Node {
 
         // Step 3. Run the live range pre-remove steps.
         // https://dom.spec.whatwg.org/#live-range-pre-remove-steps
-        let cached_index = Node::live_range_pre_remove_steps(node, parent);
+        let cached_index = Node::live_range_pre_remove_steps(cx.no_gc(), node, parent);
 
         // TODO: Step 4. Pre-removing steps for node iterators
 
@@ -2919,7 +2968,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
-    fn live_range_pre_remove_steps(node: &Node, parent: &Node) -> Option<u32> {
+    fn live_range_pre_remove_steps(no_gc: &NoGC, node: &Node, parent: &Node) -> Option<u32> {
         if parent.weak_ranges_is_empty() {
             return None;
         }
@@ -2938,7 +2987,7 @@ impl Node {
         // Step 7. For each live range whose end node is parent and end offset is greater than index,
         // decrease its end offset by 1.
         if let Some(parent_weak_ranges) = parent.weak_ranges_mut() {
-            parent_weak_ranges.decrease_above(parent, index, 1);
+            parent_weak_ranges.decrease_above(no_gc, parent, index, 1);
         }
 
         // Parent had ranges, we needed the index, let's keep track of
@@ -3354,6 +3403,24 @@ impl Node {
         self.next_sibling.get_unrooted(no_gc)
     }
 
+    pub(crate) fn next_flat_tree_sibling_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> Option<UnrootedDom<'a, Node>> {
+        if let Some(slot_element) = self.assigned_slot() {
+            // TODO(mrobinson): This is O(n²) against the number of slotted nodes, which isn't ideal.
+            // We could track the index of each slottable in the `<slot>` to fix this.
+            return slot_element
+                .assigned_nodes()
+                .iter()
+                .skip_while(|slottable| &*slottable.0 != self)
+                // Skip `self` so that this moves on the the next node in the list of slottables.
+                .nth(1)
+                .map(|next_slottable| UnrootedDom::from_dom(next_slottable.0.clone(), no_gc));
+        }
+        self.get_next_sibling_unrooted(no_gc)
+    }
+
     pub(crate) fn get_previous_sibling_unrooted<'a>(
         &self,
         no_gc: &'a NoGC,
@@ -3365,6 +3432,27 @@ impl Node {
         &self,
         no_gc: &'a NoGC,
     ) -> Option<UnrootedDom<'a, Node>> {
+        self.first_child.get_unrooted(no_gc)
+    }
+
+    pub(crate) fn first_flat_tree_child_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> Option<UnrootedDom<'a, Node>> {
+        let Some(element) = self.downcast::<Element>() else {
+            return self.get_first_child_unrooted(no_gc);
+        };
+        if let Some(shadow_root) = element.shadow_root_unrooted(no_gc) {
+            return shadow_root
+                .upcast::<Node>()
+                .first_flat_tree_child_unrooted(no_gc);
+        };
+        if let Some(slot_element) = element.downcast::<HTMLSlotElement>() &&
+            slot_element.has_assigned_nodes() &&
+            let Some(assigned_node) = slot_element.assigned_nodes().first()
+        {
+            return Some(UnrootedDom::from_dom(assigned_node.0.clone(), no_gc));
+        }
         self.first_child.get_unrooted(no_gc)
     }
 
@@ -3867,11 +3955,21 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 }) {
                     let (index, sibling) = children.next().unwrap();
                     if let Some(sibling_weak_ranges) = sibling.weak_ranges_mut() {
-                        sibling_weak_ranges
-                            .drain_to_preceding_text_sibling(&sibling, &node, length);
+                        sibling_weak_ranges.drain_to_preceding_text_sibling(
+                            cx.no_gc(),
+                            &sibling,
+                            &node,
+                            length,
+                        );
                     }
                     if let Some(weak_ranges) = self.weak_ranges_mut() {
-                        weak_ranges.move_to_text_child_at(self, index as u32, &node, length);
+                        weak_ranges.move_to_text_child_at(
+                            cx.no_gc(),
+                            self,
+                            index as u32,
+                            &node,
+                            length,
+                        );
                     }
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
@@ -4297,7 +4395,7 @@ impl VirtualMethods for Node {
             let Some(weak_ranges) = self.weak_ranges_mut() &&
             !weak_ranges.is_empty()
         {
-            weak_ranges.drain_to_parent(context.parent, context.index(), self);
+            weak_ranges.drain_to_parent(cx.no_gc(), context.parent, context.index(), self);
         }
     }
 
@@ -4315,11 +4413,15 @@ impl VirtualMethods for Node {
             let Some(weak_ranges) = self.weak_ranges_mut() &&
             !weak_ranges.is_empty()
         {
-            weak_ranges.drain_to_parent(old_parent, context.index(), self);
+            weak_ranges.drain_to_parent(cx.no_gc(), old_parent, context.index(), self);
         }
 
         self.owner_doc_unrooted(cx.no_gc())
             .content_and_heritage_changed(cx.no_gc(), self);
+
+        if let Some(parent) = self.GetParentNode() {
+            Self::update_selection_flags_for_newly_inserted_nodes(&parent, &[self]);
+        }
     }
 
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {

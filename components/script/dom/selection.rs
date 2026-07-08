@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::abstractrange::bp_position;
@@ -17,12 +18,15 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayoutOptional};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::iterators::PrePostIteration;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
+use crate::dom::types::ShadowRoot;
+use crate::dom::{CharacterData, FlatTreeParent, NodeDamage, NodeFlags};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 enum Direction {
@@ -39,6 +43,9 @@ pub(crate) struct Selection {
     direction: Cell<Direction>,
     /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
     has_scheduled_selectionchange_event: Cell<bool>,
+    /// Whether or not this [`Selection`] needs to remark DOM nodes with selection flags
+    /// after a change to its underlying [`Range`].
+    visible_selection_dirty: Cell<bool>,
 }
 
 impl Selection {
@@ -49,6 +56,7 @@ impl Selection {
             range: MutNullableDom::new(None),
             direction: Cell::new(Direction::Directionless),
             has_scheduled_selectionchange_event: Cell::new(false),
+            visible_selection_dirty: Cell::new(false),
         }
     }
 
@@ -60,27 +68,148 @@ impl Selection {
         )
     }
 
-    fn set_range(&self, range: &Range) {
-        // If we are setting to literally the same Range object
-        // (not just the same positions), then there's nothing changing
-        // and no task to queue.
-        if let Some(existing) = self.range.get() &&
-            &*existing == range
-        {
+    fn set_range(&self, new_range: Option<&Range>) {
+        // If we are setting to literally the same Range object and not just the same
+        // positions, then there's nothing changing and no task to queue.
+        if new_range == self.range.get().as_deref() {
             return;
         }
-        self.range.set(Some(range));
-        range.associate_selection(self);
+
+        if let Some(old_range) = self.range.take() {
+            old_range.disassociate_selection(self);
+        }
+
+        if let Some(new_range) = new_range {
+            self.range.set(Some(new_range));
+            new_range.associate_selection(self);
+        }
+
+        self.set_visible_selection_dirty();
         self.queue_selectionchange_task();
     }
 
-    fn clear_range(&self) {
-        // If we already don't have a a Range object, then there's
-        // nothing changing and no task to queue.
-        if let Some(range) = self.range.get() {
-            range.disassociate_selection(self);
-            self.range.set(None);
-            self.queue_selectionchange_task();
+    fn unset_flags_for_visible_selection(&self, no_gc: &NoGC) {
+        let mut iter = self
+            .document
+            .upcast::<Node>()
+            .flat_tree_traversal_unrooted(no_gc);
+        let mut next = iter.next();
+        while let Some(node) = next.take() {
+            match node {
+                PrePostIteration::Pre(node) => {
+                    if node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
+                        node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
+
+                        // Currently only [`CharacterData`] nodes show visible selection.
+                        if node.is::<CharacterData>() {
+                            node.dirty(NodeDamage::ContentOrHeritage);
+                        }
+
+                        next = iter.next();
+                    } else {
+                        next = iter.next_skipping_subtree();
+                    }
+                },
+                PrePostIteration::Post(_) => {},
+            }
+        }
+    }
+
+    pub(crate) fn set_flags_for_visible_selection(&self, no_gc: &NoGC) {
+        if !self.visible_selection_dirty.take() {
+            return;
+        }
+
+        self.unset_flags_for_visible_selection(no_gc);
+        let Some(range) = self.range.get() else {
+            return;
+        };
+
+        let start_position =
+            position_in_flat_tree(range.start_container(), range.start_offset() as usize);
+        let end_position =
+            position_in_flat_tree(range.end_container(), range.end_offset() as usize);
+        let start_node = start_position.node();
+        let end_node = end_position.node();
+
+        let mut reached_start = false;
+        let mut reached_end = false;
+
+        range.start_container().dirty(NodeDamage::ContentOrHeritage);
+        range.end_container().dirty(NodeDamage::ContentOrHeritage);
+
+        // We mark the ancestors of the start node as containing a selection. Two notes:
+        // - The traversal itself will take care of marking ancestors of all other nodes,
+        //   as the in-order tree walk will be guaranteed to walk them.
+        // - We do not need to mark these nodes as dirty as they are guaranteed to not be
+        //   leaves (the only nodes that show visible selection).
+        let mut maybe_parent = start_node.parent_in_flat_tree();
+        while let FlatTreeParent::Parent(parent) = maybe_parent {
+            parent.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
+            maybe_parent = parent.parent_in_flat_tree();
+        }
+
+        for iteration in start_node.flat_tree_traversal_unrooted(no_gc) {
+            let node = iteration.node();
+            let update_flag = |reached_start: bool, reached_end: bool, flag: NodeFlags| {
+                let overlaps = reached_start && !reached_end;
+                if overlaps && !node.get_flag(flag) {
+                    node.set_flag(flag, true);
+
+                    // Currently only [`CharacterData`] nodes show visible selection.
+                    if node.is::<CharacterData>() {
+                        node.dirty(NodeDamage::ContentOrHeritage);
+                    }
+                }
+            };
+
+            match &iteration {
+                PrePostIteration::Pre(_) => {
+                    if node == start_node &&
+                        matches!(
+                            start_position,
+                            FlatTreeNodePosition::Before(_) | FlatTreeNodePosition::Inside(_)
+                        )
+                    {
+                        reached_start = true;
+                    }
+
+                    if node == end_node && matches!(end_position, FlatTreeNodePosition::Before(_)) {
+                        reached_end = true;
+                    }
+
+                    update_flag(
+                        reached_start,
+                        reached_end,
+                        NodeFlags::OVERLAPS_DOCUMENT_SELECTION,
+                    );
+                },
+                PrePostIteration::Post(_) => {
+                    if node == end_node && matches!(end_position, FlatTreeNodePosition::Before(_)) {
+                        reached_end = true;
+                    }
+
+                    update_flag(
+                        reached_start,
+                        reached_end,
+                        NodeFlags::OVERLAPS_DOCUMENT_SELECTION,
+                    );
+
+                    if node == start_node &&
+                        matches!(start_position, FlatTreeNodePosition::After(_))
+                    {
+                        reached_start = true;
+                    }
+
+                    if node == end_node {
+                        reached_end = true;
+                    }
+                },
+            }
+
+            if reached_end {
+                return;
+            }
         }
     }
 
@@ -141,24 +270,32 @@ impl Selection {
         self.range.get()
     }
 
-    pub(crate) fn collapse_current_range(&self, node: &Node, offset: u32) {
+    pub(crate) fn collapse_current_range(&self, no_gc: &NoGC, node: &Node, offset: u32) {
         let range = self.range.get().expect("Must always have a range");
-        range.set_start(node, offset);
-        range.set_end(node, offset);
+        range.set_start(no_gc, node, offset);
+        range.set_end(no_gc, node, offset);
+
+        self.set_visible_selection_dirty();
     }
 
-    pub(crate) fn extend_current_range(&self, node: &Node, offset: u32) {
+    pub(crate) fn extend_current_range(&self, no_gc: &NoGC, node: &Node, offset: u32) {
         let range = self.range.get().expect("Must always have a range");
         assert!(range.collapsed(), "Must only extend after collapsing");
 
         let anchor_node = range.start_container();
         if (*anchor_node == *node && range.start_offset() < offset) || anchor_node.is_before(node) {
-            range.set_end(node, offset);
+            range.set_end(no_gc, node, offset);
             self.direction.set(Direction::Forwards);
         } else {
-            range.set_start(node, offset);
+            range.set_start(no_gc, node, offset);
             self.direction.set(Direction::Backwards);
         }
+
+        self.set_visible_selection_dirty();
+    }
+
+    pub(crate) fn set_visible_selection_dirty(&self) {
+        self.visible_selection_dirty.set(true);
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-anchor>
@@ -322,7 +459,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
 
         // Step 3. Set this's range to range by a strong reference (not by making a copy).
-        self.set_range(range);
+        self.set_range(Some(range));
 
         // Are we supposed to set Direction here? w3c/selection-api#116
         self.direction.set(Direction::Forwards);
@@ -335,7 +472,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         if let Some(own_range) = self.range.get() &&
             &*own_range == range
         {
-            self.clear_range();
+            self.set_range(None);
             return Ok(());
         }
         Err(Error::NotFound(None))
@@ -345,13 +482,13 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     fn RemoveAllRanges(&self) {
         // > The method must make this empty by disassociating its range if this has an
         // > associated range.
-        self.clear_range();
+        self.set_range(None);
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-empty>
     fn Empty(&self) {
         // > The method must be an alias, and behave identically, to removeAllRanges().
-        self.clear_range();
+        self.set_range(None);
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapse>
@@ -359,7 +496,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 1. If node is null, this method must behave identically as
         // removeAllRanges() and abort these steps.
         let Some(node) = node else {
-            self.clear_range();
+            self.set_range(None);
             return Ok(());
         };
 
@@ -392,7 +529,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         let new_range = Range::new(cx, &self.document, node, offset, node, offset);
 
         // Step 7. Set this's range to newRange.
-        self.set_range(&new_range);
+        self.set_range(Some(&new_range));
 
         // Are we supposed to set Direction here? w3c/selection-api#116
         self.direction.set(Direction::Forwards);
@@ -513,7 +650,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
 
         // Step 8. Set this's range to newRange.
-        self.set_range(&new_range);
+        self.set_range(Some(&new_range));
 
         // Step 9. If newFocus is before oldAnchor, set this's direction to backwards.
         // Otherwise, set it to forwards.
@@ -598,7 +735,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
 
         // Step 6. Set this's range to newRange.
-        self.set_range(&new_range);
+        self.set_range(Some(&new_range));
 
         // Step 7. If focus is before anchor, set this's direction to backwards.
         // Otherwise, set it to forwards
@@ -629,7 +766,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         let new_range = Range::new(cx, &self.document, node, 0, node, child_count);
 
         // Step 6. Set this's range to newRange.
-        self.set_range(&new_range);
+        self.set_range(Some(&new_range));
 
         // Step 7. Set this's direction to forwards.
         self.direction.set(Direction::Forwards);
@@ -716,4 +853,55 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             DOMString::from("")
         }
     }
+}
+
+impl<'dom> LayoutDom<'dom, Selection> {
+    #[expect(unsafe_code)]
+    pub(crate) fn range_for_layout(&self) -> Option<LayoutDom<'dom, Range>> {
+        unsafe { self.unsafe_get().range.to_layout() }
+    }
+}
+
+enum FlatTreeNodePosition {
+    Before(DomRoot<Node>),
+    Inside(DomRoot<Node>),
+    After(DomRoot<Node>),
+}
+
+impl FlatTreeNodePosition {
+    fn node(&self) -> &Node {
+        match self {
+            FlatTreeNodePosition::Before(node) => node,
+            FlatTreeNodePosition::Inside(node) => node,
+            FlatTreeNodePosition::After(node) => node,
+        }
+    }
+}
+
+fn position_in_flat_tree(container: DomRoot<Node>, offset: usize) -> FlatTreeNodePosition {
+    if container.is::<CharacterData>() {
+        return FlatTreeNodePosition::Inside(container);
+    }
+
+    let shadow_host_or_node = |node: &DomRoot<Node>| {
+        container
+            .downcast::<ShadowRoot>()
+            .map(|shadow_root| DomRoot::upcast(shadow_root.Host()))
+            .unwrap_or(node.clone())
+    };
+
+    if offset == 0 {
+        return FlatTreeNodePosition::Before(shadow_host_or_node(&container));
+    }
+
+    let Some(child) = container.children().nth(offset) else {
+        // There is no child at this index, which we interpret as the last element in the container.
+        return FlatTreeNodePosition::After(shadow_host_or_node(&container));
+    };
+
+    if let FlatTreeParent::Parent(_) = child.parent_in_flat_tree() {
+        return FlatTreeNodePosition::Before(child);
+    }
+
+    FlatTreeNodePosition::After(shadow_host_or_node(&container))
 }

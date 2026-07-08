@@ -1051,6 +1051,15 @@ impl Fragment {
             );
         }
 
+        Self::build_display_list_for_text_selection(
+            fragment,
+            builder,
+            state,
+            containing_block,
+            fragment.base.rect().min_x(),
+            fragment.justification_adjustment,
+        );
+
         for text_decoration in state.text_decorations.iter() {
             if text_decoration.line.contains(TextDecorationLine::UNDERLINE) {
                 let mut rect = rect;
@@ -1084,15 +1093,6 @@ impl Fragment {
                 );
             }
         }
-
-        Self::build_display_list_for_text_selection(
-            fragment,
-            builder,
-            state,
-            containing_block,
-            fragment.base.rect().min_x(),
-            fragment.justification_adjustment,
-        );
 
         builder.wr().push_text(
             &common,
@@ -1301,7 +1301,7 @@ impl Fragment {
         let end_x = end_advance.unwrap_or(current_advance);
 
         let parent_style = fragment.base.style();
-        if !shared_selection.range.is_empty() {
+        if !shared_selection.character_range.is_empty() {
             let selection_rect = Rect::new(
                 containing_block_rect.origin +
                     Vector2D::new(fragment_x_offset + start_x, Au::zero()),

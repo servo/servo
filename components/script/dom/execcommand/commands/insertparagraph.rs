@@ -70,7 +70,7 @@ pub(crate) fn execute_insert_paragraph_command(
         node = node.GetParentNode().expect("Must always have a parent");
     }
     // Step 7. Call collapse(node, offset) on the context object's selection.
-    selection.collapse_current_range(&node, offset);
+    selection.collapse_current_range(cx.no_gc(), &node, offset);
     // Step 8. Let container equal node.
     let mut container = node.clone();
     // Step 9. While container is not a single-line container,
@@ -159,7 +159,7 @@ pub(crate) fn execute_insert_paragraph_command(
                 unreachable!("Must always be able to append");
             }
             // Step 11.5.5. Call collapse(container, 0) on the context object's selection.
-            selection.collapse_current_range(container, 0);
+            selection.collapse_current_range(cx.no_gc(), container, 0);
             // Step 11.5.6. Return true.
             return true;
         };
@@ -201,7 +201,7 @@ pub(crate) fn execute_insert_paragraph_command(
             unreachable!("Must always be able to insert");
         }
         // Step 12.3. Call collapse(node, offset + 1) on the context object's selection.
-        selection.collapse_current_range(&node, offset + 1);
+        selection.collapse_current_range(cx.no_gc(), &node, offset + 1);
         // Step 12.4. If br is the last descendant of container,
         // let br be the result of calling createElement("br") on the context object,
         // then call insertNode(br) on the active range.
@@ -260,8 +260,12 @@ pub(crate) fn execute_insert_paragraph_command(
     // Step 14. Let new line range be a new range whose start is the same as the active range's,
     // and whose end is (container, length of container).
     let new_line_range = document.CreateRange(cx);
-    new_line_range.set_start(&active_range.start_container(), active_range.start_offset());
-    new_line_range.set_end(&container, container.len());
+    new_line_range.set_start(
+        cx.no_gc(),
+        &active_range.start_container(),
+        active_range.start_offset(),
+    );
+    new_line_range.set_end(cx.no_gc(), &container, container.len());
     // Step 15. While new line range's start offset is zero and its start node
     // is not a prohibited paragraph child,
     // set its start to (parent of start node, index of start node).
@@ -272,6 +276,7 @@ pub(crate) fn execute_insert_paragraph_command(
     {
         let start = new_line_range.start_container();
         new_line_range.set_start(
+            cx.no_gc(),
             &start.GetParentNode().expect("Must always have a parent"),
             start.index(),
         );
@@ -286,6 +291,7 @@ pub(crate) fn execute_insert_paragraph_command(
     {
         let start = new_line_range.start_container();
         new_line_range.set_start(
+            cx.no_gc(),
             &start.GetParentNode().expect("Must always have a parent"),
             1 + start.index(),
         );
@@ -420,7 +426,7 @@ pub(crate) fn execute_insert_paragraph_command(
         }
     }
     // Step 34. Call collapse(new container, 0) on the context object's selection.
-    selection.collapse_current_range(&new_container_node, 0);
+    selection.collapse_current_range(cx.no_gc(), &new_container_node, 0);
     // Step 35. Return true.
     true
 }

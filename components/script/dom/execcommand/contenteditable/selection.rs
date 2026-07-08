@@ -201,12 +201,14 @@ impl Selection {
             // Step 6.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
                 self.collapse_current_range(
+                    cx.no_gc(),
                     &active_range.start_container(),
                     active_range.start_offset(),
                 );
             } else {
                 // Step 6.2. Otherwise, call collapseToEnd() on the context object's selection.
                 self.collapse_current_range(
+                    cx.no_gc(),
                     &active_range.end_container(),
                     active_range.end_offset(),
                 );
@@ -232,10 +234,10 @@ impl Selection {
         }
 
         // Step 9. Call collapse(start node, start offset) on the context object's selection.
-        self.collapse_current_range(&start_node, start_offset);
+        self.collapse_current_range(cx.no_gc(), &start_node, start_offset);
 
         // Step 10. Call extend(end node, end offset) on the context object's selection.
-        self.extend_current_range(&end_node, end_offset);
+        self.extend_current_range(cx.no_gc(), &end_node, end_offset);
 
         // Step 11.
         //
@@ -330,12 +332,14 @@ impl Selection {
             // Step 21.3. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
                 self.collapse_current_range(
+                    cx.no_gc(),
                     &active_range.start_container(),
                     active_range.start_offset(),
                 );
             } else {
                 // Step 21.4. Otherwise, call collapseToEnd() on the context object's selection.
                 self.collapse_current_range(
+                    cx.no_gc(),
                     &active_range.end_container(),
                     active_range.end_offset(),
                 );
@@ -470,12 +474,14 @@ impl Selection {
             // Step 30.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
                 self.collapse_current_range(
+                    cx.no_gc(),
                     &active_range.start_container(),
                     active_range.start_offset(),
                 );
             } else {
                 // Step 30.2. Otherwise, call collapseToEnd() on the context object's selection.
                 self.collapse_current_range(
+                    cx.no_gc(),
                     &active_range.end_container(),
                     active_range.end_offset(),
                 );
@@ -519,7 +525,7 @@ impl Selection {
             }
             // Step 32.3. Call collapse() on the context object's selection,
             // with first argument start block and second argument the index of reference node.
-            self.collapse_current_range(&start_block, reference_node.index());
+            self.collapse_current_range(cx.no_gc(), &start_block, reference_node.index());
             // Step 32.4. If end block has no children:
             if end_block.children_count() == 0 {
                 let mut end_block = end_block;
@@ -633,7 +639,7 @@ impl Selection {
         } else if end_block.is_ancestor_of(&start_block) {
             // Step 33.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
-            self.collapse_current_range(&start_block, start_block.len());
+            self.collapse_current_range(cx.no_gc(), &start_block, start_block.len());
             // Step 33.2. Let reference node be start block.
             let mut reference_node = start_block.clone();
             // Step 33.3. While reference node is not a child of end block, set reference node to its parent.
@@ -694,7 +700,7 @@ impl Selection {
         } else {
             // Step 34.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
-            self.collapse_current_range(&start_block, start_block.len());
+            self.collapse_current_range(cx.no_gc(), &start_block, start_block.len());
             // Step 34.2. If end block's firstChild is an inline node and start block's lastChild is a br,
             // remove start block's lastChild from it.
             if end_block
@@ -831,7 +837,7 @@ impl Selection {
             let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
                 unreachable!("Must always be able to split");
             };
-            active_range.set_start(start_text.upcast(), 0);
+            active_range.set_start(cx.no_gc(), start_text.upcast(), 0);
         }
         // Step 4. If the active range's end node is an editable Text node,
         // and its end offset is neither zero nor its end node's length,

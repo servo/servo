@@ -4,6 +4,7 @@
 
 use js::context::NoGC;
 
+use super::FlatTreeParent;
 use crate::dom::Node;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
@@ -415,12 +416,8 @@ pub(crate) struct UnrootedTreeIterator<'b> {
 }
 
 impl<'b> UnrootedTreeIterator<'b> {
-    pub(crate) fn new(
-        root: &Node,
-        shadow_including: ShadowIncluding,
-        no_gc: &'b NoGC,
-    ) -> UnrootedTreeIterator<'b> {
-        UnrootedTreeIterator {
+    pub(crate) fn new(root: &Node, shadow_including: ShadowIncluding, no_gc: &'b NoGC) -> Self {
+        Self {
             current: Some(UnrootedDom::from_dom(Dom::from_ref(root), no_gc)),
             depth: 0,
             shadow_including,
@@ -431,7 +428,7 @@ impl<'b> UnrootedTreeIterator<'b> {
     pub(crate) fn next_skipping_children(&mut self) -> Option<UnrootedDom<'b, Node>> {
         let current = self.current.take()?;
 
-        let iter = current.inclusive_ancestors(self.shadow_including);
+        let iter = current.inclusive_ancestors_unrooted(self.no_gc, self.shadow_including);
 
         for ancestor in iter {
             if self.depth == 0 {
@@ -449,7 +446,7 @@ impl<'b> UnrootedTreeIterator<'b> {
                 // Shadow roots don't have sibling, so after we're done traversing
                 // one we jump to the first child of the host
                 let child_option = shadow_root
-                    .Host()
+                    .host_unrooted(self.no_gc)
                     .upcast::<Node>()
                     .get_first_child_unrooted(self.no_gc);
 
@@ -471,18 +468,15 @@ impl<'b> Iterator for UnrootedTreeIterator<'b> {
 
     /// <https://dom.spec.whatwg.org/#concept-tree-order>
     /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
-    fn next(&mut self) -> Option<UnrootedDom<'b, Node>> {
+    fn next(&mut self) -> Option<Self::Item> {
         let current = self.current.take()?;
 
         // Handle a potential shadow root on the element
         if let Some(element) = current.downcast::<Element>() &&
-            let Some(shadow_root) = element.shadow_root() &&
+            let Some(shadow_root) = element.shadow_root_unrooted(self.no_gc) &&
             self.shadow_including == ShadowIncluding::Yes
         {
-            self.current = Some(UnrootedDom::from_dom(
-                Dom::from_ref(shadow_root.upcast::<Node>()),
-                self.no_gc,
-            ));
+            self.current = Some(UnrootedDom::upcast(shadow_root));
             self.depth += 1;
             return Some(current);
         }
@@ -494,8 +488,100 @@ impl<'b> Iterator for UnrootedTreeIterator<'b> {
             return Some(current);
         };
 
-        // current is empty.
-        let _ = self.current.insert(current);
+        // Restore `self.current` emptied by `.take()`
+        self.current = Some(current);
         self.next_skipping_children()
+    }
+}
+
+#[derive(Clone)]
+pub(crate) enum PrePostIteration<T: Clone> {
+    Pre(T),
+    Post(T),
+}
+
+impl<T: Clone> PrePostIteration<T> {
+    pub(crate) fn node(&self) -> &T {
+        match self {
+            PrePostIteration::Pre(node) => node,
+            PrePostIteration::Post(node) => node,
+        }
+    }
+}
+
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct UnrootedFlatTreeTraversal<'b> {
+    root: UnrootedDom<'b, Node>,
+    previously_returned_item: Option<PrePostIteration<UnrootedDom<'b, Node>>>,
+    no_gc: &'b NoGC,
+}
+
+impl<'b> UnrootedFlatTreeTraversal<'b> {
+    pub(crate) fn new(root: &Node, no_gc: &'b NoGC) -> Self {
+        Self {
+            root: UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
+            previously_returned_item: None,
+            no_gc,
+        }
+    }
+
+    pub(crate) fn next_skipping_subtree(
+        &mut self,
+    ) -> Option<PrePostIteration<UnrootedDom<'b, Node>>> {
+        let next = self.find_next_skipping_subtree()?;
+        self.previously_returned_item = Some(next);
+        self.previously_returned_item.clone()
+    }
+
+    fn find_next_skipping_subtree(&mut self) -> Option<PrePostIteration<UnrootedDom<'b, Node>>> {
+        match &self.previously_returned_item {
+            None => Some(PrePostIteration::Post(self.root.clone())),
+            Some(PrePostIteration::Pre(previous)) => Some(PrePostIteration::Post(previous.clone())),
+            Some(PrePostIteration::Post(previous)) => {
+                Self::find_next_after_post(self.no_gc, previous)
+            },
+        }
+    }
+
+    fn find_next_after_post(
+        no_gc: &'b NoGC,
+        previous: &UnrootedDom<'b, Node>,
+    ) -> Option<PrePostIteration<UnrootedDom<'b, Node>>> {
+        if let Some(next_sibling) = previous.next_flat_tree_sibling_unrooted(no_gc) {
+            return Some(PrePostIteration::Pre(next_sibling));
+        }
+        match previous.parent_in_flat_tree() {
+            FlatTreeParent::Parent(parent_node) => {
+                let parent_node = UnrootedDom::from_dom(parent_node.as_traced(), no_gc);
+                Some(PrePostIteration::Post(parent_node))
+            },
+            FlatTreeParent::NotInFlatTree => None,
+            FlatTreeParent::RootNode => None,
+        }
+    }
+
+    fn find_next(&mut self) -> Option<PrePostIteration<UnrootedDom<'b, Node>>> {
+        match &self.previously_returned_item {
+            None => Some(PrePostIteration::Pre(self.root.clone())),
+            Some(PrePostIteration::Pre(previous)) => {
+                if let Some(first_child) = previous.first_flat_tree_child_unrooted(self.no_gc) {
+                    return Some(PrePostIteration::Pre(first_child));
+                }
+                Some(PrePostIteration::Post(previous.clone()))
+            },
+            Some(PrePostIteration::Post(previous)) => {
+                Self::find_next_after_post(self.no_gc, previous)
+            },
+        }
+    }
+}
+
+impl<'b> Iterator for UnrootedFlatTreeTraversal<'b> {
+    type Item = PrePostIteration<UnrootedDom<'b, Node>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.find_next()?;
+        self.previously_returned_item = Some(next);
+        self.previously_returned_item.clone()
     }
 }

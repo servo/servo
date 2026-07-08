@@ -5,6 +5,7 @@
 //! Methods for layout of node
 
 use std::borrow::Cow;
+use std::ops::Range;
 
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
@@ -16,6 +17,7 @@ use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, SVGElementTypeId, SVGGraphicsElementTypeId,
 };
 use servo_base::id::{BrowsingContextId, PipelineId};
+use servo_base::text::{Utf32CodeUnitLength, utf16_offset_to_utf32_offset};
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
@@ -245,6 +247,44 @@ impl<'dom> LayoutDom<'dom, Node> {
             .upcast()
             .data_for_layout()
             .into()
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnitLength>> {
+        let text_node = self.downcast::<Text>()?;
+        let text = text_node.upcast().data_for_layout();
+        let range = self
+            .owner_doc_for_layout()
+            .selection_for_layout()?
+            .range_for_layout()?
+            .unsafe_get();
+
+        let range_start = range.start();
+        let range_end = range.end();
+        let is_start_node = unsafe { range_start.node().to_layout() } == *self;
+        let is_end_node = unsafe { range_end.node().to_layout() } == *self;
+
+        let unsafe_self = self.unsafe_get();
+        if !is_start_node &&
+            !is_end_node &&
+            !unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
+        {
+            return None;
+        }
+
+        let start_offset = if is_start_node {
+            utf16_offset_to_utf32_offset(text, range_start.get_offset().into())
+        } else {
+            Utf32CodeUnitLength(0)
+        };
+
+        let end_offset = if is_end_node {
+            utf16_offset_to_utf32_offset(text, range_end.get_offset().into())
+        } else {
+            Utf32CodeUnitLength(text.chars().count())
+        };
+
+        Some(start_offset..end_offset)
     }
 
     /// Get the selection for the given node. This only works for text nodes that are in

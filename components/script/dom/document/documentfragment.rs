@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
+use script_bindings::dom::UnrootedDom;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
@@ -70,6 +71,10 @@ impl DocumentFragment {
 
     pub(crate) fn host(&self) -> Option<DomRoot<Element>> {
         self.host.get()
+    }
+
+    pub(crate) fn host_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Element>> {
+        self.host.get_unrooted(no_gc)
     }
 
     pub(crate) fn set_host(&self, host: &Element) {

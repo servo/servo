@@ -118,8 +118,43 @@ macro_rules! unicode_length_type {
     };
 }
 
+// Note: counting UTF-32 code units is the same as counting code points or scalar values /
+// `char`.
+unicode_length_type!(Utf32CodeUnitLength);
 unicode_length_type!(Utf8CodeUnitLength);
 unicode_length_type!(Utf16CodeUnitLength);
+
+pub fn utf16_offset_to_utf32_offset(
+    string: &str,
+    utf16_offset: Utf16CodeUnitLength,
+) -> Utf32CodeUnitLength {
+    let mut current_utf16_offset = Utf16CodeUnitLength(0);
+    let mut current_utf32_offset = Utf32CodeUnitLength(0);
+    for c in string.chars() {
+        if current_utf16_offset >= utf16_offset {
+            break;
+        }
+        current_utf16_offset.0 += c.len_utf16();
+        current_utf32_offset.0 += 1;
+    }
+    current_utf32_offset
+}
+
+pub fn utf8_offset_to_utf32_offset(
+    string: &str,
+    utf8_offset: Utf8CodeUnitLength,
+) -> Utf32CodeUnitLength {
+    let mut current_utf8_offset = Utf8CodeUnitLength(0);
+    let mut current_utf32_offset = Utf32CodeUnitLength(0);
+    for c in string.chars() {
+        if current_utf8_offset >= utf8_offset {
+            break;
+        }
+        current_utf8_offset.0 += c.len_utf8();
+        current_utf32_offset.0 += 1;
+    }
+    current_utf32_offset
+}
 
 #[cfg(test)]
 mod test {

@@ -7,16 +7,19 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use fonts::font_feature_values::ResolvedFontVariantAlternates;
 use fonts::{
-    FontContext, FontRef, ShapedTextSlice, ShapedTextSlicer, ShapingFlags, ShapingOptions,
+    ByteIndex, FontContext, FontRef, ShapedTextSlice, ShapedTextSlicer, ShapingFlags,
+    ShapingOptions, TextByteRange,
 };
 use icu_locid::subtags::Language;
 use icu_properties::{self, LineBreak};
+use layout_api::ScriptSelection;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::is_bidi_control;
+use servo_base::text::{Utf32CodeUnitLength, is_bidi_control};
 use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
@@ -252,6 +255,19 @@ impl TextRunSegment {
                 .ifc
                 .shared_selection
                 .clone()
+                .or_else(|| {
+                    if text_run.document_selection.is_empty() {
+                        None
+                    } else {
+                        Some(Arc::new(AtomicRefCell::new(ScriptSelection {
+                            range: TextByteRange::new(ByteIndex::zero(), ByteIndex::zero()),
+                            character_range: text_run.character_range.start +
+                                text_run.document_selection.start.0..
+                                text_run.character_range.start + text_run.document_selection.end.0,
+                            enabled: true,
+                        })))
+                    }
+                })
                 .map(|shared_selection| TextRunOffsets {
                     shared_selection,
                     character_range: character_range_start..new_character_range_end,
@@ -443,9 +459,12 @@ pub(crate) struct TextRun {
     pub text_range: Range<usize>,
 
     /// The range of characters in this text in [`super::InlineFormattingContext::text_content`]
-    /// of the [`super::InlineFormattingContext`] that owns this [`TextRun`]. These are *not*
-    /// UTF-8 offsets.
+    /// of the [`super::InlineFormattingContext`] that owns this [`TextRun`].
+    /// These are counting `char`s, *not* UTF-8 offsets.
     pub character_range: Range<usize>,
+
+    /// The range of `char` characters in this `TextRun` that overlap the Document’s selection
+    pub document_selection: Range<Utf32CodeUnitLength>,
 
     /// The [`TextRunItem`]s of this text run. This is produced by segmenting the incoming text
     /// by things such as font and script as well as separating out hard line breaks.
@@ -459,6 +478,7 @@ impl TextRun {
         inline_styles: SharedInlineStyles,
         text_range: Range<usize>,
         character_range: Range<usize>,
+        document_selection: Range<Utf32CodeUnitLength>,
         old_text_run: Option<ArcRefCell<TextRun>>,
     ) -> Self {
         // If there was a previous box tree layout of this text run, try to preserve the old shaped text.
@@ -471,6 +491,7 @@ impl TextRun {
             inline_styles,
             text_range,
             character_range,
+            document_selection,
             items,
         }
     }
