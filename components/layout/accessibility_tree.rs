@@ -376,7 +376,7 @@ impl AccessibilityTree {
             self.assert_removed_nodes_were_rooted(&update, rooted_nodes);
         }
 
-        let mut ids_to_remove: Vec<NodeId> = update
+        let mut ids_to_remove: Vec<_> = update
             .tree_changes
             .drain()
             .filter_map(|(id, change)| match change {
@@ -403,7 +403,7 @@ impl AccessibilityTree {
         }
 
         // We should have resolved all damage in nodes still in the tree by this point, and any
-        // nodes not in the tree should have been removed from this map in the loop  above.
+        // nodes not in the tree should have been removed from this map in the loop above.
         assert!(
             update.unresolved_local_damage.is_empty(),
             "Damage not empty: {:?}",
