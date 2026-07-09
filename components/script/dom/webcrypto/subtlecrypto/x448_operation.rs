@@ -772,7 +772,7 @@ pub(crate) fn get_public_key(
     // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
     // identified by algorithm, then throw a SyntaxError.
     //
-    // NOTE: See "impportKey" operation for supported usages
+    // NOTE: See "importKey" operation for supported usages
     if !usages.is_empty() {
         return Err(Error::Syntax(Some("Usages is not empty".to_string())));
     }
