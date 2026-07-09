@@ -962,6 +962,7 @@ impl DataBlock {
         )
     )]
     pub(crate) fn clear_views(&mut self, cx: &mut JSContext) {
+        // we need to pop one by one so we can root one by one for detach
         while let Some(DataView { buffer, .. }) = self.data_views.pop() {
             rooted!(&in(cx) let b = unsafe { buffer.underlying_object().get() });
             assert!(unsafe { DetachArrayBuffer(cx, b.handle()) })
