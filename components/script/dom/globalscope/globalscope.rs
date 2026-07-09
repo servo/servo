@@ -2621,29 +2621,16 @@ impl GlobalScope {
 
     /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
     pub(crate) fn request_client(&self, no_gc: Option<&NoGC>) -> RequestClient {
-        // Step 1.2.2. If global is a Window object and global’s navigable is not null,
-        // then set request’s traversable for user prompts to global’s navigable’s traversable navigable.
-        let window = self.downcast::<Window>();
-        let preloaded_resources = window
-            .map(|window: &Window| {
-                if let Some(no_gc) = no_gc {
-                    window
-                        .document_unrooted(no_gc)
-                        .preloaded_resources()
-                        .clone()
-                } else {
-                    window.Document().preloaded_resources().clone()
-                }
-            })
-            .unwrap_or_default();
-        let is_nested_browsing_context = window.is_some_and(|window| !window.is_top_level());
+        if let Some(window) = self.downcast::<Window>() {
+            return window.request_client(no_gc);
+        }
         RequestClient {
-            preloaded_resources,
+            preloaded_resources: Default::default(),
             policy_container: self.policy_container(),
             origin: RequestOrigin::Origin(self.origin().immutable().clone()),
-            is_nested_browsing_context,
+            is_nested_browsing_context: false,
             insecure_requests_policy: self.insecure_requests_policy(),
-            has_trustworthy_ancestor_origin: self.has_trustworthy_ancestor_or_current_origin(),
+            has_trustworthy_ancestor_origin: false,
         }
     }
 
@@ -2772,15 +2759,6 @@ impl GlobalScope {
     pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
         self.downcast::<Window>()
             .is_some_and(|window| window.Document().has_trustworthy_ancestor_origin())
-    }
-
-    // Whether this document has a trustworthy origin or has trustowrthy ancestor navigables
-    pub(crate) fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
-        self.downcast::<Window>().is_some_and(|window| {
-            window
-                .Document()
-                .has_trustworthy_ancestor_or_current_origin()
-        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-an-exception>

@@ -53,7 +53,7 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResponseCallback, ImageCacheResponseMessage, ImageLoadListener,
     ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
 };
-use net_traits::request::Referrer;
+use net_traits::request::{Origin, Referrer, RequestClient};
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
@@ -921,24 +921,63 @@ impl Window {
 
     pub(crate) fn web_font_context(&self, no_gc: &NoGC) -> WebFontDocumentContext {
         let global = self.as_global_scope();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+        let target_global = Trusted::new(global);
+        let document = self.document_unrooted(no_gc);
         WebFontDocumentContext {
-            policy_container: global.policy_container(),
-            request_client: global.request_client(Some(no_gc)),
-            document_url: global.api_base_url(),
+            policy_container: document.policy_container().clone(),
+            request_client: self.request_client(Some(no_gc)),
+            document_url: document.base_url(),
             csp_handler: Box::new(FontCspHandler {
-                global: Trusted::new(global),
-                task_source: global
-                    .task_manager()
-                    .dom_manipulation_task_source()
-                    .to_sendable(),
+                global: target_global.clone(),
+                task_source: task_source.clone(),
             }),
             network_timing_handler: Box::new(FontNetworkTimingHandler {
-                global: Trusted::new(global),
-                task_source: global
-                    .task_manager()
-                    .dom_manipulation_task_source()
-                    .to_sendable(),
+                global: target_global,
+                task_source,
             }),
+        }
+    }
+
+    /// Part of <https://fetch.spec.whatwg.org/#populate-request-from-client>
+    pub(crate) fn request_client(&self, no_gc: Option<&NoGC>) -> RequestClient {
+        // Step 1.2.2. If global is a Window object and global’s navigable is not null,
+        // then set request’s traversable for user prompts to global’s navigable’s traversable navigable.
+        let (
+            preloaded_resources,
+            insecure_requests_policy,
+            has_trustworthy_ancestor_origin,
+            policy_container,
+            origin,
+        ) = if let Some(no_gc) = no_gc {
+            let document = self.document_unrooted(no_gc);
+            (
+                document.preloaded_resources().clone(),
+                document.insecure_requests_policy(),
+                document.has_trustworthy_ancestor_or_current_origin(),
+                document.policy_container().clone(),
+                document.origin().clone(),
+            )
+        } else {
+            let document = self.Document();
+            (
+                document.preloaded_resources().clone(),
+                document.insecure_requests_policy(),
+                document.has_trustworthy_ancestor_or_current_origin(),
+                document.policy_container().clone(),
+                document.origin().clone(),
+            )
+        };
+        RequestClient {
+            preloaded_resources,
+            policy_container,
+            origin: Origin::Origin(origin.immutable().clone()),
+            is_nested_browsing_context: !self.is_top_level(),
+            insecure_requests_policy,
+            has_trustworthy_ancestor_origin,
         }
     }
 
