@@ -254,8 +254,7 @@ impl ServoUrl {
         // A URL matches about:blank if
 
         // its scheme is "about",
-        let scheme_is_about = self.scheme() == "about";
-        if !scheme_is_about {
+        if self.scheme() != "about" {
             return false;
         }
 
