@@ -42,6 +42,7 @@
 //! [`winit_minimal`]: https://github.com/servo/servo/blob/main/components/servo/examples/winit_minimal.rs
 
 mod clipboard_delegate;
+mod display_list_capture;
 #[cfg(feature = "gamepad")]
 mod gamepad_delegate;
 #[cfg(feature = "media-gstreamer")]

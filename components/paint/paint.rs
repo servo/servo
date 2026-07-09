@@ -716,13 +716,21 @@ impl Paint {
     }
 
     /// The current scroll offset of the given web view's root scrolling node.
-    /// Reflects asynchronus scrolls applied by the renderer, so it stays accurate
+    /// Reflects asynchronous scrolls applied by the renderer, so it stays accurate
     /// between layout display lists. Returns `None` if the web view or its root
     /// pipeline is not (yet) known to the renderer.
     pub fn root_scroll_offset(&self, webview_id: WebViewId) -> Option<LayoutVector2D> {
         self.maybe_painter(webview_id.into())?
             .webview_renderer(webview_id)
             .and_then(WebViewRenderer::root_scroll_offset)
+    }
+
+    /// The [`PipelineId`] of the given web view's root pipeline, or `None` if the web
+    /// view or its root pipeline is not (yet) known to the renderer.
+    pub fn root_pipeline_id(&self, webview_id: WebViewId) -> Option<PipelineId> {
+        self.maybe_painter(webview_id.into())?
+            .webview_renderer(webview_id)?
+            .root_pipeline_id
     }
 
     /// Get the message receiver for this [`Paint`].

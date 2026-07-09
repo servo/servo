@@ -320,16 +320,16 @@ pub struct Preferences {
     pub layout_css_ellipse_corners_enabled: bool,
     pub layout_css_progress_function_enabled: bool,
 
-    /// Capture the layout display list post build and deliver it to an
-    /// embedder via `WebViewDelegate::notify_display_list`.
-    /// An introspection API that want to do their own text
-    /// extraction or native rendering; it holds runtime cost and therefore defaulted off.
+    /// Capture a snapshot of each built layout display list and deliver it to the
+    /// embedder via `WebViewDelegate::notify_display_list`. This is an introspection
+    /// API for embedders that do their own text extraction or native rendering; it
+    /// has a runtime cost and is therefore off by default.
     pub layout_display_list_capture_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
-    /// Whether the layout engine rasterizes text glyphs into the display list
-    /// painted by the renderer. Default on. Embedders that render text
-    /// themselves  can disable so the painted
-    /// output carries no glyphs.
+    /// Whether the layout engine rasterizes text glyphs into the display list painted
+    /// by the renderer. On by default. Embedders that render text themselves (from
+    /// captured display lists) can disable this so the painted output carries no
+    /// glyphs.
     pub layout_text_painting_enabled: bool,
     pub layout_threads: i64,
     /// The minimum number of parallelizable jobs required before turning on parallelism
@@ -491,8 +491,8 @@ impl Preferences {
             dom_testutils_enabled: false,
             // Following Firefox and Chrome, we are enabling the touch events legacy APIs for android.
             // Additionally, enabling it in ohos for compatibility as well.
-            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android") |
-                cfg!(target_env = "ohos"),
+            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android")
+                | cfg!(target_env = "ohos"),
             dom_transient_activation_duration_ms: 5000,
             dom_web_animations_enabled: false,
             dom_webgl2_enabled: false,

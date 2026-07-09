@@ -1090,12 +1090,20 @@ pub trait WebViewDelegate {
     ) {
     }
 
-    /// Hey! A new layout [`DisplayList`] snapshot is available for this [`WebView`].
+    /// A new layout [`DisplayList`] snapshot is available for this [`WebView`].
     ///
-    /// Launched after each display-list build when the
-    /// `layout_display_list_capture_enabled` preference is true. The snapshot
-    /// exposes the layout engine's display items (text runs, images and solid
-    /// colors) in paint order, including document-relative CSS-pixel rectangles.
+    /// Delivered after each display-list build in any of the [`WebView`]'s frames,
+    /// when the `layout_display_list_capture_enabled` preference is set. The snapshot
+    /// exposes the layout engine's content items (text runs, solid colors, images and
+    /// iframes) in paint order and covers the entire frame tree: subframe items are
+    /// spliced in after their `Iframe` items, positioned and clipped within the
+    /// iframe's rectangle.
+    ///
+    /// Item rectangles are in CSS pixels, resolved through the spatial tree (CSS
+    /// transforms, the scroll offsets of all ancestor scroll frames, and sticky
+    /// positioning) and clipped by their accumulated clip chains. See
+    /// [`embedder_traits::DisplayListItemSpace`] for how a rectangle responds to
+    /// scrolling of the root viewport.
     fn notify_display_list(&self, _webview: WebView, _display_list: DisplayList) {}
 }
 

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use clip::Clip;
 pub(crate) use clip::ClipId;
-use embedder_traits::{DisplayList, DisplayListItem};
+use embedder_traits::{DisplayList, DisplayListItemContent};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
@@ -73,6 +73,7 @@ use crate::replaced::NaturalSizes;
 use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
 
 mod background;
+mod capture;
 mod clip;
 mod conversions;
 mod gradient;
@@ -81,6 +82,7 @@ mod paint_timing_handler;
 mod paint_traversal;
 mod stacking_context;
 
+use capture::DisplayListCapture;
 pub(crate) use hit_test::HitTest;
 pub(crate) use paint_timing_handler::PaintTimingHandler;
 pub(crate) use stacking_context::*;
@@ -130,10 +132,10 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// Statistics collected about the reflow, in order to write tests for incremental layout.
     reflow_statistics: &'a mut ReflowStatistics,
 
-    /// When `Some`, captures content display items
-    /// in paint order for delivery. Populated ONLY when the
-    /// `layout_display_list_capture_enabled` preference is set.
-    display_list_capture: Option<Vec<DisplayListItem>>,
+    /// When `Some`, records content display items in paint order for delivery to the
+    /// embedder. Populated only when the `layout_display_list_capture_enabled`
+    /// preference is set.
+    display_list_capture: Option<DisplayListCapture>,
 }
 
 /// Convert a resolved CSS [`AbsoluteColor`] to an embedder-facing [`ColorF`].
@@ -226,7 +228,7 @@ impl DisplayListBuilder<'_> {
             device_pixel_ratio,
             paint_timing_handler,
             reflow_statistics,
-            display_list_capture: capture_display_list.then(Vec::new),
+            display_list_capture: capture_display_list.then(DisplayListCapture::default),
         };
 
         // Clear any caret color from previous display list constructions.
@@ -254,20 +256,14 @@ impl DisplayListBuilder<'_> {
         PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut builder);
         builder.paint_dom_inspector_highlight();
 
-        // Assemble the embedder-facing display list snapshot, if capture is enabled.
-        let captured_display_list = builder.display_list_capture.take().map(|items| {
-            let paint_info = &builder.paint_info;
-            let scroll_offset = paint_info
-                .scroll_tree
-                .get_node(paint_info.root_scroll_node_id)
-                .offset()
-                .unwrap_or_else(LayoutVector2D::zero);
-            DisplayList {
-                items,
-                epoch: paint_info.epoch,
-                scroll_offset,
-                viewport_size: paint_info.viewport_details.layout_size(),
-            }
+        // Resolve the recorded items out of their spatial nodes' coordinate spaces and
+        // assemble the embedder-facing display list snapshot, if capture is enabled.
+        let captured_display_list = builder.display_list_capture.take().map(|capture| {
+            capture.finish(
+                pipeline_id.into(),
+                builder.paint_info,
+                &stacking_context_tree.clip_store,
+            )
         });
 
         (
@@ -281,9 +277,16 @@ impl DisplayListBuilder<'_> {
     }
 
     /// Record a content display item for the embedder snapshot, if capture is enabled.
-    fn capture_display_list_item(&mut self, item: DisplayListItem) {
-        if let Some(items) = self.display_list_capture.as_mut() {
-            items.push(item);
+    /// The rectangle is in the coordinate space of the traversal state's spatial node
+    /// and is resolved to document/viewport space once the traversal completes.
+    fn capture_display_list_item(
+        &mut self,
+        state: &TraversalState,
+        rect: units::LayoutRect,
+        content: DisplayListItemContent,
+    ) {
+        if let Some(capture) = self.display_list_capture.as_mut() {
+            capture.record(state, rect, content);
         }
     }
 
@@ -821,6 +824,13 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
         let rect = fragment.base.rect().translate(state.origin.to_vector());
         let common = self.common_properties(state, rect.to_webrender(), &style);
+        self.capture_display_list_item(
+            state,
+            rect.to_webrender(),
+            DisplayListItemContent::Iframe {
+                pipeline_id: fragment.pipeline_id,
+            },
+        );
         self.wr().push_iframe(
             rect.to_webrender(),
             common.clip_rect,
@@ -864,7 +874,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         let common = self.common_properties(state, clip, &style);
 
         if let Some(image_key) = fragment.image_key {
-            self.capture_display_list_item(DisplayListItem::Image { rect });
+            self.capture_display_list_item(state, rect, DisplayListItemContent::Image);
             self.wr().push_image(
                 &common,
                 rect,
@@ -972,6 +982,13 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         if background_color.alpha > 0.0 {
             let common = self.common_properties(state, painting_area, &source_style);
             let color = rgba(background_color);
+            self.capture_display_list_item(
+                state,
+                painting_area,
+                DisplayListItemContent::SolidColor {
+                    color: display_list_color(&background_color),
+                },
+            );
             self.wr().push_rect(&common, painting_area, color);
 
             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
@@ -1160,20 +1177,23 @@ impl Fragment {
             fragment.justification_adjustment,
         );
 
-        // Capture this run for the embedder display list snapshot, if enabled. We use
-        // the (untransformed) inline rect rather than the inflated glyph bounds so that
+        // Capture this run for the embedder display list snapshot, if enabled. Use the
+        // (untransformed) inline rect rather than the inflated glyph bounds, so that
         // the reported rectangle matches the text's layout box.
         //
-        // Guard on color alpha and the CSS `opacity` property so that text the page
-        // deliberately renders invisible is not included in the capture. Like 0 opacity text...
+        // Guard on the color alpha and the CSS `opacity` property, so that text the
+        // page deliberately renders invisible is not included in the capture.
         if let Some(text) = fragment.text_for_display_list.as_deref() {
-            let dl_color = display_list_color(&color);
-            if dl_color.a > 0.0 && parent_style.clone_opacity() > 0.0 {
-                builder.capture_display_list_item(DisplayListItem::Text {
-                    text: text.to_owned(),
-                    rect: rect.to_webrender(),
-                    color: dl_color,
-                });
+            let capture_color = display_list_color(&color);
+            if capture_color.a > 0.0 && parent_style.clone_opacity() > 0.0 {
+                builder.capture_display_list_item(
+                    state,
+                    rect.to_webrender(),
+                    DisplayListItemContent::Text {
+                        text: text.to_owned(),
+                        color: capture_color,
+                    },
+                );
             }
         }
 
@@ -1684,10 +1704,13 @@ impl<'a> BuilderForBoxFragment<'a> {
             let layer_index = b.background_image.0.len() - 1;
             let bounds = painter.painting_area(self, builder, layer_index);
             let common = painter.common_properties(self, builder, state, layer_index, bounds);
-            builder.capture_display_list_item(DisplayListItem::SolidColor {
-                rect: bounds,
-                color: display_list_color(&background_color),
-            });
+            builder.capture_display_list_item(
+                state,
+                bounds,
+                DisplayListItemContent::SolidColor {
+                    color: display_list_color(&background_color),
+                },
+            );
             builder
                 .wr()
                 .push_rect(&common, bounds, rgba(background_color));

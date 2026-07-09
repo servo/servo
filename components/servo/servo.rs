@@ -81,6 +81,7 @@ use style::global_style_data::StyleThreadPool;
 use webxr::WebXrRegistry;
 
 use crate::clipboard_delegate::StringRequest;
+use crate::display_list_capture::WebViewDisplayListCaptures;
 #[cfg(feature = "gamepad")]
 use crate::gamepad_delegate::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
 use crate::javascript_evaluator::JavaScriptEvaluator;
@@ -249,6 +250,10 @@ struct ServoInner {
     /// [`InputEventId`]s that have been handled, but for which the embedder has
     /// not been notified yet.
     pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
+    /// Retained per-pipeline display-list captures for each `WebView`, used to compose
+    /// the frame-tree-wide snapshots delivered via
+    /// [`WebViewDelegate::notify_display_list`].
+    display_list_captures: RefCell<FxHashMap<WebViewId, WebViewDisplayListCaptures>>,
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
 }
@@ -259,6 +264,26 @@ impl ServoInner {
             .borrow()
             .get(&id)
             .and_then(WebView::from_weak_handle)
+    }
+
+    /// Integrate a newly captured per-pipeline [`DisplayList`] and deliver a composed,
+    /// frame-tree-wide snapshot to the `WebView`'s delegate once one is available.
+    fn handle_display_list_captured(&self, webview_id: WebViewId, display_list: DisplayList) {
+        let Some(webview) = self.get_webview_handle(webview_id) else {
+            self.display_list_captures.borrow_mut().remove(&webview_id);
+            return;
+        };
+
+        let root_pipeline_id = self.paint.borrow().root_pipeline_id(webview_id);
+        let composed_display_list = self
+            .display_list_captures
+            .borrow_mut()
+            .entry(webview_id)
+            .or_default()
+            .update(display_list, root_pipeline_id);
+        if let Some(display_list) = composed_display_list {
+            webview.delegate().notify_display_list(webview, display_list);
+        }
     }
 
     #[servo_tracing::instrument(level = "debug", skip_all)]
@@ -745,11 +770,7 @@ impl ServoInner {
                 }
             },
             EmbedderMsg::DisplayListCaptured(webview_id, display_list) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_display_list(webview, display_list);
-                }
+                self.handle_display_list_captured(webview_id, display_list);
             },
         }
     }
@@ -1034,6 +1055,7 @@ impl Servo {
             servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
             pending_handled_input_events: Default::default(),
+            display_list_captures: Default::default(),
             event_loop_waker,
         }))
     }
