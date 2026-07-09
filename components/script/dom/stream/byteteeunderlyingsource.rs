@@ -247,86 +247,96 @@ impl ByteTeeUnderlyingSource {
         for_branch2: bool,
         global: &GlobalScope,
     ) {
-        let mut reader = self.reader.borrow_mut();
-        match &*reader {
-            ReaderType::BYOB(reader) => {
-                // Let byobBranch be branch2 if forBranch2 is true, and branch1 otherwise.
-                let byob_branch = if for_branch2 {
-                    self.branch_2.get().expect("Branch 2 should be set.")
-                } else {
-                    self.branch_1.get().expect("Branch 1 should be set.")
-                };
+        rooted!(&in(cx) let mut reader_to_set = None);
+        {
+            let reader = self.reader.borrow();
+            match &*reader {
+                ReaderType::BYOB(reader) => {
+                    // Let byobBranch be branch2 if forBranch2 is true, and branch1 otherwise.
+                    let byob_branch = if for_branch2 {
+                        self.branch_2.get().expect("Branch 2 should be set.")
+                    } else {
+                        self.branch_1.get().expect("Branch 1 should be set.")
+                    };
 
-                // let otherBranch be branch2 if forBranch2 is false, and branch1 otherwise.
-                let other_branch = if for_branch2 {
-                    self.branch_1.get().expect("Branch 1 should be set.")
-                } else {
-                    self.branch_2.get().expect("Branch 2 should be set.")
-                };
+                    // let otherBranch be branch2 if forBranch2 is false, and branch1 otherwise.
+                    let other_branch = if for_branch2 {
+                        self.branch_1.get().expect("Branch 1 should be set.")
+                    } else {
+                        self.branch_2.get().expect("Branch 2 should be set.")
+                    };
 
-                // Let readIntoRequest be a read-into request with the following items:
-                let byte_tee_read_into_request = ByteTeeReadIntoRequest::new(
-                    cx,
-                    for_branch2,
-                    &byob_branch,
-                    &other_branch,
-                    &self.stream,
-                    self.read_again_for_branch_1.clone(),
-                    self.read_again_for_branch_2.clone(),
-                    self.reading.clone(),
-                    self.canceled_1.clone(),
-                    self.canceled_2.clone(),
-                    self.cancel_promise.clone(),
-                    self,
-                    global,
-                );
+                    // Let readIntoRequest be a read-into request with the following items:
+                    let byte_tee_read_into_request = ByteTeeReadIntoRequest::new(
+                        cx,
+                        for_branch2,
+                        &byob_branch,
+                        &other_branch,
+                        &self.stream,
+                        self.read_again_for_branch_1.clone(),
+                        self.read_again_for_branch_2.clone(),
+                        self.reading.clone(),
+                        self.canceled_1.clone(),
+                        self.canceled_2.clone(),
+                        self.cancel_promise.clone(),
+                        self,
+                        global,
+                    );
 
-                let read_into_request = ReadIntoRequest::ByteTee {
-                    byte_tee_read_into_request: Dom::from_ref(&byte_tee_read_into_request),
-                };
+                    let read_into_request = ReadIntoRequest::ByteTee {
+                        byte_tee_read_into_request: Dom::from_ref(&byte_tee_read_into_request),
+                    };
 
-                // Perform ! ReadableStreamBYOBReaderRead(reader, view, 1, readIntoRequest).
-                reader
-                    .get()
-                    .expect("Reader should be set.")
-                    .read(cx, view, 1, &read_into_request);
-            },
-            ReaderType::Default(default_reader) => {
-                // If reader implements ReadableStreamDefaultReader,
-                // Assert: reader.[[readRequests]] is empty.
-                assert!(
+                    // Perform ! ReadableStreamBYOBReaderRead(reader, view, 1, readIntoRequest).
+                    reader.get().expect("Reader should be set.").read(
+                        cx,
+                        view,
+                        1,
+                        &read_into_request,
+                    );
+                },
+                ReaderType::Default(default_reader) => {
+                    // If reader implements ReadableStreamDefaultReader,
+                    // Assert: reader.[[readRequests]] is empty.
+                    assert!(
+                        default_reader
+                            .get()
+                            .expect("Reader should be set.")
+                            .get_num_read_requests() ==
+                            0
+                    );
+
+                    // Perform ! ReadableStreamDefaultReaderRelease(reader).
                     default_reader
                         .get()
                         .expect("Reader should be set.")
-                        .get_num_read_requests() ==
-                        0
-                );
+                        .release(cx)
+                        .expect("Release should be successful.");
 
-                // Perform ! ReadableStreamDefaultReaderRelease(reader).
-                default_reader
-                    .get()
-                    .expect("Reader should be set.")
-                    .release(cx)
-                    .expect("Release should be successful.");
+                    // Set reader to ! AcquireReadableStreamBYOBReader(stream).
+                    let byob_reader = self
+                        .stream
+                        .acquire_byob_reader(cx)
+                        .expect("Reader should be set.");
 
-                // Set reader to ! AcquireReadableStreamBYOBReader(stream).
-                let byob_reader = self
-                    .stream
-                    .acquire_byob_reader(cx)
-                    .expect("Reader should be set.");
+                    reader_to_set.set(Some(ReaderType::BYOB(MutNullableDom::new(Some(
+                        &byob_reader,
+                    )))));
+                    // This execution path continues after we set the reader.
+                },
+            }
+        }
 
-                *reader = ReaderType::BYOB(MutNullableDom::new(Some(&byob_reader)));
-                self.reader_version
-                    .set(self.reader_version.get().wrapping_add(1));
+        if reader_to_set.is_some() {
+            *self.reader.borrow_mut() = reader_to_set.take().unwrap();
+            self.reader_version
+                .set(self.reader_version.get().wrapping_add(1));
 
-                drop(reader);
+            // Perform forwardReaderError, given reader.
+            self.forward_reader_error(cx, self.reader.clone());
 
-                // Perform forwardReaderError, given reader.
-                self.forward_reader_error(cx, self.reader.clone());
-
-                // Retry the pull using the BYOB reader we just acquired.
-                self.pull_with_byob_reader(cx, view, for_branch2, global);
-            },
+            // Retry the pull using the BYOB reader we just acquired.
+            self.pull_with_byob_reader(cx, view, for_branch2, global);
         }
     }
 
