@@ -295,8 +295,8 @@ impl TableBuilder {
     /// This matches WebKit, and some tests require it, but Gecko and Blink don't do it.
     fn adjust_table_geometry_for_columns_and_colgroups(&mut self) {
         if self.table.rows.is_empty() && self.table.row_groups.is_empty() {
-            self.table.columns.truncate(0);
-            self.table.column_groups.truncate(0);
+            self.table.columns.clear();
+            self.table.column_groups.clear();
         } else {
             self.table.size.width = self.table.size.width.max(self.table.columns.len());
         }
