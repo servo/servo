@@ -219,7 +219,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         };
 
         // Step 3
-        mapping.data.clear_views();
+        mapping.data.clear_views(cx);
         // Step 5&7
         if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
             buffer_id: self.id().0,
