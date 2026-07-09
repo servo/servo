@@ -1481,13 +1481,54 @@ impl Element {
     }
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) enum FormDatumValueUnrooted {
+    File(Dom<File>),
+    String(DOMString),
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct FormDatumUnrooted {
+    pub(crate) ty: DOMString,
+    pub(crate) name: DOMString,
+    pub(crate) value: FormDatumValueUnrooted,
+}
+
+impl FormDatumUnrooted {
+    pub(crate) fn root(&self) -> FormDatum {
+        FormDatum {
+            ty: self.ty.clone(),
+            name: self.name.clone(),
+            value: match &self.value {
+                FormDatumValueUnrooted::File(file) => FormDatumValue::File(file.as_rooted()),
+                FormDatumValueUnrooted::String(s) => FormDatumValue::String(s.clone()),
+            },
+        }
+    }
+}
+
+impl From<FormDatum> for FormDatumUnrooted {
+    fn from(value: FormDatum) -> Self {
+        Self {
+            ty: value.ty,
+            name: value.name,
+            value: match value.value {
+                FormDatumValue::File(file) => FormDatumValueUnrooted::File(file.as_traced()),
+                FormDatumValue::String(s) => FormDatumValueUnrooted::String(s),
+            },
+        }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum FormDatumValue {
     File(DomRoot<File>),
     String(DOMString),
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct FormDatum {
     pub(crate) ty: DOMString,
     pub(crate) name: DOMString,
