@@ -12,7 +12,7 @@ use backtrace::Backtrace;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, MutableHandleObject, MutableHandleValue};
@@ -1333,9 +1333,9 @@ impl WebGLRenderingContext {
         &self.extension_manager
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn buffer_data(
         &self,
+        no_gc: &NoGC,
         target: u32,
         data: Option<ArrayBufferViewOrArrayBuffer>,
         usage: u32,
@@ -1345,12 +1345,9 @@ impl WebGLRenderingContext {
         let bound_buffer =
             handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
-        let data = unsafe {
-            // Safe because we don't do anything with JS until the end of the method.
-            match data {
-                ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice(),
-                ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice(),
-            }
+        let data = match data {
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice_safe(no_gc),
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice_safe(no_gc),
         };
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
     }
@@ -1375,9 +1372,9 @@ impl WebGLRenderingContext {
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn buffer_sub_data(
         &self,
+        no_gc: &NoGC,
         target: u32,
         offset: i64,
         data: ArrayBufferViewOrArrayBuffer,
@@ -1390,12 +1387,9 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        let data = unsafe {
-            // Safe because we don't do anything with JS until the end of the method.
-            match data {
-                ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice(),
-                ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice(),
-            }
+        let data = match data {
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice_safe(no_gc),
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice_safe(no_gc),
         };
         if (offset as u64) + data.len() as u64 > bound_buffer.capacity() as u64 {
             return self.webgl_error(InvalidValue);
@@ -2783,7 +2777,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
         let bound_buffer =
             handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
-        self.buffer_data(target, data, usage, bound_buffer)
+        self.buffer_data(cx.no_gc(), target, data, usage, bound_buffer)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
@@ -2804,13 +2798,13 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     ) {
         let bound_buffer =
             handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
-        self.buffer_sub_data(target, offset, data, bound_buffer)
+        self.buffer_sub_data(cx.no_gc(), target, offset, data, bound_buffer)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[expect(unsafe_code)]
     fn CompressedTexImage2D(
         &self,
+        no_gc: &NoGC,
         target: u32,
         level: i32,
         internal_format: u32,
@@ -2819,14 +2813,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         border: i32,
         data: CustomAutoRooterGuard<ArrayBufferView>,
     ) {
-        let data = unsafe { data.as_slice() };
+        let data = data.as_slice_safe(no_gc);
         self.compressed_tex_image_2d(target, level, internal_format, width, height, border, data)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[expect(unsafe_code)]
     fn CompressedTexSubImage2D(
         &self,
+        no_gc: &NoGC,
         target: u32,
         level: i32,
         xoffset: i32,
@@ -2836,7 +2830,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         format: u32,
         data: CustomAutoRooterGuard<ArrayBufferView>,
     ) {
-        let data = unsafe { data.as_slice() };
+        let data = data.as_slice_safe(no_gc);
         self.compressed_tex_sub_image_2d(
             target, level, xoffset, yoffset, width, height, format, data,
         )
@@ -3924,9 +3918,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
-    #[expect(unsafe_code)]
     fn ReadPixels(
         &self,
+        no_gc: &NoGC,
         x: i32,
         y: i32,
         width: i32,
@@ -3988,7 +3982,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             return
         );
 
-        let dest = unsafe { pixels.as_mut_slice() };
+        let dest = pixels.as_mut_slice_safe(no_gc);
         if dest.len() < required_dest_len as usize {
             return self.webgl_error(InvalidOperation);
         }
@@ -4582,9 +4576,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[expect(unsafe_code)]
     fn TexImage2D(
         &self,
+        no_gc: &NoGC,
         target: u32,
         level: i32,
         internal_format: i32,
@@ -4658,7 +4652,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         // initialized to 0 is passed.
         let buff = match *pixels {
             None => GenericSharedMemory::from_byte(0, expected_byte_length as usize),
-            Some(ref data) => GenericSharedMemory::from_bytes(unsafe { data.as_slice() }),
+            Some(ref data) => GenericSharedMemory::from_bytes(data.as_slice_safe(no_gc)),
         };
 
         // From the WebGL spec:
@@ -4718,6 +4712,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexImage2D_(
         &self,
+        _no_gc: &NoGC,
         target: u32,
         level: i32,
         internal_format: i32,
@@ -4803,9 +4798,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    #[expect(unsafe_code)]
     fn TexSubImage2D(
         &self,
+        no_gc: &NoGC,
         target: u32,
         level: i32,
         xoffset: i32,
@@ -4851,7 +4846,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             self,
             pixels
                 .as_ref()
-                .map(|p| GenericSharedMemory::from_bytes(unsafe { p.as_slice() }))
+                .map(|p| GenericSharedMemory::from_bytes(p.as_slice_safe(no_gc)))
                 .ok_or(InvalidValue),
             return Ok(())
         );
@@ -4894,6 +4889,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexSubImage2D_(
         &self,
+        _no_gc: &NoGC,
         target: u32,
         level: i32,
         xoffset: i32,
