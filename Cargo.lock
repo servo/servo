@@ -4527,9 +4527,9 @@ dependencies = [
 
 [[package]]
 name = "inotify"
-version = "0.11.3"
+version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd854a95a4ac672fed8c054136039fd32c22cf039ff09ead7280afe920486483"
+checksum = "153be1941a183ec9ccd095ddbe17a8b8d435ef6c76e9e02451b933c3999af2c8"
 dependencies = [
  "bitflags 2.13.0",
  "inotify-sys",
