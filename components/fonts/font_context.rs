@@ -110,7 +110,10 @@ pub struct FontContext {
     /// finish.
     currently_downloading_fonts: Mutex<HashMap<ServoUrl, Vec<WebFontDownloadState>>>,
 
-    active_font_face_rules: Mutex<ActiveFontFaceRules>,
+    /// The set of `@font-face` rules that are currently present in the CSS cascade. This is not necessarily
+    /// equivalent to the rules that actually apply to the page, because rules that are invalid or not
+    /// yet downloaded are also included.
+    known_font_face_rules: Mutex<KnownFontFaceRules>,
 }
 
 /// A callback that will be invoked on the Fetch thread if a web font download
@@ -168,7 +171,7 @@ impl FontContext {
             have_removed_web_fonts: AtomicBool::new(false),
             font_data: RwLock::default(),
             currently_downloading_fonts: Default::default(),
-            active_font_face_rules: Default::default(),
+            known_font_face_rules: Default::default(),
         }
     }
 
@@ -697,7 +700,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
     ) {
         let mut removed_any = false;
 
-        self.active_font_face_rules
+        self.known_font_face_rules
             .lock()
             .diff_old_and_new_font_face_rules(
                 stylist,
@@ -1213,21 +1216,26 @@ impl Hash for FontGroupCacheKey {
 }
 
 #[derive(Default, MallocSizeOf)]
-struct ActiveFontFaceRules {
+struct KnownFontFaceRules {
     /// Used to distinguish new, incoming `@font-face` rules from existing ones.
+    ///
+    /// Generations alternate between true and false, which is enough to tell one generation apart from
+    /// the next.
     generation: bool,
-    contents: HashMap<Atom, Vec<ActiveFontFaceRule>>,
+    /// Maps from a font family name to a list of `@font-face` rules declaring fonts
+    /// that belong to said family.
+    contents: HashMap<Atom, Vec<KnownFontFaceRule>>,
 }
 
 #[derive(MallocSizeOf)]
-struct ActiveFontFaceRule {
+struct KnownFontFaceRule {
     rule_with_origin: FontFaceRuleWithOrigin,
     generation: bool,
 }
 
 #[derive(MallocSizeOf)]
 struct FontFaceRuleWithOrigin {
-    #[ignore_malloc_size_of = "FIXME"]
+    #[conditional_malloc_size_of]
     rule: ServoArc<Locked<FontFaceRule>>,
     origin: Origin,
 }
@@ -1241,7 +1249,7 @@ impl FontFaceRuleWithOrigin {
     }
 }
 
-impl ActiveFontFaceRules {
+impl KnownFontFaceRules {
     /// Computes the difference between the `@font-face `rules that are currently in effect
     /// and the ones that the `Stylist` knows about. The caller is notified about new or removed rules
     /// with callbacks.
@@ -1267,7 +1275,11 @@ impl ActiveFontFaceRules {
 
         // First, find any *new* font families that were not defined previously
         let mut number_of_unchanged_rules = 0;
-        let number_of_previously_known_rules = self.contents.len();
+        let number_of_previously_known_rules: usize = self
+            .contents
+            .values()
+            .map(|fonts_from_family| fonts_from_family.len())
+            .sum();
         for rule_with_origin in font_face_rules_in_cascade_order {
             let borrowed_rule = rule_with_origin.read_with(guards);
 
@@ -1299,7 +1311,7 @@ impl ActiveFontFaceRules {
                 previous_definition.generation = self.generation;
             } else {
                 new_rule_callback(borrowed_rule);
-                known_font_faces_for_family.push(ActiveFontFaceRule {
+                known_font_faces_for_family.push(KnownFontFaceRule {
                     rule_with_origin,
                     generation: self.generation,
                 });

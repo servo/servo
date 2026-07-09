@@ -154,7 +154,6 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                 let document = window.Document();
                 if document.stylesheets_changed_since_last_reflow() {
                     window.reflow(cx, ReflowGoal::LayoutQuery(QueryMsg::BoxArea));
-                    document.switch_font_face_set_to_loading_if_needed(cx);
                 }
             }
         }

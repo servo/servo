@@ -1053,7 +1053,8 @@ impl LayoutThread {
         guards: &StylesheetGuards,
         ua_stylesheets: &UserAgentStylesheets,
     ) -> StylesheetInvalidationSet {
-        if !self.have_added_user_agent_stylesheets {
+        let need_user_agent_stylesheet_addition = !self.have_added_user_agent_stylesheets;
+        if need_user_agent_stylesheet_addition {
             for stylesheet in &ua_stylesheets.user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), guards.ua_or_user);
@@ -1078,14 +1079,6 @@ impl LayoutThread {
                 );
             }
             self.have_added_user_agent_stylesheets = true;
-
-            self.font_context.rebuild_font_face_set(
-                self.webview_id,
-                &self.stylist,
-                guards,
-                self.web_font_finished_loading_callback.clone(),
-                &reflow_request.document_context,
-            );
         }
 
         if reflow_request.stylesheets_changed() {
@@ -1099,7 +1092,7 @@ impl LayoutThread {
 
         // Load new @font-face rules and remove old ones if necessary.
         // TODO: Can we make the invalidation set tell us whether any @font-face rules changed?
-        if reflow_request.stylesheets_changed() {
+        if need_user_agent_stylesheet_addition || reflow_request.stylesheets_changed() {
             self.font_context.rebuild_font_face_set(
                 self.webview_id,
                 &self.stylist,
