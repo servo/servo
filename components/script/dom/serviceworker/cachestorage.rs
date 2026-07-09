@@ -67,15 +67,14 @@ impl CacheStorage {
             let response_listener = response_listener.clone();
             let response = match message {
                 Ok(inner) => inner,
-                Err(err) => return error!("Error in IndexedDB factory callback {:?}.", err),
+                Err(err) => return error!("Error in CacheStorage callback {:?}.", err),
             };
-            // Step 5.3: Queue a database task to run these steps:
             task_source.queue(task!(set_request_result_to_database: move |cx| {
                 let cache_storage = response_listener.root();
                 cache_storage.handle_response(cx, response)
             }));
         })
-        .expect("Could not create open database callback");
+        .expect("Could not create CacheStorage callback");
 
         *self.callback.borrow_mut() = Some(callback.clone());
 
