@@ -268,7 +268,7 @@ impl ServoUrl {
         // and its host is null.
         let null_host = self.0.host().is_none();
 
-        scheme_is_about && path_is_blank && empty_username_and_password && null_host
+        path_is_blank && empty_username_and_password && null_host
     }
 }
 
