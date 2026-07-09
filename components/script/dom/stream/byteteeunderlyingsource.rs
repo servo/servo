@@ -126,7 +126,7 @@ impl ByteTeeUnderlyingSource {
         cx: &mut JSContext,
         this_reader: Rc<RefCell<ReaderType>>,
     ) {
-        let this_reader = this_reader.borrow_mut();
+        let this_reader = this_reader.borrow();
         match &*this_reader {
             ReaderType::Default(reader) => {
                 let expected_version = self.reader_version.get();
