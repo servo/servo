@@ -30,25 +30,35 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 
 /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+enum MessageSourceUnrooted {
+    Client(Dom<Client>),
+    ServiceWorker(Dom<ServiceWorker>),
+    MessagePort(Dom<MessagePort>),
+}
+
+impl MessageSourceUnrooted {
+    fn root(&self) -> MessageSource {
+        match self {
+            MessageSourceUnrooted::Client(client) => {
+                MessageSource::Client(DomRoot::from_ref(client))
+            },
+            MessageSourceUnrooted::ServiceWorker(sw) => {
+                MessageSource::ServiceWorker(DomRoot::from_ref(sw))
+            },
+            MessageSourceUnrooted::MessagePort(port) => {
+                MessageSource::MessagePort(DomRoot::from_ref(port))
+            },
+        }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum MessageSource {
     Client(DomRoot<Client>),
     ServiceWorker(DomRoot<ServiceWorker>),
     MessagePort(DomRoot<MessagePort>),
-}
-
-impl From<ClientOrServiceWorkerOrMessagePort> for MessageSource {
-    fn from(value: ClientOrServiceWorkerOrMessagePort) -> Self {
-        match value {
-            ClientOrServiceWorkerOrMessagePort::Client(client) => MessageSource::Client(client),
-            ClientOrServiceWorkerOrMessagePort::ServiceWorker(sw) => {
-                MessageSource::ServiceWorker(sw)
-            },
-            ClientOrServiceWorkerOrMessagePort::MessagePort(port) => {
-                MessageSource::MessagePort(port)
-            },
-        }
-    }
 }
 
 impl From<&ClientOrServiceWorkerOrMessagePort> for MessageSource {
@@ -94,7 +104,7 @@ pub(crate) struct ExtendableMessageEvent {
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-lasteventid>
     lastEventId: DOMString,
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
-    source: Option<MessageSource>,
+    source: Option<MessageSourceUnrooted>,
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-ports>
     ports: Vec<Dom<MessagePort>>,
     #[ignore_malloc_size_of = "mozjs"]
@@ -114,7 +124,15 @@ impl ExtendableMessageEvent {
             data: Heap::default(),
             origin,
             lastEventId,
-            source,
+            source: source.map(|source| match source {
+                MessageSource::Client(client) => MessageSourceUnrooted::Client(client.as_traced()),
+                MessageSource::ServiceWorker(sw) => {
+                    MessageSourceUnrooted::ServiceWorker(sw.as_traced())
+                },
+                MessageSource::MessagePort(port) => {
+                    MessageSourceUnrooted::MessagePort(port.as_traced())
+                },
+            }),
             ports: ports
                 .into_iter()
                 .map(|port| Dom::from_ref(&*port))
@@ -124,7 +142,7 @@ impl ExtendableMessageEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
         type_: Atom,
@@ -180,10 +198,7 @@ impl ExtendableMessageEvent {
 
         ev
     }
-}
 
-#[expect(non_snake_case)]
-impl ExtendableMessageEvent {
     pub(crate) fn dispatch_jsval(
         cx: &mut JSContext,
         target: &EventTarget,
@@ -208,20 +223,17 @@ impl ExtendableMessageEvent {
     }
 
     pub(crate) fn dispatch_error(cx: &mut JSContext, target: &EventTarget, scope: &GlobalScope) {
-        let init = ExtendableMessageEventBinding::ExtendableMessageEventInit::empty();
         let ExtendableMsgEvent = ExtendableMessageEvent::new(
             cx,
             scope,
             atom!("messageerror"),
-            init.parent.parent.bubbles,
-            init.parent.parent.cancelable,
-            init.data.handle(),
-            init.origin.clone(),
-            init.lastEventId.clone(),
-            init.source
-                .as_ref()
-                .and_then(|s| s.as_ref().map(|s| s.into())),
-            init.ports.clone(),
+            false,
+            false,
+            HandleValue::null(),
+            DOMString::new(),
+            DOMString::new(),
+            None,
+            Vec::new(),
         );
         ExtendableMsgEvent.upcast::<Event>().fire(cx, target);
     }
@@ -277,7 +289,10 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
 
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
     fn GetSource(&self) -> Option<ClientOrServiceWorkerOrMessagePort> {
-        self.source.clone().map(|s| s.into())
+        self.source
+            .as_ref()
+            .map(|source| source.root())
+            .map(|s| s.into())
     }
 
     /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports>
