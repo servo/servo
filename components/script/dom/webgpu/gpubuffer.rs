@@ -69,14 +69,34 @@ impl ActiveBufferMapping {
     }
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct DroppableGPUBuffer {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    buffer: WebGPUBuffer,
+}
+
+impl Drop for DroppableGPUBuffer {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropBuffer(self.buffer.0))
+        {
+            error!(
+                "Failed to send WebGPURequest::DropBuffer({:?}) ({}) - Potential leak",
+                self.buffer.0, e
+            );
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct GPUBuffer {
     reflector_: Reflector,
-    #[no_trace]
-    channel: WebGPU,
+    droppable: DroppableGPUBuffer,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    buffer: WebGPUBuffer,
     device: Dom<GPUDevice>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-size>
     size: GPUSize64,
@@ -101,10 +121,9 @@ impl GPUBuffer {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel,
+            droppable: DroppableGPUBuffer { channel, buffer },
             label: DomRefCell::new(label),
             device: Dom::from_ref(device),
-            buffer,
             pending_map: DomRefCell::new(None),
             size,
             usage,
@@ -136,7 +155,7 @@ impl GPUBuffer {
 
 impl GPUBuffer {
     pub(crate) fn id(&self) -> WebGPUBuffer {
-        self.buffer
+        self.droppable.buffer
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
@@ -187,21 +206,6 @@ impl GPUBuffer {
     }
 }
 
-impl Drop for GPUBuffer {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropBuffer(self.buffer.0))
-        {
-            error!(
-                "Failed to send WebGPURequest::DropBuffer({:?}) ({}) - Potential leak",
-                self.buffer.0, e
-            );
-        }
-    }
-}
-
 impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self, cx: &mut js::context::JSContext) {
@@ -221,7 +225,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         // Step 3
         mapping.data.clear_views(cx);
         // Step 5&7
-        if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
+        if let Err(e) = self.droppable.channel.0.send(WebGPURequest::UnmapBuffer {
             buffer_id: self.id().0,
             mapping: if mapping.mode >= GPUMapModeConstants::WRITE {
                 Some(Mapping {
@@ -233,7 +237,10 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
                 None
             },
         }) {
-            warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
+            warn!(
+                "Failed to send Buffer unmap ({:?}) ({})",
+                self.droppable.buffer.0, e
+            );
         }
     }
 
@@ -243,13 +250,14 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         self.Unmap(cx);
         // Step 2
         if let Err(e) = self
+            .droppable
             .channel
             .0
-            .send(WebGPURequest::DestroyBuffer(self.buffer.0))
+            .send(WebGPURequest::DestroyBuffer(self.droppable.buffer.0))
         {
             warn!(
                 "Failed to send WebGPURequest::DestroyBuffer({:?}) ({})",
-                self.buffer.0, e
+                self.droppable.buffer.0, e
             );
         };
     }
@@ -289,17 +297,22 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             self,
             self.global().task_manager().dom_manipulation_task_source(),
         );
-        if let Err(e) = self.channel.0.send(WebGPURequest::BufferMapAsync {
-            callback,
-            buffer_id: self.buffer.0,
-            device_id: self.device.id().0,
-            host_map,
-            offset,
-            size,
-        }) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::BufferMapAsync {
+                callback,
+                buffer_id: self.droppable.buffer.0,
+                device_id: self.device.id().0,
+                host_map,
+                offset,
+                size,
+            })
+        {
             warn!(
                 "Failed to send BufferMapAsync ({:?}) ({})",
-                self.buffer.0, e
+                self.droppable.buffer.0, e
             );
             self.map_failure(cx, &promise);
             return promise;
