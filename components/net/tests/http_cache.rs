@@ -132,6 +132,7 @@ fn build_stale_while_revalidate_test_request() -> net_traits::request::Request {
 }
 
 /// Store a response with the given `Cache-Control` value, then return the
+/// freshness state [`ValidationStatus`] reported by the cache for a subsequent request.
 async fn stale_while_revalidate_freshness_for_cache_control(
     cache_control: &str,
 ) -> ValidationStatus {
