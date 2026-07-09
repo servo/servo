@@ -809,6 +809,8 @@ pub(crate) enum ReaderType {
     Default(MutNullableDom<ReadableStreamDefaultReader>),
 }
 
+impl js::gc::Rootable for ReaderType {}
+
 impl Eq for ReaderType {}
 impl PartialEq for ReaderType {
     fn eq(&self, other: &Self) -> bool {
