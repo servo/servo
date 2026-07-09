@@ -978,9 +978,8 @@ fn test_accessibility_update_add_some_nodes_twice() {
         update.add(&mut node_3);
     }
 
-    let mut tree_update = update
-        .finalize(&mut tree)
-        .expect("finalize should produce a tree update");
+    let (tree_update, _) = update.finalize(&mut tree);
+    let mut tree_update = tree_update.expect("finalize should produce a tree update");
     tree_update.nodes.sort_by_key(|(node_id, _node)| *node_id);
     assert_eq!(
         tree_update,
