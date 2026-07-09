@@ -4,7 +4,7 @@
 
 use http::header::{CACHE_CONTROL, CONTENT_LENGTH, CONTENT_RANGE, EXPIRES, HeaderValue, RANGE};
 use http::{HeaderMap, StatusCode};
-use net::http_cache::{CacheKey, HttpCache, refresh};
+use net::http_cache::{CacheKey, HttpCache, ValidationStatus, refresh};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::{Response, ResponseBody};
@@ -132,9 +132,9 @@ fn build_stale_while_revalidate_test_request() -> net_traits::request::Request {
 }
 
 /// Store a response with the given `Cache-Control` value, then return the
-/// freshness state `(needs_validation, revalidate_in_background)` reported by
-/// the cache for a subsequent request.
-async fn stale_while_revalidate_freshness_for_cache_control(cache_control: &str) -> (bool, bool) {
+async fn stale_while_revalidate_freshness_for_cache_control(
+    cache_control: &str,
+) -> ValidationStatus {
     let url = ServoUrl::parse("https://servo.org").unwrap();
     let request = build_stale_while_revalidate_test_request();
 
@@ -158,28 +158,29 @@ async fn stale_while_revalidate_freshness_for_cache_control(cache_control: &str)
 #[tokio::test]
 async fn test_stale_within_stale_while_revalidate_window_serves_immediately_and_revalidates_in_background()
  {
-    let (needs_validation, revalidate_in_background) =
+    let validation_status =
         stale_while_revalidate_freshness_for_cache_control("max-age=0, stale-while-revalidate=30")
             .await;
-    assert!(
-        !needs_validation,
-        "stale response within the stale-while-revalidate window should be served immediately"
-    );
-    assert!(
-        revalidate_in_background,
-        "stale response within the stale-while-revalidate window should be revalidated in the background"
+    assert_eq!(
+        validation_status,
+        ValidationStatus::Stale {
+            revalidate_in_background: true
+        },
+        "stale response within the stale-while-revalidate window should be served immediately \
+         and revalidated in the background"
     );
 }
 
 #[tokio::test]
 async fn test_stale_without_stale_while_revalidate_requires_synchronous_validation() {
-    let (needs_validation, revalidate_in_background) =
-        stale_while_revalidate_freshness_for_cache_control("max-age=0").await;
-    assert!(
-        needs_validation,
+    let validation_status = stale_while_revalidate_freshness_for_cache_control("max-age=0").await;
+    assert_eq!(
+        validation_status,
+        ValidationStatus::Stale {
+            revalidate_in_background: false
+        },
         "stale response without stale-while-revalidate must be synchronously revalidated"
     );
-    assert!(!revalidate_in_background);
 }
 
 #[tokio::test]
@@ -211,16 +212,15 @@ async fn test_stale_while_revalidate_not_used_when_request_demands_revalidation(
     .build();
 
     let mut done_chan = None;
-    let (needs_validation, revalidate_in_background) = cache
+    let validation_status = cache
         .construct_response_freshness(&request, &mut done_chan)
         .await
         .expect("a response should be constructable from the cache");
-    assert!(
-        needs_validation,
-        "a no-cache request must trigger synchronous validation"
-    );
-    assert!(
-        !revalidate_in_background,
-        "a no-cache request must not use background revalidation"
+    assert_eq!(
+        validation_status,
+        ValidationStatus::Stale {
+            revalidate_in_background: false
+        },
+        "a no-cache request must trigger synchronous validation, not background revalidation"
     );
 }

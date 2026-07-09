@@ -91,16 +91,26 @@ struct CachedMetadata {
     /// HTTP Status
     pub status: HttpStatus,
 }
+
+/// Whether a cached response is fresh or requires validation before or after use.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ValidationStatus {
+    /// The response is fresh and can be used without any revalidation.
+    Valid,
+    /// The response is stale.
+    Stale {
+        /// Whether the stale response can be served immediately, leaving the
+        /// caller responsible for revalidating it in the background.
+        revalidate_in_background: bool,
+    },
+}
+
 /// Wrapper around a cached response, including information on re-validation needs
 pub(crate) struct CachedResponse {
     /// The response constructed from the cached resource
     pub response: Response,
-    /// The revalidation flag for the stored response. When set, the response is
-    /// stale and must be synchronously revalidated before being used.
-    pub needs_synchronous_validation: bool,
-    /// When this is set, `needs_synchronous_validation` is `false` and the caller is responsible
-    /// for spawning the background revalidation, claiming the single-flight guard.
-    pub revalidate_in_background: bool,
+    /// Whether the stored response is fresh or stale
+    pub validation_status: ValidationStatus,
     /// Single-flight guard for the background revalidation.
     pub revalidation_guard: StdArc<AtomicBool>,
 }
@@ -393,18 +403,19 @@ fn create_cached_response(
     //    - beyond the stale-while-revalidate window: synchronous validation is required.
     let stale_for = time_since_validated.saturating_sub(adjusted_expires);
     let within_stale_while_revalidate_window = stale_for <= cached_resource.stale_while_revalidate;
-    let revalidate_in_background = has_expired &&
-        within_stale_while_revalidate_window &&
-        !cached_resource.stale_while_revalidate.is_zero() &&
-        !request_demands_revalidation(request);
+    let validation_status = if !has_expired {
+        ValidationStatus::Valid
+    } else {
+        ValidationStatus::Stale {
+            revalidate_in_background: within_stale_while_revalidate_window &&
+                !cached_resource.stale_while_revalidate.is_zero() &&
+                !request_demands_revalidation(request),
+        }
+    };
 
     let cached_response = CachedResponse {
         response,
-        // When we can serve a stale response under the stale-while-revalidate window, we treat it
-        // as not needing synchronous validation, and signal the background
-        // revalidation separately.
-        needs_synchronous_validation: has_expired && !revalidate_in_background,
-        revalidate_in_background,
+        validation_status,
         revalidation_guard: cached_resource.revalidating.clone(),
     };
     Some(cached_response)
@@ -879,22 +890,17 @@ impl HttpCache {
     }
 
     /// Like [`construct_response`](Self::construct_response), but additionally
-    /// reports the cache freshness state of the constructed response:
-    /// `(needs_validation, revalidate_in_background)`
+    /// reports the [`ValidationStatus`] of the constructed response.
     #[cfg(feature = "test-util")]
     pub async fn construct_response_freshness(
         &self,
         request: &Request,
         done_chan: &mut DoneChannel,
-    ) -> Option<(bool, bool)> {
+    ) -> Option<ValidationStatus> {
         let entry = self.entries.get(&CacheKey::new(request))?;
         let cached_resources = entry.read().await;
-        construct_response(request, done_chan, cached_resources.as_slice()).map(|cached| {
-            (
-                cached.needs_synchronous_validation,
-                cached.revalidate_in_background,
-            )
-        })
+        construct_response(request, done_chan, cached_resources.as_slice())
+            .map(|cached| cached.validation_status)
     }
 
     /// Invalidate cache entries referenced by Location/Content-Location headers.

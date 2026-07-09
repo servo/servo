@@ -90,8 +90,8 @@ use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUs
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, fetch, main_fetch};
 use crate::hsts::HstsList;
 use crate::http_cache::{
-    CacheKey, CachedResourcesOrGuard, HttpCache, construct_response, invalidate_cached_resources,
-    refresh,
+    CacheKey, CachedResourcesOrGuard, HttpCache, ValidationStatus, construct_response,
+    invalidate_cached_resources, refresh,
 };
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
@@ -1794,7 +1794,7 @@ async fn block_for_cache_ready<'a>(
             // Step 8.25.2 If storedResponse is non-null, then:
             if let Some(response_from_cache) = stored_response {
                 let response_headers = response_from_cache.response.headers.clone();
-                let revalidate_in_background = response_from_cache.revalidate_in_background;
+                let validation_status = response_from_cache.validation_status;
                 let revalidation_guard = response_from_cache.revalidation_guard.clone();
 
                 // Substep 1, 2, 3, 4
@@ -1809,7 +1809,10 @@ async fn block_for_cache_ready<'a>(
                         (CacheMode::Reload, _) => (None, false),
                         (_, _) => (
                             Some(response_from_cache.response),
-                            response_from_cache.needs_synchronous_validation,
+                            validation_status ==
+                                (ValidationStatus::Stale {
+                                    revalidate_in_background: false,
+                                }),
                         ),
                     };
 
@@ -1830,6 +1833,10 @@ async fn block_for_cache_ready<'a>(
                 } else {
                     // Substep 6
                     // If it's a stale-while-revalidate response, also refresh it in the background.
+                    let revalidate_in_background = validation_status ==
+                        (ValidationStatus::Stale {
+                            revalidate_in_background: true,
+                        });
                     if revalidate_in_background && cached_response.is_some() {
                         spawn_stale_while_revalidate(context, http_request, revalidation_guard);
                     }
