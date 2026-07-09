@@ -28,7 +28,7 @@ use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
-use fonts::{FontContext, TextByteRange, WebFontDocumentContext, WebFontSetDifference};
+use fonts::{FontContext, TextByteRange, WebFontContextCreator, WebFontSetDifference};
 pub use layout_damage::{AccessibilityDamage, LayoutDamage};
 pub use layout_dom::{
     DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
@@ -311,7 +311,7 @@ pub trait Layout {
     fn remove_cached_image(&mut self, image_url: &ServoUrl);
 
     /// Requests a reflow.
-    fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult>;
+    fn reflow(&mut self, reflow_request: ReflowRequest<'_>) -> Option<ReflowResult>;
 
     /// Do not request a reflow, but ensure that any previous reflow completes building a stacking
     /// context tree so that it is ready to query the final size of any elements in script.
@@ -690,7 +690,7 @@ pub struct ReflowRequestRestyle {
 
 /// Information needed for a script-initiated reflow.
 #[derive(Debug)]
-pub struct ReflowRequest {
+pub struct ReflowRequest<'a> {
     /// The document node.
     pub document: TrustedNodeAddress,
     /// The current layout [`Epoch`] managed by the script thread.
@@ -712,7 +712,7 @@ pub struct ReflowRequest {
     /// The node highlighted by the devtools, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
     /// The current font context.
-    pub document_context: WebFontDocumentContext,
+    pub document_context_creator: &'a dyn WebFontContextCreator,
     /// Damage to the accessibility tree from DOM mutations.
     pub accessibility_damage: Option<Vec<(TrustedNodeAddress, AccessibilityDamage)>>,
     /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
@@ -721,7 +721,7 @@ pub struct ReflowRequest {
     pub rooted_nodes_for_accessibility_integrity_check: Option<FxHashSet<OpaqueNode>>,
 }
 
-impl ReflowRequest {
+impl ReflowRequest<'_> {
     pub fn stylesheets_changed(&self) -> bool {
         self.restyle
             .as_ref()

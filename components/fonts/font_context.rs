@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
@@ -141,6 +142,10 @@ pub trait CspViolationHandler: Send + std::fmt::Debug + MallocSizeOf {
 pub trait NetworkTimingHandler: Send + std::fmt::Debug + MallocSizeOf {
     fn submit_timing(&self, url: ServoUrl, response: ResourceFetchTiming);
     fn clone(&self) -> Box<dyn NetworkTimingHandler>;
+}
+
+pub trait WebFontContextCreator: std::fmt::Debug {
+    fn create_web_font_context(&self) -> WebFontDocumentContext;
 }
 
 /// Document-specific data required to fetch a web font.
@@ -664,7 +669,7 @@ pub trait FontContextWebFontMethods {
         stylist: &Stylist,
         guards: &StylesheetGuards<'_>,
         callback: StylesheetWebFontLoadFinishedCallback,
-        document_context: &WebFontDocumentContext,
+        document_context_creator: &dyn WebFontContextCreator,
     ) -> WebFontSetDifference;
     fn load_single_font_face_rule(
         &self,
@@ -717,8 +722,9 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         stylist: &Stylist,
         guards: &StylesheetGuards<'_>,
         callback: StylesheetWebFontLoadFinishedCallback,
-        document_context: &WebFontDocumentContext,
+        document_context_creator: &dyn WebFontContextCreator,
     ) -> WebFontSetDifference {
+        let document_context = LazyCell::new(|| document_context_creator.create_web_font_context());
         let difference = self
             .known_font_face_rules
             .lock()
@@ -730,7 +736,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
                 added_rule,
                 webview_id,
                 callback.clone(),
-                document_context,
+                &document_context,
             );
         }
         for removed_rule in &difference.removed_font_faces {

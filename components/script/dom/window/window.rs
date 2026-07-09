@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::collections::hash_map::Entry;
 use std::default::Default;
 use std::ffi::c_void;
+use std::fmt;
 use std::io::{Write, stderr, stdout};
 use std::ptr::NonNull;
 use std::rc::{Rc, Weak};
@@ -922,6 +923,16 @@ impl Window {
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
         self.script_thread().perform_a_microtask_checkpoint(cx);
+    }
+
+    pub(crate) fn web_font_context_creator<'a, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+    ) -> WebFontContextCreator<'a, 'b> {
+        WebFontContextCreator {
+            window: self,
+            no_gc,
+        }
     }
 
     pub(crate) fn web_font_context(&self, no_gc: &NoGC) -> WebFontDocumentContext {
@@ -2659,7 +2670,7 @@ impl Window {
         // layout runs, so that the map can gather their elements in DOM order.
         document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
-        let document_context = self.web_font_context(cx.no_gc());
+        let document_context_creator = self.web_font_context_creator(cx.no_gc());
 
         let rooted_nodes_for_accessibility_integrity_check =
             document.rooted_nodes_for_accessibility_integrity_check();
@@ -2681,7 +2692,7 @@ impl Window {
             animations: document.animations().sets.clone(),
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
-            document_context,
+            document_context_creator: &document_context_creator,
             accessibility_damage,
             rooted_nodes_for_accessibility_integrity_check,
         };
@@ -4068,5 +4079,22 @@ impl WindowHelpers for Window {
 impl HasOrigin for Window {
     fn origin(&self) -> MutableOrigin {
         Window::origin(self)
+    }
+}
+
+pub(crate) struct WebFontContextCreator<'a, 'b> {
+    window: &'a Window,
+    no_gc: &'b NoGC,
+}
+
+impl fmt::Debug for WebFontContextCreator<'_, '_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "WebFontContextCreator")
+    }
+}
+
+impl fonts::WebFontContextCreator for WebFontContextCreator<'_, '_> {
+    fn create_web_font_context(&self) -> WebFontDocumentContext {
+        self.window.web_font_context(self.no_gc)
     }
 }

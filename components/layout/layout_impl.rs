@@ -1111,7 +1111,7 @@ impl LayoutThread {
                     &self.stylist,
                     guards,
                     self.web_font_finished_loading_callback.clone(),
-                    &reflow_request.document_context,
+                    reflow_request.document_context_creator,
                 )
             } else {
                 WebFontSetDifference::default()
