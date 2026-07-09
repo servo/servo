@@ -282,14 +282,6 @@ pub trait Layout {
     /// if the [`ViewportDetails`] actually changed or `false` otherwise.
     fn set_viewport_details(&mut self, viewport_details: ViewportDetails) -> bool;
 
-    /// Load all fonts from the given stylesheet, returning the number of fonts that
-    /// need to be loaded.
-    fn load_web_fonts_from_stylesheet(
-        &self,
-        stylesheet: &ServoArc<Stylesheet>,
-        font_context: &WebFontDocumentContext,
-    );
-
     /// Add a stylesheet to this Layout. This will add it to the Layout's `Stylist` as well as
     /// loading all web fonts defined in the stylesheet. The second stylesheet is the insertion
     /// point (if it exists, the sheet needs to be inserted before it).
@@ -297,7 +289,6 @@ pub trait Layout {
         &mut self,
         stylesheet: ServoArc<Stylesheet>,
         before_stylsheet: Option<ServoArc<Stylesheet>>,
-        font_context: &WebFontDocumentContext,
     );
 
     /// Inform the layout that its ScriptThread is about to exit.

@@ -2666,6 +2666,8 @@ impl Window {
 
         document.update_animations_post_reflow();
 
+        document.switch_font_face_set_to_loading_if_needed(cx);
+
         (
             reflow_result.reflow_phases_run,
             reflow_result.reflow_statistics,

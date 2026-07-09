@@ -5,6 +5,7 @@
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
+use std::iter;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -35,16 +36,14 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
-use style::device::Device;
 use style::font_face::{
     FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source, SourceList, UrlSource,
 };
 use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::properties::style_structs::Font as FontStyleStruct;
-use style::shared_lock::SharedRwLockReadGuard;
-use style::stylesheets::{
-    CssRule, CustomMediaMap, DocumentStyleSheet, FontFaceRule, StylesheetInDocument,
-};
+use style::shared_lock::{Locked, StylesheetGuards};
+use style::stylesheets::{FontFaceRule, Origin};
+use style::stylist::Stylist;
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use url::Url;
 use uuid::Uuid;
@@ -110,6 +109,11 @@ pub struct FontContext {
     /// Maps from a URL to all the `@font-face` rules that are currently waiting for the load to
     /// finish.
     currently_downloading_fonts: Mutex<HashMap<ServoUrl, Vec<WebFontDownloadState>>>,
+
+    /// The set of `@font-face` rules that are currently present in the CSS cascade. This is not necessarily
+    /// equivalent to the rules that actually apply to the page, because rules that are invalid or not
+    /// yet downloaded are also included.
+    known_font_face_rules: Mutex<KnownFontFaceRules>,
 }
 
 /// A callback that will be invoked on the Fetch thread if a web font download
@@ -167,6 +171,7 @@ impl FontContext {
             have_removed_web_fonts: AtomicBool::new(false),
             font_data: RwLock::default(),
             currently_downloading_fonts: Default::default(),
+            known_font_face_rules: Default::default(),
         }
     }
 
@@ -632,15 +637,21 @@ impl WebFontDownloadState {
 }
 
 pub trait FontContextWebFontMethods {
-    fn add_all_web_fonts_from_stylesheet(
+    fn rebuild_font_face_set(
         &self,
         webview_id: WebViewId,
-        stylesheet: &DocumentStyleSheet,
-        guard: &SharedRwLockReadGuard,
-        device: &Device,
-        finished_callback: StylesheetWebFontLoadFinishedCallback,
+        stylist: &Stylist,
+        guards: &StylesheetGuards<'_>,
+        callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
-    ) -> usize;
+    );
+    fn load_single_font_face_rule(
+        &self,
+        font_face_rule: &FontFaceRule,
+        webview_id: WebViewId,
+        callback: StylesheetWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
+    );
     fn load_web_font_for_script(
         &self,
         webview_id: Option<WebViewId>,
@@ -653,56 +664,71 @@ pub trait FontContextWebFontMethods {
 }
 
 impl FontContextWebFontMethods for Arc<FontContext> {
-    fn add_all_web_fonts_from_stylesheet(
+    fn load_single_font_face_rule(
+        &self,
+        font_face_rule: &FontFaceRule,
+        webview_id: WebViewId,
+        callback: StylesheetWebFontLoadFinishedCallback,
+        document_context: &WebFontDocumentContext,
+    ) {
+        let Some(ref sources) = font_face_rule.descriptors.src else {
+            return;
+        };
+
+        let css_font_face_descriptors = font_face_rule.into();
+
+        let initiator = FontFaceRuleInitiator {
+            font_face_rule: font_face_rule.descriptors.clone(),
+            callback: callback.clone(),
+        };
+
+        self.start_loading_one_web_font(
+            Some(webview_id),
+            sources,
+            css_font_face_descriptors,
+            WebFontLoadInitiator::Stylesheet(Box::new(initiator)),
+            document_context,
+        );
+    }
+    fn rebuild_font_face_set(
         &self,
         webview_id: WebViewId,
-        stylesheet: &DocumentStyleSheet,
-        guard: &SharedRwLockReadGuard,
-        device: &Device,
-        finished_callback: StylesheetWebFontLoadFinishedCallback,
+        stylist: &Stylist,
+        guards: &StylesheetGuards<'_>,
+        callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
-    ) -> usize {
-        let mut number_loading = 0;
-        let custom_media = &CustomMediaMap::default();
-        for rule in stylesheet
-            .contents(guard)
-            .effective_rules(device, custom_media, guard)
-        {
-            let CssRule::FontFace(ref lock) = *rule else {
-                continue;
-            };
+    ) {
+        let mut removed_any = false;
 
-            let rule: &FontFaceRule = lock.read_with(guard);
-
-            // Per https://github.com/w3c/csswg-drafts/issues/1133 an @font-face rule
-            // is valid as far as the CSS parser is concerned even if it doesn’t have
-            // a font-family or src declaration.
-            // However, both are required for the rule to represent an actual font face.
-            if rule.descriptors.font_family.is_none() {
-                continue;
-            }
-            let Some(ref sources) = rule.descriptors.src else {
-                continue;
-            };
-
-            let css_font_face_descriptors = rule.into();
-
-            let initiator = FontFaceRuleInitiator {
-                font_face_rule: rule.descriptors.clone(),
-                callback: finished_callback.clone(),
-            };
-
-            number_loading += 1;
-            self.start_loading_one_web_font(
-                Some(webview_id),
-                sources,
-                css_font_face_descriptors,
-                WebFontLoadInitiator::Stylesheet(Box::new(initiator)),
-                document_context,
+        self.known_font_face_rules
+            .lock()
+            .diff_old_and_new_font_face_rules(
+                stylist,
+                guards,
+                |new_rule| {
+                    self.load_single_font_face_rule(
+                        new_rule,
+                        webview_id,
+                        callback.clone(),
+                        document_context,
+                    );
+                },
+                |stale_rule| {
+                    self.remove_single_font_face_rule(
+                        &stale_rule.descriptors,
+                        &mut self.web_fonts.write(),
+                    );
+                    removed_any = true;
+                },
             );
-        }
 
-        number_loading
+        if removed_any {
+            // We modified the list of available fonts, so invalidate resolved font groups.
+            self.resolved_font_groups.write().clear();
+
+            // Ensure that we clean up any WebRender resources on the next display list update.
+            self.have_removed_web_fonts.store(true, Ordering::Relaxed);
+        }
     }
 
     fn load_web_font_for_script(
@@ -840,43 +866,6 @@ impl FontContext {
         });
 
         true
-    }
-
-    pub fn remove_all_web_fonts_from_stylesheet(
-        &self,
-        stylesheet: &DocumentStyleSheet,
-        device: &Device,
-        guard: &SharedRwLockReadGuard,
-    ) {
-        let mut web_fonts = self.web_fonts.write();
-
-        // TODO: Walking the stylesheet should not be necessary here. Instead, we can diff
-        // the results from Stylist.iter_extra_data() and find out which font face rules were
-        // removed.
-        let mut removed_any = false;
-        let custom_media = &CustomMediaMap::default();
-        for rule in stylesheet
-            .contents(guard)
-            .effective_rules(device, custom_media, guard)
-        {
-            let CssRule::FontFace(ref lock) = *rule else {
-                continue;
-            };
-            let rule: &FontFaceRule = lock.read_with(guard);
-
-            removed_any |= self.remove_single_font_face_rule(&rule.descriptors, &mut web_fonts);
-        }
-
-        if !removed_any {
-            return;
-        };
-
-        // Removing this stylesheet modified the available fonts, so invalidate the cache
-        // of resolved font groups.
-        self.resolved_font_groups.write().clear();
-
-        // Ensure that we clean up any WebRender resources on the next display list update.
-        self.have_removed_web_fonts.store(true, Ordering::Relaxed);
     }
 
     pub fn add_template_to_font_context(
@@ -1223,5 +1212,128 @@ impl Hash for FontGroupCacheKey {
         H: Hasher,
     {
         self.style.hash.hash(hasher)
+    }
+}
+
+#[derive(Default, MallocSizeOf)]
+struct KnownFontFaceRules {
+    /// Used to distinguish new, incoming `@font-face` rules from existing ones.
+    ///
+    /// Generations alternate between true and false, which is enough to tell one generation apart from
+    /// the next.
+    generation: bool,
+    /// Maps from a font family name to a list of `@font-face` rules declaring fonts
+    /// that belong to said family.
+    contents: HashMap<Atom, Vec<KnownFontFaceRule>>,
+}
+
+#[derive(MallocSizeOf)]
+struct KnownFontFaceRule {
+    rule_with_origin: FontFaceRuleWithOrigin,
+    generation: bool,
+}
+
+#[derive(MallocSizeOf)]
+struct FontFaceRuleWithOrigin {
+    #[conditional_malloc_size_of]
+    rule: ServoArc<Locked<FontFaceRule>>,
+    origin: Origin,
+}
+
+impl FontFaceRuleWithOrigin {
+    fn read_with<'a>(&'a self, guards: &'a StylesheetGuards) -> &'a FontFaceRule {
+        match self.origin {
+            Origin::Author => self.rule.read_with(guards.author),
+            Origin::UserAgent | Origin::User => self.rule.read_with(guards.ua_or_user),
+        }
+    }
+}
+
+impl KnownFontFaceRules {
+    /// Computes the difference between the `@font-face `rules that are currently in effect
+    /// and the ones that the `Stylist` knows about. The caller is notified about new or removed rules
+    /// with callbacks.
+    fn diff_old_and_new_font_face_rules<NewRuleCallback, StaleRuleCallback>(
+        &mut self,
+        stylist: &Stylist,
+        guards: &StylesheetGuards<'_>,
+        mut new_rule_callback: NewRuleCallback,
+        mut stale_rule_callback: StaleRuleCallback,
+    ) where
+        NewRuleCallback: FnMut(&FontFaceRule),
+        StaleRuleCallback: FnMut(&FontFaceRule),
+    {
+        self.generation = !self.generation;
+
+        let font_face_rules_in_cascade_order = stylist
+            .iter_extra_data_origins()
+            .flat_map(|(extra_data, origin)| extra_data.font_faces.iter().zip(iter::repeat(origin)))
+            .map(|((rule, _layer), origin)| FontFaceRuleWithOrigin {
+                rule: rule.clone(),
+                origin,
+            });
+
+        // First, find any *new* font families that were not defined previously
+        let mut number_of_unchanged_rules = 0;
+        let number_of_previously_known_rules: usize = self
+            .contents
+            .values()
+            .map(|fonts_from_family| fonts_from_family.len())
+            .sum();
+        for rule_with_origin in font_face_rules_in_cascade_order {
+            let borrowed_rule = rule_with_origin.read_with(guards);
+
+            let Some(font_family) = borrowed_rule.descriptors.font_family.as_ref() else {
+                // Per https://github.com/w3c/csswg-drafts/issues/1133 an @font-face rule
+                // is valid as far as the CSS parser is concerned even if it doesn’t have
+                // a font-family or src declaration.
+                // However, both are required for the rule to represent an actual font face.
+                continue;
+            };
+            if borrowed_rule.descriptors.src.is_none() {
+                // @font-face rules without a src don't constitute usable font faces.
+                continue;
+            }
+
+            let known_font_faces_for_family =
+                self.contents.entry(font_family.name.clone()).or_default();
+            if let Some(previous_definition) =
+                known_font_faces_for_family
+                    .iter_mut()
+                    .find(|known_font_face| {
+                        ServoArc::ptr_eq(
+                            &known_font_face.rule_with_origin.rule,
+                            &rule_with_origin.rule,
+                        )
+                    })
+            {
+                number_of_unchanged_rules += 1;
+                previous_definition.generation = self.generation;
+            } else {
+                new_rule_callback(borrowed_rule);
+                known_font_faces_for_family.push(KnownFontFaceRule {
+                    rule_with_origin,
+                    generation: self.generation,
+                });
+            }
+        }
+
+        if number_of_unchanged_rules == number_of_previously_known_rules {
+            // This is the common case, where the new set of known @font-face rules is a superset of
+            // the old one after applying the cascade. In this case there is nothing more to do,
+            // because all old @font-face rules are still present.
+            return;
+        }
+
+        // Remove all `@font-face` rules that were not updated - those no longer exist on the stylist.
+        self.contents.retain(|_, known_font_faces_for_family| {
+            known_font_faces_for_family
+                .extract_if(.., |rule| rule.generation != self.generation)
+                .for_each(|removed_rule| {
+                    stale_rule_callback(removed_rule.rule_with_origin.read_with(guards))
+                });
+
+            !known_font_faces_for_family.is_empty()
+        });
     }
 }

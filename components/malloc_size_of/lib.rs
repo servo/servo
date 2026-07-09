@@ -1351,6 +1351,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::RestyleDamage);
 malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::Snapshot);
 malloc_size_of_is_stylo_malloc_size_of!(style::shared_lock::SharedRwLock);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
+malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::Origin);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylist::Stylist);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::BorderStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::ContentDistribution);

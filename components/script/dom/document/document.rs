@@ -1084,9 +1084,13 @@ impl Document {
         self.needs_restyle.set(RestyleReason::empty());
     }
 
+    pub(crate) fn stylesheets_changed_since_last_reflow(&self) -> bool {
+        self.stylesheets.borrow().has_changed()
+    }
+
     pub(crate) fn restyle_reason(&self) -> RestyleReason {
         let mut condition = self.needs_restyle.get();
-        if self.stylesheets.borrow().has_changed() {
+        if self.stylesheets_changed_since_last_reflow() {
             condition.insert(RestyleReason::StylesheetsChanged);
         }
 
@@ -4544,24 +4548,12 @@ impl Document {
         );
     }
 
-    fn switch_font_face_set_to_loading_if_needed(&self, cx: &mut JSContext) {
+    pub(crate) fn switch_font_face_set_to_loading_if_needed(&self, cx: &mut JSContext) {
         if self.window.font_context().web_fonts_still_loading() != 0 &&
             let Some(font_face_set) = self.fonts.get()
         {
             font_face_set.switch_to_loading(cx);
         }
-    }
-
-    /// Given a stylesheet, load all web fonts from it in Layout.
-    pub(crate) fn load_web_fonts_from_stylesheet(
-        &self,
-        cx: &mut JSContext,
-        stylesheet: &Arc<Stylesheet>,
-    ) {
-        self.window
-            .layout()
-            .load_web_fonts_from_stylesheet(stylesheet, &self.window.web_font_context(cx.no_gc()));
-        self.switch_font_face_set_to_loading_if_needed(cx);
     }
 
     pub(crate) fn add_stylesheet_to_stylist(
@@ -4570,11 +4562,9 @@ impl Document {
         stylesheet: Arc<Stylesheet>,
         before_stylesheet: Option<Arc<Stylesheet>>,
     ) {
-        self.window.layout_mut().add_stylesheet(
-            stylesheet,
-            before_stylesheet,
-            &self.window.web_font_context(cx.no_gc()),
-        );
+        self.window
+            .layout_mut()
+            .add_stylesheet(stylesheet, before_stylesheet);
         self.switch_font_face_set_to_loading_if_needed(cx);
     }
 

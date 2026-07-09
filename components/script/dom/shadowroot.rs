@@ -207,12 +207,7 @@ impl ShadowRoot {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(
-        &self,
-        cx: &mut JSContext,
-        owner_node: &Element,
-        sheet: Arc<Stylesheet>,
-    ) {
+    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
 
         // FIXME(stevennovaryo): This is almost identical with the one in Document::add_stylesheet.
@@ -230,10 +225,6 @@ impl ShadowRoot {
             })
             .cloned();
 
-        if self.document.has_browsing_context() {
-            self.document.load_web_fonts_from_stylesheet(cx, &sheet);
-        }
-
         DocumentOrShadowRoot::add_stylesheet(
             StylesheetSource::Element(Dom::from_ref(owner_node)),
             StylesheetSetRef::Author(stylesheets),
@@ -245,21 +236,13 @@ impl ShadowRoot {
 
     /// Append a constructed stylesheet to the back of shadow root stylesheet set.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn append_constructed_stylesheet(
-        &self,
-        cx: &mut JSContext,
-        cssom_stylesheet: &CSSStyleSheet,
-    ) {
+    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
         let sheet = cssom_stylesheet.style_stylesheet().clone();
 
         let insertion_point = stylesheets.iter().last().cloned();
-
-        if self.document.has_browsing_context() {
-            self.document.load_web_fonts_from_stylesheet(cx, &sheet);
-        }
 
         DocumentOrShadowRoot::add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),

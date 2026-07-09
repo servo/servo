@@ -57,7 +57,7 @@ impl StyleSheetListOwner {
                 doc.add_owned_stylesheet(cx, owner_node, sheet)
             },
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
-                shadow_root.add_owned_stylesheet(cx, owner_node, sheet)
+                shadow_root.add_owned_stylesheet(owner_node, sheet)
             },
         }
     }
@@ -72,7 +72,7 @@ impl StyleSheetListOwner {
                 doc.append_constructed_stylesheet(cx, cssom_stylesheet)
             },
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
-                shadow_root.append_constructed_stylesheet(cx, cssom_stylesheet)
+                shadow_root.append_constructed_stylesheet(cssom_stylesheet)
             },
         }
     }
