@@ -83,11 +83,20 @@ impl CacheStorage {
 
     fn handle_response(&self, cx: &mut JSContext, response: CacheStorageThreadResponse) {
         match response {
+            // https://w3c.github.io/ServiceWorker/#cache-storage-has
+            // the steps resolving the promise with the result.
+            // Note: spec forgets to queue a task see https://github.com/w3c/ServiceWorker/issues/1831
             CacheStorageThreadResponse::HasCacheResult(result) => {
                 let promise = self.pending_promises.borrow_mut().pop_front();
                 if let Some(promise) = promise {
                     match result {
-                        Ok(has_cache) => promise.resolve_native(cx, &has_cache),
+                        Ok(has_cache) => {
+                            // Step 2.1:For each key → value of the relevant name to cache map:
+                            // Step 2.1.1: If cacheName matches key, resolve promise with true and abort these steps.
+                            // Step 2.2: Resolve promise with false.
+                            // Note: promise resolved with the result obtained in parallel.
+                            promise.resolve_native(cx, &has_cache);
+                        },
                         Err(err) => promise.reject_error(cx, Error::Operation(Some(err))),
                     }
                 } else {
@@ -126,7 +135,7 @@ fn relevant_name_to_cache_map(
 }
 
 impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
-    /// <https://w3c.github.io/ServiceWorker/#relevant-name-to-cache-map>
+    /// <https://w3c.github.io/ServiceWorker/#cache-storage-has>
     fn Has(&self, cx: &mut JSContext, cache_name: DOMString) -> Rc<Promise> {
         let global = self.global();
 

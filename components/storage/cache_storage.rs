@@ -25,8 +25,14 @@ pub struct DummyCacheStorageEngine;
 impl CacheStorageEngine for DummyCacheStorageEngine {
     type Error = ();
 
+    /// <https://w3c.github.io/ServiceWorker/#cache-storage-has>
+    /// The parallel steps.
     fn has_cache(&mut self, _cache_name: &str) -> Result<bool, CacheStorageError<Self::Error>> {
         // TODO: implement.
+        // Step 2.1:For each key → value of the relevant name to cache map:
+        // Step 2.1.1: If cacheName matches key, resolve promise with true and abort these steps.
+        // Step 2.2: Resolve promise with false.
+        // Note: promise resolved in the callback in CacheStorage.
         Ok(false)
     }
 }
