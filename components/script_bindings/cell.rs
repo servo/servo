@@ -43,13 +43,11 @@ impl<T> DomRefCell<T> {
     ///
     /// # Panics
     ///
-    /// Panics if this is called from anywhere other than the layout thread
-    ///
-    /// Panics if the value is currently mutably borrowed.
+    /// Panics if this is called from anywhere other than the layout thread or
+    /// if the value is currently mutably borrowed.
     #[expect(unsafe_code)]
     pub unsafe fn borrow_for_layout(&self) -> &T {
         assert_in_layout();
-
         unsafe {
             self.value
                 .try_borrow_unguarded()
@@ -58,6 +56,7 @@ impl<T> DomRefCell<T> {
     }
 
     /// Returns a reference to the contents. For use in layout only.
+    ///
     /// # Panics
     ///
     /// Panics if this is called from anywhere other than the layout thread or if the cell is already mutable borrowed.
@@ -86,6 +85,7 @@ impl<T> DomRefCell<T> {
 
     /// Mutably borrow a cell for layout. Ideally this would use
     /// `RefCell::try_borrow_mut_unguarded` but that doesn't exist yet.
+    ///
     /// # Panics
     ///
     /// Panics if this is called from anywhere other than the layout thread.
