@@ -26,15 +26,19 @@ pub(crate) fn derive_bits(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If length is null or is not a multiple of 8, then throw an OperationError.
     let Some(length) = length else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some("Length is null".into())));
     };
     if length % 8 != 0 {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Length is not a multiple of 8".into(),
+        )));
     };
 
     // Step 2. If the iterations member of normalizedAlgorithm is zero, then throw an OperationError.
     let Ok(iterations) = NonZero::<u32>::try_from(normalized_algorithm.iterations) else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Normalized algorithm's iterations is null".into(),
+        )));
     };
 
     // Step 3. If length is zero, return an empty byte sequence.
@@ -50,7 +54,9 @@ pub(crate) fn derive_bits(
         CryptoAlgorithm::Sha384 => pbkdf2::PBKDF2_HMAC_SHA384,
         CryptoAlgorithm::Sha512 => pbkdf2::PBKDF2_HMAC_SHA512,
         _ => {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Normalized algorithm's hash name is not supported".into(),
+            )));
         },
     };
 
@@ -88,7 +94,7 @@ pub(crate) fn import_key(
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If format is not "raw", throw a NotSupportedError
     if !matches!(format, KeyFormat::Raw | KeyFormat::Raw_secret) {
-        return Err(Error::NotSupported(None));
+        return Err(Error::NotSupported(Some("Format is not raw".into())));
     }
 
     // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
@@ -97,12 +103,14 @@ pub(crate) fn import_key(
         .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
         usages.is_empty()
     {
-        return Err(Error::Syntax(None));
+        return Err(Error::Syntax(Some(
+            "Usages is empty or contains a value that is not a 'deriveKey' or 'deriveBits'".into(),
+        )));
     }
 
     // Step 3. If extractable is not false, then throw a SyntaxError.
     if extractable {
-        return Err(Error::Syntax(None));
+        return Err(Error::Syntax(Some("Extractable is not false".into())));
     }
 
     // Step 4. Let key be a new CryptoKey representing keyData.

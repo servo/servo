@@ -32,7 +32,9 @@ pub(crate) fn sign(
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(None));
+        return Err(Error::InvalidAccess(Some(
+            "The key type is not private.".into(),
+        )));
     }
 
     // Step 2. Let hashAlgorithm be the hash member of normalizedAlgorithm.
@@ -63,41 +65,53 @@ pub(crate) fn sign(
     //     and d and resulting in result.
     // NOTE: We currently do not support other applicable specifications.
     let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Key algorithm is not a elliptic curve key algorithm.".into(),
+        )));
     };
     let mut rng = rand::rng();
     let result = match algorithm.named_curve.as_str() {
         NAMED_CURVE_P256 => {
             let Handle::P256PrivateKey(d) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Key handle is not a P256PrivateKey.".into(),
+                )));
             };
             let signing_key = SigningKey::<NistP256>::from(d);
             let signature: Signature<NistP256> = signing_key
                 .sign_prehash_with_rng(&mut rng, &m)
-                .map_err(|_| Error::Operation(None))?;
+                .map_err(|_| Error::Operation(Some("ECDSA signing process failed.".into())))?;
             signature.to_vec()
         },
         NAMED_CURVE_P384 => {
             let Handle::P384PrivateKey(d) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Key handle is not a P384PrivateKey.".into(),
+                )));
             };
             let signing_key = SigningKey::<NistP384>::from(d);
             let signature: Signature<NistP384> = signing_key
                 .sign_prehash_with_rng(&mut rng, &m)
-                .map_err(|_| Error::Abort(None))?;
+                .map_err(|_| Error::Abort(Some("ECDSA signing process failed.".into())))?;
             signature.to_vec()
         },
         NAMED_CURVE_P521 => {
             let Handle::P521PrivateKey(d) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Key handle is not a P521PrivateKey.".into(),
+                )));
             };
             let signing_key = SigningKey::<NistP521>::from(d);
             let signature: Signature<NistP521> = signing_key
                 .sign_prehash_with_rng(&mut rng, &m)
-                .map_err(|_| Error::Operation(None))?;
+                .map_err(|_| Error::Operation(Some("ECDSA signing process failed.".into())))?;
             signature.to_vec()
         },
-        _ => return Err(Error::NotSupported(None)),
+        _ => {
+            return Err(Error::NotSupported(Some(
+                "Algorithm's curve is not supported.".into(),
+            )));
+        },
     };
 
     // Step 7. Return result.
@@ -114,7 +128,7 @@ pub(crate) fn verify(
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(None));
+        return Err(Error::InvalidAccess(Some("Key type is not public".into())));
     }
 
     // Step 2. Let hashAlgorithm be the hash member of normalizedAlgorithm.
@@ -146,12 +160,16 @@ pub(crate) fn verify(
     // false otherwise.
     // NOTE: We currently do not support other applicable specifications.
     let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Key algorithm is not a elliptic curve key algorithm.".into(),
+        )));
     };
     let result = match algorithm.named_curve.as_str() {
         NAMED_CURVE_P256 => {
             let Handle::P256PublicKey(q) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Key handle is not a P256PublicKey.".into(),
+                )));
             };
             match Signature::<NistP256>::from_slice(signature) {
                 Ok(signature) => {
@@ -163,7 +181,9 @@ pub(crate) fn verify(
         },
         NAMED_CURVE_P384 => {
             let Handle::P384PublicKey(q) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Key handle is not a P384PublicKey.".into(),
+                )));
             };
             match Signature::<NistP384>::from_slice(signature) {
                 Ok(signature) => {
@@ -185,7 +205,11 @@ pub(crate) fn verify(
                 Err(_) => false,
             }
         },
-        _ => return Err(Error::NotSupported(None)),
+        _ => {
+            return Err(Error::NotSupported(Some(
+                "Algorithm's curve is not supported.".into(),
+            )));
+        },
     };
 
     // Step 8. Return result.

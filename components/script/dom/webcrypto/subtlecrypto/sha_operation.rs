@@ -34,7 +34,7 @@ pub(crate) fn digest(
         CryptoAlgorithm::Sha384 => digest::digest(&digest::SHA384, message).as_ref().to_vec(),
         CryptoAlgorithm::Sha512 => digest::digest(&digest::SHA512, message).as_ref().to_vec(),
         _ => {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some("Algorithm not supported".into())));
         },
     };
 
