@@ -52,7 +52,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
@@ -1208,7 +1208,7 @@ impl HTMLImageElement {
         // Step 8. Queue a microtask to perform the rest of this algorithm, allowing the task that
         // invoked this algorithm to continue.
         let task = ImageElementMicrotask::UpdateImageData {
-            elem: DomRoot::from_ref(self),
+            elem: Dom::from_ref(self),
             generation: self.generation.get(),
         };
 
@@ -1219,7 +1219,7 @@ impl HTMLImageElement {
     pub(crate) fn react_to_environment_changes(&self, cx: &JSContext) {
         // Step 1. Await a stable state.
         let task = ImageElementMicrotask::EnvironmentChanges {
-            elem: DomRoot::from_ref(self),
+            elem: Dom::from_ref(self),
             generation: self.generation.get(),
         };
 
@@ -1623,15 +1623,15 @@ impl HTMLImageElement {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum ImageElementMicrotask {
     UpdateImageData {
-        elem: DomRoot<HTMLImageElement>,
+        elem: Dom<HTMLImageElement>,
         generation: u32,
     },
     EnvironmentChanges {
-        elem: DomRoot<HTMLImageElement>,
+        elem: Dom<HTMLImageElement>,
         generation: u32,
     },
     Decode {
-        elem: DomRoot<HTMLImageElement>,
+        elem: Dom<HTMLImageElement>,
         #[conditional_malloc_size_of]
         promise: Rc<Promise>,
     },
@@ -1934,7 +1934,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
 
         // Step 2. Queue a microtask to perform the following steps:
         let task = ImageElementMicrotask::Decode {
-            elem: DomRoot::from_ref(self),
+            elem: Dom::from_ref(self),
             promise: promise.clone(),
         };
 

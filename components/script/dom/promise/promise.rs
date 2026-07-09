@@ -41,7 +41,7 @@ use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{AsHandleValue, DomRoot};
+use crate::dom::bindings::root::{AsHandleValue, Dom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::microtask::{Microtask, MicrotaskRunnable};
@@ -486,8 +486,9 @@ impl Callback for WaitForAllRejectionHandler {
 /// The microtask for performing successSteps given « » in
 /// <https://webidl.spec.whatwg.org/#wait-for-all>.
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) struct WaitForAllSuccessStepsMicrotask {
-    global: DomRoot<GlobalScope>,
+    global: Dom<GlobalScope>,
 
     #[ignore_malloc_size_of = "Closure is hard"]
     #[no_trace]
@@ -538,7 +539,7 @@ fn wait_for_all(
         global.enqueue_microtask(
             cx,
             Microtask::WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask {
-                global: DomRoot::from_ref(global),
+                global: Dom::from_ref(global),
                 success_steps,
             }),
         );

@@ -22,17 +22,20 @@ use crate::dom::customstateset::CustomStateSet;
 use crate::dom::element::Element;
 use crate::dom::file::File;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::html::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
+use crate::dom::html::htmlformelement::{
+    FormDatum, FormDatumUnrooted, FormDatumValue, HTMLFormElement,
+};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 enum SubmissionValue {
-    File(DomRoot<File>),
-    FormData(Vec<FormDatum>),
+    File(Dom<File>),
+    FormData(Vec<FormDatumUnrooted>),
     USVString(USVString),
     None,
 }
@@ -42,14 +45,18 @@ impl From<Option<&FileOrUSVStringOrFormData>> for SubmissionValue {
         match value {
             None => SubmissionValue::None,
             Some(FileOrUSVStringOrFormData::File(file)) => {
-                SubmissionValue::File(DomRoot::from_ref(file))
+                SubmissionValue::File(Dom::from_ref(file))
             },
             Some(FileOrUSVStringOrFormData::USVString(usv_string)) => {
                 SubmissionValue::USVString(usv_string.clone())
             },
-            Some(FileOrUSVStringOrFormData::FormData(form_data)) => {
-                SubmissionValue::FormData(form_data.datums())
-            },
+            Some(FileOrUSVStringOrFormData::FormData(form_data)) => SubmissionValue::FormData(
+                form_data
+                    .datums()
+                    .into_iter()
+                    .map(|data| data.into())
+                    .collect(),
+            ),
         }
     }
 }
@@ -114,14 +121,6 @@ impl ElementInternals {
         *self.custom_validity_error_message.borrow_mut() = message;
     }
 
-    fn set_submission_value(&self, value: SubmissionValue) {
-        *self.submission_value.borrow_mut() = value;
-    }
-
-    fn set_state(&self, value: SubmissionValue) {
-        *self.state.borrow_mut() = value;
-    }
-
     pub(crate) fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
         self.form_owner.set(form);
     }
@@ -154,7 +153,7 @@ impl ElementInternals {
         }
 
         if let SubmissionValue::FormData(datums) = &*self.submission_value.borrow() {
-            entry_list.extend(datums.iter().cloned());
+            entry_list.extend(datums.iter().map(|data| data.root()));
             return;
         }
         let name = self
@@ -231,13 +230,13 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         }
 
         // Step 3: Set target element's submission value
-        self.set_submission_value(value.as_ref().into());
+        *self.submission_value.borrow_mut() = value.as_ref().into();
 
         match maybe_state {
             // Step 4: If the state argument of the function is omitted, set element's state to its submission value
-            None => self.set_state(value.as_ref().into()),
+            None => *self.state.borrow_mut() = value.as_ref().into(),
             // Steps 5-6: Otherwise, set element's state to state
-            Some(state) => self.set_state(state.as_ref().into()),
+            Some(state) => *self.state.borrow_mut() = state.as_ref().into(),
         }
         Ok(())
     }

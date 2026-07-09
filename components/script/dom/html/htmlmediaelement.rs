@@ -1080,7 +1080,7 @@ impl HTMLMediaElement {
         // changed, which is why we need to pass the base URL in the task
         // right here.
         let task = MediaElementMicrotask::ResourceSelection {
-            elem: DomRoot::from_ref(self),
+            elem: Dom::from_ref(self),
             generation_id: self.generation_id.get(),
             base_url: self.owner_document().base_url(),
         };
@@ -1308,7 +1308,7 @@ impl HTMLMediaElement {
 
         // Step 9.children.11. Await a stable state.
         let task = MediaElementMicrotask::SelectNextSourceChild {
-            elem: DomRoot::from_ref(self),
+            elem: Dom::from_ref(self),
             generation_id: self.generation_id.get(),
         };
 
@@ -1911,7 +1911,7 @@ impl HTMLMediaElement {
 
         // Step 9.children.23. Await a stable state.
         let task = MediaElementMicrotask::SelectNextSourceChildAfterWait {
-            elem: DomRoot::from_ref(self),
+            elem: Dom::from_ref(self),
             generation_id: self.generation_id.get(),
         };
 
@@ -2778,7 +2778,7 @@ impl HTMLMediaElement {
         // <https://html.spec.whatwg.org/multipage/#dom-media-seek>
         // Step 13. Await a stable state.
         let task = MediaElementMicrotask::Seeked {
-            elem: DomRoot::from_ref(self),
+            elem: Dom::from_ref(self),
             generation_id: self.generation_id.get(),
         };
 
@@ -3545,7 +3545,7 @@ impl VirtualMethods for HTMLMediaElement {
         // (Steps in the synchronous section are marked with ⌛.)
         if context.tree_connected {
             let task = MediaElementMicrotask::PauseIfNotInDocument {
-                elem: DomRoot::from_ref(self),
+                elem: Dom::from_ref(self),
             };
             ScriptThread::await_stable_state(cx, Microtask::MediaElement(task));
         }
@@ -3573,24 +3573,24 @@ impl VirtualMethods for HTMLMediaElement {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum MediaElementMicrotask {
     ResourceSelection {
-        elem: DomRoot<HTMLMediaElement>,
+        elem: Dom<HTMLMediaElement>,
         generation_id: u32,
         #[no_trace]
         base_url: ServoUrl,
     },
     PauseIfNotInDocument {
-        elem: DomRoot<HTMLMediaElement>,
+        elem: Dom<HTMLMediaElement>,
     },
     Seeked {
-        elem: DomRoot<HTMLMediaElement>,
+        elem: Dom<HTMLMediaElement>,
         generation_id: u32,
     },
     SelectNextSourceChild {
-        elem: DomRoot<HTMLMediaElement>,
+        elem: Dom<HTMLMediaElement>,
         generation_id: u32,
     },
     SelectNextSourceChildAfterWait {
-        elem: DomRoot<HTMLMediaElement>,
+        elem: Dom<HTMLMediaElement>,
         generation_id: u32,
     },
 }

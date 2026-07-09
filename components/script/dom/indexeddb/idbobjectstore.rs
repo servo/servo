@@ -584,7 +584,7 @@ impl IDBObjectStore {
         let index = IDBIndex::new(
             cx,
             &self.global(),
-            DomRoot::from_ref(self),
+            self,
             name.clone(),
             options.multiEntry,
             options.unique,

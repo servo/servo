@@ -367,8 +367,9 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-form-elements>
     fn Elements(&self, cx: &mut JSContext) -> DomRoot<HTMLFormControlsCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
+        #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
         struct ElementsFilter {
-            form: DomRoot<HTMLFormElement>,
+            form: Dom<HTMLFormElement>,
         }
         impl CollectionFilter for ElementsFilter {
             fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
@@ -418,17 +419,21 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                 };
 
                 match form_owner {
-                    Some(form_owner) => form_owner == self.form,
+                    Some(form_owner) => form_owner.as_traced() == self.form,
                     None => false,
                 }
             }
         }
         DomRoot::from_ref(self.elements.init_once(|| {
-            let filter = Box::new(ElementsFilter {
-                form: DomRoot::from_ref(self),
-            });
             let window = self.owner_window();
-            HTMLFormControlsCollection::new(cx, &window, self, filter)
+            HTMLFormControlsCollection::new(
+                cx,
+                &window,
+                self,
+                Box::new(ElementsFilter {
+                    form: Dom::from_ref(self),
+                }),
+            )
         }))
     }
 
@@ -774,7 +779,7 @@ impl HTMLFormElement {
                 atom!("submit"),
                 true,
                 true,
-                submitter_button.map(DomRoot::from_ref),
+                submitter_button,
             );
             let event = event.upcast::<Event>();
             event.fire(cx, self.upcast::<EventTarget>());
@@ -1481,13 +1486,55 @@ impl Element {
     }
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) enum FormDatumValueUnrooted {
+    File(Dom<File>),
+    String(DOMString),
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct FormDatumUnrooted {
+    pub(crate) ty: DOMString,
+    pub(crate) name: DOMString,
+    pub(crate) value: FormDatumValueUnrooted,
+}
+
+impl FormDatumUnrooted {
+    pub(crate) fn root(&self) -> FormDatum {
+        FormDatum {
+            ty: self.ty.clone(),
+            name: self.name.clone(),
+            value: match &self.value {
+                FormDatumValueUnrooted::File(file) => FormDatumValue::File(file.as_rooted()),
+                FormDatumValueUnrooted::String(s) => FormDatumValue::String(s.clone()),
+            },
+        }
+    }
+}
+
+impl From<FormDatum> for FormDatumUnrooted {
+    fn from(value: FormDatum) -> Self {
+        Self {
+            ty: value.ty,
+            name: value.name,
+            value: match value.value {
+                FormDatumValue::File(file) => FormDatumValueUnrooted::File(file.as_traced()),
+                FormDatumValue::String(s) => FormDatumValueUnrooted::String(s),
+            },
+        }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[allow(crown::domroot_inside_dom_struct)]
 pub(crate) enum FormDatumValue {
     File(DomRoot<File>),
     String(DOMString),
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct FormDatum {
     pub(crate) ty: DOMString,
     pub(crate) name: DOMString,

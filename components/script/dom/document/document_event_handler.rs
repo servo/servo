@@ -410,7 +410,7 @@ impl DocumentEventHandler {
     /// then the body is returned. If no body is returned then the `Window` is returned.
     fn target_for_events_following_focus(&self) -> DomRoot<EventTarget> {
         let document = self.window.Document();
-        match &*document.focus_handler().focused_area() {
+        match document.focus_handler().focused_area() {
             FocusableArea::Node { node, .. } => DomRoot::from_ref(node.upcast()),
             FocusableArea::IFrameViewport { iframe_element, .. } => {
                 DomRoot::from_ref(iframe_element.upcast())

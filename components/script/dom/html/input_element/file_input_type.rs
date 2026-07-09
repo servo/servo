@@ -184,7 +184,7 @@ impl SpecificInputType for FileInputType {
             .owner_document()
             .embedder_controls()
             .show_embedder_control(
-                ControlElement::FileInput(DomRoot::from_ref(input)),
+                ControlElement::FileInput(Dom::from_ref(input)),
                 EmbedderControlRequest::FilePicker(FilePickerRequest {
                     origin: input.owner_window().origin().immutable().clone(),
                     current_paths,

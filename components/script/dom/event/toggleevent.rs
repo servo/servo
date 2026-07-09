@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::ToggleEventBinding;
 use crate::dom::bindings::codegen::Bindings::ToggleEventBinding::ToggleEventMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -30,20 +30,20 @@ pub(crate) struct ToggleEvent {
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-newstate>
     new_state: DOMString,
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-source>
-    source: Option<DomRoot<Element>>,
+    source: Option<Dom<Element>>,
 }
 
 impl ToggleEvent {
     pub(crate) fn new_inherited(
         old_state: DOMString,
         new_state: DOMString,
-        source: Option<DomRoot<Element>>,
+        source: Option<&Element>,
     ) -> ToggleEvent {
         ToggleEvent {
             event: Event::new_inherited(),
             old_state,
             new_state,
-            source,
+            source: source.map(Dom::from_ref),
         }
     }
 
@@ -56,7 +56,7 @@ impl ToggleEvent {
         cancelable: EventCancelable,
         old_state: DOMString,
         new_state: DOMString,
-        source: Option<DomRoot<Element>>,
+        source: Option<&Element>,
     ) -> DomRoot<ToggleEvent> {
         Self::new_with_proto(
             cx, window, None, type_, bubbles, cancelable, old_state, new_state, source,
@@ -73,7 +73,7 @@ impl ToggleEvent {
         cancelable: EventCancelable,
         old_state: DOMString,
         new_state: DOMString,
-        source: Option<DomRoot<Element>>,
+        source: Option<&Element>,
     ) -> DomRoot<ToggleEvent> {
         let event = Box::new(ToggleEvent::new_inherited(old_state, new_state, source));
         let event = reflect_dom_object_with_proto_and_cx(event, window, proto, cx);
@@ -106,7 +106,7 @@ impl ToggleEventMethods<crate::DomTypeHolder> for ToggleEvent {
             cancelable,
             init.oldState.clone(),
             init.newState.clone(),
-            init.source.as_ref().map(|s| DomRoot::from_ref(&**s)),
+            init.source.as_deref(),
         ))
     }
 
