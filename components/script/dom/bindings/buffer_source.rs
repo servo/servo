@@ -954,9 +954,17 @@ impl DataBlock {
         Arc::get_mut(&mut self.data).unwrap()
     }
 
+    #[cfg_attr(
+        crown,
+        expect(
+            crown::unrooted_must_root,
+            reason = "Underlying content is rooted when GC can happen"
+        )
+    )]
     pub(crate) fn clear_views(&mut self, cx: &mut JSContext) {
-        for view in self.data_views.drain(..) {
-            view.destroy(cx);
+        while let Some(DataView { buffer, .. }) = self.data_views.pop() {
+            rooted!(&in(cx) let b = unsafe { buffer.underlying_object().get() });
+            assert!(unsafe { DetachArrayBuffer(cx, b.handle()) })
         }
     }
 
@@ -1014,9 +1022,6 @@ impl DataBlock {
 
 /// DataView are created from `NewExternalArrayBuffer`,
 /// so SM will detach the underlying buffer when the DataView is GCed.
-///
-/// But manual destruction is still possible via [`DataView::destroy`],
-/// which will detach the underlying buffer immediately.
 #[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -1032,15 +1037,6 @@ impl DataView {
     pub(crate) fn array_buffer(&self) -> RootedTraceableBox<HeapArrayBuffer> {
         RootedTraceableBox::new(unsafe {
             HeapArrayBuffer::from(self.buffer.underlying_object().get()).unwrap()
-        })
-    }
-
-    pub(crate) fn destroy(self, cx: &mut JSContext) {
-        assert!(unsafe {
-            DetachArrayBuffer(
-                cx,
-                Handle::from_raw(self.buffer.underlying_object().handle()),
-            )
         })
     }
 }
