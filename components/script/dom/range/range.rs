@@ -346,9 +346,6 @@ impl Range {
     fn client_rects<'a>(&self, no_gc: &'a NoGC) -> impl Iterator<Item = Rect<Au, CSSPixel>> + 'a {
         // FIXME: For text nodes that are only partially selected, this should return the client
         // rect of the selected part, not the whole text node.
-
-        // FIXME: For text nodes that are only partially selected, this should return the client
-        // rect of the selected part, not the whole text node.
         let start = self.start_container();
         let end = self.end_container();
         let document = start.owner_doc();
