@@ -255,6 +255,9 @@ impl ServoUrl {
 
         // its scheme is "about",
         let scheme_is_about = self.scheme() == "about";
+        if !scheme_is_about {
+            return false;
+        }
 
         // its path contains a single string "blank",
         let path_is_blank = self.0.path() == "blank";
