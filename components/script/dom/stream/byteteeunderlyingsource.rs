@@ -166,66 +166,75 @@ impl ByteTeeUnderlyingSource {
     }
 
     fn pull_with_default_reader(&self, cx: &mut JSContext, global: &GlobalScope) -> Fallible<()> {
-        let mut reader = self.reader.borrow_mut();
-        match &*reader {
-            ReaderType::BYOB(byte_reader) => {
-                // Assert: readIntoRequests is empty.
-                assert!(
+        rooted!(&in(cx) let mut reader_to_set = None);
+        {
+            let reader = self.reader.borrow();
+            match &*reader {
+                ReaderType::BYOB(byte_reader) => {
+                    // Assert: readIntoRequests is empty.
+                    assert!(
+                        byte_reader
+                            .get()
+                            .expect("Reader should be set.")
+                            .get_num_read_into_requests() ==
+                            0
+                    );
+
+                    // Release BYOB reader.
                     byte_reader
                         .get()
                         .expect("Reader should be set.")
-                        .get_num_read_into_requests() ==
-                        0
-                );
+                        .release(cx)?;
 
-                // Release BYOB reader.
-                byte_reader
-                    .get()
-                    .expect("Reader should be set.")
-                    .release(cx)?;
+                    // Acquire default reader.
+                    let default_reader = self
+                        .stream
+                        .acquire_default_reader(cx)
+                        .expect("AcquireReadableStreamDefaultReader should not fail");
 
-                // Acquire default reader.
-                let default_reader = self
-                    .stream
-                    .acquire_default_reader(cx)
-                    .expect("AcquireReadableStreamDefaultReader should not fail");
+                    reader_to_set.set(Some(ReaderType::Default(MutNullableDom::new(Some(
+                        &default_reader,
+                    )))));
+                    // We continue after the reader is set, after this match.
+                },
+                ReaderType::Default(reader) => {
+                    let byte_tee_read_request = ByteTeeReadRequest::new(
+                        cx,
+                        &self.branch_1.get().expect("Branch 1 should be set."),
+                        &self.branch_2.get().expect("Branch 2 should be set."),
+                        &self.stream,
+                        self.read_again_for_branch_1.clone(),
+                        self.read_again_for_branch_2.clone(),
+                        self.reading.clone(),
+                        self.canceled_1.clone(),
+                        self.canceled_2.clone(),
+                        self.cancel_promise.clone(),
+                        self,
+                        global,
+                    );
 
-                *reader = ReaderType::Default(MutNullableDom::new(Some(&default_reader)));
-                self.reader_version
-                    .set(self.reader_version.get().wrapping_add(1));
-                drop(reader);
+                    let read_request = ReadRequest::ByteTee {
+                        byte_tee_read_request: Dom::from_ref(&byte_tee_read_request),
+                    };
 
-                // Attach error forwarding for the new reader.
-                self.forward_reader_error(cx, self.reader.clone());
+                    reader
+                        .get()
+                        .expect("Reader should be set.")
+                        .read(cx, &read_request);
+                },
+            }
+        }
 
-                // IMPORTANT: now actually perform the pull we were asked to do.
-                return self.pull_with_default_reader(cx, global);
-            },
-            ReaderType::Default(reader) => {
-                let byte_tee_read_request = ByteTeeReadRequest::new(
-                    cx,
-                    &self.branch_1.get().expect("Branch 1 should be set."),
-                    &self.branch_2.get().expect("Branch 2 should be set."),
-                    &self.stream,
-                    self.read_again_for_branch_1.clone(),
-                    self.read_again_for_branch_2.clone(),
-                    self.reading.clone(),
-                    self.canceled_1.clone(),
-                    self.canceled_2.clone(),
-                    self.cancel_promise.clone(),
-                    self,
-                    global,
-                );
+        if reader_to_set.is_some() {
+            *self.reader.borrow_mut() = reader_to_set.take().unwrap();
+            self.reader_version
+                .set(self.reader_version.get().wrapping_add(1));
 
-                let read_request = ReadRequest::ByteTee {
-                    byte_tee_read_request: Dom::from_ref(&byte_tee_read_request),
-                };
+            // Attach error forwarding for the new reader.
+            self.forward_reader_error(cx, self.reader.clone());
 
-                reader
-                    .get()
-                    .expect("Reader should be set.")
-                    .read(cx, &read_request);
-            },
+            // IMPORTANT: now actually perform the pull we were asked to do.
+            return self.pull_with_default_reader(cx, global);
         }
 
         Ok(())
