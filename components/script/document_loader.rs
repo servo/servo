@@ -6,7 +6,7 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use net_traits::request::RequestBuilder;
 use net_traits::{BoxedFetchCallback, ResourceThreads, fetch_async};
@@ -95,7 +95,8 @@ impl Drop for LoadBlocker {
 pub(crate) struct DocumentLoader {
     #[no_trace]
     resource_threads: ResourceThreads,
-    blocking_loads: HashSet<LoadType>,
+    /// Maps Load Type to number of blocking loads.
+    blocking_loads: HashMap<LoadType, u32>,
     events_inhibited: bool,
     cancellers: Vec<FetchCanceller>,
 }
@@ -110,7 +111,11 @@ impl DocumentLoader {
         initial_load: Option<ServoUrl>,
     ) -> DocumentLoader {
         debug!("Initial blocking load {:?}.", initial_load);
-        let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
+
+        let initial_loads = initial_load
+            .into_iter()
+            .map(|url| (LoadType::PageSource(url), 1))
+            .collect();
 
         DocumentLoader {
             resource_threads,
@@ -132,7 +137,10 @@ impl DocumentLoader {
             load,
             self.blocking_loads.len()
         );
-        self.blocking_loads.insert(load);
+        self.blocking_loads
+            .entry(load)
+            .and_modify(|load_number| *load_number += 1)
+            .or_insert(1);
     }
 
     /// Initiate a new fetch given a response callback.
@@ -167,9 +175,16 @@ impl DocumentLoader {
             load,
             self.blocking_loads.len()
         );
-        if self.blocking_loads.remove(load) {
-            warn!("unknown completed load {:?}", load)
+
+        if let Some(entry) = self.blocking_loads.get_mut(&load) {
+            if *entry > 0 {
+                *entry -= 1;
+                return;
+            } else {
+                self.blocking_loads.remove(&load);
+            }
         }
+        warn!("unknown completed load {load:?}");
     }
 
     pub(crate) fn is_blocked(&self) -> bool {
@@ -179,7 +194,7 @@ impl DocumentLoader {
 
     pub(crate) fn is_only_blocked_by_iframes(&self) -> bool {
         self.blocking_loads
-            .iter()
+            .keys()
             .all(|load| matches!(*load, LoadType::Subframe(_)))
     }
 
