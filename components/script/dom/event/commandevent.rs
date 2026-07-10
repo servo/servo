@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::CommandEventBinding;
 use crate::dom::bindings::codegen::Bindings::CommandEventBinding::CommandEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -26,19 +26,16 @@ use crate::dom::types::Window;
 pub(crate) struct CommandEvent {
     event: Event,
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-source>
-    source: Option<DomRoot<Element>>,
+    source: Option<Dom<Element>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-command>
     command: DOMString,
 }
 
 impl CommandEvent {
-    pub(crate) fn new_inherited(
-        source: Option<DomRoot<Element>>,
-        command: DOMString,
-    ) -> CommandEvent {
+    pub(crate) fn new_inherited(source: Option<&Element>, command: DOMString) -> CommandEvent {
         CommandEvent {
             event: Event::new_inherited(),
-            source,
+            source: source.map(Dom::from_ref),
             command,
         }
     }
@@ -51,7 +48,7 @@ impl CommandEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        source: Option<DomRoot<Element>>,
+        source: Option<&Element>,
         command: DOMString,
     ) -> DomRoot<CommandEvent> {
         let event = Box::new(CommandEvent::new_inherited(source, command));
@@ -70,7 +67,7 @@ impl CommandEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        source: Option<DomRoot<Element>>,
+        source: Option<&Element>,
         command: DOMString,
     ) -> DomRoot<CommandEvent> {
         Self::new_with_proto(
@@ -97,7 +94,7 @@ impl CommandEventMethods<crate::DomTypeHolder> for CommandEvent {
             Atom::from(type_),
             bubbles,
             cancelable,
-            init.source.as_ref().map(|s| DomRoot::from_ref(&**s)),
+            init.source.as_deref(),
             init.command.clone(),
         ))
     }

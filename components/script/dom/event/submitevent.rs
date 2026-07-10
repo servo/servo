@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::SubmitEventBinding;
 use crate::dom::bindings::codegen::Bindings::SubmitEventBinding::SubmitEventMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -21,14 +21,14 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct SubmitEvent {
     event: Event,
-    submitter: Option<DomRoot<HTMLElement>>,
+    submitter: Option<Dom<HTMLElement>>,
 }
 
 impl SubmitEvent {
-    fn new_inherited(submitter: Option<DomRoot<HTMLElement>>) -> SubmitEvent {
+    fn new_inherited(submitter: Option<&HTMLElement>) -> SubmitEvent {
         SubmitEvent {
             event: Event::new_inherited(),
-            submitter,
+            submitter: submitter.map(Dom::from_ref),
         }
     }
 
@@ -38,7 +38,7 @@ impl SubmitEvent {
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-        submitter: Option<DomRoot<HTMLElement>>,
+        submitter: Option<&HTMLElement>,
     ) -> DomRoot<SubmitEvent> {
         Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, submitter)
     }
@@ -50,7 +50,7 @@ impl SubmitEvent {
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-        submitter: Option<DomRoot<HTMLElement>>,
+        submitter: Option<&HTMLElement>,
     ) -> DomRoot<SubmitEvent> {
         let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(SubmitEvent::new_inherited(submitter)),
@@ -82,7 +82,7 @@ impl SubmitEventMethods<crate::DomTypeHolder> for SubmitEvent {
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
-            init.submitter.as_ref().map(|s| DomRoot::from_ref(&**s)),
+            init.submitter.as_deref(),
         )
     }
 
