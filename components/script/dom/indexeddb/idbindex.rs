@@ -9,7 +9,7 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::str::DOMString;
 
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::KeyPath;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
@@ -17,7 +17,7 @@ use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 #[dom_struct]
 pub(crate) struct IDBIndex {
     reflector_: Reflector,
-    object_store: DomRoot<IDBObjectStore>,
+    object_store: Dom<IDBObjectStore>,
     name: DOMString,
     multi_entry: bool,
     unique: bool,
@@ -26,7 +26,7 @@ pub(crate) struct IDBIndex {
 
 impl IDBIndex {
     pub fn new_inherited(
-        object_store: DomRoot<IDBObjectStore>,
+        object_store: &IDBObjectStore,
         name: DOMString,
         multi_entry: bool,
         unique: bool,
@@ -34,7 +34,7 @@ impl IDBIndex {
     ) -> IDBIndex {
         IDBIndex {
             reflector_: Reflector::new(),
-            object_store,
+            object_store: Dom::from_ref(object_store),
             name,
             multi_entry,
             unique,
@@ -45,7 +45,7 @@ impl IDBIndex {
     pub fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        object_store: DomRoot<IDBObjectStore>,
+        object_store: &IDBObjectStore,
         name: DOMString,
         multi_entry: bool,
         unique: bool,
@@ -68,7 +68,7 @@ impl IDBIndex {
 impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-objectstore>
     fn ObjectStore(&self) -> DomRoot<IDBObjectStore> {
-        self.object_store.clone()
+        self.object_store.as_rooted()
     }
 
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-multientry>

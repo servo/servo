@@ -35,16 +35,29 @@ pub(crate) struct XRInputSource {
     hand: MutNullableDom<XRHand>,
     #[ignore_malloc_size_of = "mozjs"]
     profiles: Heap<JSVal>,
-    gamepad: DomRoot<Gamepad>,
+    gamepad: Dom<Gamepad>,
 }
 
 impl XRInputSource {
-    pub(crate) fn new_inherited(
+    fn new_inherited(session: &XRSession, info: InputSource, gamepad: &Gamepad) -> XRInputSource {
+        XRInputSource {
+            reflector: Reflector::new(),
+            session: Dom::from_ref(session),
+            info,
+            target_ray_space: Default::default(),
+            grip_space: Default::default(),
+            hand: Default::default(),
+            profiles: Heap::default(),
+            gamepad: Dom::from_ref(gamepad),
+        }
+    }
+
+    pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
         session: &XRSession,
         info: InputSource,
-    ) -> XRInputSource {
+    ) -> DomRoot<XRInputSource> {
         // <https://www.w3.org/TR/webxr-gamepads-module-1/#gamepad-differences>
         let gamepad = Gamepad::new(
             cx,
@@ -60,26 +73,9 @@ impl XRInputSource {
             },
             true,
         );
-        XRInputSource {
-            reflector: Reflector::new(),
-            session: Dom::from_ref(session),
-            info,
-            target_ray_space: Default::default(),
-            grip_space: Default::default(),
-            hand: Default::default(),
-            profiles: Heap::default(),
-            gamepad,
-        }
-    }
 
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        session: &XRSession,
-        info: InputSource,
-    ) -> DomRoot<XRInputSource> {
         let source = reflect_dom_object_with_cx(
-            Box::new(XRInputSource::new_inherited(cx, window, session, info)),
+            Box::new(XRInputSource::new_inherited(session, info, &gamepad)),
             window,
             cx,
         );
@@ -116,7 +112,7 @@ impl XRInputSource {
         });
     }
 
-    pub(crate) fn gamepad(&self) -> &DomRoot<Gamepad> {
+    pub(crate) fn gamepad(&self) -> &Gamepad {
         &self.gamepad
     }
 }
