@@ -1271,7 +1271,9 @@ impl KnownFontFaceRules {
 
         let font_face_rules_in_cascade_order = stylist
             .iter_extra_data_origins()
-            .flat_map(|(extra_data, origin)| extra_data.font_faces.iter().zip(iter::repeat(origin)))
+            .flat_map(|(extra_data, origin)| {
+                extra_data.font_faces.iter().rev().zip(iter::repeat(origin))
+            })
             .map(|((rule, _layer), origin)| FontFaceRuleWithOrigin {
                 rule: rule.clone(),
                 origin,
@@ -1301,19 +1303,60 @@ impl KnownFontFaceRules {
 
             let known_font_faces_for_family =
                 self.contents.entry(font_family.name.clone()).or_default();
-            if let Some(previous_definition) =
-                known_font_faces_for_family
-                    .iter_mut()
-                    .find(|known_font_face| {
-                        ServoArc::ptr_eq(
-                            &known_font_face.rule_with_origin.rule,
-                            &rule_with_origin.rule,
-                        )
-                    })
+
+            let mut conflicting_declaration_with_higher_priority_exists = false;
+            let mut index_of_existing_entry_for_this_rule = None;
+            for (index, known_font_face) in known_font_faces_for_family.iter().enumerate() {
+                // See if this is a entry for this @font-face that existed prior to the current update
+                if ServoArc::ptr_eq(
+                    &known_font_face.rule_with_origin.rule,
+                    &rule_with_origin.rule,
+                ) {
+                    index_of_existing_entry_for_this_rule = Some(index);
+                }
+
+                // Check if there are existing declarations with higher priority that conflict
+                if conflicting_declaration_with_higher_priority_exists {
+                    // We already found one conflict, no need to search for more.
+                    continue;
+                }
+                if known_font_face.generation != self.generation {
+                    // This rule was not inserted yet during this update, so it was either removed or
+                    // has lower priority than the one currently being inserted.
+                    continue;
+                }
+                if font_face_rules_conflict(
+                    &known_font_face
+                        .rule_with_origin
+                        .read_with(guards)
+                        .descriptors,
+                    &borrowed_rule.descriptors,
+                ) {
+                    conflicting_declaration_with_higher_priority_exists = true;
+                }
+            }
+
+            if let Some(index_of_existing_entry_for_this_rule) =
+                index_of_existing_entry_for_this_rule
             {
-                number_of_unchanged_rules += 1;
-                previous_definition.generation = self.generation;
+                // This @font-face rule was already present in the cascade prior to this update.
+                // But if during this update we inserted a rule with higher priority that overrides this one
+                // then we should not update its generation so it will be dropped at the end.
+                if conflicting_declaration_with_higher_priority_exists {
+                    let stale_rule =
+                        known_font_faces_for_family.remove(index_of_existing_entry_for_this_rule);
+                    stale_rule_callback(stale_rule.rule_with_origin.read_with(guards));
+                } else {
+                    number_of_unchanged_rules += 1;
+                    known_font_faces_for_family[index_of_existing_entry_for_this_rule].generation =
+                        self.generation;
+                }
+            } else if conflicting_declaration_with_higher_priority_exists {
+                // This (new) rule does not apply to the document because another rule with higher cascade priority
+                // overrides it. We can simply ignore this declaration.
+                continue;
             } else {
+                // This is a new rule that does not conflict with anything that previously existed, so insert it.
                 new_rule_callback(borrowed_rule);
                 known_font_faces_for_family.push(KnownFontFaceRule {
                     rule_with_origin,
@@ -1340,4 +1383,20 @@ impl KnownFontFaceRules {
             !known_font_faces_for_family.is_empty()
         });
     }
+}
+
+/// Returns `true` if the two `@font-face` rules cannot both apply at the same time.
+///
+/// Two font faces can coexist if they are different for the purposes of font matching:
+/// <https://drafts.csswg.org/css-fonts-4/#font-matching-algorithm>
+///
+/// This method does assume that the family names have already been verified to be equal.
+fn font_face_rules_conflict(
+    first_rule: &FontFaceRuleDescriptors,
+    second_rule: &FontFaceRuleDescriptors,
+) -> bool {
+    first_rule.font_stretch == second_rule.font_stretch &&
+        first_rule.font_style == second_rule.font_style &&
+        first_rule.font_weight == second_rule.font_weight &&
+        first_rule.unicode_range == second_rule.unicode_range
 }
