@@ -6550,9 +6550,9 @@ dependencies = [
 
 [[package]]
 name = "pollster"
-version = "0.4.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
+checksum = "2560ec4d09f0d4db1fb45518d099d74954dd3da5855a0fcb84f2779b5b41a59e"
 
 [[package]]
 name = "poly1305"
