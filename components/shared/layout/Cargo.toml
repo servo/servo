@@ -31,6 +31,7 @@ pixels = { workspace = true }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 script_traits = { workspace = true }
+uuid = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true }
 servo-background-hang-monitor-api = { workspace = true }

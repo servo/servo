@@ -26,6 +26,7 @@ use style::dom::OpaqueNode;
 use style::values::computed::color::Color;
 use style::values::computed::image::{Gradient, Image};
 use style_traits::DevicePixel;
+use uuid::Uuid;
 use webrender_api::units::{DeviceIntSize, DeviceSize};
 
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
@@ -254,7 +255,7 @@ impl ImageResolver {
         image_id: PendingImageId,
         size: DeviceIntSize,
         node: OpaqueNode,
-        svg_id: Option<String>,
+        svg_id: Option<Uuid>,
     ) -> Option<RasterImage> {
         let result = self
             .image_cache

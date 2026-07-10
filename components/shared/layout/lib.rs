@@ -73,6 +73,7 @@ use style::stylist::Stylist;
 use style::thread_state::{self, ThreadState};
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
+use uuid::Uuid;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
@@ -161,7 +162,7 @@ pub struct SVGElementData<'dom> {
     pub source: Option<Result<ServoUrl, ()>>,
     pub width: Option<&'dom AttrValue>,
     pub height: Option<&'dom AttrValue>,
-    pub svg_id: String,
+    pub svg_id: Uuid,
     pub view_box: Option<&'dom AttrValue>,
 }
 

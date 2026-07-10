@@ -68,6 +68,7 @@ unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }
 unicode_categories = { workspace = true }
 url = { workspace = true }
+uuid = { workspace = true }
 web_atoms = { workspace = true }
 webrender_api = { workspace = true }
 

@@ -37,7 +37,8 @@ use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 #[dom_struct]
 pub(crate) struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
-    uuid: String,
+    #[no_trace]
+    uuid: Uuid,
     // The XML source of subtree rooted at this SVG element, serialized into
     // a base64 encoded `data:` url. This is cached to avoid recomputation
     // on each layout and must be invalidated when the subtree changes.
@@ -53,7 +54,7 @@ impl SVGSVGElement {
     ) -> SVGSVGElement {
         SVGSVGElement {
             svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
-            uuid: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4(),
             cached_serialized_data_url: Default::default(),
         }
     }
@@ -184,7 +185,7 @@ impl SVGSVGElement {
 impl<'dom> LayoutDom<'dom, SVGSVGElement> {
     #[expect(unsafe_code)]
     pub(crate) fn data(self) -> SVGElementData<'dom> {
-        let svg_id = self.unsafe_get().uuid.clone();
+        let svg_id = self.unsafe_get().uuid;
         let element = self.upcast::<Element>();
         let width = element.get_attr_for_layout(&ns!(), &local_name!("width"));
         let height = element.get_attr_for_layout(&ns!(), &local_name!("height"));
