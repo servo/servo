@@ -12,13 +12,12 @@ use script_bindings::str::DOMString;
 use style::attr::AttrValue;
 use style::parser::ParserContext;
 use style::properties::{PropertyDeclaration, longhands};
-use style::stylesheets::{CssRuleType, UrlExtraData};
+use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::values::generics::NonNegative;
 use style::values::specified;
 use style_traits::ParsingMode;
 use stylo_dom::ElementState;
 
-use crate::css::parser_context_for_document;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::SVGElementBinding::SVGElementMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -261,11 +260,16 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
         let url_data = UrlExtraData(document.url_for_layout().get_arc());
         let parsing_mode =
             ParsingMode::ALLOW_UNITLESS_LENGTH | ParsingMode::ALLOW_ALL_NUMERIC_VALUES;
-        let parser_context = parser_context_for_document(
-            document.unsafe_get(),
-            CssRuleType::Style,
-            parsing_mode,
+        let parser_context = ParserContext::new(
+            Origin::Author,
             &url_data,
+            Some(CssRuleType::Style),
+            parsing_mode,
+            document.quirks_mode(),
+            Default::default(),
+            None,
+            None,
+            Default::default(),
         );
 
         self.parse_svg_attribute(
