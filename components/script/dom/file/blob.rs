@@ -19,7 +19,7 @@ use servo_base::id::{BlobId, BlobIndex};
 use servo_constellation_traits::{BlobData, BlobImpl};
 use uuid::Uuid;
 
-use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_copy};
+use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_slice};
 use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
@@ -200,6 +200,7 @@ fn convert_line_endings_to_native(s: &[u8]) -> Vec<u8> {
 }
 
 /// <https://w3c.github.io/FileAPI/#process-blob-parts>
+#[expect(unsafe_code)]
 pub(crate) fn process_blob_parts(
     blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
     endings: BlobBinding::EndingType,
@@ -227,14 +228,12 @@ pub(crate) fn process_blob_parts(
             // get a copy of the bytes held by the buffer source,
             // and append those bytes to bytes.
             ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBuffer(a) => {
-                bytes.extend(get_buffer_source_copy(
-                    &ArrayBufferViewOrArrayBuffer::ArrayBuffer(a),
-                ));
+                let array_buffer = ArrayBufferViewOrArrayBuffer::ArrayBuffer(a);
+                bytes.extend_from_slice(unsafe { get_buffer_source_slice(&array_buffer) });
             },
             ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBufferView(a) => {
-                bytes.extend(get_buffer_source_copy(
-                    &ArrayBufferViewOrArrayBuffer::ArrayBufferView(a),
-                ));
+                let array_view = ArrayBufferViewOrArrayBuffer::ArrayBufferView(a);
+                bytes.extend_from_slice(unsafe { get_buffer_source_slice(&array_view) });
             },
             // Step 2.3. If element is a Blob, append the bytes it represents to bytes.
             ArrayBufferOrArrayBufferViewOrBlobOrString::Blob(b) => {
