@@ -76,8 +76,9 @@ impl<'dom> LayoutElement<'dom> for ServoLayoutElement<'dom> {
     type ConcreteTypeBundle = ServoLayoutDomTypeBundle<'dom>;
 
     fn with_pseudo(&self, pseudo_element: PseudoElement) -> Option<Self> {
-        if pseudo_element.is_eager() &&
-            self.element_data()
+        if pseudo_element.is_eager()
+            && self
+                .element_data()
                 .styles
                 .pseudos
                 .get(&pseudo_element)
@@ -86,10 +87,10 @@ impl<'dom> LayoutElement<'dom> for ServoLayoutElement<'dom> {
             return None;
         }
 
-        if pseudo_element == PseudoElement::DetailsContent &&
-            (self.element.local_name() != &local_name!("details") ||
-                self.element.namespace() != &ns!(html) ||
-                self.attribute(&ns!(), &local_name!("open")).is_none())
+        if pseudo_element == PseudoElement::DetailsContent
+            && (self.element.local_name() != &local_name!("details")
+                || self.element.namespace() != &ns!(html)
+                || self.attribute(&ns!(), &local_name!("open")).is_none())
         {
             return None;
         }
@@ -243,8 +244,9 @@ impl<'dom> LayoutElement<'dom> for ServoLayoutElement<'dom> {
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        self.element.is_html_element() &&
-            self.element
+        self.element.is_html_element()
+            && self
+                .element
                 .upcast::<Node>()
                 .owner_doc_for_layout()
                 .is_html_document_for_layout()

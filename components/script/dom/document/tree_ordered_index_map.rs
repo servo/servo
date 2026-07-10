@@ -150,8 +150,8 @@ impl TreeOrderedIndexMap {
     /// to the entry without having to resolve ordering.
     pub(crate) fn add(&self, key: &Atom, element: &Element) {
         debug_assert!(
-            element.upcast::<Node>().is_in_a_document_tree() ||
-                element.upcast::<Node>().is_in_a_shadow_tree()
+            element.upcast::<Node>().is_in_a_document_tree()
+                || element.upcast::<Node>().is_in_a_shadow_tree()
         );
 
         // Gracefully handle empty keys. The calling code should not try to
@@ -227,8 +227,8 @@ impl TreeOrderedIndexMap {
 
         {
             let mut map = self.map.borrow_mut();
-            if let Entry::Occupied(mut occupied_entry) = map.entry(key.clone()) &&
-                occupied_entry.get().needs_resolution()
+            if let Entry::Occupied(mut occupied_entry) = map.entry(key.clone())
+                && occupied_entry.get().needs_resolution()
             {
                 Self::resolve_one(no_gc, scope, key, occupied_entry.get_mut(), self.index_type);
             }

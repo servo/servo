@@ -69,6 +69,15 @@
       ]
      ]
     },
+    "css": {
+     "adoptedstylesheets-borrow-hazard-crash.html": [
+      "26f2b449100cb36da91e2422e72fdcddf7a8a73a",
+      [
+       null,
+       {}
+      ]
+     ]
+    },
     "datatransferitem-crash.html": [
      "d11355ab38c1e99e0ba3e10d7dfed18bf26af60b",
      [

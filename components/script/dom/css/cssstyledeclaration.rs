@@ -240,8 +240,8 @@ impl CSSStyleDeclaration {
         // If creating a CSSStyleDeclaration with CSSSStyleOwner::Null, this should always
         // be in read-only mode.
         assert!(
-            !matches!(owner, CSSStyleOwner::Null) ||
-                modification_access == CSSModificationAccess::Readonly
+            !matches!(owner, CSSStyleOwner::Null)
+                || modification_access == CSSModificationAccess::Readonly
         );
 
         CSSStyleDeclaration {

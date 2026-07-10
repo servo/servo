@@ -191,18 +191,18 @@ impl Request {
         request.integrity_metadata = temporary_request.integrity_metadata;
 
         // Step 13. If init is not empty, then:
-        if init.body.is_some() ||
-            init.cache.is_some() ||
-            init.credentials.is_some() ||
-            init.integrity.is_some() ||
-            init.headers.is_some() ||
-            init.keepalive.is_some() ||
-            init.method.is_some() ||
-            init.mode.is_some() ||
-            init.redirect.is_some() ||
-            init.referrer.is_some() ||
-            init.referrerPolicy.is_some() ||
-            !init.window.handle().is_undefined()
+        if init.body.is_some()
+            || init.cache.is_some()
+            || init.credentials.is_some()
+            || init.integrity.is_some()
+            || init.headers.is_some()
+            || init.keepalive.is_some()
+            || init.method.is_some()
+            || init.mode.is_some()
+            || init.redirect.is_some()
+            || init.referrer.is_some()
+            || init.referrerPolicy.is_some()
+            || !init.window.handle().is_undefined()
         {
             // Step 13.1. If request’s mode is "navigate", then set it to "same-origin".
             if request.mode == NetTraitsRequestMode::Navigate {
@@ -243,10 +243,10 @@ impl Request {
                 // parsedReferrer’s scheme is "about" and path is the string "client"
                 // parsedReferrer’s origin is not same origin with origin
                 if let Ok(parsed_referrer) = parsed_referrer {
-                    if (parsed_referrer.cannot_be_a_base() &&
-                        parsed_referrer.scheme() == "about" &&
-                        parsed_referrer.path() == "client") ||
-                        parsed_referrer.origin() != *origin
+                    if (parsed_referrer.cannot_be_a_base()
+                        && parsed_referrer.scheme() == "about"
+                        && parsed_referrer.path() == "client")
+                        || parsed_referrer.origin() != *origin
                     {
                         // then set request’s referrer to "client".
                         request.referrer = global.get_referrer();
@@ -291,8 +291,8 @@ impl Request {
 
         // Step 21. If request’s cache mode is "only-if-cached" and request’s mode
         // is not "same-origin", then throw a TypeError.
-        if request.cache_mode == CacheMode::OnlyIfCached &&
-            request.mode != NetTraitsRequestMode::SameOrigin
+        if request.cache_mode == CacheMode::OnlyIfCached
+            && request.mode != NetTraitsRequestMode::SameOrigin
         {
             return Err(Error::Type(
                 c"Cache is 'only-if-cached' and mode is not 'same-origin'".to_owned(),
@@ -513,8 +513,8 @@ impl Request {
             // TODO
             // Step 39.2. If this’s request’s mode is neither "same-origin" nor "cors", then throw a TypeError.
             let request_mode = &r.request.borrow().mode;
-            if *request_mode != NetTraitsRequestMode::CorsMode &&
-                *request_mode != NetTraitsRequestMode::SameOrigin
+            if *request_mode != NetTraitsRequestMode::CorsMode
+                && *request_mode != NetTraitsRequestMode::SameOrigin
             {
                 return Err(Error::Type(
                     c"Request mode must be Cors or SameOrigin".to_owned(),

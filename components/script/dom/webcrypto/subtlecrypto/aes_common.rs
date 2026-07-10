@@ -47,10 +47,10 @@ pub(crate) fn generate_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     match aes_algorithm {
-        AesAlgorithm::AesCtr |
-        AesAlgorithm::AesCbc |
-        AesAlgorithm::AesGcm |
-        AesAlgorithm::AesOcb => {
+        AesAlgorithm::AesCtr
+        | AesAlgorithm::AesCbc
+        | AesAlgorithm::AesGcm
+        | AesAlgorithm::AesOcb => {
             // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt",
             // "wrapKey" or "unwrapKey", then throw a SyntaxError.
             if usages.iter().any(|usage| {
@@ -178,10 +178,10 @@ pub(crate) fn import_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     match &aes_algorithm {
-        AesAlgorithm::AesCtr |
-        AesAlgorithm::AesCbc |
-        AesAlgorithm::AesGcm |
-        AesAlgorithm::AesOcb => {
+        AesAlgorithm::AesCtr
+        | AesAlgorithm::AesCbc
+        | AesAlgorithm::AesGcm
+        | AesAlgorithm::AesOcb => {
             // Step 1. If usages contains an entry which is not one of "encrypt", "decrypt",
             // "wrapKey" or "unwrapKey", then throw a SyntaxError.
             if usages.iter().any(|usage| {
@@ -219,10 +219,10 @@ pub(crate) fn import_key(
         KeyFormat::Raw
             if matches!(
                 aes_algorithm,
-                AesAlgorithm::AesCtr |
-                    AesAlgorithm::AesCbc |
-                    AesAlgorithm::AesGcm |
-                    AesAlgorithm::AesKw
+                AesAlgorithm::AesCtr
+                    | AesAlgorithm::AesCbc
+                    | AesAlgorithm::AesGcm
+                    | AesAlgorithm::AesKw
             ) =>
         {
             // Step 2.1. Let data be keyData.
@@ -538,10 +538,10 @@ pub(crate) fn export_key(
         KeyFormat::Raw
             if matches!(
                 aes_algorithm,
-                AesAlgorithm::AesCtr |
-                    AesAlgorithm::AesCbc |
-                    AesAlgorithm::AesGcm |
-                    AesAlgorithm::AesKw
+                AesAlgorithm::AesCtr
+                    | AesAlgorithm::AesCbc
+                    | AesAlgorithm::AesGcm
+                    | AesAlgorithm::AesKw
             ) =>
         {
             // Step 2.1. Let data be a byte sequence containing the raw octets of the key

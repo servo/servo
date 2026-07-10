@@ -271,9 +271,9 @@ impl HTMLCollection {
         match elem.prefix().as_ref() {
             None => elem.local_name() == qualified_name,
             Some(prefix) => {
-                qualified_name.starts_with(&**prefix) &&
-                    qualified_name.find(':') == Some(prefix.len()) &&
-                    qualified_name.ends_with(&**elem.local_name())
+                qualified_name.starts_with(&**prefix)
+                    && qualified_name.find(':') == Some(prefix.len())
+                    && qualified_name.ends_with(&**elem.local_name())
             },
         }
     }
@@ -304,9 +304,9 @@ impl HTMLCollection {
         }
         impl CollectionFilter for TagNameNSFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                ((self.qname.ns == namespace_url!("*")) || (self.qname.ns == *elem.namespace())) &&
-                    ((self.qname.local == local_name!("*")) ||
-                        (self.qname.local == *elem.local_name()))
+                ((self.qname.ns == namespace_url!("*")) || (self.qname.ns == *elem.namespace()))
+                    && ((self.qname.local == local_name!("*"))
+                        || (self.qname.local == *elem.local_name()))
             }
         }
         let filter = TagNameNSFilter { qname };
@@ -491,9 +491,9 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
         // Step 2.
         self.elements_iter(cx.no_gc())
             .find(|elem| {
-                elem.get_id().is_some_and(|id| id == key) ||
-                    (elem.namespace() == &ns!(html) &&
-                        elem.get_name().is_some_and(|id| id == key))
+                elem.get_id().is_some_and(|id| id == key)
+                    || (elem.namespace() == &ns!(html)
+                        && elem.get_name().is_some_and(|id| id == key))
             })
             .map(|node| node.as_rooted())
     }
@@ -523,8 +523,8 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
                 }
             }
             // Step 2.2
-            if *elem.namespace() == ns!(html) &&
-                let Some(name_atom) = elem.get_name()
+            if *elem.namespace() == ns!(html)
+                && let Some(name_atom) = elem.get_name()
             {
                 let name_str = DOMString::from(&*name_atom);
                 if !result.contains(&name_str) {

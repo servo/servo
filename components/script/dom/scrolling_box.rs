@@ -268,8 +268,8 @@ impl ScrollingBox {
 
         let element_size = element_end - element_start;
 
-        current_scroll_offset +
-            match state.position {
+        current_scroll_offset
+            + match state.position {
                 // Step 1 & 5: If inline is "start", then align element start edge with scrolling box start edge.
                 ScrollLogicalPosition::Start => element_start,
                 // Step 2 & 6: If inline is "end", then align element end edge with
@@ -289,8 +289,8 @@ impl ScrollingBox {
                     // size is less than scrolling box size or If element end edge is outside
                     // scrolling box end edge and element size is greater than scrolling box size:
                     // Align element start edge with scrolling box start edge.
-                    if (element_start < scrollport_start && element_size <= container_size) ||
-                        (element_end > scrollport_end && element_size >= container_size)
+                    if (element_start < scrollport_start && element_size <= container_size)
+                        || (element_end > scrollport_end && element_size >= container_size)
                     {
                         element_start
                     }
@@ -298,8 +298,8 @@ impl ScrollingBox {
                     // size is greater than scrolling box size or If element start edge is outside
                     // scrolling box end edge and element size is less than scrolling box size:
                     // Align element end edge with scrolling box end edge.
-                    else if (element_end > scrollport_end && element_size < container_size) ||
-                        (element_start < scrollport_start && element_size > container_size)
+                    else if (element_end > scrollport_end && element_size < container_size)
+                        || (element_start < scrollport_start && element_size > container_size)
                     {
                         element_end - container_size
                     }

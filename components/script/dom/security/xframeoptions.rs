@@ -51,8 +51,8 @@ pub(crate) fn check_a_navigation_response_adherence_to_x_frame_options(
         FxHashSet::from_iter(raw_xframe_options.iter().map(|value| value.to_lowercase()));
     // Step 6. If xFrameOptions's size is greater than 1,
     // and xFrameOptions contains any of "deny", "allowall", or "sameorigin", then return false.
-    if x_frame_options.len() > 1 &&
-        x_frame_options
+    if x_frame_options.len() > 1
+        && x_frame_options
             .iter()
             .any(|value| value == "deny" || value == "allowall" || value == "sameorigin")
     {

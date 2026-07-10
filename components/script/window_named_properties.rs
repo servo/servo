@@ -89,8 +89,8 @@ unsafe extern "C" fn get_own_property_descriptor(
     let mut cx = unsafe { js::context::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
 
     if id.is_symbol() {
-        if id.get().asBits_ ==
-            SymbolId(unsafe { GetWellKnownSymbol(&cx, SymbolCode::toStringTag) }).asBits_
+        if id.get().asBits_
+            == SymbolId(unsafe { GetWellKnownSymbol(&cx, SymbolCode::toStringTag) }).asBits_
         {
             rooted!(&in(cx) let mut rval = UndefinedValue());
             "WindowProperties".safe_to_jsval(&mut cx, rval.handle_mut());
@@ -240,10 +240,10 @@ unsafe extern "C" fn class_name(_cx: *mut JSContext, _proxy: HandleObject) -> *c
 #[expect(unsafe_code)]
 static CLASS: JSClass = JSClass {
     name: c"WindowProperties".as_ptr(),
-    flags: JSClass_NON_NATIVE |
-        JSCLASS_IS_PROXY |
-        JSCLASS_DELAY_METADATA_BUILDER |
-        ((1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), /* JSCLASS_HAS_RESERVED_SLOTS(1) */
+    flags: JSClass_NON_NATIVE
+        | JSCLASS_IS_PROXY
+        | JSCLASS_DELAY_METADATA_BUILDER
+        | ((1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), /* JSCLASS_HAS_RESERVED_SLOTS(1) */
     cOps: unsafe { &ProxyClassOps },
     spec: ptr::null(),
     ext: unsafe { &ProxyClassExtension },

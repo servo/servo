@@ -128,9 +128,9 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         // > AudioBufferSourceNode
         // > The AudioParams playbackRate and detune MUST be "k-rate". An InvalidStateError must be
         // > thrown if the rate is changed to "a-rate".
-        if automation_rate == AutomationRate::A_rate &&
-            self.node_type == AudioNodeType::AudioBufferSourceNode &&
-            (self.param == ParamType::Detune || self.param == ParamType::PlaybackRate)
+        if automation_rate == AutomationRate::A_rate
+            && self.node_type == AudioNodeType::AudioBufferSourceNode
+            && (self.param == ParamType::Detune || self.param == ParamType::PlaybackRate)
         {
             return Err(Error::InvalidState(None));
         }

@@ -196,8 +196,8 @@ impl IDBObjectStore {
 
         // Step 5.1. If handle’s object store was not newly created during transaction,
         // set handle’s name to its object store’s name.
-        if !abort_state.newly_created_during_transaction &&
-            let Some(name) = abort_state.rollback_name
+        if !abort_state.newly_created_during_transaction
+            && let Some(name) = abort_state.rollback_name
         {
             *self.name.borrow_mut() = name;
         }
@@ -901,8 +901,8 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         }
 
         let old_name = self.name.borrow().clone();
-        if let Some(abort_state) = self.abort_state_on_abort.borrow_mut().as_mut() &&
-            abort_state.rollback_name.is_none()
+        if let Some(abort_state) = self.abort_state_on_abort.borrow_mut().as_mut()
+            && abort_state.rollback_name.is_none()
         {
             abort_state.rollback_name = Some(old_name.clone());
         }

@@ -91,8 +91,8 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
                 &self.owner_window(),
                 self.upcast(),
                 |element, root| {
-                    (element.is::<HTMLTableCellElement>()) &&
-                        element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+                    (element.is::<HTMLTableCellElement>())
+                        && element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
             )
         })

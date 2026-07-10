@@ -100,8 +100,8 @@ pub(crate) fn import_key(
         // a SyntaxError.
         if usages
             .iter()
-            .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
-            usages.is_empty()
+            .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
+            || usages.is_empty()
         {
             return Err(Error::Syntax(Some(
                 "Usages contains an entry which is not \"deriveKey\" or \"deriveBits\"".into(),

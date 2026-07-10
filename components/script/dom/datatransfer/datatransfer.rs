@@ -130,8 +130,8 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
             .data_store
             .borrow()
             .as_ref()
-            .is_some_and(|data_store| data_store.mode() == Mode::ReadWrite) &&
-            VALID_EFFECTS_ALLOWED.contains(&&*value.str())
+            .is_some_and(|data_store| data_store.mode() == Mode::ReadWrite)
+            && VALID_EFFECTS_ALLOWED.contains(&&*value.str())
         {
             *self.drop_effect.borrow_mut() = value;
         }

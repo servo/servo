@@ -219,8 +219,8 @@ impl CompiledEventListener {
             CompiledEventListener::Handler(ref handler) => {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
-                        if let Some(event) = event.downcast::<ErrorEvent>() &&
-                            (object.is::<Window>() || object.is::<WorkerGlobalScope>())
+                        if let Some(event) = event.downcast::<ErrorEvent>()
+                            && (object.is::<Window>() || object.is::<WorkerGlobalScope>())
                         {
                             rooted!(&in(cx) let mut error: JSVal);
                             event.Error(error.handle_mut());
@@ -237,9 +237,9 @@ impl CompiledEventListener {
                                 exception_handle,
                             );
                             // Step 4
-                            if let Ok(()) = return_value &&
-                                rooted_return_value.handle().is_boolean() &&
-                                rooted_return_value.handle().to_boolean()
+                            if let Ok(()) = return_value
+                                && rooted_return_value.handle().is_boolean()
+                                && rooted_return_value.handle().to_boolean()
                             {
                                 event.upcast::<Event>().PreventDefault();
                             }
@@ -563,8 +563,8 @@ impl EventTarget {
     pub(crate) fn remove_listener(&self, ty: &Atom, entry: &Rc<RefCell<EventListenerEntry>>) {
         let mut handlers = self.handlers.borrow_mut();
 
-        if let Some(entries) = handlers.get_mut(ty) &&
-            let Some(position) = entries.iter().position(|e| *e == *entry)
+        if let Some(entries) = handlers.get_mut(ty)
+            && let Some(position) = entries.iter().position(|e| *e == *entry)
         {
             entries.remove(position).borrow_mut().removed = true;
             self.notify_listener_removed(ty);
@@ -1036,8 +1036,8 @@ impl EventTarget {
             if !a_root.is::<ShadowRoot>() {
                 return a;
             }
-            if let Some(b_node) = b.downcast::<Node>() &&
-                a_root.is_shadow_including_inclusive_ancestor_of(b_node)
+            if let Some(b_node) = b.downcast::<Node>()
+                && a_root.is_shadow_including_inclusive_ancestor_of(b_node)
             {
                 return a;
             }

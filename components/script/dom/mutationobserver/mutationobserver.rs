@@ -264,8 +264,8 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
         let subtree = options.subtree;
 
         // Step 1
-        if (options.attributeOldValue.is_some() || options.attributeFilter.is_some()) &&
-            options.attributes.is_none()
+        if (options.attributeOldValue.is_some() || options.attributeFilter.is_some())
+            && options.attributes.is_none()
         {
             attributes = true;
         }

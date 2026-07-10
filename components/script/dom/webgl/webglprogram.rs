@@ -640,13 +640,13 @@ impl WebGLProgram {
         }
 
         match pname {
-            constants2::UNIFORM_TYPE |
-            constants2::UNIFORM_SIZE |
-            constants2::UNIFORM_BLOCK_INDEX |
-            constants2::UNIFORM_OFFSET |
-            constants2::UNIFORM_ARRAY_STRIDE |
-            constants2::UNIFORM_MATRIX_STRIDE |
-            constants2::UNIFORM_IS_ROW_MAJOR => {},
+            constants2::UNIFORM_TYPE
+            | constants2::UNIFORM_SIZE
+            | constants2::UNIFORM_BLOCK_INDEX
+            | constants2::UNIFORM_OFFSET
+            | constants2::UNIFORM_ARRAY_STRIDE
+            | constants2::UNIFORM_MATRIX_STRIDE
+            | constants2::UNIFORM_IS_ROW_MAJOR => {},
             _ => return Err(WebGLError::InvalidEnum),
         }
 
@@ -678,12 +678,12 @@ impl WebGLProgram {
         }
 
         match pname {
-            constants2::UNIFORM_BLOCK_BINDING |
-            constants2::UNIFORM_BLOCK_DATA_SIZE |
-            constants2::UNIFORM_BLOCK_ACTIVE_UNIFORMS |
-            constants2::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES |
-            constants2::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER |
-            constants2::UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER => {},
+            constants2::UNIFORM_BLOCK_BINDING
+            | constants2::UNIFORM_BLOCK_DATA_SIZE
+            | constants2::UNIFORM_BLOCK_ACTIVE_UNIFORMS
+            | constants2::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES
+            | constants2::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER
+            | constants2::UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER => {},
             _ => return Err(WebGLError::InvalidEnum),
         }
 
@@ -814,40 +814,40 @@ fn validate_glsl_name(name: &DOMString) -> WebGLResult<bool> {
 
 fn validate_glsl_char(c: char) -> WebGLResult<()> {
     match c {
-        'a'..='z' |
-        'A'..='Z' |
-        '0'..='9' |
-        ' ' |
-        '\t' |
-        '\u{11}' |
-        '\u{12}' |
-        '\r' |
-        '\n' |
-        '_' |
-        '.' |
-        '+' |
-        '-' |
-        '/' |
-        '*' |
-        '%' |
-        '<' |
-        '>' |
-        '[' |
-        ']' |
-        '(' |
-        ')' |
-        '{' |
-        '}' |
-        '^' |
-        '|' |
-        '&' |
-        '~' |
-        '=' |
-        '!' |
-        ':' |
-        ';' |
-        ',' |
-        '?' => Ok(()),
+        'a'..='z'
+        | 'A'..='Z'
+        | '0'..='9'
+        | ' '
+        | '\t'
+        | '\u{11}'
+        | '\u{12}'
+        | '\r'
+        | '\n'
+        | '_'
+        | '.'
+        | '+'
+        | '-'
+        | '/'
+        | '*'
+        | '%'
+        | '<'
+        | '>'
+        | '['
+        | ']'
+        | '('
+        | ')'
+        | '{'
+        | '}'
+        | '^'
+        | '|'
+        | '&'
+        | '~'
+        | '='
+        | '!'
+        | ':'
+        | ';'
+        | ','
+        | '?' => Ok(()),
         _ => Err(WebGLError::InvalidValue),
     }
 }

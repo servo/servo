@@ -273,8 +273,8 @@ fn console_map_object_from_handle_value(
         rooted!(&in(cx) let mut value = UndefinedValue());
 
         // Each map entry is a [key, value] pair.
-        if !unsafe { JS_GetElement(cx, entry_object.handle(), 0, key.handle_mut()) } ||
-            !unsafe { JS_GetElement(cx, entry_object.handle(), 1, value.handle_mut()) }
+        if !unsafe { JS_GetElement(cx, entry_object.handle(), 0, key.handle_mut()) }
+            || !unsafe { JS_GetElement(cx, entry_object.handle(), 1, value.handle_mut()) }
         {
             return Err(().into());
         }
@@ -314,10 +314,10 @@ fn console_object_from_handle_value(
     if !unsafe { GetBuiltinClass(cx, object.handle(), &mut object_class as *mut _) } {
         return None;
     }
-    if object_class != ESClass::Object &&
-        object_class != ESClass::Array &&
-        object_class != ESClass::Map &&
-        object_class != ESClass::Function
+    if object_class != ESClass::Object
+        && object_class != ESClass::Array
+        && object_class != ESClass::Map
+        && object_class != ESClass::Function
     {
         return None;
     }
@@ -364,8 +364,8 @@ fn console_object_from_handle_value(
 
         // https://console.spec.whatwg.org/#printer
         // Objects with either generic JavaScript object formatting or optimally useful formatting applied.
-        let is_accessor = (descriptor.hasGetter_() && !descriptor.getter_.is_null()) ||
-            (descriptor.hasSetter_() && !descriptor.setter_.is_null());
+        let is_accessor = (descriptor.hasGetter_() && !descriptor.getter_.is_null())
+            || (descriptor.hasSetter_() && !descriptor.setter_.is_null());
         let value = if is_accessor {
             accessor_value_from_property_descriptor(&descriptor)
         } else {
@@ -590,8 +590,8 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
         }
         parents.push(value_bits);
 
-        if value.is_object() &&
-            let Some(repr) = maybe_stringify_dom_object(cx, value)
+        if value.is_object()
+            && let Some(repr) = maybe_stringify_dom_object(cx, value)
         {
             return repr;
         }

@@ -177,8 +177,8 @@ impl CanvasContext for ImageBitmapRenderingContext {
             Some(bitmap) => Some(bitmap.clone()),
             None => {
                 let size = self.canvas.size();
-                if size.is_empty() ||
-                    pixels::compute_rgba8_byte_length_if_within_limit(
+                if size.is_empty()
+                    || pixels::compute_rgba8_byte_length_if_within_limit(
                         size.width as usize,
                         size.height as usize,
                     )

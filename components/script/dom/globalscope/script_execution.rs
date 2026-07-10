@@ -319,8 +319,8 @@ impl GlobalScope {
         // does not have its sandboxed scripts browsing context flag set.
         if let Some(window) = self.downcast::<Window>() {
             let doc = window.Document();
-            doc.is_fully_active() &&
-                !doc.has_active_sandboxing_flag(
+            doc.is_fully_active()
+                && !doc.has_active_sandboxing_flag(
                     SandboxingFlagSet::SANDBOXED_SCRIPTS_BROWSING_CONTEXT_FLAG,
                 )
         } else {

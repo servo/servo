@@ -667,22 +667,22 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-isidentity>
     fn IsIdentity(&self) -> bool {
         let matrix = self.matrix.borrow();
-        matrix.m12 == 0.0 &&
-            matrix.m13 == 0.0 &&
-            matrix.m14 == 0.0 &&
-            matrix.m21 == 0.0 &&
-            matrix.m23 == 0.0 &&
-            matrix.m24 == 0.0 &&
-            matrix.m31 == 0.0 &&
-            matrix.m32 == 0.0 &&
-            matrix.m34 == 0.0 &&
-            matrix.m41 == 0.0 &&
-            matrix.m42 == 0.0 &&
-            matrix.m43 == 0.0 &&
-            matrix.m11 == 1.0 &&
-            matrix.m22 == 1.0 &&
-            matrix.m33 == 1.0 &&
-            matrix.m44 == 1.0
+        matrix.m12 == 0.0
+            && matrix.m13 == 0.0
+            && matrix.m14 == 0.0
+            && matrix.m21 == 0.0
+            && matrix.m23 == 0.0
+            && matrix.m24 == 0.0
+            && matrix.m31 == 0.0
+            && matrix.m32 == 0.0
+            && matrix.m34 == 0.0
+            && matrix.m41 == 0.0
+            && matrix.m42 == 0.0
+            && matrix.m43 == 0.0
+            && matrix.m11 == 1.0
+            && matrix.m22 == 1.0
+            && matrix.m33 == 1.0
+            && matrix.m44 == 1.0
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-translate>
@@ -872,22 +872,22 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         // Step 1. If one or more of m11 element through m44 element are a non-finite value,
         // then throw an "InvalidStateError" DOMException.
         let mat = self.matrix.borrow();
-        if !mat.m11.is_finite() ||
-            !mat.m12.is_finite() ||
-            !mat.m13.is_finite() ||
-            !mat.m14.is_finite() ||
-            !mat.m21.is_finite() ||
-            !mat.m22.is_finite() ||
-            !mat.m23.is_finite() ||
-            !mat.m24.is_finite() ||
-            !mat.m31.is_finite() ||
-            !mat.m32.is_finite() ||
-            !mat.m33.is_finite() ||
-            !mat.m34.is_finite() ||
-            !mat.m41.is_finite() ||
-            !mat.m42.is_finite() ||
-            !mat.m43.is_finite() ||
-            !mat.m44.is_finite()
+        if !mat.m11.is_finite()
+            || !mat.m12.is_finite()
+            || !mat.m13.is_finite()
+            || !mat.m14.is_finite()
+            || !mat.m21.is_finite()
+            || !mat.m22.is_finite()
+            || !mat.m23.is_finite()
+            || !mat.m24.is_finite()
+            || !mat.m31.is_finite()
+            || !mat.m32.is_finite()
+            || !mat.m33.is_finite()
+            || !mat.m34.is_finite()
+            || !mat.m41.is_finite()
+            || !mat.m42.is_finite()
+            || !mat.m43.is_finite()
+            || !mat.m44.is_finite()
         {
             return Err(error::Error::InvalidState(None));
         }
@@ -1085,24 +1085,24 @@ fn validate_and_fixup_2d(dict: &DOMMatrix2DInit) -> Fallible<Transform2D<f64>> {
 
     // Step 1. If if at least one of the following conditions are true for dict,
     // then throw a TypeError exception and abort these steps.
-    if dict.a.is_some() &&
-        dict.m11.is_some() &&
-        !same_value_zero(dict.a.unwrap(), dict.m11.unwrap()) ||
-        dict.b.is_some() &&
-            dict.m12.is_some() &&
-            !same_value_zero(dict.b.unwrap(), dict.m12.unwrap()) ||
-        dict.c.is_some() &&
-            dict.m21.is_some() &&
-            !same_value_zero(dict.c.unwrap(), dict.m21.unwrap()) ||
-        dict.d.is_some() &&
-            dict.m22.is_some() &&
-            !same_value_zero(dict.d.unwrap(), dict.m22.unwrap()) ||
-        dict.e.is_some() &&
-            dict.m41.is_some() &&
-            !same_value_zero(dict.e.unwrap(), dict.m41.unwrap()) ||
-        dict.f.is_some() &&
-            dict.m42.is_some() &&
-            !same_value_zero(dict.f.unwrap(), dict.m42.unwrap())
+    if dict.a.is_some()
+        && dict.m11.is_some()
+        && !same_value_zero(dict.a.unwrap(), dict.m11.unwrap())
+        || dict.b.is_some()
+            && dict.m12.is_some()
+            && !same_value_zero(dict.b.unwrap(), dict.m12.unwrap())
+        || dict.c.is_some()
+            && dict.m21.is_some()
+            && !same_value_zero(dict.c.unwrap(), dict.m21.unwrap())
+        || dict.d.is_some()
+            && dict.m22.is_some()
+            && !same_value_zero(dict.d.unwrap(), dict.m22.unwrap())
+        || dict.e.is_some()
+            && dict.m41.is_some()
+            && !same_value_zero(dict.e.unwrap(), dict.m41.unwrap())
+        || dict.f.is_some()
+            && dict.m42.is_some()
+            && !same_value_zero(dict.f.unwrap(), dict.m42.unwrap())
     {
         return Err(error::Error::Type(
             c"Property mismatch on matrix initialization.".to_owned(),
@@ -1145,17 +1145,17 @@ fn validate_and_fixup(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)
     // m32, m34, m43 are present with a value other than 0 or -0, or at least
     // one of m33, m44 are present with a value other than 1, then throw
     // a TypeError exception and abort these steps.
-    if dict.is2D == Some(true) &&
-        (dict.m13 != 0.0 ||
-            dict.m14 != 0.0 ||
-            dict.m23 != 0.0 ||
-            dict.m24 != 0.0 ||
-            dict.m31 != 0.0 ||
-            dict.m32 != 0.0 ||
-            dict.m34 != 0.0 ||
-            dict.m43 != 0.0 ||
-            dict.m33 != 1.0 ||
-            dict.m44 != 1.0)
+    if dict.is2D == Some(true)
+        && (dict.m13 != 0.0
+            || dict.m14 != 0.0
+            || dict.m23 != 0.0
+            || dict.m24 != 0.0
+            || dict.m31 != 0.0
+            || dict.m32 != 0.0
+            || dict.m34 != 0.0
+            || dict.m43 != 0.0
+            || dict.m33 != 1.0
+            || dict.m44 != 1.0)
     {
         return Err(error::Error::Type(
             c"The is2D member is set to true but the input matrix is a 3d matrix.".to_owned(),
@@ -1168,17 +1168,17 @@ fn validate_and_fixup(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)
     // m31, m32, m34, m43 are present with a value other than 0 or -0, or at
     // least one of m33, m44 are present with a value other than 1, set is2D
     // to false.
-    if is_2d.is_none() &&
-        (dict.m13 != 0.0 ||
-            dict.m14 != 0.0 ||
-            dict.m23 != 0.0 ||
-            dict.m24 != 0.0 ||
-            dict.m31 != 0.0 ||
-            dict.m32 != 0.0 ||
-            dict.m34 != 0.0 ||
-            dict.m43 != 0.0 ||
-            dict.m33 != 1.0 ||
-            dict.m44 != 1.0)
+    if is_2d.is_none()
+        && (dict.m13 != 0.0
+            || dict.m14 != 0.0
+            || dict.m23 != 0.0
+            || dict.m24 != 0.0
+            || dict.m31 != 0.0
+            || dict.m32 != 0.0
+            || dict.m34 != 0.0
+            || dict.m43 != 0.0
+            || dict.m33 != 1.0
+            || dict.m44 != 1.0)
     {
         is_2d = Some(false);
     }

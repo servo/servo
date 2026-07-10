@@ -305,8 +305,8 @@ pub(crate) fn handle_get_children(
         return;
     };
     let is_whitespace = |node: &NodeInfo| {
-        node.node_type == NodeConstants::TEXT_NODE &&
-            node.node_value.as_ref().is_none_or(|v| v.trim().is_empty())
+        node.node_type == NodeConstants::TEXT_NODE
+            && node.node_value.as_ref().is_none_or(|v| v.trim().is_empty())
     };
     let mut pipeline_state = state.mut_pipeline_state_for(pipeline).unwrap();
 
@@ -324,9 +324,9 @@ pub(crate) fn handle_get_children(
         .collect();
 
     let mut children = vec![];
-    if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) &&
-        (!shadow_root.is_user_agent_widget() ||
-            pref!(inspector_show_servo_internal_shadow_roots))
+    if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root)
+        && (!shadow_root.is_user_agent_widget()
+            || pref!(inspector_show_servo_internal_shadow_roots))
     {
         children.push(shadow_root.upcast::<Node>().summarize(cx));
     }
@@ -657,8 +657,8 @@ pub(crate) fn handle_get_xpath(
                 let Some(sibling) = sibling.downcast::<Element>() else {
                     return false;
                 };
-                sibling.namespace() == element.namespace() &&
-                    sibling.local_name() == element.local_name()
+                sibling.namespace() == element.namespace()
+                    && sibling.local_name() == element.local_name()
             };
 
             let matching_elements_before = ancestor

@@ -185,8 +185,8 @@ fn abort_fetch_call(
     // Step 1. Reject promise with error.
     promise.reject(cx, abort_reason);
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
-    if let Some(body) = request.body() &&
-        body.is_readable()
+    if let Some(body) = request.body()
+        && body.is_readable()
     {
         body.cancel(cx, global, abort_reason);
     }
@@ -196,8 +196,8 @@ fn abort_fetch_call(
         return;
     };
     // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
-    if let Some(body) = response.body() &&
-        body.is_readable()
+    if let Some(body) = response.body()
+        && body.is_readable()
     {
         body.error(cx, abort_reason);
     }
@@ -612,8 +612,8 @@ impl FetchResponseListener for FetchContext {
         let response_object = self.response_object.root();
         let mut realm = enter_auto_realm(cx, &*response_object);
         let cx = &mut realm.current_realm();
-        if let Err(ref error) = response &&
-            *error == NetworkError::DecompressionError
+        if let Err(ref error) = response
+            && *error == NetworkError::DecompressionError
         {
             response_object.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
         }
@@ -749,8 +749,8 @@ pub(crate) fn load_whole_resource(
                 }
                 return Ok((metadata, buf, muted_errors));
             },
-            FetchResponseMsg::ProcessResponse(_, Err(e)) |
-            FetchResponseMsg::ProcessResponseEOF(_, Err(e), _) => return Err(e),
+            FetchResponseMsg::ProcessResponse(_, Err(e))
+            | FetchResponseMsg::ProcessResponseEOF(_, Err(e), _) => return Err(e),
             FetchResponseMsg::ProcessCspViolations(_, violations) => {
                 csp_violations_processor.process_csp_violations(cx, violations);
             },

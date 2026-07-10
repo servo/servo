@@ -91,8 +91,8 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
         }
         // If this’s quota is not null, this’s requested is not null, and this’s requested
         // is less than this’s quota, then throw a RangeError.
-        if let (Some(quota), Some(requested)) = (options.quota, options.requested) &&
-            *requested < *quota
+        if let (Some(quota), Some(requested)) = (options.quota, options.requested)
+            && *requested < *quota
         {
             return Err(Error::Range(c"requested is less than quota".to_owned()));
         }

@@ -176,8 +176,8 @@ impl ByteTeeUnderlyingSource {
                         byte_reader
                             .get()
                             .expect("Reader should be set.")
-                            .get_num_read_into_requests() ==
-                            0
+                            .get_num_read_into_requests()
+                            == 0
                     );
 
                     // Release BYOB reader.
@@ -302,8 +302,8 @@ impl ByteTeeUnderlyingSource {
                         default_reader
                             .get()
                             .expect("Reader should be set.")
-                            .get_num_read_requests() ==
-                            0
+                            .get_num_read_requests()
+                            == 0
                     );
 
                     // Perform ! ReadableStreamDefaultReaderRelease(reader).

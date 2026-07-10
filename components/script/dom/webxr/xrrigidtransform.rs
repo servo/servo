@@ -89,20 +89,20 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
             )));
         }
 
-        if !position.x.is_finite() ||
-            !position.y.is_finite() ||
-            !position.z.is_finite() ||
-            !position.w.is_finite()
+        if !position.x.is_finite()
+            || !position.y.is_finite()
+            || !position.z.is_finite()
+            || !position.w.is_finite()
         {
             return Err(Error::Type(
                 c"Position must not contain non-finite values".into(),
             ));
         }
 
-        if !orientation.x.is_finite() ||
-            !orientation.y.is_finite() ||
-            !orientation.z.is_finite() ||
-            !orientation.w.is_finite()
+        if !orientation.x.is_finite()
+            || !orientation.y.is_finite()
+            || !orientation.z.is_finite()
+            || !orientation.w.is_finite()
         {
             return Err(Error::Type(
                 c"Orientation must not contain non-finite values".into(),

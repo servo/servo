@@ -222,9 +222,9 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
         // TODO: Step 7: Implement the `connection-checking-wrapper` algorithm for BluetoothRemoteGATTServer.
 
         // Step 7.1.
-        if !(self.Properties().Write() ||
-            self.Properties().WriteWithoutResponse() ||
-            self.Properties().AuthenticatedSignedWrites())
+        if !(self.Properties().Write()
+            || self.Properties().WriteWithoutResponse()
+            || self.Properties().AuthenticatedSignedWrites())
         {
             p.reject_error(cx, NotSupported(None));
             return p;

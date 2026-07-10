@@ -198,11 +198,11 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         proto: Option<HandleObject>,
         options: &AudioBufferOptions,
     ) -> Fallible<DomRoot<AudioBuffer>> {
-        if options.length == 0 ||
-            options.numberOfChannels == 0 ||
-            options.numberOfChannels > MAX_CHANNEL_COUNT ||
-            *options.sampleRate < MIN_SAMPLE_RATE ||
-            *options.sampleRate > MAX_SAMPLE_RATE
+        if options.length == 0
+            || options.numberOfChannels == 0
+            || options.numberOfChannels > MAX_CHANNEL_COUNT
+            || *options.sampleRate < MIN_SAMPLE_RATE
+            || *options.sampleRate > MAX_SAMPLE_RATE
         {
             return Err(Error::NotSupported(None));
         }
@@ -286,8 +286,8 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
             {
                 return Err(Error::IndexSize(None));
             }
-        } else if let Some(ref shared_channels) = *self.shared_channels.borrow() &&
-            let Some(shared_channel) = shared_channels.buffers.get(channel_number)
+        } else if let Some(ref shared_channels) = *self.shared_channels.borrow()
+            && let Some(shared_channel) = shared_channels.buffers.get(channel_number)
         {
             dest.extend_from_slice(&shared_channel.as_slice()[offset..offset + bytes_to_copy]);
         }

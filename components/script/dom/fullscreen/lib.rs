@@ -226,8 +226,8 @@ impl DocumentOrShadowRoot {
         fullscreen_element: Option<DomRoot<Element>>,
     ) -> Option<DomRoot<Element>> {
         // Step 1. If this is a shadow root and its host is not connected, then return null.
-        if let Some(shadow_root) = node.downcast::<ShadowRoot>() &&
-            !shadow_root.Host().is_connected()
+        if let Some(shadow_root) = node.downcast::<ShadowRoot>()
+            && !shadow_root.Host().is_connected()
         {
             return None;
         }
@@ -242,8 +242,8 @@ impl DocumentOrShadowRoot {
         // Step 3. If candidate and this are in the same tree, then return candidate.
         if *candidate
             .upcast::<Node>()
-            .GetRootNode(&GetRootNodeOptions::empty()) ==
-            *node
+            .GetRootNode(&GetRootNodeOptions::empty())
+            == *node
         {
             return Some(candidate);
         }
@@ -301,9 +301,9 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         // > If error is true:
         // > - Append (fullscreenerror, this) to pendingDoc’s list of pending fullscreen events.
         // > - Reject promise with a TypeError exception and terminate these steps.
-        if self.document.root() != document ||
-            !element.fullscreen_element_ready_check() ||
-            self.error
+        if self.document.root() != document
+            || !element.fullscreen_element_ready_check()
+            || self.error
         {
             // TODO(#31866): we should queue this and fire them in update the rendering.
             document

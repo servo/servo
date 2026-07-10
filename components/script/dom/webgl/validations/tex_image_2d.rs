@@ -150,8 +150,8 @@ impl WebGLValidator for CommonTexImage2DValidator<'_> {
         // format.
         let internal_format = match TexFormat::from_gl_constant(self.internal_format) {
             Some(format)
-                if format.required_webgl_version() <= self.context.webgl_version() &&
-                    format.usable_as_internal() =>
+                if format.required_webgl_version() <= self.context.webgl_version()
+                    && format.usable_as_internal() =>
             {
                 format
             },
@@ -455,9 +455,9 @@ fn is_subimage_blockaligned(
     let block_width = compression.block_width as u32;
     let block_height = compression.block_height as u32;
 
-    (xoffset.is_multiple_of(block_width) && yoffset.is_multiple_of(block_height)) &&
-        (width.is_multiple_of(block_width) || xoffset + width == tex_info.width()) &&
-        (height.is_multiple_of(block_height) || yoffset + height == tex_info.height())
+    (xoffset.is_multiple_of(block_width) && yoffset.is_multiple_of(block_height))
+        && (width.is_multiple_of(block_width) || xoffset + width == tex_info.width())
+        && (height.is_multiple_of(block_height) || yoffset + height == tex_info.height())
 }
 
 impl WebGLValidator for CommonCompressedTexImage2DValidator<'_> {
@@ -644,10 +644,10 @@ impl WebGLValidator for CompressedTexSubImage2DValidator<'_> {
         //   - xoffset or yoffset is less than 0
         //   - x offset plus the width is greater than the texture width
         //   - y offset plus the height is greater than the texture height
-        if self.xoffset < 0 ||
-            (self.xoffset as u32 + width) > tex_info.width() ||
-            self.yoffset < 0 ||
-            (self.yoffset as u32 + height) > tex_info.height()
+        if self.xoffset < 0
+            || (self.xoffset as u32 + width) > tex_info.width()
+            || self.yoffset < 0
+            || (self.yoffset as u32 + height) > tex_info.height()
         {
             context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::InvalidOffsets);

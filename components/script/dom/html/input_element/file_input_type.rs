@@ -91,8 +91,8 @@ impl FileInputType {
             // element's selected files."
             //
             // Note: This is annoying.
-            if input.Multiple() &&
-                let Some(filelist) = self.get_files()
+            if input.Multiple()
+                && let Some(filelist) = self.get_files()
             {
                 files = filelist.iter_files().map(|file| file.as_rooted()).collect();
             }

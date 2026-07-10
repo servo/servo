@@ -703,8 +703,8 @@ impl FileListener {
                 },
             },
             Err(_) => match self.state.take() {
-                Some(FileListenerState::Receiving(_, target)) |
-                Some(FileListenerState::Empty(target)) => {
+                Some(FileListenerState::Receiving(_, target))
+                | Some(FileListenerState::Empty(target)) => {
                     let error = Err(Error::Network(None));
 
                     match target {
@@ -1337,15 +1337,15 @@ impl GlobalScope {
         // Step 7, a few preliminary steps.
 
         // - Check the worker is not closing.
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() &&
-            worker.is_closing()
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>()
+            && worker.is_closing()
         {
             return;
         }
 
         // - Check the associated document is fully-active.
-        if let Some(window) = self.downcast::<Window>() &&
-            !window.Document().is_fully_active()
+        if let Some(window) = self.downcast::<Window>()
+            && !window.Document().is_fully_active()
         {
             return;
         }
@@ -3200,8 +3200,8 @@ impl GlobalScope {
                 // Step 2. If the result of Is url potentially trustworthy?
                 // given environment's top-level creation URL is "Potentially Trustworthy", then return true.
                 // Step 3. Return false.
-                if top_level_creation_url.scheme() == "blob" &&
-                    Some(true) == self.inherited_secure_context
+                if top_level_creation_url.scheme() == "blob"
+                    && Some(true) == self.inherited_secure_context
                 {
                     return true;
                 }

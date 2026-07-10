@@ -381,8 +381,8 @@ impl DocumentFocusHandler {
             // because of the popping we do at the start of these steps.
             let related_blur_target = match new_focus_chain.last() {
                 Some(FocusableArea::Node { node, .. })
-                    if index == last_old_focus_chain_entry &&
-                        matches!(entry, FocusableArea::Node { .. }) =>
+                    if index == last_old_focus_chain_entry
+                        && matches!(entry, FocusableArea::Node { .. }) =>
                 {
                     Some(node.upcast())
                 },
@@ -404,8 +404,8 @@ impl DocumentFocusHandler {
         // Step 3: Apply any relevant platform-specific conventions for focusing new focus
         // target. (For example, some platforms select the contents of a text control when that
         // control is focused.)
-        if &*self.focused_area() != new_focus_target &&
-            let Some(html_element) = new_focus_target
+        if &*self.focused_area() != new_focus_target
+            && let Some(html_element) = new_focus_target
                 .element()
                 .and_then(|element| element.downcast::<HTMLElement>())
         {
@@ -458,8 +458,8 @@ impl DocumentFocusHandler {
             // because of the popping we do at the start of these steps.
             let related_focus_target = match old_focus_chain.last() {
                 Some(FocusableArea::Node { node, .. })
-                    if index == last_new_focus_chain_entry &&
-                        matches!(entry, FocusableArea::Node { .. }) =>
+                    if index == last_new_focus_chain_entry
+                        && matches!(entry, FocusableArea::Node { .. }) =>
                 {
                     Some(node.upcast())
                 },
@@ -573,8 +573,8 @@ impl DocumentFocusHandler {
         // > starting point, then let starting point be the sequential focus navigation starting point
         // > instead.
         if let Some(sequential_focus_navigation_starting_point) =
-            self.sequential_focus_navigation_starting_point() &&
-            starting_point.as_ref().is_none_or(|starting_point| {
+            self.sequential_focus_navigation_starting_point()
+            && starting_point.as_ref().is_none_or(|starting_point| {
                 starting_point.is_ancestor_of(&sequential_focus_navigation_starting_point)
             })
         {
@@ -905,9 +905,9 @@ impl SequentialFocusNavigationSearch {
             mechanism => *mechanism,
         };
 
-        if self.direction == SequentialFocusDirection::Backward &&
-            let Some(containing_element) = containing_node.downcast::<Element>() &&
-            containing_element.is_sequentially_focusable()
+        if self.direction == SequentialFocusDirection::Backward
+            && let Some(containing_element) = containing_node.downcast::<Element>()
+            && containing_element.is_sequentially_focusable()
         {
             return Some(DomRoot::from_ref(containing_element));
         }
@@ -965,8 +965,8 @@ impl SequentialFocusNavigationSearch {
         // If the search has ascended into a containing scope, never try to search back down
         // into the scope that originated this part of the search. Otherwise the search would
         // cycle endlessly.
-        if Some(node) == self.starting_point.as_deref() &&
-            self.search_context == SequentialFocusNavigationSearchContext::Containing
+        if Some(node) == self.starting_point.as_deref()
+            && self.search_context == SequentialFocusNavigationSearchContext::Containing
         {
             return Continue::Yes;
         }
@@ -1142,8 +1142,8 @@ impl SequentialFocusNavigationSearch {
                 // If the candidate element has a lesser tab index than the current winner,
                 // then it becomes the winner.
                 let should_select =
-                    compare_tab_indices(candidate_element_tab_index, winning_tab_index) ==
-                        Ordering::Less;
+                    compare_tab_indices(candidate_element_tab_index, winning_tab_index)
+                        == Ordering::Less;
 
                 (should_select, Continue::Yes)
             },
@@ -1165,8 +1165,8 @@ impl SequentialFocusNavigationSearch {
                 // then it becomes the new winner. This means that when the tab indices are
                 // equal, we give preference to the last one in DOM order.
                 let should_select =
-                    compare_tab_indices(candidate_element_tab_index, winning_tab_index) !=
-                        Ordering::Less;
+                    compare_tab_indices(candidate_element_tab_index, winning_tab_index)
+                        != Ordering::Less;
                 (should_select, Continue::Yes)
             },
         }

@@ -93,14 +93,14 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
 fn is_integer_buffer(array_type: Type) -> bool {
     matches!(
         array_type,
-        Type::Uint8 |
-            Type::Uint8Clamped |
-            Type::Int8 |
-            Type::Uint16 |
-            Type::Int16 |
-            Type::Uint32 |
-            Type::Int32 |
-            Type::BigInt64 |
-            Type::BigUint64
+        Type::Uint8
+            | Type::Uint8Clamped
+            | Type::Int8
+            | Type::Uint16
+            | Type::Int16
+            | Type::Uint32
+            | Type::Int32
+            | Type::BigInt64
+            | Type::BigUint64
     )
 }

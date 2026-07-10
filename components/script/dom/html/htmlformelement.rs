@@ -162,9 +162,9 @@ impl HTMLFormElement {
                 RadioListMode::ControlsExceptImageInputs => {
                     if child
                         .downcast::<HTMLElement>()
-                        .is_some_and(|c| c.is_listed_element()) &&
-                        (child.get_id().is_some_and(|i| i == *name) ||
-                            child.get_name().is_some_and(|n| n == *name))
+                        .is_some_and(|c| c.is_listed_element())
+                        && (child.get_id().is_some_and(|i| i == *name)
+                            || child.get_name().is_some_and(|n| n == *name))
                     {
                         if let Some(inp) = child.downcast::<HTMLInputElement>() {
                             // input, only return it if it's not image-button state
@@ -177,9 +177,9 @@ impl HTMLFormElement {
                     return false;
                 },
                 RadioListMode::Images => {
-                    return child.is::<HTMLImageElement>() &&
-                        (child.get_id().is_some_and(|i| i == *name) ||
-                            child.get_name().is_some_and(|n| n == *name));
+                    return child.is::<HTMLImageElement>()
+                        && (child.get_id().is_some_and(|i| i == *name)
+                            || child.get_name().is_some_and(|n| n == *name));
                 },
             }
         }
@@ -614,8 +614,8 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         sourced_names_vec.sort_by(|a, b| {
             if a.element
                 .upcast::<Node>()
-                .CompareDocumentPosition(b.element.upcast::<Node>()) ==
-                0
+                .CompareDocumentPosition(b.element.upcast::<Node>())
+                == 0
             {
                 if a.source.is_past() && b.source.is_past() {
                     b.source.cmp(&a.source)
@@ -625,9 +625,9 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             } else if a
                 .element
                 .upcast::<Node>()
-                .CompareDocumentPosition(b.element.upcast::<Node>()) &
-                NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
-                NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                .CompareDocumentPosition(b.element.upcast::<Node>())
+                & NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                == NodeConstants::DOCUMENT_POSITION_FOLLOWING
             {
                 std::cmp::Ordering::Less
             } else {
@@ -831,8 +831,8 @@ impl HTMLFormElement {
         // Step 19. If the submitter element is a submit button and it has a formtarget attribute,
         // then set formTarget to the formtarget attribute value.
         let form_target_attribute = submitter.target();
-        let form_target = if submitter.is_submit_button() &&
-            valid_navigable_target_name_or_keyword(&form_target_attribute)
+        let form_target = if submitter.is_submit_button()
+            && valid_navigable_target_name_or_keyword(&form_target_attribute)
         {
             Some(form_target_attribute)
         } else {
@@ -914,11 +914,11 @@ impl HTMLFormElement {
                 );
             },
             // https://html.spec.whatwg.org/multipage/#submit-get-action
-            ("file", _) |
-            ("about", _) |
-            ("data", FormMethod::Post) |
-            ("ftp", _) |
-            ("javascript", _) => {
+            ("file", _)
+            | ("about", _)
+            | ("data", FormMethod::Post)
+            | ("ftp", _)
+            | ("javascript", _) => {
                 self.plan_to_navigate(load_data, target_window, history_handling);
             },
             ("mailto", FormMethod::Post) => {
@@ -1091,8 +1091,8 @@ impl HTMLFormElement {
 
         // Note the pending form navigation if this is an iframe;
         // necessary for deciding whether to run the iframe load event steps.
-        if let Some(window_proxy) = target.undiscarded_window_proxy() &&
-            let Some(frame) = window_proxy
+        if let Some(window_proxy) = target.undiscarded_window_proxy()
+            && let Some(frame) = window_proxy
                 .frame_element()
                 .and_then(|e| e.downcast::<HTMLIFrameElement>())
         {
@@ -1303,8 +1303,8 @@ impl HTMLFormElement {
                 .downcast::<HTMLInputElement>()
                 .is_some_and(|input| input.is_auto_directionality_form_associated_element());
             let is_textarea_element = child_element.is::<HTMLTextAreaElement>();
-            if !dirname.is_empty() &&
-                (is_input_auto_directionality_form_associated_element || is_textarea_element)
+            if !dirname.is_empty()
+                && (is_input_auto_directionality_form_associated_element || is_textarea_element)
             {
                 // Step: 5.11.2 Let dir be the string "ltr" if the directionality of the element is 'ltr',
                 // and "rtl" otherwise (i.e., when the directionality of the element is 'rtl').
@@ -1447,11 +1447,11 @@ impl Element {
         };
         matches!(
             element_type,
-            HTMLElementTypeId::HTMLInputElement |
-                HTMLElementTypeId::HTMLSelectElement |
-                HTMLElementTypeId::HTMLTextAreaElement |
-                HTMLElementTypeId::HTMLOutputElement |
-                HTMLElementTypeId::HTMLElement
+            HTMLElementTypeId::HTMLInputElement
+                | HTMLElementTypeId::HTMLSelectElement
+                | HTMLElementTypeId::HTMLTextAreaElement
+                | HTMLElementTypeId::HTMLOutputElement
+                | HTMLElementTypeId::HTMLElement
         )
     }
 
@@ -1468,8 +1468,8 @@ impl Element {
             textarea_element.reset(cx);
         } else if let Some(output_element) = self.downcast::<HTMLOutputElement>() {
             output_element.reset(cx);
-        } else if let Some(html_element) = self.downcast::<HTMLElement>() &&
-            html_element.is_form_associated_custom_element()
+        } else if let Some(html_element) = self.downcast::<HTMLElement>()
+            && html_element.is_form_associated_custom_element()
         {
             ScriptThread::enqueue_callback_reaction(
                 cx,
@@ -1720,9 +1720,9 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
             .find_map(DomRoot::downcast::<HTMLFormElement>);
 
         // Step 1
-        if old_owner.is_some() &&
-            !(self.is_listed() && has_form_id) &&
-            nearest_form_ancestor == old_owner
+        if old_owner.is_some()
+            && !(self.is_listed() && has_form_id)
+            && nearest_form_ancestor == old_owner
         {
             return;
         }
@@ -1755,8 +1755,8 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
                 new_owner.add_control(cx, self);
             }
             // https://html.spec.whatwg.org/multipage/#custom-element-reactions:reset-the-form-owner
-            if let Some(html_elem) = elem.downcast::<HTMLElement>() &&
-                html_elem.is_form_associated_custom_element()
+            if let Some(html_elem) = elem.downcast::<HTMLElement>()
+                && html_elem.is_form_associated_custom_element()
             {
                 ScriptThread::enqueue_callback_reaction(
                     cx,

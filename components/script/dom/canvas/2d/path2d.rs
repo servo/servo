@@ -68,12 +68,12 @@ impl Path2D {
         // Step 3. If one or more of matrix's m11 element, m12 element, m21
         // element, m22 element, m41 element, or m42 element are infinite or
         // NaN, then return.
-        if !matrix.m11.is_finite() ||
-            !matrix.m12.is_finite() ||
-            !matrix.m21.is_finite() ||
-            !matrix.m22.is_finite() ||
-            !matrix.m31.is_finite() ||
-            !matrix.m32.is_finite()
+        if !matrix.m11.is_finite()
+            || !matrix.m12.is_finite()
+            || !matrix.m21.is_finite()
+            || !matrix.m22.is_finite()
+            || !matrix.m31.is_finite()
+            || !matrix.m32.is_finite()
         {
             return Ok(());
         }

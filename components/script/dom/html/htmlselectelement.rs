@@ -252,8 +252,8 @@ impl HTMLSelectElement {
 
         if let Some(last_selected) = last_selected {
             last_selected.set_selectedness(true);
-        } else if self.display_size() == 1 &&
-            let Some(first_enabled) = first_enabled
+        } else if self.display_size() == 1
+            && let Some(first_enabled) = first_enabled
         {
             first_enabled.set_selectedness(true);
         }
@@ -520,8 +520,8 @@ impl HTMLSelectElement {
 
             if let Some(first_selected) = first_selected {
                 first_selected.set_selectedness(true);
-            } else if self.display_size() == 1 &&
-                let Some(first_enabled) = first_enabled
+            } else if self.display_size() == 1
+                && let Some(first_enabled) = first_enabled
             {
                 first_enabled.set_selectedness(true);
             }
@@ -912,8 +912,8 @@ impl VirtualMethods for HTMLSelectElement {
 
     fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         self.super_type().unwrap().handle_event(cx, event);
-        if let Some(event) = event.downcast::<FocusEvent>() &&
-            *event.upcast::<Event>().type_() != *"blur"
+        if let Some(event) = event.downcast::<FocusEvent>()
+            && *event.upcast::<Event>().type_() != *"blur"
         {
             self.owner_document()
                 .embedder_controls()
@@ -964,8 +964,8 @@ impl Validatable for HTMLSelectElement {
         if validate_flags.contains(ValidationFlags::VALUE_MISSING) && self.Required() {
             let placeholder = self.get_placeholder_label_option(cx.no_gc());
             let is_value_missing = !self.list_of_options(cx.no_gc()).any(|e| {
-                e.Selected() &&
-                    placeholder
+                e.Selected()
+                    && placeholder
                         .as_ref()
                         .map(|placeholder| **placeholder != **e)
                         .unwrap_or(true)

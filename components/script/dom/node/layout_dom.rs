@@ -63,8 +63,8 @@ impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     pub(crate) fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         let parent = self.parent_node_ref();
-        if let Some(parent) = parent &&
-            let Some(shadow_root) = parent.downcast::<ShadowRoot>()
+        if let Some(parent) = parent
+            && let Some(shadow_root) = parent.downcast::<ShadowRoot>()
         {
             return Some(shadow_root.get_host_for_layout().upcast());
         }
@@ -234,8 +234,9 @@ impl<'dom> LayoutDom<'dom, Node> {
         );
         // Currently `::placeholder` is only implemented for single line text input element.
         debug_assert!(
-            !is_single_line_text_inner_placeholder ||
-                self.containing_shadow_root_for_layout()
+            !is_single_line_text_inner_placeholder
+                || self
+                    .containing_shadow_root_for_layout()
                     .map(|root| root.get_host_for_layout())
                     .map(|host| host.downcast::<HTMLInputElement>())
                     .is_some()

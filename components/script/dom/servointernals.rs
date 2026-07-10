@@ -214,8 +214,8 @@ impl ServoInternalsHelpers for ServoInternals {
         let mut realm = CurrentRealm::assert(cx);
         let global_scope = GlobalScope::from_current_realm(&mut realm);
         let url = global_scope.get_url();
-        (url.scheme() == "about" && url.as_str() != "about:blank") ||
-            ScriptThread::is_servo_privileged(url) ||
-            prefs::get().expose_servointernals_globally
+        (url.scheme() == "about" && url.as_str() != "about:blank")
+            || ScriptThread::is_servo_privileged(url)
+            || prefs::get().expose_servointernals_globally
     }
 }

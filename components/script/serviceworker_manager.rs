@@ -286,10 +286,10 @@ impl ServiceWorkerManager {
     }
 
     fn handle_message_from_resource(&mut self, mediator: CustomResponseMediator) -> bool {
-        if serviceworker_enabled() &&
-            let Some(scope) = self.get_matching_scope(&mediator.load_url) &&
-            let Some(registration) = self.registrations.get(&scope) &&
-            let Some(ref worker) = registration.active_worker
+        if serviceworker_enabled()
+            && let Some(scope) = self.get_matching_scope(&mediator.load_url)
+            && let Some(registration) = self.registrations.get(&scope)
+            && let Some(ref worker) = registration.active_worker
         {
             worker.send_message(ServiceWorkerScriptMsg::Response(mediator));
             return true;
@@ -535,8 +535,8 @@ impl ServiceWorkerManager {
         // Step 2: If job’s script url’s origin and job’s referrer’s origin are not same origin, then:
         // Step 3: If job’s scope url’s origin and job’s referrer’s origin are not same origin, then:
         // Note: both steps done in one conditional.
-        if job.script_url.origin() != job.referrer.origin() ||
-            job.scope_url.origin() != job.referrer.origin()
+        if job.script_url.origin() != job.referrer.origin()
+            || job.scope_url.origin() != job.referrer.origin()
         {
             // Step 2.1: Invoke Reject Job Promise with job and "SecurityError" DOMException
             if job
@@ -666,8 +666,8 @@ impl ServiceWorkerManager {
                 let newest_worker = registration.get_newest_worker();
 
                 // Step 4.
-                if let Some(worker) = newest_worker &&
-                    worker.script_url != job.script_url
+                if let Some(worker) = newest_worker
+                    && worker.script_url != job.script_url
                 {
                     let _ = job.client.send(ServiceWorkerAlgorithmResult::Job(
                         JobResult::RejectPromise(JobError::TypeError),
@@ -725,8 +725,8 @@ fn update_serviceworker(
     let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
     scope_things.init.from_devtools_sender = Some(devtools_sender);
 
-    if let Some(ref chan) = scope_things.devtools_chan &&
-        let Some(ref sender) = scope_things.init.from_devtools_sender
+    if let Some(ref chan) = scope_things.devtools_chan
+        && let Some(ref sender) = scope_things.init.from_devtools_sender
     {
         let page_info = DevtoolsPageInfo {
             title: format!("Service Worker for {}", scope_things.script_url),

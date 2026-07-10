@@ -150,8 +150,8 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-position>
     fn SetPosition(&self, value: VTTCueBinding::LineAndPositionSetting) -> ErrorResult {
-        if let VTTCueBinding::LineAndPositionSetting::Double(x) = value &&
-            (*x < 0_f64 || *x > 100_f64)
+        if let VTTCueBinding::LineAndPositionSetting::Double(x) = value
+            && (*x < 0_f64 || *x > 100_f64)
         {
             return Err(Error::IndexSize(None));
         }

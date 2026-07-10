@@ -209,8 +209,8 @@ impl HTMLOptionElement {
         // * option's selectedness is true; and
         // * select's enabled selectedcontent is not null,
         // * then run clone an option into a selectedcontent given option and select's enabled selectedcontent.
-        if self.selectedness.get() &&
-            let Some(selectedcontent) =
+        if self.selectedness.get()
+            && let Some(selectedcontent) =
                 select.and_then(|select| select.get_enabled_selectedcontent())
         {
             self.clone_an_option_into_selectedcontent(cx, &selectedcontent);
@@ -295,8 +295,8 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         while let Some(node) = iterator.peek() {
             if let Some(element) = node.downcast::<Element>() {
                 let html_script = element.is::<HTMLScriptElement>();
-                let svg_script = *element.namespace() == ns!(svg) &&
-                    element.local_name() == &local_name!("script");
+                let svg_script = *element.namespace() == ns!(svg)
+                    && element.local_name() == &local_name!("script");
                 if html_script || svg_script {
                     iterator.next_skipping_children();
                     continue;
@@ -500,9 +500,9 @@ impl VirtualMethods for HTMLOptionElement {
         // if it does not have a label attribute
         if !self
             .upcast::<Element>()
-            .has_attribute(&local_name!("label")) &&
-            let Some(owner_select) = self.owner_select_element() &&
-            owner_select
+            .has_attribute(&local_name!("label"))
+            && let Some(owner_select) = self.owner_select_element()
+            && owner_select
                 .selected_option(cx.no_gc())
                 .is_some_and(|selected_option| *self == **selected_option)
         {

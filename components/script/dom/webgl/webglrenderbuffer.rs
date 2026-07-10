@@ -192,35 +192,35 @@ impl WebGLRenderbuffer {
             constants::RGBA4 | constants::DEPTH_COMPONENT16 | constants::STENCIL_INDEX8 => {
                 internal_format
             },
-            constants::R8 |
-            constants::R8UI |
-            constants::R8I |
-            constants::R16UI |
-            constants::R16I |
-            constants::R32UI |
-            constants::R32I |
-            constants::RG8 |
-            constants::RG8UI |
-            constants::RG8I |
-            constants::RG16UI |
-            constants::RG16I |
-            constants::RG32UI |
-            constants::RG32I |
-            constants::RGB8 |
-            constants::RGBA8 |
-            constants::SRGB8_ALPHA8 |
-            constants::RGB10_A2 |
-            constants::RGBA8UI |
-            constants::RGBA8I |
-            constants::RGB10_A2UI |
-            constants::RGBA16UI |
-            constants::RGBA16I |
-            constants::RGBA32I |
-            constants::RGBA32UI |
-            constants::DEPTH_COMPONENT24 |
-            constants::DEPTH_COMPONENT32F |
-            constants::DEPTH24_STENCIL8 |
-            constants::DEPTH32F_STENCIL8 => match webgl_version {
+            constants::R8
+            | constants::R8UI
+            | constants::R8I
+            | constants::R16UI
+            | constants::R16I
+            | constants::R32UI
+            | constants::R32I
+            | constants::RG8
+            | constants::RG8UI
+            | constants::RG8I
+            | constants::RG16UI
+            | constants::RG16I
+            | constants::RG32UI
+            | constants::RG32I
+            | constants::RGB8
+            | constants::RGBA8
+            | constants::SRGB8_ALPHA8
+            | constants::RGB10_A2
+            | constants::RGBA8UI
+            | constants::RGBA8I
+            | constants::RGB10_A2UI
+            | constants::RGBA16UI
+            | constants::RGBA16I
+            | constants::RGBA32I
+            | constants::RGBA32UI
+            | constants::DEPTH_COMPONENT24
+            | constants::DEPTH_COMPONENT32F
+            | constants::DEPTH24_STENCIL8
+            | constants::DEPTH32F_STENCIL8 => match webgl_version {
                 WebGLVersion::WebGL1 => return Err(WebGLError::InvalidEnum),
                 _ => internal_format,
             },
@@ -242,8 +242,8 @@ impl WebGLRenderbuffer {
                     constants::RGB8
                 }
             },
-            EXTColorBufferHalfFloatConstants::RGBA16F_EXT |
-            EXTColorBufferHalfFloatConstants::RGB16F_EXT => {
+            EXTColorBufferHalfFloatConstants::RGBA16F_EXT
+            | EXTColorBufferHalfFloatConstants::RGB16F_EXT => {
                 if !context
                     .extension_manager()
                     .is_half_float_buffer_renderable()

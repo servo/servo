@@ -118,9 +118,9 @@ impl VirtualMethods for HTMLFontElement {
     }
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
-        if attr.local_name() == &local_name!("color") ||
-            attr.local_name() == &local_name!("size") ||
-            attr.local_name() == &local_name!("face")
+        if attr.local_name() == &local_name!("color")
+            || attr.local_name() == &local_name!("size")
+            || attr.local_name() == &local_name!("face")
         {
             return true;
         }

@@ -98,15 +98,15 @@ impl WebGLQuery {
         if self.droppable.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
-        if let Some(current_target) = self.gl_target.get() &&
-            current_target != target
+        if let Some(current_target) = self.gl_target.get()
+            && current_target != target
         {
             return Err(InvalidOperation);
         }
         match target {
-            constants::ANY_SAMPLES_PASSED |
-            constants::ANY_SAMPLES_PASSED_CONSERVATIVE |
-            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => (),
+            constants::ANY_SAMPLES_PASSED
+            | constants::ANY_SAMPLES_PASSED_CONSERVATIVE
+            | constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => (),
             _ => return Err(InvalidEnum),
         }
         self.gl_target.set(Some(target));
@@ -123,15 +123,15 @@ impl WebGLQuery {
         if self.droppable.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
-        if let Some(current_target) = self.gl_target.get() &&
-            current_target != target
+        if let Some(current_target) = self.gl_target.get()
+            && current_target != target
         {
             return Err(InvalidOperation);
         }
         match target {
-            constants::ANY_SAMPLES_PASSED |
-            constants::ANY_SAMPLES_PASSED_CONSERVATIVE |
-            constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => (),
+            constants::ANY_SAMPLES_PASSED
+            | constants::ANY_SAMPLES_PASSED_CONSERVATIVE
+            | constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => (),
             _ => return Err(InvalidEnum),
         }
         context.send_command(WebGLCommand::EndQuery(target));

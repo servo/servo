@@ -67,18 +67,18 @@ impl EquivalentPoint for (DomRoot<Node>, u32) {
         }
         // Step 2. If offset is 0, and node's parent is not null, and node is an inline node,
         // return (node's parent, node's index).
-        if *offset == 0 &&
-            node.is_inline_node() &&
-            let Some(parent) = node.GetParentNode()
+        if *offset == 0
+            && node.is_inline_node()
+            && let Some(parent) = node.GetParentNode()
         {
             return Some((parent, node.index()));
         }
         // Step 3. If node has a child with index offset − 1, and that child's length is not zero,
         // and that child is an inline node, return (that child, that child's length).
-        if *offset > 0 &&
-            let Some(child) = node.children().nth(*offset as usize - 1) &&
-            !child.is_empty() &&
-            child.is_inline_node()
+        if *offset > 0
+            && let Some(child) = node.children().nth(*offset as usize - 1)
+            && !child.is_empty()
+            && child.is_inline_node()
         {
             let len = child.len();
             return Some((child, len));
@@ -103,9 +103,9 @@ impl EquivalentPoint for (DomRoot<Node>, u32) {
 
         // Step 3. If offset is node's length, and node's parent is not null, and node is an inline node,
         // return (node's parent, 1 + node's index).
-        if *offset == len &&
-            node.is_inline_node() &&
-            let Some(parent) = node.GetParentNode()
+        if *offset == len
+            && node.is_inline_node()
+            && let Some(parent) = node.GetParentNode()
         {
             return Some((parent, node.index() + 1));
         }
@@ -116,9 +116,9 @@ impl EquivalentPoint for (DomRoot<Node>, u32) {
 
         // Step 5. If node has a child with index offset, and that child's length is not zero,
         // and that child is an inline node, return (that child, 0).
-        if let Some(child) = node.children().nth(*offset as usize) &&
-            !child.is_empty() &&
-            child.is_inline_node()
+        if let Some(child) = node.children().nth(*offset as usize)
+            && !child.is_empty()
+            && child.is_inline_node()
         {
             return Some((child, 0));
         }
@@ -247,9 +247,9 @@ impl Selection {
         // Step 13. While start block's parent is in the same editing host and start block is an inline node,
         // set start block to its parent.
         loop {
-            if start_block.is_inline_node() &&
-                let Some(parent) = start_block.GetParentNode() &&
-                parent.same_editing_host(&start_node)
+            if start_block.is_inline_node()
+                && let Some(parent) = start_block.GetParentNode()
+                && parent.same_editing_host(&start_node)
             {
                 start_block = parent;
                 continue;
@@ -260,12 +260,12 @@ impl Selection {
         // Step 14. If start block is neither a block node nor an editing host,
         // or "span" is not an allowed child of start block,
         // or start block is a td or th, set start block to null.
-        let start_block = if (!start_block.is_block_node() && !start_block.is_editing_host()) ||
-            !is_allowed_child(
+        let start_block = if (!start_block.is_block_node() && !start_block.is_editing_host())
+            || !is_allowed_child(
                 NodeOrString::String("span".to_owned()),
                 NodeOrString::Node(start_block.clone()),
-            ) ||
-            start_block.is::<HTMLTableCellElement>()
+            )
+            || start_block.is::<HTMLTableCellElement>()
         {
             None
         } else {
@@ -277,9 +277,9 @@ impl Selection {
 
         // Step 16. While end block's parent is in the same editing host and end block is an inline node, set end block to its parent.
         loop {
-            if end_block.is_inline_node() &&
-                let Some(parent) = end_block.GetParentNode() &&
-                parent.same_editing_host(&end_block)
+            if end_block.is_inline_node()
+                && let Some(parent) = end_block.GetParentNode()
+                && parent.same_editing_host(&end_block)
             {
                 end_block = parent;
                 continue;
@@ -289,12 +289,12 @@ impl Selection {
 
         // Step 17. If end block is neither a block node nor an editing host, or "span" is not an allowed child of end block,
         // or end block is a td or th, set end block to null.
-        let end_block = if (!end_block.is_block_node() && !end_block.is_editing_host()) ||
-            !is_allowed_child(
+        let end_block = if (!end_block.is_block_node() && !end_block.is_editing_host())
+            || !is_allowed_child(
                 NodeOrString::String("span".to_owned()),
                 NodeOrString::Node(end_block.clone()),
-            ) ||
-            end_block.is::<HTMLTableCellElement>()
+            )
+            || end_block.is::<HTMLTableCellElement>()
         {
             None
         } else {
@@ -313,9 +313,9 @@ impl Selection {
         // This step does not exist in the spec
 
         // Step 21. If start node and end node are the same, and start node is an editable Text node:
-        if start_node == end_node &&
-            start_node.is_editable() &&
-            let Some(start_text) = start_node.downcast::<Text>()
+        if start_node == end_node
+            && start_node.is_editable()
+            && let Some(start_text) = start_node.downcast::<Text>()
         {
             // Step 21.1. Call deleteData(start offset, end offset − start offset) on start node.
             if start_text
@@ -349,9 +349,9 @@ impl Selection {
 
         // Step 22. If start node is an editable Text node, call deleteData() on it, with start offset as
         // the first argument and (length of start node − start offset) as the second argument.
-        if start_node.is_editable() &&
-            let Some(start_text) = start_node.downcast::<Text>() &&
-            start_text
+        if start_node.is_editable()
+            && let Some(start_text) = start_node.downcast::<Text>()
+            && start_text
                 .upcast::<CharacterData>()
                 .DeleteData(cx, start_offset, start_node.len() - start_offset)
                 .is_err()
@@ -378,11 +378,11 @@ impl Selection {
             // `RootedVec<DomRoot<Node>>`. The type alias here doesn't upset test-tidy,
             // while also providing the necessary information to the compiler to work.
             type DomRootNode = DomRoot<Node>;
-            if node.is_editable() &&
-                !(node.is::<HTMLTableSectionElement>() ||
-                    node.is::<HTMLTableRowElement>() ||
-                    node.is::<HTMLTableCellElement>()) &&
-                node_list
+            if node.is_editable()
+                && !(node.is::<HTMLTableSectionElement>()
+                    || node.is::<HTMLTableRowElement>()
+                    || node.is::<HTMLTableCellElement>())
+                && node_list
                     .last()
                     .is_none_or(|last: &DomRootNode| !last.is_ancestor_of(&node))
             {
@@ -413,8 +413,8 @@ impl Selection {
             // Step 25.4. If strip wrappers is true or parent is not an inclusive ancestor of start node,
             // while parent is an editable inline node with length 0, let grandparent be the parent of parent,
             // then remove parent from grandparent, then set parent to grandparent.
-            if strip_wrappers == SelectionDeletionStripWrappers::Strip ||
-                !parent.is_inclusive_ancestor_of(&start_node)
+            if strip_wrappers == SelectionDeletionStripWrappers::Strip
+                || !parent.is_inclusive_ancestor_of(&start_node)
             {
                 let mut parent = parent;
                 loop {
@@ -432,9 +432,9 @@ impl Selection {
         }
 
         // Step 26. If end node is an editable Text node, call deleteData(0, end offset) on it.
-        if end_node.is_editable() &&
-            let Some(end_text) = end_node.downcast::<Text>() &&
-            end_text
+        if end_node.is_editable()
+            && let Some(end_text) = end_node.downcast::<Text>()
+            && end_text
                 .upcast::<CharacterData>()
                 .DeleteData(cx, 0, end_offset)
                 .is_err()
@@ -460,8 +460,8 @@ impl Selection {
 
         // Step 30. If block merging is false, or start block or end block is null, or start block is not
         // in the same editing host as end block, or start block and end block are the same:
-        if block_merging == SelectionDeletionBlockMerging::Skip ||
-            start_block.as_ref().zip(end_block.as_ref()).is_none_or(
+        if block_merging == SelectionDeletionBlockMerging::Skip
+            || start_block.as_ref().zip(end_block.as_ref()).is_none_or(
                 |(start_block, end_block)| {
                     start_block == end_block || !start_block.same_editing_host(end_block)
                 },
@@ -526,10 +526,10 @@ impl Selection {
                 // Step 32.4.1. While end block is editable and is the only child of its parent and is not a child of start block,
                 // let parent equal end block, then remove end block from parent, then set end block to parent.
                 loop {
-                    if end_block.is_editable() &&
-                        start_block.children().all(|child| child != end_block) &&
-                        let Some(parent) = end_block.GetParentNode() &&
-                        parent.children_count() == 1
+                    if end_block.is_editable()
+                        && start_block.children().all(|child| child != end_block)
+                        && let Some(parent) = end_block.GetParentNode()
+                        && parent.children_count() == 1
                     {
                         assert!(end_block.has_parent());
                         end_block.remove_self(cx);
@@ -541,13 +541,13 @@ impl Selection {
                 // Step 32.4.2. If end block is editable and is not an inline node,
                 // and its previousSibling and nextSibling are both inline nodes,
                 // call createElement("br") on the context object and insert it into end block's parent immediately after end block.
-                if end_block.is_editable() &&
-                    !end_block.is_inline_node() &&
-                    end_block
+                if end_block.is_editable()
+                    && !end_block.is_inline_node()
+                    && end_block
                         .GetPreviousSibling()
-                        .is_some_and(|previous| previous.is_inline_node()) &&
-                    let Some(next_of_end_block) = end_block.GetNextSibling() &&
-                    next_of_end_block.is_inline_node()
+                        .is_some_and(|previous| previous.is_inline_node())
+                    && let Some(next_of_end_block) = end_block.GetNextSibling()
+                    && next_of_end_block.is_inline_node()
                 {
                     let br = context_object.create_element(cx, "br");
                     let parent = end_block
@@ -619,10 +619,10 @@ impl Selection {
             }
             // Step 32.11. If children's first member's previousSibling is an editable br,
             // remove that br from its parent.
-            if let Some(first) = children.first() &&
-                let Some(previous_of_first) = first.GetPreviousSibling() &&
-                previous_of_first.is_editable() &&
-                previous_of_first.is::<HTMLBRElement>()
+            if let Some(first) = children.first()
+                && let Some(previous_of_first) = first.GetPreviousSibling()
+                && previous_of_first.is_editable()
+                && previous_of_first.is::<HTMLBRElement>()
             {
                 assert!(previous_of_first.has_parent());
                 previous_of_first.remove_self(cx);
@@ -638,8 +638,8 @@ impl Selection {
             let mut reference_node = start_block.clone();
             // Step 33.3. While reference node is not a child of end block, set reference node to its parent.
             loop {
-                if end_block.children().all(|child| child != reference_node) &&
-                    let Some(parent) = reference_node.GetParentNode()
+                if end_block.children().all(|child| child != reference_node)
+                    && let Some(parent) = reference_node.GetParentNode()
                 {
                     reference_node = parent;
                     continue;
@@ -650,9 +650,9 @@ impl Selection {
             // remove start block's lastChild from it.
             if reference_node
                 .GetNextSibling()
-                .is_some_and(|next| next.is_inline_node()) &&
-                let Some(last) = start_block.children().last() &&
-                last.is::<HTMLBRElement>()
+                .is_some_and(|next| next.is_inline_node())
+                && let Some(last) = start_block.children().last()
+                && last.is::<HTMLBRElement>()
             {
                 assert!(last.has_parent());
                 last.remove_self(cx);
@@ -661,8 +661,8 @@ impl Selection {
             rooted_vec!(let mut nodes_to_move);
             // Step 33.6. If reference node's nextSibling is neither null nor a block node,
             // append it to nodes to move.
-            if let Some(next) = reference_node.GetNextSibling() &&
-                !next.is_block_node()
+            if let Some(next) = reference_node.GetNextSibling()
+                && !next.is_block_node()
             {
                 nodes_to_move.push(next);
             }
@@ -670,10 +670,10 @@ impl Selection {
             // and its last member's nextSibling is neither null nor a block node,
             // append its last member's nextSibling to nodes to move.
             loop {
-                if let Some(last) = nodes_to_move.last() &&
-                    !last.is::<HTMLBRElement>() &&
-                    let Some(next_of_last) = last.GetNextSibling() &&
-                    !next_of_last.is_block_node()
+                if let Some(last) = nodes_to_move.last()
+                    && !last.is::<HTMLBRElement>()
+                    && let Some(next_of_last) = last.GetNextSibling()
+                    && !next_of_last.is_block_node()
                 {
                     nodes_to_move.push(next_of_last);
                     continue;
@@ -700,9 +700,9 @@ impl Selection {
             if end_block
                 .children()
                 .nth(0)
-                .is_some_and(|next| next.is_inline_node()) &&
-                let Some(last) = start_block.children().last() &&
-                last.is::<HTMLBRElement>()
+                .is_some_and(|next| next.is_inline_node())
+                && let Some(last) = start_block.children().last()
+                && last.is::<HTMLBRElement>()
             {
                 assert!(last.has_parent());
                 last.remove_self(cx);
@@ -726,8 +726,8 @@ impl Selection {
             // then set end block to parent.
             let mut end_block = end_block;
             loop {
-                if end_block.children_count() == 0 &&
-                    let Some(parent) = end_block.GetParentNode()
+                if end_block.children_count() == 0
+                    && let Some(parent) = end_block.GetParentNode()
                 {
                     assert!(end_block.has_parent());
                     end_block.remove_self(cx);
@@ -823,10 +823,10 @@ impl Selection {
         // Then set the active range's start node to the result, and its start offset to zero.
         let start_node = active_range.start_container();
         let start_offset = active_range.start_offset();
-        if start_node.is_editable() &&
-            start_offset != 0 &&
-            start_offset != start_node.len() &&
-            let Some(start_text) = start_node.downcast::<Text>()
+        if start_node.is_editable()
+            && start_offset != 0
+            && start_offset != start_node.len()
+            && let Some(start_text) = start_node.downcast::<Text>()
         {
             let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
                 unreachable!("Must always be able to split");
@@ -839,19 +839,19 @@ impl Selection {
         // with argument equal to the active range's end offset.
         let end_node = active_range.end_container();
         let end_offset = active_range.end_offset();
-        if end_node.is_editable() &&
-            end_offset != 0 &&
-            end_offset != end_node.len() &&
-            let Some(end_text) = end_node.downcast::<Text>() &&
-            end_text.SplitText(cx, end_offset).is_err()
+        if end_node.is_editable()
+            && end_offset != 0
+            && end_offset != end_node.len()
+            && let Some(end_text) = end_node.downcast::<Text>()
+            && end_text.SplitText(cx, end_offset).is_err()
         {
             unreachable!("Must always be able to split");
         };
         // Step 5. Let element list be all editable Elements effectively contained in the active range.
         // Step 6. For each element in element list, clear the value of element.
         active_range.for_each_effectively_contained_child(|child| {
-            if child.is_editable() &&
-                let Some(element_child) = child.downcast::<HTMLElement>()
+            if child.is_editable()
+                && let Some(element_child) = child.downcast::<HTMLElement>()
             {
                 element_child.clear_the_value(cx, &command);
             }

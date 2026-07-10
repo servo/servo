@@ -150,8 +150,8 @@ impl CustomElementRegistry {
             .values()
             .find(|definition| {
                 // Step 4-5
-                definition.local_name == *local_name &&
-                    (definition.name == *local_name || Some(&definition.name) == is)
+                definition.local_name == *local_name
+                    && (definition.name == *local_name || Some(&definition.name) == is)
             })
             .cloned()
     }
@@ -299,10 +299,10 @@ impl CustomElementRegistry {
                     .custom_element_registry()
                     .is_none_or(|registry| *registry == *self)
             };
-            if *candidate.local_name() == *local_name &&
-                *candidate.namespace() == ns!(html) &&
-                registry_matches &&
-                (*name == *local_name || candidate.get_is().as_ref() == Some(name))
+            if *candidate.local_name() == *local_name
+                && *candidate.namespace() == ns!(html)
+                && registry_matches
+                && (*name == *local_name || candidate.get_is().as_ref() == Some(name))
             {
                 // Step 2. For each element element of upgradeCandidates: enqueue a
                 // custom element upgrade reaction given element and definition.
@@ -725,8 +725,8 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         }
         // Step 3. Otherwise, if root is a ShadowRoot node whose custom element registry
         // is null, then set root's custom element registry to this.
-        else if let Some(shadow_root) = root.downcast::<ShadowRoot>() &&
-            shadow_root.custom_element_registry().is_none()
+        else if let Some(shadow_root) = root.downcast::<ShadowRoot>()
+            && shadow_root.custom_element_registry().is_none()
         {
             shadow_root.set_custom_element_registry(self);
         }
@@ -924,12 +924,12 @@ impl CustomElementDefinition {
         // Step 5.1.3.6. If result’s parent is not null, then throw a "NotSupportedError" DOMException.
         // Step 5.1.3.7. If result’s node document is not document, then throw a "NotSupportedError" DOMException.
         // Step 5.1.3.8. If result’s local name is not equal to localName then throw a "NotSupportedError" DOMException.
-        if element.HasAttributes() ||
-            element.upcast::<Node>().children_count() > 0 ||
-            element.upcast::<Node>().has_parent() ||
-            &*element.upcast::<Node>().owner_doc() != document ||
-            *element.namespace() != ns!(html) ||
-            *element.local_name() != self.local_name
+        if element.HasAttributes()
+            || element.upcast::<Node>().children_count() > 0
+            || element.upcast::<Node>().has_parent()
+            || &*element.upcast::<Node>().owner_doc() != document
+            || *element.namespace() != ns!(html)
+            || *element.local_name() != self.local_name
         {
             return Err(Error::NotSupported(None));
         }
@@ -1028,8 +1028,8 @@ pub(crate) fn upgrade_element(
     }
 
     // Step 9: handle with form-associated custom element
-    if let Some(html_element) = element.downcast::<HTMLElement>() &&
-        html_element.is_form_associated_custom_element()
+    if let Some(html_element) = element.downcast::<HTMLElement>()
+        && html_element.is_form_associated_custom_element()
     {
         // We know this element is is form-associated, so we can use the implementation of
         // `FormControl` for HTMLElement, which makes that assumption.
@@ -1519,14 +1519,14 @@ pub(crate) fn is_valid_custom_element_name(name: &str) -> bool {
         return false;
     }
 
-    if name == "annotation-xml" ||
-        name == "color-profile" ||
-        name == "font-face" ||
-        name == "font-face-src" ||
-        name == "font-face-uri" ||
-        name == "font-face-format" ||
-        name == "font-face-name" ||
-        name == "missing-glyph"
+    if name == "annotation-xml"
+        || name == "color-profile"
+        || name == "font-face"
+        || name == "font-face-src"
+        || name == "font-face-uri"
+        || name == "font-face-format"
+        || name == "font-face-name"
+        || name == "missing-glyph"
     {
         return false;
     }
@@ -1537,152 +1537,152 @@ pub(crate) fn is_valid_custom_element_name(name: &str) -> bool {
 /// Check if this character is a PCENChar
 /// <https://html.spec.whatwg.org/multipage/#prod-pcenchar>
 fn is_potential_custom_element_char(c: char) -> bool {
-    c == '-' ||
-        c == '.' ||
-        c == '_' ||
-        c == '\u{B7}' ||
-        c.is_ascii_digit() ||
-        c.is_ascii_lowercase() ||
-        ('\u{C0}'..='\u{D6}').contains(&c) ||
-        ('\u{D8}'..='\u{F6}').contains(&c) ||
-        ('\u{F8}'..='\u{37D}').contains(&c) ||
-        ('\u{37F}'..='\u{1FFF}').contains(&c) ||
-        ('\u{200C}'..='\u{200D}').contains(&c) ||
-        ('\u{203F}'..='\u{2040}').contains(&c) ||
-        ('\u{2070}'..='\u{218F}').contains(&c) ||
-        ('\u{2C00}'..='\u{2FEF}').contains(&c) ||
-        ('\u{3001}'..='\u{D7FF}').contains(&c) ||
-        ('\u{F900}'..='\u{FDCF}').contains(&c) ||
-        ('\u{FDF0}'..='\u{FFFD}').contains(&c) ||
-        ('\u{10000}'..='\u{EFFFF}').contains(&c)
+    c == '-'
+        || c == '.'
+        || c == '_'
+        || c == '\u{B7}'
+        || c.is_ascii_digit()
+        || c.is_ascii_lowercase()
+        || ('\u{C0}'..='\u{D6}').contains(&c)
+        || ('\u{D8}'..='\u{F6}').contains(&c)
+        || ('\u{F8}'..='\u{37D}').contains(&c)
+        || ('\u{37F}'..='\u{1FFF}').contains(&c)
+        || ('\u{200C}'..='\u{200D}').contains(&c)
+        || ('\u{203F}'..='\u{2040}').contains(&c)
+        || ('\u{2070}'..='\u{218F}').contains(&c)
+        || ('\u{2C00}'..='\u{2FEF}').contains(&c)
+        || ('\u{3001}'..='\u{D7FF}').contains(&c)
+        || ('\u{F900}'..='\u{FDCF}').contains(&c)
+        || ('\u{FDF0}'..='\u{FFFD}').contains(&c)
+        || ('\u{10000}'..='\u{EFFFF}').contains(&c)
 }
 
 fn is_extendable_element_interface(element: &str) -> bool {
-    element == "a" ||
-        element == "abbr" ||
-        element == "acronym" ||
-        element == "address" ||
-        element == "area" ||
-        element == "article" ||
-        element == "aside" ||
-        element == "audio" ||
-        element == "b" ||
-        element == "base" ||
-        element == "bdi" ||
-        element == "bdo" ||
-        element == "big" ||
-        element == "blockquote" ||
-        element == "body" ||
-        element == "br" ||
-        element == "button" ||
-        element == "canvas" ||
-        element == "caption" ||
-        element == "center" ||
-        element == "cite" ||
-        element == "code" ||
-        element == "col" ||
-        element == "colgroup" ||
-        element == "data" ||
-        element == "datalist" ||
-        element == "dd" ||
-        element == "del" ||
-        element == "details" ||
-        element == "dfn" ||
-        element == "dialog" ||
-        element == "dir" ||
-        element == "div" ||
-        element == "dl" ||
-        element == "dt" ||
-        element == "em" ||
-        element == "embed" ||
-        element == "fieldset" ||
-        element == "figcaption" ||
-        element == "figure" ||
-        element == "font" ||
-        element == "footer" ||
-        element == "form" ||
-        element == "frame" ||
-        element == "frameset" ||
-        element == "h1" ||
-        element == "h2" ||
-        element == "h3" ||
-        element == "h4" ||
-        element == "h5" ||
-        element == "h6" ||
-        element == "head" ||
-        element == "header" ||
-        element == "hgroup" ||
-        element == "hr" ||
-        element == "html" ||
-        element == "i" ||
-        element == "iframe" ||
-        element == "img" ||
-        element == "input" ||
-        element == "ins" ||
-        element == "kbd" ||
-        element == "label" ||
-        element == "legend" ||
-        element == "li" ||
-        element == "link" ||
-        element == "listing" ||
-        element == "main" ||
-        element == "map" ||
-        element == "mark" ||
-        element == "marquee" ||
-        element == "menu" ||
-        element == "meta" ||
-        element == "meter" ||
-        element == "nav" ||
-        element == "nobr" ||
-        element == "noframes" ||
-        element == "noscript" ||
-        element == "object" ||
-        element == "ol" ||
-        element == "optgroup" ||
-        element == "option" ||
-        element == "output" ||
-        element == "p" ||
-        element == "param" ||
-        element == "picture" ||
-        element == "plaintext" ||
-        element == "pre" ||
-        element == "progress" ||
-        element == "q" ||
-        element == "rp" ||
-        element == "rt" ||
-        element == "ruby" ||
-        element == "s" ||
-        element == "samp" ||
-        element == "script" ||
-        element == "section" ||
-        element == "select" ||
-        element == "slot" ||
-        element == "small" ||
-        element == "source" ||
-        element == "span" ||
-        element == "strike" ||
-        element == "strong" ||
-        element == "style" ||
-        element == "sub" ||
-        element == "summary" ||
-        element == "sup" ||
-        element == "table" ||
-        element == "tbody" ||
-        element == "td" ||
-        element == "template" ||
-        element == "textarea" ||
-        element == "tfoot" ||
-        element == "th" ||
-        element == "thead" ||
-        element == "time" ||
-        element == "title" ||
-        element == "tr" ||
-        element == "tt" ||
-        element == "track" ||
-        element == "u" ||
-        element == "ul" ||
-        element == "var" ||
-        element == "video" ||
-        element == "wbr" ||
-        element == "xmp"
+    element == "a"
+        || element == "abbr"
+        || element == "acronym"
+        || element == "address"
+        || element == "area"
+        || element == "article"
+        || element == "aside"
+        || element == "audio"
+        || element == "b"
+        || element == "base"
+        || element == "bdi"
+        || element == "bdo"
+        || element == "big"
+        || element == "blockquote"
+        || element == "body"
+        || element == "br"
+        || element == "button"
+        || element == "canvas"
+        || element == "caption"
+        || element == "center"
+        || element == "cite"
+        || element == "code"
+        || element == "col"
+        || element == "colgroup"
+        || element == "data"
+        || element == "datalist"
+        || element == "dd"
+        || element == "del"
+        || element == "details"
+        || element == "dfn"
+        || element == "dialog"
+        || element == "dir"
+        || element == "div"
+        || element == "dl"
+        || element == "dt"
+        || element == "em"
+        || element == "embed"
+        || element == "fieldset"
+        || element == "figcaption"
+        || element == "figure"
+        || element == "font"
+        || element == "footer"
+        || element == "form"
+        || element == "frame"
+        || element == "frameset"
+        || element == "h1"
+        || element == "h2"
+        || element == "h3"
+        || element == "h4"
+        || element == "h5"
+        || element == "h6"
+        || element == "head"
+        || element == "header"
+        || element == "hgroup"
+        || element == "hr"
+        || element == "html"
+        || element == "i"
+        || element == "iframe"
+        || element == "img"
+        || element == "input"
+        || element == "ins"
+        || element == "kbd"
+        || element == "label"
+        || element == "legend"
+        || element == "li"
+        || element == "link"
+        || element == "listing"
+        || element == "main"
+        || element == "map"
+        || element == "mark"
+        || element == "marquee"
+        || element == "menu"
+        || element == "meta"
+        || element == "meter"
+        || element == "nav"
+        || element == "nobr"
+        || element == "noframes"
+        || element == "noscript"
+        || element == "object"
+        || element == "ol"
+        || element == "optgroup"
+        || element == "option"
+        || element == "output"
+        || element == "p"
+        || element == "param"
+        || element == "picture"
+        || element == "plaintext"
+        || element == "pre"
+        || element == "progress"
+        || element == "q"
+        || element == "rp"
+        || element == "rt"
+        || element == "ruby"
+        || element == "s"
+        || element == "samp"
+        || element == "script"
+        || element == "section"
+        || element == "select"
+        || element == "slot"
+        || element == "small"
+        || element == "source"
+        || element == "span"
+        || element == "strike"
+        || element == "strong"
+        || element == "style"
+        || element == "sub"
+        || element == "summary"
+        || element == "sup"
+        || element == "table"
+        || element == "tbody"
+        || element == "td"
+        || element == "template"
+        || element == "textarea"
+        || element == "tfoot"
+        || element == "th"
+        || element == "thead"
+        || element == "time"
+        || element == "title"
+        || element == "tr"
+        || element == "tt"
+        || element == "track"
+        || element == "u"
+        || element == "ul"
+        || element == "var"
+        || element == "video"
+        || element == "wbr"
+        || element == "xmp"
 }

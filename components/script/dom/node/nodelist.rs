@@ -197,11 +197,11 @@ impl ChildrenList {
 
     pub(crate) fn children_changed(&self, mutation: &ChildrenMutation) {
         match mutation {
-            ChildrenMutation::Append { .. } |
-            ChildrenMutation::Insert { .. } |
-            ChildrenMutation::Prepend { .. } |
-            ChildrenMutation::Replace { .. } |
-            ChildrenMutation::ReplaceAll { .. } => *self.cached_children.borrow_mut() = None,
+            ChildrenMutation::Append { .. }
+            | ChildrenMutation::Insert { .. }
+            | ChildrenMutation::Prepend { .. }
+            | ChildrenMutation::Replace { .. }
+            | ChildrenMutation::ReplaceAll { .. } => *self.cached_children.borrow_mut() = None,
             ChildrenMutation::ChangeText => {},
         }
     }

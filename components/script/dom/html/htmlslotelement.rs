@@ -223,8 +223,8 @@ impl HTMLSlotElement {
             for child in self.upcast::<Node>().children_unrooted(cx) {
                 let is_slottable = matches!(
                     child.type_id(),
-                    NodeTypeId::Element(_) |
-                        NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
+                    NodeTypeId::Element(_)
+                        | NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
                 );
                 if is_slottable {
                     slottables.push(Slottable(Dom::from_ref(&*child)));
@@ -290,8 +290,8 @@ impl HTMLSlotElement {
             for child in host.upcast::<Node>().children_unrooted(cx) {
                 let is_slottable = matches!(
                     child.type_id(),
-                    NodeTypeId::Element(_) |
-                        NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
+                    NodeTypeId::Element(_)
+                        | NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
                 );
                 if is_slottable {
                     rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(&*child)));
@@ -523,8 +523,8 @@ impl VirtualMethods for HTMLSlotElement {
             s.unbind_from_tree(cx, context);
         }
 
-        if !self.upcast::<Node>().is_in_a_shadow_tree() &&
-            let Some(old_shadow_root) = self.containing_shadow_root()
+        if !self.upcast::<Node>().is_in_a_shadow_tree()
+            && let Some(old_shadow_root) = self.containing_shadow_root()
         {
             // If we used to be in a shadow root, but aren't anymore, then unregister this slot
             old_shadow_root.unregister_slot(self.Name(), self);

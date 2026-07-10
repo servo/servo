@@ -80,9 +80,9 @@ impl Drop for LoadBlocker {
         //
         // This destructor can also run from during GC (see #46207), which can lead to
         // accessing already freed memory if we run `finish_load_for_dropped_blocker`.
-        if runtime_is_alive() &&
-            !during_gc_collection() &&
-            let Some(load) = self.load.take()
+        if runtime_is_alive()
+            && !during_gc_collection()
+            && let Some(load) = self.load.take()
         {
             self.doc.finish_load_for_dropped_blocker(load);
         }

@@ -381,9 +381,9 @@ impl Iterator for TreeIterator {
         let current = self.current.take()?;
 
         // Handle a potential shadow root on the element
-        if let Some(element) = current.downcast::<Element>() &&
-            let Some(shadow_root) = element.shadow_root() &&
-            self.shadow_including == ShadowIncluding::Yes
+        if let Some(element) = current.downcast::<Element>()
+            && let Some(shadow_root) = element.shadow_root()
+            && self.shadow_including == ShadowIncluding::Yes
         {
             self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
             self.depth += 1;
@@ -477,9 +477,9 @@ impl<'b> Iterator for UnrootedTreeIterator<'b> {
         let current = self.current.take()?;
 
         // Handle a potential shadow root on the element
-        if let Some(element) = current.downcast::<Element>() &&
-            let Some(shadow_root) = element.shadow_root() &&
-            self.shadow_including == ShadowIncluding::Yes
+        if let Some(element) = current.downcast::<Element>()
+            && let Some(shadow_root) = element.shadow_root()
+            && self.shadow_including == ShadowIncluding::Yes
         {
             self.current = Some(UnrootedDom::from_dom(
                 Dom::from_ref(shadow_root.upcast::<Node>()),

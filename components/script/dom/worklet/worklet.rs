@@ -581,8 +581,8 @@ impl WorkletThread {
                     self.process_control(control, cx);
                 }
                 self.gc(cx);
-            } else if self.control_buffer.is_none() &&
-                let Ok(control) = self.control_receiver.try_recv()
+            } else if self.control_buffer.is_none()
+                && let Ok(control) = self.control_receiver.try_recv()
             {
                 self.control_buffer = Some(control);
                 let msg = WorkletData::StartSwapRoles(self.role.sender.clone());

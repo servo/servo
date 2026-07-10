@@ -316,8 +316,8 @@ impl Drop for MediaFrameRenderer {
 
 impl VideoFrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: VideoFrame) {
-        if self.player_id.is_none() ||
-            (frame.is_gl_texture() && self.glplayer_id.read().unwrap().is_none())
+        if self.player_id.is_none()
+            || (frame.is_gl_texture() && self.glplayer_id.read().unwrap().is_none())
         {
             return;
         }
@@ -337,8 +337,8 @@ impl VideoFrameRenderer for MediaFrameRenderer {
 
         match &mut self.current_frame {
             Some(current_frame)
-                if current_frame.width == frame.get_width() &&
-                    current_frame.height == frame.get_height() =>
+                if current_frame.width == frame.get_width()
+                    && current_frame.height == frame.get_height() =>
             {
                 if !frame.is_gl_texture() {
                     updates.push(ImageUpdate::UpdateImage(
@@ -736,9 +736,9 @@ impl HTMLMediaElement {
                     error!("Could not play media: {error:?}");
                 }
             }
-        } else if is_playing &&
-            let Some(ref player) = *self.player.borrow() &&
-            let Err(error) = player.lock().unwrap().pause()
+        } else if is_playing
+            && let Some(ref player) = *self.player.borrow()
+            && let Err(error) = player.lock().unwrap().pause()
         {
             error!("Could not pause player: {error:?}");
         }
@@ -790,8 +790,8 @@ impl HTMLMediaElement {
         // Generally "ended" and "looping" are exclusive. Here, the loop attribute is ignored to
         // seek back to start in case loop was set after playback ended.
         // <https://github.com/whatwg/html/issues/4487>
-        if self.ended_playback(LoopCondition::Ignored) &&
-            self.direction_of_playback() == PlaybackDirection::Forwards
+        if self.ended_playback(LoopCondition::Ignored)
+            && self.direction_of_playback() == PlaybackDirection::Forwards
         {
             self.seek(
                 self.earliest_possible_position(),
@@ -823,9 +823,9 @@ impl HTMLMediaElement {
             // readyState attribute has the value HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA: notify about
             // playing for the element.
             match state {
-                ReadyState::HaveNothing |
-                ReadyState::HaveMetadata |
-                ReadyState::HaveCurrentData => {
+                ReadyState::HaveNothing
+                | ReadyState::HaveMetadata
+                | ReadyState::HaveCurrentData => {
                     self.queue_media_element_task_to_fire_event(atom!("waiting"));
                 },
                 ReadyState::HaveFutureData | ReadyState::HaveEnoughData => {
@@ -1016,8 +1016,8 @@ impl HTMLMediaElement {
 
         // => "If the previous ready state was HAVE_CURRENT_DATA or less, and the new ready state is
         // HAVE_FUTURE_DATA or more"
-        if old_ready_state <= ReadyState::HaveCurrentData &&
-            ready_state >= ReadyState::HaveFutureData
+        if old_ready_state <= ReadyState::HaveCurrentData
+            && ready_state >= ReadyState::HaveFutureData
         {
             // The user agent must queue a media element task given the media element to fire an
             // event named canplay at the element.
@@ -1241,8 +1241,8 @@ impl HTMLMediaElement {
         // Step 9.children.3. If candidate has a media attribute whose value does not match the
         // environment, then end the synchronous section, and jump down to the failed with elements
         // step below.
-        if let Some(media) = element.get_attribute_string_value(&local_name!("media")) &&
-            !MediaList::matches_environment(&element.owner_document(), &media)
+        if let Some(media) = element.get_attribute_string_value(&local_name!("media"))
+            && !MediaList::matches_environment(&element.owner_document(), &media)
         {
             self.load_from_source_child_failure_steps(cx, source);
             return;
@@ -1262,8 +1262,8 @@ impl HTMLMediaElement {
         // type (including any codecs described by the codecs parameter, for types that define that
         // parameter), represents a type that the user agent knows it cannot render, then end the
         // synchronous section, and jump down to the failed with elements step below.
-        if let Some(type_) = element.get_attribute_string_value(&local_name!("type")) &&
-            ServoMedia::get().can_play_type(&type_) == SupportsMediaType::No
+        if let Some(type_) = element.get_attribute_string_value(&local_name!("type"))
+            && ServoMedia::get().can_play_type(&type_) == SupportsMediaType::No
         {
             self.load_from_source_child_failure_steps(cx, source);
             return;
@@ -1673,17 +1673,17 @@ impl HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#potentially-playing>
     fn is_potentially_playing(&self) -> bool {
-        !self.paused.get() &&
-            !self.ended_playback(LoopCondition::Included) &&
-            self.error.get().is_none() &&
-            !self.is_blocked_media_element()
+        !self.paused.get()
+            && !self.ended_playback(LoopCondition::Included)
+            && self.error.get().is_none()
+            && !self.is_blocked_media_element()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#blocked-media-element>
     fn is_blocked_media_element(&self) -> bool {
-        self.ready_state.get() <= ReadyState::HaveCurrentData ||
-            self.is_paused_for_user_interaction() ||
-            self.is_paused_for_in_band_content()
+        self.ready_state.get() <= ReadyState::HaveCurrentData
+            || self.is_paused_for_user_interaction()
+            || self.is_paused_for_in_band_content()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#paused-for-user-interaction>
@@ -2061,8 +2061,8 @@ impl HTMLMediaElement {
         // Step 11. Set the current playback position to the new playback position.
         self.current_playback_position.set(time);
 
-        if let Some(ref player) = *self.player.borrow() &&
-            let Err(error) = player.lock().unwrap().seek(time)
+        if let Some(ref player) = *self.player.borrow()
+            && let Err(error) = player.lock().unwrap().seek(time)
         {
             error!("Could not seek player: {error:?}");
         }
@@ -2227,8 +2227,8 @@ impl HTMLMediaElement {
             return;
         }
 
-        if let Some(ref player) = *self.player.borrow() &&
-            let Err(error) = player.lock().unwrap().stop()
+        if let Some(ref player) = *self.player.borrow()
+            && let Err(error) = player.lock().unwrap().stop()
         {
             error!("Could not stop player: {error:?}");
         }
@@ -2243,16 +2243,16 @@ impl HTMLMediaElement {
     }
 
     pub(crate) fn set_audio_track(&self, idx: usize, enabled: bool) {
-        if let Some(ref player) = *self.player.borrow() &&
-            let Err(error) = player.lock().unwrap().set_audio_track(idx as i32, enabled)
+        if let Some(ref player) = *self.player.borrow()
+            && let Err(error) = player.lock().unwrap().set_audio_track(idx as i32, enabled)
         {
             warn!("Could not set audio track {error:?}");
         }
     }
 
     pub(crate) fn set_video_track(&self, idx: usize, enabled: bool) {
-        if let Some(ref player) = *self.player.borrow() &&
-            let Err(error) = player.lock().unwrap().set_video_track(idx as i32, enabled)
+        if let Some(ref player) = *self.player.borrow()
+            && let Err(error) = player.lock().unwrap().set_video_track(idx as i32, enabled)
         {
             warn!("Could not set video track: {error:?}");
         }
@@ -2285,8 +2285,8 @@ impl HTMLMediaElement {
             // direction of playback is forwards, and the media element does not have a loop
             // attribute specified.
             PlaybackDirection::Forwards => {
-                playback_position >= self.Duration() &&
-                    (loop_condition == LoopCondition::Ignored || !self.Loop())
+                playback_position >= self.Duration()
+                    && (loop_condition == LoopCondition::Ignored || !self.Loop())
             },
             // Or: The current playback position is the earliest possible position, and the
             // direction of playback is backwards.
@@ -2441,8 +2441,8 @@ impl HTMLMediaElement {
             // enable, then set enable to true, otherwise, set enable to false.
             if let Some(servo_url) = self.resource_url.borrow().as_ref() {
                 let fragment = MediaFragmentParser::from(servo_url);
-                if let Some(id) = fragment.id() &&
-                    audio_track.id() == id
+                if let Some(id) = fragment.id()
+                    && audio_track.id() == id
                 {
                     audio_track_list.set_enabled(audio_track_list.len() - 1, true);
                 }
@@ -2506,8 +2506,8 @@ impl HTMLMediaElement {
             // information that would facilitate the selection of specific video tracks to
             // improve the user's experience, then: if this video track is the first such video
             // track, then set enable to true, otherwise, set enable to false.
-            if let Some(track) = video_track_list.item(0) &&
-                let Some(servo_url) = self.resource_url.borrow().as_ref()
+            if let Some(track) = video_track_list.item(0)
+                && let Some(servo_url) = self.resource_url.borrow().as_ref()
             {
                 let fragment = MediaFragmentParser::from(servo_url);
                 if let Some(id) = fragment.id() {
@@ -2607,10 +2607,10 @@ impl HTMLMediaElement {
         // is still false, seek to that time.
         if let Some(servo_url) = self.resource_url.borrow().as_ref() {
             let fragment = MediaFragmentParser::from(servo_url);
-            if let Some(initial_playback_position) = fragment.start() &&
-                initial_playback_position > 0. &&
-                initial_playback_position < self.duration.get() &&
-                !jumped
+            if let Some(initial_playback_position) = fragment.start()
+                && initial_playback_position > 0.
+                && initial_playback_position < self.duration.get()
+                && !jumped
             {
                 self.seek(
                     initial_playback_position,
@@ -2695,8 +2695,8 @@ impl HTMLMediaElement {
         // The media engine signals that the source needs more data. If we already have a valid
         // fetch request, we do nothing. Otherwise, if we have no request and the previous request
         // was cancelled because we got an EnoughData event, we restart fetching where we left.
-        if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow() &&
-            let Some(reason) = current_fetch_context.cancel_reason()
+        if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow()
+            && let Some(reason) = current_fetch_context.cancel_reason()
         {
             // XXX(ferjm) Ideally we should just create a fetch request from
             // where we left. But keeping track of the exact next byte that the
@@ -2712,8 +2712,8 @@ impl HTMLMediaElement {
             return;
         }
 
-        if let Some(ref mut current_fetch_context) = *self.current_fetch_context.borrow_mut() &&
-            let Err(e) = {
+        if let Some(ref mut current_fetch_context) = *self.current_fetch_context.borrow_mut()
+            && let Err(e) = {
                 let mut data_source = current_fetch_context.data_source().borrow_mut();
                 data_source.set_locked(false);
                 data_source.process_into_player_from_queue(self.player.borrow().as_ref().unwrap())
@@ -2734,8 +2734,8 @@ impl HTMLMediaElement {
         // to avoid excessive buffer queueing, so we cancel the ongoing fetch request if we are able
         // to restart it from where we left. Otherwise, we continue the current fetch request,
         // assuming that some frames will be dropped.
-        if let Some(ref mut current_fetch_context) = *self.current_fetch_context.borrow_mut() &&
-            current_fetch_context.is_seekable()
+        if let Some(ref mut current_fetch_context) = *self.current_fetch_context.borrow_mut()
+            && current_fetch_context.is_seekable()
         {
             current_fetch_context.cancel(CancelReason::Backoff);
         }
@@ -3131,8 +3131,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
         self.muted.set(value);
 
-        if let Some(ref player) = *self.player.borrow() &&
-            let Err(error) = player.lock().unwrap().set_mute(value)
+        if let Some(ref player) = *self.player.borrow()
+            && let Err(error) = player.lock().unwrap().set_mute(value)
         {
             warn!("Could not set mute state: {error:?}");
         }
@@ -3303,9 +3303,9 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         // change the playback speed.
         self.playback_rate.set(*value);
 
-        if self.is_potentially_playing() &&
-            let Some(ref player) = *self.player.borrow() &&
-            let Err(error) = player.lock().unwrap().set_playback_rate(*value)
+        if self.is_potentially_playing()
+            && let Some(ref player) = *self.player.borrow()
+            && let Err(error) = player.lock().unwrap().set_playback_rate(*value)
         {
             warn!("Could not set the playback rate: {error:?}");
         }
@@ -3354,8 +3354,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-ended>
     fn Ended(&self) -> bool {
-        self.ended_playback(LoopCondition::Included) &&
-            self.direction_of_playback() == PlaybackDirection::Forwards
+        self.ended_playback(LoopCondition::Included)
+            && self.direction_of_playback() == PlaybackDirection::Forwards
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-fastseek>
@@ -3466,8 +3466,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
         self.volume.set(*value);
 
-        if let Some(ref player) = *self.player.borrow() &&
-            let Err(error) = player.lock().unwrap().set_volume(*value)
+        if let Some(ref player) = *self.player.borrow()
+            && let Err(error) = player.lock().unwrap().set_volume(*value)
         {
             warn!("Could not set the volume: {error:?}");
         }
@@ -3645,11 +3645,11 @@ impl MicrotaskRunnable for MediaElementMicrotask {
 
     fn enter_realm<'cx>(&self, cx: &'cx mut js::context::JSContext) -> AutoRealm<'cx> {
         match self {
-            &MediaElementMicrotask::ResourceSelection { ref elem, .. } |
-            &MediaElementMicrotask::PauseIfNotInDocument { ref elem } |
-            &MediaElementMicrotask::Seeked { ref elem, .. } |
-            &MediaElementMicrotask::SelectNextSourceChild { ref elem, .. } |
-            &MediaElementMicrotask::SelectNextSourceChildAfterWait { ref elem, .. } => {
+            &MediaElementMicrotask::ResourceSelection { ref elem, .. }
+            | &MediaElementMicrotask::PauseIfNotInDocument { ref elem }
+            | &MediaElementMicrotask::Seeked { ref elem, .. }
+            | &MediaElementMicrotask::SelectNextSourceChild { ref elem, .. }
+            | &MediaElementMicrotask::SelectNextSourceChildAfterWait { ref elem, .. } => {
                 enter_auto_realm(cx, &**elem)
             },
         }
@@ -3885,8 +3885,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             current_fetch_context.set_origin_clean(origin_clean);
         }
 
-        if let Some(metadata) = metadata.as_ref() &&
-            let Some(headers) = metadata.headers.as_ref()
+        if let Some(metadata) = metadata.as_ref()
+            && let Some(headers) = metadata.headers.as_ref()
         {
             // For range requests we get the size of the media asset from the Content-Range
             // header. Otherwise, we get it from the Content-Length header.
@@ -3899,8 +3899,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             };
 
             // We only set the expected input size if it changes.
-            if content_length != self.expected_content_length &&
-                let Some(content_length) = content_length
+            if content_length != self.expected_content_length
+                && let Some(content_length) = content_length
             {
                 self.expected_content_length = Some(content_length);
             }
@@ -3919,8 +3919,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             warn!("Could not set player seekable {:?}", e);
         }
 
-        if let Some(expected_content_length) = self.expected_content_length &&
-            let Err(e) = element
+        if let Some(expected_content_length) = self.expected_content_length
+            && let Err(e) = element
                 .player
                 .borrow()
                 .as_ref()
@@ -3945,8 +3945,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             }
 
             // Discard chunk of the response body if fetch context doesn't support range requests.
-            let payload = if !current_fetch_context.is_seekable() &&
-                self.content_length_to_discard != 0
+            let payload = if !current_fetch_context.is_seekable()
+                && self.content_length_to_discard != 0
             {
                 if chunk.len() as u64 > self.content_length_to_discard {
                     let shrink_chunk = chunk[self.content_length_to_discard as usize..].to_vec();
@@ -4011,8 +4011,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                 // start and stop positions without the total size of the stream is not
                 // possible. As fallback the media player perform seek with BYTES format
                 // and initiate seek request via "seek-data" callback with required offset.
-                if self.expected_content_length.is_none() &&
-                    let Err(e) = element
+                if self.expected_content_length.is_none()
+                    && let Err(e) = element
                         .player
                         .borrow()
                         .as_ref()
@@ -4083,8 +4083,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
         // Whether the current fetch request was cancelled due to a network or decoding error, or
         // was aborted by the user.
-        if let Some(cancel_reason) = current_fetch_context.cancel_reason() &&
-            matches!(*cancel_reason, CancelReason::Error | CancelReason::Abort)
+        if let Some(cancel_reason) = current_fetch_context.cancel_reason()
+            && matches!(*cancel_reason, CancelReason::Error | CancelReason::Abort)
         {
             return false;
         }

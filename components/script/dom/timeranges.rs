@@ -99,15 +99,15 @@ impl TimeRangesContainer {
         //   in between two ranges.
         let mut idx = 0;
         while idx < self.ranges.len() {
-            if new_range.is_overlapping(&self.ranges[idx]) ||
-                new_range.is_contiguous(&self.ranges[idx])
+            if new_range.is_overlapping(&self.ranges[idx])
+                || new_range.is_contiguous(&self.ranges[idx])
             {
                 // The ranges are either overlapping or contiguous,
                 // we need to merge the new range with the existing one.
                 new_range.union(&self.ranges[idx]);
                 self.ranges.remove(idx);
-            } else if new_range.is_before(&self.ranges[idx]) &&
-                (idx == 0 || self.ranges[idx - 1].is_before(&new_range))
+            } else if new_range.is_before(&self.ranges[idx])
+                && (idx == 0 || self.ranges[idx - 1].is_before(&new_range))
             {
                 // We are exactly after the current previous range and before the current
                 // range, while not overlapping with none of them.

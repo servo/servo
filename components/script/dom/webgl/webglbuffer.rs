@@ -23,8 +23,8 @@ use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
 
 fn target_is_copy_buffer(target: u32) -> bool {
-    target == WebGL2RenderingContextConstants::COPY_READ_BUFFER ||
-        target == WebGL2RenderingContextConstants::COPY_WRITE_BUFFER
+    target == WebGL2RenderingContextConstants::COPY_READ_BUFFER
+        || target == WebGL2RenderingContextConstants::COPY_WRITE_BUFFER
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -168,15 +168,15 @@ impl WebGLBuffer {
 
     pub(crate) fn buffer_data(&self, target: u32, data: &[u8], usage: u32) -> WebGLResult<()> {
         match usage {
-            WebGLRenderingContextConstants::STREAM_DRAW |
-            WebGLRenderingContextConstants::STATIC_DRAW |
-            WebGLRenderingContextConstants::DYNAMIC_DRAW |
-            WebGL2RenderingContextConstants::STATIC_READ |
-            WebGL2RenderingContextConstants::DYNAMIC_READ |
-            WebGL2RenderingContextConstants::STREAM_READ |
-            WebGL2RenderingContextConstants::STATIC_COPY |
-            WebGL2RenderingContextConstants::DYNAMIC_COPY |
-            WebGL2RenderingContextConstants::STREAM_COPY => (),
+            WebGLRenderingContextConstants::STREAM_DRAW
+            | WebGLRenderingContextConstants::STATIC_DRAW
+            | WebGLRenderingContextConstants::DYNAMIC_DRAW
+            | WebGL2RenderingContextConstants::STATIC_READ
+            | WebGL2RenderingContextConstants::DYNAMIC_READ
+            | WebGL2RenderingContextConstants::STREAM_READ
+            | WebGL2RenderingContextConstants::STATIC_COPY
+            | WebGL2RenderingContextConstants::DYNAMIC_COPY
+            | WebGL2RenderingContextConstants::STREAM_COPY => (),
             _ => return Err(WebGLError::InvalidEnum),
         }
 
@@ -226,8 +226,8 @@ impl WebGLBuffer {
 
     /// <https://registry.khronos.org/webgl/specs/latest/2.0/#5.1>
     fn can_bind_to(&self, new_target: u32) -> bool {
-        if let Some(current_target) = self.target.get() &&
-            [current_target, new_target]
+        if let Some(current_target) = self.target.get()
+            && [current_target, new_target]
                 .contains(&WebGLRenderingContextConstants::ELEMENT_ARRAY_BUFFER)
         {
             return target_is_copy_buffer(new_target) || new_target == current_target;

@@ -318,12 +318,12 @@ impl VirtualMethods for HTMLMeterElement {
 
         let is_important_attribute = matches!(
             attr.local_name(),
-            &local_name!("high") |
-                &local_name!("low") |
-                &local_name!("min") |
-                &local_name!("max") |
-                &local_name!("optimum") |
-                &local_name!("value")
+            &local_name!("high")
+                | &local_name!("low")
+                | &local_name!("min")
+                | &local_name!("max")
+                | &local_name!("optimum")
+                | &local_name!("value")
         );
         if is_important_attribute {
             self.update_state(cx);

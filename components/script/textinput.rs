@@ -391,8 +391,8 @@ impl<T: ClipboardProvider> TextInput<T> {
     ///
     /// If there is no selection, returns an empty range at the edit point.
     pub(crate) fn sorted_selection_character_offsets_range(&self) -> Range<usize> {
-        self.rope.index_to_character_offset(self.selection_start())..
-            self.rope.index_to_character_offset(self.selection_end())
+        self.rope.index_to_character_offset(self.selection_start())
+            ..self.rope.index_to_character_offset(self.selection_end())
     }
 
     /// The state of the current selection. Can be used to compare whether selection state has changed.

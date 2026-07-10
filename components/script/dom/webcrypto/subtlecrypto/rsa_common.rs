@@ -364,10 +364,10 @@ pub(crate) fn import_key(
                     // "decrypt" or "unwrapKey", then throw a SyntaxError.
                     // * If the d field of jwk is not present and usages contains an entry which is
                     // not "encrypt" or "wrapKey", then throw a SyntaxError.
-                    if jwk.d.is_some() &&
-                        usages.iter().any(|usage| {
-                            !matches!(usage, KeyUsage::Decrypt | KeyUsage::UnwrapKey)
-                        })
+                    if jwk.d.is_some()
+                        && usages
+                            .iter()
+                            .any(|usage| !matches!(usage, KeyUsage::Decrypt | KeyUsage::UnwrapKey))
                     {
                         return Err(Error::Syntax(Some(
                             "The d field of jwk is present and usages contains an entry which is \
@@ -375,8 +375,8 @@ pub(crate) fn import_key(
                                 .to_string(),
                         )));
                     }
-                    if jwk.d.is_none() &&
-                        usages
+                    if jwk.d.is_none()
+                        && usages
                             .iter()
                             .any(|usage| !matches!(usage, KeyUsage::Encrypt | KeyUsage::WrapKey))
                     {

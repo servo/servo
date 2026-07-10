@@ -191,8 +191,8 @@ impl RTCPeerConnection {
         );
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().create_webrtc(signaller));
-        if let Some(ref servers) = config.iceServers &&
-            let Some(server) = servers.first()
+        if let Some(ref servers) = config.iceServers
+            && let Some(server) = servers.first()
         {
             let server = match server.urls {
                 StringOrStringSequence::String(ref s) => Some(s.clone()),

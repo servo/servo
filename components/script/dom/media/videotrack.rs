@@ -116,8 +116,8 @@ impl VideoTrackMethods<crate::DomTypeHolder> for VideoTrack {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-selected>
     fn SetSelected(&self, value: bool) {
-        if let Some(list) = self.track_list.borrow().as_ref() &&
-            let Some(idx) = list.find(self)
+        if let Some(list) = self.track_list.borrow().as_ref()
+            && let Some(idx) = list.find(self)
         {
             list.set_selected(idx, value);
         }

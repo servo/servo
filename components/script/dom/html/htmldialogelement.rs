@@ -70,8 +70,8 @@ impl HTMLDialogElement {
     ) -> ErrorResult {
         let subject = self.upcast::<Element>();
         // Step 1. If subject has an open attribute and is modal of subject is true, then return.
-        if subject.has_attribute(&local_name!("open")) &&
-            subject.state().contains(ElementState::MODAL)
+        if subject.has_attribute(&local_name!("open"))
+            && subject.state().contains(ElementState::MODAL)
         {
             return Ok(());
         }
@@ -239,8 +239,8 @@ impl HTMLDialogElement {
                 .focused_area()
                 .dom_anchor(&document)
                 .traverse_preorder(ShadowIncluding::Yes)
-                .any(|node| &*node == subject_node) ||
-                was_modal
+                .any(|node| &*node == subject_node)
+                || was_modal
             {
                 element.upcast::<Node>().run_the_focusing_steps(cx, None);
             }
@@ -357,8 +357,8 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     fn Show(&self, cx: &mut js::context::JSContext) -> ErrorResult {
         let element = self.upcast::<Element>();
         // Step 1. If this has an open attribute and is modal of this is false, then return.
-        if element.has_attribute(&local_name!("open")) &&
-            !element.state().contains(ElementState::MODAL)
+        if element.has_attribute(&local_name!("open"))
+            && !element.state().contains(ElementState::MODAL)
         {
             return Ok(());
         }

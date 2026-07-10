@@ -133,9 +133,9 @@ impl TrustedTypePolicyFactory {
         // We return the if directly
         // Step 2: If attributeNs is null, « HTML namespace, SVG namespace, MathML namespace » contains
         // element’s namespace, and attribute is the name of an event handler content attribute:
-        if attribute_namespace.is_none() &&
-            matches!(*element_namespace, ns!(html) | ns!(svg) | ns!(mathml)) &&
-            EventTarget::is_content_event_handler(attribute)
+        if attribute_namespace.is_none()
+            && matches!(*element_namespace, ns!(html) | ns!(svg) | ns!(mathml))
+            && EventTarget::is_content_event_handler(attribute)
         {
             // Step 2.1. Return (Element, null, attribute, TrustedScript, "Element " + attribute).
             return Some((
@@ -147,37 +147,37 @@ impl TrustedTypePolicyFactory {
         // attributeNs is in the second column, and attribute is in the third column.
         // If a matching row is found, set data to that row.
         // Step 4: Return data.
-        if *element_namespace == ns!(html) &&
-            *element_name == local_name!("iframe") &&
-            attribute_namespace.is_none() &&
-            attribute == "srcdoc"
+        if *element_namespace == ns!(html)
+            && *element_name == local_name!("iframe")
+            && attribute_namespace.is_none()
+            && attribute == "srcdoc"
         {
             Some((
                 TrustedType::TrustedHTML,
                 "HTMLIFrameElement srcdoc".to_owned(),
             ))
-        } else if *element_namespace == ns!(html) &&
-            *element_name == local_name!("script") &&
-            attribute_namespace.is_none() &&
-            attribute == "src"
+        } else if *element_namespace == ns!(html)
+            && *element_name == local_name!("script")
+            && attribute_namespace.is_none()
+            && attribute == "src"
         {
             Some((
                 TrustedType::TrustedScriptURL,
                 "HTMLScriptElement src".to_owned(),
             ))
-        } else if *element_namespace == ns!(svg) &&
-            *element_name == local_name!("script") &&
-            attribute_namespace.is_none() &&
-            attribute == "href"
+        } else if *element_namespace == ns!(svg)
+            && *element_name == local_name!("script")
+            && attribute_namespace.is_none()
+            && attribute == "href"
         {
             Some((
                 TrustedType::TrustedScriptURL,
                 "SVGScriptElement href".to_owned(),
             ))
-        } else if *element_namespace == ns!(svg) &&
-            *element_name == local_name!("script") &&
-            attribute_namespace == Some(&ns!(xlink)) &&
-            attribute == "href"
+        } else if *element_namespace == ns!(svg)
+            && *element_name == local_name!("script")
+            && attribute_namespace == Some(&ns!(xlink))
+            && attribute == "href"
         {
             Some((
                 TrustedType::TrustedScriptURL,
@@ -446,29 +446,29 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
         // and property is in the second column. If a matching row is found, set expectedType to
         // the interface’s name of the value of the third column.
         let property = property.str();
-        if interface.ns == ns!(html) &&
-            interface.local == local_name!("iframe") &&
-            property == "srcdoc"
+        if interface.ns == ns!(html)
+            && interface.local == local_name!("iframe")
+            && property == "srcdoc"
         {
             expected_type = Some(DOMString::from("TrustedHTML"))
-        } else if interface.ns == ns!(html) &&
-            interface.local == local_name!("script") &&
-            property == "innerText"
+        } else if interface.ns == ns!(html)
+            && interface.local == local_name!("script")
+            && property == "innerText"
         {
             expected_type = Some(DOMString::from("TrustedScript"))
-        } else if interface.ns == ns!(html) &&
-            interface.local == local_name!("script") &&
-            property == "src"
+        } else if interface.ns == ns!(html)
+            && interface.local == local_name!("script")
+            && property == "src"
         {
             expected_type = Some(DOMString::from("TrustedScriptURL"))
-        } else if interface.ns == ns!(html) &&
-            interface.local == local_name!("script") &&
-            property == "text"
+        } else if interface.ns == ns!(html)
+            && interface.local == local_name!("script")
+            && property == "text"
         {
             expected_type = Some(DOMString::from("TrustedScript"))
-        } else if interface.ns == ns!(html) &&
-            interface.local == local_name!("script") &&
-            property == "textContent"
+        } else if interface.ns == ns!(html)
+            && interface.local == local_name!("script")
+            && property == "textContent"
         {
             expected_type = Some(DOMString::from("TrustedScript"))
         } else if property == "innerHTML" {

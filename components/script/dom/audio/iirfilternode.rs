@@ -43,8 +43,8 @@ impl IIRFilterNode {
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<IIRFilterNode> {
-        if !(1..=20).contains(&options.feedforward.len()) ||
-            !(1..=20).contains(&options.feedback.len())
+        if !(1..=20).contains(&options.feedforward.len())
+            || !(1..=20).contains(&options.feedback.len())
         {
             return Err(Error::NotSupported(None));
         }

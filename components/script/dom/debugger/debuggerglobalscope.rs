@@ -452,8 +452,8 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 IntroductionType::EVENT_HANDLER_STR,
                 IntroductionType::DOM_TIMER_STR,
             ]
-            .contains(&&*introduction_type.str()) &&
-                url_override.is_none()
+            .contains(&&*introduction_type.str())
+                && url_override.is_none()
             {
                 debug!(
                     "Not creating debuggee: `introductionType` is `{introduction_type}` but no valid url"

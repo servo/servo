@@ -129,8 +129,8 @@ impl ValidityState {
         }
 
         // https://html.spec.whatwg.org/multipage/#suffering-from-a-custom-error
-        if update_flags.contains(ValidationFlags::CUSTOM_ERROR) &&
-            !self.custom_error_message().is_empty()
+        if update_flags.contains(ValidationFlags::CUSTOM_ERROR)
+            && !self.custom_error_message().is_empty()
         {
             invalid_flags.insert(ValidationFlags::CUSTOM_ERROR);
         }
@@ -157,8 +157,8 @@ impl ValidityState {
             self.element.set_state(ElementState::INVALID, false);
         }
 
-        if let Some(form_control) = self.element.as_maybe_form_control() &&
-            let Some(form_owner) = form_control.form_owner()
+        if let Some(form_control) = self.element.as_maybe_form_control()
+            && let Some(form_owner) = form_control.form_owner()
         {
             form_owner.update_validity(cx);
         }

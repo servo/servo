@@ -26,8 +26,8 @@ pub(crate) fn is_valid_start(c: char) -> bool {
 }
 
 pub(crate) fn is_valid_continuation(c: char) -> bool {
-    is_valid_start(c) ||
-        matches!(c,
+    is_valid_start(c)
+        || matches!(c,
             '-' |
             '.' |
             '0'..='9' |

@@ -51,9 +51,9 @@ impl AnalyserNode {
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
 
-        if options.fftSize > 32768 ||
-            options.fftSize < 32 ||
-            (options.fftSize & (options.fftSize - 1) != 0)
+        if options.fftSize > 32768
+            || options.fftSize < 32
+            || (options.fftSize & (options.fftSize - 1) != 0)
         {
             return Err(Error::IndexSize(None));
         }

@@ -352,8 +352,8 @@ impl ResizeObservation {
             return true;
         };
         let box_size = calculate_box_size(target, &self.observed_box);
-        box_size.width() != last_reported_size.inline_size() ||
-            box_size.height() != last_reported_size.block_size()
+        box_size.width() != last_reported_size.inline_size()
+            || box_size.height() != last_reported_size.block_size()
     }
 }
 

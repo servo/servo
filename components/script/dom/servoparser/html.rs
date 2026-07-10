@@ -139,8 +139,8 @@ fn start_element<S: Serializer>(element: &Element, serializer: &mut S) -> io::Re
 
     // The "is" value of an element is treated as if it was an attribute and it is serialized before all
     // other attributes. If the element already has an "is" attribute then the "is" value is ignored.
-    if !element.has_attribute(&LocalName::from("is")) &&
-        let Some(is_value) = element.get_is()
+    if !element.has_attribute(&LocalName::from("is"))
+        && let Some(is_value) = element.get_is()
     {
         let qualified_name = QualName::new(None, ns!(), LocalName::from("is"));
 
@@ -216,8 +216,8 @@ impl SerializationIterator {
         }
 
         if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
-            let should_be_serialized = (self.serialize_shadow_roots && shadow_root.Serializable()) ||
-                self.shadow_roots.contains(&shadow_root);
+            let should_be_serialized = (self.serialize_shadow_roots && shadow_root.Serializable())
+                || self.shadow_roots.contains(&shadow_root);
             if !shadow_root.is_user_agent_widget() && should_be_serialized {
                 self.stack
                     .push(SerializationCommand::SerializeShadowRoot(shadow_root));

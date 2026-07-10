@@ -258,8 +258,8 @@ impl DocumentOrShadowRoot {
 
         // Step 4: If the document has a root element, and the last item in sequence is
         // not the root element, append the root element to sequence.
-        if let Some(root_element) = document_element &&
-            elements.last() != Some(&root_element)
+        if let Some(root_element) = document_element
+            && elements.last() != Some(&root_element)
         {
             elements.push(root_element);
         }
@@ -443,7 +443,7 @@ impl DocumentOrShadowRoot {
     /// values to the inner [DocumentOrShadowRoot::set_adopted_stylesheet].
     pub(crate) fn set_adopted_stylesheet_from_jsval(
         cx: &mut JSContext,
-        adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
+        adopted_stylesheets: &DomRefCell<Vec<Dom<CSSStyleSheet>>>,
         incoming_value: HandleValue,
         owner: &StyleSheetListOwner,
     ) -> ErrorResult {
@@ -455,12 +455,19 @@ impl DocumentOrShadowRoot {
             ConversionResult::Success(stylesheets) => {
                 rooted_vec!(let stylesheets <- stylesheets.iter().map(|s| s.as_traced()));
 
-                DocumentOrShadowRoot::set_adopted_stylesheet(
-                    cx,
-                    adopted_stylesheets,
-                    &stylesheets,
-                    owner,
-                )
+                // Scope the borrow so it is dropped before returning, avoiding a borrow
+                // hazard if a GC occurs.
+                {
+                    let mut sheets = adopted_stylesheets.borrow_mut();
+                    DocumentOrShadowRoot::set_adopted_stylesheet(
+                        cx,
+                        sheets.as_mut(),
+                        &stylesheets,
+                        owner,
+                    )?;
+                }
+
+                Ok(())
             },
             ConversionResult::Failure(msg) => Err(Error::Type(msg.into_owned())),
         }

@@ -37,8 +37,8 @@ impl WebGLExtension for WEBGLCompressedTextureS3TC {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        ext.supports_gl_extension("GL_EXT_texture_compression_s3tc") ||
-            ext.supports_all_gl_extension(&[
+        ext.supports_gl_extension("GL_EXT_texture_compression_s3tc")
+            || ext.supports_all_gl_extension(&[
                 "GL_EXT_texture_compression_dxt1",
                 "GL_ANGLE_texture_compression_dxt3",
                 "GL_ANGLE_texture_compression_dxt5",

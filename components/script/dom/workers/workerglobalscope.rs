@@ -174,8 +174,8 @@ impl FetchResponseListener for ScriptFetchContext {
         if response
             .as_ref()
             .inspect_err(|e| error!("error loading script {} ({:?})", self.url, e))
-            .is_err() ||
-            self.response.is_none()
+            .is_err()
+            || self.response.is_none()
         {
             scope.on_complete(cx, None);
             return;

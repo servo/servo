@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>adoptedStyleSheets borrow hazard (#46369)</title></head>
+<body>
+<script>
+const sheet = new CSSStyleSheet();
+sheet.replaceSync("a { color: red; }");
+const host = document.createElement("div");
+const shadow = host.attachShadow({ mode: "open" });
+document.body.appendChild(host);
+document.adoptedStyleSheets = [sheet, sheet];
+shadow.adoptedStyleSheets = [sheet];
+try { document.adoptedStyleSheets = [sheet, "invalid"]; } catch (e) {}
+if (typeof gc === "function") gc();
+</script>
+</body>
+</html>

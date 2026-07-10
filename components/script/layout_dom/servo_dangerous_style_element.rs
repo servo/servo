@@ -356,8 +356,8 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
 
     fn has_animations(&self, context: &SharedStyleContext) -> bool {
         // This is not used for pseudo elements currently so we can pass None.
-        self.has_css_animations(context, /* pseudo_element = */ None) ||
-            self.has_css_transitions(context, /* pseudo_element = */ None)
+        self.has_css_animations(context, /* pseudo_element = */ None)
+            || self.has_css_transitions(context, /* pseudo_element = */ None)
     }
 
     fn has_css_animations(
@@ -513,22 +513,22 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
             let old_box = old.get_box();
             let new_box = new.get_box();
 
-            if old_box.display != new_box.display ||
-                old_box.float != new_box.float ||
-                old_box.position != new_box.position
+            if old_box.display != new_box.display
+                || old_box.float != new_box.float
+                || old_box.position != new_box.position
             {
                 return true;
             }
 
-            if new_box.position.is_absolutely_positioned() &&
-                old_box.original_display != new_box.original_display
+            if new_box.position.is_absolutely_positioned()
+                && old_box.original_display != new_box.original_display
             {
                 // The original display only affects the static position, which is only used
                 // when both insets in some axis are auto.
                 // <https://drafts.csswg.org/css-position/#resolving-insets>
                 let position = new.get_position();
-                if (position.top.is_auto() && position.bottom.is_auto()) ||
-                    (position.left.is_auto() && position.right.is_auto())
+                if (position.top.is_auto() && position.bottom.is_auto())
+                    || (position.left.is_auto() && position.right.is_auto())
                 {
                     return true;
                 }
@@ -555,8 +555,8 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
             // NOTE: This should be kept in sync with the checks in `impl
             // StyleExt::establishes_block_formatting_context` for `ComputedValues` in
             // `components/layout/style_ext.rs`.
-            if new_box.display.outside() == DisplayOutside::Block &&
-                new_box.display.inside() == DisplayInside::Flow
+            if new_box.display.outside() == DisplayOutside::Block
+                && new_box.display.inside() == DisplayInside::Flow
             {
                 let alignment_establishes_new_block_formatting_context =
                     |style: &ComputedValues| {
@@ -565,11 +565,11 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
 
                 let old_column = old.get_column();
                 let new_column = new.get_column();
-                if old_box.overflow_x.is_scrollable() != new_box.overflow_x.is_scrollable() ||
-                    old_column.is_multicol() != new_column.is_multicol() ||
-                    old_column.column_span != new_column.column_span ||
-                    alignment_establishes_new_block_formatting_context(old) !=
-                        alignment_establishes_new_block_formatting_context(new)
+                if old_box.overflow_x.is_scrollable() != new_box.overflow_x.is_scrollable()
+                    || old_column.is_multicol() != new_column.is_multicol()
+                    || old_column.column_span != new_column.column_span
+                    || alignment_establishes_new_block_formatting_context(old)
+                        != alignment_establishes_new_block_formatting_context(new)
                 {
                     return true;
                 }
@@ -578,10 +578,10 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
             if old_box.display.is_list_item() {
                 let old_list = old.get_list();
                 let new_list = new.get_list();
-                if old_list.list_style_position != new_list.list_style_position ||
-                    old_list.list_style_image != new_list.list_style_image ||
-                    (new_list.list_style_image == Image::None &&
-                        old_list.list_style_type != new_list.list_style_type)
+                if old_list.list_style_position != new_list.list_style_position
+                    || old_list.list_style_image != new_list.list_style_image
+                    || (new_list.list_style_image == Image::None
+                        && old_list.list_style_type != new_list.list_style_type)
                 {
                     return true;
                 }
@@ -611,21 +611,21 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         };
 
         let text_shaping_needs_recollect = || {
-            if old.clone_direction() != new.clone_direction() ||
-                old.clone_unicode_bidi() != new.clone_unicode_bidi()
+            if old.clone_direction() != new.clone_direction()
+                || old.clone_unicode_bidi() != new.clone_unicode_bidi()
             {
                 return true;
             }
 
             let old_text = old.get_inherited_text().clone();
             let new_text = new.get_inherited_text().clone();
-            if old_text.white_space_collapse != new_text.white_space_collapse ||
-                old_text.text_transform != new_text.text_transform ||
-                old_text.word_break != new_text.word_break ||
-                old_text.overflow_wrap != new_text.overflow_wrap ||
-                old_text.letter_spacing != new_text.letter_spacing ||
-                old_text.word_spacing != new_text.word_spacing ||
-                old_text.text_rendering != new_text.text_rendering
+            if old_text.white_space_collapse != new_text.white_space_collapse
+                || old_text.text_transform != new_text.text_transform
+                || old_text.word_break != new_text.word_break
+                || old_text.overflow_wrap != new_text.overflow_wrap
+                || old_text.letter_spacing != new_text.letter_spacing
+                || old_text.word_spacing != new_text.word_spacing
+                || old_text.text_rendering != new_text.text_rendering
             {
                 return true;
             }
@@ -671,8 +671,8 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
 
     fn parent_node_is_shadow_root(&self) -> bool {
         self.as_node().parent_node().is_some_and(|parent_node| {
-            parent_node.node.type_id_for_layout() ==
-                NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot)
+            parent_node.node.type_id_for_layout()
+                == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot)
         })
     }
 
@@ -768,8 +768,8 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
 
     #[inline]
     fn is_same_type(&self, other: &Self) -> bool {
-        self.element.local_name() == other.element.local_name() &&
-            self.element.namespace() == other.element.namespace()
+        self.element.local_name() == other.element.local_name()
+            && self.element.namespace() == other.element.namespace()
     }
 
     fn match_non_ts_pseudo_class(
@@ -795,36 +795,36 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
                 .get_state_for_layout()
                 .contains(NonTSPseudoClass::ReadWrite.state_flag()),
 
-            NonTSPseudoClass::Active |
-            NonTSPseudoClass::Autofill |
-            NonTSPseudoClass::Checked |
-            NonTSPseudoClass::Default |
-            NonTSPseudoClass::Defined |
-            NonTSPseudoClass::Disabled |
-            NonTSPseudoClass::Enabled |
-            NonTSPseudoClass::Focus |
-            NonTSPseudoClass::FocusVisible |
-            NonTSPseudoClass::FocusWithin |
-            NonTSPseudoClass::Fullscreen |
-            NonTSPseudoClass::Hover |
-            NonTSPseudoClass::InRange |
-            NonTSPseudoClass::Indeterminate |
-            NonTSPseudoClass::Invalid |
-            NonTSPseudoClass::Modal |
-            NonTSPseudoClass::MozMeterOptimum |
-            NonTSPseudoClass::MozMeterSubOptimum |
-            NonTSPseudoClass::MozMeterSubSubOptimum |
-            NonTSPseudoClass::Open |
-            NonTSPseudoClass::Optional |
-            NonTSPseudoClass::OutOfRange |
-            NonTSPseudoClass::PlaceholderShown |
-            NonTSPseudoClass::PopoverOpen |
-            NonTSPseudoClass::ReadWrite |
-            NonTSPseudoClass::Required |
-            NonTSPseudoClass::Target |
-            NonTSPseudoClass::UserInvalid |
-            NonTSPseudoClass::UserValid |
-            NonTSPseudoClass::Valid => self
+            NonTSPseudoClass::Active
+            | NonTSPseudoClass::Autofill
+            | NonTSPseudoClass::Checked
+            | NonTSPseudoClass::Default
+            | NonTSPseudoClass::Defined
+            | NonTSPseudoClass::Disabled
+            | NonTSPseudoClass::Enabled
+            | NonTSPseudoClass::Focus
+            | NonTSPseudoClass::FocusVisible
+            | NonTSPseudoClass::FocusWithin
+            | NonTSPseudoClass::Fullscreen
+            | NonTSPseudoClass::Hover
+            | NonTSPseudoClass::InRange
+            | NonTSPseudoClass::Indeterminate
+            | NonTSPseudoClass::Invalid
+            | NonTSPseudoClass::Modal
+            | NonTSPseudoClass::MozMeterOptimum
+            | NonTSPseudoClass::MozMeterSubOptimum
+            | NonTSPseudoClass::MozMeterSubSubOptimum
+            | NonTSPseudoClass::Open
+            | NonTSPseudoClass::Optional
+            | NonTSPseudoClass::OutOfRange
+            | NonTSPseudoClass::PlaceholderShown
+            | NonTSPseudoClass::PopoverOpen
+            | NonTSPseudoClass::ReadWrite
+            | NonTSPseudoClass::Required
+            | NonTSPseudoClass::Target
+            | NonTSPseudoClass::UserInvalid
+            | NonTSPseudoClass::UserValid
+            | NonTSPseudoClass::Valid => self
                 .element
                 .get_state_for_layout()
                 .contains(pseudo_class.state_flag()),
@@ -845,9 +845,9 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLAnchorElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
+            ))
+            | NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement))
+            | NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
                 self.element
                     .get_attr_val_for_layout(&ns!(), &local_name!("href"))
                     .is_some()
@@ -915,8 +915,8 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
 
         // Handle flags that apply to the parent.
         let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() &&
-            let Some(p) = self.as_node().parent_element()
+        if !parent_flags.is_empty()
+            && let Some(p) = self.as_node().parent_element()
         {
             p.element.insert_selector_flags(flags);
         }

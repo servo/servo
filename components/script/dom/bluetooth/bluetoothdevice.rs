@@ -307,8 +307,8 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
             .global()
             .as_window()
             .bluetooth_extra_permission_data()
-            .allowed_devices_contains_id(self.id.clone()) &&
-            !self.is_represented_device_null()
+            .allowed_devices_contains_id(self.id.clone())
+            && !self.is_represented_device_null()
         {
             return Some(self.get_gatt(cx));
         }

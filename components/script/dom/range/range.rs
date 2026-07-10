@@ -161,8 +161,9 @@ impl Range {
         // > of the live range’s start node but not its end node, or vice versa.
         self.start_container()
             .inclusive_ancestors(ShadowIncluding::No)
-            .any(|n| &*n == node) !=
-            self.end_container()
+            .any(|n| &*n == node)
+            != self
+                .end_container()
                 .inclusive_ancestors(ShadowIncluding::No)
                 .any(|n| &*n == node)
     }
@@ -319,8 +320,8 @@ impl Range {
     }
 
     pub(crate) fn start_and_end_are_in_document_tree(&self) -> bool {
-        self.start_container().is_in_a_document_tree() &&
-            self.end_container().is_in_a_document_tree()
+        self.start_container().is_in_a_document_tree()
+            && self.end_container().is_in_a_document_tree()
     }
 
     pub(crate) fn start_container(&self) -> DomRoot<Node> {
@@ -611,11 +612,10 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 4.
         let offset = node.index();
         // Step 5.
-        Ordering::Greater ==
-            bp_position(&parent, offset + 1, &start_node, self.start_offset()).unwrap() &&
-            Ordering::Less ==
-                bp_position(&parent, offset, &self.end_container(), self.end_offset())
-                    .unwrap()
+        Ordering::Greater
+            == bp_position(&parent, offset + 1, &start_node, self.start_offset()).unwrap()
+            && Ordering::Less
+                == bp_position(&parent, offset, &self.end_container(), self.end_offset()).unwrap()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-clonecontents>
@@ -635,8 +635,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             return Ok(fragment);
         }
 
-        if end_node == start_node &&
-            let Some(cdata) = start_node.downcast::<CharacterData>()
+        if end_node == start_node
+            && let Some(cdata) = start_node.downcast::<CharacterData>()
         {
             // Steps 4.1-2.
             let data = cdata
@@ -740,8 +740,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             return Ok(fragment);
         }
 
-        if end_node == start_node &&
-            let Some(end_data) = end_node.downcast::<CharacterData>()
+        if end_node == start_node
+            && let Some(end_data) = end_node.downcast::<CharacterData>()
         {
             // Step 4.1.
             let clone = end_node.CloneNode(cx, /* deep */ true)?;
@@ -943,8 +943,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             .map_or(parent.len(), |node| node.index());
 
         // Step 11
-        let new_offset = new_offset +
-            if let NodeTypeId::DocumentFragment(_) = node.type_id() {
+        let new_offset = new_offset
+            + if let NodeTypeId::DocumentFragment(_) = node.type_id() {
                 node.len()
             } else {
                 1
@@ -976,8 +976,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let end_offset = self.end_offset();
 
         // Step 3. If originalStartNode is originalEndNode and it is a CharacterData node:
-        if start_node == end_node &&
-            let Some(text) = start_node.downcast::<CharacterData>()
+        if start_node == end_node
+            && let Some(text) = start_node.downcast::<CharacterData>()
         {
             if end_offset > start_offset {
                 self.report_change();
@@ -1076,8 +1076,9 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         if start
             .inclusive_ancestors(ShadowIncluding::No)
-            .any(|n| !n.is_inclusive_ancestor_of(&end) && !n.is::<Text>()) ||
-            end.inclusive_ancestors(ShadowIncluding::No)
+            .any(|n| !n.is_inclusive_ancestor_of(&end) && !n.is::<Text>())
+            || end
+                .inclusive_ancestors(ShadowIncluding::No)
                 .any(|n| !n.is_inclusive_ancestor_of(&start) && !n.is::<Text>())
         {
             return Err(Error::InvalidState(None));
@@ -1085,9 +1086,9 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         // Step 2.
         match new_parent.type_id() {
-            NodeTypeId::Document(_) |
-            NodeTypeId::DocumentType |
-            NodeTypeId::DocumentFragment(_) => {
+            NodeTypeId::Document(_)
+            | NodeTypeId::DocumentType
+            | NodeTypeId::DocumentFragment(_) => {
                 return Err(Error::InvalidNodeType(None));
             },
             _ => (),
@@ -1195,8 +1196,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 5. Otherwise, if node implements Text or Comment, set element to node's parent element.
         let element = match node.type_id() {
             NodeTypeId::Element(_) => Some(DomRoot::downcast::<Element>(node).unwrap()),
-            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => node.GetParentElement(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment)
+            | NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => node.GetParentElement(),
             _ => None,
         };
 

@@ -382,8 +382,8 @@ impl FetchResponseListener for ClassicContext {
 
         let global = elem.global();
 
-        if let Some(window) = global.downcast::<Window>() &&
-            let Some(script_source) = window.local_script_source()
+        if let Some(window) = global.downcast::<Window>()
+            && let Some(script_source) = window.local_script_source()
         {
             substitute_with_local_script(script_source, &mut source_text, final_url.clone());
         }
@@ -578,10 +578,10 @@ impl HTMLScriptElement {
         // > A script element el is implicitly potentially render-blocking if el's type is "classic",
         // > el is parser-inserted, and el does not have an async or defer attribute.
         self.get_script_type()
-            .is_some_and(|script_type| script_type == ScriptType::Classic) &&
-            self.parser_inserted.get() &&
-            !element.has_attribute(&local_name!("async")) &&
-            !element.has_attribute(&local_name!("defer"))
+            .is_some_and(|script_type| script_type == ScriptType::Classic)
+            && self.parser_inserted.get()
+            && !element.has_attribute(&local_name!("async"))
+            && !element.has_attribute(&local_name!("defer"))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
@@ -674,8 +674,8 @@ impl HTMLScriptElement {
         let global = &doc.global();
 
         // Step 19. CSP.
-        if !element.has_attribute(&local_name!("src")) &&
-            global
+        if !element.has_attribute(&local_name!("src"))
+            && global
                 .get_csp_list()
                 .should_elements_inline_type_behavior_be_blocked(
                     cx,
@@ -870,10 +870,11 @@ impl HTMLScriptElement {
                     );
                     let result = Ok(Script::Classic(script));
 
-                    if was_parser_inserted &&
-                        doc.get_current_parser()
-                            .is_some_and(|parser| parser.script_nesting_level() <= 1) &&
-                        doc.has_a_stylesheet_that_is_blocking_scripts()
+                    if was_parser_inserted
+                        && doc
+                            .get_current_parser()
+                            .is_some_and(|parser| parser.script_nesting_level() <= 1)
+                        && doc.has_a_stylesheet_that_is_blocking_scripts()
                     {
                         // Step 34.2: classic, has no src, was parser-inserted, is blocked on stylesheet.
                         doc.set_pending_parsing_blocking_script(self, Some(result));
@@ -888,8 +889,8 @@ impl HTMLScriptElement {
                     self.delay_load_event(&delayed_document, base_url.clone());
 
                     // Step 32.2.2.2 If el is potentially render-blocking, then:
-                    if self.potentially_render_blocking() &&
-                        doc.allows_adding_render_blocking_elements()
+                    if self.potentially_render_blocking()
+                        && doc.allows_adding_render_blocking_elements()
                     {
                         // Step 32.2.2.2.1 Block rendering on el.
                         self.marked_as_render_blocking.set(true);
@@ -1131,15 +1132,15 @@ impl VirtualMethods for HTMLScriptElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         if *attr.local_name() == local_name!("src") {
-            if let AttributeMutation::Set(..) = mutation &&
-                !self.parser_inserted.get() &&
-                self.upcast::<Node>().is_connected()
+            if let AttributeMutation::Set(..) = mutation
+                && !self.parser_inserted.get()
+                && self.upcast::<Node>().is_connected()
             {
                 self.prepare(cx, Some(IntroductionType::INJECTED_SCRIPT));
             }
-        } else if *attr.local_name() == local_name!("blocking") &&
-            !self.has_render_blocking_attribute() &&
-            self.marked_as_render_blocking.replace(false)
+        } else if *attr.local_name() == local_name!("blocking")
+            && !self.has_render_blocking_attribute()
+            && self.marked_as_render_blocking.replace(false)
         {
             let document = self.owner_document();
             document.decrement_render_blocking_element_count();
@@ -1238,8 +1239,9 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-async>
     fn Async(&self) -> bool {
-        self.non_blocking.get() ||
-            self.upcast::<Element>()
+        self.non_blocking.get()
+            || self
+                .upcast::<Element>()
                 .has_attribute(&local_name!("async"))
     }
 

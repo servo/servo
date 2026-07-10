@@ -543,8 +543,8 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // If value is a Blob and identifier is "size"
-                if identifier == "size" &&
-                    let Ok(blob) = root_from_handlevalue::<Blob>(cx, current_value.handle())
+                if identifier == "size"
+                    && let Ok(blob) = root_from_handlevalue::<Blob>(cx, current_value.handle())
                 {
                     // Let value be a Number equal to value’s size.
                     blob.Size().safe_to_jsval(cx, current_value.handle_mut());
@@ -553,8 +553,8 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // If value is a Blob and identifier is "type"
-                if identifier == "type" &&
-                    let Ok(blob) = root_from_handlevalue::<Blob>(cx, current_value.handle())
+                if identifier == "type"
+                    && let Ok(blob) = root_from_handlevalue::<Blob>(cx, current_value.handle())
                 {
                     // Let value be a String equal to value’s type.
                     blob.Type().safe_to_jsval(cx, current_value.handle_mut());
@@ -563,8 +563,8 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // If value is a File and identifier is "name"
-                if identifier == "name" &&
-                    let Ok(file) = root_from_handlevalue::<File>(cx, current_value.handle())
+                if identifier == "name"
+                    && let Ok(file) = root_from_handlevalue::<File>(cx, current_value.handle())
                 {
                     // Let value be a String equal to value’s name.
                     file.name().safe_to_jsval(cx, current_value.handle_mut());
@@ -573,8 +573,8 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // If value is a File and identifier is "lastModified"
-                if identifier == "lastModified" &&
-                    let Ok(file) = root_from_handlevalue::<File>(cx, current_value.handle())
+                if identifier == "lastModified"
+                    && let Ok(file) = root_from_handlevalue::<File>(cx, current_value.handle())
                 {
                     // Let value be a Number equal to value’s lastModified.
                     file.LastModified()
@@ -584,8 +584,8 @@ pub(crate) fn evaluate_key_path_on_value(
                 }
 
                 // If value is a File and identifier is "lastModifiedDate"
-                if identifier == "lastModifiedDate" &&
-                    let Ok(file) = root_from_handlevalue::<File>(cx, current_value.handle())
+                if identifier == "lastModifiedDate"
+                    && let Ok(file) = root_from_handlevalue::<File>(cx, current_value.handle())
                 {
                     // Let value be a new Date object with [[DateValue]] internal slot equal to value’s lastModified.
                     let time = ClippedTime {

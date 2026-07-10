@@ -103,8 +103,8 @@ impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
                     return Err(Error::Type(c"startTime must not be negative".to_owned()));
                 }
                 // Step 5.1.2. Otherwise, set entry’s startTime to the value of markOptions’s startTime.
-                global.performance(cx).time_origin() +
-                    Duration::microseconds(start_time.mul_add(1000.0, 0.0) as i64)
+                global.performance(cx).time_origin()
+                    + Duration::microseconds(start_time.mul_add(1000.0, 0.0) as i64)
             },
             // Step 5.2. Otherwise, set it to the value that would be returned by the Performance object’s now() method.
             None => CrossProcessInstant::now(),

@@ -47,9 +47,10 @@ struct TableRowFilter {
 
 impl CollectionFilter for TableRowFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is::<HTMLTableRowElement>() &&
-            (root.is_parent_of(elem.upcast()) ||
-                self.sections
+        elem.is::<HTMLTableRowElement>()
+            && (root.is_parent_of(elem.upcast())
+                || self
+                    .sections
                     .iter()
                     .any(|section| section.is_parent_of(elem.upcast())))
     }
@@ -114,8 +115,8 @@ impl HTMLTableElement {
     where
         P: FnMut(&DomRoot<Element>) -> bool,
     {
-        if let Some(e) = section &&
-            e.upcast::<Element>().local_name() != atom
+        if let Some(e) = section
+            && e.upcast::<Element>().local_name() != atom
         {
             return Err(Error::HierarchyRequest(None));
         }
@@ -312,9 +313,9 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                 &self.owner_window(),
                 self.upcast(),
                 |element, root| {
-                    element.is::<HTMLTableSectionElement>() &&
-                        element.local_name() == &local_name!("tbody") &&
-                        element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+                    element.is::<HTMLTableSectionElement>()
+                        && element.local_name() == &local_name!("tbody")
+                        && element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
             )
         })

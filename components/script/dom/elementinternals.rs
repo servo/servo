@@ -186,9 +186,9 @@ impl ElementInternals {
     }
 
     pub(crate) fn is_invalid(&self, cx: &mut JSContext) -> bool {
-        self.is_target_form_associated() &&
-            self.is_instance_validatable() &&
-            !self.satisfies_constraints(cx)
+        self.is_target_form_associated()
+            && self.is_instance_validatable()
+            && !self.satisfies_constraints(cx)
     }
 
     pub(crate) fn custom_states_for_layout<'a>(&'a self) -> Option<LayoutDom<'a, CustomStateSet>> {
@@ -432,8 +432,8 @@ impl Validatable for ElementInternals {
         // The form-associated custom element is barred from constraint validation,
         // if the readonly attribute is specified, the element is disabled,
         // or the element has a datalist element ancestor.
-        !self.as_element().read_write_state() &&
-            !self.as_element().disabled_state() &&
-            !is_barred_by_datalist_ancestor(self.target_element.upcast::<Node>())
+        !self.as_element().read_write_state()
+            && !self.as_element().disabled_state()
+            && !is_barred_by_datalist_ancestor(self.target_element.upcast::<Node>())
     }
 }

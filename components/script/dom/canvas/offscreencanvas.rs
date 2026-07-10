@@ -137,8 +137,8 @@ impl OffscreenCanvas {
             Some(context) => context.get_image_data(),
             None => {
                 let size = self.get_size();
-                if size.is_empty() ||
-                    pixels::compute_rgba8_byte_length_if_within_limit(
+                if size.is_empty()
+                    || pixels::compute_rgba8_byte_length_if_within_limit(
                         size.width as usize,
                         size.height as usize,
                     )

@@ -507,8 +507,8 @@ pub(crate) fn import_key(
                     // Step 2.2. If the d field is present and if usages contains an entry which is
                     // not "deriveKey" or "deriveBits" then throw a SyntaxError. If the d field is
                     // not present and if usages is not empty then throw a SyntaxError.
-                    if jwk.d.as_ref().is_some() &&
-                        usages.iter().any(|usage| {
+                    if jwk.d.as_ref().is_some()
+                        && usages.iter().any(|usage| {
                             !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)
                         })
                     {

@@ -82,8 +82,8 @@ impl<'a> ChildrenMutation<'a> {
     pub(crate) fn modified_edge_element(&self, no_gc: &NoGC) -> Option<DomRoot<Node>> {
         match *self {
             // Add/remove at start of container: Return the first following element.
-            ChildrenMutation::Prepend { next, .. } |
-            ChildrenMutation::Replace {
+            ChildrenMutation::Prepend { next, .. }
+            | ChildrenMutation::Replace {
                 prev: None,
                 next: Some(next),
                 ..
@@ -92,8 +92,8 @@ impl<'a> ChildrenMutation<'a> {
                 .find(|node| node.is::<Element>())
                 .map(|node| node.as_rooted()),
             // Add/remove at end of container: Return the last preceding element.
-            ChildrenMutation::Append { prev } |
-            ChildrenMutation::Replace {
+            ChildrenMutation::Append { prev }
+            | ChildrenMutation::Replace {
                 prev: Some(prev),
                 next: None,
                 ..
@@ -102,8 +102,8 @@ impl<'a> ChildrenMutation<'a> {
                 .find(|node| node.is::<Element>())
                 .map(|node| node.as_rooted()),
             // Insert or replace in the middle:
-            ChildrenMutation::Insert { prev, next, .. } |
-            ChildrenMutation::Replace {
+            ChildrenMutation::Insert { prev, next, .. }
+            | ChildrenMutation::Replace {
                 prev: Some(prev),
                 next: Some(next),
                 ..

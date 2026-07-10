@@ -58,14 +58,14 @@ impl XPathExpression {
     ) -> Fallible<DomRoot<XPathResult>> {
         let is_allowed_context_node_type = matches!(
             context_node.type_id(),
-            NodeTypeId::Attr |
-                NodeTypeId::CharacterData(
-                    CharacterDataTypeId::Comment |
-                        CharacterDataTypeId::Text(_) |
-                        CharacterDataTypeId::ProcessingInstruction
-                ) |
-                NodeTypeId::Document(_) |
-                NodeTypeId::Element(_)
+            NodeTypeId::Attr
+                | NodeTypeId::CharacterData(
+                    CharacterDataTypeId::Comment
+                        | CharacterDataTypeId::Text(_)
+                        | CharacterDataTypeId::ProcessingInstruction
+                )
+                | NodeTypeId::Document(_)
+                | NodeTypeId::Element(_)
         );
         if !is_allowed_context_node_type {
             return Err(Error::NotSupported(None));

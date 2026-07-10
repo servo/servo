@@ -259,9 +259,9 @@ pub(crate) fn in_same_group(
         return false;
     }
 
-    if !matches!(*other.input_type(), InputType::Radio(_)) ||
-        other.form_owner().as_deref() != owner ||
-        other.radio_group_name().as_ref() != group
+    if !matches!(*other.input_type(), InputType::Radio(_))
+        || other.form_owner().as_deref() != owner
+        || other.radio_group_name().as_ref() != group
     {
         return false;
     }

@@ -78,9 +78,9 @@ fn validate_params(pname: u32, value: WebGLSamplerValue) -> bool {
                     constants::LINEAR_MIPMAP_LINEAR,
                 ][..],
                 constants::TEXTURE_MAG_FILTER => &[constants::NEAREST, constants::LINEAR][..],
-                constants::TEXTURE_WRAP_R |
-                constants::TEXTURE_WRAP_S |
-                constants::TEXTURE_WRAP_T => &[
+                constants::TEXTURE_WRAP_R
+                | constants::TEXTURE_WRAP_S
+                | constants::TEXTURE_WRAP_T => &[
                     constants::CLAMP_TO_EDGE,
                     constants::MIRRORED_REPEAT,
                     constants::REPEAT,
@@ -190,13 +190,13 @@ impl WebGLSampler {
             return Err(InvalidOperation);
         }
         match pname {
-            constants::TEXTURE_MIN_FILTER |
-            constants::TEXTURE_MAG_FILTER |
-            constants::TEXTURE_WRAP_R |
-            constants::TEXTURE_WRAP_S |
-            constants::TEXTURE_WRAP_T |
-            constants::TEXTURE_COMPARE_FUNC |
-            constants::TEXTURE_COMPARE_MODE => {
+            constants::TEXTURE_MIN_FILTER
+            | constants::TEXTURE_MAG_FILTER
+            | constants::TEXTURE_WRAP_R
+            | constants::TEXTURE_WRAP_S
+            | constants::TEXTURE_WRAP_T
+            | constants::TEXTURE_COMPARE_FUNC
+            | constants::TEXTURE_COMPARE_MODE => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 context.send_command(WebGLCommand::GetSamplerParameterInt(
                     self.id(),

@@ -139,8 +139,8 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         };
 
         // Step 4
-        let valid = data_offset + content_size <= data_size as u64 &&
-            (content_size * sizeof_element as u64)
+        let valid = data_offset + content_size <= data_size as u64
+            && (content_size * sizeof_element as u64)
                 .is_multiple_of(wgpu_types::COPY_BUFFER_ALIGNMENT);
         if !valid {
             return Err(Error::Operation(None));
@@ -339,10 +339,10 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         let texture_descriptor = destination.parent.texture.wgpu_texture_descriptor();
         let target_snapshot_format =
             match texture_descriptor.format {
-                wgpu_types::TextureFormat::Bgra8Unorm |
-                wgpu_types::TextureFormat::Bgra8UnormSrgb => SnapshotPixelFormat::BGRA,
-                wgpu_types::TextureFormat::Rgba8Unorm |
-                wgpu_types::TextureFormat::Rgba8UnormSrgb => SnapshotPixelFormat::RGBA,
+                wgpu_types::TextureFormat::Bgra8Unorm
+                | wgpu_types::TextureFormat::Bgra8UnormSrgb => SnapshotPixelFormat::BGRA,
+                wgpu_types::TextureFormat::Rgba8Unorm
+                | wgpu_types::TextureFormat::Rgba8UnormSrgb => SnapshotPixelFormat::RGBA,
                 _ => {
                     return Err(Error::Operation(Some(
                         "Unsupported texture format for copy".to_string(),

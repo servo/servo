@@ -177,8 +177,8 @@ impl MediaFragmentParser {
 
         if let Some(s) = prefix {
             let region = SpatialRegion::from_str(s)?;
-            if region.eq(&SpatialRegion::Percent) &&
-                (clipping.x + clipping.width > 100 || clipping.y + clipping.height > 100)
+            if region.eq(&SpatialRegion::Percent)
+                && (clipping.x + clipping.width > 100 || clipping.y + clipping.height > 100)
             {
                 return Err(());
             }

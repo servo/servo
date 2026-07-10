@@ -149,8 +149,8 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
 
         // Step 2 If this’s guard is "request-no-cors", name is not a no-CORS-safelisted request-header name,
         // and name is not a privileged no-CORS request-header name, then return.
-        if self.guard.get() == Guard::RequestNoCors &&
-            !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec())
+        if self.guard.get() == Guard::RequestNoCors
+            && !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec())
         {
             return Ok(());
         }
@@ -215,8 +215,8 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
 
         // 3. If this’s guard is "request-no-cors" and (name, value) is not a
         // no-CORS-safelisted request-header, then return.
-        if self.guard.get() == Guard::RequestNoCors &&
-            !is_cors_safelisted_request_header(&valid_name, &valid_value.to_vec())
+        if self.guard.get() == Guard::RequestNoCors
+            && !is_cors_safelisted_request_header(&valid_name, &valid_value.to_vec())
         {
             return Ok(());
         }

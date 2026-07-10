@@ -259,8 +259,8 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
             // 6.2. If this’s relevant global object is a Window object and parsed does not equal url with exclude fragments set to true,
             // then return a promise rejected with a TypeError.
-            if let Some(_window) = DomRoot::downcast::<Window>(self.global()) &&
-                parsed_url
+            if let Some(_window) = DomRoot::downcast::<Window>(self.global())
+                && parsed_url
                     .as_ref()
                     .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(&creation_url))
             {
@@ -376,8 +376,8 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
             // If this’s relevant global object is a Window object and parsed does not equal url with exclude fragments set to true,
             // then return a promise rejected with a TypeError.
-            if let Some(_window) = DomRoot::downcast::<Window>(self.global()) &&
-                parsed_url
+            if let Some(_window) = DomRoot::downcast::<Window>(self.global())
+                && parsed_url
                     .as_ref()
                     .is_ok_and(|parsed| !parsed.is_equal_excluding_fragments(&creation_url))
             {
@@ -618,8 +618,8 @@ impl CookieStore {
         let value = CookieStore::normalize(&properties.value);
 
         // 3. If name or value contain U+003B (;), any C0 control character except U+0009 TAB, or U+007F DELETE, then return failure.
-        if CookieStore::contains_control_characters(&name) ||
-            CookieStore::contains_control_characters(&value)
+        if CookieStore::contains_control_characters(&name)
+            || CookieStore::contains_control_characters(&value)
         {
             return None;
         }

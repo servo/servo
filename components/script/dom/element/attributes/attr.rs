@@ -200,8 +200,8 @@ impl Attr {
                 // Already gone from the list of attributes of old owner.
                 assert!(
                     old.get_attribute_with_namespace(cx, ns, &self.identifier.local_name)
-                        .as_deref() !=
-                        Some(self)
+                        .as_deref()
+                        != Some(self)
                 )
             },
             (Some(old), Some(new)) => assert_eq!(&*old, new),

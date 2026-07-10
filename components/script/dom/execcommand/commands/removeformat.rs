@@ -25,35 +25,35 @@ fn is_remove_format_candidate(element: &Element) -> bool {
     // > "samp", "small", "span", "strike", "strong", "sub", "sup", "tt", "u", or "var".
     matches!(
         *element.local_name(),
-        local_name!("abbr") |
-            local_name!("acronym") |
-            local_name!("b") |
-            local_name!("bdi") |
-            local_name!("bdo") |
-            local_name!("big") |
-            local_name!("blink") |
-            local_name!("cite") |
-            local_name!("code") |
-            local_name!("dfn") |
-            local_name!("em") |
-            local_name!("font") |
-            local_name!("i") |
-            local_name!("ins") |
-            local_name!("kbd") |
-            local_name!("mark") |
-            local_name!("nobr") |
-            local_name!("q") |
-            local_name!("s") |
-            local_name!("samp") |
-            local_name!("small") |
-            local_name!("span") |
-            local_name!("strike") |
-            local_name!("strong") |
-            local_name!("sub") |
-            local_name!("sup") |
-            local_name!("tt") |
-            local_name!("u") |
-            local_name!("var")
+        local_name!("abbr")
+            | local_name!("acronym")
+            | local_name!("b")
+            | local_name!("bdi")
+            | local_name!("bdo")
+            | local_name!("big")
+            | local_name!("blink")
+            | local_name!("cite")
+            | local_name!("code")
+            | local_name!("dfn")
+            | local_name!("em")
+            | local_name!("font")
+            | local_name!("i")
+            | local_name!("ins")
+            | local_name!("kbd")
+            | local_name!("mark")
+            | local_name!("nobr")
+            | local_name!("q")
+            | local_name!("s")
+            | local_name!("samp")
+            | local_name!("small")
+            | local_name!("span")
+            | local_name!("strike")
+            | local_name!("strong")
+            | local_name!("sub")
+            | local_name!("sup")
+            | local_name!("tt")
+            | local_name!("u")
+            | local_name!("var")
     )
 }
 
@@ -69,8 +69,8 @@ pub(crate) fn execute_removeformat_command(
         .expect("Must always have an active range");
     let mut elements = vec![];
     active_range.for_each_effectively_contained_child(|node| {
-        if let Some(html_element) = node.downcast::<HTMLElement>() &&
-            is_remove_format_candidate(html_element.upcast())
+        if let Some(html_element) = node.downcast::<HTMLElement>()
+            && is_remove_format_candidate(html_element.upcast())
         {
             elements.push(DomRoot::from_ref(node));
         }
@@ -95,10 +95,10 @@ pub(crate) fn execute_removeformat_command(
     // to the result, and its start offset to zero.
     let start_node = active_range.start_container();
     let start_offset = active_range.start_offset();
-    if start_node.is_editable() &&
-        start_offset != 0 &&
-        start_offset != start_node.len() &&
-        let Some(start_text) = start_node.downcast::<Text>()
+    if start_node.is_editable()
+        && start_offset != 0
+        && start_offset != start_node.len()
+        && let Some(start_text) = start_node.downcast::<Text>()
     {
         let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
             unreachable!("Must always be able to split");
@@ -111,11 +111,11 @@ pub(crate) fn execute_removeformat_command(
     // equal to the active range's end offset.
     let end_node = active_range.end_container();
     let end_offset = active_range.end_offset();
-    if end_node.is_editable() &&
-        end_offset != 0 &&
-        end_offset != end_node.len() &&
-        let Some(end_text) = end_node.downcast::<Text>() &&
-        end_text.SplitText(cx, end_offset).is_err()
+    if end_node.is_editable()
+        && end_offset != 0
+        && end_offset != end_node.len()
+        && let Some(end_text) = end_node.downcast::<Text>()
+        && end_text.SplitText(cx, end_offset).is_err()
     {
         unreachable!("Must always be able to split");
     };

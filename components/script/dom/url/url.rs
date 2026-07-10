@@ -203,9 +203,9 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         // this method call does nothing. User agents may display a message on the error console.
         let origin = global.origin().immutable().clone();
 
-        if let Ok(url) = ServoUrl::parse(&url.str()) &&
-            url.fragment().is_none() &&
-            let Ok((id, _)) = parse_blob_url(&url)
+        if let Ok(url) = ServoUrl::parse(&url.str())
+            && url.fragment().is_none()
+            && let Ok((id, _)) = parse_blob_url(&url)
         {
             let resource_threads = global.resource_threads();
             let (tx, rx) = generic_channel::channel(global.time_profiler_chan().clone()).unwrap();

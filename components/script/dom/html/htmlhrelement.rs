@@ -125,8 +125,8 @@ impl LayoutDom<'_, HTMLHRElement> {
 
         let hint = if element
             .get_attr_for_layout(&ns!(), &local_name!("color"))
-            .is_some() ||
-            element
+            .is_some()
+            || element
                 .get_attr_for_layout(&ns!(), &local_name!("noshade"))
                 .is_some()
         {

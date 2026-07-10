@@ -200,10 +200,10 @@ impl Area {
                 top_left,
                 bottom_right,
             } => {
-                p.x <= bottom_right.0 &&
-                    p.x >= top_left.0 &&
-                    p.y <= bottom_right.1 &&
-                    p.y >= top_left.1
+                p.x <= bottom_right.0
+                    && p.x >= top_left.0
+                    && p.y <= bottom_right.1
+                    && p.y >= top_left.1
             },
 
             Area::Polygon { ref points } => {

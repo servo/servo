@@ -816,8 +816,8 @@ impl PartialEq for ReaderType {
     fn eq(&self, other: &Self) -> bool {
         matches!(
             (self, other),
-            (ReaderType::BYOB(_), ReaderType::BYOB(_)) |
-                (ReaderType::Default(_), ReaderType::Default(_))
+            (ReaderType::BYOB(_), ReaderType::BYOB(_))
+                | (ReaderType::Default(_), ReaderType::Default(_))
         )
     }
 }

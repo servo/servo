@@ -183,8 +183,8 @@ impl HTMLVideoElement {
             let mut planar_texture = self.planar_texture.borrow_mut();
             match planar_texture.as_ref() {
                 Some(planar_texture) => {
-                    if planar_texture.is_expired() &&
-                        let Some(snapshot) = self.get_current_frame_data()
+                    if planar_texture.is_expired()
+                        && let Some(snapshot) = self.get_current_frame_data()
                     {
                         planar_texture.update(snapshot);
                     }

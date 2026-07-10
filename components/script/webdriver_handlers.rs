@@ -151,8 +151,8 @@ pub(crate) fn handle_get_known_window(
                 .map_or(Err(ErrorStatus::NoSuchWindow), |window| {
                     let window_proxy = window.window_proxy();
                     // Step 3-4: Window must be top level browsing context.
-                    if window_proxy.browsing_context_id() != window_proxy.webview_id() ||
-                        window_proxy.webview_id().to_string() != webview_id
+                    if window_proxy.browsing_context_id() != window_proxy.webview_id()
+                        || window_proxy.webview_id().to_string() != webview_id
                     {
                         Err(ErrorStatus::NoSuchWindow)
                     } else {
@@ -199,8 +199,8 @@ fn get_known_shadow_root(
 
     // Step 3. If node is not null and node does not implement ShadowRoot
     // return error with error code no such shadow root.
-    if let Some(ref node) = node &&
-        !node.is::<ShadowRoot>()
+    if let Some(ref node) = node
+        && !node.is::<ShadowRoot>()
     {
         return Err(ErrorStatus::NoSuchShadowRoot);
     }
@@ -253,8 +253,8 @@ fn get_known_element(
 
     // Step 3. If node is not null and node does not implement Element
     // return error with error code no such element.
-    if let Some(ref node) = node &&
-        !node.is::<Element>()
+    if let Some(ref node) = node
+        && !node.is::<Element>()
     {
         return Err(ErrorStatus::NoSuchElement);
     }
@@ -504,8 +504,8 @@ fn clone_an_object(
     // Step 2. Append value to `seen`.
     seen.insert(hashable.clone());
 
-    let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
-        is_arguments_object(cx, val)
+    let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val)
+        || is_arguments_object(cx, val)
     {
         let mut result: Vec<JSValue> = Vec::new();
 
@@ -1778,24 +1778,24 @@ pub(crate) fn handle_get_url(
 /// <https://w3c.github.io/webdriver/#dfn-mutable-form-control-element>
 fn element_is_mutable_form_control(element: &Element) -> bool {
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-        input_element.is_mutable() &&
-            matches!(
+        input_element.is_mutable()
+            && matches!(
                 *input_element.input_type(),
-                InputType::Text(_) |
-                    InputType::Search(_) |
-                    InputType::Url(_) |
-                    InputType::Tel(_) |
-                    InputType::Email(_) |
-                    InputType::Password(_) |
-                    InputType::Date(_) |
-                    InputType::Month(_) |
-                    InputType::Week(_) |
-                    InputType::Time(_) |
-                    InputType::DatetimeLocal(_) |
-                    InputType::Number(_) |
-                    InputType::Range(_) |
-                    InputType::Color(_) |
-                    InputType::File(_)
+                InputType::Text(_)
+                    | InputType::Search(_)
+                    | InputType::Url(_)
+                    | InputType::Tel(_)
+                    | InputType::Email(_)
+                    | InputType::Password(_)
+                    | InputType::Date(_)
+                    | InputType::Month(_)
+                    | InputType::Week(_)
+                    | InputType::Time(_)
+                    | InputType::DatetimeLocal(_)
+                    | InputType::Number(_)
+                    | InputType::Range(_)
+                    | InputType::Color(_)
+                    | InputType::File(_)
             )
     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
         textarea_element.is_mutable()
@@ -1817,8 +1817,8 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
             if input_element.Value().is_empty() {
                 return Ok(());
             }
-        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() &&
-            textarea_element.Value().is_empty()
+        } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>()
+            && textarea_element.Value().is_empty()
         {
             return Ok(());
         }
@@ -1941,8 +1941,8 @@ pub(crate) fn handle_element_click(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 // Step 4. If the element is an input element in the file upload state
                 // return error with error code invalid argument.
-                if let Some(input_element) = element.downcast::<HTMLInputElement>() &&
-                    matches!(*input_element.input_type(), InputType::File(_))
+                if let Some(input_element) = element.downcast::<HTMLInputElement>()
+                    && matches!(*input_element.input_type(), InputType::File(_))
                 {
                     return Err(ErrorStatus::InvalidArgument);
                 }

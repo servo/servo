@@ -347,12 +347,12 @@ impl WebGL2RenderingContext {
 
     pub(crate) fn buffer_usage(&self, usage: u32) -> WebGLResult<u32> {
         match usage {
-            constants::STATIC_READ |
-            constants::DYNAMIC_READ |
-            constants::STREAM_READ |
-            constants::STATIC_COPY |
-            constants::DYNAMIC_COPY |
-            constants::STREAM_COPY => Ok(usage),
+            constants::STATIC_READ
+            | constants::DYNAMIC_READ
+            | constants::STREAM_READ
+            | constants::STATIC_COPY
+            | constants::DYNAMIC_COPY
+            | constants::STREAM_COPY => Ok(usage),
             _ => self.base.buffer_usage(usage),
         }
     }
@@ -374,14 +374,14 @@ impl WebGL2RenderingContext {
             constants::SHORT => &[Type::Int16][..],
             constants::INT => &[Type::Int32][..],
             constants::UNSIGNED_BYTE => &[Type::Uint8, Type::Uint8Clamped][..],
-            constants::UNSIGNED_SHORT |
-            constants::UNSIGNED_SHORT_4_4_4_4 |
-            constants::UNSIGNED_SHORT_5_5_5_1 |
-            constants::UNSIGNED_SHORT_5_6_5 => &[Type::Uint16][..],
-            constants::UNSIGNED_INT |
-            constants::UNSIGNED_INT_2_10_10_10_REV |
-            constants::UNSIGNED_INT_10F_11F_11F_REV |
-            constants::UNSIGNED_INT_5_9_9_9_REV => &[Type::Uint32][..],
+            constants::UNSIGNED_SHORT
+            | constants::UNSIGNED_SHORT_4_4_4_4
+            | constants::UNSIGNED_SHORT_5_5_5_1
+            | constants::UNSIGNED_SHORT_5_6_5 => &[Type::Uint16][..],
+            constants::UNSIGNED_INT
+            | constants::UNSIGNED_INT_2_10_10_10_REV
+            | constants::UNSIGNED_INT_10F_11F_11F_REV
+            | constants::UNSIGNED_INT_5_9_9_9_REV => &[Type::Uint32][..],
             constants::FLOAT => &[Type::Float32][..],
             constants::HALF_FLOAT => &[Type::Uint16][..],
             _ => return Err(InvalidEnum),
@@ -534,10 +534,10 @@ impl WebGL2RenderingContext {
         let dst_byte_offset = {
             let margin_left = cmp::max(0, -x) as usize;
             let margin_top = cmp::max(0, -y) as usize;
-            dst_byte_offset +
-                skipped_bytes +
-                margin_left * bytes_per_pixel +
-                margin_top * row_stride
+            dst_byte_offset
+                + skipped_bytes
+                + margin_left * bytes_per_pixel
+                + margin_top * row_stride
         };
         let src_rect = {
             let (fb_width, fb_height) = handle_potential_webgl_error!(
@@ -621,9 +621,9 @@ impl WebGL2RenderingContext {
                 constants::STENCIL if !attrs.stencil => constants::NONE as _,
                 _ => constants::FRAMEBUFFER_DEFAULT as _,
             },
-            constants::FRAMEBUFFER_ATTACHMENT_RED_SIZE |
-            constants::FRAMEBUFFER_ATTACHMENT_GREEN_SIZE |
-            constants::FRAMEBUFFER_ATTACHMENT_BLUE_SIZE => match attachment {
+            constants::FRAMEBUFFER_ATTACHMENT_RED_SIZE
+            | constants::FRAMEBUFFER_ATTACHMENT_GREEN_SIZE
+            | constants::FRAMEBUFFER_ATTACHMENT_BLUE_SIZE => match attachment {
                 constants::BACK => 8,
                 _ => 0,
             },
@@ -721,20 +721,20 @@ impl WebGL2RenderingContext {
             constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE => {},
             _ => match fb.attachment(attachment) {
                 Some(webgl_attachment) => match pname {
-                    constants::FRAMEBUFFER_ATTACHMENT_RED_SIZE |
-                    constants::FRAMEBUFFER_ATTACHMENT_GREEN_SIZE |
-                    constants::FRAMEBUFFER_ATTACHMENT_BLUE_SIZE |
-                    constants::FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE |
-                    constants::FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE |
-                    constants::FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE |
-                    constants::FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE |
-                    constants::FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING => {},
+                    constants::FRAMEBUFFER_ATTACHMENT_RED_SIZE
+                    | constants::FRAMEBUFFER_ATTACHMENT_GREEN_SIZE
+                    | constants::FRAMEBUFFER_ATTACHMENT_BLUE_SIZE
+                    | constants::FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE
+                    | constants::FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE
+                    | constants::FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE
+                    | constants::FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE
+                    | constants::FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING => {},
                     _ => match webgl_attachment {
                         WebGLFramebufferAttachmentRoot::Renderbuffer(_) => return Err(InvalidEnum),
                         WebGLFramebufferAttachmentRoot::Texture(_) => match pname {
-                            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL |
-                            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE |
-                            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER => {},
+                            constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL
+                            | constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE
+                            | constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER => {},
                             _ => return Err(InvalidEnum),
                         },
                     },
@@ -819,13 +819,13 @@ impl WebGL2RenderingContext {
 
             for &attachment in attachments {
                 match attachment {
-                    constants::DEPTH_ATTACHMENT |
-                    constants::STENCIL_ATTACHMENT |
-                    constants::DEPTH_STENCIL_ATTACHMENT => {},
+                    constants::DEPTH_ATTACHMENT
+                    | constants::STENCIL_ATTACHMENT
+                    | constants::DEPTH_STENCIL_ATTACHMENT => {},
                     constants::COLOR_ATTACHMENT0..=constants::COLOR_ATTACHMENT15 => {
-                        let last_slot = constants::COLOR_ATTACHMENT0 +
-                            self.base.limits().max_color_attachments -
-                            1;
+                        let last_slot = constants::COLOR_ATTACHMENT0
+                            + self.base.limits().max_color_attachments
+                            - 1;
                         if last_slot < attachment {
                             return false;
                         }
@@ -1564,8 +1564,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         let copy_bytes = copy_count * src_elem_size;
 
         let dst_byte_offset = dst_byte_offset as usize;
-        if dst_byte_offset + copy_bytes > bound_buffer.capacity() ||
-            src_byte_offset + copy_bytes > src_data.len()
+        if dst_byte_offset + copy_bytes > bound_buffer.capacity()
+            || src_byte_offset + copy_bytes > src_data.len()
         {
             return self.base.webgl_error(InvalidValue);
         }
@@ -1608,8 +1608,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         let read_until = read_offset + size;
         let write_until = write_offset + size;
-        if read_until as usize > read_buffer.capacity() ||
-            write_until as usize > write_buffer.capacity()
+        if read_until as usize > read_buffer.capacity()
+            || write_until as usize > write_buffer.capacity()
         {
             return self.base.webgl_error(InvalidValue);
         }
@@ -1677,8 +1677,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         // TODO(mmatyas): Transform Feedback
 
         let src_byte_offset = src_byte_offset as usize;
-        if src_byte_offset + copy_bytes > bound_buffer.capacity() ||
-            dst_byte_offset + copy_bytes > dst_buffer.len()
+        if src_byte_offset + copy_bytes > bound_buffer.capacity()
+            || dst_byte_offset + copy_bytes > dst_buffer.len()
         {
             return self.base.webgl_error(InvalidValue);
         }
@@ -2088,14 +2088,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         mut retval: MutableHandleValue,
     ) {
         let bindings = match target {
-            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING |
-            constants::TRANSFORM_FEEDBACK_BUFFER_SIZE |
-            constants::TRANSFORM_FEEDBACK_BUFFER_START => {
+            constants::TRANSFORM_FEEDBACK_BUFFER_BINDING
+            | constants::TRANSFORM_FEEDBACK_BUFFER_SIZE
+            | constants::TRANSFORM_FEEDBACK_BUFFER_START => {
                 &self.indexed_transform_feedback_buffer_bindings
             },
-            constants::UNIFORM_BUFFER_BINDING |
-            constants::UNIFORM_BUFFER_SIZE |
-            constants::UNIFORM_BUFFER_START => &self.indexed_uniform_buffer_bindings,
+            constants::UNIFORM_BUFFER_BINDING
+            | constants::UNIFORM_BUFFER_SIZE
+            | constants::UNIFORM_BUFFER_START => &self.indexed_uniform_buffer_bindings,
             _ => {
                 self.base.webgl_error(InvalidEnum);
                 return retval.set(NullValue());
@@ -2454,12 +2454,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     ) {
         self.base.with_location(location, |location| {
             match location.type_() {
-                constants::BOOL |
-                constants::UNSIGNED_INT |
-                constants::SAMPLER_2D |
-                constants::SAMPLER_2D_ARRAY |
-                constants::SAMPLER_3D |
-                constants::SAMPLER_CUBE => {},
+                constants::BOOL
+                | constants::UNSIGNED_INT
+                | constants::SAMPLER_2D
+                | constants::SAMPLER_2D_ARRAY
+                | constants::SAMPLER_3D
+                | constants::SAMPLER_CUBE => {},
                 _ => return Err(InvalidOperation),
             }
 
@@ -3124,12 +3124,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         offset: i64,
     ) {
         match type_ {
-            constants::BYTE |
-            constants::UNSIGNED_BYTE |
-            constants::SHORT |
-            constants::UNSIGNED_SHORT |
-            constants::INT |
-            constants::UNSIGNED_INT => {},
+            constants::BYTE
+            | constants::UNSIGNED_BYTE
+            | constants::SHORT
+            | constants::UNSIGNED_SHORT
+            | constants::INT
+            | constants::UNSIGNED_INT => {},
             _ => return self.base.webgl_error(InvalidEnum),
         };
         self.base
@@ -3250,8 +3250,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         // generate an INVALID_OPERATION error if they upload data from a PIXEL_UNPACK_BUFFER or a non-null client
         // side ArrayBufferView.
         if let (Some(AlphaTreatment::Premultiply), YAxisTreatment::Flipped) =
-            (alpha_treatment, y_axis_treatment) &&
-            src_data.is_some()
+            (alpha_treatment, y_axis_treatment)
+            && src_data.is_some()
         {
             self.base.webgl_error(InvalidOperation);
             return Ok(());
@@ -3341,8 +3341,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             },
         };
 
-        if let Some(tf_buffer) = self.bound_transform_feedback_buffer.get() &&
-            pixel_unpack_buffer == tf_buffer
+        if let Some(tf_buffer) = self.bound_transform_feedback_buffer.get()
+            && pixel_unpack_buffer == tf_buffer
         {
             self.base.webgl_error(InvalidOperation);
             return Ok(());
@@ -3729,10 +3729,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         let src_height = src_y1.checked_sub(src_y0);
         let dst_height = dst_y1.checked_sub(dst_y0);
 
-        if src_width.is_none() ||
-            dst_width.is_none() ||
-            src_height.is_none() ||
-            dst_height.is_none()
+        if src_width.is_none()
+            || dst_width.is_none()
+            || src_height.is_none()
+            || dst_height.is_none()
         {
             return self.base.webgl_error(InvalidOperation);
         }
@@ -3902,8 +3902,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                     constants::TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN => &self.primitives_query,
                     _ => unreachable!(),
                 };
-                if let Some(stored_query) = slot.get() &&
-                    stored_query.target() == query.target()
+                if let Some(stored_query) = slot.get()
+                    && stored_query.target() == query.target()
                 {
                     slot.set(None);
                 }
@@ -4011,8 +4011,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 None
             },
         };
-        if let Some(query) = active_query.as_ref() &&
-            query.target() != Some(target)
+        if let Some(query) = active_query.as_ref()
+            && query.target() != Some(target)
         {
             return None;
         }
@@ -4320,9 +4320,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                     self.base.webgl_error(InvalidOperation);
                     return;
                 }
-                if let Some(current_tf) = self.current_transform_feedback.get() &&
-                    current_tf.is_active() &&
-                    !current_tf.is_paused()
+                if let Some(current_tf) = self.current_transform_feedback.get()
+                    && current_tf.is_active()
+                    && !current_tf.is_paused()
                 {
                     self.base.webgl_error(InvalidOperation);
                     return;
@@ -4650,12 +4650,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         );
 
         match pname {
-            constants::UNIFORM_SIZE |
-            constants::UNIFORM_TYPE |
-            constants::UNIFORM_BLOCK_INDEX |
-            constants::UNIFORM_OFFSET |
-            constants::UNIFORM_ARRAY_STRIDE |
-            constants::UNIFORM_MATRIX_STRIDE => {
+            constants::UNIFORM_SIZE
+            | constants::UNIFORM_TYPE
+            | constants::UNIFORM_BLOCK_INDEX
+            | constants::UNIFORM_OFFSET
+            | constants::UNIFORM_ARRAY_STRIDE
+            | constants::UNIFORM_MATRIX_STRIDE => {
                 values.safe_to_jsval(cx, rval);
             },
             constants::UNIFORM_IS_ROW_MAJOR => {
@@ -4701,9 +4701,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return retval.set(NullValue())
         );
         match pname {
-            constants::UNIFORM_BLOCK_BINDING |
-            constants::UNIFORM_BLOCK_DATA_SIZE |
-            constants::UNIFORM_BLOCK_ACTIVE_UNIFORMS => {
+            constants::UNIFORM_BLOCK_BINDING
+            | constants::UNIFORM_BLOCK_DATA_SIZE
+            | constants::UNIFORM_BLOCK_ACTIVE_UNIFORMS => {
                 assert!(values.len() == 1);
                 retval.set(UInt32Value(values[0] as u32))
             },
@@ -4714,8 +4714,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                     .unwrap();
                 retval.set(ObjectValue(result.get()))
             },
-            constants::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER |
-            constants::UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER => {
+            constants::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER
+            | constants::UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER => {
                 assert!(values.len() == 1);
                 retval.set(BooleanValue(values[0] != 0))
             },

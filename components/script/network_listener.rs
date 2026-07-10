@@ -38,8 +38,8 @@ pub(crate) fn submit_timing<T: ResourceTimingListener>(
     // (e.g. mixed content, CORS restriction, CSP policy, etc), then this resource
     // will not be included as a PerformanceResourceTiming object in
     // the Performance Timeline.
-    if let Err(error) = &result &&
-        error.is_permanent_failure()
+    if let Err(error) = &result
+        && error.is_permanent_failure()
     {
         return;
     }
@@ -53,8 +53,8 @@ pub(crate) fn submit_timing<T: ResourceTimingListener>(
     // (e.g. due to a network error) MAY be included as PerformanceResourceTiming
     // objects in the Performance Timeline and MUST contain initialized attribute
     // values for processed substeps of the processing model.
-    if resource_timing.timing_type != ResourceTimingType::Resource &&
-        resource_timing.timing_type != ResourceTimingType::Error
+    if resource_timing.timing_type != ResourceTimingType::Resource
+        && resource_timing.timing_type != ResourceTimingType::Error
     {
         warn!(
             "Submitting non-resource ({:?}) timing as resource",

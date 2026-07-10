@@ -140,8 +140,8 @@ impl Range {
         }
         // Step 4. While start offset is zero and start node's parent is not null,
         // set start offset to start node's index, then set start node to its parent.
-        while start_offset == 0 &&
-            let Some(parent) = start_node.GetParentNode()
+        while start_offset == 0
+            && let Some(parent) = start_node.GetParentNode()
         {
             start_offset = start_node.index();
             start_node = parent;
@@ -177,8 +177,8 @@ impl Range {
         }
         // Step 7. While end offset is end node's length and end node's parent is not null,
         // set end offset to one plus end node's index, then set end node to its parent.
-        while end_offset == end_node.len() &&
-            let Some(parent) = end_node.GetParentNode()
+        while end_offset == end_node.len()
+            && let Some(parent) = end_node.GetParentNode()
         {
             end_offset = 1 + end_node.index();
             end_node = parent;
@@ -316,9 +316,9 @@ impl Range {
                             CommandName::FontSize => {
                                 let value_override =
                                     context_object.value_override(&CommandName::FontSize);
-                                if value_override != optional_string ||
-                                    (value_override.is_none() &&
-                                        !CommandName::FontSize.are_loosely_equivalent_values(
+                                if value_override != optional_string
+                                    || (value_override.is_none()
+                                        && !CommandName::FontSize.are_loosely_equivalent_values(
                                             node.effective_command_value(&CommandName::FontSize)
                                                 .as_ref(),
                                             optional_string.as_ref(),

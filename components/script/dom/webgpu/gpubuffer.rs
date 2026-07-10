@@ -328,10 +328,10 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .map(RootedTraceableBox::new)
             .ok_or(Error::Operation(None))?;
 
-        let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
-            range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
-            offset >= mapping.range.start &&
-            offset + range_size <= mapping.range.end;
+        let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT)
+            && range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0
+            && offset >= mapping.range.start
+            && offset + range_size <= mapping.range.end;
         if !valid {
             self.mapping
                 .safe_borrow_mut(cx)

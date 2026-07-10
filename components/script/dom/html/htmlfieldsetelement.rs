@@ -192,10 +192,10 @@ impl VirtualMethods for HTMLFieldSetElement {
                         .traverse_preorder(ShadowIncluding::No)
                         .filter(|descendant| match descendant.type_id() {
                             NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLButtonElement |
-                                HTMLElementTypeId::HTMLInputElement |
-                                HTMLElementTypeId::HTMLSelectElement |
-                                HTMLElementTypeId::HTMLTextAreaElement,
+                                HTMLElementTypeId::HTMLButtonElement
+                                | HTMLElementTypeId::HTMLInputElement
+                                | HTMLElementTypeId::HTMLSelectElement
+                                | HTMLElementTypeId::HTMLTextAreaElement,
                             )) => true,
                             NodeTypeId::Element(ElementTypeId::HTMLElement(
                                 HTMLElementTypeId::HTMLElement,
@@ -232,8 +232,8 @@ impl VirtualMethods for HTMLFieldSetElement {
                             element.check_disabled_attribute();
                             element.check_ancestors_disabled_state_for_form_control();
                             // Fire callback only if this has actually enabled the custom element
-                            if element.enabled_state() &&
-                                element
+                            if element.enabled_state()
+                                && element
                                     .downcast::<HTMLElement>()
                                     .is_some_and(|h| h.is_form_associated_custom_element())
                             {

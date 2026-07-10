@@ -310,8 +310,8 @@ pub(crate) fn descriptor_permission_state(
     // relevant global object has an associated Document run the following step:
     //   1. Let document be settings' relevant global object's associated Document.
     //   2. If document is not allowed to use feature, return "denied".
-    if let Some(window) = global_scope.downcast::<Window>() &&
-        !window.Document().allowed_to_use_feature(feature)
+    if let Some(window) = global_scope.downcast::<Window>()
+        && !window.Document().allowed_to_use_feature(feature)
     {
         return PermissionState::Denied;
     }

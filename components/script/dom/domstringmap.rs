@@ -48,8 +48,8 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
     while let Some(curr_char) = name_chars.next() {
         // Note that we first need to peek, since we shouldn't advance the iterator twice
         // in case there are two consecutive dashes and then followed by a ASCII lower alpha
-        if curr_char == DATA_HYPHEN_SEPARATOR &&
-            name_chars
+        if curr_char == DATA_HYPHEN_SEPARATOR
+            && name_chars
                 .peek()
                 .is_some_and(|next_char| next_char.is_ascii_lowercase())
         {

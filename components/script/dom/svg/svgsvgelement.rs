@@ -111,8 +111,8 @@ impl SVGSVGElement {
 
     fn process_use_elements(&self, cx: &mut JSContext, root_node: &Node) {
         for node in root_node.traverse_preorder(ShadowIncluding::No) {
-            if let Some(element) = node.downcast::<Element>() &&
-                element.local_name() == &local_name!("use")
+            if let Some(element) = node.downcast::<Element>()
+                && element.local_name() == &local_name!("use")
             {
                 self.process_single_use_element(cx, element, root_node)
             }

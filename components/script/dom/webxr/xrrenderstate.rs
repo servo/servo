@@ -119,8 +119,8 @@ impl XRRenderState {
         } else {
             // The layers API is only for immersive sessions
             let layers = self.layers.borrow();
-            sub_images.len() == layers.len() &&
-                sub_images
+            sub_images.len() == layers.len()
+                && sub_images
                     .iter()
                     .zip(layers.iter())
                     .all(|(sub_image, layer)| Some(sub_image.layer_id) == layer.layer_id())

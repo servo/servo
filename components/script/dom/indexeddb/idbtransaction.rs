@@ -223,10 +223,10 @@ impl IDBTransaction {
     }
 
     pub(crate) fn is_inactive(&self) -> bool {
-        !self.active.get() &&
-            !self.finished.get() &&
-            !self.abort_initiated.get() &&
-            !self.committing.get()
+        !self.active.get()
+            && !self.finished.get()
+            && !self.abort_initiated.get()
+            && !self.committing.get()
     }
 
     pub(crate) fn is_committing(&self) -> bool {
@@ -500,8 +500,8 @@ impl IDBTransaction {
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction has a error which is set if the transaction is aborted.
         // NOTE: Implementors need to keep in mind that the value "null" is considered an error, as it is set from abort()
-        if self.error.get().is_none() &&
-            let Ok(exception) = create_dom_exception(cx, &self.global(), error)
+        if self.error.get().is_none()
+            && let Ok(exception) = create_dom_exception(cx, &self.global(), error)
         {
             self.error.set(Some(&exception));
         }

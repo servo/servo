@@ -101,8 +101,8 @@ impl Element {
         }
         // Step 11. If element is a font element that has an attribute whose effect is to create a presentational hint for property,
         // return the value that the hint sets property to. (For a size of 7, this will be the non-CSS value "xxx-large".)
-        if self.is::<HTMLFontElement>() &&
-            let Some(font_size) = self
+        if self.is::<HTMLFontElement>()
+            && let Some(font_size) = self
                 .with_attribute(&ns!(), &local_name!("size"), |attribute| {
                     if let AttrValue::UInt(_, value) = *attribute.value() {
                         Some(value)
@@ -149,15 +149,15 @@ impl Element {
             ))
         ) || matches!(
             *self.local_name(),
-            local_name!("b") |
-                local_name!("em") |
-                local_name!("i") |
-                local_name!("s") |
-                local_name!("strike") |
-                local_name!("strong") |
-                local_name!("sub") |
-                local_name!("sup") |
-                local_name!("u")
+            local_name!("b")
+                | local_name!("em")
+                | local_name!("i")
+                | local_name!("s")
+                | local_name!("strike")
+                | local_name!("strong")
+                | local_name!("sub")
+                | local_name!("sup")
+                | local_name!("u")
         ) {
             return attrs.all(|attr| attr.local_name() == &local_name!("style"));
         }
@@ -172,10 +172,10 @@ impl Element {
             return attrs.all(|attr| {
                 matches!(
                     *attr.local_name(),
-                    local_name!("style") |
-                        local_name!("color") |
-                        local_name!("face") |
-                        local_name!("size")
+                    local_name!("style")
+                        | local_name!("color")
+                        | local_name!("face")
+                        | local_name!("size")
                 )
             });
         }
@@ -216,18 +216,18 @@ impl Element {
         // > "address", "div", "h1", "h2", "h3", "h4", "h5", "h6", "listing", "p", "pre", or "xmp".
         matches!(
             *self.local_name(),
-            local_name!("address") |
-                local_name!("div") |
-                local_name!("h1") |
-                local_name!("h2") |
-                local_name!("h3") |
-                local_name!("h4") |
-                local_name!("h5") |
-                local_name!("h6") |
-                local_name!("listing") |
-                local_name!("p") |
-                local_name!("pre") |
-                local_name!("xmp")
+            local_name!("address")
+                | local_name!("div")
+                | local_name!("h1")
+                | local_name!("h2")
+                | local_name!("h3")
+                | local_name!("h4")
+                | local_name!("h5")
+                | local_name!("h6")
+                | local_name!("listing")
+                | local_name!("p")
+                | local_name!("pre")
+                | local_name!("xmp")
         )
     }
 
@@ -248,15 +248,15 @@ impl Element {
             ))
         ) || matches!(
             *self.local_name(),
-            local_name!("b") |
-                local_name!("em") |
-                local_name!("i") |
-                local_name!("s") |
-                local_name!("strike") |
-                local_name!("strong") |
-                local_name!("sub") |
-                local_name!("sup") |
-                local_name!("u")
+            local_name!("b")
+                | local_name!("em")
+                | local_name!("i")
+                | local_name!("s")
+                | local_name!("strike")
+                | local_name!("strong")
+                | local_name!("sub")
+                | local_name!("sup")
+                | local_name!("u")
         ) {
             // > It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u element with no attributes.
             if attr_count == 0 {
@@ -266,9 +266,9 @@ impl Element {
             // > It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u element
             // > with exactly one attribute, which is style,
             // > which sets no CSS properties (including invalid or unrecognized properties).
-            if attr_count == 1 &&
-                attrs.first().expect("Size is 1").local_name() == &local_name!("style") &&
-                self.has_empty_style_attribute()
+            if attr_count == 1
+                && attrs.first().expect("Size is 1").local_name() == &local_name!("style")
+                && self.has_empty_style_attribute()
             {
                 return true;
             }
@@ -298,9 +298,9 @@ impl Element {
                 HTMLElementTypeId::HTMLFontElement,
             ))
         ) {
-            return only_attribute == &local_name!("color") ||
-                only_attribute == &local_name!("face") ||
-                only_attribute == &local_name!("size");
+            return only_attribute == &local_name!("color")
+                || only_attribute == &local_name!("face")
+                || only_attribute == &local_name!("size");
         }
 
         if only_attribute != &local_name!("style") {
@@ -319,16 +319,16 @@ impl Element {
         // > and the style attribute sets exactly one CSS property
         // > (including invalid or unrecognized properties), which is "font-weight".
         if matches!(*self.local_name(), local_name!("b") | local_name!("strong")) {
-            return style.len() == 1 &&
-                style.contains(PropertyDeclarationId::Longhand(LonghandId::FontWeight));
+            return style.len() == 1
+                && style.contains(PropertyDeclarationId::Longhand(LonghandId::FontWeight));
         }
 
         // > It is an i or em element with exactly one attribute, which is style,
         // > and the style attribute sets exactly one CSS property (including invalid or unrecognized properties),
         // > which is "font-style".
         if matches!(*self.local_name(), local_name!("i") | local_name!("em")) {
-            return style.len() == 1 &&
-                style.contains(PropertyDeclarationId::Longhand(LonghandId::FontStyle));
+            return style.len() == 1
+                && style.contains(PropertyDeclarationId::Longhand(LonghandId::FontStyle));
         }
 
         let a_font_or_span = matches!(
@@ -348,8 +348,8 @@ impl Element {
         if a_font_or_span || s_strike_or_u {
             // Note that the shorthand "text-decoration" expands to 3 longhands. Hence we check if the length
             // is 3 here, instead of 1.
-            if style.len() == 3 &&
-                style
+            if style.len() == 3
+                && style
                     .shorthand_to_css(ShorthandId::TextDecoration, &mut String::new())
                     .is_ok()
             {
@@ -363,10 +363,10 @@ impl Element {
                     return matches!(
                         text_decoration,
                         PropertyDeclaration::TextDecorationLine(
-                            TextDecorationLine::LINE_THROUGH |
-                                TextDecorationLine::UNDERLINE |
-                                TextDecorationLine::OVERLINE |
-                                TextDecorationLine::NONE
+                            TextDecorationLine::LINE_THROUGH
+                                | TextDecorationLine::UNDERLINE
+                                | TextDecorationLine::OVERLINE
+                                | TextDecorationLine::NONE
                         )
                     );
                 }

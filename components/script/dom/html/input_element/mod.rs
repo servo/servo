@@ -270,28 +270,28 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
     fn value_mode(&self) -> ValueMode {
         match *self.input_type() {
-            InputType::Submit(_) |
-            InputType::Reset(_) |
-            InputType::Button(_) |
-            InputType::Image(_) |
-            InputType::Hidden(_) => ValueMode::Default,
+            InputType::Submit(_)
+            | InputType::Reset(_)
+            | InputType::Button(_)
+            | InputType::Image(_)
+            | InputType::Hidden(_) => ValueMode::Default,
 
             InputType::Checkbox(_) | InputType::Radio(_) => ValueMode::DefaultOn,
 
-            InputType::Color(_) |
-            InputType::Date(_) |
-            InputType::DatetimeLocal(_) |
-            InputType::Email(_) |
-            InputType::Month(_) |
-            InputType::Number(_) |
-            InputType::Password(_) |
-            InputType::Range(_) |
-            InputType::Search(_) |
-            InputType::Tel(_) |
-            InputType::Text(_) |
-            InputType::Time(_) |
-            InputType::Url(_) |
-            InputType::Week(_) => ValueMode::Value,
+            InputType::Color(_)
+            | InputType::Date(_)
+            | InputType::DatetimeLocal(_)
+            | InputType::Email(_)
+            | InputType::Month(_)
+            | InputType::Number(_)
+            | InputType::Password(_)
+            | InputType::Range(_)
+            | InputType::Search(_)
+            | InputType::Tel(_)
+            | InputType::Text(_)
+            | InputType::Time(_)
+            | InputType::Url(_)
+            | InputType::Week(_) => ValueMode::Value,
 
             InputType::File(_) => ValueMode::Filename,
         }
@@ -306,16 +306,16 @@ impl HTMLInputElement {
     pub(crate) fn is_nontypeable(&self) -> bool {
         matches!(
             *self.input_type(),
-            InputType::Button(_) |
-                InputType::Checkbox(_) |
-                InputType::Color(_) |
-                InputType::File(_) |
-                InputType::Hidden(_) |
-                InputType::Image(_) |
-                InputType::Radio(_) |
-                InputType::Range(_) |
-                InputType::Reset(_) |
-                InputType::Submit(_)
+            InputType::Button(_)
+                | InputType::Checkbox(_)
+                | InputType::Color(_)
+                | InputType::File(_)
+                | InputType::Hidden(_)
+                | InputType::Image(_)
+                | InputType::Radio(_)
+                | InputType::Range(_)
+                | InputType::Reset(_)
+                | InputType::Submit(_)
         )
     }
 
@@ -331,40 +331,40 @@ impl HTMLInputElement {
     pub(crate) fn is_auto_directionality_form_associated_element(&self) -> bool {
         matches!(
             *self.input_type(),
-            InputType::Hidden(_) |
-                InputType::Text(_) |
-                InputType::Search(_) |
-                InputType::Tel(_) |
-                InputType::Url(_) |
-                InputType::Email(_) |
-                InputType::Password(_) |
-                InputType::Submit(_) |
-                InputType::Reset(_) |
-                InputType::Button(_)
+            InputType::Hidden(_)
+                | InputType::Text(_)
+                | InputType::Search(_)
+                | InputType::Tel(_)
+                | InputType::Url(_)
+                | InputType::Email(_)
+                | InputType::Password(_)
+                | InputType::Submit(_)
+                | InputType::Reset(_)
+                | InputType::Button(_)
         )
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
         matches!(
             *self.input_type(),
-            InputType::Text(_) |
-                InputType::Search(_) |
-                InputType::Url(_) |
-                InputType::Tel(_) |
-                InputType::Email(_) |
-                InputType::Password(_)
+            InputType::Text(_)
+                | InputType::Search(_)
+                | InputType::Url(_)
+                | InputType::Tel(_)
+                | InputType::Email(_)
+                | InputType::Password(_)
         )
     }
 
     fn does_pattern_apply(&self) -> bool {
         matches!(
             *self.input_type(),
-            InputType::Text(_) |
-                InputType::Search(_) |
-                InputType::Url(_) |
-                InputType::Tel(_) |
-                InputType::Email(_) |
-                InputType::Password(_)
+            InputType::Text(_)
+                | InputType::Search(_)
+                | InputType::Url(_)
+                | InputType::Tel(_)
+                | InputType::Email(_)
+                | InputType::Password(_)
         )
     }
 
@@ -377,13 +377,13 @@ impl HTMLInputElement {
     fn does_value_as_number_apply(&self) -> bool {
         matches!(
             *self.input_type(),
-            InputType::Date(_) |
-                InputType::Month(_) |
-                InputType::Week(_) |
-                InputType::Time(_) |
-                InputType::DatetimeLocal(_) |
-                InputType::Number(_) |
-                InputType::Range(_)
+            InputType::Date(_)
+                | InputType::Month(_)
+                | InputType::Week(_)
+                | InputType::Time(_)
+                | InputType::DatetimeLocal(_)
+                | InputType::Number(_)
+                | InputType::Range(_)
         )
     }
 
@@ -600,8 +600,8 @@ impl HTMLInputElement {
             // Step 4. If the element has a minimum and a maximum and there is no value greater than or equal to the
             // element's minimum and less than or equal to the element's maximum that, when subtracted from the step
             // base, is an integral multiple of the allowed value step, then return.
-            if let Some(stepped_minimum) = self.stepped_minimum() &&
-                stepped_minimum > max
+            if let Some(stepped_minimum) = self.stepped_minimum()
+                && stepped_minimum > max
             {
                 return Ok(());
             }
@@ -652,8 +652,8 @@ impl HTMLInputElement {
         // Step 8. If the element has a minimum, and value is less than that minimum, then set value to the smallest
         // value that, when subtracted from the step base, is an integral multiple of the allowed value step, and that
         // is more than or equal to that minimum.
-        if let Some(min) = minimum &&
-            value < min
+        if let Some(min) = minimum
+            && value < min
         {
             value = self.stepped_minimum().unwrap_or(value);
         }
@@ -661,8 +661,8 @@ impl HTMLInputElement {
         // Step 9. If the element has a maximum, and value is greater than that maximum, then set value to the largest
         // value that, when subtracted from the step base, is an integral multiple of the allowed value step, and that
         // is less than or equal to that maximum.
-        if let Some(max) = maximum &&
-            value > max
+        if let Some(max) = maximum
+            && value > max
         {
             value = self.stepped_maximum().unwrap_or(value);
         }
@@ -827,14 +827,14 @@ impl HTMLInputElement {
             }
         } else {
             // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-underflow-2
-            if let Some(min_value) = min_value &&
-                value_as_number < min_value
+            if let Some(min_value) = min_value
+                && value_as_number < min_value
             {
                 failed_flags.insert(ValidationFlags::RANGE_UNDERFLOW);
             }
             // https://html.spec.whatwg.org/multipage/#the-min-and-max-attributes%3Asuffering-from-an-overflow-2
-            if let Some(max_value) = max_value &&
-                value_as_number > max_value
+            if let Some(max_value) = max_value
+                && value_as_number > max_value
             {
                 failed_flags.insert(ValidationFlags::RANGE_OVERFLOW);
             }
@@ -896,11 +896,11 @@ impl HTMLInputElement {
     fn value_for_shadow_dom(&self) -> DOMString {
         let input_type = &*self.input_type();
         match input_type {
-            InputType::Checkbox(_) |
-            InputType::Radio(_) |
-            InputType::Image(_) |
-            InputType::Hidden(_) |
-            InputType::Range(_) => input_type.as_specific().value_for_shadow_dom(self),
+            InputType::Checkbox(_)
+            | InputType::Radio(_)
+            | InputType::Image(_)
+            | InputType::Hidden(_)
+            | InputType::Range(_) => input_type.as_specific().value_for_shadow_dom(self),
             _ => {
                 if let Some(attribute_value) = self
                     .upcast::<Element>()
@@ -980,11 +980,11 @@ impl TextControlElement for HTMLInputElement {
     fn selection_api_applies(&self) -> bool {
         matches!(
             *self.input_type(),
-            InputType::Text(_) |
-                InputType::Search(_) |
-                InputType::Url(_) |
-                InputType::Tel(_) |
-                InputType::Password(_)
+            InputType::Text(_)
+                | InputType::Search(_)
+                | InputType::Url(_)
+                | InputType::Tel(_)
+                | InputType::Password(_)
         )
     }
 
@@ -1872,21 +1872,21 @@ impl HTMLInputElement {
                     .traverse_preorder(ShadowIncluding::No)
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
-                        input.form_owner() == owner &&
-                            matches!(
+                        input.form_owner() == owner
+                            && matches!(
                                 *input.input_type(),
-                                InputType::Text(_) |
-                                    InputType::Search(_) |
-                                    InputType::Url(_) |
-                                    InputType::Tel(_) |
-                                    InputType::Email(_) |
-                                    InputType::Password(_) |
-                                    InputType::Date(_) |
-                                    InputType::Month(_) |
-                                    InputType::Week(_) |
-                                    InputType::Time(_) |
-                                    InputType::DatetimeLocal(_) |
-                                    InputType::Number(_)
+                                InputType::Text(_)
+                                    | InputType::Search(_)
+                                    | InputType::Url(_)
+                                    | InputType::Tel(_)
+                                    | InputType::Email(_)
+                                    | InputType::Password(_)
+                                    | InputType::Date(_)
+                                    | InputType::Month(_)
+                                    | InputType::Week(_)
+                                    | InputType::Time(_)
+                                    | InputType::DatetimeLocal(_)
+                                    | InputType::Number(_)
                             )
                     });
 
@@ -2104,8 +2104,8 @@ impl VirtualMethods for HTMLInputElement {
                         let new_value_mode = self.value_mode();
                         match (&old_value_mode, old_idl_value.is_empty(), new_value_mode) {
                             // Step 1
-                            (&ValueMode::Value, false, ValueMode::Default) |
-                            (&ValueMode::Value, false, ValueMode::DefaultOn) => {
+                            (&ValueMode::Value, false, ValueMode::Default)
+                            | (&ValueMode::Value, false, ValueMode::DefaultOn) => {
                                 self.SetValue(cx, old_idl_value)
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
@@ -2325,9 +2325,9 @@ impl VirtualMethods for HTMLInputElement {
         if let Some(mouse_event) = event.downcast::<MouseEvent>() {
             self.handle_mouse_event(mouse_event);
             event.mark_as_handled();
-        } else if event.type_() == atom!("keydown") &&
-            !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password()
+        } else if event.type_() == atom!("keydown")
+            && !event.DefaultPrevented()
+            && self.input_type().is_textual_or_password()
         {
             if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
@@ -2335,10 +2335,10 @@ impl VirtualMethods for HTMLInputElement {
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
                 self.handle_key_reaction(cx, action, event);
             }
-        } else if (event.type_() == atom!("compositionstart") ||
-            event.type_() == atom!("compositionupdate") ||
-            event.type_() == atom!("compositionend")) &&
-            self.input_type().is_textual_or_password()
+        } else if (event.type_() == atom!("compositionstart")
+            || event.type_() == atom!("compositionupdate")
+            || event.type_() == atom!("compositionend"))
+            && self.input_type().is_textual_or_password()
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
@@ -2460,9 +2460,9 @@ impl Validatable for HTMLInputElement {
         match *self.input_type() {
             InputType::Hidden(_) | InputType::Button(_) | InputType::Reset(_) => false,
             _ => {
-                !(self.upcast::<Element>().disabled_state() ||
-                    self.ReadOnly() ||
-                    is_barred_by_datalist_ancestor(self.upcast()))
+                !(self.upcast::<Element>().disabled_state()
+                    || self.ReadOnly()
+                    || is_barred_by_datalist_ancestor(self.upcast()))
             },
         }
     }
@@ -2475,26 +2475,26 @@ impl Validatable for HTMLInputElement {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 
-        if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
-            self.suffers_from_being_missing(&value)
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING)
+            && self.suffers_from_being_missing(&value)
         {
             failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }
 
-        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) &&
-            self.suffers_from_type_mismatch(&value)
+        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH)
+            && self.suffers_from_type_mismatch(&value)
         {
             failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
-            self.suffers_from_pattern_mismatch(cx, &value)
+        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH)
+            && self.suffers_from_pattern_mismatch(cx, &value)
         {
             failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::BAD_INPUT) &&
-            self.suffers_from_bad_input(&value)
+        if validate_flags.contains(ValidationFlags::BAD_INPUT)
+            && self.suffers_from_bad_input(&value)
         {
             failed_flags.insert(ValidationFlags::BAD_INPUT);
         }
@@ -2504,9 +2504,9 @@ impl Validatable for HTMLInputElement {
         }
 
         if validate_flags.intersects(
-            ValidationFlags::RANGE_UNDERFLOW |
-                ValidationFlags::RANGE_OVERFLOW |
-                ValidationFlags::STEP_MISMATCH,
+            ValidationFlags::RANGE_UNDERFLOW
+                | ValidationFlags::RANGE_OVERFLOW
+                | ValidationFlags::STEP_MISMATCH,
         ) {
             failed_flags |= self.suffers_from_range_issues(&value);
         }
@@ -2528,11 +2528,11 @@ impl Activatable for HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image):input-activation-behavior
             //
             // Although they do not have implicit activation behaviors, `type=button` is an activatable input event.
-            InputType::Submit(_) |
-            InputType::Reset(_) |
-            InputType::File(_) |
-            InputType::Image(_) |
-            InputType::Button(_) => self.is_mutable(),
+            InputType::Submit(_)
+            | InputType::Reset(_)
+            | InputType::File(_)
+            | InputType::Image(_)
+            | InputType::Button(_) => self.is_mutable(),
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
@@ -2565,8 +2565,8 @@ impl Activatable for HTMLInputElement {
         let ty = self.input_type();
         let cache = match cache {
             Some(cache) => {
-                if (cache.was_radio && !matches!(*ty, InputType::Radio(_))) ||
-                    (cache.was_checkbox && !matches!(*ty, InputType::Checkbox(_)))
+                if (cache.was_radio && !matches!(*ty, InputType::Radio(_)))
+                    || (cache.was_checkbox && !matches!(*ty, InputType::Checkbox(_)))
                 {
                     // Type changed, abandon ship
                     // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414

@@ -327,8 +327,8 @@ pub(crate) fn iterate_cursor(
                 // than key.
                 let requirement2 = || match &primary_key {
                     Some(primary_key) => key.as_ref().is_some_and(|key| {
-                        (&record.key == key && &record.primary_key >= primary_key) ||
-                            &record.key > key
+                        (&record.key == key && &record.primary_key >= primary_key)
+                            || &record.key > key
                     }),
                     _ => true,
                 };
@@ -345,11 +345,11 @@ pub(crate) fn iterate_cursor(
                 // record’s key is greater than position.
                 let requirement4 = || match (&position, source) {
                     (Some(position), ObjectStoreOrIndex::Index(_)) => {
-                        (&record.key == position &&
-                            object_store_position.as_ref().is_some_and(
+                        (&record.key == position
+                            && object_store_position.as_ref().is_some_and(
                                 |object_store_position| &record.primary_key > object_store_position,
-                            )) ||
-                            &record.key > position
+                            ))
+                            || &record.key > position
                     },
                     _ => true,
                 };
@@ -358,11 +358,11 @@ pub(crate) fn iterate_cursor(
                 let requirement5 = || range.contains(&record.key);
 
                 // NOTE: Use closures here for lazy computation on requirements.
-                requirement1() &&
-                    requirement2() &&
-                    requirement3() &&
-                    requirement4() &&
-                    requirement5()
+                requirement1()
+                    && requirement2()
+                    && requirement3()
+                    && requirement4()
+                    && requirement5()
             }),
             // "nextunique"
             IDBCursorDirection::Nextunique => records.iter().find(|record| {
@@ -404,8 +404,8 @@ pub(crate) fn iterate_cursor(
                     // key.
                     let requirement2 = || match &primary_key {
                         Some(primary_key) => key.as_ref().is_some_and(|key| {
-                            (&record.key == key && &record.primary_key <= primary_key) ||
-                                &record.key < key
+                            (&record.key == key && &record.primary_key <= primary_key)
+                                || &record.key < key
                         }),
                         _ => true,
                     };
@@ -424,13 +424,13 @@ pub(crate) fn iterate_cursor(
                     // record’s key is less than position.
                     let requirement4 = || match (&position, source) {
                         (Some(position), ObjectStoreOrIndex::Index(_)) => {
-                            (&record.key == position &&
-                                object_store_position.as_ref().is_some_and(
+                            (&record.key == position
+                                && object_store_position.as_ref().is_some_and(
                                     |object_store_position| {
                                         &record.primary_key < object_store_position
                                     },
-                                )) ||
-                                &record.key < position
+                                ))
+                                || &record.key < position
                         },
                         _ => true,
                     };
@@ -439,11 +439,11 @@ pub(crate) fn iterate_cursor(
                     let requirement5 = || range.contains(&record.key);
 
                     // NOTE: Use closures here for lazy computation on requirements.
-                    requirement1() &&
-                        requirement2() &&
-                        requirement3() &&
-                        requirement4() &&
-                        requirement5()
+                    requirement1()
+                        && requirement2()
+                        && requirement3()
+                        && requirement4()
+                        && requirement5()
                 })
             },
             // "prevunique"

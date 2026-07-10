@@ -210,8 +210,8 @@ impl TextInputWidgetShadowTree {
             (true, _) => "\u{200B}".into(),
         };
 
-        if let Some(character_data) = self.value_character_data() &&
-            character_data.Data() != value_text
+        if let Some(character_data) = self.value_character_data()
+            && character_data.Data() != value_text
         {
             character_data.SetData(cx, value_text);
         }

@@ -130,8 +130,8 @@ impl InteractiveElementCommand {
             // > inert, and false otherwise.
             // TODO: We do not support `inert` yet.
             InteractiveElementCommand::Option(option) => {
-                option.Disabled() ||
-                    option
+                option.Disabled()
+                    || option
                         .nearest_ancestor_select()
                         .is_some_and(|select| select.Disabled())
             },

@@ -64,8 +64,8 @@ impl Selection {
         // If we are setting to literally the same Range object
         // (not just the same positions), then there's nothing changing
         // and no task to queue.
-        if let Some(existing) = self.range.get() &&
-            &*existing == range
+        if let Some(existing) = self.range.get()
+            && &*existing == range
         {
             return;
         }
@@ -328,8 +328,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     fn RemoveRange(&self, range: &Range) -> ErrorResult {
         // > The method must make this empty by disassociating its range if this's range
         // > is range. Otherwise, it must throw a NotFoundError.
-        if let Some(own_range) = self.range.get() &&
-            &*own_range == range
+        if let Some(own_range) = self.range.get()
+            && &*own_range == range
         {
             self.clear_range();
             return Ok(());
@@ -556,8 +556,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // and its end to focus. Otherwise, set the start them to focus and anchor
         // respectively.
         let is_anchor_before_focus =
-            bp_position(anchor_node, anchor_offset, focus_node, focus_offset) ==
-                Some(Ordering::Less);
+            bp_position(anchor_node, anchor_offset, focus_node, focus_offset)
+                == Some(Ordering::Less);
         if is_anchor_before_focus {
             new_range = Range::new(
                 cx,

@@ -155,8 +155,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                 self.msg_queue.borrow_mut().push_back(msg);
                 continue;
             }
-            if let Some(pipeline_id) = msg.pipeline_id() &&
-                !fully_active.contains(&pipeline_id)
+            if let Some(pipeline_id) = msg.pipeline_id()
+                && !fully_active.contains(&pipeline_id)
             {
                 self.store_task_for_inactive_pipeline(msg, &pipeline_id);
                 continue;
@@ -242,8 +242,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                     let msg = T::from_queued_task(queued_task);
 
                     // Hold back tasks for currently inactive documents.
-                    if let Some(pipeline_id) = msg.pipeline_id() &&
-                        !fully_active.contains(&pipeline_id)
+                    if let Some(pipeline_id) = msg.pipeline_id()
+                        && !fully_active.contains(&pipeline_id)
                     {
                         self.store_task_for_inactive_pipeline(msg, &pipeline_id);
                         // Reduce the length of throttles,

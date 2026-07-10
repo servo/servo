@@ -95,11 +95,11 @@ impl Element {
             //
             // Note: the `hidden` attribute is checked above for all elements.
             NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement |
-                HTMLElementTypeId::HTMLButtonElement |
-                HTMLElementTypeId::HTMLSelectElement |
-                HTMLElementTypeId::HTMLTextAreaElement |
-                HTMLElementTypeId::HTMLIFrameElement,
+                HTMLElementTypeId::HTMLInputElement
+                | HTMLElementTypeId::HTMLButtonElement
+                | HTMLElementTypeId::HTMLSelectElement
+                | HTMLElementTypeId::HTMLTextAreaElement
+                | HTMLElementTypeId::HTMLIFrameElement,
             )) => true,
             _ => {
                 // >  - summary elements that are the first summary element child of a details element
@@ -107,9 +107,9 @@ impl Element {
                 // > -  Elements with a draggable attribute set, if that would enable the user agent to allow
                 // >    the user to begin drag operations for those elements without the use of a pointing device
                 self.downcast::<HTMLElement>()
-                    .is_some_and(|html_element| html_element.is_a_summary_for_its_parent_details()) ||
-                    self.is_editing_host() ||
-                    self.get_string_attribute(&local_name!("draggable")) == "true"
+                    .is_some_and(|html_element| html_element.is_a_summary_for_its_parent_details())
+                    || self.is_editing_host()
+                    || self.get_string_attribute(&local_name!("draggable")) == "true"
             },
         };
 
@@ -128,10 +128,10 @@ impl Element {
             .is_some_and(|axes_overflow| {
                 // This is checking whether there is an input event scrollable overflow value in
                 // a given axis and also overflow in that same axis.
-                (matches!(axes_overflow.x, Overflow::Auto | Overflow::Scroll) &&
-                    self.ScrollWidth() > self.ClientWidth()) ||
-                    (matches!(axes_overflow.y, Overflow::Auto | Overflow::Scroll) &&
-                        self.ScrollHeight() > self.ClientHeight())
+                (matches!(axes_overflow.x, Overflow::Auto | Overflow::Scroll)
+                    && self.ScrollWidth() > self.ClientWidth())
+                    || (matches!(axes_overflow.y, Overflow::Auto | Overflow::Scroll)
+                        && self.ScrollHeight() > self.ClientHeight())
             })
         {
             return FocusableAreaKind::Sequential;

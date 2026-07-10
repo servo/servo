@@ -155,8 +155,8 @@ impl HTMLElement {
         }
         // Step 9. If element is an a element and command is "createLink" or "unlink",
         // unset the href property of element.
-        if self.is::<HTMLAnchorElement>() &&
-            matches!(command, CommandName::CreateLink | CommandName::Unlink)
+        if self.is::<HTMLAnchorElement>()
+            && matches!(command, CommandName::CreateLink | CommandName::Unlink)
         {
             element.remove_attribute_by_name(cx, &local_name!("href"));
         }
@@ -213,8 +213,8 @@ impl HTMLElement {
                         .GetParentElement()
                         .and_then(|parent| parent.style())
                         .is_some_and(|style| {
-                            style.get_inherited_text().white_space_collapse ==
-                                WhiteSpaceCollapse::Preserve
+                            style.get_inherited_text().white_space_collapse
+                                == WhiteSpaceCollapse::Preserve
                         });
                     if !is_pre_formatted_text_node {
                         // If it isn't pre-formatted, then we should instead select the

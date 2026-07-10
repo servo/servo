@@ -69,8 +69,8 @@ impl Iterator for FocusNavigationScopeIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         let should_skip_element_children = |element: &Element| {
-            element.is_shadow_host() ||
-                element
+            element.is_shadow_host()
+                || element
                     .downcast::<HTMLSlotElement>()
                     .is_some_and(|html_slot_element| html_slot_element.has_assigned_nodes())
         };

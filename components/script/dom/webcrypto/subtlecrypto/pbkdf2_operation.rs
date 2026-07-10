@@ -94,8 +94,8 @@ pub(crate) fn import_key(
     // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
     if usages
         .iter()
-        .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
-        usages.is_empty()
+        .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
+        || usages.is_empty()
     {
         return Err(Error::Syntax(None));
     }

@@ -90,9 +90,9 @@ impl Sanitizer {
         // SanitizerPresets member, or a dictionary.
         assert!(matches!(
             sanitizer_spec,
-            SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_) |
-                SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerPresets(_) |
-                SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(_)
+            SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_)
+                | SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerPresets(_)
+                | SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(_)
         ));
 
         // Step 4. If sanitizerSpec is a string:
@@ -112,8 +112,8 @@ impl Sanitizer {
         // Step 5. Assert: sanitizerSpec is either a Sanitizer instance, or a dictionary.
         assert!(matches!(
             sanitizer_spec,
-            SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_) |
-                SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(_)
+            SanitizerOrSanitizerConfigOrSanitizerPresets::Sanitizer(_)
+                | SanitizerOrSanitizerConfigOrSanitizerPresets::SanitizerConfig(_)
         ));
 
         // Step 6. If sanitizerSpec is a dictionary:
@@ -184,10 +184,10 @@ impl Sanitizer {
     ) -> ErrorResult {
         // Step 1. If safe and contextElement’s local name is "script" and contextElement’s
         // namespace is the HTML namespace or the SVG namespace, then return.
-        if safe &&
-            context_element.local_name() == &local_name!("script") &&
-            (context_element.namespace() == &ns!(html) ||
-                context_element.namespace() == &ns!(svg))
+        if safe
+            && context_element.local_name() == &local_name!("script")
+            && (context_element.namespace() == &ns!(html)
+                || context_element.namespace() == &ns!(svg))
         {
             return Ok(());
         }
@@ -262,11 +262,11 @@ fn sanitize_core(
         // DocumentType.
         assert!(matches!(
             child.type_id(),
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) |
-                NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
-                NodeTypeId::Element(_) |
-                NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
-                NodeTypeId::DocumentType
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_))
+                | NodeTypeId::CharacterData(CharacterDataTypeId::Comment)
+                | NodeTypeId::Element(_)
+                | NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)
+                | NodeTypeId::DocumentType
         ));
 
         match child.type_id() {
@@ -406,8 +406,8 @@ fn sanitize_core(
                 // Step 1.6.5. If elementName equals «[ "name" → "template", "namespace" → HTML
                 // namespace ]», then call sanitize core on child’s template contents with
                 // configuration and handleJavascriptNavigationUrls.
-                if element_name.name().str() == "template" &&
-                    element_name
+                if element_name.name().str() == "template"
+                    && element_name
                         .namespace()
                         .is_some_and(|namespace| *namespace.str() == ns!(html))
                 {
@@ -440,10 +440,10 @@ fn sanitize_core(
 
                 // Step 1.6.8. If configuration["elements"] exists and configuration["elements"]
                 // contains elementName:
-                if let Some(configuration_elements) = &configuration.elements &&
-                    let Some(found) = configuration_elements.iter().find(|entry| {
-                        entry.name() == element_name.name() &&
-                            entry.namespace() == element_name.namespace()
+                if let Some(configuration_elements) = &configuration.elements
+                    && let Some(found) = configuration_elements.iter().find(|entry| {
+                        entry.name() == element_name.name()
+                            && entry.namespace() == element_name.namespace()
                     })
                 {
                     // Step 1.6.8.1. Set elementWithLocalAttributes to
@@ -503,14 +503,14 @@ fn sanitize_core(
                     // FIXME: <https://github.com/WICG/sanitizer-api/issues/380>
                     else if let Some(configuration_attributes) = configuration.attributes.as_ref()
                     {
-                        if (!configuration_attributes.contains_item(&attribute_name) &&
-                            !element_with_local_attributes
+                        if (!configuration_attributes.contains_item(&attribute_name)
+                            && !element_with_local_attributes
                                 .attributes()
                                 .unwrap_or_default()
-                                .contains_item(&attribute_name)) &&
-                            (!attribute_local_name.starts_with("data-") ||
-                                !attribute_namespace.is_empty() ||
-                                configuration.dataAttributes != Some(true))
+                                .contains_item(&attribute_name))
+                            && (!attribute_local_name.starts_with("data-")
+                                || !attribute_namespace.is_empty()
+                                || configuration.dataAttributes != Some(true))
                         {
                             // Step 1.6.9.3.1.1. Remove attribute.
                             child.remove_attribute(cx, attribute_namespace, attribute_local_name);
@@ -570,11 +570,11 @@ fn sanitize_core(
                         // Step 1.6.9.5.2. If child’s namespace is the MathML Namespace and attr’s
                         // local name is "href" and attr’s namespace is null or the XLink namespace
                         // and attr contains a javascript: URL, then remove attribute.
-                        if child.namespace() == &ns!(mathml) &&
-                            attribute_local_name == &local_name!("href") &&
-                            (attribute_namespace.is_empty() ||
-                                attribute_namespace == &ns!(xlink)) &&
-                            contains_javascript_url(attribute_value)
+                        if child.namespace() == &ns!(mathml)
+                            && attribute_local_name == &local_name!("href")
+                            && (attribute_namespace.is_empty()
+                                || attribute_namespace == &ns!(xlink))
+                            && contains_javascript_url(attribute_value)
                         {
                             child.remove_attribute(cx, attribute_namespace, attribute_local_name);
                         }
@@ -936,8 +936,8 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         else {
             // Step 5.1. If element["attributes"] exists or element["removeAttributes"] with default
             // « » is not empty:
-            if element.attributes().is_some() ||
-                !element.remove_attributes().unwrap_or_default().is_empty()
+            if element.attributes().is_some()
+                || !element.remove_attributes().unwrap_or_default().is_empty()
             {
                 // Step 5.1.1. The user agent may report a warning to the console that this
                 // operation is not supported.
@@ -1572,8 +1572,8 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                         // Step 16.2.1.5. If config["dataAttributes"] is true and
                         // element["attributes"] contains a custom data attribute, then return
                         // false.
-                        if self.dataAttributes == Some(true) &&
-                            element.attributes().is_some_and(|attributes| {
+                        if self.dataAttributes == Some(true)
+                            && element.attributes().is_some_and(|attributes| {
                                 attributes
                                     .iter()
                                     .any(|attribute| attribute.is_custom_data_attribute())
@@ -1586,8 +1586,8 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
 
                 // Step 16.3. If config["dataAttributes"] is true and config["attributes"] contains
                 // a custom data attribute, then return false.
-                if self.dataAttributes == Some(true) &&
-                    config_attributes
+                if self.dataAttributes == Some(true)
+                    && config_attributes
                         .iter()
                         .any(|attribute| attribute.is_custom_data_attribute())
                 {

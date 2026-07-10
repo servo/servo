@@ -157,29 +157,29 @@ impl VirtualMethods for HTMLBodyElement {
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-6
                 match name {
-                    &local_name!("onafterprint") |
-                    &local_name!("onbeforeprint") |
-                    &local_name!("onbeforeunload") |
-                    &local_name!("onerror") |
-                    &local_name!("onfocus") |
-                    &local_name!("onhashchange") |
-                    &local_name!("onload") |
-                    &local_name!("onlanguagechange") |
-                    &local_name!("onmessage") |
-                    &local_name!("onmessageerror") |
-                    &local_name!("onoffline") |
-                    &local_name!("ononline") |
-                    &local_name!("onpagehide") |
-                    &local_name!("onpagereveal") |
-                    &local_name!("onpageshow") |
-                    &local_name!("onpageswap") |
-                    &local_name!("onpopstate") |
-                    &local_name!("onrejectionhandled") |
-                    &local_name!("onresize") |
-                    &local_name!("onscroll") |
-                    &local_name!("onstorage") |
-                    &local_name!("onunhandledrejection") |
-                    &local_name!("onunload") => {
+                    &local_name!("onafterprint")
+                    | &local_name!("onbeforeprint")
+                    | &local_name!("onbeforeunload")
+                    | &local_name!("onerror")
+                    | &local_name!("onfocus")
+                    | &local_name!("onhashchange")
+                    | &local_name!("onload")
+                    | &local_name!("onlanguagechange")
+                    | &local_name!("onmessage")
+                    | &local_name!("onmessageerror")
+                    | &local_name!("onoffline")
+                    | &local_name!("ononline")
+                    | &local_name!("onpagehide")
+                    | &local_name!("onpagereveal")
+                    | &local_name!("onpageshow")
+                    | &local_name!("onpageswap")
+                    | &local_name!("onpopstate")
+                    | &local_name!("onrejectionhandled")
+                    | &local_name!("onresize")
+                    | &local_name!("onscroll")
+                    | &local_name!("onstorage")
+                    | &local_name!("onunhandledrejection")
+                    | &local_name!("onunload") => {
                         if document.has_browsing_context() {
                             // https://html.spec.whatwg.org/multipage/webappapis.html
                             // #event-handler-attributes%3Aevent-handler-content-attributes-3

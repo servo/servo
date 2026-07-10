@@ -381,8 +381,8 @@ impl CommandName {
                 // https://w3c.github.io/editing/docs/execCommand/#the-superscript-command
                 // > or if there is some formattable node effectively contained in
                 // > the active range with effective command value "mixed".
-                if matches!(self, CommandName::Subscript | CommandName::Superscript) &&
-                    effective_command_value == "mixed"
+                if matches!(self, CommandName::Subscript | CommandName::Superscript)
+                    && effective_command_value == "mixed"
                 {
                     at_least_two_different_effective_values = true;
                 }
@@ -494,13 +494,13 @@ impl CommandName {
                         // https://w3c.github.io/editing/docs/execCommand/#the-bold-command
                         // > Either the two strings are equal, or one is "bold" and the other is "700",
                         // > or one is "normal" and the other is "400".
-                        first_str == second_str ||
-                            matches!(
+                        first_str == second_str
+                            || matches!(
                                 (first_str.str().as_ref(), second_str.str().as_ref()),
-                                ("bold", "700") |
-                                    ("700", "bold") |
-                                    ("normal", "400") |
-                                    ("400", "normal")
+                                ("bold", "700")
+                                    | ("700", "bold")
+                                    | ("normal", "400")
+                                    | ("400", "normal")
                             )
                     },
                     CommandName::BackColor | CommandName::ForeColor | CommandName::HiliteColor => {
@@ -622,10 +622,10 @@ impl CommandName {
     pub(crate) fn is_standard_inline_value_command(&self) -> bool {
         matches!(
             self,
-            CommandName::BackColor |
-                CommandName::FontName |
-                CommandName::ForeColor |
-                CommandName::HiliteColor
+            CommandName::BackColor
+                | CommandName::FontName
+                | CommandName::ForeColor
+                | CommandName::HiliteColor
         )
     }
 
@@ -672,21 +672,21 @@ impl CommandName {
     pub(crate) fn is_enabled_in_plaintext_only_state(&self) -> bool {
         matches!(
             self,
-            CommandName::Copy |
-                CommandName::Cut |
-                CommandName::DefaultParagraphSeparator |
-                CommandName::FormatBlock |
-                CommandName::ForwardDelete |
-                CommandName::InsertHtml |
-                CommandName::InsertLineBreak |
-                CommandName::InsertParagraph |
-                CommandName::InsertText |
-                CommandName::Paste |
-                CommandName::Redo |
-                CommandName::StyleWithCss |
-                CommandName::Undo |
-                CommandName::Usecss |
-                CommandName::Delete
+            CommandName::Copy
+                | CommandName::Cut
+                | CommandName::DefaultParagraphSeparator
+                | CommandName::FormatBlock
+                | CommandName::ForwardDelete
+                | CommandName::InsertHtml
+                | CommandName::InsertLineBreak
+                | CommandName::InsertParagraph
+                | CommandName::InsertText
+                | CommandName::Paste
+                | CommandName::Redo
+                | CommandName::StyleWithCss
+                | CommandName::Undo
+                | CommandName::Usecss
+                | CommandName::Delete
         )
     }
 
@@ -694,22 +694,22 @@ impl CommandName {
     fn preserves_overrides(&self) -> bool {
         matches!(
             self,
-            CommandName::Delete |
-                CommandName::FormatBlock |
-                CommandName::ForwardDelete |
-                CommandName::Indent |
-                CommandName::InsertHorizontalRule |
-                CommandName::InsertHtml |
-                CommandName::InsertImage |
-                CommandName::InsertLineBreak |
-                CommandName::InsertOrderedList |
-                CommandName::InsertParagraph |
-                CommandName::InsertUnorderedList |
-                CommandName::JustifyCenter |
-                CommandName::JustifyFull |
-                CommandName::JustifyLeft |
-                CommandName::JustifyRight |
-                CommandName::Outdent
+            CommandName::Delete
+                | CommandName::FormatBlock
+                | CommandName::ForwardDelete
+                | CommandName::Indent
+                | CommandName::InsertHorizontalRule
+                | CommandName::InsertHtml
+                | CommandName::InsertImage
+                | CommandName::InsertLineBreak
+                | CommandName::InsertOrderedList
+                | CommandName::InsertParagraph
+                | CommandName::InsertUnorderedList
+                | CommandName::JustifyCenter
+                | CommandName::JustifyFull
+                | CommandName::JustifyLeft
+                | CommandName::JustifyRight
+                | CommandName::Outdent
         )
     }
 

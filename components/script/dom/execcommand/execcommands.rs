@@ -23,12 +23,12 @@ use crate::dom::selection::Selection;
 fn is_command_listed_in_miscellaneous_section(command_name: CommandName) -> bool {
     matches!(
         command_name,
-        CommandName::DefaultParagraphSeparator |
-            CommandName::Redo |
-            CommandName::SelectAll |
-            CommandName::StyleWithCss |
-            CommandName::Undo |
-            CommandName::Usecss
+        CommandName::DefaultParagraphSeparator
+            | CommandName::Redo
+            | CommandName::SelectAll
+            | CommandName::StyleWithCss
+            | CommandName::Undo
+            | CommandName::Usecss
     )
 }
 
@@ -105,9 +105,9 @@ impl Document {
         }
 
         // Some commands are only enabled if the editing host is *not* in plaintext-only state.
-        if !command_name.is_enabled_in_plaintext_only_state() &&
-            (start_container_editing_host.is_in_plaintext_only_state() ||
-                end_container_editing_host.is_in_plaintext_only_state())
+        if !command_name.is_enabled_in_plaintext_only_state()
+            && (start_container_editing_host.is_in_plaintext_only_state()
+                || end_container_editing_host.is_in_plaintext_only_state())
         {
             None
         } else {

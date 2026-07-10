@@ -219,18 +219,18 @@ impl InputType {
     pub(crate) fn is_textual(&self) -> bool {
         matches!(
             *self,
-            Self::Date(_) |
-                Self::DatetimeLocal(_) |
-                Self::Email(_) |
-                Self::Hidden(_) |
-                Self::Month(_) |
-                Self::Number(_) |
-                Self::Search(_) |
-                Self::Tel(_) |
-                Self::Text(_) |
-                Self::Time(_) |
-                Self::Url(_) |
-                Self::Week(_)
+            Self::Date(_)
+                | Self::DatetimeLocal(_)
+                | Self::Email(_)
+                | Self::Hidden(_)
+                | Self::Month(_)
+                | Self::Number(_)
+                | Self::Search(_)
+                | Self::Tel(_)
+                | Self::Text(_)
+                | Self::Time(_)
+                | Self::Url(_)
+                | Self::Week(_)
         )
     }
 
@@ -321,10 +321,10 @@ pub(crate) trait SpecificInputType {
 
     /// <https://html.spec.whatwg.org/multipage/#the-required-attribute%3Asuffering-from-being-missing>
     fn suffers_from_being_missing(&self, input: &HTMLInputElement, value: &DOMString) -> bool {
-        input.Required() &&
-            input.value_mode() == ValueMode::Value &&
-            input.is_mutable() &&
-            value.is_empty()
+        input.Required()
+            && input.value_mode() == ValueMode::Value
+            && input.is_mutable()
+            && value.is_empty()
     }
 
     fn suffers_from_bad_input(&self, _value: &DOMString) -> bool {

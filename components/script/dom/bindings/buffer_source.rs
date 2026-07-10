@@ -549,8 +549,8 @@ where
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => {
                 match &from_buffer.buffer_source {
-                    BufferSource::ArrayBufferView(from_heap) |
-                    BufferSource::ArrayBuffer(from_heap) => {
+                    BufferSource::ArrayBufferView(from_heap)
+                    | BufferSource::ArrayBuffer(from_heap) => {
                         if std::ptr::eq(heap.get(), from_heap.get()) {
                             return false;
                         }
@@ -594,8 +594,8 @@ where
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
                 match &from_buffer.buffer_source {
-                    BufferSource::ArrayBufferView(from_heap) |
-                    BufferSource::ArrayBuffer(from_heap) => ArrayBufferCopyData(
+                    BufferSource::ArrayBufferView(from_heap)
+                    | BufferSource::ArrayBuffer(from_heap) => ArrayBufferCopyData(
                         cx,
                         Handle::from_raw(heap.handle()),
                         dest_start,

@@ -486,8 +486,8 @@ impl ReadableByteStreamController {
 
                 // If firstDescriptor’s bytes filled + bytesWritten > firstDescriptor’s byte length,
                 // throw a RangeError exception.
-                if first_descriptor.bytes_filled.get() + bytes_written >
-                    first_descriptor.byte_length
+                if first_descriptor.bytes_filled.get() + bytes_written
+                    > first_descriptor.byte_length
                 {
                     return Err(Error::Range(
                         c"bytes filled + bytesWritten > byte length".to_owned(),
@@ -729,8 +729,8 @@ impl ReadableByteStreamController {
 
             // If firstDescriptor’s byte offset + firstDescriptor’ bytes filled is not view.[[ByteOffset]],
             // throw a RangeError exception.
-            if first_descriptor.byte_offset + first_descriptor.bytes_filled.get() !=
-                (view.get_byte_offset() as u64)
+            if first_descriptor.byte_offset + first_descriptor.bytes_filled.get()
+                != (view.get_byte_offset() as u64)
             {
                 return Err(Error::Range(
                     c"firstDescriptor's byte offset + bytes filled is not view byte offset"
@@ -740,8 +740,8 @@ impl ReadableByteStreamController {
 
             // If firstDescriptor’s buffer byte length is not view.[[ViewedArrayBuffer]].[[ByteLength]],
             // throw a RangeError exception.
-            if first_descriptor.buffer_byte_length !=
-                (view.viewed_buffer_array_byte_length(cx) as u64)
+            if first_descriptor.buffer_byte_length
+                != (view.viewed_buffer_array_byte_length(cx) as u64)
             {
                 return Err(Error::Range(
                 c"firstDescriptor's buffer byte length is not view viewed buffer array byte length"
@@ -751,8 +751,8 @@ impl ReadableByteStreamController {
 
             // If firstDescriptor’s bytes filled + view.[[ByteLength]] > firstDescriptor’s byte length,
             // throw a RangeError exception.
-            if first_descriptor.bytes_filled.get() + (view.byte_length()) as u64 >
-                first_descriptor.byte_length
+            if first_descriptor.bytes_filled.get() + (view.byte_length()) as u64
+                > first_descriptor.byte_length
             {
                 return Err(Error::Range(
                     c"bytes filled + view byte length > byte length".to_owned(),
@@ -1379,8 +1379,8 @@ impl ReadableByteStreamController {
         {
             let pending_pull_intos = self.pending_pull_intos.borrow();
             assert!(
-                pending_pull_intos.is_empty() ||
-                    pending_pull_intos.first().unwrap() == pull_into_descriptor
+                pending_pull_intos.is_empty()
+                    || pending_pull_intos.first().unwrap() == pull_into_descriptor
             );
         }
 

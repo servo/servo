@@ -1472,9 +1472,9 @@ impl CanvasState {
         max_width: Option<f64>,
     ) {
         // Step 1: If any of the arguments are infinite or NaN, then return.
-        if !x.is_finite() ||
-            !y.is_finite() ||
-            max_width.is_some_and(|max_width| !max_width.is_finite())
+        if !x.is_finite()
+            || !y.is_finite()
+            || max_width.is_some_and(|max_width| !max_width.is_finite())
         {
             return;
         }
@@ -1516,9 +1516,9 @@ impl CanvasState {
         max_width: Option<f64>,
     ) {
         // Step 1: If any of the arguments are infinite or NaN, then return.
-        if !x.is_finite() ||
-            !y.is_finite() ||
-            max_width.is_some_and(|max_width| !max_width.is_finite())
+        if !x.is_finite()
+            || !y.is_finite()
+            || max_width.is_some_and(|max_width| !max_width.is_finite())
         {
             return;
         }
@@ -2039,14 +2039,14 @@ impl CanvasState {
         dw: f64,
         dh: f64,
     ) -> ErrorResult {
-        if !(sx.is_finite() &&
-            sy.is_finite() &&
-            sw.is_finite() &&
-            sh.is_finite() &&
-            dx.is_finite() &&
-            dy.is_finite() &&
-            dw.is_finite() &&
-            dh.is_finite())
+        if !(sx.is_finite()
+            && sy.is_finite()
+            && sw.is_finite()
+            && sh.is_finite()
+            && dx.is_finite()
+            && dy.is_finite()
+            && dw.is_finite()
+            && dh.is_finite())
         {
             return Ok(());
         }
@@ -2185,12 +2185,12 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-transform
     pub(super) fn transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
-        if !(a.is_finite() &&
-            b.is_finite() &&
-            c.is_finite() &&
-            d.is_finite() &&
-            e.is_finite() &&
-            f.is_finite())
+        if !(a.is_finite()
+            && b.is_finite()
+            && c.is_finite()
+            && d.is_finite()
+            && e.is_finite()
+            && f.is_finite())
         {
             return;
         }
@@ -2212,12 +2212,12 @@ impl CanvasState {
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>
     pub(super) fn set_transform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
         // Step 1. If any of the arguments are infinite or NaN, then return.
-        if !a.is_finite() ||
-            !b.is_finite() ||
-            !c.is_finite() ||
-            !d.is_finite() ||
-            !e.is_finite() ||
-            !f.is_finite()
+        if !a.is_finite()
+            || !b.is_finite()
+            || !c.is_finite()
+            || !d.is_finite()
+            || !e.is_finite()
+            || !f.is_finite()
         {
             return;
         }
@@ -2235,12 +2235,12 @@ impl CanvasState {
         // Step 2. If one or more of matrix's m11 element, m12 element, m21
         // element, m22 element, m41 element, or m42 element are infinite or
         // NaN, then return.
-        if !matrix.m11.is_finite() ||
-            !matrix.m12.is_finite() ||
-            !matrix.m21.is_finite() ||
-            !matrix.m22.is_finite() ||
-            !matrix.m31.is_finite() ||
-            !matrix.m32.is_finite()
+        if !matrix.m11.is_finite()
+            || !matrix.m12.is_finite()
+            || !matrix.m21.is_finite()
+            || !matrix.m22.is_finite()
+            || !matrix.m31.is_finite()
+            || !matrix.m32.is_finite()
         {
             return Ok(());
         }
@@ -2459,8 +2459,8 @@ impl CanvasState {
 
             let font = font_group.find_by_codepoint(font_context, character, next_char, language);
 
-            if !is_variation_selector(character) &&
-                !current_text_run.script_and_font_compatible(script, &font)
+            if !is_variation_selector(character)
+                && !current_text_run.script_and_font_compatible(script, &font)
             {
                 let previous_text_run = std::mem::replace(
                     &mut current_text_run,
@@ -2765,10 +2765,11 @@ fn adjust_canvas_size(size: Size2D<u64>) -> Size2D<u64> {
     // Max width/height to 65535 in CSS pixels.
     const MAX_CANVAS_SIZE: u64 = 65535;
 
-    if !size.is_empty() &&
-        size.greater_than(Size2D::new(MAX_CANVAS_SIZE, MAX_CANVAS_SIZE))
-            .none() &&
-        size.area() < MAX_CANVAS_AREA
+    if !size.is_empty()
+        && size
+            .greater_than(Size2D::new(MAX_CANVAS_SIZE, MAX_CANVAS_SIZE))
+            .none()
+        && size.area() < MAX_CANVAS_AREA
     {
         size
     } else {

@@ -71,8 +71,8 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
         // format.
         let internal_format = match TexFormat::from_gl_constant(self.internal_format) {
             Some(format)
-                if format.required_webgl_version() <= self.context.webgl_version() &&
-                    format.usable_as_internal() =>
+                if format.required_webgl_version() <= self.context.webgl_version()
+                    && format.usable_as_internal() =>
             {
                 format
             },
@@ -264,8 +264,8 @@ impl WebGLValidator for TexImage3DValidator<'_> {
 
         // GL_INVALID_OPERATION is generated if target is GL_TEXTURE_3D and
         // format is GL_DEPTH_COMPONENT, or GL_DEPTH_STENCIL.
-        if target == TexImageTarget::Texture3D &&
-            (format == TexFormat::DepthComponent || format == TexFormat::DepthStencil)
+        if target == TexImageTarget::Texture3D
+            && (format == TexFormat::DepthComponent || format == TexFormat::DepthStencil)
         {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::InvalidTypeForFormat);

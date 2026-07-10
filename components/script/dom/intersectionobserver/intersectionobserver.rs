@@ -567,8 +567,8 @@ impl IntersectionObserver {
         {
             is_intersecting.into()
         } else {
-            (intersection_rect.size.width.0 as f64 / target_rect.size.width.0 as f64) *
-                (intersection_rect.size.height.0 as f64 / target_rect.size.height.0 as f64)
+            (intersection_rect.size.width.0 as f64 / target_rect.size.width.0 as f64)
+                * (intersection_rect.size.height.0 as f64 / target_rect.size.height.0 as f64)
         };
 
         // Step 13
@@ -629,8 +629,8 @@ impl IntersectionObserver {
 
             // Step 2
             // > If (time - registration.lastUpdateTime < observer.delay), skip further processing for target.
-            if time - registration.last_update_time.get() <
-                Duration::from_millis(self.delay.get().max(0) as u64)
+            if time - registration.last_update_time.get()
+                < Duration::from_millis(self.delay.get().max(0) as u64)
             {
                 return;
             }
@@ -656,9 +656,9 @@ impl IntersectionObserver {
             // > if isVisible does not equal previousIsVisible,
             // > queue an IntersectionObserverEntry, passing in observer, time, rootBounds,
             // > targetRect, intersectionRect, isIntersecting, isVisible, and target.
-            if Some(intersection_output.threshold_index) != previous_threshold_index ||
-                intersection_output.is_intersecting != previous_is_intersecting ||
-                intersection_output.is_visible != previous_is_visible
+            if Some(intersection_output.threshold_index) != previous_threshold_index
+                || intersection_output.is_intersecting != previous_is_intersecting
+                || intersection_output.is_visible != previous_is_visible
             {
                 // TODO(stevennovaryo): Per IntersectionObserverEntry interface, the rootBounds
                 //                      should be null for cross-origin-domain target.
@@ -958,8 +958,8 @@ fn compute_the_intersection(
         // >      by applying container’s clip.
         // TODO(#35767): handle `overflow: clip` and resolve clipping for x-axis and y-axis independently.
         // Additionally, handle css `clip-path` as well.
-        if IntersectionObserver::has_content_clip(&containing_element) &&
-            let Some(container_padding_box) = containing_element
+        if IntersectionObserver::has_content_clip(&containing_element)
+            && let Some(container_padding_box) = containing_element
                 .upcast::<Node>()
                 .padding_box_without_reflow()
         {

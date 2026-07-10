@@ -91,11 +91,11 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
         );
         Err(match result {
             SuccessfullyRegistered => return Ok(()),
-            InvalidName |
-            InvalidSyntax |
-            InvalidInitialValue |
-            NoInitialValue |
-            InitialValueNotComputationallyIndependent => Error::Syntax(None),
+            InvalidName
+            | InvalidSyntax
+            | InvalidInitialValue
+            | NoInitialValue
+            | InitialValueNotComputationallyIndependent => Error::Syntax(None),
             AlreadyRegistered => Error::InvalidModification(None),
         })
     }
