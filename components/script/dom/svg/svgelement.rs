@@ -357,10 +357,9 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
         if let Some(value) = element.get_attr_val_for_layout(&ns!(), &LocalName::from(attr_name)) {
             let mut input = cssparser::ParserInput::new(value);
             let mut parser = cssparser::Parser::new(&mut input);
-            parser
-                .parse_entirely(|parse_input| parse(parser_context, parse_input))
-                .map(push)
-                .ok();
+            if let Ok(property) = parser.parse_entirely(|parse_input| parse(parser_context, parse_input)) {
+                push(property);
+            }
         }
     }
 }
