@@ -19,7 +19,7 @@ use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::conversions::{Convert, TryConvert};
-use crate::dom::bindings::buffer_source::get_buffer_source_copy;
+use crate::dom::bindings::buffer_source::get_buffer_source_slice;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCopyExternalImageDestInfo, GPUCopyExternalImageSourceInfo, GPUExtent3D, GPUQueueMethods,
     GPUSize64, GPUTexelCopyBufferLayout, GPUTexelCopyTextureInfo,
@@ -111,6 +111,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer>
+    #[expect(unsafe_code)]
     fn WriteBuffer(
         &self,
         buffer: &GPUBuffer,
@@ -149,10 +150,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         // Step 5&6
         let byte_start = (data_offset as usize) * sizeof_element;
         let byte_end = ((data_offset + content_size) as usize) * sizeof_element;
-        let contents = {
-            let all_bytes = get_buffer_source_copy(&data);
-            GenericSharedMemory::from_bytes(&all_bytes[byte_start..byte_end])
-        };
+        let contents = GenericSharedMemory::from_bytes(unsafe {
+            &get_buffer_source_slice(&data)[byte_start..byte_end]
+        });
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
             device_id: self.device.borrow().as_ref().unwrap().id().0,
             queue_id: self.queue.0,
@@ -168,6 +168,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writetexture>
+    #[expect(unsafe_code)]
     fn WriteTexture(
         &self,
         destination: &GPUTexelCopyTextureInfo,
@@ -175,7 +176,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         data_layout: &GPUTexelCopyBufferLayout,
         size: GPUExtent3D,
     ) -> Fallible<()> {
-        let bytes = get_buffer_source_copy(&data);
+        let bytes = unsafe { get_buffer_source_slice(&data) };
         let len = bytes.len() as u64;
         let valid = data_layout.offset <= len;
 
@@ -186,7 +187,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         let texture_cv = destination.try_convert()?;
         let texture_layout = data_layout.convert();
         let write_size = (&size).try_convert()?;
-        let final_data = GenericSharedMemory::from_bytes(&bytes);
+        let final_data = GenericSharedMemory::from_bytes(bytes);
 
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {
             device_id: self.device.borrow().as_ref().unwrap().id().0,

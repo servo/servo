@@ -104,6 +104,25 @@ pub(crate) fn get_buffer_source_copy(source: &ArrayBufferViewOrArrayBuffer) -> V
     }
 }
 
+/// Returns a slice referencing the bytes in the buffer source, without copying.
+///
+/// Use this instead of [`get_buffer_source_copy`] when the data is consumed
+/// synchronously (e.g. WebGL `bufferData`, WebGPU `writeBuffer`) — it avoids
+/// the allocation of a `Vec<u8>`.
+///
+/// # Safety
+///
+/// The returned slice points to the underlying JS-managed buffer. It can be
+/// invalidated if the buffer is detached (transferred). The caller must ensure
+/// the buffer remains alive and attached for the lifetime of the returned slice.
+#[expect(unsafe_code, deprecated)]
+pub(crate) unsafe fn get_buffer_source_slice(source: &ArrayBufferViewOrArrayBuffer) -> &[u8] {
+    match source {
+        ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => unsafe { view.as_slice() },
+        ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => unsafe { buffer.as_slice() },
+    }
+}
+
 pub(crate) fn create_heap_buffer_source_with_length<T>(
     cx: &mut JSContext,
     len: u32,
