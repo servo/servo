@@ -163,7 +163,7 @@ impl ImageData {
     }
 
     /// Nothing must change the array on the JS side while the slice is live.
-    #[expect(unsafe_code)]
+    #[expect(unsafe_code, deprecated)]
     pub(crate) unsafe fn as_slice(&self) -> &[u8] {
         assert!(self.data.is_initialized());
         let internal_data = self

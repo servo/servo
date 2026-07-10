@@ -147,7 +147,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         AnalyserNode::new_with_proto(cx, window, proto, context, options)
     }
 
-    #[expect(unsafe_code)]
+    #[expect(unsafe_code, deprecated)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloatfrequencydata>
     fn GetFloatFrequencyData(&self, mut array: CustomAutoRooterGuard<Float32Array>) {
         // Invariant to maintain: No JS code that may touch the array should
@@ -156,7 +156,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         self.engine.borrow_mut().fill_frequency_data(dest);
     }
 
-    #[expect(unsafe_code)]
+    #[expect(unsafe_code, deprecated)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytefrequencydata>
     fn GetByteFrequencyData(&self, mut array: CustomAutoRooterGuard<Uint8Array>) {
         // Invariant to maintain: No JS code that may touch the array should
@@ -165,7 +165,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         self.engine.borrow_mut().fill_byte_frequency_data(dest);
     }
 
-    #[expect(unsafe_code)]
+    #[expect(unsafe_code, deprecated)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloattimedomaindata>
     fn GetFloatTimeDomainData(&self, mut array: CustomAutoRooterGuard<Float32Array>) {
         // Invariant to maintain: No JS code that may touch the array should
@@ -174,7 +174,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         self.engine.borrow().fill_time_domain_data(dest);
     }
 
-    #[expect(unsafe_code)]
+    #[expect(unsafe_code, deprecated)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytetimedomaindata>
     fn GetByteTimeDomainData(&self, mut array: CustomAutoRooterGuard<Uint8Array>) {
         // Invariant to maintain: No JS code that may touch the array should

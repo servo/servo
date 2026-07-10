@@ -36,7 +36,7 @@ use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
 
 // https://www.w3.org/TR/IndexedDB-3/#convert-key-to-value
-#[expect(unsafe_code)]
+#[expect(unsafe_code, deprecated)]
 pub fn key_type_to_jsval(
     cx: &mut JSContext,
     key: &IndexedDBKeyType,
