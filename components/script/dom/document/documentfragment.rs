@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use stylo_atoms::Atom;
 
@@ -128,8 +128,8 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-childelementcount>
-    fn ChildElementCount(&self) -> u32 {
-        self.upcast::<Node>().children_count()
+    fn ChildElementCount(&self, no_gc: &NoGC) -> u32 {
+        self.upcast::<Node>().child_elements_unrooted(no_gc).count() as u32
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>

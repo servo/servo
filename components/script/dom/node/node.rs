@@ -1731,7 +1731,7 @@ impl Node {
         SimpleNodeIterator::new(self.GetLastChild(), |n| n.GetPreviousSibling())
     }
 
-    /// Returns the children as Elements
+    /// Returns the children that are Elements
     pub(crate) fn child_elements(&self) -> impl Iterator<Item = DomRoot<Element>> + use<> {
         self.children()
             .filter_map(DomRoot::downcast as fn(_) -> _)
