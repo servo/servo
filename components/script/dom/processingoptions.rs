@@ -538,6 +538,10 @@ impl FetchResponseListener for LinkFetchContext {
         let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
+
+    fn process_content_length(&mut self, _request_id: RequestId, size: usize) {
+        self.response_body.reserve(size - self.response_body.len());
+    }
 }
 
 impl ResourceTimingListener for LinkFetchContext {

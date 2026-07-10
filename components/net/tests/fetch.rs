@@ -174,6 +174,8 @@ fn test_fetch_blob() {
             let _ = self.sender.send(response.clone());
         }
         fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
+
+        fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
     }
 
     let context = new_fetch_context(None, None);

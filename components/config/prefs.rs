@@ -380,6 +380,8 @@ pub struct Preferences {
     /// default), then `rustls-platform-verifier` will be used, except on Android where
     /// `rust-webpki` is always used.
     pub network_use_webpki_roots: bool,
+    /// The maximum content size we will forward for preallocation, defaults to 5MB
+    pub network_max_content_length: u64,
     /// The length of the session history, in navigations, for each `WebView. Back-forward
     /// cache entries that are more than `session_history_max_length` steps in the future or
     /// `session_history_max_length` steps in the past will be discarded. Navigating forward
@@ -580,6 +582,7 @@ impl Preferences {
             network_http_cache_size: 5000,
             network_local_directory_listing_enabled: true,
             network_use_webpki_roots: false,
+            network_max_content_length: 5 * 1024 * 1024,
             session_history_max_length: 20,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],
             log_filter: String::new(),

@@ -1616,6 +1616,8 @@ fn test_fetch_compressed_response_update_count() {
             let _ = self.sender.take().unwrap().send(self.update_count);
         }
         fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
+
+        fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
     }
 
     let (sender, receiver) = tokio::sync::oneshot::channel();

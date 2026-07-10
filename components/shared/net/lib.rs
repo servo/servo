@@ -257,6 +257,7 @@ pub enum FetchResponseMsg {
     ProcessResponseChunk(RequestId, DebugVec),
     ProcessResponseEOF(RequestId, Result<(), NetworkError>, ResourceFetchTiming),
     ProcessCspViolations(RequestId, Vec<csp::Violation>),
+    ProcessContentLength(RequestId, usize),
 }
 
 #[derive(Deserialize, PartialEq, Serialize, MallocSizeOf)]
@@ -288,7 +289,8 @@ impl FetchResponseMsg {
             FetchResponseMsg::ProcessResponse(id, ..) |
             FetchResponseMsg::ProcessResponseChunk(id, ..) |
             FetchResponseMsg::ProcessResponseEOF(id, ..) |
-            FetchResponseMsg::ProcessCspViolations(id, ..) => *id,
+            FetchResponseMsg::ProcessCspViolations(id, ..) |
+            FetchResponseMsg::ProcessContentLength(id, _) => *id,
         }
     }
 }
@@ -313,6 +315,9 @@ pub trait FetchTaskTarget {
     fn process_response_eof(&mut self, request: &Request, response: &Response);
 
     fn process_csp_violations(&mut self, request: &Request, violations: Vec<csp::Violation>);
+
+    /// Tell the listener that have a hint of how long the content is. This will be sent at most once.
+    fn process_response_length_hint(&mut self, request_id: &Request, length: usize);
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -390,6 +395,10 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
             request.id, violations,
         ));
     }
+
+    fn process_response_length_hint(&mut self, request: &Request, length: usize) {
+        let _ = self.send(FetchResponseMsg::ProcessContentLength(request.id, length));
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -465,6 +474,7 @@ impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
     fn process_csp_violations(&mut self, _: &Request, violations: Vec<csp::Violation>) {
         let _ = self.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
     }
+    fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
 }
 
 /// A fetch task that discards all data it's sent,
@@ -478,6 +488,7 @@ impl FetchTaskTarget for DiscardFetch {
     fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
     fn process_response_eof(&mut self, _: &Request, _: &Response) {}
     fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
+    fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
 }
 
 /// Handle to an async runtime,

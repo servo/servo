@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::{mem, thread_local};
 
 use imsz::imsz_from_reader;
-use log::{debug, warn};
+use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
@@ -310,6 +310,13 @@ impl ImageBytes {
         match *self {
             ImageBytes::InProgress(ref bytes) => bytes,
             ImageBytes::Complete(ref bytes) => bytes,
+        }
+    }
+
+    fn set_capacity(&mut self, size: usize) {
+        match self {
+            ImageBytes::InProgress(items) => items.reserve(size - items.len()),
+            ImageBytes::Complete(_) => error!("Want to set capacity on already completed image."),
         }
     }
 }
@@ -1267,6 +1274,12 @@ impl ImageCache for ImageCacheImpl {
                         let mut store = self.store.lock();
                         store.complete_load(id, LoadResult::FailedToLoadOrDecode)
                     },
+                }
+            },
+            (FetchResponseMsg::ProcessContentLength(_response_id, size), _key) => {
+                let mut store = self.store.lock();
+                if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
+                    pending_load.bytes.set_capacity(size);
                 }
             },
         }

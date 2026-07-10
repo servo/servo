@@ -3943,6 +3943,7 @@ impl ScriptThread {
                 self.handle_csp_violations(cx, pipeline_id, request_id, violations)
             },
             FetchResponseMsg::ProcessRequestBody(..) => {},
+            FetchResponseMsg::ProcessContentLength(_request_id, _size) => {},
         }
     }
 

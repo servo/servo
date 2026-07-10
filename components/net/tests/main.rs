@@ -157,6 +157,8 @@ impl FetchTaskTarget for FetchResponseCollector {
         let _ = self.sender.take().unwrap().send(response.clone());
     }
     fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
+
+    fn process_response_length_hint(&mut self, _: &Request, _: usize) {}
 }
 
 fn fetch_with_context(request: Request, mut context: &mut FetchContext) -> Response {

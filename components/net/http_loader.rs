@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::min;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc as StdArc;
@@ -64,6 +65,7 @@ use rustc_hash::FxHashMap;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId};
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
@@ -1903,13 +1905,13 @@ async fn wait_for_inflight_requests(done_chan: &mut DoneChannel, response: &mut 
 
         loop {
             match ch.1.recv().await {
-                Some(Data::Payload(_)) => {},
+                Some(Data::ContentLength(_)) | Some(Data::Payload(_)) | Some(Data::Error(_)) => {},
                 Some(Data::Done) => break, // Return the full response as if it was initially cached as such.
                 Some(Data::Cancelled) => {
                     // The response was cancelled while the fetch was ongoing.
                     break;
                 },
-                _ => panic!("HTTP cache should always send Done or Cancelled"),
+                None => panic!("HTTP cache should always send Done or Cancelled"),
             }
         }
     }
@@ -2281,6 +2283,16 @@ async fn http_network_fetch(
     let status = response.status.clone();
     let headers = response.headers.clone();
     let devtools_chan = context.devtools_chan.clone();
+
+    if let Some(possible_length) = res
+        .headers()
+        .get(http::header::CONTENT_LENGTH)
+        .and_then(|header_value| header_value.to_str().ok())
+        .and_then(|s| s.parse().ok())
+        .map(|length| min(length, pref!(network_max_content_length) as usize))
+    {
+        let _ = done_sender.send(Data::ContentLength(possible_length));
+    }
 
     spawn_task(
         res.into_body()

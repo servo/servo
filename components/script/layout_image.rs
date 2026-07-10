@@ -81,6 +81,13 @@ impl FetchResponseListener for LayoutImageContext {
         let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
+
+    fn process_content_length(&mut self, request_id: RequestId, size: usize) {
+        self.cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessContentLength(request_id, size),
+        );
+    }
 }
 
 impl ResourceTimingListener for LayoutImageContext {

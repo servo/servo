@@ -121,6 +121,8 @@ pub(crate) trait FetchResponseListener: Send + 'static {
         request_id: RequestId,
         violations: Vec<Violation>,
     );
+
+    fn process_content_length(&mut self, _request_id: RequestId, _size: usize) {}
 }
 
 /// An off-thread sink for async network event tasks. All such events are forwarded to
@@ -169,6 +171,7 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
                     FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
                         fetch_listener.process_csp_violations(cx, request_id, violations)
                     },
+                    FetchResponseMsg::ProcessContentLength(request_id, size) => { fetch_listener.process_content_length(request_id, size) },
                 }
             }));
     }
