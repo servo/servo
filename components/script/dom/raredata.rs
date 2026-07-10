@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use euclid::Rect;
 use style::selector_parser::PseudoElement;
@@ -59,6 +61,27 @@ pub(crate) struct NodeRareData {
     pub(crate) implemented_pseudo_element: Option<PseudoElement>,
 }
 
+/// The "toggle task tracker" concept from the HTML specification.
+///
+/// <https://html.spec.whatwg.org/multipage/#toggle-task-tracker>
+///
+/// Used by `<dialog>` and `<details>` elements to coalesce rapid
+/// open/close state changes into a single fired "toggle" event.
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct ToggleEventTracker {
+    /// The `oldState` value to use when the pending toggle event eventually
+    /// fires. Preserved across cancellations so that rapid toggles report
+    /// the state before the *first* change, not the most recent one.
+    pub(crate) old_state: String,
+
+    /// Shared cancellation flag between the tracker and the queued task.
+    /// Set to `true` when a new toggle supersedes the pending one, causing
+    /// the queued task to no-op when it eventually runs.
+    #[no_trace]
+    #[ignore_malloc_size_of = "Arc is not measured"]
+    pub(crate) canceller: Arc<AtomicBool>,
+}
+
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ElementRareData {
@@ -105,6 +128,11 @@ pub(crate) struct ElementRareData {
     /// Used for CSP nonce validation (step 3 of "is element nonceable").
     pub(crate) had_duplicate_attributes: bool,
 
+    /// <https://html.spec.whatwg.org/multipage/#toggle-task-tracker>
+    /// Tracks a pending "toggle" event task for `<dialog>` and `<details>`
+    /// elements, allowing rapid open/close sequences to be coalesced into
+    /// a single fired event.
+    pub(crate) toggle_event_tracker: Option<ToggleEventTracker>,
     /// <https://html.spec.whatwg.org/multipage/#previously-focused-element>
     pub(crate) previously_focused_element: MutNullableDom<Element>,
 }

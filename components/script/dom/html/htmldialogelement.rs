@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::borrow::Borrow;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -26,6 +28,7 @@ use crate::dom::htmlbuttonelement::{CommandState, HTMLButtonElement};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::raredata::ToggleEventTracker;
 use crate::dom::toggleevent::ToggleEvent;
 
 #[dom_struct]
@@ -262,46 +265,81 @@ impl HTMLDialogElement {
         new_state: &str,
         source: Option<DomRoot<Element>>,
     ) {
-        // TODO: Step 1. If element's dialog toggle task tracker is not null, then:
-        // TODO: Step 1.1. Set oldState to element's dialog toggle task tracker's old state.
-        // TODO: Step 1.2. Remove element's dialog toggle task tracker's task from its task queue.
-        // TODO: Step 1.3. Set element's dialog toggle task tracker to null.
-        // Step 2. Queue an element task given the DOM manipulation task source and element to run the following steps:
-        let this = Trusted::new(self);
-        let old_state = old_state.to_string();
-        let new_state = new_state.to_string();
+        // Step 1. If element's dialog toggle task tracker is not null, then:
+        let old_state = {
+            let element = self.upcast::<Element>();
 
+            if let Some(tracker) = element.take_toggle_event_tracker() {
+                // Step 1.2. Remove element's dialog toggle task tracker's task from its task queue.
+                //
+                // Servo's task queues don't support removing a queued task directly. Instead,
+                // we flip a shared cancellation flag; the queued task checks this flag when it
+                // runs and no-ops if set, which is observably equivalent to removal.
+                tracker.canceller.store(true, Ordering::SeqCst);
+
+                // Step 1.3. Set element's dialog toggle task tracker to null.
+                //
+                // Note: the tracker is already gone, as we called `take()` above.
+                tracker.old_state
+            } else {
+                old_state.to_string()
+            }
+        };
+        // Step 2. Queue an element task given the DOM manipulation task source and element to run the following steps:
+        let canceller = Arc::new(AtomicBool::new(false));
+        let task_canceller = canceller.clone();
+        let this = Trusted::new(self);
+        let new_state = new_state.to_string();
         let trusted_source = source
             .as_ref()
             .map(|el| Trusted::new(el.upcast::<EventTarget>()));
 
+        let event_old_state = old_state.clone();
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(task!(fire_toggle_event: move |cx| {
                 let this = this.root();
 
+                if task_canceller.load(Ordering::SeqCst) {
+                    return;
+                }
+
+                // Step 2.2. Set element's toggle task tracker to null.
+                //
+                // Clear the tracker before dispatch (rather than after, per the literal
+                // spec order) so a reentrant toggle during event dispatch can't observe
+                // a stale tracker pointing at this in-progress task.
+                *this.upcast::<Element>().toggle_event_tracker_mut() = None;
+
                 let source = trusted_source.as_ref().map(|s| {
                     DomRoot::from_ref(s.root().downcast::<Element>().unwrap())
                 });
 
-                // Step 2.1. Fire an event named toggle at element, using ToggleEvent, with the oldState attribute initialized to oldState, the newState attribute initialized to newState, and the source attribute initialized to source.
+                // Step 2.1. Fire an event named toggle at element, using ToggleEvent,
+                // with the oldState attribute initialized to oldState,
+                // the newState attribute initialized to newState,
+                // and the source attribute initialized to source.
                 let event = ToggleEvent::new(
                     cx,
                     &this.owner_window(),
                     atom!("toggle"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    DOMString::from(old_state),
+                    DOMString::from(event_old_state),
                     DOMString::from(new_state),
                     source,
                 );
                 let event = event.upcast::<Event>();
                 event.fire(cx, this.upcast::<EventTarget>());
 
-                // TODO: Step 2.2. Set element's dialog toggle task tracker to null.
             }));
-        // TODO: Step 3. Set element's dialog toggle task tracker to a struct with task set to the just-queued task and old state set to oldState.
+        // Step 3. Set element's dialog toggle task tracker to a struct
+        // with task set to the just-queued task and old state set to oldState.
+        *self.upcast::<Element>().toggle_event_tracker_mut() = Some(ToggleEventTracker {
+            old_state,
+            canceller,
+        });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dialog-focusing-steps>
