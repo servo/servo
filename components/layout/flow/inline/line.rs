@@ -82,8 +82,8 @@ pub(super) struct LineItemLayoutInlineContainerState {
     flags: LineLayoutInlineContainerFlags,
 
     /// The offset of the parent, relative to the start position of the line, not including
-    /// any inline start and end borders which are only processed when the inline box is
-    /// finished.
+    /// any inline start and end padding/border/margin, which are only processed when the
+    /// inline box is finished. However, it includes padding/border in the block axis.
     pub parent_offset: LogicalVec2<Au>,
 
     /// The block offset of the parent's baseline relative to the block start of the line. This
@@ -97,6 +97,11 @@ pub(super) struct LineItemLayoutInlineContainerState {
     /// at the end of layout.
     pub positioning_context_or_start_offset_in_parent:
         Either<PositioningContext, PositioningContextLength>,
+
+    /// List of floats in this inline box or a descendant inline box. This is used in order
+    /// to adjust the inline position of the floats, once we know the padding/border/margin
+    /// of the inlines.
+    pub propagated_floats: Vec<Arc<BoxFragment>>,
 }
 
 impl LineItemLayoutInlineContainerState {
@@ -117,6 +122,7 @@ impl LineItemLayoutInlineContainerState {
             parent_offset,
             baseline_offset,
             positioning_context_or_start_offset_in_parent,
+            propagated_floats: Vec::new(),
         }
     }
 
@@ -452,24 +458,21 @@ impl LineItemLayout<'_, '_> {
             },
             style: containing_block.style,
         };
+
         let fragments = inner_state
             .fragments
             .into_iter()
             .map(|(fragment, logical_rect)| {
-                let is_float = matches!(fragment, Fragment::Float(_));
+                if matches!(fragment, Fragment::Float(_)) {
+                    // For floats, we need to adjust not only the ones directly inside this inline, but also floats
+                    // nested inside inner inlines. So we are handling them below (`propagated_floats`).
+                    return fragment;
+                }
                 if let Some(base) = fragment.base() {
-                    if is_float {
-                        base.translate_rect(
-                            -pbm_sums
-                                .start_offset()
-                                .to_physical_size(containing_block_writing_mode),
-                        );
-                    } else {
-                        // We do not know the actual physical position of a logically laid out inline element, until
-                        // we know the width of the containing inline block. This step converts the logical rectangle
-                        // into a physical one now that we've computed inline size of the containing inline block above.
-                        base.set_rect(logical_rect.as_physical(Some(&inline_box_containing_block)));
-                    }
+                    // We do not know the actual physical position of a logically laid out inline element, until
+                    // we know the width of the containing inline block. This step converts the logical rectangle
+                    // into a physical one now that we've computed inline size of the containing inline block above.
+                    base.set_rect(logical_rect.as_physical(Some(&inline_box_containing_block)));
                 }
                 fragment
             })
@@ -478,6 +481,25 @@ impl LineItemLayout<'_, '_> {
         // Previously all the fragment's children were positioned relative to the linebox,
         // but they need to be made relative to this fragment.
         let physical_content_rect = content_rect.as_physical(Some(containing_block));
+
+        self.current_state.propagated_floats.extend(
+            inner_state
+                .propagated_floats
+                .into_iter()
+                .inspect(|float_fragment| {
+                    // When calculating the tentative position of the float, we already knew the block-axis
+                    // padding/border/margin of the inline ancestors. But in the inline axis, we only know
+                    // once ending the inline box. Therefore, we need to adjust here.
+                    float_fragment.base.translate_rect(
+                        LogicalVec2 {
+                            inline: -pbm_sums.inline_start,
+                            block: Au::zero(),
+                        }
+                        .to_physical_size(containing_block_writing_mode),
+                    );
+                }),
+        );
+
         let mut fragment = BoxFragment::new(
             inline_box.base.base_fragment_info,
             style.clone(),
@@ -752,6 +774,10 @@ impl LineItemLayout<'_, '_> {
         // fragments are children of these InlineBoxes and not children of the inline
         // formatting context, so that they are parented properly for StackingContext
         // properties such as opacity & filters.
+        // Note that `self.current_state.parent_offset` includes padding/border/margin of
+        // inline ancestors in the block axis, but not in the inline one, since that's not
+        // known yet. Therefore, in `end_inline_box()` we will need to adjust the inline
+        // position of the float, for each inline ancestor.
         let distance_from_parent_to_ifc = LogicalVec2 {
             inline: self.current_state.parent_offset.inline,
             block: self.line_metrics.block_offset + self.current_state.parent_offset.block,
@@ -763,7 +789,8 @@ impl LineItemLayout<'_, '_> {
 
         self.current_state
             .fragments
-            .push((Fragment::Float(float.fragment), LogicalRect::zero()));
+            .push((Fragment::Float(float.fragment.clone()), LogicalRect::zero()));
+        self.current_state.propagated_floats.push(float.fragment);
     }
 
     fn layout_block_level(&mut self, block_level: Arc<BoxFragment>) {
