@@ -95,6 +95,13 @@ impl Iterator for TextByteRange {
             Some(next)
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (
+            self.0.end.0 - self.0.start.0,
+            Some(self.0.end.0 - self.0.start.0),
+        )
+    }
 }
 
 impl DoubleEndedIterator for TextByteRange {

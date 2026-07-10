@@ -112,6 +112,10 @@ impl Iterator for DocumentsIter<'_> {
             .next()
             .map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
 }
 
 #[derive(Default)]
