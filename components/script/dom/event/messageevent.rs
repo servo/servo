@@ -322,7 +322,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     #[expect(non_snake_case)]
     fn InitMessageEvent(
         &self,
-        _cx: &mut JSContext,
+        cx: &mut JSContext,
         type_: DOMString,
         bubbles: bool,
         cancelable: bool,
@@ -333,10 +333,10 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
         ports: Vec<DomRoot<MessagePort>>,
     ) {
         self.data.set(data.get());
-        *self.origin.borrow_mut() = origin;
-        *self.source.borrow_mut() = source.as_ref().map(|source| source.into());
-        *self.lastEventId.borrow_mut() = lastEventId;
-        *self.ports.borrow_mut() = ports
+        *self.origin.safe_borrow_mut(cx.no_gc()) = origin;
+        *self.source.safe_borrow_mut(cx.no_gc()) = source.as_ref().map(|source| source.into());
+        *self.lastEventId.safe_borrow_mut(cx.no_gc()) = lastEventId;
+        *self.ports.safe_borrow_mut(cx.no_gc()) = ports
             .into_iter()
             .map(|port| Dom::from_ref(&*port))
             .collect();

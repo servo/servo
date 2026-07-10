@@ -157,7 +157,9 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         let clipboard_item = ClipboardItem::new(cx, global, proto);
 
         // Step 4 Set this's clipboard item's presentation style to options["presentationStyle"].
-        *clipboard_item.presentation_style.borrow_mut() = options.presentationStyle;
+        *clipboard_item
+            .presentation_style
+            .safe_borrow_mut(cx.no_gc()) = options.presentationStyle;
 
         // Step 6 For each (key, value) in items:
         for (key, value) in items.deref() {
@@ -203,7 +205,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
             // Step 6.10 Append representation to this's clipboard item's list of representations.
             clipboard_item
                 .representations
-                .borrow_mut()
+                .safe_borrow_mut(cx.no_gc())
                 .push(representation);
         }
 

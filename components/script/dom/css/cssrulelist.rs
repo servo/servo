@@ -162,7 +162,7 @@ impl CSSRuleList {
         parent_stylesheet.will_modify(cx);
         let dom_rule = CSSRule::new_specific(cx, window, parent_stylesheet, new_rule);
         self.dom_rules
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .insert(index, MutNullableDom::new(Some(&*dom_rule)));
         parent_stylesheet.notify_invalidations();
         Ok(idx)
@@ -181,7 +181,7 @@ impl CSSRuleList {
                     .write_with(&mut guard)
                     .remove_rule(index)
                     .map_err(Convert::convert)?;
-                let mut dom_rules = self.dom_rules.borrow_mut();
+                let mut dom_rules = self.dom_rules.safe_borrow_mut(cx.no_gc());
                 if let Some(r) = dom_rules[index].get() {
                     r.detach()
                 }
@@ -191,7 +191,7 @@ impl CSSRuleList {
             },
             RulesSource::Keyframes(ref kf) => {
                 // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule
-                let mut dom_rules = self.dom_rules.borrow_mut();
+                let mut dom_rules = self.dom_rules.safe_borrow_mut(cx.no_gc());
                 if let Some(r) = dom_rules[index].get() {
                     r.detach()
                 }

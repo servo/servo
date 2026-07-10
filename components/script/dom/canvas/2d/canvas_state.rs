@@ -2205,7 +2205,7 @@ impl CanvasState {
         global: &GlobalScope,
         cx: &mut JSContext,
     ) -> DomRoot<DOMMatrix> {
-        let transform = self.state.borrow_mut().transform;
+        let transform = self.state.safe_borrow_mut(cx.no_gc()).transform;
         DOMMatrix::new(cx, global, true, transform.to_3d())
     }
 

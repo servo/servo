@@ -480,7 +480,7 @@ impl Animations {
         //
         // Take all of the events here, in case sending one of these events
         // triggers adding new events by forcing a layout.
-        let events = std::mem::take(&mut *self.pending_events.borrow_mut());
+        let events = std::mem::take(&mut *self.pending_events.safe_borrow_mut(cx.no_gc()));
         if events.is_empty() {
             return;
         }

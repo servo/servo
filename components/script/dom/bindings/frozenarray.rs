@@ -39,7 +39,7 @@ impl CachedFrozenArray {
         to_frozen_array(cx, array.as_slice(), retval.reborrow());
 
         // Safety: need to create the Heap value in its final memory location before setting it.
-        *self.frozen_value.borrow_mut() = Some(Heap::default());
+        *self.frozen_value.safe_borrow_mut(cx.no_gc()) = Some(Heap::default());
         self.frozen_value
             .borrow()
             .as_ref()

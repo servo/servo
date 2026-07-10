@@ -195,7 +195,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
                 // Step 5.4.2.
                 // TODO(#5014): Replace ByteString with ArrayBuffer when it is implemented.
                 let value = ByteString::new(result);
-                *self.value.borrow_mut() = Some(value.clone());
+                *self.value.safe_borrow_mut(cx.no_gc()) = Some(value.clone());
 
                 // Step 5.4.3.
                 promise.resolve_native(cx, &value);
@@ -206,7 +206,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
 
                 // Step 7.4.2.
                 // TODO(#5014): Replace ByteString with an ArrayBuffer wrapped in a DataView.
-                *self.value.borrow_mut() = Some(ByteString::new(result));
+                *self.value.safe_borrow_mut(cx.no_gc()) = Some(ByteString::new(result));
 
                 // Step 7.4.3.
                 // TODO: Resolve promise with undefined instead of a value.

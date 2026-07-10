@@ -472,7 +472,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             // XXX detach array buffer.
             let uuid = Uuid::new_v4().simple().to_string();
             let uuid_ = uuid.clone();
-            self.decode_resolvers.borrow_mut().insert(
+            self.decode_resolvers.safe_borrow_mut(cx.no_gc()).insert(
                 uuid.clone(),
                 DecodeResolver {
                     promise: promise.clone(),
@@ -535,7 +535,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         );
                         // Potential borrow hazard
                         let resolver = {
-                            let mut resolvers = this.decode_resolvers.borrow_mut();
+                            let mut resolvers = this.decode_resolvers.safe_borrow_mut(cx.no_gc());
                             assert!(resolvers.contains_key(&uuid_));
                             resolvers.remove(&uuid_).unwrap()
                         };
@@ -550,7 +550,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         let this = this_.root();
                         // potential borrow hazard
                         let resolver = {
-                            let mut resolvers = this.decode_resolvers.borrow_mut();
+                            let mut resolvers = this.decode_resolvers.safe_borrow_mut(cx.no_gc());
                             assert!(resolvers.contains_key(&uuid));
                             resolvers.remove(&uuid).unwrap()
                         };

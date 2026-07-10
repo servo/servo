@@ -122,7 +122,7 @@ impl BluetoothDevice {
             service.instance_id.clone(),
         );
         service_map_ref
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .insert(service.instance_id.clone(), Dom::from_ref(&bt_service));
         bt_service
     }
@@ -163,7 +163,7 @@ impl BluetoothDevice {
             &properties,
             characteristic.instance_id.clone(),
         );
-        characteristic_map_ref.borrow_mut().insert(
+        characteristic_map_ref.safe_borrow_mut(cx.no_gc()).insert(
             characteristic.instance_id.clone(),
             Dom::from_ref(&bt_characteristic),
         );
@@ -202,7 +202,7 @@ impl BluetoothDevice {
             DOMString::from(descriptor.uuid.clone()),
             descriptor.instance_id.clone(),
         );
-        descriptor_map_ref.borrow_mut().insert(
+        descriptor_map_ref.safe_borrow_mut(cx.no_gc()).insert(
             descriptor.instance_id.clone(),
             Dom::from_ref(&bt_descriptor),
         );
@@ -225,18 +225,26 @@ impl BluetoothDevice {
 
         // Step 4.
         let service_ids = {
-            let mut service_map = self.attribute_instance_map.service_map.borrow_mut();
+            let mut service_map = self
+                .attribute_instance_map
+                .service_map
+                .safe_borrow_mut(cx.no_gc());
             service_map.drain().map(|(id, _)| id).collect()
         };
 
         let characteristic_ids = {
-            let mut characteristic_map =
-                self.attribute_instance_map.characteristic_map.borrow_mut();
+            let mut characteristic_map = self
+                .attribute_instance_map
+                .characteristic_map
+                .safe_borrow_mut(cx.no_gc());
             characteristic_map.drain().map(|(id, _)| id).collect()
         };
 
         let descriptor_ids = {
-            let mut descriptor_map = self.attribute_instance_map.descriptor_map.borrow_mut();
+            let mut descriptor_map = self
+                .attribute_instance_map
+                .descriptor_map
+                .safe_borrow_mut(cx.no_gc());
             descriptor_map.drain().map(|(id, _)| id).collect()
         };
 

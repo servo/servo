@@ -75,7 +75,7 @@ impl CharacterData {
     #[inline]
     pub(crate) fn append_data(&self, cx: &mut JSContext, data: &str) {
         self.queue_mutation_record(cx);
-        self.data.borrow_mut().push_str(data);
+        self.data.safe_borrow_mut(cx.no_gc()).push_str(data);
         self.content_changed(cx);
     }
 
@@ -114,7 +114,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         self.queue_mutation_record(cx);
         let old_length = self.Length();
         let new_length = data.str().encode_utf16().count() as u32;
-        *self.data.borrow_mut() = String::from(data.str());
+        *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
         self.content_changed(cx);
         let node = self.upcast::<Node>();
         node.ranges()
@@ -240,7 +240,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
             new_data.push_str(replacement_after);
             new_data.push_str(suffix);
         }
-        *self.data.borrow_mut() = new_data;
+        *self.data.safe_borrow_mut(cx.no_gc()) = new_data;
         self.content_changed(cx);
         // Steps 8-11.
         let node = self.upcast::<Node>();

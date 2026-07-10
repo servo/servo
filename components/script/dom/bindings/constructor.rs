@@ -197,7 +197,8 @@ fn html_constructor(
 
             // Step 12
             {
-                let mut construction_stack = definition.construction_stack.borrow_mut();
+                let mut construction_stack =
+                    definition.construction_stack.safe_borrow_mut(cx.no_gc());
                 construction_stack.pop();
                 construction_stack.push(ConstructionStackEntry::AlreadyConstructedMarker);
             }

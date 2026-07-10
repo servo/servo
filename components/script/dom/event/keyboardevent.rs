@@ -133,9 +133,9 @@ impl KeyboardEvent {
             location,
             repeat,
         );
-        *event.typed_key.borrow_mut() = key;
-        *event.code.borrow_mut() = code;
-        *event.original_code.borrow_mut() = original_code;
+        *event.typed_key.safe_borrow_mut(cx.no_gc()) = key;
+        *event.code.safe_borrow_mut(cx.no_gc()) = code;
+        *event.original_code.safe_borrow_mut(cx.no_gc()) = original_code;
         event.modifiers.set(modifiers);
         event.is_composing.set(is_composing);
         event.char_code.set(char_code);
@@ -218,7 +218,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
             init.charCode,
             init.keyCode,
         );
-        *event.key.borrow_mut() = init.key.clone();
+        *event.key.safe_borrow_mut(cx.no_gc()) = init.key.clone();
         Ok(event)
     }
 

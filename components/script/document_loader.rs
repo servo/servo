@@ -54,7 +54,7 @@ impl LoadBlocker {
         cx: &mut js::context::JSContext,
     ) {
         let Some(load) = blocker
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .as_mut()
             .and_then(|blocker| blocker.load.take())
         else {
@@ -65,7 +65,7 @@ impl LoadBlocker {
             blocker.doc.finish_load(load, cx);
         }
 
-        *blocker.borrow_mut() = None;
+        *blocker.safe_borrow_mut(cx.no_gc()) = None;
     }
 }
 
