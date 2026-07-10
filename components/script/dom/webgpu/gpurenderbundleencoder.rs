@@ -143,14 +143,16 @@ impl GPURenderBundleEncoder {
 
         let channel = device.channel();
 
-        channel
-            .0
-            .send(WebGPURequest::CreateRenderBundleEncoder {
-                device_id: device.id().0,
-                desc,
-                render_bundle_encoder_id: render_bundle_encoder.0,
-            })
-            .expect("Failed to send WebGPURequest::CreateRenderBundleEncoder");
+        if let Err(error) = channel.0.send(WebGPURequest::CreateRenderBundleEncoder {
+            device_id: device.id().0,
+            desc,
+            render_bundle_encoder_id: render_bundle_encoder.0,
+        }) {
+            warn!(
+                "Failed to send WebGPURequest::CreateRenderBundleEncoder({:?}) ({error})",
+                render_bundle_encoder.0
+            );
+        }
 
         Ok(GPURenderBundleEncoder::new(
             cx,
@@ -444,16 +446,22 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
         };
         let render_bundle_id = self.global().wgpu_id_hub().create_render_bundle_id();
 
-        self.droppable
-            .channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderFinish {
-                render_bundle_encoder_id: self.id().0,
-                descriptor: desc,
-                render_bundle_id,
-                device_id: self.device.id().0,
-            })
-            .expect("Failed to send RenderBundleEncoderFinish");
+        if let Err(error) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::RenderBundleEncoderFinish {
+                    render_bundle_encoder_id: self.id().0,
+                    descriptor: desc,
+                    render_bundle_id,
+                    device_id: self.device.id().0,
+                })
+        {
+            warn!(
+                "Failed to send WebGPURequest::RenderBundleEncoderFinish({:?}) ({error})",
+                self.id()
+            );
+        }
 
         let render_bundle = WebGPURenderBundle(render_bundle_id);
         GPURenderBundle::new(
