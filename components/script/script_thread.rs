@@ -3031,7 +3031,7 @@ impl ScriptThread {
                         CreatorBrowsingContextInfo::from(last.as_deref(), None),
                     );
                     self.window_proxies
-                        .insert(browsing_context_id, window_proxy.clone());
+                        .insert(browsing_context_id, &window_proxy);
                     last = Some(window_proxy);
                 }
 
