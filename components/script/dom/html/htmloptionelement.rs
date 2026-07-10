@@ -98,12 +98,13 @@ impl HTMLOptionElement {
         self.dirtiness.set(dirtiness);
     }
 
-    fn pick_if_selected_and_reset(&self, no_gc: &NoGC) {
+    fn pick_if_selected_and_reset(&self, cx: &mut JSContext) {
         if let Some(select) = self.owner_select_element() {
             if self.Selected() {
-                select.pick_option(no_gc, self);
+                select.pick_option(cx.no_gc(), self);
+                select.update_shadow_tree(cx);
             }
-            select.ask_for_reset(no_gc);
+            select.ask_for_reset(cx.no_gc());
         }
     }
 
@@ -375,7 +376,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     fn SetSelected(&self, cx: &mut JSContext, selected: bool) {
         self.dirtiness.set(true);
         self.set_selectedness(selected);
-        self.pick_if_selected_and_reset(cx.no_gc());
+        self.pick_if_selected_and_reset(cx);
         self.update_select_validity(cx);
     }
 
@@ -435,7 +436,7 @@ impl VirtualMethods for HTMLOptionElement {
                 }
 
                 if selectedness_changed {
-                    self.pick_if_selected_and_reset(cx.no_gc());
+                    self.pick_if_selected_and_reset(cx);
 
                     if let Some(select_element) = self.owner_select_element() {
                         select_element.update_shadow_tree(cx);
@@ -463,7 +464,7 @@ impl VirtualMethods for HTMLOptionElement {
         self.upcast::<Element>()
             .check_parent_disabled_state_for_option();
 
-        self.pick_if_selected_and_reset(cx.no_gc());
+        self.pick_if_selected_and_reset(cx);
         self.update_select_validity(cx);
     }
 
@@ -538,7 +539,7 @@ impl VirtualMethods for HTMLOptionElement {
 
         element.check_parent_disabled_state_for_option();
 
-        self.pick_if_selected_and_reset(cx.no_gc());
+        self.pick_if_selected_and_reset(cx);
         self.update_select_validity(cx);
     }
 }
