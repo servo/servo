@@ -330,7 +330,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         let new_response = Response::new(cx, &self.global());
         new_response
             .Headers(cx)
-            .copy_from_headers(self.Headers(cx))?;
+            .copy_from_headers(&self.Headers(cx))?;
         new_response
             .Headers(cx)
             .set_guard(self.Headers(cx).get_guard());
