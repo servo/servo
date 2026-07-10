@@ -239,7 +239,7 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
     ) {
         let element = self.upcast::<Element>();
 
-        if element.downcast::<SVGSVGElement>().is_some() {
+        if element.is::<SVGSVGElement>() {
             if let Some(width) = element
                 .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .and_then(AttrValue::as_length_percentage)
