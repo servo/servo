@@ -135,9 +135,13 @@ impl Range {
             proto,
             cx,
         );
-        start_container.ranges().push(WeakRef::new(&range));
+        start_container
+            .ensure_weak_ranges()
+            .push(WeakRef::new(&range));
         if start_container != end_container {
-            end_container.ranges().push(WeakRef::new(&range));
+            end_container
+                .ensure_weak_ranges()
+                .push(WeakRef::new(&range));
         }
         range
     }
@@ -219,12 +223,12 @@ impl Range {
         }
         if self.start().node() != node {
             if self.start().node() == self.end().node() {
-                node.ranges().push(WeakRef::new(self));
+                node.ensure_weak_ranges().push(WeakRef::new(self));
             } else if self.end().node() == node {
-                self.start_container().ranges().remove(self);
+                self.start_container().ensure_weak_ranges().remove(self);
             } else {
-                node.ranges()
-                    .push(self.start_container().ranges().remove(self));
+                node.ensure_weak_ranges()
+                    .push(self.start_container().ensure_weak_ranges().remove(self));
             }
         }
         self.start().set(node, offset);
@@ -237,12 +241,12 @@ impl Range {
         }
         if self.end().node() != node {
             if self.end().node() == self.start().node() {
-                node.ranges().push(WeakRef::new(self));
+                node.ensure_weak_ranges().push(WeakRef::new(self));
             } else if self.start().node() == node {
-                self.end_container().ranges().remove(self);
+                self.end_container().ensure_weak_ranges().remove(self);
             } else {
-                node.ranges()
-                    .push(self.end_container().ranges().remove(self));
+                node.ensure_weak_ranges()
+                    .push(self.end_container().ensure_weak_ranges().remove(self));
             }
         }
         self.end().set(node, offset);
@@ -1325,7 +1329,11 @@ impl WeakRangeVec {
             }
         });
 
-        parent.ranges().cell.borrow_mut().extend(ranges.drain(..));
+        parent
+            .ensure_weak_ranges()
+            .cell
+            .borrow_mut()
+            .extend(ranges.drain(..));
     }
 
     /// Used for steps 6.1-2. when normalizing a node.
@@ -1352,7 +1360,11 @@ impl WeakRangeVec {
             }
         });
 
-        sibling.ranges().cell.borrow_mut().extend(ranges.drain(..));
+        sibling
+            .ensure_weak_ranges()
+            .cell
+            .borrow_mut()
+            .extend(ranges.drain(..));
     }
 
     /// Used for steps 6.3-4. when normalizing a node.
@@ -1364,9 +1376,6 @@ impl WeakRangeVec {
         child: &Node,
         new_offset: u32,
     ) {
-        let child_ranges = child.ranges();
-        let mut child_ranges = child_ranges.cell.borrow_mut();
-
         self.cell.borrow_mut().update(|entry| {
             let range = entry.root().unwrap();
 
@@ -1383,12 +1392,20 @@ impl WeakRangeVec {
             let push_to_child = !already_in_child && (move_start || move_end);
 
             if remove_from_node {
-                let ref_ = entry.remove();
+                let weak_range = entry.remove();
                 if push_to_child {
-                    child_ranges.push(ref_);
+                    child
+                        .ensure_weak_ranges()
+                        .cell
+                        .borrow_mut()
+                        .push(weak_range);
                 }
             } else if push_to_child {
-                child_ranges.push(WeakRef::new(&range));
+                child
+                    .ensure_weak_ranges()
+                    .cell
+                    .borrow_mut()
+                    .push(WeakRef::new(&range));
             }
 
             if move_start {
@@ -1428,9 +1445,6 @@ impl WeakRangeVec {
         offset: u32,
         sibling: &Node,
     ) {
-        let sibling_ranges = sibling.ranges();
-        let mut sibling_ranges = sibling_ranges.cell.borrow_mut();
-
         self.cell.borrow_mut().update(|entry| {
             let range = entry.root().unwrap();
             let start_offset = range.start_offset();
@@ -1450,12 +1464,20 @@ impl WeakRangeVec {
             let push_to_sibling = !already_in_sibling && (move_start || move_end);
 
             if remove_from_node {
-                let ref_ = entry.remove();
+                let weak_range = entry.remove();
                 if push_to_sibling {
-                    sibling_ranges.push(ref_);
+                    sibling
+                        .ensure_weak_ranges()
+                        .cell
+                        .borrow_mut()
+                        .push(weak_range);
                 }
             } else if push_to_sibling {
-                sibling_ranges.push(WeakRef::new(&range));
+                sibling
+                    .ensure_weak_ranges()
+                    .cell
+                    .borrow_mut()
+                    .push(WeakRef::new(&range));
             }
 
             if move_start {

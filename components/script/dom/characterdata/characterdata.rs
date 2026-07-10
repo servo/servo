@@ -116,9 +116,11 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         let new_length = data.str().encode_utf16().count() as u32;
         *self.data.borrow_mut() = String::from(data.str());
         self.content_changed(cx);
+
         let node = self.upcast::<Node>();
-        node.ranges()
-            .replace_code_units(node, 0, old_length, new_length);
+        if let Some(weak_ranges) = node.weak_ranges_mut() {
+            weak_ranges.replace_code_units(node, 0, old_length, new_length);
+        }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
@@ -242,14 +244,40 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         }
         *self.data.borrow_mut() = new_data;
         self.content_changed(cx);
-        // Steps 8-11.
+
+        // Step 8: For each live range whose start node is node and start offset is
+        // greater than offset but less than or equal to offset + count: set its start
+        // offset to offset.
+        //
+        // Step 9: For each live range whose end node is node and end offset is greater
+        // than offset but less than or equal to offset + count: set its end offset to
+        // offset.
+        //
+        // Step 10: For each live range whose start node is node and start offset is
+        // greater than offset + count: increase its start offset by data’s length and
+        // decrease it by count.
+        //
+        // Step 11: For each live range whose end node is node and end offset is greater
+        // than offset + count: increase its end offset by data’s length and decrease it
+        // by count.
         let node = self.upcast::<Node>();
-        node.ranges().replace_code_units(
-            node,
-            offset,
-            count,
-            arg.str().encode_utf16().count() as u32,
-        );
+        if let Some(weak_ranges) = node.weak_ranges_mut() {
+            weak_ranges.replace_code_units(
+                node,
+                offset,
+                count,
+                arg.str().encode_utf16().count() as u32,
+            );
+        }
+
+        // Step 12: If node is a ProcessingInstruction node and piAttributesAlreadyUpdated
+        // is false, then update attributes from data given node.
+        // TODO: Implement this.
+
+        // Step 13: If node’s parent is non-null, then run the children changed steps for
+        // node’s parent.
+        // TODO: This is handled above, but it should be handled here.
+
         Ok(())
     }
 

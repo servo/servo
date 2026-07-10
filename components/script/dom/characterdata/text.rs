@@ -94,11 +94,26 @@ impl TextMethods<crate::DomTypeHolder> for Text {
             parent
                 .InsertBefore(cx, new_node.upcast(), node.GetNextSibling().as_deref())
                 .unwrap();
-            // Steps 7.2-3.
-            node.ranges()
-                .move_to_following_text_sibling_above(node, offset, new_node.upcast());
-            // Steps 7.4-5.
-            parent.ranges().increment_at(parent, node.index() + 1);
+
+            // Step 7.2. For each live range whose start node is node and start offset is
+            // greater than offset, set its start node to newNode and decrease its start
+            // offset by offset.
+            //
+            // Step 7.3. For each live range whose end node is node and end offset is
+            // greater than offset, set its end node to newNode and decrease its end
+            // offset by offset.
+            if let Some(weak_ranges) = node.weak_ranges_mut() {
+                weak_ranges.move_to_following_text_sibling_above(node, offset, new_node.upcast());
+            }
+
+            // Step 7.4. For each live range whose start node is parent and start offset
+            // is equal to the index of node plus 1, increase its start offset by 1.
+            //
+            // Step 7.5. For each live range whose end node is parent and end offset is
+            // equal to the index of node plus 1, increase its end offset by 1.
+            if let Some(parent_weak_ranges) = parent.weak_ranges_mut() {
+                parent_weak_ranges.increment_at(parent, node.index() + 1);
+            }
         }
         // Step 8.
         cdata.DeleteData(cx, offset, count).unwrap();
