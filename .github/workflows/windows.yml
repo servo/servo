@@ -125,14 +125,14 @@ jobs:
       - name: Install Winget
         # TODO: Re-enable this condition once WiX 7 is pre-installed on the self-hosted runners.
         # if: ${{ runner.environment != 'self-hosted' }}
-        shell: pwsh
+        shell: powershell
         run: |
           Install-Module -Name Microsoft.WinGet.Client -Repository PSGallery -Force
           Repair-WinGetPackageManager -Latest -Force -AllUsers
       - name: Install WiX
         # TODO: Re-enable this condition once WiX 7 is pre-installed on the self-hosted runners.
         # if: ${{ runner.environment != 'self-hosted' }}
-        shell: pwsh
+        shell: powershell
         run: |
           winget install --silent --exact WiXToolset.WiXCLI --version 7.0.0.0 --accept-source-agreements
           # The WiX installer sets the WIX7 environment variable to the install directory, so add it
