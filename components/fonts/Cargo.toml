@@ -31,7 +31,7 @@ euclid = { workspace = true }
 fonts_traits = { workspace = true }
 fontsan = { workspace = true }
 # FIXME (#34517): macOS only needs this when building servo without `--features media-gstreamer`
-harfbuzz-sys = { workspace = true, features = ["bundled"] }
+harfbuzz-sys = { workspace = true, default-features = false, features = ["bundled"] }
 icu_locid = { workspace = true }
 icu_properties = { workspace = true, features = ["compiled_data"] }
 itertools = { workspace = true }
