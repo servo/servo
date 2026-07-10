@@ -22,7 +22,7 @@ pub use wgpu_core::id::{
     ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
 };
 use wgpu_core::id::{ComputePipelineId, DeviceId, QueueId, RenderPipelineId};
-use wgpu_core::instance::FailedLimit;
+use wgpu_core::limits::FailedLimit;
 use wgpu_core::pipeline::CreateShaderModuleError;
 use wgpu_types::{AdapterInfo, COPY_BYTES_PER_ROW_ALIGNMENT, DeviceDescriptor, Features, Limits};
 

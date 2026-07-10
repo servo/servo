@@ -9,8 +9,8 @@ use servo_base::id::PipelineId;
 use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
     ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId,
-    QuerySetId, RenderBundleId, RenderPassEncoderId, RenderPipelineId, SamplerId, ShaderModuleId,
-    StagingBufferId, SurfaceId, TextureId, TextureViewId,
+    QuerySetId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId, RenderPipelineId,
+    SamplerId, ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
 };
 
 use crate::{DeviceLostReason, Error, WebGPUDevice};
@@ -41,6 +41,7 @@ pub enum WebGPUMsg {
     FreeComputePass(ComputePassEncoderId),
     FreeRenderPass(RenderPassEncoderId),
     FreeExternalTexture(ExternalTextureId),
+    FreeRenderBundleEncoder(RenderBundleEncoderId),
     UncapturedError {
         device: WebGPUDevice,
         pipeline_id: PipelineId,

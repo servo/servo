@@ -21,8 +21,9 @@ use wgpu_core::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
 use wgpu_core::command::{
-    PassTimestampWrites, RenderBundleDescriptor, RenderBundleEncoder, RenderPassColorAttachment,
-    RenderPassDepthStencilAttachment, TexelCopyBufferInfo, TexelCopyTextureInfo,
+    PassTimestampWrites, RenderBundleDescriptor, RenderBundleEncoderDescriptor,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment, TexelCopyBufferInfo,
+    TexelCopyTextureInfo,
 };
 use wgpu_core::device::HostMap;
 pub use wgpu_core::id::markers::{
@@ -31,8 +32,8 @@ pub use wgpu_core::id::markers::{
 use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
     ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId,
-    QuerySetId, QueueId, RenderBundleId, RenderPassEncoderId, RenderPipelineId, SamplerId,
-    ShaderModuleId, TextureId, TextureViewId,
+    QuerySetId, QueueId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId,
+    RenderPipelineId, SamplerId, ShaderModuleId, TextureId, TextureViewId,
 };
 pub use wgpu_core::id::{
     ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
@@ -49,10 +50,10 @@ use wgpu_types::{
 };
 
 use crate::{
-    ContextConfiguration, Error, ErrorFilter, Mapping, PRESENTATION_BUFFER_COUNT, RenderCommand,
-    ShaderCompilationInfo, WebGPUAdapter, WebGPUAdapterResponse, WebGPUComputePipelineResponse,
-    WebGPUContextId, WebGPUDeviceResponse, WebGPUPoppedErrorScopeResponse,
-    WebGPURenderPipelineResponse,
+    ContextConfiguration, Error, ErrorFilter, Mapping, PRESENTATION_BUFFER_COUNT,
+    RenderBundleCommand, RenderCommand, ShaderCompilationInfo, WebGPUAdapter,
+    WebGPUAdapterResponse, WebGPUComputePipelineResponse, WebGPUContextId, WebGPUDeviceResponse,
+    WebGPUPoppedErrorScopeResponse, WebGPURenderPipelineResponse,
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -248,7 +249,7 @@ pub enum WebGPURequest {
     DropRenderPass(RenderPassEncoderId),
     Exit(GenericOneshotSender<()>),
     RenderBundleEncoderFinish {
-        render_bundle_encoder: RenderBundleEncoder,
+        render_bundle_encoder_id: RenderBundleEncoderId,
         descriptor: RenderBundleDescriptor<'static>,
         render_bundle_id: RenderBundleId,
         device_id: DeviceId,
@@ -429,4 +430,16 @@ pub enum WebGPURequest {
     },
     DestroyExternalTexture(ExternalTextureId),
     DropExternalTexture(ExternalTextureId),
+    DestroyQuerySet(QuerySetId),
+    CreateRenderBundleEncoder {
+        device_id: DeviceId,
+        render_bundle_encoder_id: RenderBundleEncoderId,
+        desc: RenderBundleEncoderDescriptor<'static>,
+    },
+    RenderBundleEncoderCommand {
+        render_bundle_encoder_id: RenderBundleEncoderId,
+        render_command: RenderBundleCommand,
+        device_id: DeviceId,
+    },
+    DropRenderBundleEncoder(RenderBundleEncoderId),
 }

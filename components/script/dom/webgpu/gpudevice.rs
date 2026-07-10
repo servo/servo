@@ -289,23 +289,29 @@ impl GPUDevice {
                         .vertex
                         .buffers
                         .iter()
-                        .map(|buffer| wgpu_pipe::VertexBufferLayout {
-                            array_stride: buffer.arrayStride,
-                            step_mode: match buffer.stepMode {
-                                GPUVertexStepMode::Vertex => wgpu_types::VertexStepMode::Vertex,
-                                GPUVertexStepMode::Instance => wgpu_types::VertexStepMode::Instance,
-                            },
-                            attributes: Cow::Owned(
-                                buffer
-                                    .attributes
-                                    .iter()
-                                    .map(|att| wgpu_types::VertexAttribute {
-                                        format: att.format.convert(),
-                                        offset: att.offset,
-                                        shader_location: att.shaderLocation,
-                                    })
-                                    .collect::<Vec<_>>(),
-                            ),
+                        // FIXME: webidl has `sequence<GPUVertexBufferLayout?> buffers`
+                        // but we get no option here so it must be eaten by codegen
+                        .map(|buffer| {
+                            Some(wgpu_pipe::VertexBufferLayout {
+                                array_stride: buffer.arrayStride,
+                                step_mode: match buffer.stepMode {
+                                    GPUVertexStepMode::Vertex => wgpu_types::VertexStepMode::Vertex,
+                                    GPUVertexStepMode::Instance => {
+                                        wgpu_types::VertexStepMode::Instance
+                                    },
+                                },
+                                attributes: Cow::Owned(
+                                    buffer
+                                        .attributes
+                                        .iter()
+                                        .map(|att| wgpu_types::VertexAttribute {
+                                            format: att.format.convert(),
+                                            offset: att.offset,
+                                            shader_location: att.shaderLocation,
+                                        })
+                                        .collect::<Vec<_>>(),
+                                ),
+                            })
                         })
                         .collect::<Vec<_>>(),
                 ),

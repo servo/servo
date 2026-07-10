@@ -12,7 +12,7 @@ use wgpu_core::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
 use wgpu_core::command::{self as wgpu_com, ComputePassDescriptor, PassTimestampWrites};
 use wgpu_core::pipeline::ProgrammableStageDescriptor;
 use wgpu_core::resource::{QuerySetDescriptor, TextureDescriptor};
-use wgpu_types::{self, AstcBlock, AstcChannel};
+use wgpu_types::{self, AstcBlock, AstcChannel, IndexFormat};
 
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::PredefinedColorSpace;
@@ -826,6 +826,15 @@ impl Convert<ComputePassDescriptor<'static>> for &GPUComputePassDescriptor {
         ComputePassDescriptor {
             label: (&self.parent).convert(),
             timestamp_writes: self.timestampWrites.as_ref().map(Convert::convert),
+        }
+    }
+}
+
+impl Convert<IndexFormat> for GPUIndexFormat {
+    fn convert(self) -> IndexFormat {
+        match self {
+            GPUIndexFormat::Uint16 => IndexFormat::Uint16,
+            GPUIndexFormat::Uint32 => IndexFormat::Uint32,
         }
     }
 }

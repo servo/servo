@@ -137,8 +137,18 @@ impl GPUQuerySet {
 impl GPUQuerySetMethods<crate::DomTypeHolder> for GPUQuerySet {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-destroy>
     fn Destroy(&self) {
-        // TODO: wgpu does not implement proper destroy for query sets.
-        // Waiting for https://github.com/gfx-rs/wgpu/pull/9671 to be released.
+        // 1. Issue the subsequent steps on the device timeline.
+        if let Err(error) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::DestroyQuerySet(self.id().0))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DestroyQuerySet({:?}) ({error})",
+                self.id().0
+            );
+        }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
