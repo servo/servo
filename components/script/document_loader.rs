@@ -95,7 +95,8 @@ impl Drop for LoadBlocker {
 pub(crate) struct DocumentLoader {
     #[no_trace]
     resource_threads: ResourceThreads,
-    /// Maps Load Type to number of blocking loads.
+    /// A map from [`LoadType`] to the number of blocking loads. When a particular [`LoadType`]
+    /// reaches zero, it is removed from the map and no longer blocks the load.
     blocking_loads: HashMap<LoadType, u32>,
     events_inhibited: bool,
     cancellers: Vec<FetchCanceller>,
@@ -176,15 +177,15 @@ impl DocumentLoader {
             self.blocking_loads.len()
         );
 
-        if let Some(entry) = self.blocking_loads.get_mut(&load) {
-            if *entry > 0 {
-                *entry -= 1;
-                return;
-            } else {
-                self.blocking_loads.remove(&load);
-            }
+        let Some(entry) = self.blocking_loads.get_mut(load) else {
+            warn!("unknown completed load {load:?}");
+            return;
+        };
+
+        *entry = entry.saturating_sub(1);
+        if *entry == 0 {
+            self.blocking_loads.remove(load);
         }
-        warn!("unknown completed load {load:?}");
     }
 
     pub(crate) fn is_blocked(&self) -> bool {
