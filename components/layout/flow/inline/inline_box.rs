@@ -213,10 +213,6 @@ pub(super) struct InlineBoxContainerState {
 
     /// The [`PaddingBorderMargin`] of the [`InlineBox`] that this state tracks.
     pub pbm: PaddingBorderMargin,
-
-    /// Whether or not the padding, borders and margins of the [`InlineBox`] that this state tracks
-    /// are cloned at line breaks.
-    pub clone_pbm: bool,
 }
 
 impl InlineBoxContainerState {
@@ -242,8 +238,6 @@ impl InlineBoxContainerState {
             identifier: inline_box.identifier,
             base_fragment_info: inline_box.base.base_fragment_info,
             pbm,
-            clone_pbm: inline_box.base.style.get_border().box_decoration_break ==
-                BoxDecorationBreak::Clone,
         }
     }
 
@@ -256,5 +250,9 @@ impl InlineBoxContainerState {
         );
         let leading = line_gap - (ascent + descent);
         leading.scale_by(0.5) + ascent
+    }
+
+    pub(super) fn should_clone_pbm(&self) -> bool {
+        self.base.style.get_border().box_decoration_break == BoxDecorationBreak::Clone
     }
 }

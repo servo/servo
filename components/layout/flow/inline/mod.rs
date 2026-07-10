@@ -221,7 +221,10 @@ impl BlockLevelBox {
     fn layout_into_line_items(&self, layout: &mut InlineFormattingContextLayout) {
         layout.process_soft_wrap_opportunity();
         layout.commit_current_segment_to_line();
-        layout.process_line_break(true, true);
+        layout.process_line_break(
+            true, /* forced_line_break */
+            true, /* for_block_level */
+        );
 
         let fragment = layout_block_level_child(
             layout.layout_context,
@@ -250,8 +253,10 @@ impl BlockLevelBox {
         ));
 
         layout.commit_current_segment_to_line();
-        layout.process_line_break(true, false);
-        layout.current_line.for_block_level = false;
+        layout.process_line_break(
+            true,  /* forced_line_break */
+            false, /* for_block_level */
+        );
     }
 }
 
@@ -1010,7 +1015,7 @@ impl InlineFormattingContextLayout<'_> {
             ));
 
         let inline_box_state = Rc::new(inline_box_state);
-        if inline_box_state.clone_pbm {
+        if inline_box_state.should_clone_pbm() {
             self.cloneable_inline_box_end_pbm_size += inline_box_state.pbm.padding.inline_end;
             self.cloneable_inline_box_end_pbm_size += inline_box_state.pbm.border.inline_end;
             self.cloneable_inline_box_end_pbm_size +=
@@ -1035,7 +1040,7 @@ impl InlineFormattingContextLayout<'_> {
             Some(inline_box_state) => inline_box_state,
             None => return, // We are at the root.
         };
-        if inline_box_state.clone_pbm {
+        if inline_box_state.should_clone_pbm() {
             self.cloneable_inline_box_end_pbm_size -= inline_box_state.pbm.padding.inline_end;
             self.cloneable_inline_box_end_pbm_size -= inline_box_state.pbm.border.inline_end;
             self.cloneable_inline_box_end_pbm_size -=
@@ -1108,7 +1113,7 @@ impl InlineFormattingContextLayout<'_> {
         // duplicated due to box-decoration-break
         if !self.current_line.for_block_level {
             for inline_box in self.inline_box_state_stack.iter().rev() {
-                if inline_box.clone_pbm {
+                if inline_box.should_clone_pbm() {
                     self.current_line_segment.line_items.push(
                         LineItem::InlineEndBoxPaddingBorderMargin(inline_box.identifier),
                     );
@@ -1186,7 +1191,7 @@ impl InlineFormattingContextLayout<'_> {
         // duplicated due to box-decoration-break
         if !for_block_level {
             for inline_box in self.inline_box_state_stack.iter() {
-                if inline_box.clone_pbm {
+                if inline_box.should_clone_pbm() {
                     self.current_line_segment.line_items.push(
                         LineItem::InlineStartBoxPaddingBorderMargin(inline_box.identifier),
                     );

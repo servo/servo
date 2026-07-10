@@ -409,7 +409,7 @@ impl LineItemLayout<'_, '_> {
             padding = LogicalSides::zero();
             border = LogicalSides::zero();
             margin = LogicalSides::zero();
-        } else if !inline_box_state.clone_pbm {
+        } else if !inline_box_state.should_clone_pbm() {
             let mut had_start = inner_state
                 .flags
                 .contains(LineLayoutInlineContainerFlags::HAD_INLINE_START_PBM);
