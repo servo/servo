@@ -45,8 +45,8 @@ impl ScriptWindowProxies {
         None
     }
 
-    pub(crate) fn insert(&self, id: BrowsingContextId, proxy: DomRoot<WindowProxy>) {
-        self.map.borrow_mut().insert(id, Dom::from_ref(&*proxy));
+    pub(crate) fn insert(&self, id: BrowsingContextId, proxy: &WindowProxy) {
+        self.map.borrow_mut().insert(id, Dom::from_ref(proxy));
     }
 
     pub(crate) fn remove(&self, id: BrowsingContextId) {
@@ -94,7 +94,7 @@ impl ScriptWindowProxies {
             opener,
             creator,
         );
-        self.insert(browsing_context_id, DomRoot::from_ref(&*window_proxy));
+        self.insert(browsing_context_id, &window_proxy);
         Some(window_proxy)
     }
 
@@ -156,7 +156,7 @@ impl ScriptWindowProxies {
             opener,
             creator,
         );
-        self.insert(browsing_context_id, DomRoot::from_ref(&*window_proxy));
+        self.insert(browsing_context_id, &window_proxy);
         window_proxy
     }
 
