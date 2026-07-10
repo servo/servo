@@ -26,7 +26,7 @@ use crate::cell::ArcRefCell;
 use crate::flow::inline::text_run::FontAndScriptInfo;
 use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{
-    LogicalRect, LogicalVec2, PhysicalRect, ToLogical, ToLogicalWithContainingBlock,
+    LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
@@ -163,6 +163,9 @@ pub(super) struct LineItemLayout<'layout_data, 'layout> {
     /// Whether this is a phantom line box.
     /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
     is_phantom_line: bool,
+
+    /// Whether this line contains only a block-level box.
+    for_block_level: bool,
 }
 
 impl LineItemLayout<'_, '_> {
@@ -173,6 +176,7 @@ impl LineItemLayout<'_, '_> {
         effective_block_advance: &LineBlockSizes,
         justification_adjustment: Au,
         is_phantom_line: bool,
+        for_block_level: bool,
     ) -> Vec<Fragment> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
@@ -189,6 +193,7 @@ impl LineItemLayout<'_, '_> {
             },
             justification_adjustment,
             is_phantom_line,
+            for_block_level,
         }
         .layout(line_items)
     }
@@ -398,33 +403,42 @@ impl LineItemLayout<'_, '_> {
         let inline_box = self.layout.ifc.inline_boxes.get(&identifier);
         let inline_box = &*(inline_box.borrow());
 
-        let mut had_start = inner_state
-            .flags
-            .contains(LineLayoutInlineContainerFlags::HAD_INLINE_START_PBM);
-        let mut had_end = inner_state
-            .flags
-            .contains(LineLayoutInlineContainerFlags::HAD_INLINE_END_PBM);
-
         let containing_block = self.containing_block();
         let containing_block_writing_mode = containing_block.style.writing_mode;
-        if containing_block_writing_mode.is_bidi_ltr() !=
-            inline_box.base.style.writing_mode.is_bidi_ltr()
-        {
-            std::mem::swap(&mut had_start, &mut had_end)
-        }
 
         let mut padding = inline_box_state.pbm.padding;
         let mut border = inline_box_state.pbm.border;
         let mut margin = inline_box_state.pbm.margin.auto_is(Au::zero);
-        if !had_start {
-            padding.inline_start = Au::zero();
-            border.inline_start = Au::zero();
-            margin.inline_start = Au::zero();
-        }
-        if !had_end {
-            padding.inline_end = Au::zero();
-            border.inline_end = Au::zero();
-            margin.inline_end = Au::zero();
+        // PBM must not be cloned onto lines that exist only to support a block-level box.
+        // See https://github.com/w3c/csswg-drafts/issues/14104
+        if self.for_block_level {
+            padding = LogicalSides::zero();
+            border = LogicalSides::zero();
+            margin = LogicalSides::zero();
+        } else if !inline_box_state.should_clone_pbm() {
+            let mut had_start = inner_state
+                .flags
+                .contains(LineLayoutInlineContainerFlags::HAD_INLINE_START_PBM);
+            let mut had_end = inner_state
+                .flags
+                .contains(LineLayoutInlineContainerFlags::HAD_INLINE_END_PBM);
+
+            if containing_block_writing_mode.is_bidi_ltr() !=
+                inline_box.base.style.writing_mode.is_bidi_ltr()
+            {
+                std::mem::swap(&mut had_start, &mut had_end)
+            }
+
+            if !had_start {
+                padding.inline_start = Au::zero();
+                border.inline_start = Au::zero();
+                margin.inline_start = Au::zero();
+            }
+            if !had_end {
+                padding.inline_end = Au::zero();
+                border.inline_end = Au::zero();
+                margin.inline_end = Au::zero();
+            }
         }
         let pbm_sums = padding + border + margin;
 

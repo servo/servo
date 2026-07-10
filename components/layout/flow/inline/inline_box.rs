@@ -10,6 +10,7 @@ use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use style::computed_values::box_decoration_break::T as BoxDecorationBreak;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 
@@ -249,5 +250,9 @@ impl InlineBoxContainerState {
         );
         let leading = line_gap - (ascent + descent);
         leading.scale_by(0.5) + ascent
+    }
+
+    pub(super) fn should_clone_pbm(&self) -> bool {
+        self.base.style.get_border().box_decoration_break == BoxDecorationBreak::Clone
     }
 }
