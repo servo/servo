@@ -253,7 +253,7 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
         let Ok(keyframes) = process_a_keyframes_argument(cx, &document, keyframes) else {
             return;
         };
-        *self.keyframes.borrow_mut() = keyframes;
+        *self.keyframes.safe_borrow_mut(cx.no_gc()) = keyframes;
     }
 }
 

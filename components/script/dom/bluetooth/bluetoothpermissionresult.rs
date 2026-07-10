@@ -131,7 +131,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 );
                 bluetooth
                     .get_device_map()
-                    .borrow_mut()
+                    .safe_borrow_mut(cx.no_gc())
                     .insert(device.id.clone(), Dom::from_ref(&bt_device));
                 self.global()
                     .as_window()

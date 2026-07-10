@@ -145,7 +145,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
         }
         self.rendering_started.set(true);
 
-        *self.pending_rendering_promise.borrow_mut() = Some(promise.clone());
+        *self.pending_rendering_promise.safe_borrow_mut(cx.no_gc()) = Some(promise.clone());
 
         let processed_audio = Arc::new(Mutex::new(Vec::new()));
         let processed_audio_ = processed_audio.clone();

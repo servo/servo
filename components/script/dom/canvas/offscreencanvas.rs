@@ -164,9 +164,9 @@ impl OffscreenCanvas {
         }
         let context =
             OffscreenCanvasRenderingContext2D::new(cx, &self.global(), self, self.get_size())?;
-        *self.context.borrow_mut() = Some(OffscreenRenderingContext::Context2d(Dom::from_ref(
-            &*context,
-        )));
+        *self.context.safe_borrow_mut(cx.no_gc()) = Some(OffscreenRenderingContext::Context2d(
+            Dom::from_ref(&*context),
+        ));
         Some(context)
     }
 
@@ -193,9 +193,9 @@ impl OffscreenCanvas {
         let context = ImageBitmapRenderingContext::new(cx, &self.global(), &canvas);
 
         // Step 2. Set this's context mode to bitmaprenderer.
-        *self.context.borrow_mut() = Some(OffscreenRenderingContext::BitmapRenderer(
-            Dom::from_ref(&*context),
-        ));
+        *self.context.safe_borrow_mut(cx.no_gc()) = Some(
+            OffscreenRenderingContext::BitmapRenderer(Dom::from_ref(&*context)),
+        );
 
         // Step 3. Return context.
         Some(context)
@@ -228,7 +228,7 @@ impl OffscreenCanvas {
             .map(|context| {
                 // Step 2. If context is null, then return null;
                 // otherwise set this's context mode to webgl or webgl2.
-                *self.context.borrow_mut() =
+                *self.context.safe_borrow_mut(cx.no_gc()) =
                     Some(OffscreenRenderingContext::WebGL(Dom::from_ref(&*context)));
 
                 // Step 3. Return context.
@@ -265,7 +265,7 @@ impl OffscreenCanvas {
             .map(|context| {
                 // Step 2. If context is null, then return null;
                 // otherwise set this's context mode to webgl or webgl2.
-                *self.context.borrow_mut() =
+                *self.context.safe_borrow_mut(cx.no_gc()) =
                     Some(OffscreenRenderingContext::WebGL2(Dom::from_ref(&*context)));
 
                 // Step 3. Return context.
@@ -287,7 +287,7 @@ impl Transferable for OffscreenCanvas {
     /// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-steps>
     fn transfer(
         &self,
-        _cx: &mut js::context::JSContext,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<(OffscreenCanvasId, TransferableOffscreenCanvas)> {
         // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
         // Step 5.2. If transferable has a [[Detached]] internal slot and
@@ -309,7 +309,7 @@ impl Transferable for OffscreenCanvas {
         }
 
         // Step 2. Set value's context mode to detached.
-        *self.context.borrow_mut() = Some(OffscreenRenderingContext::Detached);
+        *self.context.safe_borrow_mut(cx.no_gc()) = Some(OffscreenRenderingContext::Detached);
 
         // Step 3. Let width and height be the dimensions of value's bitmap.
         // Step 5. Unset value's bitmap.
