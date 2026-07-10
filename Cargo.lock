@@ -8255,6 +8255,7 @@ dependencies = [
  "unicode-script",
  "unicode_categories",
  "url",
+ "uuid",
  "web_atoms",
  "webrender_api",
 ]
@@ -8288,6 +8289,7 @@ dependencies = [
  "servo_arc",
  "stylo",
  "stylo_traits",
+ "uuid",
  "webrender_api",
 ]
 
