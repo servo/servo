@@ -4224,6 +4224,7 @@ class CGCallGenerator(CGThing):
 
         needs_cx_arg = (
             nativeMethodName in descriptor.no_gcMethods
+            or nativeMethodName in descriptor.no_gc_mutMethods
             or nativeMethodName in descriptor.cx_no_gcMethods
             or nativeMethodName in descriptor.cxMethods
             or nativeMethodName in descriptor.realmMethods
@@ -6987,6 +6988,7 @@ class CGInterfaceTrait(CGThing):
         def attribute_arguments(attribute_type: IDLType,
                                 argument: IDLType | None = None,
                                 no_gc: bool = False,
+                                no_gc_mut: bool = False,
                                 cx_no_gc: bool = False,
                                 cx: bool = False,
                                 realm: bool = False,
@@ -6994,10 +6996,12 @@ class CGInterfaceTrait(CGThing):
                                 ) -> Iterable[tuple[str, str]]:
             if realm:
                 yield "realm", "&mut CurrentRealm"
-            elif cx:
+            elif cx or (cx_no_gc and no_gc_mut):
                 yield "cx", "&mut JSContext"
             elif cx_no_gc:
                 yield "cx", "&JSContext"
+            elif no_gc_mut:
+                yield "cx", "&mut NoGC"
             elif no_gc:
                 yield "cx", "&NoGC"
 
@@ -7026,6 +7030,7 @@ class CGInterfaceTrait(CGThing):
                         arguments = cast(list[IDLArgument], arguments)
                         arguments = method_arguments(descriptor, rettype, arguments,
                                                      no_gc=name in descriptor.no_gcMethods,
+                                                     no_gc_mut=name in descriptor.no_gc_mutMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods or descriptor.interface.isIteratorInterface(),
                                                      realm=name in descriptor.realmMethods)
@@ -7045,6 +7050,7 @@ class CGInterfaceTrait(CGThing):
                            attribute_arguments(
                                m.type,
                                no_gc=name in descriptor.no_gcMethods,
+                               no_gc_mut=name in descriptor.no_gc_mutMethods,
                                cx_no_gc=name in descriptor.cx_no_gcMethods,
                                cx=name in descriptor.cxMethods or isEventHandlerCallback(m),
                                realm=name in descriptor.realmMethods,
@@ -7065,6 +7071,7 @@ class CGInterfaceTrait(CGThing):
                                    m.type,
                                    m.type,
                                    no_gc=name in descriptor.no_gcMethods,
+                                   no_gc_mut=name in descriptor.no_gc_mutMethods,
                                    cx_no_gc=name in descriptor.cx_no_gcMethods,
                                    cx=name in descriptor.cxMethods or descriptor.implicitCxSetters or isEventHandlerCallback(m),
                                    realm=name in descriptor.realmMethods,
@@ -7087,6 +7094,7 @@ class CGInterfaceTrait(CGThing):
                             rettype = IDLNullableType(rettype.location, rettype)
                         arguments = method_arguments(descriptor, rettype, arguments,
                                                      no_gc=name in descriptor.no_gcMethods,
+                                                     no_gc_mut=name in descriptor.no_gc_mutMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods)
@@ -7101,6 +7109,7 @@ class CGInterfaceTrait(CGThing):
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments,
                                                      no_gc=name in descriptor.no_gcMethods,
+                                                     no_gc_mut=name in descriptor.no_gc_mutMethods,
                                                      cx_no_gc=name in descriptor.cx_no_gcMethods,
                                                      cx=name in descriptor.cxMethods,
                                                      realm=name in descriptor.realmMethods)
@@ -8328,6 +8337,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      passJSBits: bool = True,
                      trailing: tuple[str, str] | None = None,
                      no_gc: bool = False,
+                     no_gc_mut: bool = False,
                      cx_no_gc: bool = False,
                      cx: bool = False,
                      realm: bool = False
@@ -8343,10 +8353,12 @@ def method_arguments(descriptorProvider: DescriptorProvider,
 
     if realm:
         yield "realm", "&mut CurrentRealm"
-    elif cx:
+    elif cx or (cx_no_gc and no_gc_mut):
         yield "cx", "&mut JSContext"
     elif cx_no_gc:
         yield "cx", "&JSContext"
+    elif no_gc_mut:
+        yield "cx", "&mut NoGC"
     elif no_gc:
         yield "cx", "&NoGC"
 

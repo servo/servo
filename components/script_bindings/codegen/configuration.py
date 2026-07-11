@@ -291,11 +291,12 @@ class Descriptor(DescriptorProvider):
 
         # Specified here to make it explicit for the typechecker
         self.no_gcMethods: list[str] = []
+        self.no_gc_mutMethods: list[str] = []
         self.cx_no_gcMethods: list[str] = []
         self.cxMethods: list[str] = []
         self.realmMethods: list[str] = []
 
-        configurationMethods = ["no_gc", "cx_no_gc", "cx", "realm"]
+        configurationMethods = ["no_gc", "no_gc_mut", "cx_no_gc", "cx", "realm"]
         for configurationName in configurationMethods:
             setattr(self, configurationName + "Methods", [name for name in desc.get(configurationName, [])])
 
