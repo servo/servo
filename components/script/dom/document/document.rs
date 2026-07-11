@@ -54,6 +54,7 @@ use profile_traits::time::TimerMetadataFrameType;
 use profile_traits::{generic_channel as profile_generic_channel, path};
 use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use script_bindings::callback::ThisReflector;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
@@ -218,6 +219,7 @@ use crate::fetch::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
 use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
+use crate::script_runtime::get_size;
 use crate::tasks::task::NonSendTaskBox;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::TaskSourceName;
@@ -3681,18 +3683,51 @@ impl Document {
     }
 
     pub(crate) fn collect_reports(&self, reports: &mut Vec<Report>, _ops: &mut MallocSizeOfOps) {
+        let mut sizes = DocumentSizes::default();
+
         for node in self.upcast::<Node>().children() {
             let type_id = node.type_id();
-            // TODO(pylbrecht): get the size of `node`, but how?
+            #[expect(unsafe_code)]
+            let size = unsafe { get_size(node.jsobject()) };
+            match type_id {
+                NodeTypeId::Attr => sizes.attribute_nodes_size += size,
+                NodeTypeId::Element(_) => sizes.element_nodes_size += size,
+                NodeTypeId::CharacterData(_) => sizes.text_nodes_size += size,
+                _ => sizes.other_nodes_size += size,
+            };
         }
 
-        let formatted_url = &format!("url({})", self.url.borrow().as_url());
+        let prefix = format!("url({})", self.url());
         reports.push(Report {
-            path: path![formatted_url, "js", "malloc-heap", "pylbrecht"],
+            path: path![prefix, "js", "dom", "element-nodes"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: 1337,
+            size: sizes.element_nodes_size,
+        });
+        reports.push(Report {
+            path: path![prefix, "js", "dom", "text-nodes"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: sizes.text_nodes_size,
+        });
+        reports.push(Report {
+            path: path![prefix, "js", "dom", "attribute-nodes"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: sizes.attribute_nodes_size,
+        });
+        reports.push(Report {
+            path: path![prefix, "js", "dom", "other-nodes"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: sizes.other_nodes_size,
         });
     }
+}
+
+/// Holds DOM object memory sizes for fine-grained memory reports.
+#[derive(Default)]
+struct DocumentSizes {
+    element_nodes_size: usize,
+    text_nodes_size: usize,
+    attribute_nodes_size: usize,
+    other_nodes_size: usize,
 }
 
 #[derive(MallocSizeOf, PartialEq)]
