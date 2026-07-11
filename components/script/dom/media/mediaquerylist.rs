@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use style::media_queries::MediaList;
 use style::stylesheets::CustomMediaEvaluator;
 use style_traits::ToCss;
@@ -52,10 +52,10 @@ impl MediaQueryList {
         document: &Document,
         media_query_list: MediaList,
     ) -> DomRoot<MediaQueryList> {
-        reflect_dom_object_with_cx(
-            Box::new(MediaQueryList::new_inherited(document, media_query_list)),
-            document.window(),
+        reflect_weak_referenceable_dom_object(
             cx,
+            Rc::new(MediaQueryList::new_inherited(document, media_query_list)),
+            document.window(),
         )
     }
 }

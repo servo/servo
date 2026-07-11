@@ -11,7 +11,7 @@ use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
@@ -183,11 +183,11 @@ impl RTCPeerConnection {
         proto: Option<HandleObject>,
         config: &RTCConfiguration,
     ) -> DomRoot<RTCPeerConnection> {
-        let this = reflect_dom_object_with_proto_and_cx(
-            Box::new(RTCPeerConnection::new_inherited()),
+        let this = reflect_weak_referenceable_dom_object_with_proto(
+            cx,
+            Rc::new(RTCPeerConnection::new_inherited()),
             window,
             proto,
-            cx,
         );
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().create_webrtc(signaller));

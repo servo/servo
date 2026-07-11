@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::cmp::{Ordering, PartialOrd};
 use std::iter;
+use std::rc::Rc;
 
 use app_units::Au;
 use dom_struct::dom_struct;
@@ -14,7 +15,7 @@ use js::jsapi::JSTracer;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::dom::UnrootedDom;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use style_traits::CSSPixel;
 
 use crate::dom::abstractrange::{AbstractRange, BoundaryPoint, bp_position};
@@ -124,8 +125,9 @@ impl Range {
         end_container: &Node,
         end_offset: u32,
     ) -> DomRoot<Range> {
-        let range = reflect_dom_object_with_proto_and_cx(
-            Box::new(Range::new_inherited(
+        let range = reflect_weak_referenceable_dom_object_with_proto(
+            cx,
+            Rc::new(Range::new_inherited(
                 start_container,
                 start_offset,
                 end_container,
@@ -133,7 +135,6 @@ impl Range {
             )),
             document.window(),
             proto,
-            cx,
         );
         start_container.ranges().push(WeakRef::new(&range));
         if start_container != end_container {

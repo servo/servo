@@ -8,7 +8,7 @@ use std::f64::consts::{FRAC_PI_2, PI};
 use std::rc::Rc;
 use std::{mem, ptr};
 
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -165,15 +165,15 @@ impl XRSession {
         };
         let render_state = XRRenderState::new(cx, window, 0.1, 1000.0, ivfov, None, Vec::new());
         let input_sources = XRInputSourceArray::new(cx, window);
-        let ret = reflect_dom_object_with_cx(
-            Box::new(XRSession::new_inherited(
+        let ret = reflect_weak_referenceable_dom_object(
+            cx,
+            Rc::new(XRSession::new_inherited(
                 session,
                 &render_state,
                 &input_sources,
                 mode,
             )),
             window,
-            cx,
         );
         ret.attach_event_handler();
         ret.setup_raf_loop(frame_receiver);

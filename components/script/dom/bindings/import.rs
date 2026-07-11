@@ -4,6 +4,7 @@
 
 pub(crate) mod base {
     pub(crate) use std::ptr;
+    pub(crate) use std::rc::Rc;
 
     pub(crate) use js::context::JSContext;
     #[expect(unused_imports)]
@@ -14,7 +15,9 @@ pub(crate) mod base {
 pub(crate) mod module {
     pub(crate) use script_bindings::codegen::PrototypeList;
     pub(crate) use script_bindings::conversions::IDLInterface;
-    pub(crate) use script_bindings::reflector::{DomObjectIteratorWrap, DomObjectWrap, Reflector};
+    pub(crate) use script_bindings::reflector::{
+        DomObjectIteratorWrap, DomObjectWrap, Reflector, WeakReferenceableDomObjectWrap,
+    };
     pub(crate) use script_bindings::utils::DOMClass;
 
     pub(crate) use super::base::*;

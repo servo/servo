@@ -4,6 +4,7 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
@@ -11,7 +12,7 @@ use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_weak_referenceable_dom_object};
 use servo_base::{Epoch, generic_channel};
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,
@@ -127,14 +128,14 @@ impl GPUCanvasContext {
         canvas: &HTMLCanvasElement,
         channel: WebGPU,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
-            Box::new(GPUCanvasContext::new_inherited(
+        reflect_weak_referenceable_dom_object(
+            cx,
+            Rc::new(GPUCanvasContext::new_inherited(
                 global,
                 HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(canvas)),
                 channel,
             )),
             global,
-            cx,
         )
     }
 }

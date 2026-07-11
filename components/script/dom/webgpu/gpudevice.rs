@@ -12,7 +12,7 @@ use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
@@ -167,8 +167,9 @@ impl GPUDevice {
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
         let adapter_info = GPUAdapterInfo::clone_from(cx, global, &adapter.Info());
         let lost_promise = Promise::new(cx, global);
-        let device = reflect_dom_object_with_cx(
-            Box::new(GPUDevice::new_inherited(
+        let device = reflect_weak_referenceable_dom_object(
+            cx,
+            Rc::new(GPUDevice::new_inherited(
                 channel,
                 adapter,
                 &features,
@@ -180,7 +181,6 @@ impl GPUDevice {
                 lost_promise,
             )),
             global,
-            cx,
         );
         queue.set_device(cx, &device);
         device.extensions.set(*extensions);

@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
 use std::time::SystemTime;
 
 use dom_struct::dom_struct;
 use embedder_traits::SelectedFile;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use servo_base::id::{FileId, FileIndex};
 use servo_constellation_traits::{BlobImpl, SerializableFile};
 use time::{Duration, OffsetDateTime};
@@ -80,8 +81,9 @@ impl File {
         modified: Option<SystemTime>,
         webkit_relative_path: USVString,
     ) -> DomRoot<File> {
-        let file = reflect_dom_object_with_proto_and_cx(
-            Box::new(File::new_inherited(
+        let file = reflect_weak_referenceable_dom_object_with_proto(
+            cx,
+            Rc::new(File::new_inherited(
                 &blob_impl,
                 name,
                 modified,
@@ -89,7 +91,6 @@ impl File {
             )),
             global,
             proto,
-            cx,
         );
         global.track_file(&file, blob_impl);
         file
