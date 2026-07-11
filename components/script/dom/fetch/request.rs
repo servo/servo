@@ -414,7 +414,8 @@ impl Request {
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers(cx).copy_from_headers(&input_request.Headers(cx))?;
+                    r.Headers(cx)
+                        .copy_from_headers(&input_request.Headers(cx))?;
                 }
             },
             // Step 33.5. Otherwise, fill this’s headers with headers.
