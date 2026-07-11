@@ -3604,6 +3604,11 @@ impl<'dom> LayoutDom<'dom, Document> {
     pub(crate) fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
         self.unsafe_get().id_map.get_all_for_layout(id)
     }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn url_for_layout(self) -> ServoUrl {
+        unsafe { self.unsafe_get().url.borrow_for_layout() }.clone()
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
