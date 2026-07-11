@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
 use gilrs::{Event, EventType, Gilrs};
@@ -42,7 +43,7 @@ impl ServoshellGamepadDelegate {
                 };
 
                 loop {
-                    while let Some(event) = handle.next_event() {
+                    while let Some(event) = handle.next_event_blocking(Some(Duration::from_millis(100))) {
                         let gamepad = handle.gamepad(event.id);
                         let name = gamepad.name();
                         let index = GamepadIndex(event.id.into());
