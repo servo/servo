@@ -1112,7 +1112,7 @@ fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {
 thread_local!(static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Cell::new(ptr::null_mut()) });
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
+pub unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
     match unsafe { get_dom_class(obj) } {
         Ok(v) => {
             let dom_object = unsafe { private_from_object(obj) as *const c_void };

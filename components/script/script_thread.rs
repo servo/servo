@@ -2780,6 +2780,8 @@ impl ScriptThread {
                     .window()
                     .layout()
                     .collect_reports(&mut reports, ops);
+
+                document.collect_reports(&mut reports, ops);
             }
 
             let prefix = format!("url({urls})");
