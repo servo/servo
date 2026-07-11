@@ -47,10 +47,12 @@ impl ServoshellGamepadDelegate {
                         let gamepad = handle.gamepad(event.id);
                         let name = gamepad.name();
                         let index = GamepadIndex(event.id.into());
-                        event_loop_proxy
-                            .clone()
-                            .send_event(AppEvent::Gamepad(event, name.to_owned(), index))
-                            .expect("Coulnt access to event loop proxy!");
+
+                        if event_loop_proxy.send_event(AppEvent::Gamepad(event, name.to_owned(), index))
+                            .is_err() {
+                                warn!("Error sending gamepad event to event loop proxy");
+                                return;
+                            }
                     }
                 }
             });
