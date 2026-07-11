@@ -60,10 +60,7 @@ impl ServoshellGamepadDelegate {
                             .iter()
                             .position(|&gamepad_id| event.id == gamepad_id)
                         {
-                            handle.insert_event(Event::new(
-                                event.id,
-                                EventType::Connected,
-                            ));
+                            handle.insert_event(Event::new(event.id, EventType::Connected));
                             handle.insert_event(event);
 
                             connected_gamepads.swap_remove(index);
