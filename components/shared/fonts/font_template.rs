@@ -57,10 +57,6 @@ impl Default for FontTemplateDescriptor {
     }
 }
 
-/// FontTemplateDescriptor contains floats, which are not Eq because of NaN. However,
-/// we know they will never be NaN, so we can manually implement Eq.
-impl Eq for FontTemplateDescriptor {}
-
 impl FontTemplateDescriptor {
     #[inline]
     pub fn new(weight: FontWeight, stretch: FontStretch, style: FontStyle) -> Self {
