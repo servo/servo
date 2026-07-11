@@ -8,8 +8,9 @@ use std::time::Duration;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheFactory, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId, PendingImageResponse,
+    FontResolver, ImageCache, ImageCacheFactory, ImageCacheResponseMessage, ImageCacheResult,
+    ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+    PendingImageResponse,
 };
 use net_traits::request::RequestId;
 use net_traits::{
@@ -17,12 +18,21 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType,
 };
 use paint_api::{CrossProcessPaintApi, PaintMessage};
+// For dummy Font Resolver
+use resvg::usvg::{Font, fontdb};
 use servo_base::id::{PipelineId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use servo_url::ServoUrl;
 use uuid::Uuid;
 use webrender_api::ImageKey;
 
 use crate::mock_origin;
+
+struct DummyFontResolver;
+impl FontResolver for DummyFontResolver {
+    fn resolve(&self, _: &Font, _: &mut Arc<fontdb::Database>) -> Option<fontdb::ID> {
+        None
+    }
+}
 
 fn create_test_image_cache() -> (Arc<dyn ImageCache>, Receiver<PipelineId>) {
     let (sender, receiver) = unbounded();
@@ -31,9 +41,15 @@ fn create_test_image_cache() -> (Arc<dyn ImageCache>, Receiver<PipelineId>) {
             let _ = sender.send(pipeline_id);
         }
     })));
+    let dummy_resolver = Arc::new(DummyFontResolver);
 
     let factory = ImageCacheFactoryImpl::new(vec![]);
-    let cache = factory.create(TEST_WEBVIEW_ID, TEST_PIPELINE_ID, &paint_api);
+    let cache = factory.create(
+        TEST_WEBVIEW_ID,
+        TEST_PIPELINE_ID,
+        &paint_api,
+        dummy_resolver.clone(),
+    );
     (cache, receiver)
 }
 

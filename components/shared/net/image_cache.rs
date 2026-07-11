@@ -10,6 +10,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use paint_api::CrossProcessPaintApi;
 use pixels::{CorsStatus, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
+use resvg::usvg::{Font, fontdb};
 use serde::{Deserialize, Serialize};
 use servo_base::id::{PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -23,6 +24,14 @@ use crate::request::CorsSettings;
 // ======================================================================
 // Aux structs and enums.
 // ======================================================================
+
+/// An interface for resolving font families and styles for SVG images.
+pub trait FontResolver: Sync + Send {
+    /// Attempt to resolve a font reference using the provided database of fonts.
+    /// Adding new fonts to the database is allowed. Return an index into the database
+    /// if the font resolves to an entry, otherwise return None.
+    fn resolve(&self, font: &Font, database: &mut Arc<fontdb::Database>) -> Option<fontdb::ID>;
+}
 
 pub type VectorImageId = PendingImageId;
 
@@ -167,6 +176,7 @@ pub trait ImageCacheFactory: Sync + Send {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         paint_api: &CrossProcessPaintApi,
+        font_resolver: Arc<dyn FontResolver>,
     ) -> Arc<dyn ImageCache>;
 }
 

@@ -106,6 +106,7 @@ mime_guess = { workspace = true }
 ml-dsa = { workspace = true }
 ml-kem = { workspace = true }
 net_traits = { workspace = true }
+net = { workspace = true }
 nom-rfc8288 = { workspace = true }
 num-traits = { workspace = true }
 num_cpus = { workspace = true }
@@ -123,6 +124,7 @@ postcard = { workspace = true }
 profile_traits = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
+resvg = { workspace = true }
 rsa = { workspace = true }
 rustc-hash = { workspace = true }
 script_bindings = { workspace = true }

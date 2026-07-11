@@ -60,6 +60,7 @@ pub(crate) mod script_thread;
 pub(crate) mod serviceworker_manager;
 mod stylesheet_loader;
 mod stylesheet_set;
+mod svg_font;
 mod task_manager;
 mod task_queue;
 mod task_source;
