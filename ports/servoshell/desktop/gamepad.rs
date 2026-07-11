@@ -4,12 +4,12 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Sender, channel};
 use std::thread;
 use std::time::Duration;
 
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
-use gilrs::{Event, EventType, Gilrs};
+use gilrs::{Event, EventType, Gamepad, Gilrs};
 use log::{debug, warn};
 use servo::{
     GamepadDelegate, GamepadEvent, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
@@ -27,13 +27,18 @@ pub struct HapticEffect {
 
 pub(crate) struct ServoshellGamepadDelegate {
     haptic_effects: RefCell<HashMap<usize, HapticEffect>>,
+    sender: Sender<GamepadHapticEffectRequest>,
 }
 
 impl ServoshellGamepadDelegate {
     pub(crate) fn maybe_new(event_loop_proxy: EventLoopProxy<AppEvent>) -> Option<Self> {
+        let (tx, rx) = channel::<GamepadHapticEffectRequest>();
+
         let _ = thread::Builder::new()
             .name(String::from("GamepadThread"))
             .spawn(move || {
+
+                let mut haptic_effects: HashMap<usize, HapticEffect> = HashMap::new();
                 let mut handle = match Gilrs::new() {
                     Ok(handle) => handle,
                     Err(error) => {
@@ -43,22 +48,38 @@ impl ServoshellGamepadDelegate {
                 };
 
                 loop {
-                    while let Some(event) = handle.next_event_blocking(Some(Duration::from_millis(100))) {
+                    while let Some(event) =
+                        handle.next_event_blocking(Some(Duration::from_millis(100)))
+                    {
                         let gamepad = handle.gamepad(event.id);
                         let name = gamepad.name();
                         let index = GamepadIndex(event.id.into());
 
-                        if event_loop_proxy.send_event(AppEvent::Gamepad(event, name.to_owned(), index))
-                            .is_err() {
-                                warn!("Error sending gamepad event to event loop proxy");
-                                return;
-                            }
+                        if event_loop_proxy
+                            .send_event(AppEvent::Gamepad(event, name.to_owned(), index))
+                            .is_err()
+                        {
+                            warn!("Error sending gamepad event to event loop proxy");
+                            return;
+                        }
+                    }
+
+                    while let Ok(request) = rx.try_recv() {
+                        match request.request_type() {
+                            GamepadHapticEffectRequestType::Play(effect_type) => {
+                                Self::play_haptic_effect(&mut haptic_effects, &effect_type.clone(), request, &mut handle);
+                            },
+                            GamepadHapticEffectRequestType::Stop => {
+                                Self::stop_haptic_effect(&mut haptic_effects, request);
+                            },
+                        }
                     }
                 }
             });
 
         Some(Self {
             haptic_effects: RefCell::new(Default::default()),
+            sender: tx,
         })
     }
 
@@ -182,15 +203,14 @@ impl ServoshellGamepadDelegate {
     }
 
     fn play_haptic_effect(
-        &self,
+        haptic_effects: &mut HashMap<usize, HapticEffect>,
         effect_type: &GamepadHapticEffectType,
         request: GamepadHapticEffectRequest,
+        handle: &mut Gilrs,
     ) {
-        /*
         let index = request.gamepad_index();
         let GamepadHapticEffectType::DualRumble(params) = effect_type;
 
-        let mut handle = self.handle.borrow_mut();
         let Some(connected_gamepad) = handle
             .gamepads()
             .find(|gamepad| usize::from(gamepad.0) == index)
@@ -227,24 +247,22 @@ impl ServoshellGamepadDelegate {
             })
             .repeat(Repeat::For(start_delay + duration))
             .add_gamepad(&connected_gamepad.1)
-            .finish(&mut handle)
+            .finish(handle)
             .expect(
                 "Failed to create haptic effect, ensure connected gamepad supports force feedback.",
             );
 
-        let mut haptic_effects = self.haptic_effects.borrow_mut();
         haptic_effects.insert(index, HapticEffect { effect, request });
         haptic_effects[&index]
             .effect
             .play()
             .expect("Failed to play haptic effect.");
-        */
     }
 
-    fn stop_haptic_effect(&self, request: GamepadHapticEffectRequest) {
+    fn stop_haptic_effect(haptic_effects: &mut HashMap<usize, HapticEffect>,
+        request: GamepadHapticEffectRequest) {
         let index = request.gamepad_index();
 
-        let mut haptic_effects = self.haptic_effects.borrow_mut();
         let Some(haptic_effect) = haptic_effects.get(&index) else {
             request.failed();
             return;
@@ -269,13 +287,8 @@ impl ServoshellGamepadDelegate {
 
 impl GamepadDelegate for ServoshellGamepadDelegate {
     fn handle_haptic_effect_request(&self, request: GamepadHapticEffectRequest) {
-        match request.request_type() {
-            GamepadHapticEffectRequestType::Play(effect_type) => {
-                self.play_haptic_effect(&effect_type.clone(), request);
-            },
-            GamepadHapticEffectRequestType::Stop => {
-                self.stop_haptic_effect(request);
-            },
+        if self.sender.send(request).is_err() {
+            warn!("Haptic effect couldn't be played!")
         }
     }
 }

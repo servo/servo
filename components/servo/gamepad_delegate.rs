@@ -12,14 +12,14 @@ pub enum GamepadHapticEffectRequestType {
 pub struct GamepadHapticEffectRequest {
     gamepad_index: usize,
     request_type: GamepadHapticEffectRequestType,
-    callback: Option<Box<dyn FnOnce(bool)>>,
+    callback: Option<Box<dyn FnOnce(bool) + Send>>,
 }
 
 impl GamepadHapticEffectRequest {
     pub(crate) fn new(
         gamepad_index: usize,
         request_type: GamepadHapticEffectRequestType,
-        callback: Box<dyn FnOnce(bool)>,
+        callback: Box<dyn FnOnce(bool) + Send>,
     ) -> Self {
         Self {
             gamepad_index,
