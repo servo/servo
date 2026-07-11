@@ -248,7 +248,7 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
 }
 
 impl Headers {
-    pub(crate) fn copy_from_headers(&self, headers: DomRoot<Headers>) -> ErrorResult {
+    pub(crate) fn copy_from_headers(&self, headers: &Headers) -> ErrorResult {
         for (name, value) in headers.header_list.borrow().iter() {
             self.Append(
                 ByteString::new(Vec::from(name.as_str())),

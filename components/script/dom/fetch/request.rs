@@ -414,7 +414,8 @@ impl Request {
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers(cx).copy_from_headers(input_request.Headers(cx))?;
+                    r.Headers(cx)
+                        .copy_from_headers(&input_request.Headers(cx))?;
                 }
             },
             // Step 33.5. Otherwise, fill this’s headers with headers.
@@ -559,7 +560,7 @@ impl Request {
             r_clone.request.borrow_mut().body = Some(body);
         }
 
-        r_clone.Headers(cx).copy_from_headers(r.Headers(cx))?;
+        r_clone.Headers(cx).copy_from_headers(&r.Headers(cx))?;
         r_clone.Headers(cx).set_guard(headers_guard);
 
         clone_body_stream_for_dom_body(cx, &r.body_stream, &r_clone.body_stream)?;
