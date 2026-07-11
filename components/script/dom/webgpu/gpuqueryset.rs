@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::cell::DomRefCell;
+use js::cell::JSCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{GPUDeviceMethods, GPUQueryType};
 use script_bindings::error::{Error, Fallible};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
@@ -46,7 +46,8 @@ impl Drop for DroppableGPUQuerySet {
 pub(crate) struct GPUQuerySet {
     reflector_: Reflector,
     droppable: DroppableGPUQuerySet,
-    label: DomRefCell<USVString>,
+    #[ignore_malloc_size_of = "JSCell is hard to measure"]
+    label: JSCell<USVString>,
     r#type: GPUQueryType,
     count: u32,
 }
@@ -61,7 +62,7 @@ impl GPUQuerySet {
     ) -> Self {
         GPUQuerySet {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(label),
+            label: JSCell::new(label),
             droppable: DroppableGPUQuerySet { channel, query_set },
             r#type,
             count,
@@ -152,13 +153,13 @@ impl GPUQuerySetMethods<crate::DomTypeHolder> for GPUQuerySet {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn Label(&self) -> USVString {
-        self.label.borrow().clone()
+    fn Label(&self, no_gc: &NoGC) -> USVString {
+        self.label.borrow(no_gc).clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, no_gc_mut: &mut NoGC, value: USVString) {
+        *self.label.borrow_mut(no_gc_mut) = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-type>

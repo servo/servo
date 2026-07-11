@@ -6,7 +6,7 @@ use std::string::String;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::cell::DomRefCell;
+use js::cell::JSCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 use wgpu_core::resource::{self, TextureDescriptor};
@@ -51,7 +51,8 @@ impl Drop for DroppableGPUTexture {
 #[dom_struct]
 pub(crate) struct GPUTexture {
     reflector_: Reflector,
-    label: DomRefCell<USVString>,
+    #[ignore_malloc_size_of = "JSCell is hard to measure"]
+    label: JSCell<USVString>,
     device: Dom<GPUDevice>,
     #[no_trace]
     #[ignore_malloc_size_of = "External type"]
@@ -81,7 +82,7 @@ impl GPUTexture {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(label),
+            label: JSCell::new(label),
             device: Dom::from_ref(device),
             texture_size,
             mip_level_count,
@@ -133,9 +134,9 @@ impl GPUTexture {
         self.droppable.texture
     }
 
-    pub(crate) fn wgpu_texture_descriptor(&self) -> TextureDescriptor<'static> {
+    pub(crate) fn wgpu_texture_descriptor(&self, no_gc: &NoGC) -> TextureDescriptor<'static> {
         TextureDescriptor {
-            label: Some(self.label.borrow().to_string().into()),
+            label: Some(self.label.borrow(no_gc).to_string().into()),
             size: self.texture_size,
             mip_level_count: self.mip_level_count,
             sample_count: self.sample_count,
@@ -196,13 +197,13 @@ impl GPUTexture {
 
 impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn Label(&self) -> USVString {
-        self.label.borrow().clone()
+    fn Label(&self, no_gc: &NoGC) -> USVString {
+        self.label.borrow(no_gc).clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, no_gc_mut: &mut NoGC, value: USVString) {
+        *self.label.borrow_mut(no_gc_mut) = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-createview>

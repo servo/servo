@@ -8,6 +8,7 @@ use std::string::String;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use js::cell::JSCell;
 use js::realm::CurrentRealm;
 use js::typedarray::HeapArrayBuffer;
 use script_bindings::cell::DomRefCell;
@@ -74,7 +75,8 @@ pub(crate) struct GPUBuffer {
     reflector_: Reflector,
     #[no_trace]
     channel: WebGPU,
-    label: DomRefCell<USVString>,
+    #[ignore_malloc_size_of = "JSCell is hard to measure"]
+    label: JSCell<USVString>,
     #[no_trace]
     buffer: WebGPUBuffer,
     device: Dom<GPUDevice>,
@@ -102,7 +104,7 @@ impl GPUBuffer {
         Self {
             reflector_: Reflector::new(),
             channel,
-            label: DomRefCell::new(label),
+            label: JSCell::new(label),
             device: Dom::from_ref(device),
             buffer,
             pending_map: DomRefCell::new(None),
@@ -356,13 +358,13 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn Label(&self) -> USVString {
-        self.label.borrow().clone()
+    fn Label(&self, no_gc: &NoGC) -> USVString {
+        self.label.borrow(no_gc).clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, no_gc_mut: &mut NoGC, value: USVString) {
+        *self.label.borrow_mut(no_gc_mut) = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-size>

@@ -6,8 +6,8 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use js::cell::JSCell;
 use pixels::{SnapshotAlphaMode, SnapshotPixelFormat};
-use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use script_bindings::codegen::GenericBindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLImageElementBinding::HTMLImageElementMethods;
@@ -44,8 +44,10 @@ pub(crate) struct GPUQueue {
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
-    device: DomRefCell<Option<Dom<GPUDevice>>>,
-    label: DomRefCell<USVString>,
+    #[ignore_malloc_size_of = "JSCell is hard to measure"]
+    device: JSCell<Option<Dom<GPUDevice>>>,
+    #[ignore_malloc_size_of = "JSCell is hard to measure"]
+    label: JSCell<USVString>,
     #[no_trace]
     queue: WebGPUQueue,
 }
@@ -55,8 +57,8 @@ impl GPUQueue {
         GPUQueue {
             channel,
             reflector_: Reflector::new(),
-            device: DomRefCell::new(None),
-            label: DomRefCell::new(USVString::default()),
+            device: JSCell::new(None),
+            label: JSCell::new(USVString::default()),
             queue,
         }
     }
@@ -76,8 +78,8 @@ impl GPUQueue {
 }
 
 impl GPUQueue {
-    pub(crate) fn set_device(&self, no_gc: &NoGC, device: &GPUDevice) {
-        *self.device.safe_borrow_mut(no_gc) = Some(Dom::from_ref(device));
+    pub(crate) fn set_device(&self, no_gc: &mut NoGC, device: &GPUDevice) {
+        *self.device.borrow_mut(no_gc) = Some(Dom::from_ref(device));
     }
 
     pub(crate) fn id(&self) -> WebGPUQueue {
@@ -87,22 +89,22 @@ impl GPUQueue {
 
 impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn Label(&self) -> USVString {
-        self.label.borrow().clone()
+    fn Label(&self, no_gc: &NoGC) -> USVString {
+        self.label.borrow(no_gc).clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, no_gc_mut: &mut NoGC, value: USVString) {
+        *self.label.borrow_mut(no_gc_mut) = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit>
-    fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer>>) {
+    fn Submit(&self, no_gc: &NoGC, command_buffers: Vec<DomRoot<GPUCommandBuffer>>) {
         let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();
         self.channel
             .0
             .send(WebGPURequest::Submit {
-                device_id: self.device.borrow().as_ref().unwrap().id().0,
+                device_id: self.device.borrow(no_gc).as_ref().unwrap().id().0,
                 queue_id: self.queue.0,
                 command_buffers,
             })
@@ -113,6 +115,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     #[expect(unsafe_code)]
     fn WriteBuffer(
         &self,
+        no_gc: &NoGC,
         buffer: &GPUBuffer,
         buffer_offset: GPUSize64,
         data: BufferSource,
@@ -162,7 +165,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             },
         };
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
-            device_id: self.device.borrow().as_ref().unwrap().id().0,
+            device_id: self.device.borrow(no_gc).as_ref().unwrap().id().0,
             queue_id: self.queue.0,
             buffer_id: buffer.id().0,
             buffer_offset,
@@ -178,6 +181,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writetexture>
     fn WriteTexture(
         &self,
+        no_gc: &NoGC,
         destination: &GPUTexelCopyTextureInfo,
         data: BufferSource,
         data_layout: &GPUTexelCopyBufferLayout,
@@ -199,7 +203,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         let final_data = GenericSharedMemory::from_bytes(&bytes);
 
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {
-            device_id: self.device.borrow().as_ref().unwrap().id().0,
+            device_id: self.device.borrow(no_gc).as_ref().unwrap().id().0,
             queue_id: self.queue.0,
             texture_cv,
             data_layout: texture_layout,
@@ -336,7 +340,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             },
         };
         // this is out ouf spec, but we currently do not support more
-        let texture_descriptor = destination.parent.texture.wgpu_texture_descriptor();
+        let texture_descriptor = destination.parent.texture.wgpu_texture_descriptor(cx);
         let target_snapshot_format =
             match texture_descriptor.format {
                 wgpu_types::TextureFormat::Bgra8Unorm |
@@ -366,7 +370,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             .channel
             .0
             .send(WebGPURequest::CopyExternalImageToTexture {
-                device_id: self.device.borrow().as_ref().unwrap().id().0,
+                device_id: self.device.borrow(cx).as_ref().unwrap().id().0,
                 queue_id: self.queue.0,
                 usable_source: usable_snapshot,
                 destination: destination_tex_info,
