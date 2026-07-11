@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{RefCell, RefMut};
+use std::collections::HashSet;
 use std::{cmp, fmt, hash};
 
 use malloc_size_of::MallocSizeOf as MallocSizeOfTrait;
 use malloc_size_of_derive::MallocSizeOf;
 use petgraph::Direction;
+use petgraph::algo::tarjan_scc;
 use petgraph::graph::DefaultIx;
 use petgraph::stable_graph::{NodeIndex, StableGraph};
 use petgraph::visit::{DfsPostOrder, EdgeRef, Reversed};
@@ -360,8 +362,11 @@ impl AudioGraph {
         self.listener_id
     }
 
-    /// For a given block, process all the data on this graph
+    /// <https://webaudio.github.io/web-audio-api/#rendering-loop>
     pub fn process(&mut self, info: &BlockInfo) -> Chunk {
+        // Step 4.2. Order the AudioNodes of the BaseAudioContext to be processed.
+        let cycle_nodes = self.cycle_nodes();
+
         // DFS post order: Children are processed before their parent,
         // which is exactly what we need since the parent depends on the
         // children's output
@@ -379,6 +384,25 @@ impl AudioGraph {
 
             while let Some(ix) = visit.next(reversed) {
                 let mut curr = self.graph[ix].node.borrow_mut();
+
+                if cycle_nodes.contains(&ix) {
+                    // Step 4.2.7. If nodes contains cycles, mute all the AudioNodes
+                    // that are part of this cycle, and remove them from nodes.
+                    //
+                    // Muting an AudioNode means that its output MUST be silence for
+                    // the rendering of this audio block.
+                    let chunk = Self::silence_for_node(curr.as_mut());
+                    if curr.output_count() == 0 {
+                        // Step 4.4.5. If this AudioNode is a destination node, record
+                        // the input of this AudioNode.
+                        curr.process(chunk, info);
+                    } else {
+                        // Step 4.4.6. Else, process the input buffer, and make
+                        // available for reading the resulting buffer.
+                        Self::fill_outputs_with_silence(&self.graph, ix, curr.output_count());
+                    }
+                    continue;
+                }
 
                 let mut chunk = Chunk::default();
                 chunk
@@ -521,6 +545,69 @@ impl AudioGraph {
     /// Obtain a mutable reference to a node
     pub(crate) fn node_mut(&self, ix: NodeId) -> RefMut<'_, Box<dyn AudioNodeEngine>> {
         self.graph[ix.0].node.borrow_mut()
+    }
+
+    /// <https://webaudio.github.io/web-audio-api/#rendering-loop>
+    fn cycle_nodes(&self) -> HashSet<NodeIndex<DefaultIx>> {
+        let mut cycle_nodes = HashSet::new();
+        // Step 4.2.4. Let cycle breakers be an empty set of DelayNodes.
+        // Step 4.2.5. If node is a DelayNode that is part of a cycle, add it
+        // to cycle breakers and remove it from nodes.
+        // Step 4.2.6. For each DelayNode in cycle breakers, replace it with a
+        // DelayWriter and DelayReader to break the cycle.
+        for component in tarjan_scc(&self.graph) {
+            let is_cycle = component.len() > 1 ||
+                component
+                    .first()
+                    .is_some_and(|ix| self.graph.edges(*ix).any(|edge| edge.target() == *ix));
+            if is_cycle {
+                cycle_nodes.extend(component);
+            }
+        }
+        cycle_nodes
+    }
+
+    /// <https://webaudio.github.io/web-audio-api/#mute>
+    fn silence_for_node(node: &mut dyn AudioNodeEngine) -> Chunk {
+        // Muting an AudioNode means that its output MUST be silence for the
+        // rendering of this audio block.
+        let mut chunk = Chunk::default();
+        chunk
+            .blocks
+            .resize(node.input_count() as usize, Default::default());
+
+        let mode = node.channel_count_mode();
+        let count = node.channel_count();
+        let interpretation = node.channel_interpretation();
+        for block in &mut chunk.blocks {
+            if mode == ChannelCountMode::Explicit {
+                block.mix(count, interpretation);
+            }
+        }
+        chunk
+    }
+
+    /// <https://webaudio.github.io/web-audio-api/#available-for-reading>
+    fn fill_outputs_with_silence(
+        graph: &StableGraph<Node, Edge>,
+        ix: NodeIndex<DefaultIx>,
+        output_count: u32,
+    ) {
+        // Making a buffer available for reading from an AudioNode means putting
+        // it in a state where other AudioNodes connected to this AudioNode can
+        // safely read from it.
+        for edge in graph.edges(ix) {
+            let edge = edge.weight();
+            for conn in &edge.connections {
+                if let PortIndex::Port(idx) = conn.output_idx {
+                    if idx < output_count {
+                        *conn.cache.borrow_mut() = Some(Block::default());
+                    }
+                } else {
+                    unreachable!()
+                }
+            }
+        }
     }
 }
 
