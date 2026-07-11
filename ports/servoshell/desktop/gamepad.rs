@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender, channel};
 use std::thread;
 use std::time::Duration;
 
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
-use gilrs::{Event, EventType, Gamepad, Gilrs};
+use gilrs::{Event, EventType, GamepadId, Gilrs};
 use log::{debug, warn};
 use servo::{
     GamepadDelegate, GamepadEvent, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
@@ -45,6 +44,9 @@ impl ServoshellGamepadDelegate {
                     },
                 };
 
+                let mut connected_gamepads: Vec<GamepadId> =
+                    handle.gamepads().map(|(id, _)| id).collect();
+
                 loop {
                     while let Some(event) =
                         handle.next_event_blocking(Some(Duration::from_millis(100)))
@@ -53,6 +55,21 @@ impl ServoshellGamepadDelegate {
                         let gamepad = handle.gamepad(event.id);
                         let name = gamepad.name();
                         let index = GamepadIndex(id);
+
+                        if let Some(index) = connected_gamepads
+                            .iter()
+                            .position(|&gamepad_id| event.id == gamepad_id)
+                        {
+                            handle.insert_event(Event::new(
+                                event.id,
+                                EventType::Connected,
+                            ));
+                            handle.insert_event(event);
+
+                            connected_gamepads.swap_remove(index);
+
+                            continue;
+                        }
 
                         if matches!(&event.event, EventType::ForceFeedbackEffectCompleted) {
                             match haptic_effects.remove(&id) {
@@ -150,7 +167,6 @@ impl ServoshellGamepadDelegate {
                 }
             },
             EventType::Connected => {
-                let name = name;
                 let bounds = GamepadInputBounds {
                     axis_bounds: (-1.0, 1.0),
                     button_bounds: (0.0, 1.0),

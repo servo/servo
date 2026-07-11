@@ -11,7 +11,6 @@ use gilrs::Event;
 use log::warn;
 use servo::{EventLoopWaker, GamepadIndex};
 use winit::event_loop::{EventLoop, EventLoop as WinitEventLoop, EventLoopProxy};
-use winit::window::WindowId;
 
 use super::app::App;
 
