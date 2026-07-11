@@ -443,8 +443,8 @@ codegen-units = 1
 #
 # Or for mozjs:
 #
-mozjs = { git = "https://github.com/jdm/mozjs", branch = "inert" }
-mozjs_sys = { git = "https://github.com/jdm/mozjs", branch = "inert" }
+# mozjs = { path = "../mozjs/mozjs" }
+# mozjs_sys = { path = "../mozjs/mozjs-sys" }
 #
 # Or for CSP crate:
 # content-security-policy = { path = "../rust-content-security-policy" }
