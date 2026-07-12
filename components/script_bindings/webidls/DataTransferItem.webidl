@@ -13,3 +13,8 @@ interface DataTransferItem {
 };
 
 callback FunctionStringCallback = undefined (DOMString data);
+
+// https://wicg.github.io/entries-api/#html-data
+partial interface DataTransferItem {
+  [Pref="dom_entries_api_enabled"] FileSystemEntry? webkitGetAsEntry();
+};
