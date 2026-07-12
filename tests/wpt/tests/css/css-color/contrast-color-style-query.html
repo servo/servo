@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>contrast-color() computes to an absolute color</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#contrast-color">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2049616">
+<link rel="match" href="/css/reference/green.html">
+<style>
+@property --contrast-color {
+  syntax: "<color>";
+  initial-value: white;
+  inherits: true;
+}
+
+:root {
+  --contrast-color: contrast-color(#000);
+}
+
+@container style(--contrast-color: white) {
+  body {
+    background: green;
+  }
+}
+</style>

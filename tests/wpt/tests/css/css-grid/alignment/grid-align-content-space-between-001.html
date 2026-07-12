@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-content">
+<link rel="match" href="grid-align-content-space-between-001-ref.html">
+<style>
+.grid {
+    display: grid;
+    width: 50px;
+    height: 100px;
+    grid-template-columns: 50px;
+    grid-template-rows: 25px 25px;
+    align-content: space-between;
+}
+.item1 {
+    width: 50px;
+    height: 25px;
+    grid-row: 1/2;
+    grid-column: 1/2;
+    background-color: green;
+}
+.item2 {
+    width: 50px;
+    height: 25px;
+    grid-row: 2/3;
+    grid-column: 1/2;
+    background-color: green;
+}
+</style>
+<p>Test passes if there are two green boxes at the top and bottom edges of a 100px-tall area.</p>
+<div class="grid">
+    <div class="item1"></div>
+    <div class="item2"></div>
+</div>

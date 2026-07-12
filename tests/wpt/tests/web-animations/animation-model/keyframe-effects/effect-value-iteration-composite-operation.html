@@ -918,4 +918,93 @@ test(t => {
   'Animated line-height style at 50s of the third iteration');
 }, 'iteration composition of animation non-additive units');
 
+test(t => {
+  const div = createDiv(t);
+  div.style.position = 'absolute';
+  const anim =
+    div.animate({ clip: ['rect(10px, 50px, 50px, 10px)',
+                         'rect(auto, 50px, 50px, 10px)'] },
+                { duration: 100 * MS_PER_SEC,
+                  easing: 'linear',
+                  iterations: 10,
+                  iterationComposite: 'accumulate' });
+  anim.pause();
+
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
+  // At 50%, it should flip to the end value because they are not pairwise interpolable.
+  assert_equals(getComputedStyle(div).clip, 'rect(auto, 50px, 50px, 10px)',
+    'Animated clip style at 50s of the first iteration');
+
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
+  // At 3rd iteration 0%, it should NOT accumulate because they are incompatible.
+  // So it should be the same as 1st iteration 0% (start value).
+  assert_equals(getComputedStyle(div).clip, 'rect(10px, 50px, 50px, 10px)',
+    'Animated clip style at 0s of the third iteration');
+
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
+  // At 3rd iteration 50%, the first component (auto) is compatible with the end value (auto),
+  // so accumulation is allowed for all components.
+  assert_equals(getComputedStyle(div).clip, 'rect(auto, 150px, 150px, 30px)',
+    'Animated clip style at 50s of the third iteration (accumulated)');
+}, 'iteration composition of incompatible clip rects (accumulation skipped at 0%, allowed at 50%)');
+
+test(t => {
+  const div = createDiv(t);
+  const anim =
+    div.animate({ filter: ['sepia(1) contrast(2)',
+                           'sepia(0)'] },
+                { duration: 100 * MS_PER_SEC,
+                  easing: 'linear',
+                  iterations: 10,
+                  iterationComposite: 'accumulate' });
+  anim.pause();
+
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
+  // Interpolates between sepia(1) contrast(2) and sepia(0) contrast(1) (extended)
+  // At 50% it should be sepia(0.5) contrast(1.5)
+  assert_equals(getComputedStyle(div).filter, 'sepia(0.5) contrast(1.5)',
+    'Animated filter list at 50s of the first iteration');
+
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
+  // At 3rd iteration 0%: start + 2 * end
+  // sepia(1) contrast(2) + 2 * sepia(0) = sepia(1) contrast(2)
+  assert_equals(getComputedStyle(div).filter, 'sepia(1) contrast(2)',
+    'Animated filter list at 0s of the third iteration');
+
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
+  // At 3rd iteration 50%: interp(50%) + 2 * end
+  // sepia(0.5) contrast(1.5) + 2 * sepia(0) = sepia(0.5) contrast(1.5)
+  assert_equals(getComputedStyle(div).filter, 'sepia(0.5) contrast(1.5)',
+    'Animated filter list at 50s of the third iteration');
+}, 'iteration composition of long-to-short filter list');
+
+test(t => {
+  CSS.registerProperty({
+    name: '--length-percentage',
+    syntax: '<length-percentage>',
+    initialValue: '0px',
+    inherits: false,
+  });
+
+  const div = createDiv(t);
+  const anim =
+    div.animate({ '--length-percentage': ['min(10px, 5%)', 'max(20px, 15%)'] },
+                { duration: 100 * MS_PER_SEC,
+                  easing: 'linear',
+                  iterations: 10,
+                  iterationComposite: 'accumulate' });
+  anim.pause();
+
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
+  // At 3rd iteration 0%: start + 2 * end
+  // The left-to-right AST order of operands in calc() serialization is observable
+  // for complex terms that cannot be simplified or reordered by unit type.
+  // We verify that the accumulated end term (2 * max(20px, 15%)) appears before
+  // the current iteration start term (min(10px, 5%)) rather than requiring an
+  // exact string match, as different browsers may include identity terms (e.g. 0 * ...).
+  assert_regexp_match(getComputedStyle(div).getPropertyValue('--length-percentage'),
+    /2 \* max\(20px, 15%\).*min\(10px, 5%\)/,
+    'Expected accumulated term (2 * max(...)) before current term (min(...))');
+}, 'iteration composition of complex math functions preserves AST left-to-right operand order');
+
 </script>

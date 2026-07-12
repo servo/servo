@@ -8,6 +8,9 @@
    #test2 { background: lime; display: block; padding: 1em; margin: 1em; }
    #test2:empty { background: red; }
 ]]></style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" dom" />
@@ -16,24 +19,23 @@
 
  <div>
 
-  <script type="text/javascript">
-   <![CDATA[
-
-    function test() {
-      document.getElementById('test1').appendChild(document.createTextNode(''));
-      document.getElementById('test2').appendChild(document.createTextNode(' '));
-    }
-
-    window.setTimeout("test()", 100);
-   ]]>
-  </script>
-
   <p> The following two bars should be green. </p>
 
   <div id="test1"></div>
   <div id="test2"></div>
 
  </div>
+
+ <script><![CDATA[
+promise_test(async t => {
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => requestAnimationFrame(r));
+  document.getElementById('test1').appendChild(document.createTextNode(''));
+  document.getElementById('test2').appendChild(document.createTextNode(' '));
+  assert_background_color('test1', LIME, "#test1 should be green");
+  assert_background_color('test2', LIME, "#test2 should be green");
+}, 'Dynamic handling of :empty');
+]]></script>
 
 </body>
 </html>

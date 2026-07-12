@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<title>Pointer Events: touch-action panning respects single-axis scroll containers</title>
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width">
+<link rel="help" href="https://w3c.github.io/pointerevents/#determining-supported-direct-manipulation-behavior">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scroll-container">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<style>
+body {
+  margin: 0;
+  padding: 100px 0 0 100px;
+}
+.container {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+  touch-action: none;
+  margin-bottom: 100px;
+}
+.scroller {
+  width: 100px;
+  height: 100px;
+}
+.x-scroller {
+  overflow-x: scroll;
+  overflow-y: clip;
+}
+.y-scroller {
+  overflow-x: clip;
+  overflow-y: scroll;
+}
+.spacer {
+  width: 200px;
+  height: 200px;
+}
+</style>
+
+<p>
+  A single-axis scroll container re-enables touch panning only along its
+  scrollable axis. Panning on the non-scrollable axis must be blocked by the
+  ancestor's touch-action: none.
+</p>
+
+<div id="y-container" class="container">
+  <div id="y-scroller" class="scroller y-scroller">
+    <div class="spacer"></div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<div id="x-container" class="container">
+  <div id="x-scroller" class="scroller x-scroller">
+    <div class="spacer"></div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  const container = document.getElementById("y-container");
+  const scroller = document.getElementById("y-scroller");
+  assert_greater_than(container.scrollWidth, container.clientWidth,
+      "Precondition: container must be horizontally scrollable");
+
+  await touchScrollInTarget(scroller, "right");
+  await touchScrollInTarget(scroller, "down");
+  await resolveWhen(() => scroller.scrollTop > 0);
+
+  assert_greater_than(scroller.scrollTop, 0,
+      "pan-y must scroll the y-scroller despite ancestor touch-action: none");
+  assert_equals(container.scrollLeft, 0,
+      "pan-x must be blocked by touch-action: none on the ancestor container");
+}, "A y-scroller re-enables touch panning only along y");
+
+promise_test(async () => {
+  const container = document.getElementById("x-container");
+  const scroller = document.getElementById("x-scroller");
+  assert_greater_than(container.scrollHeight, container.clientHeight,
+      "Precondition: container must be vertically scrollable");
+
+  await touchScrollInTarget(scroller, "down");
+  await touchScrollInTarget(scroller, "right");
+  await resolveWhen(() => scroller.scrollLeft > 0);
+
+  assert_greater_than(scroller.scrollLeft, 0,
+      "pan-x must scroll the x-scroller despite ancestor touch-action: none");
+  assert_equals(container.scrollTop, 0,
+      "pan-y must be blocked by touch-action: none on the ancestor container");
+}, "An x-scroller re-enables touch panning only along x");
+</script>

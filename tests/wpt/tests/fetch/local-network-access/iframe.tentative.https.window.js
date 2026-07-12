@@ -8,7 +8,6 @@
 // META: variant=?include=from-loopback
 // META: variant=?include=from-local
 // META: variant=?include=from-public
-// META: variant=?include=from-treat-as-public
 //
 // Spec: https://wicg.github.io/local-network-access/#integration-fetch
 //
@@ -159,46 +158,3 @@ subsetTestByKey(
                                  }),
     'public to public: no permission required.');
 
-// The following tests verify that `CSP: treat-as-public-address` makes
-// documents behave as if they had been served from a public IP address.
-
-subsetTestByKey('from-treat-as-public', makePermissionTests, {
-  sourceServer: Server.HTTPS_LOOPBACK,
-  sourceTreatAsPublic: true,
-  sourceName: 'treat-as-public-address',
-  targetServer: Server.OTHER_HTTPS_LOOPBACK,
-  targetName: 'loopback',
-  permissionName: 'loopback-network',
-});
-
-subsetTestByKey(
-    'from-treat-as-public', promise_test,
-    t => iframeTest(t, {
-      source: {
-        server: Server.HTTPS_LOOPBACK,
-        treatAsPublic: true,
-      },
-      target: Server.HTTPS_LOOPBACK,
-      expected: NavigationTestResult.SUCCESS,
-    }),
-    'treat-as-public-address to local (same-origin): no permission required.');
-
-subsetTestByKey('from-treat-as-public', makePermissionTests, {
-  sourceServer: Server.HTTPS_LOOPBACK,
-  sourceTreatAsPublic: true,
-  sourceName: 'treat-as-public-address',
-  targetServer: Server.HTTPS_LOCAL,
-  targetName: 'local',
-});
-
-subsetTestByKey(
-    'from-treat-as-public', promise_test,
-    t => iframeTest(t, {
-      source: {
-        server: Server.HTTPS_LOOPBACK,
-        treatAsPublic: true,
-      },
-      target: Server.HTTPS_PUBLIC,
-      expected: NavigationTestResult.SUCCESS,
-    }),
-    'treat-as-public-address to public: no permission required.');

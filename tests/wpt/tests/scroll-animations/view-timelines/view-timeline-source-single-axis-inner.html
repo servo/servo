@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ViewTimeline source lookup with single-axis scroll containers (inner)</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.block-scroller,
+.inline-scroller,
+#subject {
+  width: 100px;
+  height: 100px;
+}
+.block-scroller {
+  overflow-block: scroll;
+  overflow-inline: clip;
+}
+.inline-scroller {
+  overflow-block: clip;
+  overflow-inline: scroll;
+}
+.vertical-writing-mode { writing-mode: vertical-rl; }
+.horizontal-writing-mode { writing-mode: horizontal-tb; }
+</style>
+
+<div id="outer" class="horizontal-writing-mode block-scroller">
+  <div id="inner" class="vertical-writing-mode inline-scroller">
+    <div id="subject" class="horizontal-writing-mode"></div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  const timeline = new ViewTimeline({ subject, axis: 'inline' });
+  assert_equals(timeline.source, inner);
+}, 'ViewTimeline selects the nearest matching ancestor scroll container');
+</script>

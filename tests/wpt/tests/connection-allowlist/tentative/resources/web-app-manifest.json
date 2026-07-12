@@ -1,0 +1,12 @@
+{
+  "name": "JIT Test Pay",
+  "icons": [{
+    "src": "/images/rgrg-256x256.png",
+    "sizes": "256x256",
+    "type": "image/png"
+  }],
+  "serviceworker": {
+    "src": "../../../web-based-payment-handler/app-simple.js",
+    "scope": "../../../web-based-payment-handler/"
+  }
+}

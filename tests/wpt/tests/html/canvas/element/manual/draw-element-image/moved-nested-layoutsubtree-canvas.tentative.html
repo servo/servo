@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>drawElementImage should throw if a canvas is moved to be nested inside another canvas</title>
+<title>drawElementImage should succeed if a canvas is moved to be nested inside another canvas</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -20,9 +20,7 @@ promise_test(async (t) => {
   canvas_b.appendChild(canvas_a);
   await waitForCanvasPaint(canvas_b);
 
-  // Now it is nested, so it should throw.
-  assert_throws_dom("NotSupportedError", () => {
-    ctxA.drawElementImage(div, 0, 0, 100, 100);
-  });
-}, "drawElementImage should throw if a canvas is moved to be nested");
+  // Now it is nested, and drawing should still succeed.
+  ctxA.drawElementImage(div, 0, 0, 100, 100);
+}, "drawElementImage should succeed if a canvas is moved to be nested");
 </script>

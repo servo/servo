@@ -2,11 +2,7 @@ from pathlib import Path
 
 from tests.support.classic.asserts import assert_success
 
-
-def navigate_to(session, url):
-    return session.transport.send(
-        "POST", "session/{session_id}/url".format(**vars(session)),
-        {"url": url})
+from . import navigate_to
 
 
 def test_file_protocol(session, target_platform, server_config):

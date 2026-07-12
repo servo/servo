@@ -13,11 +13,11 @@ test(() => {
 test(() => {
   const df = document.createElement("template").content;
   const child = df.appendChild(new Text('hi'));
-  const nodeDocument = df.ownerDocument;
-  document.adoptNode(df);
+  assert_not_equals(df.ownerDocument, document);
+  assert_equals(document.adoptNode(df), df);
   assert_equals(df.childNodes.length, 1);
-  assert_equals(child.ownerDocument, nodeDocument);
-  assert_equals(df.ownerDocument, nodeDocument);
+  assert_equals(child.ownerDocument, document);
+  assert_equals(df.ownerDocument, document);
 }, `adoptNode() and DocumentFragment with host`);
 
 [

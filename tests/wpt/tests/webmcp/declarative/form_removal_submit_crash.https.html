@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Form removal on submit crash test</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webmcp/resources/helpers.js"></script>
+
+<form toolname="crash_test" tooldescription="the crashy form!" toolautosubmit target="iframe" action="about:blank">
+  <input name="dummy" type="text">
+</form>
+<iframe name="iframe"></iframe>
+
+<script>
+promise_test(async t => {
+  const form = document.querySelector('form');
+  let submitFired = false;
+
+  form.addEventListener('submit', (e) => {
+    submitFired = true;
+    e.preventDefault();
+    e.respondWith(Promise.resolve());
+
+    // This synchronously unregisters the tool. The previously crashy path was
+    // when the internal form infrastructure relied on the form still being
+    // registered as a tool immediately after the submit event is fired.
+    // Specifically, we reacted to the Promise above, and the Promise reaction
+    // relied on the tool registration still being valid.
+    //
+    // See https://crbug.com/493850055.
+    form.remove();
+  });
+
+  const tool = await waitForTool('crash_test');
+  assert_true(!!tool, 'Tool should be found');
+
+  // Execute the tool. This asynchronously fires the `submit` event at the form.
+  // The tool execution should reject since the tool definition is updated/cancelled
+  // when the form is removed from the document.
+  const promise = document.modelContext.executeTool(tool, '{}');
+  await promise_rejects_dom(t, "UnknownError", promise,
+      "Form execution fails due to mid-execution unregistration.");
+
+  assert_true(submitFired);
+}, "Form removal on submit with respondWith does not crash the renderer");
+</script>

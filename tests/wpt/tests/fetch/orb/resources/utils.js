@@ -99,3 +99,13 @@ function expected_block_fetch(file, testCallback, options = {}) {
   };
   testRunAll(file, testCallback, (t, promise, message) => promise_rejects_js(t, TypeError, promise, message), { ...defaultOptions, ...options, onlyFetch: true });
 }
+
+function hlsSupported() {
+  const video = document.createElement("video");
+  return video.canPlayType("application/vnd.apple.mpegurl") !== "" ||
+         video.canPlayType("application/vnd.apple.mpegurl.audio") !== "" ||
+         video.canPlayType("application/mpegurl") !== "" ||
+         video.canPlayType("application/x-mpegurl") !== "" ||
+         video.canPlayType("audio/mpegurl") !== "" ||
+         video.canPlayType("audio/x-mpegurl") !== "";
+}

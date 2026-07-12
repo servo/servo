@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Reference: highlight text fill color uses 'color', not 'stroke-color'</title>
+<link rel="stylesheet" href="support/highlights.css">
+<script src="support/selections.js"></script>
+<style>
+    main {
+        font-size: 4em;
+    }
+    main::highlight(example) {
+        color: green;
+    }
+</style>
+<p>Test passes if the word below is green.
+<main class="highlight_reftest" id="target">PASS</main>
+<script>
+    CSS.highlights.set("example", new Highlight(createRangeForTextOnly(target, 0, 4)));
+</script>

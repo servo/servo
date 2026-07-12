@@ -350,6 +350,10 @@ class BidiDigitalCredentialsSetVirtualWalletBehaviorAction:
         self.logger = logger
         self.protocol = protocol
 
+    async def __call__(self, payload):
+        context = get_browsing_context_id(payload["context"])
+        return await self.execute(context, payload)
+
     async def execute(self, context: str, payload: Mapping[str, Any]) -> Any:
         action = payload["action"]
         protocol = payload.get("protocol")

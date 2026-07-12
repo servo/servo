@@ -48,7 +48,8 @@
                                               expectedTimestampOffset, expectedBufferedRangeStartTime,
                                               expectedBufferedRangeMaxEndTimeBeforeEOS,
                                               expectedBufferedRangeEndTimeAfterEOS,
-                                              callback) {
+                                              callback,
+                                              expectedBufferedRangesAfterEOS) {
               assert_approx_equals(sourceBuffer.timestampOffset,
                                    expectedTimestampOffset,
                                    0.001,
@@ -71,7 +72,7 @@
               test.waitForExpectedEvents(function()
               {
                   assertBufferedEquals(sourceBuffer,
-                                       "{ [" + expectedBufferedRangeStartTime.toFixed(3) + ", " + expectedBufferedRangeEndTimeAfterEOS.toFixed(3) + ") }",
+                                       expectedBufferedRangesAfterEOS || ("{ [" + expectedBufferedRangeStartTime.toFixed(3) + ", " + expectedBufferedRangeEndTimeAfterEOS.toFixed(3) + ") }"),
                                        "sourceBuffer.buffered after EOS");
                   callback();
               });
@@ -122,13 +123,25 @@
                       var expectedStart = Math.max(segmentInfo.media[1].timev, segmentInfo.media[1].timea) - firstOffset;
                       var expectedEnd = Math.min(segmentInfo.media[0].endtimev, segmentInfo.media[0].endtimea) + secondOffset;
                       var expectedEndEOS = Math.max(segmentInfo.media[0].endtimev, segmentInfo.media[0].endtimea) + secondOffset;
+
+                      // If media[0]'s two tracks have different first PTS, sequence mode aligns
+                      // the earlier one to the previous segment's end, leaving a gap of that delta
+                      // before the later track.
+                      var media0PerTrackHeadDelta =
+                          Math.abs(segmentInfo.media[0].timev - segmentInfo.media[0].timea);
+                      var expectedBufferedRangesAfterEOS = (media0PerTrackHeadDelta > 0)
+                          ? "{ [" + expectedStart.toFixed(3) + ", " + secondOffset.toFixed(3) + ")"
+                            + " [" + (secondOffset + media0PerTrackHeadDelta).toFixed(3) + ", " + expectedEndEOS.toFixed(3) + ") }"
+                          : "{ [" + expectedStart.toFixed(3) + ", " + expectedEndEOS.toFixed(3) + ") }";
+
                       // Current timestampOffset should reflect offset required to put media[0]
                       // immediately after media[1]'s highest frame end timestamp (as was adjusted
                       // by an earlier timestampOffset).
                       verify_offset_and_buffered(test, mediaSource, sourceBuffer,
                                                  secondOffset, expectedStart,
                                                  expectedEnd, expectedEndEOS,
-                                                 test.done);
+                                                 test.done,
+                                                 expectedBufferedRangesAfterEOS);
                   })
               });
           }, "Test sequence AppendMode appendBuffer(second media segment, then first media segment)");

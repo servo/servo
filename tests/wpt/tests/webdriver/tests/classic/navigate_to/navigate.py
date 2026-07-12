@@ -6,11 +6,7 @@ from webdriver.transport import Response
 
 from tests.support.classic.asserts import assert_error, assert_success
 
-
-def navigate_to(session, url):
-    return session.transport.send(
-        "POST", "session/{session_id}/url".format(**vars(session)),
-        {"url": url})
+from . import navigate_to
 
 
 def test_null_parameter_value(session, http):

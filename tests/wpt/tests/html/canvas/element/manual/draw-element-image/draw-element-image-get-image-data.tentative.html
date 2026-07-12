@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>drawElementImage should not taint the canvas</title>
+<title>drawElementImage pixel readback</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <link rel="author" href="mailto:vmpstr@chromium.org">
 
@@ -8,40 +8,71 @@
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 
 <style>
-#child {
-  width: 100px;
-  height: 100px;
-  background: #01ff02;
-}
+  canvas > div {
+    width: 50px;
+    height: 50px;
+  }
+  .srgb {
+    background: rgb(32 128 64);
+  }
+  .p3 {
+    background: color(display-p3 .94 .95 .08);
+  }
 </style>
 
-<canvas id=canvas width="200" height="200" layoutsubtree>
-  <div id=child></div>
+<canvas id=srgb_canvas width=100 height=100 layoutsubtree>
+  <div class=srgb></div>
+  <div class=p3></div>
+</canvas>
+<canvas id=p3_canvas width=100 height=100 layoutsubtree>
+  <div class=srgb></div>
+  <div class=p3></div>
 </canvas>
 
 <script>
-  promise_test(async () => {
-    await waitForCanvasPaint(canvas);
-    let ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'rgb(3, 4, 5)';
-    ctx.fillRect(0, 0, 200, 200);
-    ctx.drawElementImage(child, 20, 30);
+  const checkColors = (cvs, colorspace) => {
+    const srgb_child = cvs.querySelector('.srgb');
+    const p3_child = cvs.querySelector('.p3');
+    const ctx = cvs.getContext('2d', {colorSpace: colorspace});
 
-    const image_data = ctx.getImageData(19, 35, 2, 1);
-    assert_equals(image_data.width, 2);
-    assert_equals(image_data.height, 1);
+    // Draw each child element next to a canvas rect of the same color, and
+    // verify that the colors match when the pixels are read back.
+    ctx.drawElementImage(srgb_child, 0, 0);
+    ctx.fillStyle = getComputedStyle(srgb_child).backgroundColor;
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.drawElementImage(p3_child, 0, 50);
+    ctx.fillStyle = getComputedStyle(p3_child).backgroundColor;
+    ctx.fillRect(50, 50, 50, 50);
 
-    const data = image_data.data;
-    // The background pixel.
-    assert_equals(data[0], 3);
-    assert_equals(data[1], 4);
-    assert_equals(data[2], 5);
-    assert_equals(data[3], 255);
+    // Read back a 20x20 square of pixels from the center of the canvas.
+    // The four 10x10 quadrants contain the two drawn elements and two rects.
+    const imageData = ctx.getImageData(40, 40, 20, 20, {colorSpace: colorspace});
 
-    // The drawn element pixel.
-    assert_equals(data[4], 1);
-    assert_equals(data[5], 255);
-    assert_equals(data[6], 2);
-    assert_equals(data[7], 255);
-  }, 'canvas drawElementImage readback');
+    const pixelSlice = (x, y) =>
+      Array.from(imageData.data.slice((y*20*4) + (x*4), (y*20*4) + (x*4) + 4));
+
+    // Sanity-check absolute color values of canvas rects.
+    if (colorspace == 'srgb') {
+      // Check the color of the canvas rect with srgb fill color
+      assert_array_equals(pixelSlice(15, 5), [32, 128, 64, 255],
+                          `srgb color verification`);
+    } else {
+      // Check the color of the canvas rect with display-p3 fill color
+      assert_array_approx_equals(pixelSlice(15, 15), [239, 242, 20, 255], 2,
+                                 `display-p3 color verification`);
+    }
+
+    assert_array_equals(pixelSlice(5, 5), pixelSlice(15, 5),
+                        `srgb element in a ${colorspace} canvas`);
+    assert_array_equals(pixelSlice(5, 15), pixelSlice(15, 15),
+                        `display-p3 element in a ${colorspace} canvas`);
+  };
+
+  promise_test(() =>
+    waitForCanvasPaint(srgb_canvas)
+      .then(() => checkColors(srgb_canvas, 'srgb')));
+
+  promise_test(() =>
+    waitForCanvasPaint(p3_canvas)
+      .then(() => checkColors(p3_canvas, 'display-p3')));
 </script>

@@ -1,6 +1,11 @@
 const badMimeTypes = [
   null,  // no MIME type
   'text/plain',
+  // JSON is only valid for JSON module imports, never for classic
+  // importScripts(), even when the body is valid JavaScript.
+  'application/json',
+  'text/json',
+  'application/manifest+json',
 ];
 
 const validMimeTypes = [

@@ -234,7 +234,8 @@ idl_test(
         'localStorage',
         'sessionStorage',
       ],
-      StorageEvent: ['new StorageEvent("storage")']
+      StorageEvent: ['new StorageEvent("storage")'],
+      Sanitizer: ['new Sanitizer({})']
     });
     idlArray.prevent_multiple_testing('HTMLElement');
     await waitForLoad;

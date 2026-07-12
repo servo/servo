@@ -1,0 +1,1 @@
+Connection-Allowlist: (response-origin "*://*:*/connection-allowlist/tentative/resources/pay" "*://*:*/connection-allowlist/tentative/resources/payment-method-manifest.json" "*://*:*/web-based-payment-handler/app-simple.js" "*://*:*/images/rgrg-256x256.png")

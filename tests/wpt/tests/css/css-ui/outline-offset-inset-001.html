@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline-offset">
+<link rel="match" href="outline-offset-inset-001-ref.html">
+<meta name="assert" content="outline-offset: inset renders the same as a negative outline-offset for various outline widths">
+<style>
+  div {
+    display: inline-block;
+    width: 80px;
+    height: 80px;
+    background: lightblue;
+    outline-style: solid;
+    outline-offset: inset;
+    margin: 20px;
+  }
+  .w3  { outline-width: 3px; }
+  .w8  { outline-width: 8px; }
+  .w12 { outline-width: 12px; }
+</style>
+<div class="w3"></div>
+<div class="w8"></div>
+<div class="w12"></div>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ORB HLS tests</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/fetch/orb/resources/utils.js"></script>
+<body>
+<script>
+
+const RESOURCES = "/fetch/orb/resources";
+
+function loadHls(t, playlist) {
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  return new Promise(resolve => {
+    iframe.addEventListener("load", () => {
+      const doc = iframe.contentDocument;
+      const video = doc.createElement("video");
+      video.preload = "auto";
+      video.muted = true;
+      const played = () => resolve("played");
+      video.addEventListener("loadeddata", played, { once: true });
+      video.addEventListener("playing", played, { once: true });
+      video.addEventListener("error", () => resolve("error"), { once: true });
+      video.src = playlist;
+      doc.body.appendChild(video);
+      video.play().catch(() => {});
+    }, { once: true });
+    iframe.src = "about:blank";
+    document.body.appendChild(iframe);
+  });
+}
+
+const CASES = [
+  ["hls-same-origin-segment.m3u8", "played",
+   "ORB allows playing same-origin HLS segment"],
+  ["hls-cross-origin-segment.sub.m3u8", "played",
+   "ORB allows playing cross-origin HLS segment"],
+  ["hls-cross-origin-non-media-segment.sub.m3u8", "error",
+   "ORB blocks a no-cors cross-origin non-media resource"],
+  ["hls-nested-top-media-same-segment-same.sub.m3u8", "played",
+   "ORB allows playing same-origin media playlist, same-origin segment"],
+  ["hls-nested-top-media-same-segment-cross.sub.m3u8", "played",
+   "ORB allows playing same-origin media playlist, cross-origin segment"],
+  ["hls-nested-top-media-cross-segment-same.sub.m3u8", "played",
+   "ORB allows playing cross-origin media playlist, same-origin segment"],
+  ["hls-nested-top-media-cross-segment-cross.sub.m3u8", "played",
+   "ORB allows playing cross-origin media playlist, cross-origin segment"],
+  ["hls-nested-top-non-media-same-segment-same.sub.m3u8", "error",
+   "ORB allows same-origin non-media segment but playback fails (not media)"],
+  ["hls-nested-top-non-media-same-segment-cross.sub.m3u8", "error",
+   "ORB blocks same-origin media playlist with cross-origin non-media segment"],
+];
+
+setup(() => {
+    assert_implements_optional(hlsSupported(),
+      "HLS playback is required");
+});
+
+for (const [file, expected, description] of CASES) {
+  promise_test(async t => {
+    const outcome = await loadHls(t, `${RESOURCES}/${file}`);
+    assert_equals(outcome, expected, description);
+  }, description);
+}
+</script>
+</body>

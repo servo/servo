@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline-offset">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="outline-offset: inset keeps the outline produced by outline-style: auto fully within the border box, so it can be completely hidden by an opaque overlay the same size as the box">
+<style>
+  .wrapper {
+    position: relative;
+    width: 100px;
+    height: 100px;
+  }
+  .box {
+    position: absolute;
+    inset: 0;
+    background: green;
+    outline-style: auto;
+    outline-offset: inset;
+  }
+  .cover {
+    position: absolute;
+    inset: 0;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="wrapper">
+  <div class="box"></div>
+  <div class="cover"></div>
+</div>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Animation constructor after iframe detach should not crash</title>
+<link rel="help" href="https://crbug.com/40673550">
+<iframe id="i" src="about:blank"></iframe>
+<script>
+  window.addEventListener('load', () => {
+    let i_anim = i.contentWindow.Animation;
+    i.remove();
+    new i_anim();
+  });
+</script>

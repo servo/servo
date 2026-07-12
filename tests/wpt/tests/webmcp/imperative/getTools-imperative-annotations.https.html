@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: getTools() retrieves imperative annotations at registration time</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const tool = {
+    name: "annotated_tool",
+    description: "A tool with explicit annotations",
+    annotations: {
+      readOnlyHint: true,
+      untrustedContentHint: true,
+    },
+    execute: () => {},
+  };
+
+  const controller = new AbortController();
+  t.add_cleanup(() => controller.abort());
+  await document.modelContext.registerTool(tool, { signal: controller.signal });
+
+  const tools = await document.modelContext.getTools();
+  const registeredTool = tools.find(t => t.name === "annotated_tool");
+
+  const expectedAnnotations = {
+    readOnlyHint: true,
+    untrustedContentHint: true,
+  };
+  assert_object_equals(registeredTool.annotations, expectedAnnotations,
+      "annotations object should match exactly the expected IDL properties and values");
+}, "Test that getTools() returns explicit annotations for an imperative tool");
+
+promise_test(async t => {
+  const tool = {
+    name: "partial_annotated_tool",
+    description: "A tool with only readOnlyHint supplied",
+    annotations: {
+      readOnlyHint: true,
+    },
+    execute: () => {},
+  };
+
+  const controller = new AbortController();
+  t.add_cleanup(() => controller.abort());
+  await document.modelContext.registerTool(tool, { signal: controller.signal });
+
+  const tools = await document.modelContext.getTools();
+  const registeredTool = tools.find(t => t.name === "partial_annotated_tool");
+
+  const expectedAnnotations = {
+    readOnlyHint: true,
+    untrustedContentHint: false,
+  };
+  assert_object_equals(registeredTool.annotations, expectedAnnotations,
+      "annotations object should contain default value for omitted untrustedContentHint property");
+}, "Test that getTools() populates default values for omitted annotation properties");
+
+promise_test(async t => {
+  const tool = {
+    name: "empty_annotated_tool",
+    description: "A tool with empty annotations object",
+    annotations: {},
+    execute: () => {},
+  };
+
+  const controller = new AbortController();
+  t.add_cleanup(() => controller.abort());
+  await document.modelContext.registerTool(tool, { signal: controller.signal });
+
+  const tools = await document.modelContext.getTools();
+  const registeredTool = tools.find(t => t.name === "empty_annotated_tool");
+
+  const expectedAnnotations = {
+    readOnlyHint: false,
+    untrustedContentHint: false,
+  };
+  assert_object_equals(registeredTool.annotations, expectedAnnotations,
+      "annotations object should match exactly the expected IDL default properties and values");
+}, "Test that getTools() returns default values when annotations object is empty");
+
+promise_test(async t => {
+  const tool = {
+    name: "unannotated_tool",
+    description: "A tool without annotations property",
+    execute: () => {},
+  };
+
+  const controller = new AbortController();
+  t.add_cleanup(() => controller.abort());
+  await document.modelContext.registerTool(tool, { signal: controller.signal });
+
+  const tools = await document.modelContext.getTools();
+  const registeredTool = tools.find(t => t.name === "unannotated_tool");
+  assert_equals(registeredTool.annotations, undefined, "annotations property should be undefined when omitted at registration");
+}, "Test that getTools() returns undefined annotations when omitted at registration");
+</script>
+</body>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#scrollable">
+<link rel="match" href="grid-overflowing-item-in-both-axes-is-painted-ref.html">
+<meta name="assert" content="A grid item in a zero-width, zero-height grid container overflows both the right and bottom edges and must still be painted.">
+<style>
+  body {
+    margin: 0;
+  }
+  .grid {
+    width: 0;
+    height: 0;
+    display: grid;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+  }
+  .item {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+</style>
+<div class="grid">
+  <div class="item"></div>
+</div>

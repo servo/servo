@@ -1,4 +1,4 @@
-import { RequestTokenStatus, LogoutRpsStatus, DisconnectStatus, FederatedAuthRequest, FederatedAuthRequestReceiver } from '/gen/third_party/blink/public/mojom/webid/federated_auth_request.mojom.m.js';
+import { RequestTokenStatus, LogoutRpsStatus, DisconnectStatus, FederatedAuthRequest, FederatedAuthRequestReceiver } from '/gen/third_party/blink/public/mojom/webid/federated_request.mojom.m.js';
 
 function toMojoTokenStatus(status) {
   return RequestTokenStatus["k" + status];

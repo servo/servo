@@ -58,6 +58,9 @@ TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.annexb
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.crx
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.xpi
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.tlb
+# MPEG-TS media segment; the .ts extension collides with TypeScript so it can't
+# be globbed, scope the binary-content checks to this file.
+TRAILING WHITESPACE, INDENT TABS, CR AT EOL: fetch/orb/**/*.ts
 
 ## .gitignore
 W3C-TEST.ORG: .gitignore
@@ -170,13 +173,7 @@ SET TIMEOUT: common/reftest-wait.js
 SET TIMEOUT: compute-pressure/resources/support-iframe.html
 SET TIMEOUT: conformance-checkers/*
 SET TIMEOUT: content-security-policy/*
-SET TIMEOUT: css/css-image-animation/image-animation-img-running.tentative.html
-SET TIMEOUT: css/css-image-animation/image-animation-img-running-to-normal.tentative.html
-SET TIMEOUT: css/css-image-animation/image-animation-paused-exact-frame.tentative.html
-SET TIMEOUT: css/css-image-animation/image-animation-stopped-reset-frame.tentative.html
-SET TIMEOUT: css/css-image-animation/image-animation-video-poster-running.html
 SET TIMEOUT: css/compositing/opacity-and-transform-animation-crash.html
-SET TIMEOUT: css/css-image-animation/image-animation-display-none-reset.tentative.html
 SET TIMEOUT: css/css-contain/contain-body-overflow-002.html
 SET TIMEOUT: css/css-display/display-contents-shadow-dom-1.html
 SET TIMEOUT: css/CSS2/normal-flow/crashtests/block-in-inline-ax-crash.html

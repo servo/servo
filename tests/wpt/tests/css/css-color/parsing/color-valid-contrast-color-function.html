@@ -44,7 +44,7 @@ test_valid_value("background-color", "contrast-color(color(srgb calc(0.5) calc(1
 ]);
 
 // Test contrast-color in other color functions.
-test_valid_value("background-color", "color-mix(contrast-color(blue) 100%, purple)");
+test_valid_value("background-color", "color-mix(contrast-color(blue) 100%, purple 0%)");
 test_valid_value("background-color", "rgb(from contrast-color(blue) r g b)");
 
 // Test color functions in contrast-color.

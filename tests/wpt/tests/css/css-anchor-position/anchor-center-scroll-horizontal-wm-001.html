@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: scroll adjusted anchor-center with a horizontal writing-mode containing block (control)</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-center">
+<link rel="match" href="anchor-center-scroll-horizontal-wm-001-ref.html">
+<meta name="assert" content="Horizontal-writing-mode control for anchor-center-scroll-vertical-wm-001: an abspos box with align-self:anchor-center whose containing block is a horizontal writing mode stays centered on its anchor along the block (vertical) axis after the anchor's scroller scrolls. Uses the identical harness so the only difference from the vertical test is the writing-mode/alignment axis pairing.">
+<style>
+  body { margin: 0; }
+  /* The containing block of #anchored. Horizontal writing-mode makes
+     align-self the property that controls the vertical (Y) axis. */
+  #cb {
+    position: relative;
+    writing-mode: horizontal-tb;
+    width: 400px;
+    height: 400px;
+  }
+  #scroller {
+    writing-mode: horizontal-tb;
+    width: 400px;
+    height: 400px;
+    overflow: auto;
+    background: orange;
+  }
+  #spacer { height: 100px; }
+  #anchor {
+    width: 100px;
+    height: 100px;
+    background: pink;
+    anchor-name: --anchor;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --anchor;
+    align-self: anchor-center;
+    left: 0;
+    width: 50px;
+    height: 50px;
+    background: purple;
+  }
+  #filler { height: 1000px; }
+</style>
+<div id="cb">
+  <div id="scroller">
+    <div id="spacer"></div>
+    <div id="anchor"></div>
+    <div id="filler"></div>
+  </div>
+  <div id="anchored"></div>
+</div>
+<script>
+  scroller.offsetTop;
+  scroller.scrollTop = 100;
+</script>

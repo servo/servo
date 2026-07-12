@@ -15,10 +15,10 @@ promise_test(async t => {
   document.body.appendChild(iframe);
   await load_promise;
 
-  const iframe_navigator = iframe.contentWindow.navigator;
+  const iframe_document = iframe.contentWindow.document;
 
   // Should not reject!
-  await iframe_navigator.modelContext.registerTool({
+  await iframe_document.modelContext.registerTool({
     name: 'connected_tool',
     description: 'Tool registered in connected frame',
     execute: async () => 'hello'

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>drawElementImage should throw if the canvas is nested inside another canvas</title>
+<title>drawElementImage should succeed if the canvas is nested inside a div inside another canvas</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -16,8 +16,6 @@
 promise_test(async (t) => {
   await waitForCanvasPaint(canvas);
   const ctx = nested_canvas.getContext('2d');
-  assert_throws_dom("NotSupportedError", () => {
-    ctx.drawElementImage(inner_div, 0, 0, 100, 100);
-  });
-}, "drawElementImage should throw if called on a nested canvas in a div");
+  ctx.drawElementImage(inner_div, 0, 0, 100, 100);
+}, "drawElementImage should succeed if called on a nested canvas in a div");
 </script>

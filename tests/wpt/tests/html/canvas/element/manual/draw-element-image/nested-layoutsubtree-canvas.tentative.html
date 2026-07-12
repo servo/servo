@@ -1,21 +1,77 @@
 <!DOCTYPE html>
-<title>drawElementImage should throw if the canvas is nested inside another canvas</title>
+<title>drawElementImage should draw nested</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 
-<canvas id="canvas" layoutsubtree="true" width="100" height="100">
-  <canvas id="nested_canvas" layoutsubtree="true" width="100" height="100">
-    <div id="inner_div" style="width: 100px; height: 100px;"></div>
-  </canvas>
+<canvas id="canvas" layoutsubtree width="200" height="300">
+  <div id="target" style="width: 100px; height: 300px;">
+    <div id="sibling_div_a" style="width: 100px; height: 100px; background: #0f0;"></div>
+    <canvas id="nested_canvas" layoutsubtree width="100" height="100">
+      <div id="nested_canvas_target_a" style="width: 50px; height: 50px; background: #00f;"></div>
+      <div id="nested_canvas_target_b" style="width: 50px; height: 50px; background: #0ff;"></div>
+    </canvas>
+    <div id="sibling_div_b" style="width: 100px; height: 100px; background: #ff0; position: relative; margin-top: -10px;"></div>
+  </div>
 </canvas>
 <script>
 promise_test(async (t) => {
-  await waitForCanvasPaint(canvas);
-  const ctx = nested_canvas.getContext('2d');
-  assert_throws_dom("NotSupportedError", () => {
-    ctx.drawElementImage(inner_div, 0, 0, 100, 100);
+  const nested_ctx = nested_canvas.getContext('2d');
+  const ctx = canvas.getContext('2d');
+
+  let nested_painted = false;
+  nested_canvas.onpaint = () => {
+    // Draw a 50x50 #00f square in the upper-left of #nested_canvas, and a 50x50
+    // #0ff square in the bottom-right of #nested_canvas.
+    nested_ctx.drawElementImage(nested_canvas_target_a, 0, 0);
+    nested_ctx.drawElementImage(nested_canvas_target_b, 50, 50);
+    nested_painted = true;
+  };
+
+  await new Promise(resolve => {
+    canvas.onpaint = () => {
+      assert_true(nested_painted, "Nested canvas paint event should fire before outer canvas paint event");
+
+      // Draw #target into #canvas at 100,0. #target should contain:
+      //   1. #sibling_div_a, which is a 100x100 #0f0 square
+      //   2. #nested_canvas, which is 100x100 and contains a 50x50 #00f square in
+      //      the top-left, and a 50x50 #0ff square in the bottom-right.
+      //   3. #sibling_div_b, which is a 100x100 #ff0 square that overlaps the
+      //      bottom 10px of #nested_canvas.
+      ctx.drawElementImage(target, 100, 0);
+      resolve();
+    };
+    nested_canvas.requestPaint();
+    canvas.requestPaint();
   });
-}, "drawElementImage should throw if called on a nested canvas");
+
+  // Fetch all pixel data once to avoid multiple slow readbacks.
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  let pixel = _getPixelFromImageData(imgData, 50, 50);
+  assert_array_equals(pixel, [0, 0, 0, 0], "Nothing should be painted at 50,50");
+  pixel = _getPixelFromImageData(imgData, 50, 150);
+  assert_array_equals(pixel, [0, 0, 0, 0], "Nothing should be painted at 50,150");
+  pixel = _getPixelFromImageData(imgData, 50, 250);
+  assert_array_equals(pixel, [0, 0, 0, 0], "Nothing should be painted at 50,250");
+
+  pixel = _getPixelFromImageData(imgData, 110, 10);
+  assert_array_equals(pixel, [0, 255, 0, 255], "#sibling_div_a should be painted at 110,10");
+  pixel = _getPixelFromImageData(imgData, 190, 90);
+  assert_array_equals(pixel, [0, 255, 0, 255], "#sibling_div_a should be painted at 190,90");
+
+  pixel = _getPixelFromImageData(imgData, 125, 125);
+  assert_array_equals(pixel, [0, 0, 255, 255], "#nested_canvas_target_a should be painted at 125,125");
+  pixel = _getPixelFromImageData(imgData, 175, 175);
+  assert_array_equals(pixel, [0, 255, 255, 255], "#nested_canvas_target_b should be painted at 175,175");
+
+  pixel = _getPixelFromImageData(imgData, 125, 195);
+  assert_array_equals(pixel, [255, 255, 0, 255], "#sibling_div_b should be painted at 125,195");
+  pixel = _getPixelFromImageData(imgData, 175, 195);
+  assert_array_equals(pixel, [255, 255, 0, 255], "#sibling_div_b should be painted at 175,195");
+  pixel = _getPixelFromImageData(imgData, 150, 250);
+  assert_array_equals(pixel, [255, 255, 0, 255], "#sibling_div_b should be painted at 150,250");
+}, "Nested layoutsubtree canvas should draw");
 </script>

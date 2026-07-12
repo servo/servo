@@ -1,9 +1,13 @@
 def main(request, response):
-    response.headers.set(b"Access-Control-Allow-Origin", b"*")
-    response.headers.set(b"Content-Type", b"text/plain")
+    return headers_and_content(request)
+
+def headers_and_content(request):
+    headers = []
+    headers.append((b"Access-Control-Allow-Origin", b"*"))
+    headers.append((b"Content-Type", b"text/plain"))
 
     if b'cacheable' in request.GET:
-        response.headers.set(b"Cache-Control", b"max-age=3600")
+        headers.append((b"Cache-Control", b"max-age=3600"))
 
     # `dcb_data` and `dcz_data` are generated using the following commands:
     #
@@ -45,21 +49,19 @@ def main(request, response):
     large_dcz_data = b"\x5e\x2a\x4d\x18\x20\x00\x00\x00\x53\x96\x9b\xcf\x5e\x96\x0e\x0e\xdb\xf0\xa4\xbd\xde\x6b\x0b\x3e\x93\x81\xe1\x56\xde\x7f\x5b\x91\xce\x83\x91\x62\x42\x70\xf4\x16\x28\xb5\x2f\xfd\x64\x5c\x00\xfd\x01\x00\xf4\x02\x20\x64\x64\x69\x74\x69\x6f\x6e\x61\x6c\x61\x74\x61\x20\x74\x68\x61\x74\x20\x61\x6c\x73\x6f\x20\x72\x65\x66\x65\x72\x65\x6e\x63\x65\x73\x20\x74\x68\x65\x20\x63\x6f\x6e\x74\x65\x6e\x74\x2e\x04\x00\x60\x2d\x72\x35\x2b\xbb\x3c\xa0\xce\xed\x19\x04\x0c\x4b\x9e\x2f"
 
     use_large = b'large' in request.GET
+    content = b''
 
     if b'content_encoding' in request.GET:
         content_encoding = request.GET.first(b"content_encoding")
-        response.headers.set(b"Content-Encoding", content_encoding)
+        headers.append((b"Content-Encoding", content_encoding))
         if content_encoding == b"dcb":
             # Send the pre compressed file
-            response.content = large_dcb_data if use_large else dcb_data
+            content = large_dcb_data if use_large else dcb_data
         if content_encoding == b"dcz":
             # Send the pre compressed file
-            response.content = large_dcz_data if use_large else dcz_data
+            content = large_dcz_data if use_large else dcz_data
         if b'hash_mismatch' in request.GET:
             offset = 4 if content_encoding == b"dcb" else 8
-            response.content = response.content[:offset] + b'\x00' * 32 + response.content[offset + 32:]
+            content = content[:offset] + b'\x00' * 32 + content[offset + 32:]
 
-
-
-
-
+    return (headers, content)

@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+  <head>
+    <title>PannerNode orientation change updates cone gain</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../resources/audit-util.js"></script>
+  </head>
+
+  <body>
+    <script>
+      // Power-of-two sample rate to keep frame math exact.
+      const sampleRate = 16384;
+
+      // Render enough to have a clean region before and after the change.
+      const renderFrames = 2048;
+
+      // Frame (a render-quantum multiple) at which the orientation flips.
+      const moveFrame = 512;
+
+      // Force the PannerNode onto its cached (non sample-accurate) cone-gain
+      // path.  That path is only taken when neither the panner nor the listener
+      // uses an a-rate position/orientation AudioParam, so every relevant param
+      // is switched to "k-rate".  This is the only path where the cone gain is
+      // cached across render quanta, so it is the only path that can go stale
+      // when the orientation (but not the position) changes.
+      function forceKRate(context, panner) {
+        for (const p of [panner.positionX, panner.positionY, panner.positionZ,
+                         panner.orientationX, panner.orientationY,
+                         panner.orientationZ])
+          p.automationRate = 'k-rate';
+
+        const l = context.listener;
+        for (const p of [l.positionX, l.positionY, l.positionZ,
+                         l.forwardX, l.forwardY, l.forwardZ,
+                         l.upX, l.upY, l.upZ])
+          p.automationRate = 'k-rate';
+      }
+
+      // Build a graph where a directional cone gates the panner's output.
+      //
+      // Listener sits at the origin; the source sits at (1, 0, 0), so the
+      // source->listener direction is (-1, 0, 0).  A narrow cone
+      // (inner 60 deg, outer 120 deg, outer gain 0) means:
+      //   orientation (-1, 0, 0)  -> angle 0 deg   -> full cone gain (1)
+      //   orientation ( 1, 0, 0)  -> angle 180 deg -> outer cone gain (0)
+      // so an orientation-only flip must take the output from full to silent.
+      function createGraph(context) {
+        const panner = new PannerNode(context, {
+          panningModel: 'equalpower',
+          distanceModel: 'inverse',
+          refDistance: 1,
+          coneInnerAngle: 60,
+          coneOuterAngle: 120,
+          coneOuterGain: 0,
+          positionX: 1,
+          positionY: 0,
+          positionZ: 0,
+          // Point at the listener initially: full cone gain.
+          orientationX: -1,
+          orientationY: 0,
+          orientationZ: 0
+        });
+
+        forceKRate(context, panner);
+
+        // A steady DC source makes the per-channel gain trivial to read.
+        const src = new ConstantSourceNode(context, {offset: 1});
+        src.connect(panner).connect(context.destination);
+        src.start();
+
+        return panner;
+      }
+
+      function maxAbs(array) {
+        let m = 0;
+        for (const v of array)
+          m = Math.max(m, Math.abs(v));
+        return m;
+      }
+
+      // Render, then verify the output is audible before |moveFrame| and
+      // (nearly) silent afterwards once the cone points away from the listener.
+      async function verify(context, prefix) {
+        const buffer = await context.startRendering();
+        const c0 = buffer.getChannelData(0);
+        const c1 = buffer.getChannelData(1);
+
+        // Before the flip the cone gain is 1, so at least one channel carries
+        // the source. This guards against the test trivially passing on
+        // silence.
+        assert_true(
+            maxAbs(c0.slice(0, moveFrame)) > 0.1 ||
+                maxAbs(c1.slice(0, moveFrame)) > 0.1,
+            `${prefix}: output is audible before the orientation flip`);
+
+        // After the flip the cone points away from the listener, so the cone
+        // gain is coneOuterGain (0) and both channels must be silent. Skip one
+        // render quantum around the boundary to avoid the transition sample.
+        const start = moveFrame + 128;
+        const zeros = new Float32Array(c0.length - start);
+        assert_array_equal_within_eps(
+            c0.slice(start), zeros, {absoluteThreshold: 1e-6},
+            `${prefix}: left channel after orientation-only flip`);
+        assert_array_equal_within_eps(
+            c1.slice(start), zeros, {absoluteThreshold: 1e-6},
+            `${prefix}: right channel after orientation-only flip`);
+      }
+
+      // Flip the orientation using the AudioParam .value setters.
+      promise_test(async () => {
+        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
+        const panner = createGraph(context);
+
+        context.suspend(moveFrame / context.sampleRate).then(() => {
+          // Point away from the listener; position is left unchanged.
+          panner.orientationX.value = 1;
+          panner.orientationY.value = 0;
+          panner.orientationZ.value = 0;
+          context.resume();
+        });
+
+        await verify(context, 'orientationX.value');
+      }, 'Changing orientation via AudioParam.value updates the cone gain');
+
+      // Flip the orientation using the legacy setOrientation() setter.
+      promise_test(async () => {
+        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
+        const panner = createGraph(context);
+
+        context.suspend(moveFrame / context.sampleRate).then(() => {
+          panner.setOrientation(1, 0, 0);
+          context.resume();
+        });
+
+        await verify(context, 'setOrientation');
+      }, 'Changing orientation via setOrientation() updates the cone gain');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>No crash when accessing cssText with border-image stretch and numeric slice</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=93380">
+<div id="foo" style="border-image: url(images/shadow-border.png) stretch 10;"></div>
+<script>
+  document.getElementById("foo").style.cssText;
+</script>

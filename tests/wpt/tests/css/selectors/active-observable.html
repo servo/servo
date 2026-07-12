@@ -32,35 +32,21 @@
     );
   }
 
-  // Press the pointer down over `element` without releasing it.
-  function pointerDownOn(element, button = "LEFT") {
+  // Use pointer events to perform a click, so each pointerevent
+  // can be monitored.
+  function click(element, button = "LEFT", { moveWithin = false } = {}) {
     const actions = new test_driver.Actions();
-    return actions
+    let chain = actions
       .pointerMove(0, 0, {})
       .pointerMove(0, 0, { origin: element })
-      .pointerDown({ button: actions.ButtonType[button] })
-      .send();
+      .pointerDown({ button: actions.ButtonType[button] });
+    if (moveWithin) {
+      chain = chain.pointerMove(5, 5, { origin: element });
+    }
+    return chain.pointerUp({ button: actions.ButtonType[button] }).send();
   }
 
-  // Press the pointer down over `element` and, in the same action sequence,
-  // move it to a different point still inside `element` while it stays held.
-  function pointerDownAndMoveWithin(element) {
-    const actions = new test_driver.Actions();
-    return actions
-      .pointerMove(0, 0, {})
-      .pointerMove(0, 0, { origin: element })
-      .pointerDown({ button: actions.ButtonType.LEFT })
-      .pointerMove(5, 5, { origin: element })
-      .send();
-  }
-
-  function pointerUp(button = "LEFT") {
-    const actions = new test_driver.Actions();
-    return actions.pointerUp({ button: actions.ButtonType[button] }).send();
-  }
-
-  async function cleanUp() {
-    await pointerUp().catch(() => {});
+  async function resetPointer() {
     await new test_driver.Actions().pointerMove(0, 0).send();
     await waitForRender();
   }
@@ -79,100 +65,94 @@
     return { parent, child };
   }
 
-  async function activeDuring({ t, event, listenOn, observed, pressOn }) {
-    let matched = null;
-    listenOn.addEventListener(
-      event,
-      () => {
-        matched = observed.matches(":active");
-      },
-      { signal: t.signal },
-    );
-
-    await pointerDownOn(pressOn);
-    await pointerUp();
-    await waitForRender();
-    return matched;
-  }
-
   const downEvents = ["pointerdown", "mousedown"];
 
   for (const downEvent of downEvents) {
     promise_test(async (t) => {
-      t.add_cleanup(cleanUp);
+      t.add_cleanup(resetPointer);
       const { child: target } = makeTarget(t);
       await waitForRender();
 
+      let matched = null;
+      target.addEventListener(
+        downEvent,
+        () => {
+          matched = target.matches(":active");
+        },
+        { signal: t.signal },
+      );
+
+      await click(target);
       assert_true(
-        await activeDuring({
-          t,
-          event: downEvent,
-          listenOn: target,
-          observed: target,
-          pressOn: target,
-        }),
+        matched,
         `target matches :active synchronously inside its ${downEvent} listener`,
       );
     }, `Clicked element matches :active within its ${downEvent} listener`);
 
     promise_test(async (t) => {
-      t.add_cleanup(cleanUp);
+      t.add_cleanup(resetPointer);
       const { parent, child: target } = makeTarget(t);
       await waitForRender();
 
+      let matched = null;
+      target.addEventListener(
+        downEvent,
+        () => {
+          matched = parent.matches(":active");
+        },
+        { signal: t.signal },
+      );
+
+      await click(target);
       assert_true(
-        await activeDuring({
-          t,
-          event: downEvent,
-          listenOn: target,
-          observed: parent,
-          pressOn: target,
-        }),
+        matched,
         `ancestor matches :active within the ${downEvent} listener of a descendant`,
       );
     }, `Ancestor of clicked element matches :active within ${downEvent} listener`);
 
     promise_test(async (t) => {
-      t.add_cleanup(cleanUp);
+      t.add_cleanup(resetPointer);
       const { parent, child: textTarget } = makeTarget(t, "span");
       await waitForRender();
 
+      let matched = null;
+      parent.addEventListener(
+        downEvent,
+        () => {
+          matched = parent.matches(":active");
+        },
+        { signal: t.signal },
+      );
+
+      await click(textTarget);
       assert_true(
-        await activeDuring({
-          t,
-          event: downEvent,
-          listenOn: parent,
-          observed: parent,
-          pressOn: textTarget,
-        }),
+        matched,
         `parent element matches :active when a text node is the press target (${downEvent})`,
       );
     }, `Text node press target activates its parent element (${downEvent})`);
 
     promise_test(async (t) => {
-      t.add_cleanup(cleanUp);
+      t.add_cleanup(resetPointer);
       const { child: target } = makeTarget(t);
       await waitForRender();
 
-      let matchedActive = null;
+      let matchedDuringPress = null;
       target.addEventListener(
         downEvent,
         (e) => {
           e.preventDefault();
-          matchedActive = target.matches(":active");
+          matchedDuringPress = target.matches(":active");
         },
         { signal: t.signal },
       );
 
-      await pointerDownOn(target);
-      assert_true(
-        matchedActive,
-        `target matches :active even when the ${downEvent} listener calls preventDefault()`,
-      );
-
-      await pointerUp();
+      await click(target);
       await waitForRender();
 
+      assert_true(
+        matchedDuringPress,
+        `target matches :active even when the ${downEvent} listener calls preventDefault()`,
+      );
       assert_false(
         target.matches(":active"),
         `target is no longer :active after release even when ${downEvent} calls preventDefault()`,
@@ -181,19 +161,26 @@
   }
 
   promise_test(async (t) => {
-    t.add_cleanup(cleanUp);
+    t.add_cleanup(resetPointer);
     const { child: target } = makeTarget(t);
     await waitForRender();
 
-    await pointerDownOn(target);
-    assert_true(
-      target.matches(":active"),
-      "target matches :active while the pointer is held down",
+    let matchedWhileHeld = null;
+    target.addEventListener(
+      "pointerdown",
+      () => {
+        matchedWhileHeld = target.matches(":active");
+      },
+      { signal: t.signal },
     );
 
-    await pointerUp();
+    await click(target);
     await waitForRender();
 
+    assert_true(
+      matchedWhileHeld,
+      "target matches :active while the pointer is held down",
+    );
     assert_false(
       target.matches(":active"),
       "target no longer matches :active after the pointer is released",
@@ -204,18 +191,24 @@
 
   for (const upEvent of upEvents) {
     promise_test(async (t) => {
-      t.add_cleanup(cleanUp);
+      t.add_cleanup(resetPointer);
       const { child: target } = makeTarget(t);
       await waitForRender();
 
+      let matchedDuringUp = null;
+      target.addEventListener(
+        upEvent,
+        () => {
+          matchedDuringUp = target.matches(":active");
+        },
+        { signal: t.signal },
+      );
+
+      await click(target);
+      await waitForRender();
+
       assert_false(
-        await activeDuring({
-          t,
-          event: upEvent,
-          listenOn: target,
-          observed: target,
-          pressOn: target,
-        }),
+        matchedDuringUp,
         `target no longer matches :active synchronously inside its ${upEvent} listener`,
       );
       assert_false(
@@ -225,7 +218,7 @@
     }, `Clicked element no longer matches :active within its ${upEvent} listener`);
 
     promise_test(async (t) => {
-      t.add_cleanup(cleanUp);
+      t.add_cleanup(resetPointer);
       const { child: target } = makeTarget(t);
       await waitForRender();
 
@@ -233,15 +226,22 @@
         signal: t.signal,
       });
 
-      await pointerDownOn(target);
-      assert_true(
-        target.matches(":active"),
-        "target is :active while the pointer is held down",
+      let matchedWhileHeld = null;
+      target.addEventListener(
+        "pointerdown",
+        () => {
+          matchedWhileHeld = target.matches(":active");
+        },
+        { signal: t.signal },
       );
 
-      await pointerUp();
+      await click(target);
       await waitForRender();
 
+      assert_true(
+        matchedWhileHeld,
+        "target is :active while the pointer is held down",
+      );
       assert_false(
         target.matches(":active"),
         `target is no longer :active after release even when ${upEvent} calls preventDefault()`,
@@ -250,80 +250,75 @@
   }
 
   promise_test(async (t) => {
-    t.add_cleanup(cleanUp);
+    t.add_cleanup(resetPointer);
     const { child: target } = makeTarget(t);
     await waitForRender();
 
-    let matchedActiveDuringMove = null;
+    let matchedDuringMove = null;
     target.addEventListener(
       "pointermove",
       () => {
-        matchedActiveDuringMove = target.matches(":active");
+        matchedDuringMove = target.matches(":active");
       },
       { signal: t.signal },
     );
 
-    await pointerDownAndMoveWithin(target);
+    await click(target, "LEFT", { moveWithin: true });
     await waitForRender();
 
     assert_true(
-      target.matches(":active"),
-      "target still matches :active after the held pointer moves within it",
-    );
-    assert_true(
-      matchedActiveDuringMove,
+      matchedDuringMove,
       "target still matches :active while the held pointer moves within it",
     );
   }, ":active persists while the held pointer moves within the target");
 
   promise_test(async (t) => {
-    t.add_cleanup(cleanUp);
+    t.add_cleanup(resetPointer);
     const { child: target } = makeTarget(t);
     await waitForRender();
 
-    let matchedActiveDuringClick = null;
+    let matchedDuringClick = null;
     target.addEventListener(
       "click",
       () => {
-        matchedActiveDuringClick = target.matches(":active");
+        matchedDuringClick = target.matches(":active");
       },
       { signal: t.signal },
     );
 
-    await pointerDownOn(target);
-    await pointerUp();
+    await click(target);
     await waitForRender();
 
     assert_false(
-      matchedActiveDuringClick,
+      matchedDuringClick,
       "target no longer matches :active inside its click listener",
     );
   }, "Clicked element no longer matches :active within its click listener");
 
   for (const button of ["RIGHT", "MIDDLE"]) {
     promise_test(async (t) => {
-      t.add_cleanup(() => pointerUp(button).catch(() => {}));
-      t.add_cleanup(cleanUp);
+      t.add_cleanup(resetPointer);
       const { child: target } = makeTarget(t);
       await waitForRender();
 
-      let activeWhileHeld = null;
-      let activeAfterRelease = null;
-      try {
-        await pointerDownOn(target, button);
-        activeWhileHeld = target.matches(":active");
-      } finally {
-        await pointerUp(button).catch(() => {});
-        await waitForRender();
-      }
-      activeAfterRelease = target.matches(":active");
+      let matchedWhileHeld = null;
+      target.addEventListener(
+        "pointerdown",
+        () => {
+          matchedWhileHeld = target.matches(":active");
+        },
+        { signal: t.signal },
+      );
+
+      await click(target, button);
+      await waitForRender();
 
       assert_true(
-        activeWhileHeld,
+        matchedWhileHeld,
         `target matches :active for a ${button.toLowerCase()}-button press`,
       );
       assert_false(
-        activeAfterRelease,
+        target.matches(":active"),
         `target no longer matches :active after the ${button.toLowerCase()}-button release`,
       );
     }, `Non-primary (${button.toLowerCase()}) button press activates :active`);

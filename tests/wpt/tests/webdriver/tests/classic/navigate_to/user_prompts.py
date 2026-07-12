@@ -5,11 +5,7 @@ from webdriver import error
 
 from tests.support.classic.asserts import assert_error, assert_success, assert_dialog_handled
 
-
-def navigate_to(session, url):
-    return session.transport.send(
-        "POST", "session/{session_id}/url".format(**vars(session)),
-        {"url": url})
+from . import navigate_to
 
 
 @pytest.fixture

@@ -656,7 +656,10 @@
     };
 
     window.test_driver_internal.set_virtual_wallet_behavior = function(action, protocol=null, response=null, context=null) {
-        return create_context_action("set_virtual_wallet_behavior", context, {action, protocol, response});
+        return create_action("set_virtual_wallet_behavior", {
+            // Default to the current window.
+            context: context ?? window,
+            action, protocol, response});
     };
 
     window.test_driver_internal.create_virtual_sensor = function(sensor_type, sensor_params={}, context=null) {

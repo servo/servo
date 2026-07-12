@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting null timeline on animation should not crash</title>
+<link rel="help" href="https://crbug.com/40167428">
+<body>
+<script>
+  const elem = document.createElement('elem');
+  document.body.appendChild(elem);
+  const anim = elem.animate([]);
+  anim.reverse();
+  anim.finish();
+  anim.timeline = null;
+  anim.timeline = document.timeline;
+</script>

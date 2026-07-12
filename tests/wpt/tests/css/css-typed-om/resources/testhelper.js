@@ -50,8 +50,8 @@ function assert_color_channel_approx_equals(a, b) {
   }
 }
 
-// Compares two CSSStyleValues to check if they're the same type
-// and have the same attributes.
+// Compares two CSSStyleValues to check if they're the same type, have the same
+// attributes, and for CSSNumericValue objects, have the same numeric type.
 function assert_style_value_equals(a, b, epsilon) {
   if (a == null || b == null) {
     assert_equals(a, b);
@@ -127,6 +127,15 @@ function assert_style_value_equals(a, b, epsilon) {
     default:
       assert_equals(a, b);
       break;
+  }
+
+  // For numeric values, also verify that the numeric type is preserved.
+  // This is especially useful for parsing and reification tests, where the
+  // parsed or reified value is compared against an explicitly constructed
+  // object, and numeric type computation may follow a different code path from
+  // explicit object construction.
+  if (a instanceof CSSNumericValue) {
+    assert_numeric_type_equals(a.type(), b.type());
   }
 }
 

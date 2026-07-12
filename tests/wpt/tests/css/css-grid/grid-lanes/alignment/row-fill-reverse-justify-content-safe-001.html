@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: row `fill-reverse` with safe content alignment</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="row-fill-reverse-justify-content-safe-001-ref.html">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    body {
+      padding: 40px;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: row fill-reverse;
+      grid-template-rows: 40px;
+      gap: 4px;
+      width: 60px;
+      height: 100px;
+      border: 1px solid;
+      margin-bottom: 40px;
+    }
+
+    item {
+      display: block;
+      width: 40px;
+      height: 30px;
+      color: white;
+      background: #2ca02c;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-lanes" style="justify-content: safe start;">
+    <item>1</item>
+    <item>2</item>
+  </div>
+
+  <div class="grid-lanes" style="justify-content: safe center;">
+    <item>1</item>
+    <item>2</item>
+  </div>
+
+  <div class="grid-lanes" style="justify-content: safe end;">
+    <item>1</item>
+    <item>2</item>
+  </div>
+</body>
+</html>

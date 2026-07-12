@@ -125,8 +125,8 @@ promise_test(async t => {
 
   await waitForCanvasPaint(canvas);
 
-  assert_throws_dom('NotSupportedError',
-    () => nestedCanvas.captureElementImage(childDiv),
-    'captureElementImage on a nested canvas should throw NotSupportedError.');
-}, 'captureElementImage should throw if called on a nested canvas');
+  let elementImage = nestedCanvas.captureElementImage(childDiv);
+  assert_equals(elementImage.width, 100);
+  assert_equals(elementImage.height, 100);
+}, 'captureElementImage on a nested canvas should succeed');
 </script>

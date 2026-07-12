@@ -9,26 +9,13 @@
   <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
   <meta name="flags" content=" dom" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
  </head>
  <body>
 
  <div>
-
-
-  <script type="text/javascript">
-   <![CDATA[
-
-    function test() {
-      el = document.getElementById('test');
-      el.parentNode.parentNode.insertBefore(document.createElementNS('http://www.w3.org/1999/xhtml', 'div'), el.parentNode);
-    }
-
-    window.setTimeout("test()", 100);
-   ]]>
-  </script>
-
-
-
 
   <p> The following bar should be green. </p>
 
@@ -38,5 +25,18 @@
 
  </div>
 
+  <script><![CDATA[
+promise_test(async () => {
+  if (document.readyState !== 'complete') {
+    await new Promise(resolve => window.addEventListener('load', resolve));
+  }
+  const el = document.getElementById('test');
+  assert_background_color(el, RED, "Initial color should be red");
+
+  el.parentNode.parentNode.insertBefore(document.createElementNS('http://www.w3.org/1999/xhtml', 'div'), el.parentNode);
+
+  assert_background_color(el, LIME, "Color after DOM manipulation should be green/lime");
+}, 'Dynamic handling of combinators');
+]]></script>
 </body>
 </html>

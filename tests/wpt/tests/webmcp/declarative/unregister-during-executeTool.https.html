@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: executeTool with Unregistered Declarative Tool</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const form = document.createElement('form');
+  form.setAttribute('toolname', 'endless_tool');
+  form.setAttribute('tooldescription', 'Endless declarative tool');
+  form.setAttribute('toolautosubmit', '');
+  document.body.appendChild(form);
+  t.add_cleanup(() => form.remove());
+
+  await waitForTool('endless_tool');
+
+  const submitted_promise = new Promise((resolve) => {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      // Respond with a Promise that never resolves (hangs forever).
+      e.respondWith(new Promise(() => {}));
+      resolve();
+    });
+  });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'endless_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  const execute_promise = document.modelContext.executeTool(tool, '{}');
+
+  // Wait deterministically for the form to submit and call respondWith().
+  await submitted_promise;
+
+  // Unregister the declarative tool by removing the form element while execution is pending.
+  form.remove();
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    execute_promise,
+    'Pending execution Promise should reject with UnknownError when the target declarative tool is removed from DOM'
+  );
+}, 'Pending executeTool() Promise is rejected when target declarative tool is unregistered via DOM removal');
+
+promise_test(async t => {
+  const form = document.createElement('form');
+  form.setAttribute('toolname', 'endless_tool_attr');
+  form.setAttribute('tooldescription', 'Endless declarative tool attribute');
+  form.setAttribute('toolautosubmit', '');
+  document.body.appendChild(form);
+  t.add_cleanup(() => form.remove());
+
+  await waitForTool('endless_tool_attr');
+
+  const submitted_promise = new Promise((resolve) => {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      e.respondWith(new Promise(() => {}));
+      resolve();
+    });
+  });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'endless_tool_attr');
+  assert_true(!!tool, 'Tool should be registered');
+
+  const execute_promise = document.modelContext.executeTool(tool, '{}');
+
+  // Wait deterministically for the form to submit and call respondWith().
+  await submitted_promise;
+
+  // Unregister by removing required tooldescription attribute while execution is pending.
+  form.removeAttribute('tooldescription');
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    execute_promise,
+    'Pending execution Promise should reject with UnknownError when required tool attribute is removed'
+  );
+}, 'Pending executeTool() Promise is rejected when target declarative tool is unregistered via attribute removal');
+</script>
+</body>

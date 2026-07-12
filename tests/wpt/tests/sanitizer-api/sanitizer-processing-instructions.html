@@ -11,21 +11,20 @@
 #config
 { "processingInstructions": ["target"] }
 #document
-| <?target data>
+| <?target data?>
 
 #data
 <?target data?>
 #config
 { "processingInstructions": [{ "target": "target" }] }
 #document
-| <?target data>
+| <?target data?>
 
 #data
 <?Target data?>
 #config
 { "processingInstructions": ["target"] }
 #document
-| <?target data>
 
 #data
 <?target data?>
@@ -38,15 +37,15 @@
 #config
 { "processingInstructions": ["target-1", "target-2"] }
 #document
-| <?target-1 data>
-| <?target-2 data>
+| <?target-1 data?>
+| <?target-2 data?>
 
 #data
 <?target-1 data?><?target-2 data?>
 #config
 { "processingInstructions": ["target-1"] }
 #document
-| <?target-1 data>
+| <?target-1 data?>
 
 #data
 <div><?target data?></div>
@@ -54,7 +53,7 @@
 { "processingInstructions": ["target"] }
 #document
 | <div>
-|   <?target data>
+|   <?target data?>
   </script>
 
   <script id="unsafe-only" type="html5lib-testcases">

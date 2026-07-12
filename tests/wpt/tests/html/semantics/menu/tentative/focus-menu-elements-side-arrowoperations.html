@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel=author href="https://dbaron.org/">
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+
+<menubar>
+  <submenu>
+    <menuitem id="file">File</menuitem>
+    <menulist>
+      <menuitem id="file_new">New</menuitem>
+      <menuitem id="file_open">Open</menuitem>
+    </menulist>
+  </submenu>
+  <submenu>
+    <menuitem id="edit">Edit</menuitem>
+    <menulist>
+      <menuitem id="edit_cut">Cut</menuitem>
+      <menuitem id="edit_copy">Copy</menuitem>
+    </menulist>
+  </submenu>
+  <submenu>
+    <menuitem id="help">Help</menuitem>
+    <menulist>
+      <menuitem id="help_about">About</menuitem>
+    </menulist>
+  </submenu>
+</menubar>
+
+<menubar>
+  <submenu>
+    <menuitem id="zoom">Zoom</menuitem>
+    <menulist>
+      <menuitem id="zoom_bigger">Bigger</menuitem>
+      <menuitem id="zoom_smaller">Smaller</menuitem>
+    </menulist>
+  </submenu>
+</menubar>
+
+<button id="actions_button" popovertarget=actions>Actions</button>
+
+<menulist id="actions">
+  <menuitem id="actions_go">Go</menuitem>
+  <menuitem id="actions_stop">Stop</menuitem>
+</menulist>
+
+<script>
+
+const Enter = '\uE007';
+const Esc = '\uE00C';
+const ArrowLeft = '\uE012';
+const ArrowUp = '\uE013';
+const ArrowRight = '\uE014';
+const ArrowDown = '\uE015';
+
+function e(id) {
+  return document.getElementById(id);
+}
+
+promise_test(async t => {
+  t.add_cleanup(async () => { await test_driver.send_keys(document.activeElement, Esc); });
+  e("file").focus();
+  assert_equals(document.activeElement, e("file"));
+  await test_driver.send_keys(document.activeElement, Enter);
+  assert_equals(document.activeElement, e("file_new"));
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("edit"));
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("help"));
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("file"));
+  await test_driver.send_keys(document.activeElement, Enter);
+  assert_equals(document.activeElement, e("file_new"));
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, e("help"));
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, e("edit"));
+  await test_driver.send_keys(document.activeElement, Enter);
+  assert_equals(document.activeElement, e("edit_cut"));
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, e("file"));
+}, "side arrow keys should move between menus in a menubar with multiple menus");
+
+promise_test(async t => {
+  t.add_cleanup(async () => { await test_driver.send_keys(document.activeElement, Esc); });
+  e("zoom").focus();
+  assert_equals(document.activeElement, e("zoom"));
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("zoom"));
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, e("zoom"));
+  await test_driver.send_keys(document.activeElement, Enter);
+  assert_equals(document.activeElement, e("zoom_bigger"));
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("zoom_bigger"));
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, e("zoom_bigger"));
+}, "side arrow keys should no-op in a menubar with just one menu");
+
+promise_test(async t => {
+  t.add_cleanup(async () => { await test_driver.send_keys(document.activeElement, Esc); });
+  e("actions_button").focus();
+  assert_equals(document.activeElement, e("actions_button"));
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("actions_button"));
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, e("actions_button"));
+  await test_driver.send_keys(document.activeElement, Enter);
+  assert_equals(document.activeElement, e("actions_go"));
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, e("actions_go"));
+  await test_driver.send_keys(document.activeElement, ArrowLeft);
+  assert_equals(document.activeElement, e("actions_go"));
+}, "side arrow keys should no-op in a menulist invoked by a button");
+
+</script>

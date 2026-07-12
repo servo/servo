@@ -64,12 +64,14 @@ function makeI420Frames(colorSpace) {
 }
 
 function makeRGBXFrames(colorSpace) {
-  const kYellow = 0xFFFF00;
-  const kRed = 0xFF0000;
-  const kBlue = 0x0000FF;
-  const kGreen = 0x00FF00;
-  const kBlack = 0x000000;
-  const kWhite = 0xFFFFFF;
+  // Little-endian values for RGBX (where byte 0 is R, 1 is G, 2 is B, 3 is X)
+  // We set X (byte 3) to 0xFF (255) so it is treated as opaque.
+  const kYellow = 0xFF00FFFF;
+  const kRed = 0xFF0000FF;
+  const kBlue = 0xFFFF0000;
+  const kGreen = 0xFF00FF00;
+  const kBlack = 0xFF000000;
+  const kWhite = 0xFFFFFFFF;
 
   const result = [];
   const init = {format: 'RGBX', timestamp: 0, codedWidth: 4, codedHeight: 4};
