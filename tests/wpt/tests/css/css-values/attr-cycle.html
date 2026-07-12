@@ -137,6 +137,15 @@
   attrElem.removeAttribute('data-bar');
   attrElem.style.setProperty('--x', null);
 
+  /* Same as above, but with the custom properties swapped, so that the property
+     using the raw (bare) attr() and the one using type() are resolved in the
+     opposite order. The result must not depend on resolution order. */
+  attrElem.style.setProperty('--y', 'attr(data-foo)');
+  attrElem.setAttribute('data-bar', 'var(--y)');
+  test_attr_no_cycle('--x', 'attr(data-foo type(*))', 'attr(data-bar, 11) var(--y, 3)', '"var(--y)" "attr(data-bar, 11) var(--y, 3)"');
+  attrElem.removeAttribute('data-bar');
+  attrElem.style.setProperty('--y', null);
+
   /* No cycle, wrong attr syntax in attribute */
   test_attr_no_cycle('--x', 'attr(data-foo type(*), abc)', 'attr(data-foo', 'abc');
 

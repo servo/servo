@@ -56,7 +56,7 @@
           lines.push(`|${pad}<!-- ${node.nodeValue} -->`);
           break;
         case Node.PROCESSING_INSTRUCTION_NODE:
-          lines.push(`|${pad}<?${node.target}${node.data ? " " + node.data : ""}?>`);
+          lines.push(`|${pad}<?${node.target} ${node.data || ""}?>`);
           break;
         case Node.TEXT_NODE:
           lines.push(`|${pad}"${node.nodeValue}"`);

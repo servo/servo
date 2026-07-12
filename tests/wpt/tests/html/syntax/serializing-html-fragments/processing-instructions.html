@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>ProcessingInstruction serialization in HTML</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  const pi = document.createProcessingInstruction("target", "");
+  const div = document.createElement("div");
+  div.appendChild(pi);
+  // There's a space because the spec does not special-case empty data.
+  assert_equals(div.innerHTML, "<?target ?>");
+}, "PI with empty data");
+
+test(function() {
+  const pi = document.createProcessingInstruction("target", "data");
+  const div = document.createElement("div");
+  div.appendChild(pi);
+  assert_equals(div.innerHTML, "<?target data?>");
+}, "PI with non-empty data");
+
+test(function() {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString("<root><?target data?></root>", "text/xml");
+  const pi = xmlDoc.documentElement.firstChild;
+  const div = document.createElement("div");
+  div.appendChild(pi);
+  assert_equals(div.innerHTML, "<?target data?>");
+}, "PI adopted from XML document");
+</script>

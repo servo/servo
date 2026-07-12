@@ -19,7 +19,7 @@ promise_test(async () => {
     execute: async () => 'empty'
   });
 
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'with-title');
 
   assert_equals(tool.title, 'My Custom Title', 'Title is preserved');
@@ -32,7 +32,7 @@ promise_test(async () => {
     execute: async () => 'empty'
   });
 
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'without-title');
 
   // If not provided upon registration, `title` should be empty string in the
@@ -49,7 +49,7 @@ promise_test(async () => {
     execute: async () => 'empty'
   });
 
-  const tools = await navigator.modelContext.getTools();
+  const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'with-unpaired-surrogate');
 
   // USVString replaces unpaired surrogates with U+FFFD.

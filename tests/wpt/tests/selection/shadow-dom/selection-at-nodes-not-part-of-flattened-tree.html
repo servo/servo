@@ -1,0 +1,250 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test Selection API working with nodes in not part of flattened tree</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../selection-test-utils.js"></script>
+<script>
+"use strict";
+
+function assert_selection_ranges_equal(expectedRanges, message) {
+  assert_equals(
+    SelectionTestUtils.getRangeArrayDescription(
+      SelectionTestUtils.getSelectionRangeArray(getSelection())
+    ),
+    SelectionTestUtils.getRangeArrayDescription(expectedRanges),
+    message
+  );
+}
+
+/**
+ * Currently, Selection API is not defined as working in the flattened tree.
+ * Therefore, even if the Selection API is used with boundaries or nodes which
+ * are not part of the flattened tree especially for the backward compatibility.
+ */
+addEventListener("load", () => {
+  test(t => {
+    const host = document.getElementById("host1");
+    const span = document.getElementById("notAssigned");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    const spanInShadow = document.createElement("span");
+    spanInShadow.id = "inShadow";
+    shadowRoot.appendChild(spanInShadow);
+    // Now, the DOM tree becomes:
+    // <body>
+    // + <div id="host1">
+    //   + <shadow-root>
+    //   | + <span id="inShadow">
+    //   |   + #text
+    //   + <span id="notAssigned">
+    //     + #text
+    test(() => {
+      getSelection().collapse(host, 1);
+      assert_selection_ranges_equal([
+          {
+            startContainer: host,
+            startOffset: 1,
+            endContainer: host,
+            endOffset: 1,
+          }
+      ]);
+    }, "Collapse selection after the <span> which is not part of the flattened tree");
+    test(() => {
+      getSelection().collapse(host, 1);
+      getSelection().extend(host, 0);
+      assert_selection_ranges_equal([
+          {
+            startContainer: host,
+            startOffset: 0,
+            endContainer: host,
+            endOffset: 1,
+          }
+      ]);
+    }, "Extend selection from end of the host to start of the host");
+    test(() => {
+      getSelection().collapse(host, 0);
+      getSelection().extend(host, 1);
+      assert_selection_ranges_equal([
+          {
+            startContainer: host,
+            startOffset: 0,
+            endContainer: host,
+            endOffset: 1,
+          }
+      ]);
+    }, "Extend selection from start of the host to end of the host");
+    test(() => {
+      getSelection().selectAllChildren(host);
+      assert_selection_ranges_equal([
+          {
+            startContainer: host,
+            startOffset: 0,
+            endContainer: host,
+            endOffset: 1,
+          }
+      ]);
+    }, "Select all children of the host");
+    test(() => {
+      getSelection().setBaseAndExtent(host, 0, host, 1);
+      assert_selection_ranges_equal([
+          {
+            startContainer: host,
+            startOffset: 0,
+            endContainer: host,
+            endOffset: 1,
+          }
+      ]);
+    }, "Select set base to start of the host and extent to end of the host");
+    test(() => {
+      getSelection().setBaseAndExtent(host, 1, host, 0);
+      assert_selection_ranges_equal([
+          {
+            startContainer: host,
+            startOffset: 0,
+            endContainer: host,
+            endOffset: 1,
+          }
+      ]);
+    }, "Select set base to end of the host and extent to start of the host");
+    test(() => {
+      getSelection().selectAllChildren(host);
+      assert_false(getSelection().containsNode(span));
+    }, "containsNode of non-assigned node should return false (when all children of the host is selected)");
+    test(() => {
+      getSelection().selectAllChildren(host.parentNode);
+      assert_false(getSelection().containsNode(span));
+    }, "containsNode of non-assigned node should return false (when the host is selected)");
+    test(() => {
+      getSelection().selectAllChildren(host);
+      assert_false(getSelection().containsNode(span.firstChild));
+    }, "containsNode of non-assigned node child should return false (when all children of the host is selected)");
+    test(() => {
+      getSelection().selectAllChildren(host.parentNode);
+      assert_false(getSelection().containsNode(span.firstChild));
+    }, "containsNode of non-assigned node child should return false (when the host is selected)");
+
+    // Range.comparePoint should work with DOM point rather than a flattened tree point.
+    test(() => {
+      getSelection().selectAllChildren(host);
+      assert_equals(getSelection().getRangeAt(0).comparePoint(span, 0), 0);
+    }, "getRangeAt(0).comparePoint of start of non-assigned node should return 0 (when all children of the host is selected)");
+    test(() => {
+      getSelection().selectAllChildren(host.parentNode);
+      assert_equals(getSelection().getRangeAt(0).comparePoint(span, 0), 0);
+    }, "getRangeAt(0).comparePoint of start of non-assigned node should return 0 (when the host is selected)");
+    test(() => {
+      getSelection().selectAllChildren(host);
+      assert_equals(getSelection().getRangeAt(0).comparePoint(span.firstChild, 0), 0);
+    }, "getRangeAt(0).comparePoint of start of non-assigned node child should return 0 (when all children of the host is selected)");
+    test(() => {
+      getSelection().selectAllChildren(host.parentNode, 0);
+      assert_equals(getSelection().getRangeAt(0).comparePoint(span.firstChild, 0), 0);
+    }, "getRangeAt(0).comparePoint of start of non-assigned node child should return 0 (when the host is selected)");
+  });
+
+  test(t => {
+    const host = document.getElementById("host2");
+    const defaultSpan = host.shadowRoot.getElementById("default");
+    // Now, the DOM tree becomes:
+    // <body>
+    // + <div id="host2">
+    //   + <shadow-root>
+    //   | + <slot>
+    //   |   + <span id="default">
+    //   |     + #text
+    //   + <span id="assigned">
+    //     + #text
+    test(() => {
+      getSelection().collapse(defaultSpan, 1);
+      assert_selection_ranges_equal([
+          {
+            startContainer: defaultSpan,
+            startOffset: 1,
+            endContainer: defaultSpan,
+            endOffset: 1,
+          }
+      ]);
+    }, "Collapse selection to end of the default text");
+    test(() => {
+      getSelection().collapse(defaultSpan, 1);
+      getSelection().extend(defaultSpan, 0);
+      assert_selection_ranges_equal([
+          {
+            startContainer: defaultSpan,
+            startOffset: 0,
+            endContainer: defaultSpan,
+            endOffset: 1,
+          }
+      ]);
+    }, "Extend selection from end of the default span to start of the default span");
+    test(() => {
+      getSelection().collapse(defaultSpan, 0);
+      getSelection().extend(defaultSpan, 1);
+      assert_selection_ranges_equal([
+          {
+            startContainer: defaultSpan,
+            startOffset: 0,
+            endContainer: defaultSpan,
+            endOffset: 1,
+          }
+      ]);
+    }, "Extend selection from start of the default span to end of the default span");
+    test(() => {
+      getSelection().selectAllChildren(defaultSpan);
+      assert_selection_ranges_equal([
+          {
+            startContainer: defaultSpan,
+            startOffset: 0,
+            endContainer: defaultSpan,
+            endOffset: 1,
+          }
+      ]);
+    }, "Select all children of the default span");
+    test(() => {
+      getSelection().setBaseAndExtent(defaultSpan, 0, defaultSpan, 1);
+      assert_selection_ranges_equal([
+          {
+            startContainer: defaultSpan,
+            startOffset: 0,
+            endContainer: defaultSpan,
+            endOffset: 1,
+          }
+      ]);
+    }, "Select set base to start of the default span and extent to end of the default span");
+    test(() => {
+      getSelection().setBaseAndExtent(defaultSpan, 1, defaultSpan, 0);
+      assert_selection_ranges_equal([
+          {
+            startContainer: defaultSpan,
+            startOffset: 0,
+            endContainer: defaultSpan,
+            endOffset: 1,
+          }
+      ]);
+    }, "Select set base to end of the default span and extent to start of the default span");
+    test(() => {
+      getSelection().selectAllChildren(defaultSpan);
+      assert_false(getSelection().containsNode(defaultSpan.firstChild));
+    }, "containsNode of the default span child should return false (when all children of the default span is selected)");
+    // Range.comparePoint should work with DOM point rather than a flattened tree point.
+    test(() => {
+      getSelection().selectAllChildren(defaultSpan);
+      assert_equals(getSelection().getRangeAt(0).comparePoint(defaultSpan.firstChild, 0), 0);
+    }, "getRangeAt(0).comparePoint of the start of the default span child should return 0 (when all children of the default span is selected)");
+  });
+
+  // TODO: Once Selection API defines cross shadow boundary selection behavior,
+  // this test should check the behavior when a boundary is part of the
+  // flattened tree but the other boundary is not a part of the flattened tree.
+}, {once: true});
+</script>
+</head>
+<body>
+<div id="host1"><span id="notAssigned">text in non-assigned span</span></div>
+<div id="host2"><template shadowrootmode="open">
+<slot><span id="default">default</span></slot>
+</template><span id="assigned">text in assigned span</span></div>
+</body>
+</html>

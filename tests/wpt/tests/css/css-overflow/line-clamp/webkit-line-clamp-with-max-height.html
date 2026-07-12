@@ -16,12 +16,16 @@
   background-color: yellow;
   max-height: 3lh;
 }
+.hidden {
+  /* can be removed once implementations update their old -webkit-line-clamp implementations */
+  visibility: hidden;
+}
 </style>
 
 <div class="clamp">Line 1
 Line 2
 Line 3
 Line 4
-Line 5
+<div class="hidden">Line 5
 Line 6
-Line 7</div>
+Line 7</div></div>

@@ -36,6 +36,7 @@
 <script>
 
 const Enter = '\uE007';
+const Esc = '\uE00C';
 const ArrowLeft = '\uE012';
 const ArrowUp = '\uE013';
 const ArrowRight = '\uE014';
@@ -63,15 +64,15 @@ const ArrowDown = '\uE015';
     list.hidePopover();
     await test_driver.click(btn);
     await test_driver.send_keys(document.activeElement, ArrowDown);
-    assert_equals(document.activeElement, A1, 'arrow down moves focus into menulist.');
-    await test_driver.send_keys(document.activeElement, ArrowLeft);
-    assert_equals(document.activeElement, btn, 'arrow left close the menulist and focus on invoker.');
+    assert_equals(document.activeElement, A1, 'arrow down moves focus into menulist (1).');
+    await test_driver.send_keys(document.activeElement, Esc);
+    assert_equals(document.activeElement, btn, 'escape closes the menulist and focus on invoker (1).');
 
     await test_driver.click(btn);
     await test_driver.send_keys(document.activeElement, ArrowDown);
-    assert_equals(document.activeElement, A1, 'arrow down moves focus into menulist.');
-    await test_driver.send_keys(document.activeElement, ArrowRight);
-    assert_equals(document.activeElement, btn, 'arrow right close the menulist and focus on invoker.');
+    assert_equals(document.activeElement, A1, 'arrow down moves focus into menulist (2).');
+    await test_driver.send_keys(document.activeElement, Esc);
+    assert_equals(document.activeElement, btn, 'escape closes the menulist and focus on invoker (2).');
   }, `Should use arrow keys to move between menuitems in menulist${description}`);
 
   promise_test(async (t) => {

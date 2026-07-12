@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw nested tainted html-in-canvas canvases</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    #wrapper {
+      width: 200px;
+      height: 200px;
+      background: blue;
+      position: relative;
+    }
+    canvas.nested {
+      position: absolute;
+      top: 0;
+      width: 100px;
+      height: 200px;
+    }
+    #innersame { left: 0; }
+    #innercross { left: 100px; }
+  </style>
+</head>
+<body>
+  <canvas id="outer" width="200" height="200" layoutsubtree>
+    <div id="wrapper">
+      <canvas id="innersame" class="nested" width="100" height="200" layoutsubtree>
+        <div style="width: 100px; height: 200px; background: purple;"></div>
+      </canvas>
+      <canvas id="innercross" class="nested" width="100" height="200" layoutsubtree>
+        <div style="width: 100px; height: 200px; background: purple;"></div>
+      </canvas>
+    </div>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        const preloadImage = (url) => new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+          img.src = url;
+        });
+
+        const sameOriginImg = await preloadImage("https://{{location[host]}}/images/green-100x100.png");
+        const crossOriginImg = await preloadImage("https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png");
+
+        const innerSame = document.getElementById('innersame');
+        await waitForCanvasPaint(innerSame);
+        innerSame.getContext('2d').drawElementImage(innerSame.firstElementChild, 0, 0);
+        innerSame.getContext('2d').drawImage(sameOriginImg, 0, 0);
+
+        const innerCross = document.getElementById('innercross');
+        await waitForCanvasPaint(innerCross);
+        innerCross.getContext('2d').drawElementImage(innerCross.firstElementChild, 0, 0);
+        innerCross.getContext('2d').drawImage(crossOriginImg, 0, 0);
+
+        await waitForCanvasPaint(outer);
+        const ctx = outer.getContext('2d');
+        ctx.drawElementImage(document.getElementById('wrapper'), 0, 0);
+
+        // Fetch all pixel data once to avoid multiple slow readbacks.
+        const imgData = ctx.getImageData(0, 0, outer.width, outer.height);
+
+        let pixel = _getPixelFromImageData(imgData, 50, 50);
+        assert_array_equals(pixel, [0, 255, 0, 255], "Same origin image in nested canvas should draw");
+        pixel = _getPixelFromImageData(imgData, 50, 150);
+        assert_array_equals(pixel, [128, 0, 128, 255], "Nested canvas with same origin image should draw element");
+
+        pixel = _getPixelFromImageData(imgData, 150, 50);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Cross origin image in nested canvas should not draw");
+        pixel = _getPixelFromImageData(imgData, 150, 150);
+        assert_array_equals(pixel, [0, 0, 255, 255], "Nested canvas with cross origin image should not draw");
+      });
+    }
+  </script>
+</body>
+</html>

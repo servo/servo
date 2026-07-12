@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XML End-of-Line Normalization</title>
+<link rel="help" href="https://www.w3.org/TR/xml/#sec-line-ends">
+<meta name="assert" content="The XML processor, before parsing, MUST normalize both the two-character sequence #xD #xA and any #xD that is not followed by #xA to a single #xA character.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  const xml = '<a>\r\n\t<b>x</b></a>';
+  const d = new DOMParser().parseFromString(xml, 'text/xml');
+  assert_equals(d.documentElement.nodeName, 'a');
+  assert_equals(d.documentElement.firstChild.nodeValue, '\n\t');
+}, 'CRLF should be normalized to LF in XML');
+
+test(() => {
+  const xml = '<a>\r\t<b>x</b></a>';
+  const d = new DOMParser().parseFromString(xml, 'text/xml');
+  assert_equals(d.documentElement.nodeName, 'a');
+  assert_equals(d.documentElement.firstChild.nodeValue, '\n\t');
+}, 'CR should be normalized to LF in XML');
+
+test(() => {
+  const xml = '<a>\r\r\n\n</a>';
+  const d = new DOMParser().parseFromString(xml, 'text/xml');
+  assert_equals(d.documentElement.nodeValue, null); // element node
+  assert_equals(d.documentElement.firstChild.nodeValue, '\n\n\n');
+}, 'Complex EOL sequences should be normalized correctly (\r\r\n\n -> \n\n\n)');
+</script>

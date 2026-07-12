@@ -48,12 +48,11 @@ promise_test(async t => {
   const format2 = 'web a';
   const blobInput1 = new Blob(['input data 1'], {type: format1});
   const blobInput2 = new Blob(['input data 2'], {type: format2});
-  const clipboardItemInput = new ClipboardItem(
-      {[format1]: blobInput1, [format2]: blobInput2});
-  await waitForUserActivation();
-  await promise_rejects_dom(t, 'NotAllowedError',
-      navigator.clipboard.write([clipboardItemInput]));
-}, 'navigator.clipboard.write() fails for custom formats with web prefix, but invalid MIME types');
+  assert_throws_js(TypeError, () => {
+    const clipboardItemInput = new ClipboardItem(
+    {[format1]: blobInput1, [format2]: blobInput2});
+  });
+}, 'new ClipboardItem() fails for custom formats with web prefix, but invalid MIME types');
 
 promise_test(async t => {
   await tryGrantWritePermission();
@@ -71,19 +70,6 @@ promise_test(async t => {
 promise_test(async t => {
   await tryGrantWritePermission();
 
-  const format1 = 'web Text/plain';
-  const format2 = 'text/plain';
-  const blobInput1 = new Blob(['input data 1'], {type: format2});
-  const clipboardItemInput = new ClipboardItem(
-      {[format1]: blobInput1});
-      await waitForUserActivation();
-  await promise_rejects_dom(t, 'NotAllowedError',
-      navigator.clipboard.write([clipboardItemInput]));
-}, 'navigator.clipboard.write() fails for custom format with different case than the Blob type');
-
-promise_test(async t => {
-  await tryGrantWritePermission();
-
   const format1 = 'web text/plain';
   const format2 = 'Text/plain';
   const blobInput1 = new Blob(['input data 1'], {type: format1});
@@ -92,32 +78,6 @@ promise_test(async t => {
   await waitForUserActivation();
   await promise_rejects_dom(t, 'NotAllowedError',
       navigator.clipboard.write([clipboardItemInput]));
-}, 'navigator.clipboard.write() fails for invalid mime type that is different than the Blob type');
-
-promise_test(async t => {
-  await tryGrantWritePermission();
-
-  const format1 = 'web Text/plain';
-  const format2 = 'web text/plain';
-  const blobInput1 = new Blob(['input data 1'], {type: format2});
-  const clipboardItemInput = new ClipboardItem(
-      {[format1]: blobInput1});
-      await waitForUserActivation();
-  await promise_rejects_dom(t, 'NotAllowedError',
-      navigator.clipboard.write([clipboardItemInput]));
-}, 'navigator.clipboard.write() fails for invalid mime type with web prefix and the Blob type');
-
-promise_test(async t => {
-  await tryGrantWritePermission();
-
-  const format1 = 'Text/plain';
-  const format2 = 'text/plain';
-  const blobInput1 = new Blob(['input data 1'], {type: format2});
-  const clipboardItemInput = new ClipboardItem(
-      {[format1]: blobInput1});
-  await waitForUserActivation();
-  await promise_rejects_dom(t, 'NotAllowedError',
-      navigator.clipboard.write([clipboardItemInput]));
-}, 'navigator.clipboard.write() fails for custom format and Blob type with different case');
+}, 'navigator.clipboard.write() fails when standard format does not match the Blob type');
 
 </script>

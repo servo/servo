@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-random-item">
+<link rel="author" title="Joanne Pan" href="https://github.com/J0pan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="container">
+  <div id="target"></div>
+</div>
+<style>
+  @property --length {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+  }
+  @property --length2 {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+  }
+  @property --number {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+  #container { --a: 10px; --b: 20px; --fixed-zero: fixed 0; }
+</style>
+<script>
+
+// fixed <number> deterministically selects by index: floor(value * count).
+test_computed_value('color', 'random-item(fixed 0, rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1))', 'rgb(1, 0, 0)');
+test_computed_value('color', 'random-item(fixed 0.5, rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1))', 'rgb(0, 1, 0)');
+test_computed_value('color', 'random-item(fixed 0.999, rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1))', 'rgb(0, 0, 1)');
+test_computed_value('color', 'random-item(fixed 1, rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1))', 'rgb(0, 0, 1)');
+
+// A single-item list always resolves to that item.
+test_computed_value('color', 'random-item(fixed 0, rgb(1, 0, 0))', 'rgb(1, 0, 0)');
+test_computed_value('color', 'random-item(auto, rgb(1, 0, 0))', 'rgb(1, 0, 0)');
+
+// auto and dashed-ident keys resolve to one of the listed items.
+test_computed_value('color', 'random-item(auto, rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1))', ['rgb(1, 0, 0)', 'rgb(0, 1, 0)', 'rgb(0, 0, 1)']);
+test_computed_value('color', 'random-item(--key, rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1))', ['rgb(1, 0, 0)', 'rgb(0, 1, 0)', 'rgb(0, 0, 1)']);
+test_computed_value('color', 'random-item(element-scoped, rgb(1, 0, 0), rgb(0, 1, 0))', ['rgb(1, 0, 0)', 'rgb(0, 1, 0)']);
+test_computed_value('color', 'random-item(--key element-scoped, rgb(1, 0, 0), rgb(0, 1, 0))', ['rgb(1, 0, 0)', 'rgb(0, 1, 0)']);
+
+// Brace-wrapped items preserve internal commas, with or without spaces around the braces.
+test_computed_value('font-family', 'random-item(fixed 0, {Times, serif}, {Arial, sans-serif})', 'Times, serif');
+test_computed_value('font-family', 'random-item(fixed 0.999, {Times, serif}, {Arial, sans-serif})', 'Arial, sans-serif');
+test_computed_value('font-family', 'random-item(fixed 0, { Times, serif }, { Arial, sans-serif })', 'Times, serif');
+test_computed_value('font-family', 'random-item(fixed 0.999, { Times, serif }, { Arial, sans-serif })', 'Arial, sans-serif');
+
+// fixed accepts calc()/var()-derived numbers (parity with random()).
+test_computed_value('color', 'random-item(fixed calc(0.5), rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1))', 'rgb(0, 1, 0)');
+test_computed_value('color', 'random-item(fixed calc(1 / 4), rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1))', 'rgb(1, 0, 0)');
+
+// fixed 1 with a single item still clamps to index 0.
+test_computed_value('color', 'random-item(fixed 1, rgb(1, 0, 0))', 'rgb(1, 0, 0)');
+
+// element-scoped combines order-independently with a dashed-ident.
+test_computed_value('color', 'random-item(element-scoped --key, rgb(1, 0, 0), rgb(0, 1, 0))', ['rgb(1, 0, 0)', 'rgb(0, 1, 0)']);
+
+function test_computed_custom_property(property, value, expected, description) {
+    test(() => {
+        const target = document.getElementById('target');
+        target.style.removeProperty(property);
+        target.style.setProperty(property, value);
+        assert_equals(getComputedStyle(target).getPropertyValue(property).trim(), expected);
+    }, description);
+}
+
+// The <random-key> is substituted before being parsed, so a var() in the key works.
+test_computed_custom_property('--length', 'random-item(var(--fixed-zero), 5px, 15px)', '5px', 'random-item() with a var()-derived <random-key> resolves');
+
+// The selected item may itself contain a var() reference, resolved after selection.
+test_computed_custom_property('--length', 'random-item(fixed 0, var(--a), var(--b))', '10px', 'random-item() selecting var(--a) into a registered <length>');
+test_computed_custom_property('--length', 'random-item(fixed 0.999, var(--a), var(--b))', '20px', 'random-item() selecting var(--b) into a registered <length>');
+
+// random-item() feeding a registered property directly.
+test_computed_custom_property('--length', 'random-item(fixed 0, 5px, 15px)', '5px', 'random-item() into a registered <length>');
+test_computed_custom_property('--number', 'random-item(fixed 0.999, 1, 2, 3)', '3', 'random-item() into a registered <number>');
+
+// Selecting an empty item substitutes nothing, making the declaration invalid at computed-value time.
+test(() => {
+    const target = document.getElementById('target');
+    target.style.color = 'green';
+    target.style.color = 'random-item(fixed 0.5, red, , blue)';
+    assert_equals(getComputedStyle(target).color, 'rgb(0, 0, 0)');
+}, 'Selecting an empty item is invalid at computed-value time');
+
+// Recompute stability: the same element keeps the same selection across style recalcs.
+test(() => {
+    const target = document.getElementById('target');
+    target.style.color = 'random-item(--stable, rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1), rgb(1, 1, 0), rgb(0, 1, 1))';
+    const first = getComputedStyle(target).color;
+    target.style.fontSize = (target.style.fontSize === '20px') ? '21px' : '20px';
+    void target.offsetWidth;
+    const second = getComputedStyle(target).color;
+    assert_equals(second, first, 'selection is stable across recompute');
+}, 'random-item() selection is stable across style recalculation');
+
+// Two auto instances in one declaration are keyed independently (regression guard for the
+// per-resolver auto index). With enough items they can differ; each must be a valid item and stable.
+test(() => {
+    const target = document.getElementById('target');
+    const items = 'rgb(1, 0, 0), rgb(0, 1, 0), rgb(0, 0, 1), rgb(1, 1, 0), rgb(0, 1, 1), rgb(1, 0, 1)';
+    target.style.cssText = `--p: random-item(auto, ${items}); --q: random-item(auto, ${items});`;
+    const set = ['rgb(1, 0, 0)', 'rgb(0, 1, 0)', 'rgb(0, 0, 1)', 'rgb(1, 1, 0)', 'rgb(0, 1, 1)', 'rgb(1, 0, 1)'];
+    assert_in_array(getComputedStyle(target).getPropertyValue('--p').trim(), set);
+    assert_in_array(getComputedStyle(target).getPropertyValue('--q').trim(), set);
+}, 'Independent auto random-item() instances each resolve to a valid item');
+
+// Deterministic value-sharing: the same dashed-ident key selects the same item on two properties.
+test(() => {
+    const target = document.getElementById('target');
+    const items = '5px, 15px, 25px, 35px, 45px';
+    target.style.cssText = `--length: random-item(--shared, ${items}); --length2: random-item(--shared, ${items});`;
+    const a = getComputedStyle(target).getPropertyValue('--length').trim();
+    const b = getComputedStyle(target).getPropertyValue('--length2').trim();
+    assert_equals(b, a, 'same key selects the same index');
+}, 'A shared dashed-ident key selects the same item across properties');
+
+// random() and random-item() both using auto in one declaration must each resolve. Their auto
+// indices are currently counted in separate spaces (see the FIXME in randomItemBaseValue), so true
+// cross-function independence is a follow-up; this guards that the shared substitution pass keeps
+// resolving both. random(fixed 0.5, 10px, 10px) is deterministic (min == max).
+test(() => {
+    const target = document.getElementById('target');
+    target.style.cssText = 'width: random(fixed 0.5, 10px, 10px); --i: random-item(auto, 1px, 2px, 3px);';
+    assert_equals(getComputedStyle(target).width, '10px');
+    assert_in_array(getComputedStyle(target).getPropertyValue('--i').trim(), ['1px', '2px', '3px']);
+}, 'random() and random-item() using auto in one declaration both resolve');
+
+</script>
+

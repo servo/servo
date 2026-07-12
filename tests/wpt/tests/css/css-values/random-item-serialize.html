@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-random-item">
+<link rel="author" title="Joanne Pan" href="https://github.com/J0pan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+
+// random-item() is an arbitrary substitution function: its specified value is
+// preserved verbatim and resolved at computed-value time.
+test_valid_value('font-family', 'random-item(auto, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(--x, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(element-scoped, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(--x element-scoped, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(element-scoped --x, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(fixed 0, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(fixed 0.5, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(fixed 1, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(auto, serif)');
+test_valid_value('font-family', 'random-item(auto, {Times, serif}, {Arial, sans-serif})');
+test_valid_value('font-family', 'random-item(auto, {Times, serif}, sans-serif, {monospace})');
+test_valid_value('font-family', 'random-item(auto, { Times, serif }, { Arial, sans-serif })');
+test_valid_value('color', 'random-item(auto, red, green, blue)');
+test_valid_value('width', 'random-item(auto, 1px, 2px, 3px)');
+test_valid_value('width', 'random-item(--x, var(--a), var(--b))');
+
+</script>

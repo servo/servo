@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline source lookup with single-axis scroll containers (viewport writing mode)</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-timelines-anonymous">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="./testcommon.js"></script>
+<style>
+html {
+  writing-mode: horizontal-tb;
+  overflow-x: clip;
+  overflow-y: scroll;
+}
+body {
+  margin: 0;
+  writing-mode: vertical-rl;
+}
+#subject {
+  width: 10px;
+  height: 10px;
+  animation: noop 1s;
+  animation-timeline: scroll(nearest block);
+}
+#overflow {
+  width: 10px;
+  height: 200vh;
+}
+@keyframes noop {}
+</style>
+
+<div id="subject"></div>
+<div id="overflow"></div>
+
+<script>
+promise_test(async t => {
+  t.add_cleanup(() => {
+    document.body.style.contain = '';
+  });
+
+  const animations = subject.getAnimations();
+  assert_equals(animations.length, 1);
+  const timeline = animations[0].timeline;
+
+  await waitForNextFrame();
+
+  assert_equals(timeline.source, document.documentElement);
+  assert_equals(
+      timeline.currentTime, null,
+      'Timeline is inactive when block resolves to the horizontal viewport axis (clipped)');
+
+  document.body.style.contain = 'style';
+  await waitForNextFrame();
+
+  assert_equals(timeline.source, document.documentElement);
+  assert_percents_equal(
+      timeline.currentTime, 0,
+      'Timeline is active when body writing-mode propagation is blocked and block resolves to vertical viewport axis');
+}, 'ScrollTimeline resolves the viewport fallback axis using the viewport writing mode');
+</script>

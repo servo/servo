@@ -67,9 +67,7 @@ per parent node that the node has before the root document node.
     double-quotes, another space an the system id in double-quotes, and
     then in any case "`>`".
 -   Processing instructions must be "`<?`", then the target, then a
-    space, then the data and then "`>`". (The HTML parser cannot emit
-    processing instructions, but scripts can, and the WebVTT to DOM
-    rules can emit them.)
+    space, then the data and then "`?>`".
 -   Template contents are represented by the string "content" with the
     children below it.
 

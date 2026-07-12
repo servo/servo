@@ -9,7 +9,9 @@ const kDefaultDictionaryContent = 'This is a test dictionary.\n';
 const kDefaultDictionaryHashBase64 =
     ':U5abz16WDg7b8KS93msLPpOB4Vbef1uRzoORYkJw9BY=:';
 const kRegisterDictionaryPath = './resources/register-dictionary.py';
+const kRegisterDictionaryHttp2Path = './resources/register-dictionary.h2.py';
 const kCompressedDataPath = './resources/compressed-data.py';
+const kCompressedDataHttp2Path = './resources/compressed-data.h2.py';
 const kExpectedCompressedData =
     `This is compressed test data using a test dictionary`;
 const kCheckHeaderMaxRetry = 10;

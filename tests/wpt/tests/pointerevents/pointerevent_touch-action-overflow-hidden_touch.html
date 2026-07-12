@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<title>Pointer Events: touch-action panning is not re-enabled by overflow: hidden</title>
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width">
+<link rel="help" href="https://w3c.github.io/pointerevents/#determining-supported-direct-manipulation-behavior">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scroll-container">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<style>
+body {
+  margin: 0;
+  padding: 50px 0 0 100px;
+}
+.container {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+  touch-action: none;
+  margin-bottom: 50px;
+}
+.scroller {
+  width: 100px;
+  height: 100px;
+}
+.hidden-y {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.hidden-x {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.hidden-both {
+  overflow: hidden;
+}
+.spacer {
+  width: 200px;
+  height: 200px;
+}
+</style>
+
+<p>
+  overflow: hidden is only scrollable programmatically, so it must
+  not re-enable touch panning inside touch-action: none.
+  Therefore, blocked pans must not chain to a scrollable ancestor.
+</p>
+
+<div id="hidden-y-container" class="container">
+  <div id="hidden-y-target" class="scroller hidden-y">
+    <div class="spacer"></div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<div id="hidden-x-container" class="container">
+  <div id="hidden-x-target" class="scroller hidden-x">
+    <div class="spacer"></div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<div id="hidden-both-container" class="container">
+  <div id="hidden-both-target" class="scroller hidden-both">
+    <div class="spacer"></div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  const container = document.getElementById("hidden-y-container");
+  const target = document.getElementById("hidden-y-target");
+
+  await touchScrollInTarget(target, "down");
+  await touchScrollInTarget(target, "right");
+  await resolveWhen(() => target.scrollLeft > 0);
+
+  assert_equals(target.scrollTop, 0, "pan-y must not scroll the overflow: hidden axis");
+  assert_equals(container.scrollTop, 0, "pan-y must be blocked by touch-action: none");
+}, "overflow: auto hidden re-enables touch panning only along x");
+
+promise_test(async () => {
+  const container = document.getElementById("hidden-x-container");
+  const target = document.getElementById("hidden-x-target");
+
+  await touchScrollInTarget(target, "right");
+  await touchScrollInTarget(target, "down");
+  await resolveWhen(() => target.scrollTop > 0);
+
+  assert_equals(target.scrollLeft, 0, "pan-x must not scroll the overflow: hidden axis");
+  assert_equals(container.scrollLeft, 0, "pan-x must be blocked by touch-action: none");
+}, "overflow: hidden auto re-enables touch panning only along y");
+
+promise_test(async (t) => {
+  const container = document.getElementById("hidden-both-container");
+  const target = document.getElementById("hidden-both-target");
+
+  await touchScrollInTarget(target, "right");
+  await touchScrollInTarget(target, "down");
+
+  // Use a click on body as a barrier to ensure previous touch events are processed.
+  const clickPromise = getEvent("click", document.body, t);
+  await clickInTarget("touch", document.body);
+  await clickPromise;
+
+  assert_equals(target.scrollLeft, 0, "pan-x must not scroll the overflow: hidden x axis");
+  assert_equals(target.scrollTop, 0, "pan-y must not scroll the overflow: hidden y axis");
+  assert_equals(container.scrollLeft, 0, "pan-x must be blocked by touch-action: none");
+  assert_equals(container.scrollTop, 0, "pan-y must be blocked by touch-action: none");
+}, "overflow: hidden does not re-enable touch panning along either axis");
+</script>

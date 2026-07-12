@@ -309,6 +309,19 @@ let test_cases = [
     fragment: '#:~:text=Text%20with%20image',
     expect_to_scroll: true,
     description: '`start` element contains search-invisible text (image)'
+  },
+  {
+    fragment: '#:~:text=caught,and%20a',
+    expect_to_scroll: true,
+    // "and a" first matches "h[and a]nd a net" but is rejected because of word boundary.
+    // The next match is the "hand [and a]" which should succeed despite overlapping the
+    // initial, rejected, match.
+    description: '|end| can match after an overlapping rejected candidate'
+  },
+  {
+    fragment: '#:~:text=z',
+    expect_to_scroll: false,
+    description: 'Inline node boundary is not a word boundary'
   }
 ];
 

@@ -7,12 +7,19 @@
 <script>
 
 const blob = new Blob(['hello'], {type: 'text/plain'});
-const blob2 = new Blob(['this should work'], {type: 'not a/real type'});
+const blob2 = new Blob(['this should work'], {type: 'application/abc'});
+const blob3 = new Blob(['web custom format should work'], {type: 'web application/abc'});
 
 test(() => {
   new ClipboardItem({'text/plain': blob});
-  new ClipboardItem({'text/plain': blob, 'not a/real type': blob2});
-}, "ClipboardItem({string, Blob}) succeeds with different types");
+  new ClipboardItem({'application/abc': blob2});
+  new ClipboardItem({'web text/plain': blob});
+  new ClipboardItem({'web application/abc': blob3});
+}, "ClipboardItem() succeeds with valid type strings");
+
+test(() => {
+  new ClipboardItem({'text/plain': blob, 'application/abc': blob2, 'web text/plain': blob3});
+}, "ClipboardItem() succeeds with multiple valid type strings");
 
 test(() => {
   new ClipboardItem({'text/plain': blob}, {});
@@ -35,21 +42,30 @@ test(() => {
 }, "ClipboardItem() fails with no input");
 
 test(() => {
+  assert_throws_js(TypeError, () => {new ClipboardItem({"not a/real type": blob2});});
+}, "ClipboardItem() fails with invalid type string");
+
+test(() => {
+  assert_throws_js(TypeError, () => {new ClipboardItem({"web notarealtype": blob3});});
+}, "ClipboardItem() fails with invalid web custom format");
+
+test(() => {
   const item = new ClipboardItem({'text/plain': blob});
   const types = item.types;
   assert_equals(types.length, 1);
   assert_equals(types[0], 'text/plain');
   const item2 =
-      new ClipboardItem({'text/plain': blob, 'not a/real type': blob2});
+      new ClipboardItem({'text/plain': blob, 'application/abc': blob2, 'web application/abc': blob3});
   const types2 = item2.types;
-  assert_equals(types2.length, 2);
+  assert_equals(types2.length, 3);
   assert_equals(types2[0], 'text/plain');
-  assert_equals(types2[1], 'not a/real type');
+  assert_equals(types2[1], 'application/abc');
+  assert_equals(types2[2], 'web application/abc');
 }, "types() returns correct values");
 
 promise_test(async () => {
   const item =
-      new ClipboardItem({'text/plain': blob, 'not a/real type': blob2});
+      new ClipboardItem({'text/plain': blob});
 
   const blobOutput = await item.getType('text/plain');
   assert_true(blobOutput.type.includes('text/plain'));
@@ -59,26 +75,51 @@ promise_test(async () => {
 }, "getType(DOMString valid type) succeeds with correct output");
 
 promise_test(async () => {
-  const item =
-      new ClipboardItem({'text/plain': blob, 'not a/real type': blob2});
+  const item1 =
+      new ClipboardItem({'application/abc': blob2});
+  const blobOutput1 = await item1.getType('application/abc');
+  assert_true(blobOutput1.type.includes('application/abc'));
+  const text1 = await (new Response(blobOutput1)).text();
+  assert_equals('this should work', text1);
 
-  const blobOutput = await item.getType('not a/real type');
-  assert_true(blobOutput.type.includes('not a/real type'));
+  const item2 =
+      new ClipboardItem({'text/plain;foo=1': blob2});
+  const blobOutput2 = await item2.getType('text/plain;foo=1');
+  assert_true(blobOutput2.type.includes('application/abc'));
+  const text2 = await (new Response(blobOutput2)).text();
+  assert_equals('this should work', text2);
+
+  const item3 =
+      new ClipboardItem({'web text/plain;foo=1': blob2});
+  const blobOutput3 = await item3.getType('web text/plain;foo=1');
+  assert_true(blobOutput3.type.includes('application/abc'));
+  const text3 = await (new Response(blobOutput3)).text();
+  assert_equals('this should work', text3);
+
+}, "getType(DOMString unsupported type) succeeds with correct output");
+
+promise_test(async () => {
+  const item =
+      new ClipboardItem({'web application/abc': blob3});
+
+  const blobOutput = await item.getType('web application/abc');
+  assert_true(blobOutput.type.includes('web application/abc'));
   const text = await (new Response(blobOutput)).text();
 
-  assert_equals('this should work', text);
-}, "getType(DOMString invalid type) succeeds with correct output");
+  assert_equals('web custom format should work', text);
+}, "getType(DOMString web custom format type) succeeds with correct output");
 
 promise_test(async t => {
   const item =
-      new ClipboardItem({'text/plain': blob, 'not a/real type': blob2});
-  promise_rejects_dom(t, "NotFoundError", item.getType('type not in item'));
-  promise_rejects_dom(t, "NotFoundError", item.getType('text/plain:subtype'));
+      new ClipboardItem({'text/plain': blob});
+  promise_rejects_dom(t, "NotFoundError", item.getType('web text/plain'));
+  promise_rejects_js(t, TypeError, item.getType('not a/real type'),
+    'getType(DOMString type) should reject with TypeError for invalid type');
 }, "getType(DOMString type) rejects correctly when querying for missing type");
 
 promise_test(async () => {
   const item =
-      new ClipboardItem({'text/plain': 'abc', 'not a/real type': 'xxx'});
+      new ClipboardItem({'text/plain': 'abc', 'application/abc': 'xxx'});
   const blob = await item.getType('text/plain');
   assert_equals(blob.type, 'text/plain');
 
@@ -88,13 +129,24 @@ promise_test(async () => {
 
 promise_test(async () => {
   const item =
-      new ClipboardItem({'text/plain': 'abc', 'not a/real type': 'xxx'});
-  const blob = await item.getType('not a/real type');
-  assert_equals(blob.type, 'not a/real type');
+      new ClipboardItem({'text/plain': 'abc', 'application/abc': 'xxx'});
+  const blob = await item.getType('application/abc');
+  assert_equals(blob.type, 'application/abc');
 
   const text = await (new Response(blob)).text();
   assert_equals(text, 'xxx');
-}, "getType(DOMString invalid type) converts DOMString to Blob");
+}, "getType(DOMString unsupported type) converts DOMString to Blob");
+
+promise_test(async () => {
+  const item =
+      new ClipboardItem({'web application/abc': 'xxx'});
+  const blob = await item.getType('web application/abc');
+  assert_equals(blob.type, 'web application/abc');
+
+  const text = await (new Response(blob)).text();
+  assert_equals(text, 'xxx');
+}, "getType(DOMString web custom format type) converts DOMString to Blob");
+
 
 [
   // mandatory data types
@@ -107,15 +159,17 @@ promise_test(async () => {
   ['web foo/bar',   true],
   ['web text/html', true],
   // invalid types
-  ['web ',            false],
-  ['web',             false],
-  ['web foo',         false],
-  ['foo/bar',         false],
-  ['weB text/html',   false],
-  [' web text/html',  false],
-  ['not a/real type', false],
-  ['',                false],
-  [' ',               false],
+  ['text/plain;foo=1',  false],
+  ['web foo/bar;foo=1', false],
+  ['web ',              false],
+  ['web',               false],
+  ['web foo',           false],
+  ['foo/bar',           false],
+  ['weB text/html',     false],
+  [' web text/html',    false],
+  ['not a/real type',   false],
+  ['',                  false],
+  [' ',                 false],
 ].forEach(([type, result]) => {
   promise_test(async () => {
     assert_equals(ClipboardItem.supports(type), result);

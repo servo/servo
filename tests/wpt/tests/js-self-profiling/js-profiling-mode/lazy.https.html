@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    // These tests verify that js-profiling-mode=lazy is recognised as a valid
+    // enum value and that profiling is allowed. The observable JS behaviour is
+    // identical to eager mode — the difference (V8 profiler JIT logging
+    // deferred until the first StartProfiling call rather than initialised at
+    // context-add time) is internal and not detectable from the JS API.
+    promise_test(async t => {
+      const profiler = new Profiler({
+        sampleInterval: 10,
+        maxBufferSize: Number.MAX_SAFE_INTEGER,
+      });
+      assert_false(profiler.stopped, 'profiler should be running');
+      await profiler.stop();
+    }, 'js-profiling-mode=lazy should allow profiling');
+
+    promise_test(async t => {
+      const profiler_a = new Profiler({
+        sampleInterval: 10,
+        maxBufferSize: Number.MAX_SAFE_INTEGER,
+      });
+      const profiler_b = new Profiler({
+        sampleInterval: 10,
+        maxBufferSize: Number.MAX_SAFE_INTEGER,
+      });
+      await profiler_b.stop();
+      await profiler_a.stop();
+    }, 'js-profiling-mode=lazy should support concurrent profilers');
+  </script>
+</body>
+</html>

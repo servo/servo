@@ -9,24 +9,6 @@
 <script>
 promise_test(async t => {
   const iframe = document.createElement('iframe');
-
-  const load_promise = new Promise(resolve => iframe.onload = resolve);
-  document.body.append(iframe);
-  await load_promise;
-
-  const iframe_navigator = iframe.contentWindow.navigator;
-  // Cache the iframe's `modelContext` object, even though we never use it. This
-  // is just so that internally, it gets allocated.
-  const iframe_modelContext = iframe.contentWindow.document.modelContext;
-
-  assert_equals(iframe_navigator.modelContext, iframe_modelContext)
-  iframe.remove();
-  assert_equals(iframe_navigator.modelContext, null);
-}, 'Regardless of whether Navigator\'s modelContext object has been allocated' +
-   'its getter always returns null after the document has been detached');
-
-promise_test(async t => {
-  const iframe = document.createElement('iframe');
   iframe.src = '/common/blank.html';
 
   const load_promise = new Promise(resolve => iframe.onload = resolve);

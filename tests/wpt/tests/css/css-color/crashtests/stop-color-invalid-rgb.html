@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parsing rgb() with mismatched parentheses in SVG stop-color should not crash</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=61293">
+<script>
+  var stopElement = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+  stopElement.style.stopColor = "blue";
+  stopElement.style.setProperty("stop-color", "rgb(00000000000000000000");
+</script>

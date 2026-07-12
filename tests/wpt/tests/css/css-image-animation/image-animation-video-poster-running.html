@@ -5,15 +5,21 @@
 <meta charset="utf-8" />
 <link rel="match" href="image-animation-video-poster-running-ref.html" />
 <script src="/common/reftest-wait.js"></script>
+<script src="resources/image-animation-utils.js"></script>
 <script>
   function start() {
-    setTimeout(() => {
+    document.getElementById('video1').style.imageAnimation = 'running';
+    waitForFrameTime(125).then(() => {
       document.getElementById('video2').poster = '../../images/anim-gr.gif';
-      document.getElementById('video2').style.imageAnimation = 'paused';
-    }, 125);
-    setTimeout(() => {
-      takeScreenshot();
-    }, 250);
+      document.getElementById('video2').style.imageAnimation = 'running';
+      requestAnimationFrame(() => {
+        document.getElementById('video1').style.imageAnimation = 'paused';
+        document.getElementById('video2').style.imageAnimation = 'paused';
+        requestAnimationFrame(() => {
+          takeScreenshot();
+        });
+      });
+    });
   }
 </script>
 
@@ -22,7 +28,7 @@
     width:20px;
     height:10px;
     object-fit:fill;
-    image-animation: running;
+    image-animation: paused;
   }
 </style>
 

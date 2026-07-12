@@ -75,6 +75,73 @@
         assert_equals(d.querySelector("#forbidden"), null);
         assert_not_equals(d.querySelector("#allowed"), null);
       }, `createParserOptions doesn't mutate sanitizer object`);
+
+      test((t) => {
+        let callback_sanitizer = null;
+        const policy = trustedTypes.createPolicy("p1", {
+          createHTML: (html) => html,
+          createParserOptions: (options) => {
+            callback_sanitizer = options.sanitizer;
+            return options;
+          }
+        });
+
+        // 1. Passing a config, check that the callback receives a Sanitizer object.
+        const options = policy.createParserOptions({ sanitizer: { removeElements: ["span"] } });
+        assert_true(callback_sanitizer instanceof Sanitizer, "callback should receive a Sanitizer object");
+
+        // 2. Check that the returned TrustedParserOptions contains a Sanitizer object.
+        assert_true(options.sanitizer instanceof Sanitizer, "TrustedParserOptions.sanitizer should return a Sanitizer");
+
+        // 3. Mutating the Sanitizer returned by the getter does not affect sanitizing.
+        // The config had removeElements: ["span"]. Let's try to mutate the returned sanitizer to also remove "div".
+        options.sanitizer.removeElement("div");
+
+        const d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
+
+        d.setHTMLUnsafe("<div>Allowed<span>Forbidden</span></div>", options);
+
+        // "div" should NOT be removed (because mutation on options.sanitizer has no effect on the clone used for parsing).
+        assert_not_equals(d.querySelector("div"), null, "div should not be removed by mutated sanitizer");
+        // "span" should still be removed (because the original config specified removeElements: ["span"]).
+        assert_equals(d.querySelector("span"), null, "span should be removed by original sanitizer configuration");
+      }, "TrustedParserOptions sanitizer clone testing with config input");
+
+      test((t) => {
+        let callback_sanitizer = null;
+        const policy = trustedTypes.createPolicy("p2", {
+          createHTML: (html) => html,
+          createParserOptions: (options) => {
+            callback_sanitizer = options.sanitizer;
+            return options;
+          }
+        });
+
+        const s = new Sanitizer();
+        const options = policy.createParserOptions({ sanitizer: s });
+        assert_true(callback_sanitizer instanceof Sanitizer, "callback should receive a Sanitizer object");
+        assert_not_equals(callback_sanitizer, s, "callback sanitizer should be a clone, not the original");
+        assert_true(options.sanitizer instanceof Sanitizer, "TrustedParserOptions.sanitizer should return a Sanitizer");
+        assert_not_equals(options.sanitizer, s, "getter sanitizer should be a clone, not the original");
+        assert_equals(options.sanitizer, options.sanitizer, "SameObject: getter should return the same object reference");
+      }, "TrustedParserOptions sanitizer clone testing with Sanitizer object input");
+
+      test((t) => {
+        let callback_sanitizer = null;
+        const policy = trustedTypes.createPolicy("p3", {
+          createHTML: (html) => html,
+          createParserOptions: (options) => {
+            callback_sanitizer = options.sanitizer;
+            return options;
+          }
+        });
+
+        const options = policy.createParserOptions({ sanitizer: "default" });
+        assert_true(callback_sanitizer instanceof Sanitizer, "callback should receive a Sanitizer object when preset is passed");
+        assert_true(options.sanitizer instanceof Sanitizer, "TrustedParserOptions.sanitizer should return a Sanitizer when preset is passed");
+      }, "TrustedParserOptions sanitizer clone testing with Preset string input");
     </script>
   </body>
 </html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/';
+  document.body.append(iframe);
+  // Register a tool with the initial about:blank Document [1].
+  //
+  // [1]: https://html.spec.whatwg.org/#is-initial-about:blank.
+  iframe.contentWindow.document.modelContext.registerTool({
+    name: "default-tool",
+    description: "default desc",
+    execute: async () => "hello"
+  });
+  assert_equals(iframe.contentDocument.URL, "about:blank");
+
+  let tools = await iframe.contentWindow.document.modelContext.getTools();
+  assert_equals(tools.length, 1);
+  assert_equals(tools[0].name, "default-tool");
+
+  // Wait for the iframe navigation to complete.
+  await new Promise(resolve => iframe.onload = resolve);
+  assert_not_equals(iframe.contentDocument.URL, "about:blank");
+  // Note that the tool still incorrectly persists, even though we've navigated
+  // away from the initial about:blank Document.
+  tools = await iframe.contentWindow.document.modelContext.getTools();
+  assert_array_equals(tools, []);
+}, "tools registered with the initial about:blank Document do not survive navigation");
+</script>
+</body>

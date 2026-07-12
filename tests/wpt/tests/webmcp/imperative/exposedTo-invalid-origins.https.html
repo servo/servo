@@ -46,7 +46,7 @@ for (const test of test_cases) {
 
 promise_test(async t => {
   const signal = AbortSignal.abort('aborted');
-  return promise_rejects_exactly(t, 'aborted', navigator.modelContext.registerTool({
+  return promise_rejects_exactly(t, 'aborted', document.modelContext.registerTool({
     name: "name",
     description: "description",
     execute: () => {}

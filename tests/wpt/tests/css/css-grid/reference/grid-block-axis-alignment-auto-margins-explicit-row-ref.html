@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Reference: block-axis 'auto' margins with explicit row placement</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<!-- Same layout achieved with align-items:center instead of auto margins. -->
+<style>
+  #grid {
+      display: grid;
+      background: grey;
+      grid-template-columns: 100px;
+      grid-template-rows: 100px 100px;
+      align-items: center;     /* center within the row in the block axis */
+  }
+  #grid div {
+      width: 100px;
+  }
+  #item1 {
+      grid-row: 1 / 2;
+      height: 20px;
+      background: green;
+  }
+  #item2 {
+      grid-row: 2 / 3;
+      height: 40px;
+      background: blue;
+  }
+</style>
+<p>The test passes if the green box and the blue box are each centered vertically within their grid row.</p>
+<div id="grid">
+    <div id="item1"></div>
+    <div id="item2"></div>
+</div>

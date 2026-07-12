@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="author" title="Jayson Chen" href="mailto:jaysonchen@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<template id="template-1">
+    <div id="template-host-1">
+        <template shadowrootmode="open" shadowrootclonable></template>
+    </div>
+</template>
+
+<template id="template-2">
+    <div id="template-host-2">
+        <template shadowrootmode="open" shadowrootclonable shadowrootcustomelementregistry></template>
+    </div>
+</template>
+<script>
+
+const scopedRegistry = new CustomElementRegistry;
+
+// Parent creation helpers
+function createParentElementWithoutRegistryAttribute(registry) {
+    const host = document.createElement('div');
+    host.append(document.createElement('div', {customElementRegistry: registry}));
+    return host;
+}
+
+function createParentDeclarativeShadowRootWithoutRegistryAttribute() {
+    const template = document.getElementById('template-1');
+    const clone = template.content.cloneNode(true);
+    document.body.append(clone);
+    return document.querySelector('#template-host-1');
+}
+
+function createParentDeclarativeShadowRootWithRegistryAttribute(registry) {
+    const template = document.getElementById('template-2');
+    const clone = template.content.cloneNode(true);
+    document.body.append(clone);
+    const shadowRoot = document.querySelector('#template-host-2').shadowRoot;
+    if (registry !== null) {
+        registry.initialize(shadowRoot);
+    }
+    return shadowRoot.host;
+}
+
+function createParentImperativeShadowRoot(registry) {
+    const host = document.createElement('div');
+    host.attachShadow({mode: 'open', customElementRegistry: registry});
+    return host;
+}
+
+// Child creation helpers
+function appendToElementOrShadowRoot(host, element) {
+    if (host.shadowRoot instanceof ShadowRoot) {
+        host.shadowRoot.appendChild(element);
+    } else {
+        host.firstElementChild.appendChild(element);
+    }
+    return host;
+}
+
+function addNullRegistryChild(host) {
+    appendToElementOrShadowRoot(host, document.createElement('a-b', {customElementRegistry: null}));
+    return host;
+}
+
+function addGlobalRegistryChild(host) {
+    appendToElementOrShadowRoot(host, document.createElement('a-b', {customElementRegistry: customElements}));
+    return host;
+}
+
+function addScopedRegistryChild(host) {
+    appendToElementOrShadowRoot(host, document.createElement('a-b', {customElementRegistry: scopedRegistry}));
+    return host;
+}
+
+// Operations
+function appendToNewDocument(node, test) {
+    const iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    test.add_cleanup(() => iframe.remove());
+    iframe.contentDocument.body.appendChild(node);
+    return [iframe.contentWindow, node];
+}
+
+function adoptedByNewDocument(node, test) {
+    const iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    test.add_cleanup(() => iframe.remove());
+    iframe.contentDocument.adoptNode(node);
+    return [iframe.contentWindow, node];
+}
+
+function runTest(operation, operationName) {
+    // Null registry child tests
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentElementWithoutRegistryAttribute(null)), test);
+        assert_equals(host.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.firstElementChild.customElementRegistry, win.customElements);
+    },  'Null registry element with element parent without custom element registry attribute (null registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentElementWithoutRegistryAttribute(customElements)), test);
+        assert_equals(host.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.firstElementChild.customElementRegistry, win.customElements);
+    },  'Null registry element with element parent without custom element registry attribute (global registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentElementWithoutRegistryAttribute(scopedRegistry)), test);
+        assert_equals(host.querySelector('a-b').customElementRegistry, null);
+        assert_equals(host.firstElementChild.customElementRegistry, scopedRegistry);
+    },  'Null registry element with element parent without custom element registry attribute (scoped registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentDeclarativeShadowRootWithoutRegistryAttribute()), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Null registry element with declarative shadow root parent without custom element registry attribute ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentDeclarativeShadowRootWithRegistryAttribute(null)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, null);
+        assert_equals(host.shadowRoot.customElementRegistry, null);
+    },  'Null registry element with declarative shadow root parent with custom element registry attribute (null registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentDeclarativeShadowRootWithRegistryAttribute(customElements)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Null registry element with declarative shadow root parent with custom element registry attribute (global registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentDeclarativeShadowRootWithRegistryAttribute(scopedRegistry)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, null);
+        assert_equals(host.shadowRoot.customElementRegistry, scopedRegistry);
+    },  'Null registry element with declarative shadow root parent with custom element registry attribute (scoped registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentImperativeShadowRoot(null)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Null registry element with imperative shadow root parent (null registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentImperativeShadowRoot(customElements)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Null registry element with imperative shadow root parent (global registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addNullRegistryChild(createParentImperativeShadowRoot(scopedRegistry)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, null);
+        assert_equals(host.shadowRoot.customElementRegistry, scopedRegistry);
+    },  'Null registry element with imperative shadow root parent (scoped registry) ' + operationName);
+
+    // Global registry child tests
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentElementWithoutRegistryAttribute(null)), test);
+        assert_equals(host.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.firstElementChild.customElementRegistry, win.customElements);
+    },  'Global registry element with element parent without custom element registry attribute (null registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentElementWithoutRegistryAttribute(customElements)), test);
+        assert_equals(host.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.firstElementChild.customElementRegistry, win.customElements);
+    },  'Global registry element with element parent without custom element registry attribute (global registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentElementWithoutRegistryAttribute(scopedRegistry)), test);
+        assert_equals(host.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.firstElementChild.customElementRegistry, scopedRegistry);
+    },  'Global registry element with element parent without custom element registry attribute (scoped registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentDeclarativeShadowRootWithoutRegistryAttribute()), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Global registry element with declarative shadow root parent without custom element registry attribute ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentDeclarativeShadowRootWithRegistryAttribute(null)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, null);
+    },  'Global registry element with declarative shadow root parent with custom element registry attribute (null registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentDeclarativeShadowRootWithRegistryAttribute(customElements)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Global registry element with declarative shadow root parent with custom element registry attribute (global registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentDeclarativeShadowRootWithRegistryAttribute(scopedRegistry)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, scopedRegistry);
+    },  'Global registry element with declarative shadow root parent with custom element registry attribute (scoped registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentImperativeShadowRoot(null)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Global registry element with imperative shadow root parent (null registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentImperativeShadowRoot(customElements)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Global registry element with imperative shadow root parent (global registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addGlobalRegistryChild(createParentImperativeShadowRoot(scopedRegistry)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, win.customElements);
+        assert_equals(host.shadowRoot.customElementRegistry, scopedRegistry);
+    },  'Global registry element with imperative shadow root parent (scoped registry) ' + operationName);
+
+    // Scoped registry child tests
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentElementWithoutRegistryAttribute(null)), test);
+        assert_equals(host.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.firstElementChild.customElementRegistry, win.customElements);
+    },  'Scoped registry element with element parent without custom element registry attribute (null registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentElementWithoutRegistryAttribute(customElements)), test);
+        assert_equals(host.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.firstElementChild.customElementRegistry, win.customElements);
+    },  'Scoped registry element with element parent without custom element registry attribute (global registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentElementWithoutRegistryAttribute(scopedRegistry)), test);
+        assert_equals(host.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.firstElementChild.customElementRegistry, scopedRegistry);
+    },  'Scoped registry element with element parent without custom element registry attribute (scoped registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentDeclarativeShadowRootWithoutRegistryAttribute()), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Scoped registry element with declarative shadow root parent without custom element registry attribute ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentDeclarativeShadowRootWithRegistryAttribute(null)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.shadowRoot.customElementRegistry, null);
+    },  'Scoped registry element with declarative shadow root parent with custom element registry attribute (null registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentDeclarativeShadowRootWithRegistryAttribute(customElements)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Scoped registry element with declarative shadow root parent with custom element registry attribute (global registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentDeclarativeShadowRootWithRegistryAttribute(scopedRegistry)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.shadowRoot.customElementRegistry, scopedRegistry);
+    },  'Scoped registry element with declarative shadow root parent with custom element registry attribute (scoped registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentImperativeShadowRoot(null)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Scoped registry element with imperative shadow root parent (null registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentImperativeShadowRoot(customElements)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.shadowRoot.customElementRegistry, win.customElements);
+    },  'Scoped registry element with imperative shadow root parent (global registry) ' + operationName);
+
+    test(test => {
+        const [win, host] = operation(addScopedRegistryChild(createParentImperativeShadowRoot(scopedRegistry)), test);
+        assert_equals(host.shadowRoot.querySelector('a-b').customElementRegistry, scopedRegistry);
+        assert_equals(host.shadowRoot.customElementRegistry, scopedRegistry);
+    },  'Scoped registry element with imperative shadow root parent (scoped registry) ' + operationName);
+}
+
+runTest(appendToNewDocument, 'appended to new document');
+runTest(adoptedByNewDocument, 'adopted by new document');
+
+// A child whose parent is an exclusive DocumentFragment node (a DocumentFragment that
+// is not a shadow root) uses the new document's custom element registry directly, rather
+// than looking up the registry via its parent.
+function runExclusiveDocumentFragmentTest(operation, operationName) {
+    test(test => {
+        const fragment = document.createDocumentFragment();
+        const child = document.createElement('a-b', {customElementRegistry: null});
+        fragment.append(child);
+        const [win] = operation(fragment, test);
+        assert_equals(child.customElementRegistry, win.customElements);
+    },  'Null registry element with exclusive DocumentFragment parent ' + operationName);
+
+    test(test => {
+        const fragment = document.createDocumentFragment();
+        const child = document.createElement('a-b', {customElementRegistry: customElements});
+        fragment.append(child);
+        const [win] = operation(fragment, test);
+        assert_equals(child.customElementRegistry, win.customElements);
+    },  'Global registry element with exclusive DocumentFragment parent ' + operationName);
+
+    test(test => {
+        const fragment = document.createDocumentFragment();
+        const child = document.createElement('a-b', {customElementRegistry: scopedRegistry});
+        fragment.append(child);
+        const [win] = operation(fragment, test);
+        assert_equals(child.customElementRegistry, scopedRegistry);
+    },  'Scoped registry element with exclusive DocumentFragment parent ' + operationName);
+}
+
+runExclusiveDocumentFragmentTest(appendToNewDocument, 'appended to new document');
+runExclusiveDocumentFragmentTest(adoptedByNewDocument, 'adopted by new document');
+
+</script>
+</body>
+</html>

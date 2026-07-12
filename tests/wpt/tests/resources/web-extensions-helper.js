@@ -27,10 +27,6 @@ globalThis.runTestsWithWebExtension = function(extensionPath) {
 
     test.done();
 
-    if (!data.result) {
-      test.set_status(test.FAIL);
-    }
-
     if (data.remainingTests) {
       return;
     }

@@ -14,7 +14,7 @@
 <script>
 function waitForToolChange() {
   return new Promise(resolve => {
-    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    document.modelContext.addEventListener('toolchange', resolve, { once: true });
   });
 }
 
@@ -22,13 +22,10 @@ promise_test(async t => {
   const form = document.getElementById('f1');
 
   // Wait for initial registration to complete.
-  await waitForTool('my_tool');
-
-  let tools = await navigator.modelContext.getTools();
-  assert_equals(tools.length, 1, "Initially registered tool");
-  assert_equals(tools[0].name, 'my_tool');
-  assert_equals(tools[0].title, 'My Title');
-  assert_equals(tools[0].description, 'desc');
+  const tool = await waitForTool('my_tool');
+  assert_equals(tool.name, 'my_tool');
+  assert_equals(tool.title, 'My Title');
+  assert_equals(tool.description, 'desc');
 
   // Test updating tooltitle attribute
   {
@@ -36,7 +33,7 @@ promise_test(async t => {
     form.setAttribute('tooltitle', 'New Title');
     await changePromise;
 
-    let tools = await navigator.modelContext.getTools();
+    let tools = await document.modelContext.getTools();
     assert_equals(tools.length, 1, "Still one tool");
     assert_equals(tools[0].title, 'New Title', "Title is updated");
   }
@@ -47,7 +44,7 @@ promise_test(async t => {
     form.setAttribute('tooldescription', 'New Description');
     await changePromise;
 
-    let tools = await navigator.modelContext.getTools();
+    let tools = await document.modelContext.getTools();
     assert_equals(tools.length, 1);
     assert_equals(tools[0].description, 'New Description', "Description is updated");
   }
@@ -58,7 +55,7 @@ promise_test(async t => {
     form.setAttribute('toolname', 'new_tool_name');
     await changePromise;
 
-    let tools = await navigator.modelContext.getTools();
+    let tools = await document.modelContext.getTools();
     assert_equals(tools.length, 1);
     assert_equals(tools[0].name, 'new_tool_name', "Name is updated");
   }
@@ -69,7 +66,7 @@ promise_test(async t => {
     form.removeAttribute('tooltitle');
     await changePromise;
 
-    let tools = await navigator.modelContext.getTools();
+    let tools = await document.modelContext.getTools();
     assert_equals(tools.length, 1);
     assert_equals(tools[0].title, '', "Title should fall back to empty string");
   }
@@ -80,7 +77,7 @@ promise_test(async t => {
     form.removeAttribute('tooldescription');
     await changePromise;
 
-    let tools = await navigator.modelContext.getTools();
+    let tools = await document.modelContext.getTools();
     assert_equals(tools.length, 0, "Tool should be unregistered when description is removed");
   }
 
@@ -90,7 +87,7 @@ promise_test(async t => {
     form.setAttribute('tooldescription', 'Restored Description');
     await changePromise;
 
-    let tools = await navigator.modelContext.getTools();
+    let tools = await document.modelContext.getTools();
     assert_equals(tools.length, 1);
     assert_equals(tools[0].name, 'new_tool_name');
     assert_equals(tools[0].description, 'Restored Description');
@@ -102,7 +99,7 @@ promise_test(async t => {
     form.setAttribute('toolautosubmit', '');
     await changePromise;
 
-    let tools = await navigator.modelContext.getTools();
+    let tools = await document.modelContext.getTools();
     assert_equals(tools.length, 1, "Tool still registered after adding toolautosubmit");
     assert_equals(tools[0].name, 'new_tool_name', "Tool name is still the same");
   }
@@ -113,7 +110,7 @@ promise_test(async t => {
     form.removeAttribute('toolautosubmit');
     await changePromise;
 
-    let tools = await navigator.modelContext.getTools();
+    let tools = await document.modelContext.getTools();
     assert_equals(tools.length, 1, "Tool still registered after removing toolautosubmit");
     assert_equals(tools[0].name, 'new_tool_name', "Tool name is still the same");
   }
@@ -124,7 +121,7 @@ promise_test(async t => {
     form.removeAttribute('toolname');
     await changePromise;
 
-    let tools = await navigator.modelContext.getTools();
+    let tools = await document.modelContext.getTools();
     assert_equals(tools.length, 0, "Tool should be unregistered when name is removed");
   }
 }, "Test that mutating or removing form attributes (toolname, tooldescription, tooltitle, toolautosubmit) fires toolchange and updates getTools() correctly");

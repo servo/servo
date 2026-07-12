@@ -6,7 +6,6 @@
 // META: variant=?include=from-loopback
 // META: variant=?include=from-local
 // META: variant=?include=from-public
-// META: variant=?include=from-treat-as-public
 //
 // These tests verify that nonsecure contexts can make top-level navigations
 // to less-public address spaces. These are not restricted under LNA.
@@ -101,54 +100,3 @@ subsetTestByKey(
                                    expected: NavigationTestResult.SUCCESS,
                                  }),
     'public to public: no permission required.');
-
-// The following tests verify that `CSP: treat-as-public-address` makes
-// documents behave as if they had been served from a public IP address.
-
-subsetTestByKey(
-    'from-treat-as-public', promise_test,
-    t => navigateTest(t, {
-      source: {
-        server: Server.HTTP_LOOPBACK,
-        treatAsPublic: true,
-      },
-      target: Server.OTHER_HTTP_LOOPBACK,
-      expected: NavigationTestResult.SUCCESS,
-    }),
-    'treat-as-public-address to loopback: no permission required.');
-
-subsetTestByKey(
-    'from-treat-as-public', promise_test,
-    t => navigateTest(t, {
-      source: {
-        server: Server.HTTP_LOOPBACK,
-        treatAsPublic: true,
-      },
-      target: Server.HTTP_LOOPBACK,
-      expected: NavigationTestResult.SUCCESS,
-    }),
-    'treat-as-public-address to loopback (same-origin): no permission required.');
-
-subsetTestByKey(
-    'from-treat-as-public', promise_test,
-    t => navigateTest(t, {
-      source: {
-        server: Server.HTTP_LOOPBACK,
-        treatAsPublic: true,
-      },
-      target: Server.HTTP_LOCAL,
-      expected: NavigationTestResult.SUCCESS,
-    }),
-    'treat-as-public-address to local: no permission required.');
-
-subsetTestByKey(
-    'from-treat-as-public', promise_test,
-    t => navigateTest(t, {
-      source: {
-        server: Server.HTTP_LOOPBACK,
-        treatAsPublic: true,
-      },
-      target: Server.HTTP_PUBLIC,
-      expected: NavigationTestResult.SUCCESS,
-    }),
-    'treat-as-public-address to public: no permission required.');

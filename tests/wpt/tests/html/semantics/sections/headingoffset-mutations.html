@@ -340,10 +340,10 @@
 
       assertLevel(testSlottedH1, 1, "slotted h1 starts at level 1");
       set(slot, 2);
-      assertLevel(testSlottedH1, 3, "slotted h1 becomes level 3 after slot headingoffset=2");
+      assertLevel(testSlottedH1, 1, "slot headingoffset=2 does not affect slotted h1");
       set(testSlotted, 1);
-      assertLevel(testSlottedH1, 4, "slotted h1 becomes level 4 (1+2+1)");
-    }, `headingoffset ${style} mutations on slot element update slotted headings`);
+      assertLevel(testSlottedH1, 2, "slotted h1 becomes level 2 after host headingoffset=1");
+    }, `headingoffset ${style} mutations on host (not slot) update slotted headings`);
 
     test(t => {
       const slot = testSlottedNested.shadowRoot.getElementById("testSlottedNestedSlot");
@@ -355,10 +355,10 @@
 
       assertLevel(h1, 1, "h1 in nested shadow starts at level 1");
       set(slot, 2);
-      assertLevel(h1, 3, "h1 in nested shadow becomes level 3 after slot headingoffset=2");
+      assertLevel(h1, 1, "outer slot headingoffset=2 does not affect h1");
       set(testSlottedNested, 1);
-      assertLevel(h1, 4, "h1 in nested shadow becomes level 4 (1+2+1)");
-    }, `headingoffset ${style} mutations on slot traverse into slotted element shadow roots`);
+      assertLevel(h1, 2, "h1 becomes level 2 after outermost host headingoffset=1");
+    }, `headingoffset ${style} mutations propagate via host chain through nested shadow roots`);
 
     test(t => {
       const container = testClamping.parentElement;
@@ -381,16 +381,16 @@
         set(innerShadowDiv, 3);
       });
 
-      assertLevel(h1, 7, "h1 in nested shadow starts at level 7 (1+2+3+1)");
+      assertLevel(h1, 5, "h1 in nested shadow starts at level 5 (3+1+1)");
       set(testNestedShadow, 0);
-      assertLevel(h1, 6, "h1 becomes level 6 after outermost headingoffset=0 (0+2+3+1)");
+      assertLevel(h1, 4, "h1 becomes level 4 after outermost headingoffset=0 (3+0+1)");
       set(innerDiv, 0);
-      assertLevel(h1, 4, "h1 becomes level 4 after inner shadow div headingoffset=0 (0+0+3+1)");
+      assertLevel(h1, 4, "outer shadow's slot wrapper does not affect h1");
       set(innerShadowDiv, 0);
-      assertLevel(h1, 1, "h1 becomes level 1 after all headingoffsets cleared");
+      assertLevel(h1, 1, "h1 becomes level 1 after innermost wrapper headingoffset=0");
       set(testNestedShadow, 2);
-      assertLevel(h1, 3, "h1 becomes level 3 after outermost headingoffset=2 (2+0+0+1)");
-    }, `headingoffset ${style} mutations propagate through two levels of shadow DOM with slotting`);
+      assertLevel(h1, 3, "h1 becomes level 3 after outermost headingoffset=2 (0+2+1)");
+    }, `headingoffset ${style} mutations propagate via host chain across two levels of shadow DOM`);
 
     test(t => {
       const l1 = testTripleShadow.shadowRoot.getElementById("testTripleShadowL1");
@@ -399,16 +399,22 @@
       t.add_cleanup(() => {
         set(l1, 1);
         set(l2, 1);
+        clear(testTripleShadow);
+        clear(testTripleShadowChild1);
       });
 
-      assertLevel(h1, 3, "h1 in triple shadow starts at level 3 (1+1+1)");
+      assertLevel(h1, 1, "h1 in triple shadow starts at level 1");
       set(l1, 3);
-      assertLevel(h1, 5, "h1 becomes level 5 after l1 headingoffset=3 (3+1+1)");
+      assertLevel(h1, 1, "l1 in outer shadow tree does not affect h1");
       set(l2, 2);
-      assertLevel(h1, 6, "h1 becomes level 6 after l2 headingoffset=2 (3+2+1)");
-      clear(l1);
-      assertLevel(h1, 3, "h1 becomes level 3 after l1 cleared (0+2+1)");
-    }, `headingoffset ${style} mutations propagate through three levels of nested shadow DOM`);
+      assertLevel(h1, 1, "l2 in middle shadow tree does not affect h1");
+      set(testTripleShadow, 2);
+      assertLevel(h1, 3, "h1 becomes level 3 after outermost host headingoffset=2 (2+1)");
+      set(testTripleShadowChild1, 1);
+      assertLevel(h1, 4, "h1 becomes level 4 after middle host headingoffset=1 (2+1+1)");
+      clear(testTripleShadow);
+      assertLevel(h1, 2, "h1 becomes level 2 after outermost cleared (1+1)");
+    }, `headingoffset ${style} propagates only via host chain through three nested shadow DOMs`);
 
     test(t => {
       const l1 = testNestedShadowHeadings.shadowRoot.getElementById("testNestedShadowHeadingsL1");
@@ -421,13 +427,13 @@
       });
 
       assertLevel(innerH1, 2, "inner h1 starts at level 2 (1+1)");
-      assertLevel(childH1, 4, "child h1 starts at level 4 (1+2+1)");
+      assertLevel(childH1, 3, "child h1 starts at level 3 (2+1)");
       set(l1, 3);
       assertLevel(innerH1, 4, "inner h1 becomes level 4 after l1 headingoffset=3 (3+1)");
-      assertLevel(childH1, 6, "child h1 becomes level 6 after l1 headingoffset=3 (3+2+1)");
+      assertLevel(childH1, 3, "l1 in outer shadow tree does not affect child h1");
       set(l2, 0);
       assertLevel(innerH1, 4, "inner h1 stays at level 4 (l2 change doesn't affect it)");
-      assertLevel(childH1, 4, "child h1 becomes level 4 after l2 headingoffset=0 (3+0+1)");
+      assertLevel(childH1, 1, "child h1 becomes level 1 after l2 headingoffset=0");
     }, `headingoffset ${style} mutations update headings at multiple shadow DOM levels independently`);
   }
 
@@ -485,60 +491,70 @@
     t.add_cleanup(() => {
       slotA.name = "a";
       testSlotNameChangeH1.slot = "a";
+      testSlotNameChange.removeAttribute("headingoffset");
     });
 
-    assertLevel(testSlotNameChangeH1, 3, "h1 slotted into slot a starts at level 3 (2+1)");
+    assertLevel(testSlotNameChangeH1, 1, "h1 slotted into slot a starts at level 1");
     slotA.name = "c";
-    assertLevel(testSlotNameChangeH1, 1, "h1 becomes level 1 when slot name changes and h1 no longer slotted");
+    assertLevel(testSlotNameChangeH1, 1, "h1 stays at level 1 when slot a renamed");
     slotB.name = "a";
-    assertLevel(testSlotNameChangeH1, 5, "h1 becomes level 5 when reslotted into slot b (4+1)");
-  }, "slot name attribute changes update slotted heading levels");
+    assertLevel(testSlotNameChangeH1, 1, "h1 stays at level 1 when reslotted into slot b");
+    testSlotNameChange.setAttribute("headingoffset", "2");
+    assertLevel(testSlotNameChangeH1, 3, "h1 becomes level 3 after host headingoffset=2");
+  }, "slot name attribute changes do not change slotted heading levels");
 
   test(t => {
     t.add_cleanup(() => {
       testSlotAttrChangeH1.slot = "x";
+      testSlotAttrChange.removeAttribute("headingoffset");
     });
 
-    assertLevel(testSlotAttrChangeH1, 2, "h1 slotted into slot x starts at level 2 (1+1)");
+    assertLevel(testSlotAttrChangeH1, 1, "h1 with slot=x starts at level 1");
     testSlotAttrChangeH1.slot = "y";
-    assertLevel(testSlotAttrChangeH1, 4, "h1 becomes level 4 when moved to slot y (3+1)");
+    assertLevel(testSlotAttrChangeH1, 1, "h1 stays at level 1 when moved to slot y");
     testSlotAttrChangeH1.slot = "nonexistent";
-    assertLevel(testSlotAttrChangeH1, 1, "h1 becomes level 1 when slot attribute points to nonexistent slot");
+    assertLevel(testSlotAttrChangeH1, 1, "h1 stays at level 1 when slot points to nonexistent slot");
     testSlotAttrChangeH1.slot = "x";
-    assertLevel(testSlotAttrChangeH1, 2, "h1 returns to level 2 when moved back to slot x");
-  }, "element slot attribute changes update heading levels");
+    testSlotAttrChange.setAttribute("headingoffset", "3");
+    assertLevel(testSlotAttrChangeH1, 4, "h1 becomes level 4 after host headingoffset=3");
+  }, "element slot attribute changes do not change heading levels");
 
   test(t => {
     const slot = testSlotRemoval.shadowRoot.getElementById("testSlotRemovalSlot");
     const container = slot.parentElement;
     t.add_cleanup(() => {
       container.appendChild(slot);
+      testSlotRemoval.removeAttribute("headingoffset");
     });
 
-    assertLevel(testSlotRemovalH1, 6, "h1 slotted into default slot starts at level 6 (5+1)");
+    assertLevel(testSlotRemovalH1, 1, "h1 starts at level 1");
     slot.remove();
-    assertLevel(testSlotRemovalH1, 1, "h1 becomes level 1 when slot element is removed");
+    assertLevel(testSlotRemovalH1, 1, "h1 stays at level 1 when slot removed");
     container.appendChild(slot);
-    assertLevel(testSlotRemovalH1, 6, "h1 returns to level 6 when slot is re-added");
-  }, "slot element removal and addition updates slotted heading levels");
+    assertLevel(testSlotRemovalH1, 1, "h1 stays at level 1 when slot re-added");
+    testSlotRemoval.setAttribute("headingoffset", "4");
+    assertLevel(testSlotRemovalH1, 5, "h1 becomes level 5 after host headingoffset=4");
+  }, "slot element removal and addition do not change slotted heading levels");
 
   test(t => {
     const slot = testSlotDefault.shadowRoot.getElementById("testSlotDefaultSlot");
     t.add_cleanup(() => {
       slot.removeAttribute("name");
       testSlotDefaultH1.removeAttribute("slot");
+      testSlotDefault.removeAttribute("headingoffset");
     });
 
-    assertLevel(testSlotDefaultH1, 3, "h1 in default slot starts at level 3 (2+1)");
+    assertLevel(testSlotDefaultH1, 1, "h1 in default slot starts at level 1");
     slot.name = "named";
-    assertLevel(testSlotDefaultH1, 1, "h1 becomes level 1 when default slot becomes named");
+    assertLevel(testSlotDefaultH1, 1, "h1 stays at level 1 when default slot becomes named");
     testSlotDefaultH1.slot = "named";
-    assertLevel(testSlotDefaultH1, 3, "h1 returns to level 3 when explicitly assigned to named slot");
+    assertLevel(testSlotDefaultH1, 1, "h1 stays at level 1 when explicitly assigned to named slot");
     slot.removeAttribute("name");
-    assertLevel(testSlotDefaultH1, 1, "h1 becomes level 1 when slot becomes default but h1 has explicit slot attr");
+    assertLevel(testSlotDefaultH1, 1, "h1 stays at level 1 when slot becomes default but h1 has explicit slot attr");
     testSlotDefaultH1.removeAttribute("slot");
-    assertLevel(testSlotDefaultH1, 3, "h1 returns to level 3 when slot attr removed and falls back to default");
-  }, "default slot to named slot transitions update heading levels");
+    testSlotDefault.setAttribute("headingoffset", "2");
+    assertLevel(testSlotDefaultH1, 3, "h1 becomes level 3 after host headingoffset=2");
+  }, "default-to-named slot transitions do not change heading levels");
 
   test(t => {
     const slotFirst = testSlotMultiple.shadowRoot.getElementById("testSlotMultipleSlotFirst");
@@ -546,17 +562,23 @@
     t.add_cleanup(() => {
       slotFirst.name = "first";
       slotSecond.name = "second";
+      testSlotMultiple.removeAttribute("headingoffset");
     });
 
-    assertLevel(testSlotMultipleH1A, 2, "h1 A in slot first starts at level 2 (1+1)");
-    assertLevel(testSlotMultipleH1B, 4, "h1 B in slot second starts at level 4 (3+1)");
+    assertLevel(testSlotMultipleH1A, 1, "h1 A in slot first starts at level 1");
+    assertLevel(testSlotMultipleH1B, 1, "h1 B in slot second starts at level 1");
 
     slotFirst.name = "second";
     slotSecond.name = "first";
 
-    assertLevel(testSlotMultipleH1A, 4, "h1 A becomes level 4 after slot swap (now in second's container)");
-    assertLevel(testSlotMultipleH1B, 2, "h1 B becomes level 2 after slot swap (now in first's container)");
-  }, "swapping slot names updates multiple headings correctly");
+    assertLevel(testSlotMultipleH1A, 1, "h1 A stays at level 1 after slot swap");
+    assertLevel(testSlotMultipleH1B, 1, "h1 B stays at level 1 after slot swap");
+
+    testSlotMultiple.setAttribute("headingoffset", "2");
+
+    assertLevel(testSlotMultipleH1A, 3, "h1 A becomes level 3 after host headingoffset=2");
+    assertLevel(testSlotMultipleH1B, 3, "h1 B becomes level 3 after host headingoffset=2");
+  }, "swapping slot names does not change slotted heading levels");
 
   test(t => {
     const shadow = testManualSlot.attachShadow({ mode: "open", slotAssignment: "manual" });
@@ -575,21 +597,25 @@
       slot.assign();
       h1.remove();
       div.remove();
+      testManualSlot.removeAttribute("headingoffset");
     });
 
-    assertLevel(h1, 1, "h1 starts at level 1 (not manually assigned)");
-    assertLevel(divH1, 1, "h1 inside div starts at level 1 (not manually assigned)");
+    assertLevel(h1, 1, "h1 starts at level 1");
+    assertLevel(divH1, 1, "h1 inside div starts at level 1");
 
     slot.assign(h1);
-    assertLevel(h1, 3, "h1 becomes level 3 after manual slot assignment (2+1)");
+    assertLevel(h1, 1, "h1 stays at level 1 after manual slot assignment");
 
     slot.assign(div);
-    assertLevel(h1, 1, "h1 returns to level 1 after unassignment");
-    assertLevel(divH1, 3, "h1 inside div becomes level 3 after div manually assigned (2+1)");
+    assertLevel(h1, 1, "h1 stays at level 1 after unassignment");
+    assertLevel(divH1, 1, "h1 inside div stays at level 1 after div manually assigned");
+
+    testManualSlot.setAttribute("headingoffset", "1");
+    assertLevel(divH1, 2, "h1 inside manually-assigned div becomes level 2 after host headingoffset=1");
 
     slot.assign();
-    assertLevel(divH1, 1, "h1 inside div returns to level 1 after slot cleared");
-  }, "manual slot assignment updates heading levels");
+    assertLevel(divH1, 2, "h1 inside div stays at level 2 after slot cleared");
+  }, "manual slot assignment does not change heading levels");
 
   test(t => {
     const shadow = testManualSlotMultiple.attachShadow({ mode: "open", slotAssignment: "manual" });
@@ -609,16 +635,19 @@
       slotA.assign();
       slotB.assign();
       h1.remove();
+      testManualSlotMultiple.removeAttribute("headingoffset");
     });
 
     assertLevel(h1, 1, "h1 starts at level 1 (not assigned)");
     slotA.assign(h1);
-    assertLevel(h1, 2, "h1 becomes level 2 after assigned to slot A (1+1)");
+    assertLevel(h1, 1, "h1 stays at level 1 after assigned to slot A");
     slotB.assign(h1);
-    assertLevel(h1, 4, "h1 becomes level 4 after reassigned to slot B (3+1)");
+    assertLevel(h1, 1, "h1 stays at level 1 after reassigned to slot B");
     slotA.assign(h1);
-    assertLevel(h1, 2, "h1 becomes level 2 after reassigned back to slot A (1+1)");
-  }, "manual slot reassignment between slots updates heading levels");
+    assertLevel(h1, 1, "h1 stays at level 1 after reassigned back to slot A");
+    testManualSlotMultiple.setAttribute("headingoffset", "2");
+    assertLevel(h1, 3, "h1 becomes level 3 after host headingoffset=2");
+  }, "manual slot reassignment between slots does not change heading levels");
 
   test(t => {
     const slot = testSvgSlotted.shadowRoot.getElementById("testSvgSlottedSlot");
@@ -628,14 +657,17 @@
     foreignObject.appendChild(h1);
     svg.appendChild(foreignObject);
     testSvgSlotted.appendChild(svg);
-    t.add_cleanup(() => svg.remove());
+    t.add_cleanup(() => {
+      svg.remove();
+      testSvgSlotted.removeAttribute("headingoffset");
+    });
 
-    assertLevel(h1, 3, "h1 inside SVG foreignObject slotted starts at level 3 (2+1)");
+    assertLevel(h1, 1, "h1 inside SVG foreignObject slotted starts at level 1");
     slot.parentElement.headingOffset = 4;
-    assertLevel(h1, 5, "h1 inside SVG foreignObject becomes level 5 after headingoffset=4 (4+1)");
-    slot.parentElement.headingOffset = 2;
-    assertLevel(h1, 3, "h1 inside SVG foreignObject returns to level 3 (2+1)");
-  }, "non-HTML elements (SVG) slotted with heading descendants get updated");
+    assertLevel(h1, 1, "slot wrapper headingoffset=4 does not affect slotted SVG content");
+    testSvgSlotted.setAttribute("headingoffset", "2");
+    assertLevel(h1, 3, "h1 becomes level 3 after host headingoffset=2");
+  }, "non-HTML elements (SVG) slotted with heading descendants get updated via host chain");
 
   test(t => {
     const host = document.createElement("div");
@@ -653,10 +685,12 @@
     document.body.appendChild(host);
     t.add_cleanup(() => host.remove());
 
-    assertLevel(h1, 4, "h1 inside MathML element slotted starts at level 4 (3+1)");
-    slotContainer.headingOffset = 1;
-    assertLevel(h1, 2, "h1 inside MathML element becomes level 2 after headingoffset=1 (1+1)");
-  }, "non-HTML elements (MathML) slotted with heading descendants get updated");
+    assertLevel(h1, 1, "h1 inside MathML element slotted starts at level 1");
+    slotContainer.headingOffset = 5;
+    assertLevel(h1, 1, "slot wrapper headingoffset does not affect slotted MathML content");
+    host.headingOffset = 1;
+    assertLevel(h1, 2, "h1 becomes level 2 after host headingoffset=1");
+  }, "non-HTML elements (MathML) slotted with heading descendants get updated via host chain");
 
   test(t => {
     const host = document.createElement("div");
@@ -678,8 +712,10 @@
 
     assertLevel(h1, 1, "h1 inside SVG starts at level 1 (not manually assigned)");
     slot.assign(svg);
-    assertLevel(h1, 3, "h1 inside SVG becomes level 3 after SVG manually assigned (2+1)");
+    assertLevel(h1, 1, "h1 inside SVG stays at level 1 after SVG manually assigned");
+    host.headingOffset = 2;
+    assertLevel(h1, 3, "h1 becomes level 3 after host headingoffset=2");
     slot.assign();
-    assertLevel(h1, 1, "h1 inside SVG returns to level 1 after manual slot cleared");
-  }, "manual slot assignment of non-HTML elements updates heading descendants");
+    assertLevel(h1, 3, "h1 stays at level 3 after manual slot cleared");
+  }, "manual slot assignment of non-HTML elements does not change heading levels");
 </script>

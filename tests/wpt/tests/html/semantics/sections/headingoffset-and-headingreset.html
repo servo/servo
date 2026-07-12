@@ -115,13 +115,13 @@
       <slot></slot>
     </div>
   </template>
-  <h2 data-expected-offset="4"><!-- Level 4, h2 + 1 + 1 --></h2>
-  <h4 data-expected-offset="6"><!-- Level 6, h4 + 1 + 1 --></h4>
+  <h2 data-expected-offset="3"><!-- Level 3, h2 + 1 --></h2>
+  <h4 data-expected-offset="5"><!-- Level 5, h4 + 1 --></h4>
   <h4 data-expected-offset="4" headingreset>
     <!-- Level 4, h4 (headingreset) -->
   </h4>
 </div>
-<!-- Ensure the slot can be decorated with headingoffset -->
+<!-- Ensure the slot's headingoffset does not affect slotted content -->
 <div
   headingoffset="1"
   title="container shadowroot slot with attr headingoffset=1"
@@ -130,7 +130,7 @@
     <h1 data-expected-offset="2"><!-- Level 2, h1 + 1 --></h1>
     <slot headingoffset="1"></slot>
   </template>
-  <h2 data-expected-offset="4"><!-- Level 4, h2 + 1 + 1 --></h2>
+  <h2 data-expected-offset="3"><!-- Level 3, h2 + 1 --></h2>
 </div>
 <h1 data-expected-offset="2" headingoffset="1"><!-- Level 2, h1 + 1 --></h1>
 <h2 data-expected-offset="3" headingoffset="1"><!-- Level 3, h2 + 1 --></h2>

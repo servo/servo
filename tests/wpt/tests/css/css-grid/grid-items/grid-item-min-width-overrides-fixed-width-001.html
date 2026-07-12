@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#preferred-size-properties">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: grid; width: 100px; height: 100px; grid-template-columns: 100px; grid-template-rows: 100px; background: red;">
+  <div style="grid-row: 1 / 2; width: 10px; min-width: 100px; height: 100px; background: green;"></div>
+</div>

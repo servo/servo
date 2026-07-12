@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Values: random-item() with an item that is invalid at computed-value time</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-random-item">
+<link rel="author" title="Joanne Pan" href="https://github.com/J0pan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+
+// When the selected item references a custom property that is guaranteed-invalid,
+// the declaration is invalid at computed-value time and color falls back to its
+// inherited/initial value, matching plain var() behavior.
+test(() => {
+    target.style.color = 'green';
+    target.style.color = 'random-item(fixed 0, var(--missing), blue)';
+    assert_equals(getComputedStyle(target).color, 'rgb(0, 0, 0)');
+}, 'Selecting an item with an unresolvable var() is invalid at computed-value time');
+
+// A different fixed index that selects a resolvable item still produces a value.
+test(() => {
+    target.style.color = 'green';
+    target.style.color = 'random-item(fixed 0.999, var(--missing), rgb(1, 2, 3))';
+    assert_equals(getComputedStyle(target).color, 'rgb(1, 2, 3)');
+}, 'Selecting a resolvable item produces a value even when other items are unresolvable');
+
+// A var() fallback inside the selected item is honored.
+test(() => {
+    target.style.color = 'green';
+    target.style.color = 'random-item(fixed 0, var(--missing, rgb(4, 5, 6)), blue)';
+    assert_equals(getComputedStyle(target).color, 'rgb(4, 5, 6)');
+}, 'A var() fallback inside the selected item is used');
+
+</script>

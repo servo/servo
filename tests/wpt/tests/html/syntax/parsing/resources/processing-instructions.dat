@@ -4,7 +4,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?something?>
+|     <?something ?>
 
 #data
 <body><?something><span>
@@ -12,7 +12,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?something?>
+|     <?something ?>
 |     <span>
 
 #data
@@ -37,8 +37,8 @@
 | <html>
 |   <head>
 |   <body>
-|     <?one?>
-|     <?two?>
+|     <?one ?>
+|     <?two ?>
 
 #data
 <body><?a$><?b$><?good?>
@@ -48,7 +48,7 @@
 |   <body>
 |     <!-- ?a$ -->
 |     <!-- ?b$ -->
-|     <?good?>
+|     <?good ?>
 
 #data
 <body><?hey there?>
@@ -75,7 +75,7 @@
 |     <?hey ?there?>
 
 #data
-<body><?hey\tthere=1?>
+<body><?hey	there=1?>
 #document
 | <html>
 |   <head>
@@ -83,7 +83,8 @@
 |     <?hey there=1?>
 
 #data
-<body><?hey\nthere=1?>
+<body><?hey
+there=1?>
 #document
 | <html>
 |   <head>
@@ -91,7 +92,7 @@
 |     <?hey there=1?>
 
 #data
-<body><?hey\rthere=1?>
+<body><?heythere=1?>
 #document
 | <html>
 |   <head>
@@ -99,7 +100,7 @@
 |     <?hey there=1?>
 
 #data
-<body><?hey\fthere=1?>
+<body><?heythere=1?>
 #document
 | <html>
 |   <head>
@@ -145,7 +146,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?module-handler?>
+|     <?module-handler ?>
 
 #data
 <body><?module-handler data>
@@ -161,7 +162,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?view-port?>
+|     <?view-port ?>
 
 #data
 <body><?view-port data>
@@ -177,7 +178,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?config-v2?>
+|     <?config-v2 ?>
 
 #data
 <body><?config-v2 data>
@@ -193,7 +194,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?x?>
+|     <?x ?>
 
 #data
 <body><?x data>
@@ -209,7 +210,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?zz2op?>
+|     <?zz2op ?>
 
 #data
 <body><?zz2op data>
@@ -225,7 +226,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?xla-?>
+|     <?xla- ?>
 
 #data
 <body><?xla- data>
@@ -241,7 +242,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?a-b-c?>
+|     <?a-b-c ?>
 
 #data
 <body><?a-b-c data>
@@ -257,7 +258,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?v-123?>
+|     <?v-123 ?>
 
 #data
 <body><?v-123 data>
@@ -273,7 +274,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?a0-b1-c2?>
+|     <?a0-b1-c2 ?>
 
 #data
 <body><?a0-b1-c2 data>
@@ -289,7 +290,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?page-404?>
+|     <?page-404 ?>
 
 #data
 <body><?page-404 data>
@@ -305,7 +306,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?r2-d2?>
+|     <?r2-d2 ?>
 
 #data
 <body><?r2-d2 data>
@@ -321,7 +322,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?level-99?>
+|     <?level-99 ?>
 
 #data
 <body><?level-99 data>
@@ -337,7 +338,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?UPPERCASE?>
+|     <?UPPERCASE ?>
 
 #data
 <body><?UPPERCASE data>
@@ -353,7 +354,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?all-KINDS-of-CaSeS?>
+|     <?all-KINDS-of-CaSeS ?>
 
 #data
 <body><?all-KINDS-of-CaSeS data>
@@ -369,7 +370,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?user_name?>
+|     <?user_name ?>
 
 #data
 <body><?user_name data>
@@ -385,7 +386,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?S_S-S_S?>
+|     <?S_S-S_S ?>
 
 #data
 <body><?S_S-S_S data>
@@ -401,7 +402,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?b_?>
+|     <?b_ ?>
 
 #data
 <body><?b_ data>
@@ -417,7 +418,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?_prefix?>
+|     <?_prefix ?>
 
 #data
 <body><?_prefix data>
@@ -433,7 +434,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?_x132?>
+|     <?_x132 ?>
 
 #data
 <body><?_x132 data>
@@ -449,7 +450,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?_-_?>
+|     <?_-_ ?>
 
 #data
 <body><?_-_ data>
@@ -465,7 +466,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?_?>
+|     <?_ ?>
 
 #data
 <body><?_ data>
@@ -481,7 +482,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?A----------------?>
+|     <?A---------------- ?>
 
 #data
 <body><?A---------------- data>
@@ -497,7 +498,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?z0123456789?>
+|     <?z0123456789 ?>
 
 #data
 <body><?z0123456789 data>
@@ -513,7 +514,7 @@
 | <html>
 |   <head>
 |   <body>
-|     <?m-0?>
+|     <?m-0 ?>
 
 #data
 <body><?m-0 data>
@@ -596,7 +597,7 @@
 |     <!-- ?99-problems -->
 
 #data
-<body><?\u0665-star>
+<body><?٥-star>
 #document
 | <html>
 |   <head>
@@ -636,7 +637,7 @@
 |     <!-- ?-100 -->
 
 #data
-<body><?\u00B7middle-dot>
+<body><?·middle-dot>
 #document
 | <html>
 |   <head>
@@ -644,7 +645,7 @@
 |     <!-- ?·middle-dot -->
 
 #data
-<body><?\u0375greek-numeral>
+<body><?͵greek-numeral>
 #document
 | <html>
 |   <head>
@@ -652,7 +653,7 @@
 |     <!-- ?͵greek-numeral -->
 
 #data
-<body><?\u0301accent-start>
+<body><?́accent-start>
 #document
 | <html>
 |   <head>
@@ -772,7 +773,7 @@
 |     <!-- ?lit$$4x -->
 
 #data
-<body><?\uD83D\uDE80-launch>
+<body><?🚀-launch>
 #document
 | <html>
 |   <head>
@@ -780,7 +781,7 @@
 |     <!-- ?🚀-launch -->
 
 #data
-<body><?error-\u26A0\uFE0F>
+<body><?error-⚠️>
 #document
 | <html>
 |   <head>
@@ -788,7 +789,7 @@
 |     <!-- ?error-⚠️ -->
 
 #data
-<body><?fire-\uD83D\uDD25>
+<body><?fire-🔥>
 #document
 | <html>
 |   <head>
@@ -796,7 +797,7 @@
 |     <!-- ?fire-🔥 -->
 
 #data
-<body><?v1-\u2705>
+<body><?v1-✅>
 #document
 | <html>
 |   <head>
@@ -860,7 +861,7 @@
 |   <head>
 |   <body>
 |     <div>
-|       <?something?>
+|       <?something ?>
 
 #data
 <div><?something good></div>
@@ -878,7 +879,7 @@
 |   <head>
 |   <body>
 |     <table>
-|       <?something?>
+|       <?something ?>
 
 #data
 <table><tr><?something></tr></table>
@@ -889,7 +890,7 @@
 |     <table>
 |       <tbody>
 |         <tr>
-|           <?something?>
+|           <?something ?>
 
 #data
 <script><?something></script>
@@ -912,7 +913,7 @@
 #data
 <?something>
 #document
-| <?something?>
+| <?something ?>
 | <html>
 |   <head>
 |   <body>
@@ -922,14 +923,14 @@
 #document
 | <html>
 |   <head>
-|     <?something?>
+|     <?something ?>
 |   <body>
 
 #data
 <html><?something><head>
 #document
 | <html>
-|   <?something?>
+|   <?something ?>
 |   <head>
 |   <body>
 
@@ -938,7 +939,7 @@
 #document
 | <html>
 |   <head>
-|   <?something?>
+|   <?something ?>
 |   <body>
 
 #data
@@ -947,7 +948,7 @@
 | <html>
 |   <head>
 |   <body>
-|   <?something?>
+|   <?something ?>
 
 #data
 <html><body></body></html><?something>
@@ -955,7 +956,7 @@
 | <html>
 |   <head>
 |   <body>
-| <?something?>
+| <?something ?>
 
 #data
 <body><template><?something></template>
@@ -965,7 +966,7 @@
 |   <body>
 |     <template>
 |       content
-|         <?something?>
+|         <?something ?>
 
 #data
 <body><textarea><?something></textarea>

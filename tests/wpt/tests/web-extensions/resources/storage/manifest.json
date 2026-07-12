@@ -1,0 +1,9 @@
+{
+  "name": "browser.storage WPT",
+  "version": "0.1",
+  "manifest_version": 3,
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

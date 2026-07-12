@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>No crash when reading background shorthand with layered values</title>
+<link rel="help" href="https://crbug.com/40077539">
+<style>
+.absent {
+  background: #fff url(foo.png) no-repeat left 4px;
+}
+
+body {
+  background: #fff;
+}
+</style>
+<script>
+  document.styleSheets[0].cssRules[1].style.background;
+</script>

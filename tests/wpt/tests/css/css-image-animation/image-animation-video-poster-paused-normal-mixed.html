@@ -5,8 +5,17 @@
 <meta charset="utf-8" />
 <link rel="match" href="image-animation-video-poster-paused-normal-mixed-ref.html" />
 <script src="/common/reftest-wait.js"></script>
+<script src="resources/image-animation-utils.js"></script>
 <script>
-  takeScreenshotDelayed(300);
+  waitForFrameTime(300).then(() => {
+    for (const video of document.querySelectorAll('video'))
+      video.style.imageAnimation = 'paused';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        takeScreenshot();
+      });
+    });
+  });
 </script>
 
 <style>

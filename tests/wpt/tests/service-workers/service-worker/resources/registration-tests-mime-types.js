@@ -21,6 +21,32 @@ function registration_tests_mime_types(register_method) {
           'Registration of plain text script should fail.');
     }, 'Registering script with bad MIME type');
 
+  // The top-level service worker script must have a JavaScript MIME type. A
+  // JSON MIME type is only valid for imported (non-top-level) modules, so
+  // registering a top-level script served as JSON must fail even when the body
+  // happens to be valid JavaScript.
+  const jsonMimeTypes = [
+    'application/json',
+    'text/json',
+    'application/manifest+json',
+  ];
+
+  for (const jsonMimeType of jsonMimeTypes) {
+    promise_test(function(t) {
+        // Encode the MIME type so characters such as '+' survive the query
+        // string instead of being decoded to a space by the server.
+        var script =
+            `resources/mime-type-worker.py?mime=${encodeURIComponent(jsonMimeType)}`;
+        // Use a scope unique to each MIME type so the registrations don't
+        // interfere with one another.
+        var scope = `resources/scope/json-mime-type-worker/${jsonMimeType}`;
+        return promise_rejects_dom(t,
+            'SecurityError',
+            register_method(script, {scope: scope}),
+            'Registration of JSON MIME type script should fail.');
+      }, `Registering script with JSON MIME type ${jsonMimeType}`);
+  }
+
   /**
    * ServiceWorkerContainer.register() should throw a TypeError, according to
    * step 17.1 of https://w3c.github.io/ServiceWorker/#importscripts

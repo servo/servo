@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-random-item">
+<link rel="author" title="Joanne Pan" href="https://github.com/J0pan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+// random-item() is an arbitrary substitution function, so only its argument grammar is
+// validated at parse time:
+//   <random-item-args> = random-item( <declaration-value>, [ <declaration-value>? ]# )
+// The first argument is parsed as a <random-key> and an item is selected at computed-value
+// time, not here. See https://drafts.csswg.org/css-values-5/#funcdef-random-item
+
+// A non-empty first argument followed by a comma-separated list of items is valid.
+test_valid_value('font-family', 'random-item(auto, serif)');
+test_valid_value('font-family', 'random-item(auto, serif, sans-serif, monospace)');
+test_valid_value('font-family', 'random-item(auto ,serif ,sans-serif)');
+test_valid_value('font-family', 'random-item(auto , serif , sans-serif)');
+
+// Items may be empty: [ <declaration-value>? ]#.
+test_valid_value('font-family', 'random-item(auto, )');
+test_valid_value('font-family', 'random-item(auto, serif,)');
+test_valid_value('font-family', 'random-item(auto, , serif)');
+test_valid_value('font-family', 'random-item(auto, ,)');
+
+// Comma-containing items are grouped with {}, including with whitespace around the braces.
+// https://drafts.csswg.org/css-values-5/#component-function-commas
+test_valid_value('font-family', 'random-item(auto, {Times, serif}, {Arial, sans-serif})');
+test_valid_value('font-family', 'random-item(auto, {Times, serif}, sans-serif, {monospace})');
+test_valid_value('font-family', 'random-item(auto, {Times, serif})');
+test_valid_value('font-family', 'random-item(auto, { Times, serif }, { Arial, sans-serif })');
+test_valid_value('font-family', 'random-item(auto, {Times, serif}, { Arial, sans-serif })');
+test_valid_value('font-family', 'random-item(auto, { monospace })');
+
+// The first argument is NOT parsed as <random-key> at parse time, so any non-empty
+// <declaration-value> is accepted here. These resolve (or become invalid) at computed-value time.
+test_valid_value('font-family', 'random-item(--x, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(fixed 0.5, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(serif, sans-serif)');
+test_valid_value('font-family', 'random-item(foo, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(fixed -0.5, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(property-scoped, serif, sans-serif)');
+test_valid_value('font-family', 'random-item(var(--key), serif, sans-serif)');
+
+</script>

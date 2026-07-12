@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#scrollable">
+<link rel="match" href="grid-overflowing-multiple-items-are-painted-ref.html">
+<meta name="assert" content="Multiple grid items placed in different cells of a zero-width, zero-height grid overflow different edges and must all still be painted.">
+<style>
+  body {
+    margin: 0;
+  }
+  .grid {
+    width: 0;
+    height: 0;
+    display: grid;
+    grid-template-columns: 40px 40px;
+    grid-template-rows: 40px 40px;
+  }
+  .a {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    width: 100px;
+    height: 30px;
+    background-color: green;
+  }
+  .b {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    width: 30px;
+    height: 100px;
+    background-color: green;
+  }
+</style>
+<div class="grid">
+  <div class="a"></div>
+  <div class="b"></div>
+</div>

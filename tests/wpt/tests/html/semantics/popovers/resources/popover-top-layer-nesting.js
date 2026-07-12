@@ -8,11 +8,7 @@ function createTopLayerElement(t,topLayerType) {
       break;
     case 'fullscreen':
       element = document.createElement('div');
-      show = async (topmostElement) => {
-        // Be sure to add user activation to the topmost visible target:
-        await blessTopLayer(topmostElement);
-        await element.requestFullscreen();
-      };
+      show = () => element.requestFullscreen();
       showing = () => document.fullscreenElement === element;
       break;
     default:
@@ -31,6 +27,7 @@ function runTopLayerTests(testCases) {
     assert_true(popovers.length > 0,'No popovers found');
     ['dialog','fullscreen'].forEach(topLayerType => {
       promise_test(async t => {
+        await test_driver.bless('activate top layer');
         const {element,show,showing} = createTopLayerElement(t,topLayerType);
         target.appendChild(element);
 
@@ -40,7 +37,7 @@ function runTopLayerTests(testCases) {
         popovers.forEach(popover => assert_true(popover.matches(':popover-open'),'All popovers should be open'));
 
         // Activate the top layer element.
-        await show(popovers[popovers.length-1]);
+        await show();
         assert_true(showing());
         popovers.forEach(popover => assert_equals(popover.matches(':popover-open'),popover.dataset.stayOpen==='true','Incorrect behavior'));
 
@@ -53,11 +50,20 @@ function runTopLayerTests(testCases) {
         assert_true(showing(),'top layer element should still be top layer');
         newPopover.showPopover();
         assert_true(newPopover.matches(':popover-open'));
-        popovers.forEach(popover => assert_equals(popover.matches(':popover-open'),popover.dataset.stayOpen==='true','Showing the popover shouldn\'t change anything'));
+        popovers.forEach(popover => {
+          let expected = popover.dataset.stayOpen === 'true';
+          // Only one hint popover chain can be open at a time; showing a new hint
+          // closes other non-ancestor hints.
+          if (popover.getAttribute('popover') === 'hint' && !popover.contains(newPopover)) {
+            expected = false;
+          }
+          assert_equals(popover.matches(':popover-open'), expected, 'Showing the popover shouldn\'t change anything');
+        });
         assert_true(showing(),'top layer element should still be top layer');
       },`${description} with ${topLayerType}`);
 
       promise_test(async t => {
+        await test_driver.bless('activate top layer');
         const {element,show,showing} = createTopLayerElement(t,topLayerType);
         element.popover = 'hint';
         target.appendChild(element);
@@ -74,7 +80,7 @@ function runTopLayerTests(testCases) {
         assert_equals(target.matches(':popover-open'),targetWasOpenPopover,'target shouldn\'t change popover state');
 
         try {
-          await show(element);
+          await show();
           assert_unreached('It is an error to activate a top layer element that is already a showing popover');
         } catch (e) {
           // We expect an InvalidStateError for dialogs, and a TypeError for fullscreens.

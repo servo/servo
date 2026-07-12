@@ -1,0 +1,8 @@
+#EXTM3U
+#EXT-X-TARGETDURATION:4.00
+#EXT-X-VERSION:3
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXTINF:4.00,
+http://{{domains[www1]}}:{{ports[http][0]}}/fetch/orb/resources/data.json
+#EXT-X-ENDLIST

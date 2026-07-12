@@ -122,6 +122,50 @@
   test_replacechildren(document.createElement('div'), 'Element');
   test_replacechildren(document.createDocumentFragment(), 'DocumentFragment');
 
+  // Document is special: replaceChildren removes the existing children (a
+  // doctype and a document element) before inserting, so the pre-insert
+  // validity checks must ignore them. See
+  // https://github.com/whatwg/dom/issues/1045.
+  test(() => {
+    const doc = document.implementation.createHTMLDocument("title");
+    const el = doc.createElement("a");
+    doc.replaceChildren(el);
+    assert_array_equals(doc.childNodes, [el]);
+  }, "Document.replaceChildren() with an element, replacing an existing doctype and element.");
+
+  test(() => {
+    const doc = document.implementation.createHTMLDocument("title");
+    const df = doc.createDocumentFragment();
+    const el = doc.createElement("a");
+    df.appendChild(el);
+    doc.replaceChildren(df);
+    assert_array_equals(doc.childNodes, [el]);
+  }, "Document.replaceChildren() with a DocumentFragment containing a single element, replacing an existing doctype and element.");
+
+  test(() => {
+    const doc = document.implementation.createHTMLDocument("title");
+    const doctype = doc.doctype.cloneNode();
+    doc.replaceChildren(doctype);
+    assert_array_equals(doc.childNodes, [doctype]);
+  }, "Document.replaceChildren() with a doctype, replacing an existing doctype and element.");
+
+  test(() => {
+    const doc = document.implementation.createHTMLDocument("title");
+    doc.replaceChildren();
+    assert_array_equals(doc.childNodes, []);
+  }, "Document.replaceChildren() without any argument, removing an existing doctype and element.");
+
+  test(() => {
+    const doc = document.implementation.createHTMLDocument("title");
+    assert_throws_dom("HierarchyRequestError",
+      () => doc.replaceChildren(doc.createElement("a"), doc.createElement("b")));
+  }, "Document.replaceChildren() with two elements throws a HierarchyRequestError.");
+
+  test(() => {
+    const doc = document.implementation.createHTMLDocument("title");
+    assert_throws_dom("HierarchyRequestError", () => doc.replaceChildren("text"));
+  }, "Document.replaceChildren() with text throws a HierarchyRequestError.");
+
   async_test(t => {
     let root = document.createElement("div");
     root.innerHTML = "<div id='a'>text<div id='b'>text2</div></div>";

@@ -35,6 +35,41 @@ promise_test(async t => {
     "executeTool() must reject with TypeError if 'origin' member is omitted"
   );
 }, "executeTool() rejects with TypeError when the required 'origin' dictionary member is omitted");
+
+promise_test(async t => {
+  await document.modelContext.registerTool({
+    name: "json-test-tool",
+    description: "Tool for JSON tests",
+    execute: async (args) => "success"
+  });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === "json-test-tool");
+  assert_true(!!tool, "Legitimate tool must be successfully discovered");
+
+  await promise_rejects_dom(
+    t,
+    "UnknownError",
+    document.modelContext.executeTool(tool, "invalid-json"),
+    "executeTool() must reject with UnknownError for invalid JSON input"
+  );
+}, "executeTool() rejects with UnknownError for invalid JSON arguments");
+
+promise_test(async t => {
+  const dummyTool = {
+    name: "non-existent-tool",
+    description: "dummy description",
+    window: window,
+    origin: self.origin
+  };
+
+  await promise_rejects_dom(
+    t,
+    "UnknownError",
+    document.modelContext.executeTool(dummyTool, "{}"),
+    "executeTool() must reject with UnknownError for non-existent tool object"
+  );
+}, "executeTool() rejects with UnknownError when a non-existent tool object is supplied");
 </script>
 </body>
 </html>

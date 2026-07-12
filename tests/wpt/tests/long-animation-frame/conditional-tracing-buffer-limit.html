@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: conditional tracing buffer limit</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: Conditional Tracing Buffer Limit</h1>
+<div id="log"></div>
+<script>
+setup(() =>
+  assert_implements(
+    "userTimingEntries" in PerformanceLongAnimationFrameTiming.prototype,
+    'conditional user timing for LoAF not implemented'));
+
+const segment_duration = very_long_frame_duration / 2;
+const kConditionalUserTimingBufferSize = 200;
+
+promise_test(async t => {
+  const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
+
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    t.add_cleanup(() => element.remove());
+    for (let i = 0; i < 50; i++) {
+      performance.markConditional("mark_repeat");
+    }
+    busy_wait(segment_duration);
+    for (let i = 0; i < 50; i++) {
+      performance.markConditional("mark1_" + i);
+    }
+    requestAnimationFrame(() => {
+      for (let i = 0; i < 50; i++) {
+        performance.markConditional("mark2_" + i);
+      }
+      busy_wait(segment_duration);
+      for (let i = 0; i < 50; i++) {
+        performance.markConditional("mark3_" + i);
+      }
+    });
+    new ResizeObserver(() => {
+      for (let i = 0; i < 50; i++) {
+        performance.markConditional("mark4_" + i);
+      }
+      busy_wait(segment_duration);
+      for (let i = 0; i < 50; i++) {
+        performance.markConditional("mark5_" + i);
+      }
+    }).observe(element);
+
+  }, t);
+
+  assert_not_equals(loaf_entry, "timeout");
+
+  const conditional_mark_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "mark-conditional");
+  assert_equals(conditional_mark_entries.length, kConditionalUserTimingBufferSize);
+
+}, 'conditional user timing entries are capped at ' + kConditionalUserTimingBufferSize);
+</script>
+</body>

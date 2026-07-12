@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline-offset">
+<link rel="match" href="outline-offset-inset-004-ref.html">
+<meta name="assert" content="outline-offset: inset renders the same as a negative outline-offset when CSS zoom is applied">
+<style>
+  div {
+    display: inline-block;
+    width: 80px;
+    height: 80px;
+    background: lightblue;
+    outline: 5px solid blue;
+    outline-offset: inset;
+    margin: 20px;
+  }
+</style>
+<div></div>
+<div style="zoom: 2"></div>

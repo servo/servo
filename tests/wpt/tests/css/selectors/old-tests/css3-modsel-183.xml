@@ -2,6 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
   <title>Syntax and parsing of class selectors</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="common.js"></script>
   <style type="text/css"><![CDATA[
 p { color: green; }
 ..test { background: red; color: yellow; }
@@ -12,11 +15,27 @@ p { color: green; }
   <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
  </head>
  <body>
-<p class="test">This text should be green.</p>
-<p class=".test">This text should be green.</p>
-<p class="foo">This text should be green.</p>
-<p class="foo quux">This text should be green.</p>
-<p class="foo  quux">This text should be green.</p>
-<p class=" bar ">This text should be green.</p>
+<p id="t1" class="test">This text should be green.</p>
+<p id="t2" class=".test">This text should be green.</p>
+<p id="t3" class="foo">This text should be green.</p>
+<p id="t4" class="foo quux">This text should be green.</p>
+<p id="t5" class="foo  quux">This text should be green.</p>
+<p id="t6" class=" bar ">This text should be green.</p>
+<script><![CDATA[
+test(function() {
+  assert_color('t1', GREEN);
+  assert_not_background_color('t1', RED);
+  assert_color('t2', GREEN);
+  assert_not_background_color('t2', RED);
+  assert_color('t3', GREEN);
+  assert_not_background_color('t3', RED);
+  assert_color('t4', GREEN);
+  assert_not_background_color('t4', RED);
+  assert_color('t5', GREEN);
+  assert_not_background_color('t5', RED);
+  assert_color('t6', GREEN);
+  assert_not_background_color('t6', RED);
+}, 'Syntax and parsing of class selectors');
+]]></script>
 </body>
 </html>

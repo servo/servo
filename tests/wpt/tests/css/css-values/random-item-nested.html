@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-random-item">
+<link rel="author" title="Joanne Pan" href="https://github.com/J0pan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+
+const target = document.getElementById('target');
+
+// Nested random-item(): the inner function resolves after the outer selects it.
+test(() => {
+    target.style.color = 'green';
+    target.style.color = 'random-item(fixed 0, random-item(fixed 0.999, red, rgb(1, 2, 3)), blue)';
+    assert_equals(getComputedStyle(target).color, 'rgb(1, 2, 3)');
+}, 'random-item() nested inside random-item()');
+
+// random-item() inside a var() reference.
+test(() => {
+    target.style.cssText = '--list: random-item(fixed 0, rgb(1, 2, 3), rgb(4, 5, 6)); color: var(--list);';
+    assert_equals(getComputedStyle(target).color, 'rgb(1, 2, 3)');
+}, 'random-item() resolved through var()');
+
+// random-item() as a var() fallback.
+test(() => {
+    target.style.cssText = 'color: var(--missing, random-item(fixed 0, rgb(7, 8, 9), blue));';
+    assert_equals(getComputedStyle(target).color, 'rgb(7, 8, 9)');
+}, 'random-item() used as a var() fallback');
+
+// random-item() feeding a shorthand property.
+test(() => {
+    target.style.margin = '';
+    target.style.margin = 'random-item(fixed 0, 1px 2px, 3px 4px)';
+    const style = getComputedStyle(target);
+    assert_equals(style.marginTop, '1px');
+    assert_equals(style.marginRight, '2px');
+}, 'random-item() expands in a shorthand property');
+
+</script>

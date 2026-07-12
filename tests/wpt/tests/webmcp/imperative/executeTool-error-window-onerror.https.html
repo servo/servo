@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP failed tool execution does not fire window.onerror</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  let errorFired = false;
+  const errorHandler = () => {
+    errorFired = true;
+  };
+  window.addEventListener('error', errorHandler);
+  t.add_cleanup(() => {
+    window.removeEventListener('error', errorHandler);
+  });
+
+  // Register a tool that throws an error when executed.
+  await document.modelContext.registerTool({
+    name: 'throwing_tool',
+    description: 'A tool that throws an error',
+    execute: async () => {
+      throw new Error('Tool execution failed intentionally');
+    }
+  });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'throwing_tool');
+  assert_true(!!tool, 'Should find the registered tool');
+
+  // `executeTool()` should reject since the tool execution failed.
+  await promise_rejects_dom(t, 'UnknownError',
+      document.modelContext.executeTool(tool, '{}'),
+      'executeTool() rejects when the tool execution throws');
+
+  assert_false(errorFired, 'window.onerror/error event should not be fired');
+}, 'Failed tool execution does not trigger window.onerror');
+</script>
+</body>
+</html>

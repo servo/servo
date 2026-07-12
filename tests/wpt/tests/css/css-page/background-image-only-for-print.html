@@ -6,6 +6,12 @@
 
 <link rel="match" href="background-image-only-for-print-ref.html">
 
+<!--
+  Preload the image while in screen media so it is ready when we switch
+  to print media for the reftest snapshot.
+-->
+<link rel="preload" as="image" href="/images/green.png">
+
 <style>
   @media not print {
     .print-only {

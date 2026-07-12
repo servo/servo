@@ -1,0 +1,9 @@
+{
+  "name": "WPT browser.alarms Test",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": ["alarms"],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

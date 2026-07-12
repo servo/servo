@@ -10,7 +10,6 @@
 <script>
 promise_test(async (t) => {
   const usermedia = document.createElement('usermedia');
-  usermedia.setConstraints({video: {}});
   document.body.appendChild(usermedia);
 
   let stream_fired = false;
@@ -25,6 +24,7 @@ promise_test(async (t) => {
 
   // Explicitly deny the permission to simulate user click-deny
   await test_driver.set_permission({name: 'camera'}, 'denied');
+  await test_driver.set_permission({name: 'microphone'}, 'denied');
 
   // Wait until clickable
   await new Promise(resolve => t.step_timeout(resolve, PEPC_CLICK_DELAY));

@@ -22,6 +22,7 @@ test_computed_value("outline-offset", "10px");
 test_computed_value("outline-offset", "0.5em", "20px");
 test_computed_value("outline-offset", "calc(10px + 0.5em)", "30px");
 test_computed_value("outline-offset", "calc(10px - 0.5em)", "-10px");
+test_computed_value("outline-offset", "inset");
 
 test(() => {
   target.style['outline-offset'] = '10px';
