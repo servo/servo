@@ -101,7 +101,7 @@ impl ImageData {
                 return Err(Error::InvalidState(None));
             }
             // 3. Initialize the data attribute of imageData to source.
-            HeapBufferSource::<ClampedU8>::from_view(source)
+            HeapBufferSource::<ClampedU8>::from_view(cx, source)
         } else {
             // 2. Otherwise (source was not given):
             match settings.pixelFormat {

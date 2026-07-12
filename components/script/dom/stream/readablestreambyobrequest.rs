@@ -105,7 +105,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         cx: &mut JSContext,
         view: CustomAutoRooterGuard<ArrayBufferView>,
     ) -> Fallible<()> {
-        let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(view);
+        let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(cx, view);
 
         // If this.[[controller]] is undefined, throw a TypeError exception.
         let controller = if let Some(controller) = self.controller.get() {

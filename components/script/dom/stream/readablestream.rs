@@ -69,7 +69,7 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::StructuredData;
 
 use super::readablestreambyobreader::ReadIntoRequest;
-use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource, create_buffer_source};
+use crate::dom::bindings::buffer_source::{HeapBufferSource, create_buffer_source};
 
 /// State Machine for `PipeTo`.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
@@ -1159,7 +1159,7 @@ impl ReadableStream {
                     .expect("failed to create buffer source for native byte chunk.");
 
                 let chunk = RootedTraceableBox::new(HeapBufferSource::<ArrayBufferViewU8>::new(
-                    BufferSource::ArrayBufferView(Heap::boxed(*chunk_object.handle())),
+                    chunk_object.handle(),
                 ));
                 controller
                     .enqueue(cx, chunk)
