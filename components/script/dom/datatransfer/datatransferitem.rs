@@ -149,8 +149,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
         // Step 2 If the drag data item kind is not File, then return null.
         // Step 3 Return a new File object representing the actual data
         // of the item represented by the DataTransferItem object.
-        self.item_kind()
-            .and_then(|item| item.as_file(cx, &self.global()))
+        self.item_kind()?.as_file(cx, &self.global())
     }
 
     /// <https://wicg.github.io/entries-api/#dom-datatransferitem-webkitgetasentry>
