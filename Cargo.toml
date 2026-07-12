@@ -153,7 +153,7 @@ mime = "0.3.13"
 mime_guess = "2.0.5"
 ml-dsa = { version = "0.1", features = ["zeroize"] }
 ml-kem = { version = "0.3", features = ["getrandom", "pkcs8", "zeroize"] }
-mozangle = "0.5.5"
+mozangle = { version = "0.6" }
 napi-derive-ohos = "1.2.0"
 napi-ohos = "1.2.0"
 nix = "0.30"

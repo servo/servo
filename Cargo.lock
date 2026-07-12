@@ -5231,9 +5231,9 @@ dependencies = [
 
 [[package]]
 name = "mozangle"
-version = "0.5.5"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "298bc7f83d5cca3789e47779e92cda492b75f11e03995bf558475bd9df2f639b"
+checksum = "60b428c032f0af701a3ca440c92e7b552c25b2a5af2b08a85077ee8e9d2ae699"
 dependencies = [
  "bindgen",
  "cc",
