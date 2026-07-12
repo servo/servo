@@ -26,7 +26,7 @@ use js::rust::wrappers2::{
 };
 use js::rust::{
     CapturedJSStack, HandleObject, HandleValue, IdVector, ToNumber, ToString,
-    describe_scripted_caller, for_of,
+    describe_scripted_caller_safe, for_of,
 };
 use script_bindings::conversions::get_dom_class;
 
@@ -47,14 +47,13 @@ const MAX_LOG_CHILDREN: usize = 15;
 pub(crate) struct Console;
 
 impl Console {
-    #[expect(unsafe_code)]
     fn build_message(
         cx: &mut JSContext,
         level: ConsoleLogLevel,
         arguments: Vec<DebuggerValue>,
         stacktrace: Option<Vec<StackFrame>>,
     ) -> ConsoleMessage {
-        let caller = unsafe { describe_scripted_caller(cx.raw_cx()) }.unwrap_or_default();
+        let caller = describe_scripted_caller_safe(cx).unwrap_or_default();
 
         ConsoleMessage {
             fields: ConsoleMessageFields {
