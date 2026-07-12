@@ -192,10 +192,14 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
                         *this.context.SampleRate(),
                         Some(processed_audio.as_slice()),
                     );
-                    (*this.pending_rendering_promise.borrow_mut())
-                        .take()
-                        .unwrap()
-                        .resolve_native(cx, &buffer);
+                    let promise = {
+                        (*this
+                            .pending_rendering_promise
+                            .safe_borrow_mut(cx.no_gc()))
+                            .take()
+                            .unwrap()
+                    };
+                    promise.resolve_native(cx, &buffer);
                     let global = &this.global();
                     let window = global.as_window();
                     let event = OfflineAudioCompletionEvent::new(cx, window,

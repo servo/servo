@@ -163,7 +163,7 @@ impl AudioBuffer {
             self.length as usize,
             self.sample_rate,
         );
-        for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
+        for (i, channel) in self.js_channels.borrow().iter().enumerate() {
             // Step 1.
             if !channel.is_initialized() {
                 return None;
