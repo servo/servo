@@ -245,14 +245,13 @@ pub fn instrument_all(attr: TokenStream, item: TokenStream) -> TokenStream {
     match parsed_item {
         Item::Impl(mut impl_block) => {
             for item in impl_block.items.iter_mut() {
-                if let ImplItem::Fn(method) = item {
-                    if should_apply_instrument_method(method) {
-                        let transformed =
-                            instrument_internal(attr.clone(), method.to_token_stream())
-                                .unwrap()
-                                .into();
-                        *method = syn::parse_macro_input!(transformed as syn::ImplItemFn)
-                    }
+                if let ImplItem::Fn(method) = item &&
+                    should_apply_instrument_method(method)
+                {
+                    let transformed = instrument_internal(attr.clone(), method.to_token_stream())
+                        .unwrap()
+                        .into();
+                    *method = syn::parse_macro_input!(transformed as syn::ImplItemFn)
                 }
             }
             TokenStream::from(quote!(#impl_block))
