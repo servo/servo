@@ -872,8 +872,8 @@ impl PlatformWindow for HeadedWindow {
         let inner_size = self.winit_window.inner_size();
         let outer_size = self.winit_window.outer_size();
         let decoration_size: DeviceIntSize = Size2D::new(
-            outer_size.height - inner_size.height,
             outer_size.width - inner_size.width,
+            outer_size.height - inner_size.height,
         )
         .cast();
 
