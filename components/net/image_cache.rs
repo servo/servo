@@ -819,8 +819,7 @@ pub struct ImageCacheFactoryImpl {
 impl ImageCacheFactoryImpl {
     pub fn new(broken_image_icon_data: Vec<u8>) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
-        let mut fontdb = fontdb::Database::new();
-        fontdb.load_system_fonts();
+        let fontdb = fontdb::Database::new();
 
         Self {
             broken_image_icon_data: Arc::new(broken_image_icon_data),

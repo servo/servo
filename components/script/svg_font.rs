@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use app_units::Au;
 use fonts::{FontContext, FontDescriptor, FontFamilyDescriptor, FontSearchScope};
 use net_traits::image_cache::FontResolver;
 use resvg::usvg::{Font, FontFamily, FontStretch, FontStyle, fontdb};
+use rustc_hash::FxHashMap;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::values::computed::font::{
@@ -19,7 +20,18 @@ use style::values::computed::{
 use webrender_api::FontVariation;
 
 pub struct SvgFontResolver {
-    pub context: Arc<FontContext>,
+    /// Cache for Font to ID
+    font_id_cache: Mutex<FxHashMap<Font, fontdb::ID>>,
+    context: Arc<FontContext>,
+}
+
+impl SvgFontResolver {
+    pub(crate) fn new(context: Arc<FontContext>) -> Self {
+        Self {
+            font_id_cache: Mutex::new(FxHashMap::default()),
+            context,
+        }
+    }
 }
 
 fn convert_font_descriptor(font: &Font) -> FontDescriptor {
@@ -76,35 +88,49 @@ fn convert_font_family(family: &FontFamily) -> SingleFontFamily {
     }
 }
 
+/// Insert the font into the database in [`SvgFontResolver`] and into the cache.
+fn insert_into_database(
+    resolver: &SvgFontResolver,
+    font: &Font,
+    database: &mut Arc<fontdb::Database>,
+) -> Option<fontdb::ID> {
+    let font_descriptor = convert_font_descriptor(font);
+
+    for family in font.families() {
+        let family_descriptor =
+            FontFamilyDescriptor::new(convert_font_family(family), FontSearchScope::Any);
+        let Some(font_template) = resolver
+            .context
+            .matching_templates(&font_descriptor, &family_descriptor)
+            .into_iter()
+            .next()
+        else {
+            continue;
+        };
+        let Some(font) = resolver.context.font(font_template, &font_descriptor) else {
+            continue;
+        };
+        let Ok(data_and_index) = font.font_data_and_index() else {
+            continue;
+        };
+        let ids = Arc::make_mut(database).load_font_source(fontdb::Source::Binary(
+            data_and_index.data.as_ipc_shared_memory(),
+        ));
+        if let Some(id) = ids.get(data_and_index.index as usize).copied() {
+            return Some(id);
+        }
+    }
+
+    None
+}
+
 impl FontResolver for SvgFontResolver {
     fn resolve(&self, font: &Font, database: &mut Arc<fontdb::Database>) -> Option<fontdb::ID> {
-        let font_descriptor = convert_font_descriptor(font);
-
-        for family in font.families() {
-            let family_descriptor =
-                FontFamilyDescriptor::new(convert_font_family(family), FontSearchScope::Any);
-            let Some(font_template) = self
-                .context
-                .matching_templates(&font_descriptor, &family_descriptor)
-                .into_iter()
-                .next()
-            else {
-                continue;
-            };
-            let Some(font) = self.context.font(font_template, &font_descriptor) else {
-                continue;
-            };
-            let Ok(data_and_index) = font.font_data_and_index() else {
-                continue;
-            };
-            let ids = Arc::make_mut(database).load_font_source(fontdb::Source::Binary(Arc::new(
-                data_and_index.data.clone(),
-            )));
-            if let Some(id) = ids.get(data_and_index.index as usize).copied() {
-                return Some(id);
-            }
+        let id_cache = self.font_id_cache.lock().unwrap();
+        if let Some(font_id) = id_cache.get(font) {
+            Some(*font_id)
+        } else {
+            insert_into_database(self, font, database)
         }
-
-        None
     }
 }
