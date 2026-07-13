@@ -721,11 +721,21 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         // Step 2: Let definition be the result of looking up a custom element definition
-        // Note: the element can pass this check without yet being a custom
-        // element, as long as there is a registered definition
-        // that could upgrade it to one later.
+        let lookup_registry = {
+            // TODO: Remove this fallback when Node::adopt is aligned according to specs.
+            //       Currently elements carry stale global registry from another document.
+            let registry = self.as_element().custom_element_registry();
+            if registry
+                .as_ref()
+                .is_some_and(|registry| registry.is_scoped())
+            {
+                registry
+            } else {
+                self.upcast::<Node>().owner_doc().custom_element_registry()
+            }
+        };
         let definition = CustomElementRegistry::lookup_custom_element_definition(
-            self.as_element().custom_element_registry().as_deref(),
+            lookup_registry.as_deref(),
             self.upcast::<Element>().namespace(),
             self.as_element().local_name(),
             None,

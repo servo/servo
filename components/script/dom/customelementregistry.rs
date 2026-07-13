@@ -1165,8 +1165,21 @@ pub(crate) fn try_upgrade_element(cx: &JSContext, element: &Element) {
     // Step 1. Let definition be the result of looking up a custom element
     // definition given element's custom element registry, element's namespace,
     // element's local name, and element's is value.
+    let lookup_registry = {
+        // TODO: Remove this fallback when Node::adopt is aligned according to specs.
+        //       Currently elements carry stale global registry from another document.
+        let registry = element.custom_element_registry();
+        if registry
+            .as_ref()
+            .is_some_and(|registry| registry.is_scoped())
+        {
+            registry
+        } else {
+            element.owner_document().custom_element_registry()
+        }
+    };
     if let Some(definition) = CustomElementRegistry::lookup_custom_element_definition(
-        element.custom_element_registry().as_deref(),
+        lookup_registry.as_deref(),
         element.namespace(),
         element.local_name(),
         element.get_is().as_ref(),
