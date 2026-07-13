@@ -85,6 +85,10 @@ fontconfig_sys = { workspace = true }
 [target.'cfg(target_os = "android")'.dependencies]
 xml = { workspace = true }
 
+[target.'cfg(any(target_os = "android",target_env = "ohos"))'.dependencies]
+# Always bundle freetype on android and openharmony
+freetype-sys = { workspace = true, features = ["bundled"] }
+
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = { workspace = true }
 harfbuzz-sys = { workspace = true, features = ["directwrite"] }
