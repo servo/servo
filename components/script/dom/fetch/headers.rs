@@ -377,20 +377,20 @@ impl Iterable for Headers {
     type Key = ByteString;
     type Value = ByteString;
 
-    fn get_iterable_length(&self) -> u32 {
+    fn get_iterable_length(&self, _cx: &mut JSContext) -> u32 {
         let sorted_header_vec = self.sort_and_combine();
         sorted_header_vec.len() as u32
     }
 
-    fn get_value_at_index(&self, n: u32) -> ByteString {
+    fn get_value_at_index(&self, _cx: &mut JSContext, index: u32) -> ByteString {
         let sorted_header_vec = self.sort_and_combine();
-        let value = sorted_header_vec[n as usize].1.clone();
+        let value = sorted_header_vec[index as usize].1.clone();
         ByteString::new(value)
     }
 
-    fn get_key_at_index(&self, n: u32) -> ByteString {
+    fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> ByteString {
         let sorted_header_vec = self.sort_and_combine();
-        let key = sorted_header_vec[n as usize].0.clone();
+        let key = sorted_header_vec[index as usize].0.clone();
         ByteString::new(key.into_bytes().to_vec())
     }
 }

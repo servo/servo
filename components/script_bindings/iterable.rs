@@ -46,12 +46,13 @@ pub trait Iterable {
     type Key: ToJSValConvertible;
     /// The type of the value of the iterator pair.
     type Value: ToJSValConvertible;
+
     /// Return the number of entries that can be iterated over.
-    fn get_iterable_length(&self) -> u32;
+    fn get_iterable_length(&self, cx: &mut JSContext) -> u32;
     /// Return the value at the provided index.
-    fn get_value_at_index(&self, index: u32) -> Self::Value;
+    fn get_value_at_index(&self, cx: &mut JSContext, index: u32) -> Self::Value;
     /// Return the key at the provided index.
-    fn get_key_at_index(&self, index: u32) -> Self::Key;
+    fn get_key_at_index(&self, cx: &mut JSContext, index: u32) -> Self::Key;
 }
 
 /// A version of the [IDLInterface] trait that is specific to types that have
@@ -115,29 +116,29 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
     pub fn Next(&self, cx: &mut JSContext, return_value: MutableHandleObject) -> Fallible<()> {
         let index = self.index.get();
         rooted!(&in(cx) let mut value = UndefinedValue());
-        let result = if index >= self.iterable.get_iterable_length() {
+        let result = if index >= self.iterable.get_iterable_length(cx) {
             dict_return(cx, return_value, true, value.handle())
         } else {
             match self.type_ {
                 IteratorType::Keys => {
                     self.iterable
-                        .get_key_at_index(index)
+                        .get_key_at_index(cx, index)
                         .safe_to_jsval(cx, value.handle_mut());
                     dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Values => {
                     self.iterable
-                        .get_value_at_index(index)
+                        .get_value_at_index(cx, index)
                         .safe_to_jsval(cx, value.handle_mut());
                     dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Entries => {
                     rooted!(&in(cx) let mut key = UndefinedValue());
                     self.iterable
-                        .get_key_at_index(index)
+                        .get_key_at_index(cx, index)
                         .safe_to_jsval(cx, key.handle_mut());
                     self.iterable
-                        .get_value_at_index(index)
+                        .get_value_at_index(cx, index)
                         .safe_to_jsval(cx, value.handle_mut());
                     key_and_value_return(cx, return_value, key.handle(), value.handle())
                 },

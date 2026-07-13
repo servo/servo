@@ -282,7 +282,7 @@ impl Setlike for FontFaceSet {
     type Key = DomRoot<FontFace>;
 
     #[inline(always)]
-    fn get_index(&self, index: u32) -> Option<Self::Key> {
+    fn get_index(&self, _cx: &mut JSContext, index: u32) -> Option<Self::Key> {
         self.set_entries
             .borrow()
             .get(index as usize)
@@ -290,27 +290,27 @@ impl Setlike for FontFaceSet {
     }
 
     #[inline(always)]
-    fn size(&self) -> u32 {
+    fn size(&self, _cx: &mut JSContext) -> u32 {
         self.set_entries.borrow().len() as u32
     }
 
     #[inline(always)]
-    fn add(&self, face: Self::Key) {
+    fn add(&self, _cx: &mut JSContext, face: Self::Key) {
         self.set_entries.borrow_mut().push(face.as_traced());
     }
 
     #[inline(always)]
-    fn has(&self, target: Self::Key) -> bool {
+    fn has(&self, _cx: &mut JSContext, target: Self::Key) -> bool {
         self.contains_face(&target)
     }
 
     #[inline(always)]
-    fn clear(&self) {
+    fn clear(&self, _cx: &mut JSContext) {
         self.set_entries.borrow_mut().clear();
     }
 
     #[inline(always)]
-    fn delete(&self, to_delete: Self::Key) -> bool {
+    fn delete(&self, _cx: &mut JSContext, to_delete: Self::Key) -> bool {
         self.delete_face(&to_delete)
     }
 }

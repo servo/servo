@@ -7,6 +7,7 @@
 use std::hash::Hash;
 
 use indexmap::{IndexMap, IndexSet};
+use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 
 use crate::cell::DomRefCell;
@@ -21,13 +22,13 @@ pub trait Setlike {
     /// The type of the key of the set.
     type Key: ToJSValConvertible + Clone; // clone is for impl<T: Setlike> Maplike for T
 
-    fn get_index(&self, index: u32) -> Option<Self::Key>;
+    fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<Self::Key>;
 
-    fn size(&self) -> u32;
-    fn add(&self, key: Self::Key);
-    fn has(&self, key: Self::Key) -> bool;
-    fn clear(&self);
-    fn delete(&self, key: Self::Key) -> bool;
+    fn size(&self, cx: &mut JSContext) -> u32;
+    fn add(&self, cx: &mut JSContext, key: Self::Key);
+    fn has(&self, cx: &mut JSContext, key: Self::Key) -> bool;
+    fn clear(&self, cx: &mut JSContext);
+    fn delete(&self, cx: &mut JSContext, key: Self::Key) -> bool;
 }
 
 // we can only have one iterable for T
@@ -39,32 +40,32 @@ impl<T: Setlike> Maplike for T {
     type Value = <T as Setlike>::Key;
 
     #[inline]
-    fn get_index(&self, index: u32) -> Option<(Self::Key, Self::Value)> {
-        self.get_index(index).map(|k| (k.clone(), k))
+    fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<(Self::Key, Self::Value)> {
+        self.get_index(cx, index).map(|k| (k.clone(), k))
     }
 
-    fn get(&self, _key: Self::Key) -> Option<Self::Value> {
+    fn get(&self, _cx: &mut JSContext, _key: Self::Key) -> Option<Self::Value> {
         unimplemented!()
     }
 
     #[inline]
-    fn size(&self) -> u32 {
-        self.size()
+    fn size(&self, cx: &mut JSContext) -> u32 {
+        self.size(cx)
     }
 
-    fn set(&self, _key: Self::Key, _value: Self::Value) {
+    fn set(&self, _cx: &mut JSContext, _key: Self::Key, _value: Self::Value) {
         unimplemented!()
     }
 
-    fn has(&self, _key: Self::Key) -> bool {
+    fn has(&self, _cx: &mut JSContext, _key: Self::Key) -> bool {
         unimplemented!()
     }
 
-    fn clear(&self) {
+    fn clear(&self, _cx: &mut JSContext) {
         unimplemented!()
     }
 
-    fn delete(&self, _key: Self::Key) -> bool {
+    fn delete(&self, _cx: &mut JSContext, _key: Self::Key) -> bool {
         unimplemented!()
     }
 }
@@ -81,14 +82,14 @@ pub trait Maplike {
     /// The type of the value of the map.
     type Value: ToJSValConvertible;
 
-    fn get_index(&self, index: u32) -> Option<(Self::Key, Self::Value)>;
+    fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<(Self::Key, Self::Value)>;
 
-    fn get(&self, key: Self::Key) -> Option<Self::Value>;
-    fn size(&self) -> u32;
-    fn set(&self, key: Self::Key, value: Self::Value);
-    fn has(&self, key: Self::Key) -> bool;
-    fn clear(&self);
-    fn delete(&self, key: Self::Key) -> bool;
+    fn get(&self, cx: &mut JSContext, key: Self::Key) -> Option<Self::Value>;
+    fn size(&self, cx: &mut JSContext) -> u32;
+    fn set(&self, cx: &mut JSContext, key: Self::Key, value: Self::Value);
+    fn has(&self, cx: &mut JSContext, key: Self::Key) -> bool;
+    fn clear(&self, cx: &mut JSContext);
+    fn delete(&self, cx: &mut JSContext, key: Self::Key) -> bool;
 }
 
 impl<T: Maplike> Iterable for T {
@@ -97,20 +98,20 @@ impl<T: Maplike> Iterable for T {
     type Value = T::Value;
 
     #[inline]
-    fn get_iterable_length(&self) -> u32 {
-        self.size()
+    fn get_iterable_length(&self, cx: &mut JSContext) -> u32 {
+        self.size(cx)
     }
 
     #[inline]
-    fn get_value_at_index(&self, index: u32) -> <T as Maplike>::Value {
-        // SAFETY: we are checking bounds manually
-        self.get_index(index).unwrap().1
+    fn get_value_at_index(&self, cx: &mut JSContext, index: u32) -> <T as Maplike>::Value {
+        // We are checking bounds manually
+        self.get_index(cx, index).unwrap().1
     }
 
     #[inline]
-    fn get_key_at_index(&self, index: u32) -> <T as Maplike>::Key {
-        // SAFETY: we are checking bounds manually
-        self.get_index(index).unwrap().0
+    fn get_key_at_index(&self, cx: &mut JSContext, index: u32) -> <T as Maplike>::Key {
+        // We are checking bounds manually
+        self.get_index(cx, index).unwrap().0
     }
 }
 
@@ -123,39 +124,39 @@ where
     type Value = V;
 
     #[inline(always)]
-    fn get_index(&self, index: u32) -> Option<(Self::Key, Self::Value)> {
+    fn get_index(&self, _cx: &mut JSContext, index: u32) -> Option<(Self::Key, Self::Value)> {
         self.borrow()
             .get_index(index as usize)
             .map(|(k, v)| (k.to_owned(), v.to_owned()))
     }
 
     #[inline(always)]
-    fn get(&self, key: Self::Key) -> Option<Self::Value> {
+    fn get(&self, _cx: &mut JSContext, key: Self::Key) -> Option<Self::Value> {
         self.borrow().get(&key).cloned()
     }
 
     #[inline(always)]
-    fn size(&self) -> u32 {
+    fn size(&self, _cx: &mut JSContext) -> u32 {
         self.borrow().len() as u32
     }
 
     #[inline(always)]
-    fn set(&self, key: Self::Key, value: Self::Value) {
+    fn set(&self, _cx: &mut JSContext, key: Self::Key, value: Self::Value) {
         self.borrow_mut().insert(key, value);
     }
 
     #[inline(always)]
-    fn has(&self, key: Self::Key) -> bool {
+    fn has(&self, _cx: &mut JSContext, key: Self::Key) -> bool {
         self.borrow().contains_key(&key)
     }
 
     #[inline(always)]
-    fn clear(&self) {
+    fn clear(&self, _cx: &mut JSContext) {
         self.borrow_mut().clear()
     }
 
     #[inline(always)]
-    fn delete(&self, key: Self::Key) -> bool {
+    fn delete(&self, _cx: &mut JSContext, key: Self::Key) -> bool {
         self.borrow_mut().shift_remove(&key).is_some()
     }
 }
@@ -167,32 +168,32 @@ where
     type Key = K;
 
     #[inline(always)]
-    fn get_index(&self, index: u32) -> Option<Self::Key> {
+    fn get_index(&self, _cx: &mut JSContext, index: u32) -> Option<Self::Key> {
         self.borrow().get_index(index as usize).cloned()
     }
 
     #[inline(always)]
-    fn size(&self) -> u32 {
+    fn size(&self, _cx: &mut JSContext) -> u32 {
         self.borrow().len() as u32
     }
 
     #[inline(always)]
-    fn add(&self, key: Self::Key) {
+    fn add(&self, _cx: &mut JSContext, key: Self::Key) {
         self.borrow_mut().insert(key);
     }
 
     #[inline(always)]
-    fn has(&self, key: Self::Key) -> bool {
+    fn has(&self, _cx: &mut JSContext, key: Self::Key) -> bool {
         self.borrow().contains(&key)
     }
 
     #[inline(always)]
-    fn clear(&self) {
+    fn clear(&self, _cx: &mut JSContext) {
         self.borrow_mut().clear()
     }
 
     #[inline(always)]
-    fn delete(&self, key: Self::Key) -> bool {
+    fn delete(&self, _cx: &mut JSContext, key: Self::Key) -> bool {
         self.borrow_mut().shift_remove(&key)
     }
 }

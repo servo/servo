@@ -19,33 +19,33 @@
 macro_rules! setlike {
     ( $self:ident, $x:ident ) => {
         #[inline(always)]
-        fn get_index(&$self, index: u32) -> Option<Self::Key> {
-            $self.$x.get_index(index)
+        fn get_index(&$self, cx: &mut ::js::context::JSContext, index: u32) -> Option<Self::Key> {
+            $self.$x.get_index(cx, index)
         }
 
         #[inline(always)]
-        fn size(&$self) -> u32 {
-            $self.$x.size()
+        fn size(&$self, cx: &mut ::js::context::JSContext) -> u32 {
+            $self.$x.size(cx)
         }
 
         #[inline(always)]
-        fn add(&$self, key: Self::Key) {
-            $self.$x.add(key)
+        fn add(&$self, cx: &mut ::js::context::JSContext, key: Self::Key) {
+            $self.$x.add(cx, key)
         }
 
         #[inline(always)]
-        fn has(&$self, key: Self::Key) -> bool {
-            $self.$x.has(key)
+        fn has(&$self, cx: &mut ::js::context::JSContext, key: Self::Key) -> bool {
+            $self.$x.has(cx, key)
         }
 
         #[inline(always)]
-        fn clear(&$self) {
-            $self.$x.clear()
+        fn clear(&$self, cx: &mut ::js::context::JSContext) {
+            $self.$x.clear(cx)
         }
 
         #[inline(always)]
-        fn delete(&$self, key: Self::Key) -> bool {
-            $self.$x.delete(key)
+        fn delete(&$self, cx: &mut ::js::context::JSContext, key: Self::Key) -> bool {
+            $self.$x.delete(cx, key)
         }
     };
 }
@@ -66,38 +66,38 @@ macro_rules! setlike {
 macro_rules! maplike {
     ( $self:ident, $internal:ident ) => {
         #[inline(always)]
-        fn get_index(&$self, index: u32) -> Option<(Self::Key, Self::Value)> {
-            $self.$internal.get_index(index)
+        fn get_index(&$self, cx: &mut ::js::context::JSContext, index: u32) -> Option<(Self::Key, Self::Value)> {
+            $self.$internal.get_index(cx, index)
         }
 
         #[inline(always)]
-        fn get(&$self, key: Self::Key) -> Option<Self::Value> {
-            $self.$internal.get(key)
+        fn get(&$self, cx: &mut ::js::context::JSContext, key: Self::Key) -> Option<Self::Value> {
+            $self.$internal.get(cx, key)
         }
 
         #[inline(always)]
-        fn size(&$self) -> u32 {
-            $self.$internal.size()
+        fn size(&$self, cx: &mut ::js::context::JSContext) -> u32 {
+            $self.$internal.size(cx)
         }
 
         #[inline(always)]
-        fn set(&$self, key: Self::Key, value: Self::Value) {
-            $self.$internal.set(key, value)
+        fn set(&$self, cx: &mut ::js::context::JSContext, key: Self::Key, value: Self::Value) {
+            $self.$internal.set(cx, key, value)
         }
 
         #[inline(always)]
-        fn has(&$self, key: Self::Key) -> bool {
-            $self.$internal.has(key)
+        fn has(&$self, cx: &mut ::js::context::JSContext, key: Self::Key) -> bool {
+            $self.$internal.has(cx, key)
         }
 
         #[inline(always)]
-        fn clear(&$self) {
-            $self.$internal.clear()
+        fn clear(&$self, cx: &mut ::js::context::JSContext) {
+            $self.$internal.clear(cx)
         }
 
         #[inline(always)]
-        fn delete(&$self, key: Self::Key) -> bool {
-            $self.$internal.delete(key)
+        fn delete(&$self, cx: &mut ::js::context::JSContext, key: Self::Key) -> bool {
+            $self.$internal.delete(cx, key)
         }
     };
 }

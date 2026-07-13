@@ -234,17 +234,17 @@ impl Iterable for URLSearchParams {
     type Key = USVString;
     type Value = USVString;
 
-    fn get_iterable_length(&self) -> u32 {
+    fn get_iterable_length(&self, _cx: &mut JSContext) -> u32 {
         self.list.borrow().len() as u32
     }
 
-    fn get_value_at_index(&self, n: u32) -> USVString {
-        let value = self.list.borrow()[n as usize].1.clone();
+    fn get_value_at_index(&self, _cx: &mut JSContext, index: u32) -> USVString {
+        let value = self.list.borrow()[index as usize].1.clone();
         USVString(value)
     }
 
-    fn get_key_at_index(&self, n: u32) -> USVString {
-        let key = self.list.borrow()[n as usize].0.clone();
+    fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> USVString {
+        let key = self.list.borrow()[index as usize].0.clone();
         USVString(key)
     }
 }
