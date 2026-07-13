@@ -281,11 +281,10 @@ impl FontList {
 
     /// Detect available fonts or fallback to a hardcoded list
     fn detect_installed_font_families() -> Vec<FontFamily> {
-        let mut families = enumerate_font_files()
+        enumerate_font_files()
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
             .map(get_system_font_families)
-            .unwrap_or_else(|_| FontList::fallback_font_families());
-        families
+            .unwrap_or_else(|_| FontList::fallback_font_families())
     }
 
     fn fallback_font_families() -> Vec<FontFamily> {
