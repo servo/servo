@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{RefCell, RefMut};
-use std::collections::HashSet;
 use std::{cmp, fmt, hash};
 
 use malloc_size_of::MallocSizeOf as MallocSizeOfTrait;
@@ -13,6 +12,7 @@ use petgraph::algo::tarjan_scc;
 use petgraph::graph::DefaultIx;
 use petgraph::stable_graph::{NodeIndex, StableGraph};
 use petgraph::visit::{DfsPostOrder, EdgeRef, Reversed};
+use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
 
 use crate::block::{Block, Chunk};
@@ -548,13 +548,14 @@ impl AudioGraph {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#rendering-loop>
-    fn cycle_nodes(&self) -> HashSet<NodeIndex<DefaultIx>> {
-        let mut cycle_nodes = HashSet::new();
+    fn cycle_nodes(&self) -> FxHashSet<NodeIndex<DefaultIx>> {
+        let mut cycle_nodes = FxHashSet::default();
         // Step 4.2.4. Let cycle breakers be an empty set of DelayNodes.
-        // Step 4.2.5. If node is a DelayNode that is part of a cycle, add it
-        // to cycle breakers and remove it from nodes.
-        // Step 4.2.6. For each DelayNode in cycle breakers, replace it with a
-        // DelayWriter and DelayReader to break the cycle.
+
+        // TODO: Step 4.2.5. If node is a DelayNode that is part of a cycle,
+        // add it to cycle breakers and remove it from nodes.
+        // TODO: Step 4.2.6. For each DelayNode in cycle breakers, replace it
+        // with a DelayWriter and DelayReader to break the cycle.
         for component in tarjan_scc(&self.graph) {
             let is_cycle = component.len() > 1 ||
                 component
@@ -590,13 +591,13 @@ impl AudioGraph {
     /// <https://webaudio.github.io/web-audio-api/#available-for-reading>
     fn fill_outputs_with_silence(
         graph: &StableGraph<Node, Edge>,
-        ix: NodeIndex<DefaultIx>,
+        node_index: NodeIndex<DefaultIx>,
         output_count: u32,
     ) {
         // Making a buffer available for reading from an AudioNode means putting
         // it in a state where other AudioNodes connected to this AudioNode can
         // safely read from it.
-        for edge in graph.edges(ix) {
+        for edge in graph.edges(node_index) {
             let edge = edge.weight();
             for conn in &edge.connections {
                 if let PortIndex::Port(idx) = conn.output_idx {
