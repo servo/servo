@@ -714,8 +714,7 @@ impl Node {
     }
 
     pub(crate) fn registered_mutation_observers(&self) -> Option<Ref<'_, Vec<RegisteredObserver>>> {
-        let rare_data: Ref<'_, _> = self.rare_data.borrow();
-
+        let rare_data = self.rare_data.borrow();
         if rare_data.is_none() {
             return None;
         }
@@ -732,9 +731,13 @@ impl Node {
 
     /// Removes the mutation observer for a given node.
     pub(crate) fn remove_mutation_observer(&self, observer: &MutationObserver) {
-        self.ensure_rare_data()
+        let mut rare_data = self.rare_data.borrow_mut();
+        let Some(rare_data) = rare_data.as_mut() else {
+            return;
+        };
+        rare_data
             .mutation_observers
-            .retain(|reg_obs| &*reg_obs.observer != observer)
+            .retain(|registered_observer| &*registered_observer.observer != observer)
     }
 
     /// Returns a string that describes this node.
@@ -811,15 +814,27 @@ impl Node {
         self.children_count.get()
     }
 
-    pub(crate) fn ranges(&self) -> RefMut<'_, WeakRangeVec> {
-        RefMut::map(self.ensure_rare_data(), |rare_data| &mut rare_data.ranges)
+    pub(crate) fn weak_ranges_mut(&self) -> Option<RefMut<'_, WeakRangeVec>> {
+        let rare_data = self.rare_data.borrow_mut();
+        if rare_data.is_none() {
+            return None;
+        }
+        Some(RefMut::map(rare_data, |rare_data| {
+            &mut rare_data.as_mut().unwrap().weak_ranges
+        }))
     }
 
-    pub(crate) fn ranges_is_empty(&self) -> bool {
+    pub(crate) fn ensure_weak_ranges(&self) -> RefMut<'_, WeakRangeVec> {
+        RefMut::map(self.ensure_rare_data(), |rare_data| {
+            &mut rare_data.weak_ranges
+        })
+    }
+
+    pub(crate) fn weak_ranges_is_empty(&self) -> bool {
         self.rare_data
             .borrow()
             .as_ref()
-            .is_none_or(|data| data.ranges.is_empty())
+            .is_none_or(|data| data.weak_ranges.is_empty())
     }
 
     #[inline]
@@ -1478,14 +1493,14 @@ impl Node {
         }
 
         // Step 17. If child is non-null:
-        if let Some(child) = child {
+        if let Some(child) = child &&
+            let Some(new_parent_ranges) = new_parent.weak_ranges_mut()
+        {
             // Step 17.1. For each live range whose start node is newParent and start offset is
             // greater than child’s index: increase its start offset by 1.
             // Step 17.2. For each live range whose end node is newParent and end offset is greater
             // than child’s index: increase its end offset by 1.
-            new_parent
-                .ranges()
-                .increase_above(new_parent, child.index(), 1)
+            new_parent_ranges.increase_above(new_parent, child.index(), 1)
         }
 
         // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
@@ -2537,11 +2552,9 @@ impl Node {
         //     2. For each live range whose end node is parent and end offset is
         //        greater than child’s index, increase its end offset by count.
         if let Some(child) = child &&
-            !parent.ranges_is_empty()
+            let Some(parent_weak_ranges) = parent.weak_ranges_mut()
         {
-            parent
-                .ranges()
-                .increase_above(parent, child.index(), count.try_into().unwrap());
+            parent_weak_ranges.increase_above(parent, child.index(), count.try_into().unwrap());
         }
 
         // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
@@ -2874,7 +2887,7 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
     fn live_range_pre_remove_steps(node: &Node, parent: &Node) -> Option<u32> {
-        if parent.ranges_is_empty() {
+        if parent.weak_ranges_is_empty() {
             return None;
         }
 
@@ -2891,7 +2904,9 @@ impl Node {
         // decrease its start offset by 1.
         // Step 7. For each live range whose end node is parent and end offset is greater than index,
         // decrease its end offset by 1.
-        parent.ranges().decrease_above(parent, index, 1);
+        if let Some(parent_weak_ranges) = parent.weak_ranges_mut() {
+            parent_weak_ranges.decrease_above(parent, index, 1);
+        }
 
         // Parent had ranges, we needed the index, let's keep track of
         // it to avoid computing it for other ranges when calling
@@ -3818,11 +3833,13 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     sibling.is::<Text>() && !sibling.is::<CDATASection>()
                 }) {
                     let (index, sibling) = children.next().unwrap();
-                    sibling
-                        .ranges()
-                        .drain_to_preceding_text_sibling(&sibling, &node, length);
-                    self.ranges()
-                        .move_to_text_child_at(self, index as u32, &node, length);
+                    if let Some(sibling_weak_ranges) = sibling.weak_ranges_mut() {
+                        sibling_weak_ranges
+                            .drain_to_preceding_text_sibling(&sibling, &node, length);
+                    }
+                    if let Some(weak_ranges) = self.weak_ranges_mut() {
+                        weak_ranges.move_to_text_child_at(self, index as u32, &node, length);
+                    }
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
                     cdata.append_data(cx, &sibling_cdata.data());
@@ -4242,9 +4259,11 @@ impl VirtualMethods for Node {
         // including descendants. If we're in a shadow tree at this point then the
         // unbind operation happened further up in the tree and we should not
         // drain any ranges.
-        if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
-            self.ranges()
-                .drain_to_parent(context.parent, context.index(), self);
+        if !self.is_in_a_shadow_tree() &&
+            let Some(weak_ranges) = self.weak_ranges_mut() &&
+            !weak_ranges.is_empty()
+        {
+            weak_ranges.drain_to_parent(context.parent, context.index(), self);
         }
 
         if self.owner_document().accessibility_active() {
@@ -4265,10 +4284,10 @@ impl VirtualMethods for Node {
         // drain any ranges.
         if let Some(old_parent) = context.old_parent &&
             !self.is_in_a_shadow_tree() &&
-            !self.ranges_is_empty()
+            let Some(weak_ranges) = self.weak_ranges_mut() &&
+            !weak_ranges.is_empty()
         {
-            self.ranges()
-                .drain_to_parent(old_parent, context.index(), self);
+            weak_ranges.drain_to_parent(old_parent, context.index(), self);
         }
 
         self.owner_doc().content_and_heritage_changed(self);

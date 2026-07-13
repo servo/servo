@@ -46,7 +46,7 @@ pub(crate) struct NodeRareData {
     /// or end containers are this node. No range should ever be found
     /// twice in this vector, even if both the start and end containers
     /// are this node.
-    pub(crate) ranges: WeakRangeVec,
+    pub(crate) weak_ranges: WeakRangeVec,
 
     /// The live list of children return by .childNodes.
     pub(crate) child_list: MutNullableDom<NodeList>,
