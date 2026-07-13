@@ -138,6 +138,21 @@ impl FontFaceSet {
         // Step 4. Queue a task to fire a font load event named loading at font face set.
         // TODO: Implement support for font loading events.
     }
+
+    /// Runs the CSS cascade to ensure that new `@font-face` rules have
+    /// an entry in this set.
+    fn flush_author_font_set(&self, cx: &mut JSContext) {
+        // FIXME: Use a new sort of ReflowGoal that only runs the CSS cascade without
+        //        building a new box tree or running any sort of layout really.
+        //        We query for the box area here, but we're not interested in the result.
+        // FIXME: Figure out what to do for worker scopes.
+        if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
+            let document = window.Document();
+            if document.stylesheets_changed_since_last_reflow() {
+                window.reflow(cx, ReflowGoal::LayoutQuery(QueryMsg::BoxArea));
+            }
+        }
+    }
 }
 
 impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
@@ -146,18 +161,8 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
         if self.promise.borrow().is_fulfilled() {
             // There may be pending style changes that cause new web fonts to start loading,
             // re-initializing document.fonts.ready.
-            // FIXME: Use a new sort of ReflowGoal that only runs the CSS cascade without
-            //        building a new box tree or running any sort of layout really.
-            //        We query for the box area here, but we're not interested in the result.
-            // FIXME: Figure out what to do for worker scopes.
-            if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
-                let document = window.Document();
-                if document.stylesheets_changed_since_last_reflow() {
-                    window.reflow(cx, ReflowGoal::LayoutQuery(QueryMsg::BoxArea));
-                }
-            }
+            self.flush_author_font_set(cx);
         }
-
         self.promise.borrow().clone()
     }
 
@@ -282,7 +287,8 @@ impl Setlike for FontFaceSet {
     type Key = DomRoot<FontFace>;
 
     #[inline(always)]
-    fn get_index(&self, _cx: &mut JSContext, index: u32) -> Option<Self::Key> {
+    fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<Self::Key> {
+        self.flush_author_font_set(cx);
         self.set_entries
             .borrow()
             .get(index as usize)
@@ -290,7 +296,8 @@ impl Setlike for FontFaceSet {
     }
 
     #[inline(always)]
-    fn size(&self, _cx: &mut JSContext) -> u32 {
+    fn size(&self, cx: &mut JSContext) -> u32 {
+        self.flush_author_font_set(cx);
         self.set_entries.borrow().len() as u32
     }
 
@@ -300,17 +307,20 @@ impl Setlike for FontFaceSet {
     }
 
     #[inline(always)]
-    fn has(&self, _cx: &mut JSContext, target: Self::Key) -> bool {
+    fn has(&self, cx: &mut JSContext, target: Self::Key) -> bool {
+        self.flush_author_font_set(cx);
         self.contains_face(&target)
     }
 
     #[inline(always)]
-    fn clear(&self, _cx: &mut JSContext) {
+    fn clear(&self, cx: &mut JSContext) {
+        self.flush_author_font_set(cx);
         self.set_entries.borrow_mut().clear();
     }
 
     #[inline(always)]
-    fn delete(&self, _cx: &mut JSContext, to_delete: Self::Key) -> bool {
+    fn delete(&self, cx: &mut JSContext, to_delete: Self::Key) -> bool {
+        self.flush_author_font_set(cx);
         self.delete_face(&to_delete)
     }
 }
