@@ -75,7 +75,7 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encodeinto>
-    #[expect(unsafe_code)]
+    #[expect(unsafe_code, deprecated)]
     fn EncodeInto(
         &self,
         source: USVString,

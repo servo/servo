@@ -90,7 +90,7 @@ impl TextDecoderCommon {
     ///
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
     /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
-    #[expect(unsafe_code)]
+    #[expect(unsafe_code, deprecated)]
     pub(crate) fn decode(
         &self,
         input: Option<&ArrayBufferViewOrArrayBuffer>,

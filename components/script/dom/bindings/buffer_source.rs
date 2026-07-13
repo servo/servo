@@ -481,10 +481,8 @@ where
         else {
             return Err(());
         };
-        unsafe {
-            let slice = (*array).as_slice();
-            dest.copy_from_slice(&slice[source_start..length]);
-        }
+        let slice = (*array).as_slice_safe(cx.no_gc());
+        dest.copy_from_slice(&slice[source_start..length]);
         Ok(())
     }
 
@@ -507,11 +505,9 @@ where
         else {
             return Err(());
         };
-        unsafe {
-            let slice = (*array).as_mut_slice();
-            let (_, dest) = slice.split_at_mut(dest_start);
-            dest[0..length].copy_from_slice(&source.as_slice()[0..length])
-        }
+        let slice = (*array).as_mut_slice_safe(cx.no_gc());
+        let (_, dest) = slice.split_at_mut(dest_start);
+        dest[0..length].copy_from_slice(&source.as_slice_safe(cx.no_gc())[0..length]);
         Ok(())
     }
 

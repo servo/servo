@@ -198,7 +198,7 @@ fn convert_line_endings_to_native(s: &[u8]) -> Vec<u8> {
 }
 
 /// <https://w3c.github.io/FileAPI/#process-blob-parts>
-#[expect(unsafe_code)]
+#[expect(unsafe_code, deprecated)]
 pub(crate) fn process_blob_parts(
     mut blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
     endings: BlobBinding::EndingType,
