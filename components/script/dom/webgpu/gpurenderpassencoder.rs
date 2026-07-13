@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::cell::DomRefCell;
+use js::cell::JSCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
@@ -45,7 +45,8 @@ impl Drop for DroppableGPURenderPassEncoder {
 #[dom_struct]
 pub(crate) struct GPURenderPassEncoder {
     reflector_: Reflector,
-    label: DomRefCell<USVString>,
+    #[ignore_malloc_size_of = "JSCell is hard to measure"]
+    label: JSCell<USVString>,
     command_encoder: Dom<GPUCommandEncoder>,
     droppable: DroppableGPURenderPassEncoder,
 }
@@ -59,7 +60,7 @@ impl GPURenderPassEncoder {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(label),
+            label: JSCell::new(label),
             command_encoder: Dom::from_ref(parent),
             droppable: DroppableGPURenderPassEncoder {
                 channel,
@@ -112,13 +113,13 @@ impl GPURenderPassEncoder {
 
 impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn Label(&self) -> USVString {
-        self.label.borrow().clone()
+    fn Label(&self, no_gc: &NoGC) -> USVString {
+        self.label.borrow(no_gc).clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, no_gc_mut: &mut NoGC, value: USVString) {
+        *self.label.borrow_mut(no_gc_mut) = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>

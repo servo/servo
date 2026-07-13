@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
+use js::cell::JSCell;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::reflect_dom_object_with_cx;
@@ -98,7 +99,8 @@ pub(crate) struct GPUDevice {
     features: Dom<GPUSupportedFeatures>,
     limits: Dom<GPUSupportedLimits>,
     adapter_info: Dom<GPUAdapterInfo>,
-    label: DomRefCell<USVString>,
+    #[ignore_malloc_size_of = "JSCell is hard to measure"]
+    label: JSCell<USVString>,
     default_queue: Dom<GPUQueue>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
     #[conditional_malloc_size_of]
@@ -141,7 +143,7 @@ impl GPUDevice {
             features: Dom::from_ref(features),
             limits: Dom::from_ref(limits),
             adapter_info: Dom::from_ref(adapter_info),
-            label: DomRefCell::new(USVString::from(label)),
+            label: JSCell::new(USVString::from(label)),
             default_queue: Dom::from_ref(queue),
             lost_promise: DomRefCell::new(lost_promise),
             valid: Cell::new(true),
@@ -434,13 +436,13 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn Label(&self) -> USVString {
-        self.label.borrow().clone()
+    fn Label(&self, no_gc: &NoGC) -> USVString {
+        self.label.borrow(no_gc).clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, no_gc_mut: &mut NoGC, value: USVString) {
+        *self.label.borrow_mut(no_gc_mut) = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>

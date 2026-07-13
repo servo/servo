@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::cell::DomRefCell;
+use js::cell::JSCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest};
 
@@ -41,7 +41,8 @@ pub(crate) struct GPURenderBundle {
     reflector_: Reflector,
     #[no_trace]
     device: WebGPUDevice,
-    label: DomRefCell<USVString>,
+    #[ignore_malloc_size_of = "JSCell is hard to measure"]
+    label: JSCell<USVString>,
     droppable: DroppableGPURenderBundle,
 }
 
@@ -55,7 +56,7 @@ impl GPURenderBundle {
         Self {
             reflector_: Reflector::new(),
             device,
-            label: DomRefCell::new(label),
+            label: JSCell::new(label),
             droppable: DroppableGPURenderBundle {
                 channel,
                 render_bundle,
@@ -92,12 +93,12 @@ impl GPURenderBundle {
 
 impl GPURenderBundleMethods<crate::DomTypeHolder> for GPURenderBundle {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn Label(&self) -> USVString {
-        self.label.borrow().clone()
+    fn Label(&self, no_gc: &NoGC) -> USVString {
+        self.label.borrow(no_gc).clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, no_gc_mut: &mut NoGC, value: USVString) {
+        *self.label.borrow_mut(no_gc_mut) = value;
     }
 }

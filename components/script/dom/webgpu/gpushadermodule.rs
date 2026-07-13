@@ -7,7 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
-use script_bindings::cell::DomRefCell;
+use js::cell::JSCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
@@ -50,7 +50,8 @@ impl Drop for DroppableGPUShaderModule {
 #[dom_struct]
 pub(crate) struct GPUShaderModule {
     reflector_: Reflector,
-    label: DomRefCell<USVString>,
+    #[ignore_malloc_size_of = "JSCell is hard to measure"]
+    label: JSCell<USVString>,
     #[ignore_malloc_size_of = "promise"]
     compilation_info_promise: Rc<Promise>,
     droppable: DroppableGPUShaderModule,
@@ -65,7 +66,7 @@ impl GPUShaderModule {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(label),
+            label: JSCell::new(label),
             compilation_info_promise: promise,
             droppable: DroppableGPUShaderModule {
                 channel,
@@ -141,13 +142,13 @@ impl GPUShaderModule {
 
 impl GPUShaderModuleMethods<crate::DomTypeHolder> for GPUShaderModule {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn Label(&self) -> USVString {
-        self.label.borrow().clone()
+    fn Label(&self, no_gc: &NoGC) -> USVString {
+        self.label.borrow(no_gc).clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
-        *self.label.safe_borrow_mut(no_gc) = value;
+    fn SetLabel(&self, no_gc_mut: &mut NoGC, value: USVString) {
+        *self.label.borrow_mut(no_gc_mut) = value;
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo>
