@@ -90,7 +90,7 @@ euclid = "0.22"
 flate2 = "1.1"
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 fontsan = "0.6.1"
-freetype-sys = "0.20"
+freetype-sys = "0.23"
 fst = "0.4"
 futures = { version = "0.3", default-features = false }
 futures-core = { version = "0.3", default-features = false }
@@ -116,7 +116,7 @@ gstreamer-sys = "0.25"
 gstreamer-video = "0.25"
 gstreamer-webrtc = { version = "0.25", features = ["v1_18"] }
 half = "2"
-harfbuzz-sys = "0.6.1"
+harfbuzz-sys = { version = "0.7", default-features = false }
 headers = "0.4"
 hilog = "0.2.2"
 hitrace = { version = "0.2.0", features = ["api-19", "tracing-rs"] }
@@ -274,8 +274,8 @@ warp = "0.4.2"
 web_atoms = "0.2.4"
 webdriver = { version = "0.53.0", default-features = false }
 webpki-roots = "1.0"
-webrender = { version = "0.69", features = ["capture"] }
-webrender_api = "0.69"
+webrender = { version = "0.70", features = ["capture"] }
+webrender_api = "0.70"
 wgpu-core = "30"
 wgpu-types = "30"
 winapi = "0.3"

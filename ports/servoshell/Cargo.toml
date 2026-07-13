@@ -41,8 +41,9 @@ OriginalFilename = "servoshell.exe"
 ProductName = "ServoShell"
 
 [features]
-default = ["baked-in-resources", "gamepad", "servo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
+default = ["baked-in-resources", "bundled_freetype", "gamepad", "servo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
 baked-in-resources = ["servo/baked-in-resources"]
+bundled_freetype = ["servo/bundled_freetype"]
 crown = ["servo/crown"]
 debugmozjs = ["servo/debugmozjs"]
 gamepad = ["servo/gamepad"]

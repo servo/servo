@@ -16,6 +16,11 @@ test = true
 doctest = false
 
 [features]
+# Compile FreeType from source (freetype-sys/bundled) instead of searching
+# via pkg-config. If this feature is disabled, and pkg-config fails to find a
+# suitable freetype version, the build will fail!
+# Only affects targets where freetype-sys is a dependency (Linux/Android/OHOS)
+bundled_freetype = ["freetype-sys/bundled"]
 tracing = ["dep:tracing"]
 
 [dependencies]
@@ -26,7 +31,7 @@ euclid = { workspace = true }
 fonts_traits = { workspace = true }
 fontsan = { workspace = true }
 # FIXME (#34517): macOS only needs this when building servo without `--features media-gstreamer`
-harfbuzz-sys = { workspace = true, features = ["bundled"] }
+harfbuzz-sys = { workspace = true, default-features = false, features = ["bundled"] }
 icu_locid = { workspace = true }
 icu_properties = { workspace = true, features = ["compiled_data"] }
 itertools = { workspace = true }
@@ -63,6 +68,7 @@ webrender_api = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
+harfbuzz-sys = { workspace = true, features = ["coretext"] }
 objc2 = { workspace = true }
 objc2-core-foundation = { workspace = true }
 objc2-core-graphics = { workspace = true }
@@ -70,6 +76,7 @@ objc2-core-text = { workspace = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))'.dependencies]
 freetype-sys = { workspace = true }
+harfbuzz-sys = { workspace = true, features = ["freetype"] }
 servo-allocator = { workspace = true }
 
 [target.'cfg(all(any(target_os = "linux", target_os = "freebsd"), not(target_env = "ohos")))'.dependencies]
@@ -80,6 +87,7 @@ xml = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = { workspace = true }
+harfbuzz-sys = { workspace = true, features = ["directwrite"] }
 winapi = { workspace = true }
 
 [lints.rust]

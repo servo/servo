@@ -2831,9 +2831,9 @@ dependencies = [
 
 [[package]]
 name = "freetype"
-version = "0.7.2"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a440748e063798e4893ceb877151e84acef9bea9a8c6800645cf3f1b3a7806e"
+checksum = "db318d6e5b1c90dd29eb4256666b3eeb5f38caf0a68f12d13d2d0793a50d0c77"
 dependencies = [
  "freetype-sys",
  "libc",
@@ -2841,12 +2841,12 @@ dependencies = [
 
 [[package]]
 name = "freetype-sys"
-version = "0.20.1"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e7edc5b9669349acfda99533e9e0bcf26a51862ab43b08ee7745c55d28eb134"
+checksum = "eab537ce43cab850c64b4cdc390ce7e4f47f877485ddc323208e268280c308ae"
 dependencies = [
  "cc",
- "libc",
+ "libz-sys",
  "pkg-config",
 ]
 
@@ -3666,17 +3666,16 @@ dependencies = [
 
 [[package]]
 name = "harfbuzz-sys"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb86e2fef3ba40cebffb8fa2cba811f06aa5c5fd296a4e469473e5398d166594"
+checksum = "975b6181d2b2d16236036ae09f51cc2b1cdc1506cadd1958d9c6d88a06f8a1a4"
 dependencies = [
  "cc",
- "core-graphics",
- "core-text",
- "foreign-types",
  "freetype-sys",
+ "objc2-core-graphics",
+ "objc2-core-text",
  "pkg-config",
- "winapi",
+ "windows 0.62.2",
 ]
 
 [[package]]
@@ -8464,6 +8463,7 @@ dependencies = [
  "euclid",
  "rand 0.10.2",
  "serde",
+ "servo",
  "servo-media",
  "servo-media-auto",
  "servo-media-dummy",
@@ -11353,9 +11353,9 @@ dependencies = [
 
 [[package]]
 name = "webrender"
-version = "0.69.0"
+version = "0.70.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "384e260b5f94dd5459e58e37a4a336141ce1b91da3c3c403d579688922515731"
+checksum = "ede9dbc3cfb3e2c073a68e20f8fd54d9f6be8587be1c7c948e1ac51112421ef6"
 dependencies = [
  "allocator-api2",
  "bincode",
@@ -11390,9 +11390,9 @@ dependencies = [
 
 [[package]]
 name = "webrender_api"
-version = "0.69.0"
+version = "0.70.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c9f6c3b8ea958f6c34c3eb82f46ac42dacd94e3c18c710bcd27879ade71492"
+checksum = "11fa15766536df782680147d2ed7a2d2cebd2dc9f0f48e89c56ca39f11259d76"
 dependencies = [
  "app_units",
  "bitflags 2.13.0",
@@ -11410,9 +11410,9 @@ dependencies = [
 
 [[package]]
 name = "webrender_build"
-version = "0.69.0"
+version = "0.70.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5476f637aa37fc5753921fb324cc9114cc158bfd7602382afefcd6afda4bad04"
+checksum = "674538885dba825ee1ddda72ade941fef81364cb843bbb0452fe7d134068ed89"
 dependencies = [
  "bitflags 2.13.0",
  "lazy_static",
@@ -12227,9 +12227,9 @@ dependencies = [
 
 [[package]]
 name = "wr_glyph_rasterizer"
-version = "0.69.0"
+version = "0.70.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f35fd5520f25d3a02acc20464e53e48bb68e22ac78960f10a6fd76820e3bde2"
+checksum = "bcda26d8788ba57a04cd75ae4a2c6da3aa8e5ab16ed1cfd5db09d0fbc04df2fb"
 dependencies = [
  "core-foundation 0.9.4",
  "core-graphics",
