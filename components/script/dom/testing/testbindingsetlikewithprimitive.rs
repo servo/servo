@@ -57,7 +57,7 @@ impl TestBindingSetlikeWithPrimitiveMethods<crate::DomTypeHolder>
     }
 
     fn Size(&self) -> u32 {
-        self.internal.size()
+        self.internal.borrow().len() as u32
     }
 }
 

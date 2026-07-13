@@ -8894,14 +8894,14 @@ class CGMaplikeOrSetlikeMethodGenerator(CGGeneric):
             raise TypeError("CGMaplikeOrSetlikeMethodGenerator is only for Setlike/Maplike")
         """
         setlike:
-            fn size(&self) -> usize;
+            fn size(&self, cx: &mut JSContext) -> usize;
             fn add(&self, key: Self::Key);
-            fn has(&self, key: &Self::Key) -> bool;
+            fn has(&self, key: &Self::Key, cx: &mut JSContext) -> bool;
             fn clear(&self);
-            fn delete(&self, key: &Self::Key) -> bool;
+            fn delete(&self, key: &Self::Key, cx: &mut JSContext) -> bool;
         maplike:
-            fn get(&self, key: Self::Key) -> Self::Value;
-            fn size(&self) -> usize;
+            fn get(&self, key: Self::Key, cx: &mut JSContext) -> Self::Value;
+            fn size(&self, cx: &mut JSContext) -> usize;
             fn set(&self, key: Self::Key, value: Self::Value);
             fn has(&self, key: &Self::Key) -> bool;
             fn clear(&self);
@@ -8909,6 +8909,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGGeneric):
         like iterable:
             keys/values/entries/forEach
         """
+
         # like iterables are implemented seperatly as we are actually implementing them
         if methodName in ["keys", "values", "entries", "forEach"]:
             cgIterableMethod = CGIterableMethodGenerator(descriptor, likeable, methodName)
@@ -8916,14 +8917,14 @@ class CGMaplikeOrSetlikeMethodGenerator(CGGeneric):
         elif methodName in ["size", "clear"]:  # zero arguments
             CGGeneric.__init__(self, fill(
                 """
-                let result = ${trt}::${method}(this);
+                let result = ${trt}::${method}(this, cx);
                 """,
                 trt=trait,
                 method=methodName.lower()))
         elif methodName == "add":  # special case one argumet
             CGGeneric.__init__(self, fill(
                 """
-                ${trt}::${method}(this, arg0);
+                ${trt}::${method}(this, cx, arg0);
                 // Returns itself per https://webidl.spec.whatwg.org/#es-set-add
                 let result = this;
                 """,
@@ -8932,14 +8933,14 @@ class CGMaplikeOrSetlikeMethodGenerator(CGGeneric):
         elif methodName in ["has", "delete", "get"]:  # one argument
             CGGeneric.__init__(self, fill(
                 """
-                let result = ${trt}::${method}(this, arg0);
+                let result = ${trt}::${method}(this, cx, arg0);
                 """,
                 trt=trait,
                 method=methodName))
         elif methodName == "set":  # two arguments
             CGGeneric.__init__(self, fill(
                 """
-                ${trt}::${method}(this, arg0, arg1);
+                ${trt}::${method}(this, cx, arg0, arg1);
                 // Returns itself per https://webidl.spec.whatwg.org/#es-map-set
                 let result = this;
                 """,
@@ -8981,9 +8982,9 @@ class CGIterableMethodGenerator(CGGeneric):
                 //
                 // https://heycam.github.io/webidl/#es-forEach
                 let mut i = 0;
-                while i < (*this).get_iterable_length() {
-                  (*this).get_value_at_index(i).to_jsval(cx.raw_cx(), call_arg1.handle_mut());
-                  (*this).get_key_at_index(i).to_jsval(cx.raw_cx(), call_arg2.handle_mut());
+                while i < (*this).get_iterable_length(cx) {
+                  (*this).get_value_at_index(cx, i).to_jsval(cx.raw_cx(), call_arg1.handle_mut());
+                  (*this).get_key_at_index(cx, i).to_jsval(cx.raw_cx(), call_arg2.handle_mut());
                   call_args.set_index(0, call_arg1.handle().get());
                   call_args.set_index(1, call_arg2.handle().get());
                   let call_args_handle = HandleValueArray::from(&call_args);

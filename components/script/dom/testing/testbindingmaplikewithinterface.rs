@@ -58,21 +58,21 @@ impl TestBindingMaplikeWithInterfaceMethods<crate::DomTypeHolder>
         Ok(TestBindingMaplikeWithInterface::new(cx, global, proto))
     }
 
-    fn SetInternal(&self, key: DOMString, value: &TestBinding) {
+    fn SetInternal(&self, cx: &mut JSContext, key: DOMString, value: &TestBinding) {
         let value = DomRoot::from_ref(value);
-        self.internal.set(key, value)
+        self.internal.set(cx, key, value)
     }
 
-    fn ClearInternal(&self) {
-        self.internal.clear()
+    fn ClearInternal(&self, cx: &mut JSContext) {
+        self.internal.clear(cx)
     }
 
-    fn DeleteInternal(&self, key: DOMString) -> bool {
-        self.internal.delete(key)
+    fn DeleteInternal(&self, cx: &mut JSContext, key: DOMString) -> bool {
+        self.internal.delete(cx, key)
     }
 
-    fn HasInternal(&self, key: DOMString) -> bool {
-        self.internal.has(key)
+    fn HasInternal(&self, cx: &mut JSContext, key: DOMString) -> bool {
+        self.internal.has(cx, key)
     }
 
     fn GetInternal(&self, key: DOMString) -> Fallible<DomRoot<TestBinding>> {
@@ -84,8 +84,8 @@ impl TestBindingMaplikeWithInterfaceMethods<crate::DomTypeHolder>
             .cloned()
     }
 
-    fn Size(&self) -> u32 {
-        self.internal.size()
+    fn Size(&self, cx: &mut JSContext) -> u32 {
+        self.internal.size(cx)
     }
 }
 

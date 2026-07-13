@@ -301,13 +301,13 @@ impl Iterable for FormData {
     type Key = USVString;
     type Value = FileOrUSVString;
 
-    fn get_iterable_length(&self) -> u32 {
+    fn get_iterable_length(&self, _cx: &mut JSContext) -> u32 {
         self.data.borrow().len() as u32
     }
 
-    fn get_value_at_index(&self, n: u32) -> FileOrUSVString {
+    fn get_value_at_index(&self, _cx: &mut JSContext, index: u32) -> FileOrUSVString {
         let data = self.data.borrow();
-        let datum = &data.get(n as usize).unwrap().1;
+        let datum = &data.get(index as usize).unwrap().1;
         match &datum.value {
             FormDatumValueUnrooted::String(s) => {
                 FileOrUSVString::USVString(USVString(s.to_string()))
@@ -316,9 +316,9 @@ impl Iterable for FormData {
         }
     }
 
-    fn get_key_at_index(&self, n: u32) -> USVString {
+    fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> USVString {
         let data = self.data.borrow();
-        let key = &data.get(n as usize).unwrap().0;
+        let key = &data.get(index as usize).unwrap().0;
         USVString(key.to_string())
     }
 }

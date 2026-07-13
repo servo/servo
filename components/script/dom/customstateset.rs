@@ -56,38 +56,38 @@ impl Setlike for CustomStateSet {
     type Key = DOMString;
 
     #[inline(always)]
-    fn get_index(&self, index: u32) -> Option<Self::Key> {
-        self.internal.get_index(index)
+    fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<Self::Key> {
+        self.internal.get_index(cx, index)
     }
 
     #[inline(always)]
-    fn size(&self) -> u32 {
-        self.internal.size()
+    fn size(&self, cx: &mut JSContext) -> u32 {
+        self.internal.size(cx)
     }
 
     #[inline(always)]
-    fn add(&self, key: Self::Key) {
-        self.internal.add(key);
+    fn add(&self, cx: &mut JSContext, key: Self::Key) {
+        self.internal.add(cx, key);
         self.states_did_change();
     }
 
     #[inline(always)]
-    fn has(&self, key: Self::Key) -> bool {
-        self.internal.has(key)
+    fn has(&self, cx: &mut JSContext, key: Self::Key) -> bool {
+        self.internal.has(cx, key)
     }
 
     #[inline(always)]
-    fn clear(&self) {
-        let old_size = self.internal.size();
-        self.internal.clear();
+    fn clear(&self, cx: &mut JSContext) {
+        let old_size = self.internal.size(cx);
+        self.internal.clear(cx);
         if old_size != 0 {
             self.states_did_change();
         }
     }
 
     #[inline(always)]
-    fn delete(&self, key: Self::Key) -> bool {
-        if self.internal.delete(key) {
+    fn delete(&self, cx: &mut JSContext, key: Self::Key) -> bool {
+        if self.internal.delete(cx, key) {
             self.states_did_change();
             true
         } else {
@@ -99,6 +99,6 @@ impl Setlike for CustomStateSet {
 impl CustomStateSetMethods<crate::DomTypeHolder> for CustomStateSet {
     /// <https://html.spec.whatwg.org/multipage/#customstateset>
     fn Size(&self) -> u32 {
-        self.internal.size()
+        self.internal.borrow().len() as u32
     }
 }

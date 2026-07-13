@@ -176,11 +176,11 @@ impl Iterable for XRHand {
     type Key = XRHandJoint;
     type Value = ValueWrapper;
 
-    fn get_iterable_length(&self) -> u32 {
+    fn get_iterable_length(&self, _cx: &mut JSContext) -> u32 {
         JOINT_SPACE_MAP.len() as u32
     }
 
-    fn get_value_at_index(&self, n: u32) -> ValueWrapper {
+    fn get_value_at_index(&self, _cx: &mut JSContext, n: u32) -> ValueWrapper {
         let joint = JOINT_SPACE_MAP[n as usize].1;
         self.spaces
             .get(joint)
@@ -188,7 +188,7 @@ impl Iterable for XRHand {
             .expect("Failed to get joint pose")
     }
 
-    fn get_key_at_index(&self, n: u32) -> XRHandJoint {
+    fn get_key_at_index(&self, _cx: &mut JSContext, n: u32) -> XRHandJoint {
         JOINT_SPACE_MAP[n as usize].0
     }
 }

@@ -50,7 +50,7 @@ impl WGSLLanguageFeatures {
 
 impl WGSLLanguageFeaturesMethods<crate::DomTypeHolder> for WGSLLanguageFeatures {
     fn Size(&self) -> u32 {
-        self.internal.size()
+        self.internal.borrow().len() as u32
     }
 }
 
@@ -58,27 +58,27 @@ impl Setlike for WGSLLanguageFeatures {
     type Key = DOMString;
 
     #[inline(always)]
-    fn get_index(&self, index: u32) -> Option<Self::Key> {
-        self.internal.get_index(index)
+    fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<Self::Key> {
+        self.internal.get_index(cx, index)
     }
     #[inline(always)]
-    fn size(&self) -> u32 {
-        self.internal.size()
+    fn size(&self, cx: &mut JSContext) -> u32 {
+        self.internal.size(cx)
     }
     #[inline(always)]
-    fn add(&self, _key: Self::Key) {
+    fn add(&self, _cx: &mut JSContext, _key: Self::Key) {
         unreachable!("readonly");
     }
     #[inline(always)]
-    fn has(&self, key: Self::Key) -> bool {
-        self.internal.has(key)
+    fn has(&self, cx: &mut JSContext, key: Self::Key) -> bool {
+        self.internal.has(cx, key)
     }
     #[inline(always)]
-    fn clear(&self) {
+    fn clear(&self, _cx: &mut JSContext) {
         unreachable!("readonly");
     }
     #[inline(always)]
-    fn delete(&self, _key: Self::Key) -> bool {
+    fn delete(&self, _cx: &mut JSContext, _key: Self::Key) -> bool {
         unreachable!("readonly");
     }
 }
