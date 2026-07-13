@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use app_units::Au;
-use fonts::{FontContext, FontDescriptor, FontFamilyDescriptor, FontSearchScope};
+use fonts::{
+    FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
+    FontSearchScope, fallback_font_families,
+};
 use net_traits::image_cache::FontResolver;
 use resvg::usvg::{Font, FontFamily, FontStretch, FontStyle, fontdb};
+use rustc_hash::FxHashMap;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::values::computed::font::{
@@ -18,11 +22,71 @@ use style::values::computed::{
 };
 use webrender_api::FontVariation;
 
+/// Used to dynamically query fonts used in SVGs and insert them into the fontDB that [`ImageCacheImpl`] via usvg_options.
 pub struct SvgFontResolver {
-    pub context: Arc<FontContext>,
+    /// Cache for Font to ID
+    font_id_cache: Mutex<FxHashMap<Font, fontdb::ID>>,
+    fallback_id_cache: Mutex<FxHashMap<char, fontdb::ID>>,
+    context: Arc<FontContext>,
 }
 
-fn convert_font_descriptor(font: &Font) -> FontDescriptor {
+impl SvgFontResolver {
+    pub(crate) fn new(context: Arc<FontContext>) -> Self {
+        Self {
+            font_id_cache: Mutex::new(FxHashMap::default()),
+            fallback_id_cache: Mutex::new(FxHashMap::default()),
+            context,
+        }
+    }
+
+    /// Insert the font into the database in [`SvgFontResolver`] and into the cache.
+    fn insert_into_database(
+        &self,
+        font: &Font,
+        database: &mut Arc<fontdb::Database>,
+    ) -> Option<fontdb::ID> {
+        let font_descriptor = font_to_fontdescriptor(font);
+
+        for family in font.families() {
+            let family_descriptor = FontFamilyDescriptor::new(
+                fontfamily_to_singlefontfamily(family),
+                FontSearchScope::Any,
+            );
+
+            let Some(font_template) = self
+                .context
+                .matching_templates(&font_descriptor, &family_descriptor)
+                .into_iter()
+                .next()
+            else {
+                log::debug!(
+                    "Cannot find matching font_template from font {font:?}, font-descriptor {font_descriptor:?}, family_descriptor: {family_descriptor:?} for this family {family:?}"
+                );
+                continue;
+            };
+
+            let Some(font_ref) = self.context.font(font_template, &font_descriptor) else {
+                continue;
+            };
+
+            let Ok(data_and_index) = font_ref.font_data_and_index() else {
+                continue;
+            };
+            let ids = Arc::make_mut(database).load_font_source(fontdb::Source::Binary(
+                data_and_index.data.as_ipc_shared_memory(),
+            ));
+
+            if let Some(id) = ids.get(data_and_index.index as usize).copied() {
+                self.font_id_cache.lock().unwrap().insert(font.clone(), id);
+                return Some(id);
+            }
+        }
+
+        None
+    }
+}
+
+fn font_to_fontdescriptor(font: &Font) -> FontDescriptor {
     let style = match font.style() {
         FontStyle::Normal => ServoFontStyle::normal(),
         FontStyle::Italic => ServoFontStyle::ITALIC,
@@ -62,7 +126,20 @@ fn convert_font_descriptor(font: &Font) -> FontDescriptor {
     }
 }
 
-fn convert_font_family(family: &FontFamily) -> SingleFontFamily {
+fn fallback_descriptor() -> FontDescriptor {
+    FontDescriptor {
+        weight: FontWeight::normal(),
+        stretch: ServoFontStretch::hundred(),
+        style: ServoFontStyle::normal(),
+        variant: FontVariantCaps::Normal,
+        pt_size: Au::from_px(16),
+        variation_settings: vec![],
+        synthesis_weight: FontSynthesis::Auto,
+        optical_sizing: FontOpticalSizing::Auto,
+    }
+}
+
+fn fontfamily_to_singlefontfamily(family: &FontFamily) -> SingleFontFamily {
     match family {
         FontFamily::Serif => SingleFontFamily::Generic(GenericFontFamily::Serif),
         FontFamily::SansSerif => SingleFontFamily::Generic(GenericFontFamily::SansSerif),
@@ -78,33 +155,74 @@ fn convert_font_family(family: &FontFamily) -> SingleFontFamily {
 
 impl FontResolver for SvgFontResolver {
     fn resolve(&self, font: &Font, database: &mut Arc<fontdb::Database>) -> Option<fontdb::ID> {
-        let font_descriptor = convert_font_descriptor(font);
-
-        for family in font.families() {
-            let family_descriptor =
-                FontFamilyDescriptor::new(convert_font_family(family), FontSearchScope::Any);
-            let Some(font_template) = self
-                .context
-                .matching_templates(&font_descriptor, &family_descriptor)
-                .into_iter()
-                .next()
-            else {
-                continue;
-            };
-            let Some(font) = self.context.font(font_template, &font_descriptor) else {
-                continue;
-            };
-            let Ok(data_and_index) = font.font_data_and_index() else {
-                continue;
-            };
-            let ids = Arc::make_mut(database).load_font_source(fontdb::Source::Binary(Arc::new(
-                data_and_index.data.clone(),
-            )));
-            if let Some(id) = ids.get(data_and_index.index as usize).copied() {
-                return Some(id);
+        {
+            let id_cache = self.font_id_cache.lock().unwrap();
+            if let Some(font_id) = id_cache.get(font) {
+                return Some(*font_id);
             }
         }
+        self.insert_into_database(font, database)
+    }
 
+    fn backup_resolve(
+        &self,
+        character: char,
+        excluded: &[fontdb::ID],
+        database: &mut Arc<fontdb::Database>,
+    ) -> Option<fontdb::ID> {
+        {
+            let id_cache = self.fallback_id_cache.lock().unwrap();
+            if let Some(font_id) = id_cache.get(&character) {
+                return Some(*font_id);
+            }
+        }
+        log::error!("FONT BACKUP CCALLED");
+        let fallback_options =
+            FallbackFontSelectionOptions::new(character, None, icu_locid::subtags::Language::UND);
+        for family in fallback_font_families(fallback_options) {
+            let family = FontFamilyDescriptor::new(
+                SingleFontFamily::FamilyName(FamilyName {
+                    name: family.into(),
+                    syntax: FontFamilyNameSyntax::Quoted,
+                }),
+                FontSearchScope::Any,
+            );
+            let fallback_descriptor = fallback_descriptor();
+
+            let font_templates = self
+                .context
+                .matching_templates(&fallback_descriptor, &family);
+
+            for font_template in font_templates {
+                let Some(font_ref) = self.context.font(font_template, &fallback_descriptor) else {
+                    continue;
+                };
+                if !font_ref.has_glyph_for(character) {
+                    continue;
+                }
+
+                let Ok(data_and_index) = font_ref.font_data_and_index() else {
+                    continue;
+                };
+
+                let ids = Arc::make_mut(database).load_font_source(fontdb::Source::Binary(
+                    data_and_index.data.as_ipc_shared_memory(),
+                ));
+
+                let Some(id) = ids.get(data_and_index.index as usize) else {
+                    continue;
+                };
+
+                if excluded.contains(id) {
+                    continue;
+                }
+
+                if let Some(id) = ids.get(data_and_index.index as usize).copied() {
+                    self.fallback_id_cache.lock().unwrap().insert(character, id);
+                    return Some(id);
+                }
+            }
+        }
         None
     }
 }

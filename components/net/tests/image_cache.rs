@@ -32,6 +32,15 @@ impl FontResolver for DummyFontResolver {
     fn resolve(&self, _: &Font, _: &mut Arc<fontdb::Database>) -> Option<fontdb::ID> {
         None
     }
+
+    fn backup_resolve(
+        &self,
+        _: char,
+        _: &[fontdb::ID],
+        _: &mut Arc<fontdb::Database>,
+    ) -> Option<fontdb::ID> {
+        None
+    }
 }
 
 fn create_test_image_cache() -> (Arc<dyn ImageCache>, Receiver<PipelineId>) {

@@ -1071,6 +1071,16 @@ impl MallocSizeOf for usvg::ClipPath {
     }
 }
 
+impl<'a> MallocSizeOf for usvg::Options<'a> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.font_family.size_of(ops) +
+            self.languages.size_of(ops) +
+            self.style_sheet.size_of(ops) +
+            self.fontdb.conditional_shallow_size_of(ops) +
+            self.resources_dir.size_of(ops)
+    }
+}
+
 // Placeholder for unique case where internals of Sender cannot be measured.
 // malloc size of is 0 macro complains about type supplied!
 impl<T> MallocSizeOf for crossbeam_channel::Sender<T> {

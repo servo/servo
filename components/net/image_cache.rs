@@ -81,30 +81,9 @@ const MAX_SVG_PIXMAP_DIMENSION: u32 = 5000;
 
 fn parse_svg_document_in_memory(
     bytes: &[u8],
-    fontdb: Arc<fontdb::Database>,
-    font_resolver: Arc<dyn FontResolver>,
+    usvg_options: Arc<usvg::Options>,
 ) -> Result<usvg::Tree, &'static str> {
-    let image_string_href_resolver = Box::new(move |_: &str, _: &usvg::Options| {
-        // Do not try to load `href` in <image> as local file path.
-        None
-    });
-
-    let font_resolver = usvg::FontResolver {
-        select_font: Box::new(move |font, database| font_resolver.resolve(font, database)),
-        select_fallback: usvg::FontResolver::default_fallback_selector(),
-    };
-
-    let opt = usvg::Options {
-        image_href_resolver: usvg::ImageHrefResolver {
-            resolve_data: usvg::ImageHrefResolver::default_data_resolver(),
-            resolve_string: image_string_href_resolver,
-        },
-        font_resolver,
-        fontdb,
-        ..usvg::Options::default()
-    };
-
-    usvg::Tree::from_data(bytes, &opt)
+    usvg::Tree::from_data(bytes, &usvg_options)
         .inspect_err(|error| {
             warn!("Error when parsing SVG data: {error}");
         })
@@ -116,8 +95,7 @@ fn decode_bytes_sync(
     bytes: &[u8],
     cors: CorsStatus,
     content_type: Option<Mime>,
-    fontdb: Arc<fontdb::Database>,
-    font_resolver: Arc<dyn FontResolver>,
+    usvg_options: Arc<usvg::Options>,
 ) -> DecoderMsg {
     let is_svg_document = content_type.is_some_and(|content_type| {
         (
@@ -128,7 +106,7 @@ fn decode_bytes_sync(
     });
 
     let image = if is_svg_document {
-        parse_svg_document_in_memory(bytes, fontdb, font_resolver.clone())
+        parse_svg_document_in_memory(bytes, usvg_options)
             .ok()
             .map(|svg_tree| {
                 DecodedImage::Vector(VectorImageData {
@@ -811,21 +789,15 @@ pub struct ImageCacheFactoryImpl {
     broken_image_icon_data: Arc<Vec<u8>>,
     /// Thread pool for image decoding
     thread_pool: Arc<ThreadPool>,
-    /// A shared font database to be used by system fonts accessed when rasterizing vector
-    /// images.
-    fontdb: Arc<fontdb::Database>,
 }
 
 impl ImageCacheFactoryImpl {
     pub fn new(broken_image_icon_data: Vec<u8>) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
-        let mut fontdb = fontdb::Database::new();
-        fontdb.load_system_fonts();
 
         Self {
             broken_image_icon_data: Arc::new(broken_image_icon_data),
             thread_pool: ThreadPool::global(),
-            fontdb: Arc::new(fontdb),
         }
     }
 }
@@ -838,6 +810,28 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
         paint_api: &CrossProcessPaintApi,
         font_resolver: Arc<dyn FontResolver>,
     ) -> Arc<dyn ImageCache> {
+        let image_string_href_resolver = Box::new(move |_: &str, _: &usvg::Options| {
+            // Do not try to load `href` in <image> as local file path.
+            None
+        });
+        let font_resolver2 = font_resolver.clone();
+        let font_resolver = usvg::FontResolver {
+            select_font: Box::new(move |font, database| font_resolver.resolve(font, database)),
+            select_fallback: Box::new(move |char, ids, database| {
+                font_resolver2.backup_resolve(char, ids, database)
+            }),
+        };
+
+        let opt = usvg::Options {
+            image_href_resolver: usvg::ImageHrefResolver {
+                resolve_data: usvg::ImageHrefResolver::default_data_resolver(),
+                resolve_string: image_string_href_resolver,
+            },
+            font_resolver,
+            fontdb: Arc::new(fontdb::Database::new()),
+            ..usvg::Options::default()
+        };
+
         Arc::new(ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
@@ -854,8 +848,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             svg_id_image_id_map: Arc::new(Mutex::new(FxHashMap::default())),
             broken_image_icon_data: self.broken_image_icon_data.clone(),
             thread_pool: self.thread_pool.clone(),
-            fontdb: self.fontdb.clone(),
-            font_resolver: font_resolver.clone(),
+            usvg_options: Arc::new(opt),
         })
     }
 }
@@ -870,17 +863,14 @@ pub struct ImageCacheImpl {
     /// Thread pool for image decoding. This is shared with other [`ImageCache`]s in the
     /// same process.
     thread_pool: Arc<ThreadPool>,
-    /// A shared font database to be used by system fonts accessed when rasterizing vector
-    /// images. This is shared with other [`ImageCache`]s in the same process.
-    fontdb: Arc<fontdb::Database>,
-    /// the font_resolver callback to query and append the fonts to fontdb in svg
-    font_resolver: Arc<dyn FontResolver>,
+    /// The options for usvg. Contains a fontdb::Database and fontresolver.
+    usvg_options: Arc<usvg::Options<'static>>,
 }
 
 impl ImageCache for ImageCacheImpl {
     fn memory_reports(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Vec<Report> {
         let store_size = self.store.lock().size_of(ops);
-        let fontdb_size = self.fontdb.conditional_size_of(ops);
+        let fontdb_size = self.usvg_options.conditional_size_of(ops);
         vec![
             Report {
                 path: path![prefix, "image-cache"],
@@ -888,7 +878,7 @@ impl ImageCache for ImageCacheImpl {
                 size: store_size,
             },
             Report {
-                path: path![prefix, "image-cache", "fontdb"],
+                path: path![prefix, "image-cache", "usvg_options"],
                 kind: ReportKind::ExplicitSystemHeapSize,
                 size: fontdb_size,
             },
@@ -1288,16 +1278,14 @@ impl ImageCache for ImageCacheImpl {
                         };
 
                         let local_store = self.store.clone();
-                        let fontdb = self.fontdb.clone();
-                        let font_resolver = self.font_resolver.clone();
+                        let usvg_options = self.usvg_options.clone();
                         self.thread_pool.spawn(move || {
                             let msg = decode_bytes_sync(
                                 key,
                                 &bytes,
                                 cors_status,
                                 content_type,
-                                fontdb,
-                                font_resolver,
+                                usvg_options,
                             );
                             local_store.lock().handle_decoder(msg);
                         });

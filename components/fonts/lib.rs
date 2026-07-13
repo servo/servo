@@ -62,7 +62,7 @@ impl Default for FallbackFontSelectionOptions {
 }
 
 impl FallbackFontSelectionOptions {
-    pub(crate) fn new(character: char, next_character: Option<char>, language: Language) -> Self {
+    pub fn new(character: char, next_character: Option<char>, language: Language) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
                 EmojiPresentationPreference::Emoji
