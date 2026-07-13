@@ -164,6 +164,11 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         // vello_cpu RenderingContext only ever grows,
         // so we need to use every opportunity to shrink it
         if self.is_viewport_cleared(rect, transform) {
+            // This is to workaround panic until https://github.com/linebender/vello/pull/1732
+            // can be merged and release a new version.
+            if self.state == State::Drawing {
+                self.ctx.flush();
+            }
             self.ctx.reset();
             self.clips.clear(); // no clips are affecting rendering
             self.state = State::Drawing;

@@ -269,7 +269,7 @@ url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.23.3", features = ["v4", "v5"] }
 vello = "0.9"
-vello_cpu = "0.0.9"
+vello_cpu = { version = "0.0.9", features = ["multithreading"] }
 warp = "0.4.2"
 web_atoms = "0.2.4"
 webdriver = { version = "0.53.0", default-features = false }
