@@ -129,6 +129,9 @@ jobs:
         run: |
           Install-Module -Name Microsoft.WinGet.Client -Repository PSGallery -Force
           Repair-WinGetPackageManager -Latest -Force -AllUsers
+        env:
+          # Authenticated requests have a higher rate limit.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install WiX
         # TODO: Re-enable this condition once WiX 7 is pre-installed on the self-hosted runners.
         # if: ${{ runner.environment != 'self-hosted' }}
