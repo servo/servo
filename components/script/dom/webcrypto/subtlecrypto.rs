@@ -276,7 +276,7 @@ impl SubtleCrypto {
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a CryptoKey.
-    fn resolve_promise_with_key(&self, promise: Rc<Promise>, key: DomRoot<CryptoKey>) {
+    fn resolve_promise_with_key(&self, promise: Rc<Promise>, key: &CryptoKey) {
         let trusted_key = Trusted::new(&*key);
         let trusted_promise = TrustedPromise::new(promise);
         self.global()
@@ -882,7 +882,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. Resolve promise with result.
                 match result {
                     CryptoKeyOrCryptoKeyPair::CryptoKey(key) => {
-                        subtle.resolve_promise_with_key(promise, key);
+                        subtle.resolve_promise_with_key(promise, &key);
                     },
                     CryptoKeyOrCryptoKeyPair::CryptoKeyPair(key_pair) => {
                         subtle.resolve_promise_with_key_pair(promise, key_pair);
@@ -1037,7 +1037,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 20. Let result be the result of converting result to an ECMAScript Object
                 // in realm, as defined by [WebIDL].
                 // Step 20. Resolve promise with result.
-                subtle.resolve_promise_with_key(promise, result);
+                subtle.resolve_promise_with_key(promise, &result);
             }),
         );
         promise
@@ -1264,7 +1264,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 14. Let result be the result of converting result to an ECMAScript Object
                 // in realm, as defined by [WebIDL].
                 // Step 15. Resolve promise with result.
-                subtle.resolve_promise_with_key(promise, result);
+                subtle.resolve_promise_with_key(promise, &result);
             }));
 
         promise
@@ -1709,7 +1709,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 21. Let result be the result of converting result to an ECMAScript Object
                 // in realm, as defined by [WebIDL].
                 // Step 22. Resolve promise with result.
-                subtle.resolve_promise_with_key(promise, result);
+                subtle.resolve_promise_with_key(promise, &result);
             }),
         );
         promise
@@ -2086,7 +2086,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 18. Let result be the result of converting sharedKey to an ECMAScript
                 // Object in realm, as defined by [WebIDL].
                 // Step 19. Resolve promise with result.
-                subtle.resolve_promise_with_key(promise, shared_key);
+                subtle.resolve_promise_with_key(promise, &shared_key);
             }));
         promise
     }
@@ -2281,7 +2281,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 17. Let result be the result of converting publicKey to an ECMAScript
                 // Object in realm, as defined by [WebIDL].
                 // Step 18. Resolve promise with result.
-                subtle.resolve_promise_with_key(promise, result);
+                subtle.resolve_promise_with_key(promise, &result);
             }));
         promise
     }

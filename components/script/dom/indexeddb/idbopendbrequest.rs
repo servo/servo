@@ -290,7 +290,7 @@ impl IDBOpenDBRequest {
         matches
     }
 
-    pub fn dispatch_success(&self, cx: &mut JSContext, result: DomRoot<IDBDatabase>) {
+    pub fn dispatch_success(&self, cx: &mut JSContext, result: &IDBDatabase) {
         let global = self.global();
         self.idbrequest.set_ready_state_done();
 

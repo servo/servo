@@ -473,7 +473,7 @@ impl DocumentEventHandler {
 
                 self.handle_mouse_enter_leave_event(
                     cx,
-                    DomRoot::from_ref(current_hover_target),
+                    current_hover_target,
                     None,
                     FireMouseEventType::Leave,
                     &hit_test_result,
@@ -504,8 +504,8 @@ impl DocumentEventHandler {
     fn handle_mouse_enter_leave_event(
         &self,
         cx: &mut JSContext,
-        event_target: DomRoot<Node>,
-        related_target: Option<DomRoot<Node>>,
+        event_target: &Node,
+        related_target: Option<&Node>,
         event_type: FireMouseEventType,
         hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
@@ -652,8 +652,8 @@ impl DocumentEventHandler {
                         .fire(cx, old_target.upcast());
 
                     if !old_target_is_ancestor_of_new_target {
-                        let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
-                        let moving_into = Some(DomRoot::from_ref(new_target.upcast::<Node>()));
+                        let event_target = old_target.upcast::<Node>();
+                        let moving_into = Some(new_target.upcast::<Node>());
                         self.handle_mouse_enter_leave_event(
                             cx,
                             event_target,
@@ -698,8 +698,9 @@ impl DocumentEventHandler {
                     .dispatch(cx, new_target.upcast(), false);
 
                 let moving_from = old_hover_target
-                    .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
-                let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
+                    .as_ref()
+                    .map(|old_target| old_target.upcast::<Node>());
+                let event_target = new_target.upcast::<Node>();
                 self.handle_mouse_enter_leave_event(
                     cx,
                     event_target,

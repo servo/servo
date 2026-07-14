@@ -68,7 +68,7 @@ impl HTMLTableRowElement {
 
     /// Determine the index for this `HTMLTableRowElement` within the given
     /// `HTMLCollection`. Returns `-1` if not found within collection.
-    fn row_index(&self, no_gc: &NoGC, collection: DomRoot<HTMLCollection>) -> i32 {
+    fn row_index(&self, no_gc: &NoGC, collection: &HTMLCollection) -> i32 {
         collection
             .elements_iter(no_gc)
             .position(|elem| (&elem as &Element) == self.upcast())
@@ -139,7 +139,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         };
         if let Some(table) = parent.downcast::<HTMLTableElement>() {
             let rows = table.Rows(cx);
-            return self.row_index(cx.no_gc(), rows);
+            return self.row_index(cx.no_gc(), &rows);
         }
         if !parent.is::<HTMLTableSectionElement>() {
             return -1;
@@ -152,7 +152,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
             .downcast::<HTMLTableElement>()
             .map_or(-1, |table| {
                 let rows = table.Rows(cx);
-                self.row_index(cx.no_gc(), rows)
+                self.row_index(cx.no_gc(), &rows)
             })
     }
 
@@ -169,7 +169,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         } else {
             return -1;
         };
-        self.row_index(cx.no_gc(), collection)
+        self.row_index(cx.no_gc(), &collection)
     }
 }
 

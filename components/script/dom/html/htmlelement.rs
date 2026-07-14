@@ -645,12 +645,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         if let Some(next_sibling) = next &&
             let Some(node) = next_sibling.GetPreviousSibling()
         {
-            Self::merge_with_the_next_text_node(cx, node);
+            Self::merge_with_the_next_text_node(cx, &node);
         }
 
         // Step 8: If previous is a Text node, then merge with the next text node given previous.
         if let Some(previous) = previous {
-            Self::merge_with_the_next_text_node(cx, previous)
+            Self::merge_with_the_next_text_node(cx, &previous)
         }
 
         Ok(())
@@ -1124,7 +1124,7 @@ impl HTMLElement {
     /// node.
     ///
     /// <https://html.spec.whatwg.org/multipage/#merge-with-the-next-text-node>
-    fn merge_with_the_next_text_node(cx: &mut JSContext, node: DomRoot<Node>) {
+    fn merge_with_the_next_text_node(cx: &mut JSContext, node: &Node) {
         // Make sure node is a Text node
         if !node.is::<Text>() {
             return;
