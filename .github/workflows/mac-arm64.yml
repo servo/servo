@@ -139,7 +139,7 @@ jobs:
         if: ${{ inputs.unit-tests }}
         uses: taiki-e/install-action@v2
         with:
-          tool: nextest
+          tool: nextest@0.9.140
 
       - if: runner.environment != 'self-hosted'
         name: Bootstrap
@@ -288,7 +288,7 @@ jobs:
       - name: Install cargo-c # required by servo-capi-tests's build.rs
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-c
+          tool: cargo-c@0.10.23
       - name: Build and test servo-capi-tests
         env:
           # `cargo-c` doesn't seem to work with sccache so disabled it for this job.
