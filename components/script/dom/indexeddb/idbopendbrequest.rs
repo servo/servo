@@ -290,11 +290,11 @@ impl IDBOpenDBRequest {
         matches
     }
 
-    pub fn dispatch_success(&self, cx: &mut JSContext, result: DomRoot<IDBDatabase>) {
+    pub fn dispatch_success(&self, cx: &mut JSContext, result: &IDBDatabase) {
         let global = self.global();
         self.idbrequest.set_ready_state_done();
 
-        let mut realm = enter_auto_realm(cx, &*result);
+        let mut realm = enter_auto_realm(cx, result);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut result_val = UndefinedValue());
         result.safe_to_jsval(cx, result_val.handle_mut());

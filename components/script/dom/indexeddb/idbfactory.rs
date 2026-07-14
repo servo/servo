@@ -286,7 +286,7 @@ impl IDBFactory {
                 // set request’s result to result,
                 // set request’s done flag,
                 // and fire an event named success at request.
-                request.dispatch_success(cx, connection);
+                request.dispatch_success(cx, &connection);
             },
             ConnectionMsg::Upgrade {
                 name,

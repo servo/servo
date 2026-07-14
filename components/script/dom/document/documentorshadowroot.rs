@@ -146,7 +146,7 @@ impl DocumentOrShadowRoot {
     pub(crate) fn retarget_hit_test_result(
         &self,
         this: &Node,
-        node: DomRoot<Node>,
+        node: &Node,
     ) -> Option<DomRoot<Element>> {
         let retargeted_node =
             DomRoot::downcast::<Node>(node.upcast::<EventTarget>().retarget(this.upcast()))?;
@@ -199,7 +199,7 @@ impl DocumentOrShadowRoot {
         let address = UntrustedNodeAddress(result.node.0 as *const c_void);
         let node = unsafe { node::from_untrusted_node_address(address) };
 
-        self.retarget_hit_test_result(this, node)
+        self.retarget_hit_test_result(this, &node)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint>
@@ -241,7 +241,7 @@ impl DocumentOrShadowRoot {
                 // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
                 let address = UntrustedNodeAddress(result.node.0 as *const c_void);
                 let node = unsafe { node::from_untrusted_node_address(address) };
-                self.retarget_hit_test_result(this, node)
+                self.retarget_hit_test_result(this, &node)
             })
             .collect();
 

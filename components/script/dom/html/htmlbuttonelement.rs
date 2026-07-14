@@ -320,10 +320,7 @@ impl HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#determine-if-command-is-valid>
-    fn determine_if_command_is_valid_for_target(
-        command: CommandState,
-        target: DomRoot<Element>,
-    ) -> bool {
+    fn determine_if_command_is_valid_for_target(command: CommandState, target: &Element) -> bool {
         // Step 1. If command is in the Unknown state, then return false.
         if command == CommandState::Unknown {
             return false;
@@ -545,7 +542,7 @@ impl Activatable for HTMLButtonElement {
             // Steps 5.1 Let command be element's command attribute.
             let command = self.command_state();
             // Step 5.2 If the result of determining if a command is valid for a target given command and target is false, then return.
-            if !Self::determine_if_command_is_valid_for_target(command, target.clone()) {
+            if !Self::determine_if_command_is_valid_for_target(command, &target) {
                 return;
             }
             // Step 5.3 Let continue be the result of firing an event named command at target, using
