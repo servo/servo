@@ -288,7 +288,7 @@ jobs:
       - name: Install cargo-c # required by servo-capi-tests's build.rs
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-c
+          tool: cargo-c@0.10.23+cargo-0.97.1
       - name: Build and test servo-capi-tests
         env:
           # `cargo-c` doesn't seem to work with sccache so disabled it for this job.
