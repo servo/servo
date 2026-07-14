@@ -139,7 +139,7 @@ jobs:
         if: ${{ inputs.unit-tests }}
         uses: taiki-e/install-action@v2
         with:
-          tool: nextest
+          tool: nextest@0.9.140
 
       - if: runner.environment != 'self-hosted'
         name: Bootstrap

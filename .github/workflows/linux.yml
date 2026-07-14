@@ -165,7 +165,7 @@ jobs:
         if: ${{ inputs.unit-tests }}
         uses: taiki-e/install-action@v2
         with:
-          tool: nextest
+          tool: nextest@0.9.140
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
         timeout-minutes: 30
