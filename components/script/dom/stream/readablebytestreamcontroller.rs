@@ -1970,7 +1970,7 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         cx: &mut JSContext,
         chunk: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
     ) -> Fallible<()> {
-        let chunk = HeapBufferSource::<ArrayBufferViewU8>::from_view(chunk);
+        let chunk = HeapBufferSource::<ArrayBufferViewU8>::from_view(cx, chunk);
 
         // If chunk.[[ByteLength]] is 0, throw a TypeError exception.
         if chunk.byte_length() == 0 {
