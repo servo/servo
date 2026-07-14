@@ -269,7 +269,7 @@ namespace GPUTextureUsage {
     const GPUFlagsConstant TEXTURE_BINDING      = 0x04;
     const GPUFlagsConstant STORAGE_BINDING      = 0x08;
     const GPUFlagsConstant RENDER_ATTACHMENT    = 0x10;
-    //const GPUFlagsConstant TRANSIENT_ATTACHMENT = 0x20;
+    const GPUFlagsConstant TRANSIENT_ATTACHMENT = 0x20;
 };
 
 [Exposed=(Window, Worker), SecureContext, Pref="dom_webgpu_enabled"]
@@ -1224,6 +1224,9 @@ partial interface GPUCanvasContext {
     [Throws, Pref="dom_webgpu_enabled"]
     undefined configure(GPUCanvasConfiguration descriptor);
     [Pref="dom_webgpu_enabled"] undefined unconfigure();
+
+    [Pref="dom_webgpu_enabled"]
+    GPUCanvasConfiguration? getConfiguration();
     [Throws, Pref="dom_webgpu_enabled"]
     GPUTexture getCurrentTexture();
 };

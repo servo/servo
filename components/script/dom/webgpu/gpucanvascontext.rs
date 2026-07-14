@@ -334,7 +334,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
         // 1. Let device be configuration.device
         let device = &configuration.device;
 
-        // 5. Let descriptor be the GPUTextureDescriptor for the canvas and configuration.
+        // 6. Let descriptor be the GPUTextureDescriptor for the canvas and configuration.
         let descriptor = self.texture_descriptor_for_canvas_and_configuration(configuration);
 
         // 2. Validate texture format required features of configuration.format with device.[[device]].
@@ -352,16 +352,24 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
             )));
         }
 
-        // 6. Let this.[[configuration]] to configuration.
+        // 5. If configuration.usage includes the TRANSIENT_ATTACHMENT bit, throw a TypeError.
+        if configuration.usage & GPUTextureUsageConstants::TRANSIENT_ATTACHMENT != 0 {
+            return Err(Error::Type(
+                c"configuration.usage includes the TRANSIENT_ATTACHMENT bit".into(),
+            ));
+        }
+
+        // 7. Let this.[[configuration]] to configuration.
         self.configuration.replace(Some(configuration.clone()));
 
-        // 7. Set this.[[textureDescriptor]] to descriptor.
+        // 8. Set this.[[textureDescriptor]] to descriptor.
         self.texture_descriptor.replace(Some(descriptor));
 
-        // 8. Replace the drawing buffer of this.
+        // 9. Replace the drawing buffer of this.
         self.replace_drawing_buffer();
 
-        // 9. Validate texture descriptor
+        // 10. Issue the subsequent steps on the Device timeline of device.
+        // 10.1. Validate texture descriptor
         let texture_id = self.global().wgpu_id_hub().create_texture_id();
         self.droppable
             .channel
@@ -384,6 +392,11 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
         self.current_texture.take();
         // 3. Replace the drawing buffer of this.
         self.replace_drawing_buffer();
+    }
+
+    /// <https://www.w3.org/TR/webgpu/#dom-gpucanvascontext-getconfiguration>
+    fn GetConfiguration(&self) -> Option<GPUCanvasConfiguration> {
+        self.configuration.borrow().clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
