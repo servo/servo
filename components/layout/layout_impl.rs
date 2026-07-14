@@ -17,7 +17,7 @@ use embedder_traits::{
 };
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods};
-use fonts_traits::StylesheetWebFontLoadFinishedCallback;
+use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
 use icu_locid::subtags::Language;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, IFrameSizes, Layout,
@@ -1003,12 +1003,8 @@ impl LayoutThread {
         });
         let mut reflow_statistics = Default::default();
 
-        let (mut reflow_phases_run, iframe_sizes) = self.restyle_and_build_trees(
-            &mut reflow_request,
-            document,
-            root_element,
-            &image_resolver,
-        );
+        let (mut reflow_phases_run, iframe_sizes, changed_web_fonts) = self
+            .restyle_and_build_trees(&mut reflow_request, document, root_element, &image_resolver);
         if self.build_stacking_context_tree_for_reflow(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltStackingContextTree);
         }
@@ -1042,6 +1038,7 @@ impl LayoutThread {
             pending_svg_elements_for_serialization,
             iframe_sizes: Some(iframe_sizes),
             reflow_statistics,
+            changed_web_fonts,
         })
     }
 
@@ -1052,7 +1049,7 @@ impl LayoutThread {
         document: ServoDangerousStyleDocument<'dom>,
         guards: &StylesheetGuards,
         ua_stylesheets: &UserAgentStylesheets,
-    ) -> StylesheetInvalidationSet {
+    ) -> StylistStylesheetUpdate {
         let need_user_agent_stylesheet_addition = !self.have_added_user_agent_stylesheets;
         if need_user_agent_stylesheet_addition {
             for stylesheet in &ua_stylesheets.user_agent_stylesheets {
@@ -1092,17 +1089,23 @@ impl LayoutThread {
 
         // Load new @font-face rules and remove old ones if necessary.
         // TODO: Can we make the invalidation set tell us whether any @font-face rules changed?
-        if need_user_agent_stylesheet_addition || reflow_request.stylesheets_changed() {
-            self.font_context.rebuild_font_face_set(
-                self.webview_id,
-                &self.stylist,
-                guards,
-                self.web_font_finished_loading_callback.clone(),
-                &reflow_request.document_context,
-            );
-        }
+        let changed_web_fonts =
+            if need_user_agent_stylesheet_addition || reflow_request.stylesheets_changed() {
+                self.font_context.rebuild_font_face_set(
+                    self.webview_id,
+                    &self.stylist,
+                    guards,
+                    self.web_font_finished_loading_callback.clone(),
+                    &reflow_request.document_context,
+                )
+            } else {
+                WebFontSetDifference::default()
+            };
 
-        invalidation_set
+        StylistStylesheetUpdate {
+            invalidation_set,
+            changed_web_fonts,
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1112,7 +1115,7 @@ impl LayoutThread {
         document: ServoDangerousStyleDocument<'_>,
         root_element: ServoLayoutElement<'_>,
         image_resolver: &Arc<ImageResolver>,
-    ) -> (ReflowPhasesRun, IFrameSizes) {
+    ) -> (ReflowPhasesRun, IFrameSizes, WebFontSetDifference) {
         let mut snapshot_map = SnapshotMap::new();
         let _snapshot_setter = match reflow_request.restyle.as_mut() {
             Some(restyle) => SnapshotSetter::new(restyle, &mut snapshot_map),
@@ -1144,7 +1147,14 @@ impl LayoutThread {
             }
         }
 
-        self.prepare_stylist_for_reflow(reflow_request, document, &guards, &user_agent_stylesheets)
+        let stylist_update = self.prepare_stylist_for_reflow(
+            reflow_request,
+            document,
+            &guards,
+            &user_agent_stylesheets,
+        );
+        stylist_update
+            .invalidation_set
             .process_style(dangerous_root_element, Some(&snapshot_map));
 
         if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
@@ -1256,7 +1266,11 @@ impl LayoutThread {
 
             if !damage.contains(LayoutDamage::DescendantCollectedAsLayoutRoot) {
                 layout_context.style_context.stylist.rule_tree().maybe_gc();
-                return (ReflowPhasesRun::empty(), IFrameSizes::default());
+                return (
+                    ReflowPhasesRun::empty(),
+                    IFrameSizes::default(),
+                    stylist_update.changed_web_fonts,
+                );
             }
 
             debug_assert!(!layout_roots.is_empty());
@@ -1267,6 +1281,7 @@ impl LayoutThread {
                 return (
                     ReflowPhasesRun::RanLayout,
                     std::mem::take(&mut *layout_context.iframe_sizes.lock()),
+                    stylist_update.changed_web_fonts,
                 );
             }
 
@@ -1317,6 +1332,7 @@ impl LayoutThread {
         (
             ReflowPhasesRun::RanLayout,
             std::mem::take(&mut *iframe_sizes),
+            stylist_update.changed_web_fonts,
         )
     }
 
@@ -1890,4 +1906,12 @@ impl ReflowPhases {
             },
         }
     }
+}
+
+/// Summarizes changes after flushing stylesheets on the `Stylist`.
+struct StylistStylesheetUpdate {
+    /// Information about what kind of selectors changed.
+    invalidation_set: StylesheetInvalidationSet,
+    /// A list of changes to the set of web fonts.
+    changed_web_fonts: WebFontSetDifference,
 }
