@@ -63,12 +63,6 @@ impl LayoutDom<'_, Node> {
     }
 }
 
-unsafe impl<'dom, T: DomObject> LayoutFromRaw<'dom, T> for LayoutDom<'dom, T> {
-    fn from_raw(d: &'dom T) -> Self {
-        LayoutDom { value: d }
-    }
-}
-
 impl<'dom, T> LayoutDom<'dom, T>
 where
     T: 'dom + DomObject,
@@ -167,6 +161,51 @@ impl<T> Clone for LayoutDom<'_, T> {
     fn clone(&self) -> Self {
         assert_in_layout();
         *self
+    }
+}
+
+pub(crate) trait ToLayout<'dom, T: DomObject> {
+    /// Get a reference to the contents of this smart pointer as a [`LayoutDom`],
+    /// for use during layout. Note that this should only be called in the course
+    /// of layout.
+    ///
+    /// # Safety
+    /// The return value holds a Rust reference to the underlying data, which should be
+    /// safe as long as `unsafe` is not used to override the lifetime in some way.
+    ///
+    /// - The caller *must not* modify the underlying DOM object via non-layout handles.
+    /// - The caller *must ensure* that garbage collection does not occur while the
+    ///   [`LayoutDom`] handle is alive.
+    unsafe fn to_layout(&self) -> LayoutDom<'dom, T>;
+}
+
+impl<'dom, T: DomObject> ToLayout<'dom, T> for Dom<T> {
+    unsafe fn to_layout(&self) -> LayoutDom<'dom, T> {
+        assert_in_layout();
+        LayoutDom {
+            value: unsafe { self.as_ptr().as_ref().unwrap() },
+        }
+    }
+}
+
+pub(crate) trait ToLayoutOptional<'dom, T: DomObject> {
+    /// Retrieve a copy of the inner optional `Dom<T>` as `LayoutDom<T>`.
+    /// For use by layout, which can't use safe types like Temporary.
+    ///
+    /// # Safety
+    /// The return value holds a Rust reference to the underlying data, which should be
+    /// safe as long as `unsafe` is not used to override the lifetime in some way.
+    ///
+    /// - The caller *must not* modify the underlying DOM object via non-layout handles.
+    /// - The caller *must ensure* that garbage collection does not occur while the
+    ///   [`LayoutDom`] handle is alive.
+    unsafe fn to_layout(&self) -> Option<LayoutDom<'dom, T>>;
+}
+
+impl<'dom, T: DomObject> ToLayoutOptional<'dom, T> for MutNullableDom<T> {
+    unsafe fn to_layout(&self) -> Option<LayoutDom<'dom, T>> {
+        assert_in_layout();
+        unsafe { self.as_ref_unsafe().map(|dom_ref| dom_ref.to_layout()) }
     }
 }
 

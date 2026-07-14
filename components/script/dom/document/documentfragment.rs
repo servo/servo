@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, ToLayoutOptional};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::document::tree_ordered_index_map::TreeOrderedIndexMap;
@@ -86,7 +86,7 @@ impl<'dom> LayoutDom<'dom, DocumentFragment> {
             // > Shadow roots’s associated host is never null.
             self.unsafe_get()
                 .host
-                .get_inner_as_layout()
+                .to_layout()
                 .expect("Shadow roots's associated host is never null")
         }
     }

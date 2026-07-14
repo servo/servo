@@ -21,7 +21,7 @@ use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
-use crate::dom::bindings::root::{LayoutDom, ToLayout};
+use crate::dom::bindings::root::{LayoutDom, ToLayout, ToLayoutOptional};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
@@ -40,7 +40,7 @@ impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        unsafe { self.unsafe_get().parent_node().get_inner_as_layout() }
+        unsafe { self.unsafe_get().parent_node().to_layout() }
     }
 
     #[inline]
@@ -86,36 +86,31 @@ impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        unsafe { self.unsafe_get().first_child().get_inner_as_layout() }
+        unsafe { self.unsafe_get().first_child().to_layout() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        unsafe { self.unsafe_get().last_child().get_inner_as_layout() }
+        unsafe { self.unsafe_get().last_child().to_layout() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        unsafe { self.unsafe_get().prev_sibling().get_inner_as_layout() }
+        unsafe { self.unsafe_get().prev_sibling().to_layout() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        unsafe { self.unsafe_get().next_sibling().get_inner_as_layout() }
+        unsafe { self.unsafe_get().next_sibling().to_layout() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document> {
-        unsafe {
-            self.unsafe_get()
-                .get_owner_doc()
-                .get_inner_as_layout()
-                .unwrap()
-        }
+        unsafe { self.unsafe_get().get_owner_doc().to_layout().unwrap() }
     }
 
     #[inline]

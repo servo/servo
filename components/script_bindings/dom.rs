@@ -10,26 +10,10 @@ use js::context::NoGC;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 use crate::DomObject;
-use crate::assert::{assert_in_layout, assert_in_script};
+use crate::assert::assert_in_script;
 use crate::conversions::DerivedFrom;
 use crate::inheritance::Castable;
 use crate::root::{Dom, DomRoot};
-
-pub trait ToLayout<'dom, T: DomObject, L: LayoutFromRaw<'dom, T>> {
-    /// Returns `LayoutDom<T>` containing the same pointer.
-    ///
-    /// # Safety
-    ///
-    /// The `self` parameter to this method must meet all the requirements of [`ptr::NonNull::as_ref`].
-    unsafe fn to_layout(&self) -> L;
-}
-
-impl<'dom, T: DomObject, L: LayoutFromRaw<'dom, T>> ToLayout<'dom, T, L> for Dom<T> {
-    unsafe fn to_layout(&self) -> L {
-        assert_in_layout();
-        L::from_raw(unsafe { self.as_ptr().as_ref().unwrap() })
-    }
-}
 
 /// A holder that provides interior mutability for GC-managed values such as
 /// `Dom<T>`.  Essentially a `Cell<Dom<T>>`, but safer.
@@ -172,16 +156,6 @@ impl<'a, T: DomObject> PartialEq<UnrootedDom<'a, T>> for UnrootedDom<'a, T> {
     }
 }
 
-/// Trait that creates a specific struct from a raw DomObject. The implementer needs to be
-/// sure that this does not violate any lifetimes
-///
-/// # Safety
-/// The dom object needs the lifetimes to be safe.
-/// Only [`LayoutDom`] should implement this.
-pub unsafe trait LayoutFromRaw<'dom, T: DomObject> {
-    fn from_raw(d: &'dom T) -> Self;
-}
-
 /// A holder that provides interior mutability for GC-managed values such as
 /// `Dom<T>`, with nullability represented by an enclosing Option wrapper.
 /// Essentially a `Cell<Option<Dom<T>>>`, but safer.
@@ -220,20 +194,23 @@ impl<T: DomObject> MutNullableDom<T> {
         }
     }
 
-    /// Retrieve a copy of the inner optional `Dom<T>` as `LayoutDom<T>`.
-    /// For use by layout, which can't use safe types like Temporary.
-    ///
-    /// # Safety
-    /// Needs to meet the safety requirements of [`LayoutFromRaw`].
-    pub unsafe fn get_inner_as_layout<'dom, L: LayoutFromRaw<'dom, T>>(&'dom self) -> Option<L> {
-        assert_in_layout();
-        unsafe { (*self.ptr.get()).as_ref().map(|js| js.to_layout()) }
-    }
-
-    /// Get a rooted value out of this object
+    /// Get a rooted ([`DomRoot`]) reference to the value contained in this
+    /// [`MutNullableDom`].
     pub fn get(&self) -> Option<DomRoot<T>> {
         assert_in_script();
         unsafe { ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o)) }
+    }
+
+    /// Get a reference to the traced inner value of this [`MutNullableDom`].
+    ///
+    /// # Safety
+    ///
+    /// - The caller *must not* modify the value of the [`MutNullableDom`] while the
+    ///   reference is alive.
+    /// - The caller *must ensure* that no garbage collection happens while the
+    ///   reference is alive.
+    pub unsafe fn as_ref_unsafe(&self) -> Option<&Dom<T>> {
+        unsafe { (*self.ptr.get()).as_ref() }
     }
 
     /// Get the `DomObject` without rooting it. Constructing an UnrootedDom. This is safe
