@@ -10,6 +10,7 @@ use embedder_traits::UntrustedNodeAddress;
 use js::context::JSContext;
 use js::conversions::FromJSValConvertible;
 use js::rust::HandleValue;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -442,7 +443,7 @@ impl DocumentOrShadowRoot {
     /// values to the inner [DocumentOrShadowRoot::set_adopted_stylesheet].
     pub(crate) fn set_adopted_stylesheet_from_jsval(
         cx: &mut JSContext,
-        adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
+        adopted_stylesheets: &DomRefCell<Vec<Dom<CSSStyleSheet>>>,
         incoming_value: HandleValue,
         owner: &StyleSheetListOwner,
     ) -> ErrorResult {
@@ -454,11 +455,8 @@ impl DocumentOrShadowRoot {
             ConversionResult::Success(stylesheets) => {
                 rooted_vec!(let stylesheets <- stylesheets.iter().map(|s| s.as_traced()));
 
-                DocumentOrShadowRoot::set_adopted_stylesheet(
-                    adopted_stylesheets,
-                    &stylesheets,
-                    owner,
-                )
+                let mut sheets = adopted_stylesheets.safe_borrow_mut(cx);
+                DocumentOrShadowRoot::set_adopted_stylesheet(sheets.as_mut(), &stylesheets, owner)
             },
             ConversionResult::Failure(msg) => Err(Error::Type(msg.into_owned())),
         }

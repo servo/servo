@@ -6667,12 +6667,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn SetAdoptedStyleSheets(&self, cx: &mut JSContext, val: HandleValue) -> ErrorResult {
         let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
             cx,
-            self.adopted_stylesheets.borrow_mut().as_mut(),
+            &self.adopted_stylesheets,
             val,
             &StyleSheetListOwner::Document(Dom::from_ref(self)),
         );
 
-        // If update is successful, clear the FrozenArray cache.
         if result.is_ok() {
             self.adopted_stylesheets_frozen_types.clear()
         }
