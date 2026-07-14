@@ -52,7 +52,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom, ToLayoutOptional};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
@@ -1693,7 +1693,7 @@ impl<'dom> LayoutDom<'dom, HTMLImageElement> {
         unsafe {
             self.unsafe_get()
                 .dimension_attribute_source
-                .get_inner_as_layout()
+                .to_layout()
                 .expect("dimension attribute source should be always non-null")
         }
     }
