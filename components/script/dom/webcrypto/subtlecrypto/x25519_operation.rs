@@ -39,7 +39,7 @@ pub(crate) fn derive_bits(
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
     if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(None));
+        return Err(Error::InvalidAccess(Some("The key is not private".into())));
     }
 
     // Step 2. Let publicKey be the public member of normalizedAlgorithm.
@@ -48,24 +48,32 @@ pub(crate) fn derive_bits(
     // Step 3. If the [[type]] internal slot of publicKey is not "public", then throw an
     // InvalidAccessError.
     if public_key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(None));
+        return Err(Error::InvalidAccess(Some(
+            "The key type of the public key is not public".into(),
+        )));
     }
 
     // Step 4. If the name attribute of the [[algorithm]] internal slot of publicKey is not equal
     // to the name property of the [[algorithm]] internal slot of key, then throw an
     // InvalidAccessError.
     if public_key.algorithm().name() != key.algorithm().name() {
-        return Err(Error::InvalidAccess(None));
+        return Err(Error::InvalidAccess(Some(
+            "Public key and key names do not match".into(),
+        )));
     }
 
     // Step 5. Let secret be the result of performing the X25519 function specified in [RFC7748]
     // Section 5 with key as the X25519 private key k and the X25519 public key represented by the
     // [[handle]] internal slot of publicKey as the X25519 public key u.
     let Handle::X25519PrivateKey(private_key) = key.handle() else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Private key's handle is invalid".into(),
+        )));
     };
     let Handle::X25519PublicKey(public_key) = public_key.handle() else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Public key's handle is invalid".into(),
+        )));
     };
     let secret = private_key.diffie_hellman(public_key);
 
@@ -90,7 +98,9 @@ pub(crate) fn derive_bits(
         None => Ok(secret_slice.to_vec()),
         Some(length) => {
             if secret_slice.len() * 8 < length as usize {
-                Err(Error::Operation(None))
+                Err(Error::Operation(Some(
+                    "Length of secret is less than requested length".into(),
+                )))
             } else {
                 let mut secret = secret_slice[..length.div_ceil(8) as usize].to_vec();
                 if length % 8 != 0 {
@@ -119,7 +129,9 @@ pub(crate) fn generate_key(
         .iter()
         .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
     {
-        return Err(Error::Syntax(None));
+        return Err(Error::Syntax(Some(
+            "One of the key usage is neither deriveKey nor deriveBits".into(),
+        )));
     }
 
     // Step 2. Generate an X25519 key pair, with the private key being 32 random bytes, and the
@@ -197,7 +209,7 @@ pub(crate) fn import_key(
         KeyFormat::Spki => {
             // Step 2.1. If usages is not empty then throw a SyntaxError.
             if !usages.is_empty() {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some("Usages is not empty".into())));
             }
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
@@ -213,13 +225,17 @@ pub(crate) fn import_key(
             // AlgorithmIdentifier field of spki is not equal to the id-X25519 object identifier
             // defined in [RFC8410], then throw a DataError.
             if spki.algorithm.oid != ObjectIdentifier::new_unwrap(X25519_OID_STRING) {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "Algorithm object identifiers do not match".into(),
+                )));
             }
 
             // Step 2.5. If the parameters field of the algorithm AlgorithmIdentifier field of spki
             // is present, then throw a DataError.
             if spki.algorithm.parameters.is_some() {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "Spki's algorithm contains parameters".into(),
+                )));
             }
 
             // Step 2.6. Let publicKey be the X25519 public key identified by the subjectPublicKey
@@ -227,9 +243,11 @@ pub(crate) fn import_key(
             let key_bytes: [u8; PUBLIC_KEY_LENGTH] = spki
                 .subject_public_key
                 .as_bytes()
-                .ok_or(Error::Data(None))?
+                .ok_or(Error::Data(Some("Could not parse key as bytes".into())))?
                 .try_into()
-                .map_err(|_| Error::Data(None))?;
+                .map_err(|_| {
+                    Error::Data(Some("Could not convert 'Option' type to byte slice".into()))
+                })?;
             let public_key = PublicKey::from(key_bytes);
 
             // Step 2.7. Let key be a new CryptoKey that represents publicKey.
@@ -258,7 +276,9 @@ pub(crate) fn import_key(
                 .iter()
                 .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
             {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some(
+                    "One of the key usage is neither deriveKey nor deriveBits".into(),
+                )));
             }
 
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
@@ -274,14 +294,18 @@ pub(crate) fn import_key(
             // PrivateKeyAlgorithm field of privateKeyInfo is not equal to the id-X25519 object
             // identifier defined in [RFC8410], then throw a DataError.
             if private_key_info.algorithm.oid != ObjectIdentifier::new_unwrap(X25519_OID_STRING) {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "Algorithm object identifiers do not match".into(),
+                )));
             }
 
             // Step 2.5. If the parameters field of the privateKeyAlgorithm
             // PrivateKeyAlgorithmIdentifier field of privateKeyInfo is present, then throw a
             // DataError.
             if private_key_info.algorithm.parameters.is_some() {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "Private key's algorithm contains parameters".into(),
+                )));
             }
 
             // Step 2.6. Let curvePrivateKey be the result of performing the parse an ASN.1
@@ -342,29 +366,40 @@ pub(crate) fn import_key(
                     .iter()
                     .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
             {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some(
+                    "One of the key usage is neither deriveKey nor deriveBits, and JSON Web Key does not provide 'd' field".into(),
+                )));
             }
 
             // Step 2.3. If the d field is not present and if usages is not empty then throw a
             // SyntaxError.
             if jwk.d.is_none() && !usages.is_empty() {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some(
+                    "'d' field of Json Web Key is not present and key usages is not empty".into(),
+                )));
             }
 
             // Step 2.4. If the kty field of jwk is not "OKP", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "OKP") {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "'kty' field of JSON Web Key is not 'OKP'".into(),
+                )));
             }
 
             // Step 2.5. If the crv field of jwk is not "X25519", then throw a DataError.
             if jwk.crv.as_ref().is_none_or(|crv| crv != "X25519") {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "'crv' field of JSON Web Key is not 'X25519'".into(),
+                )));
             }
 
             // Step 2.6. If usages is non-empty and the use field of jwk is present and is not
             // equal to "enc" then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "Key usages is not empty and 'use' field of JSON Web Key is not equal to 'enc'"
+                        .into(),
+                )));
             }
 
             // Step 2.7. If the key_ops field of jwk is present, and is invalid according to the
@@ -375,7 +410,9 @@ pub(crate) fn import_key(
             // Step 2.8. If the ext field of jwk is present and has the value false and extractable
             // is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "'ext' field of JSON Web Key is false and 'extractable' is true".into(),
+                )));
             }
 
             // Step 2.9.
@@ -386,13 +423,19 @@ pub(crate) fn import_key(
                 let x = jwk.decode_required_string_field(JwkStringField::X)?;
                 let d = jwk.decode_required_string_field(JwkStringField::D)?;
                 let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
-                    x.as_slice().try_into().map_err(|_| Error::Data(None))?;
+                    x.as_slice().try_into().map_err(|_| {
+                        Error::Data(Some("Could not convert public key to bytes".into()))
+                    })?;
                 let private_key_bytes: [u8; PRIVATE_KEY_LENGTH] =
-                    d.as_slice().try_into().map_err(|_| Error::Data(None))?;
+                    d.as_slice().try_into().map_err(|_| {
+                        Error::Data(Some("Could not convert private key to bytes".into()))
+                    })?;
                 let public_key = PublicKey::from(public_key_bytes);
                 let private_key = StaticSecret::from(private_key_bytes);
                 if PublicKey::from(&private_key) != public_key {
-                    return Err(Error::Data(None));
+                    return Err(Error::Data(Some(
+                        "Could not compute public key from given private key".into(),
+                    )));
                 }
 
                 // Step 2.9.1. Let key be a new CryptoKey object that represents the X25519 private
@@ -411,7 +454,9 @@ pub(crate) fn import_key(
                 // described in Section 2 of [RFC8037], then throw a DataError.
                 let x = jwk.decode_required_string_field(JwkStringField::X)?;
                 let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
-                    x.as_slice().try_into().map_err(|_| Error::Data(None))?;
+                    x.as_slice().try_into().map_err(|_| {
+                        Error::Data(Some("Could not convert public key to bytes".into()))
+                    })?;
                 let public_key = PublicKey::from(public_key_bytes);
 
                 // Step 2.9.1. Let key be a new CryptoKey object that represents the X25519 public
@@ -445,12 +490,14 @@ pub(crate) fn import_key(
         KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 2.1. If usages is not empty then throw a SyntaxError.
             if !usages.is_empty() {
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(Some("Key usages is not empty".into())));
             }
 
             // Step 2.2. If the length in bits of keyData is not 256 then throw a DataError.
             if key_data.len() != 32 {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "Length of key data in bits is not 256".into(),
+                )));
             }
 
             // Step 2.3. Let algorithm be a new KeyAlgorithm object.
@@ -458,8 +505,9 @@ pub(crate) fn import_key(
             // Step 2.5. Let key be a new CryptoKey representing the key data provided in keyData.
             // Step 2.6. Set the [[type]] internal slot of key to "public"
             // Step 2.7. Set the [[algorithm]] internal slot of key to algorithm.
-            let key_bytes: [u8; PUBLIC_KEY_LENGTH] =
-                key_data.try_into().map_err(|_| Error::Data(None))?;
+            let key_bytes: [u8; PUBLIC_KEY_LENGTH] = key_data
+                .try_into()
+                .map_err(|_| Error::Data(Some("Could not convert key to bytes".into())))?;
             let public_key = PublicKey::from(key_bytes);
             let algorithm = SubtleKeyAlgorithm {
                 name: CryptoAlgorithm::X25519,
@@ -477,7 +525,7 @@ pub(crate) fn import_key(
         // Otherwise:
         _ => {
             // throw a NotSupportedError.
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some("Key format not supported".into())));
         },
     };
 
@@ -500,7 +548,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(None));
+                return Err(Error::InvalidAccess(Some("Key type is not public".into())));
             }
 
             // Step 3.2.
@@ -512,7 +560,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //           [RFC8410].
             //     * Set the subjectPublicKey field to keyData.
             let Handle::X25519PublicKey(public_key) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Key handle does not match with a X25519 public key".into(),
+                )));
             };
             let data = SubjectPublicKeyInfoRef {
                 algorithm: AlgorithmIdentifierRef {
@@ -529,14 +579,16 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::new_bytes(data.to_der().map_err(|_| Error::Operation(None))?)
+            ExportedKey::new_bytes(data.to_der().map_err(|_| {
+                Error::Operation(Some("Could not apply DER encoding on data".into()))
+            })?)
         },
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(None));
+                return Err(Error::InvalidAccess(Some("Key type is not private".into())));
             }
 
             // Step 3.2.
@@ -551,7 +603,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //       type, as defined in Section 7 of [RFC8410], that represents the X25519 private
             //       key represented by the [[handle]] internal slot of key
             let Handle::X25519PrivateKey(private_key) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Key handle does not match with a X25519 private key".into(),
+                )));
             };
             let curve_private_key = OctetStringRef::new(private_key.as_bytes().as_slice())
                 .map_err(|_| {
@@ -584,7 +638,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::new_bytes(data.to_der().map_err(|_| Error::Operation(None))?)
+            ExportedKey::new_bytes(data.to_der().map_err(|_| {
+                Error::Operation(Some("Could not apply DER encoding on data".into()))
+            })?)
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -607,7 +663,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 Handle::X25519PublicKey(public_key) => {
                     jwk.encode_string_field(JwkStringField::X, public_key.as_bytes());
                 },
-                _ => return Err(Error::Operation(None)),
+                _ => return Err(Error::Operation(Some(
+                    "Key handle does not match with a X25519 private key or a X25519 public key"
+                        .into(),
+                ))),
             }
 
             // Step 3.5.
@@ -618,7 +677,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 if let Handle::X25519PrivateKey(private_key) = key.handle() {
                     jwk.encode_string_field(JwkStringField::D, private_key.as_bytes());
                 } else {
-                    return Err(Error::Operation(None));
+                    return Err(Error::Operation(Some(
+                        "Key handle does not match with a X25519 private key".into(),
+                    )));
                 }
             }
 
@@ -636,13 +697,15 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
             if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(None));
+                return Err(Error::InvalidAccess(Some("Key type is not public".into())));
             }
 
             // Step 3.2. Let data be a byte sequence representing the X25519 public key represented
             // by the [[handle]] internal slot of key.
             let Handle::X25519PublicKey(public_key) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Key handle does not match with a X25519 public key".into(),
+                )));
             };
             let data = public_key.as_bytes();
 
@@ -652,7 +715,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         // Otherwise:
         _ => {
             // throw a NotSupportedError.
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some("Key format not supported".into())));
         },
     };
 
@@ -685,7 +748,9 @@ pub(crate) fn get_public_key(
     // Step 14. Set the [[extractable]] internal slot of publicKey to true.
     // Step 15. Set the [[usages]] internal slot of publicKey to usages.
     let Handle::X25519PrivateKey(private_key) = key.handle() else {
-        return Err(Error::Operation(None));
+        return Err(Error::Operation(Some(
+            "Key handle does not match with a X25519 private key".into(),
+        )));
     };
     let public_key = CryptoKey::new(
         cx,
