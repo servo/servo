@@ -4327,10 +4327,10 @@ impl JsonWebKeyExt for JsonWebKey {
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
         let mut usages = vec![];
         for op in self.key_ops.as_ref().ok_or(Error::Data(Some(
-            "Could not convert key operation to a reference".into(),
+            "'key_ops' member is not present in the JSON Web Key".into(),
         )))? {
             usages.push(KeyUsage::from_str(&op.str()).map_err(|_| {
-                Error::Data(Some("Could not get convert string to key usage".into()))
+                Error::Data(Some("Unknown key usage".into()))
             })?);
         }
         Ok(usages)

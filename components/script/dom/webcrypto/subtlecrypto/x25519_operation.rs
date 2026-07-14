@@ -49,7 +49,7 @@ pub(crate) fn derive_bits(
     // InvalidAccessError.
     if public_key.Type() != KeyType::Public {
         return Err(Error::InvalidAccess(Some(
-            "The public key is not public".into(),
+            "The key type of the public key is not public".into(),
         )));
     }
 
@@ -99,7 +99,7 @@ pub(crate) fn derive_bits(
         Some(length) => {
             if secret_slice.len() * 8 < length as usize {
                 Err(Error::Operation(Some(
-                    "Length of secret is greater than length given".into(),
+                    "Length of secret is less than requested length".into(),
                 )))
             } else {
                 let mut secret = secret_slice[..length.div_ceil(8) as usize].to_vec();
@@ -130,7 +130,7 @@ pub(crate) fn generate_key(
         .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
     {
         return Err(Error::Syntax(Some(
-            "A key usage does not provide deriveKey or deriveBits".into(),
+            "One of the key usage is neither deriveKey nor deriveBits".into(),
         )));
     }
 
@@ -277,7 +277,7 @@ pub(crate) fn import_key(
                 .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
             {
                 return Err(Error::Syntax(Some(
-                    "A key usage does not provide deriveKey or deriveBits".into(),
+                    "One of the key usage is neither deriveKey nor deriveBits".into(),
                 )));
             }
 
@@ -367,7 +367,7 @@ pub(crate) fn import_key(
                     .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
             {
                 return Err(Error::Syntax(Some(
-                    "A key usage does not provide deriveKey or deriveBits and JSON Web Key does not provide 'd' field".into(),
+                    "One of the key usage is neither deriveKey nor deriveBits, and JSON Web Key does not provide 'd' field".into(),
                 )));
             }
 

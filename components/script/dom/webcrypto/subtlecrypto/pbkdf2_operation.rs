@@ -37,7 +37,7 @@ pub(crate) fn derive_bits(
     // Step 2. If the iterations member of normalizedAlgorithm is zero, then throw an OperationError.
     let Ok(iterations) = NonZero::<u32>::try_from(normalized_algorithm.iterations) else {
         return Err(Error::Operation(Some(
-            "Normalized algorithm's iterations is null".into(),
+            "Normalized algorithm's iterations is zero".into(),
         )));
     };
 
