@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Static position inside float inside inline</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-height">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#floats">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#inline-formatting">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  Due to `line-height: 200px`, the `<br>` places the float 200px below the top of the
+  inline formatting context. Therefore, the static position of the abspos should also
+  be there, not at the top of the inline formatting context.
+">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="overflow: hidden; margin-top: -200px">
+  <span style="line-height: 200px">
+    <br>
+    <div style="float: left; width: 200px; height: 200px; background: red">
+      <div style="position: absolute; width: 200px; height: 200px; background: green"></div>
+    </div>
+  </span>
+</div>
