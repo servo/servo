@@ -194,7 +194,7 @@ impl WorkletId {
 
 /// <https://drafts.css-houdini.org/worklets/#pending-tasks-struct>
 #[derive(Clone, Debug)]
-struct PendingTasksStruct(Arc<AtomicIsize>);
+pub(crate) struct PendingTasksStruct(Arc<AtomicIsize>);
 
 impl PendingTasksStruct {
     fn new() -> PendingTasksStruct {
@@ -393,7 +393,7 @@ enum WorkletData {
 }
 
 /// The control message sent to worklet threads
-enum WorkletControl {
+pub(crate) enum WorkletControl {
     ExitWorklet(WorkletId),
     FetchAndInvokeAWorkletScript {
         pipeline_id: PipelineId,
@@ -408,6 +408,7 @@ enum WorkletControl {
         promise: TrustedPromise,
         inherited_secure_context: Option<bool>,
     },
+    Common(CommonScriptMsg),
 }
 
 /// A role that a worklet thread can be playing.
@@ -455,6 +456,8 @@ struct WorkletThread {
 
     /// The thread's receiver for control messages
     control_receiver: Receiver<WorkletControl>,
+    /// add a control sender
+    control_sender: Sender<WorkletControl>,
 
     /// Senders
     primary_sender: Sender<WorkletData>,
@@ -493,6 +496,7 @@ impl WorkletThread {
         thread_index: u8,
     ) -> Sender<WorkletControl> {
         let (control_sender, control_receiver) = unbounded();
+        let worklet_control_sender = control_sender.clone();
         let _ = thread::Builder::new()
             .name(format!("Worklet#{thread_index}"))
             .spawn(move || {
@@ -506,6 +510,7 @@ impl WorkletThread {
                 let mut thread = RootedTraceableBox::new(WorkletThread {
                     role,
                     control_receiver,
+                    control_sender: worklet_control_sender.clone(),
                     primary_sender: init.primary_sender,
                     hot_backup_sender: init.hot_backup_sender,
                     cold_backup_sender: init.cold_backup_sender,
@@ -643,6 +648,7 @@ impl WorkletThread {
                     executor,
                     &self.global_init,
                     cx,
+                    self.control_sender.clone(),
                 );
                 entry.insert(Dom::from_ref(&*result));
                 result
@@ -833,6 +839,17 @@ impl WorkletThread {
                     promise,
                     cx,
                 )
+            },
+            WorkletControl::Common(script_msg) => {
+                if let CommonScriptMsg::Task(
+                    _worklet_event,
+                    task,
+                    _pipeline_id,
+                    _task_source_name,
+                ) = script_msg
+                {
+                    task.run_box(cx);
+                }
             },
         }
     }

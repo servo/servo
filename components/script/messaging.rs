@@ -27,6 +27,7 @@ use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
 
+use crate::dom::WorkletControl;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::csp::Violation;
@@ -173,7 +174,8 @@ pub(crate) enum MainThreadScriptMsg {
     ForwardEmbedderControlResponseFromFileManager(EmbedderControlId, EmbedderControlResponse),
 }
 
-/// Common messages used to control the event loops in both the script and the worker
+/// Common messages used to control the event loops in both the script and the worker and the
+/// worklet
 pub(crate) enum CommonScriptMsg {
     /// Requests that the script thread measure its memory usage. The results are sent back via the
     /// supplied channel.
@@ -212,6 +214,8 @@ pub(crate) enum ScriptEventLoopSender {
     SharedWorker(Sender<SharedWorkerScriptMsg>),
     /// A sender that sends to a `ServiceWorker` event loop.
     ServiceWorker(Sender<ServiceWorkerScriptMsg>),
+    /// A sender that sends to a `Worklet` event loop.
+    Worklet(Sender<WorkletControl>),
     /// A sender that sends to a dedicated worker (such as a generic Web Worker) event loop.
     /// Note that this sender keeps the main thread Worker DOM object alive as long as it or
     /// or any message it sends is not dropped.
@@ -250,6 +254,9 @@ impl ScriptEventLoopSender {
                     ))
                     .map_err(|_| SendError(()))
             },
+            Self::Worklet(sender) => sender
+                .send(WorkletControl::Common(message))
+                .map_err(|_| SendError(())),
         }
     }
 }

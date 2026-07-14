@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
-use embedder_traits::{ScriptToEmbedderChan};
+use embedder_traits::ScriptToEmbedderChan;
 use js::context::JSContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
@@ -20,6 +22,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use stylo_atoms::Atom;
 
+use crate::dom::WorkletControl;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::CustomTraceable;
@@ -31,8 +34,10 @@ use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
-use crate::messaging::MainThreadScriptMsg;
+use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopSender};
 use crate::realms::enter_auto_realm;
+use crate::task::TaskCanceller;
+use crate::task_manager::TaskManager;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -53,6 +58,10 @@ pub(crate) struct WorkletGlobalScope {
 
     #[no_trace]
     origin: MutableOrigin,
+
+    /// A [`TaskManager`] for this [`WorkerGlobalScope`].
+    #[conditional_malloc_size_of]
+    task_manager: Rc<TaskManager>,
 }
 
 impl WorkletGlobalScope {
@@ -65,6 +74,7 @@ impl WorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
+        sender: Sender<WorkletControl>,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
@@ -75,6 +85,7 @@ impl WorkletGlobalScope {
                 executor,
                 init,
                 cx,
+                sender,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
                 pipeline_id,
@@ -83,6 +94,7 @@ impl WorkletGlobalScope {
                 executor,
                 init,
                 cx,
+                sender,
             )),
         };
 
@@ -100,6 +112,8 @@ impl WorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
+        event_loop_sender: Option<ScriptEventLoopSender>,
+        closing: Arc<AtomicBool>,
     ) -> Self {
         Self {
             globalscope: GlobalScope::new_inherited(
@@ -122,6 +136,11 @@ impl WorkletGlobalScope {
             to_script_thread_sender: init.to_script_thread_sender.clone(),
             executor,
             pipeline_id,
+            task_manager: Rc::new(TaskManager::new(
+                event_loop_sender,
+                pipeline_id,
+                Some(TaskCanceller { cancelled: closing }),
+            )),
             origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
         }
     }

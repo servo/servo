@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::ptr::{NonNull, null_mut};
 use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -34,6 +35,7 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use webrender_api::units::DevicePixel;
 
+use crate::dom::WorkletControl;
 use crate::dom::bindings::callback::CallbackContainer;
 use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding::PaintWorkletGlobalScopeMethods;
@@ -50,6 +52,7 @@ use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit, WorkletTask};
+use crate::messaging::ScriptEventLoopSender;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
@@ -92,11 +95,13 @@ impl PaintWorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
+        own_sender: Sender<WorkletControl>,
     ) -> DomRoot<PaintWorkletGlobalScope> {
         debug!(
             "Creating paint worklet global scope for pipeline {}.",
             pipeline_id
         );
+        let closing = Arc::new(AtomicBool::new(false));
         let global = Box::new(PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(
                 pipeline_id,
@@ -104,6 +109,8 @@ impl PaintWorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
+                Some(ScriptEventLoopSender::Worklet(own_sender.clone())),
+                closing,
             ),
             image_cache: init.image_cache.clone(),
             paint_definitions: Default::default(),
