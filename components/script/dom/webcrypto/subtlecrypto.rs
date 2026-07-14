@@ -277,7 +277,7 @@ impl SubtleCrypto {
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with a CryptoKey.
     fn resolve_promise_with_key(&self, promise: Rc<Promise>, key: &CryptoKey) {
-        let trusted_key = Trusted::new(&*key);
+        let trusted_key = Trusted::new(key);
         let trusted_promise = TrustedPromise::new(promise);
         self.global()
             .task_manager()

@@ -518,8 +518,8 @@ impl DocumentEventHandler {
         let common_ancestor = match related_target.as_ref() {
             Some(related_target) => event_target
                 .common_ancestor_in_flat_tree(related_target)
-                .unwrap_or_else(|| DomRoot::from_ref(&*event_target)),
-            None => DomRoot::from_ref(&*event_target),
+                .unwrap_or_else(|| DomRoot::from_ref(event_target)),
+            None => DomRoot::from_ref(event_target),
         };
 
         // We need to create a target chain in case the event target shares
