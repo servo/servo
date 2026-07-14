@@ -22,6 +22,14 @@ impl<'dom> Iterator for ReverseChildrenIterator<'dom> {
         self.current = node.and_then(|node| unsafe { node.dangerous_previous_sibling() });
         node
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        if let Some(node) = self.current {
+            (node.node.children_count() as usize, None)
+        } else {
+            (0, None)
+        }
+    }
 }
 
 pub enum ServoLayoutNodeChildrenIterator<'dom> {
@@ -67,6 +75,15 @@ impl<'dom> Iterator for ServoLayoutNodeChildrenIterator<'dom> {
                 std::mem::replace(node, next_sibling)
             },
             Self::Slottables(slots) => slots.next().map(|node| node.layout_node()),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            Self::Node(node) if node.is_some() => {
+                (node.unwrap().node.children_count() as usize, None)
+            },
+            _ => (0, None),
         }
     }
 }

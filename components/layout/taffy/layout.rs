@@ -79,6 +79,10 @@ impl Iterator for ChildIter {
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(taffy::NodeId::from)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.0.len(), Some(self.0.len()))
+    }
 }
 
 impl taffy::TraversePartialTree for TaffyContainerContext<'_> {

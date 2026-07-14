@@ -350,6 +350,10 @@ impl<'dom> LayoutDom<'dom, Node> {
                 .is_some_and(|shadow_root| shadow_root.is_user_agent_widget())
         })
     }
+
+    pub(crate) fn children_count(&self) -> u32 {
+        self.unsafe_get().children_count()
+    }
 }
 
 pub(crate) struct NodeTypeIdWrapper(pub(crate) NodeTypeId);
