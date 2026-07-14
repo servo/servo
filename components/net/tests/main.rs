@@ -8,6 +8,7 @@
 mod cookie;
 mod cookie_http_state;
 mod data_loader;
+mod decoder;
 mod fetch;
 
 fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
