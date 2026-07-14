@@ -9,8 +9,8 @@ use std::sync::{LazyLock, atomic};
 
 use accesskit::{NodeId, Role};
 use bitflags::bitflags;
-use itertools::EitherOrBoth::{Both, Left, Right};
-use itertools::{Itertools, izip};
+use itertools::EitherOrBoth::Both;
+use itertools::Itertools;
 use layout_api::{AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -567,8 +567,6 @@ impl AccessibilityNode {
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
-        dbg!(dom_node);
-
         let mut local_damage = LocalAccessibilityDamage::empty();
         if !dom_damage.contains(AccessibilityDamage::Children) {
             return local_damage;
@@ -583,20 +581,9 @@ impl AccessibilityNode {
         while zip
             .next_if(|either| match either {
                 Both(old_id, dom_child) => {
-                    dbg!(dom_child);
-                    if let Some(new_id) = tree.existing_id_for_opaque(dom_child.opaque()) {
-                        return new_id == **old_id;
-                    }
-                    false
+                    tree.existing_id_for_opaque(dom_child.opaque()) == Some(**old_id)
                 },
-                Left(old_id) => {
-                    dbg!(old_id);
-                    false
-                },
-                Right(new_dom_child) => {
-                    dbg!(new_dom_child);
-                    false
-                },
+                _ => false,
             })
             .is_some()
         {
@@ -604,7 +591,6 @@ impl AccessibilityNode {
         }
 
         if zip.peek().is_none() {
-            dbg!("no change");
             return damage_from_children;
         }
 
