@@ -146,7 +146,7 @@ jobs:
     steps:
       - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         if: ${{ runner.environment != 'self-hosted' }}
         with:
           tool-cache: false
@@ -283,7 +283,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         if: ${{ runner.environment != 'self-hosted' }}
         with:
           tool-cache: false
@@ -330,7 +330,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         with:
           tool-cache: false
           large-packages: false
@@ -387,7 +387,7 @@ jobs:
     steps:
       - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         if: ${{ runner.environment != 'self-hosted' }}
         with:
           tool-cache: false

@@ -59,7 +59,7 @@ jobs:
           uv lock
           git commit -a --amend -s --no-edit
       - name: Push changes
-        uses: ad-m/github-push-action@master
+        uses: ad-m/github-push-action@881a6320fdb16eb5318c5054f31c218aec2b324c # v1.3.0
         with:
           branch: wpt_update_${{ env.CURRENT_DATE }}
       - name: Open PR

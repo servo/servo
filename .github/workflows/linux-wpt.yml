@@ -73,7 +73,7 @@ jobs:
         chunk_id: ${{ fromJSON(needs.runner-select.outputs.selected-runner-indices) }}
     steps:
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         if: ${{ runner.environment != 'self-hosted' }}
         with:
           tool-cache: false
