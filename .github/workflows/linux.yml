@@ -406,7 +406,7 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-llvm-cov,cargo-nextest
+          tool: cargo-llvm-cov@0.8.7,cargo-nextest@0.9.140
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
         timeout-minutes: 30
