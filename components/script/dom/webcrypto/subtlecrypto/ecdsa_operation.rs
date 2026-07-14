@@ -80,7 +80,7 @@ pub(crate) fn sign(
             let signing_key = SigningKey::<NistP256>::from(d);
             let signature: Signature<NistP256> = signing_key
                 .sign_prehash_with_rng(&mut rng, &m)
-                .map_err(|_| Error::Operation(Some("ECDSA signing process failed.".into())))?9
+                .map_err(|_| Error::Operation(Some("ECDSA signing process failed.".into())))?;
             signature.to_vec()
         },
         NAMED_CURVE_P384 => {

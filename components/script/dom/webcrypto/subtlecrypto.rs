@@ -4329,9 +4329,10 @@ impl JsonWebKeyExt for JsonWebKey {
         for op in self.key_ops.as_ref().ok_or(Error::Data(Some(
             "'key_ops' member is not present in the JSON Web Key".into(),
         )))? {
-            usages.push(KeyUsage::from_str(&op.str()).map_err(|_| {
-                Error::Data(Some("Unknown key usage".into()))
-            })?);
+            usages.push(
+                KeyUsage::from_str(&op.str())
+                    .map_err(|_| Error::Data(Some("Unknown key usage".into())))?,
+            );
         }
         Ok(usages)
     }
