@@ -6,6 +6,8 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
+use std::collections::HashMap;
+
 use net_traits::request::RequestBuilder;
 use net_traits::{BoxedFetchCallback, ResourceThreads, fetch_async};
 use script_bindings::cell::DomRefCell;
@@ -16,7 +18,7 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
 
-#[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum LoadType {
     Image(#[no_trace] ServoUrl),
     Script(#[no_trace] ServoUrl),
@@ -93,7 +95,9 @@ impl Drop for LoadBlocker {
 pub(crate) struct DocumentLoader {
     #[no_trace]
     resource_threads: ResourceThreads,
-    blocking_loads: Vec<LoadType>,
+    /// A map from [`LoadType`] to the number of blocking loads. When a particular [`LoadType`]
+    /// reaches zero, it is removed from the map and no longer blocks the load.
+    blocking_loads: HashMap<LoadType, u32>,
     events_inhibited: bool,
     cancellers: Vec<FetchCanceller>,
 }
@@ -108,7 +112,11 @@ impl DocumentLoader {
         initial_load: Option<ServoUrl>,
     ) -> DocumentLoader {
         debug!("Initial blocking load {:?}.", initial_load);
-        let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
+
+        let initial_loads = initial_load
+            .into_iter()
+            .map(|url| (LoadType::PageSource(url), 1))
+            .collect();
 
         DocumentLoader {
             resource_threads,
@@ -130,7 +138,10 @@ impl DocumentLoader {
             load,
             self.blocking_loads.len()
         );
-        self.blocking_loads.push(load);
+        self.blocking_loads
+            .entry(load)
+            .and_modify(|load_number| *load_number += 1)
+            .or_insert(1);
     }
 
     /// Initiate a new fetch given a response callback.
@@ -165,15 +176,15 @@ impl DocumentLoader {
             load,
             self.blocking_loads.len()
         );
-        let idx = self
-            .blocking_loads
-            .iter()
-            .position(|unfinished| *unfinished == *load);
-        match idx {
-            Some(i) => {
-                self.blocking_loads.remove(i);
-            },
-            None => warn!("unknown completed load {:?}", load),
+
+        let Some(entry) = self.blocking_loads.get_mut(load) else {
+            warn!("unknown completed load {load:?}");
+            return;
+        };
+
+        *entry = entry.saturating_sub(1);
+        if *entry == 0 {
+            self.blocking_loads.remove(load);
         }
     }
 
@@ -184,7 +195,7 @@ impl DocumentLoader {
 
     pub(crate) fn is_only_blocked_by_iframes(&self) -> bool {
         self.blocking_loads
-            .iter()
+            .keys()
             .all(|load| matches!(*load, LoadType::Subframe(_)))
     }
 
