@@ -6,6 +6,7 @@ use std::cell::RefCell;
 
 use encoding_rs::{Decoder, DecoderResult, Encoding};
 
+use crate::dom::bindings::buffer_source::get_buffer_source_slice;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, Fallible};
 
@@ -90,7 +91,7 @@ impl TextDecoderCommon {
     ///
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
     /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
-    #[expect(unsafe_code, deprecated)]
+    #[expect(unsafe_code)]
     pub(crate) fn decode(
         &self,
         input: Option<&ArrayBufferViewOrArrayBuffer>,
@@ -104,20 +105,13 @@ impl TextDecoderCommon {
         //
         // NOTE: try to avoid this copy unless there are bytes left
         let mut io_queue = self.io_queue.borrow_mut();
-        let input = match &input {
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(a)) => unsafe {
+        let input = match input {
+            Some(input) => {
+                let slice = unsafe { get_buffer_source_slice(input) };
                 if io_queue.is_empty() {
-                    a.as_slice()
+                    slice
                 } else {
-                    io_queue.extend_from_slice(a.as_slice());
-                    &io_queue[..]
-                }
-            },
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(a)) => unsafe {
-                if io_queue.is_empty() {
-                    a.as_slice()
-                } else {
-                    io_queue.extend_from_slice(a.as_slice());
+                    io_queue.extend_from_slice(slice);
                     &io_queue[..]
                 }
             },

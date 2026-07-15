@@ -39,6 +39,7 @@ use servo_config::pref;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
+use crate::dom::bindings::buffer_source::get_buffer_source_slice;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
@@ -1338,9 +1339,10 @@ impl WebGLRenderingContext {
         &self.extension_manager
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn buffer_data(
         &self,
-        no_gc: &NoGC,
+        _no_gc: &NoGC,
         target: u32,
         data: Option<ArrayBufferViewOrArrayBuffer>,
         usage: u32,
@@ -1350,10 +1352,7 @@ impl WebGLRenderingContext {
         let bound_buffer =
             handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
-        let data = match data {
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice_safe(no_gc),
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice_safe(no_gc),
-        };
+        let data = unsafe { get_buffer_source_slice(&data) };
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
     }
 
@@ -1377,9 +1376,10 @@ impl WebGLRenderingContext {
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn buffer_sub_data(
         &self,
-        no_gc: &NoGC,
+        _no_gc: &NoGC,
         target: u32,
         offset: i64,
         data: ArrayBufferViewOrArrayBuffer,
@@ -1392,10 +1392,7 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        let data = match data {
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice_safe(no_gc),
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice_safe(no_gc),
-        };
+        let data = unsafe { get_buffer_source_slice(&data) };
         if (offset as u64) + data.len() as u64 > bound_buffer.capacity() as u64 {
             return self.webgl_error(InvalidValue);
         }

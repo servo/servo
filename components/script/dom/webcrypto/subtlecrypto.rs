@@ -57,7 +57,7 @@ use servo_constellation_traits::{
 use strum::{EnumString, IntoStaticStr, VariantArray};
 use zeroize::Zeroizing;
 
-use crate::dom::bindings::buffer_source::create_buffer_source;
+use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_copy};
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
@@ -396,10 +396,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 4. Let data be the result of getting a copy of the bytes held by the data parameter
         // passed to the encrypt() method.
-        let data = match data {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => Zeroizing::new(view.to_vec()),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => Zeroizing::new(buffer.to_vec()),
-        };
+        let data = Zeroizing::new(get_buffer_source_copy(&data));
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
@@ -483,10 +480,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 4. Let data be the result of getting a copy of the bytes held by the data parameter
         // passed to the decrypt() method.
-        let data = match data {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let data = get_buffer_source_copy(&data);
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
@@ -570,10 +564,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 4. Let data be the result of getting a copy of the bytes held by the data parameter
         // passed to the sign() method.
-        let data = match &data {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let data = get_buffer_source_copy(&data);
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
@@ -657,17 +648,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 4. Let signature be the result of getting a copy of the bytes held by the signature
         // parameter passed to the verify() method.
-        let signature = match &signature {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let signature = get_buffer_source_copy(&signature);
 
         // Step 5. Let data be the result of getting a copy of the bytes held by the data parameter
         // passed to the verify() method.
-        let data = match &data {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let data = get_buffer_source_copy(&data);
 
         // Step 6. Let realm be the relevant realm of this.
         // Step 7. Let promise be a new Promise.
@@ -747,10 +732,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 4. Let data be the result of getting a copy of the bytes held by the
         // data parameter passed to the digest() method.
-        let data = match data {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let data = get_buffer_source_copy(&data);
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
@@ -1201,10 +1183,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     // Step 4.2. Let keyData be the result of getting a copy of the bytes held by
                     // the keyData parameter passed to the importKey() method.
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => {
-                        Zeroizing::new(view.to_vec())
+                        Zeroizing::new(get_buffer_source_copy(
+                            &ArrayBufferViewOrArrayBuffer::ArrayBufferView(view),
+                        ))
                     },
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBuffer(buffer) => {
-                        Zeroizing::new(buffer.to_vec())
+                        Zeroizing::new(get_buffer_source_copy(
+                            &ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer),
+                        ))
                     },
                 }
             },
@@ -1584,10 +1570,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 7. Let wrappedKey be the result of getting a copy of the bytes held by the
         // wrappedKey parameter passed to the unwrapKey() method.
-        let wrapped_key = match wrapped_key {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let wrapped_key = get_buffer_source_copy(&wrapped_key);
 
         // Step 8. Let realm be the relevant realm of this.
         // Step 9. Let promise be a new Promise.
@@ -1995,10 +1978,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 6. Let ciphertext be the result of getting a copy of the bytes held by the
         // ciphertext parameter passed to the decapsulateKey() method.
-        let ciphertext = match ciphertext {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let ciphertext = get_buffer_source_copy(&ciphertext);
 
         // Step 7. Let realm be the relevant realm of this.
         // Step 8. Let promise be a new Promise.
@@ -2118,10 +2098,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 4. Let ciphertext be the result of getting a copy of the bytes held by the
         // ciphertext parameter passed to the decapsulateBits() method.
-        let ciphertext = match ciphertext {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let ciphertext = get_buffer_source_copy(&ciphertext);
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
@@ -4089,11 +4066,7 @@ fn get_optional_buffer_source(
     parameter: &std::ffi::CStr,
 ) -> Fallible<Option<Vec<u8>>> {
     let buffer_source = get_property::<ArrayBufferViewOrArrayBuffer>(cx, object, parameter, ())?;
-    match buffer_source {
-        Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(view)) => Ok(Some(view.to_vec())),
-        Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer)) => Ok(Some(buffer.to_vec())),
-        None => Ok(None),
-    }
+    Ok(buffer_source.as_ref().map(get_buffer_source_copy))
 }
 
 /// Helper to retrieve a required paramter in BufferSource from WebIDL dictionary, and get a copy

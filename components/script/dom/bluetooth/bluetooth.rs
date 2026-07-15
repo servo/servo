@@ -15,6 +15,7 @@ use script_bindings::cformat;
 use js::context::JSContext;
 use crate::conversions::Convert;
 use script_bindings::cell::{Ref, DomRefCell};
+use crate::dom::bindings::buffer_source::get_buffer_source_copy;
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothDataFilterInit;
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothLEScanFilterInit;
@@ -22,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::B
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServer_Binding::
 BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
-use crate::dom::bindings::codegen::UnionTypes::{ArrayBufferViewOrArrayBuffer, StringOrUnsignedLong};
+use crate::dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use crate::dom::bindings::error::Error::{self, Network, Security, Type};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -493,18 +494,16 @@ fn canonicalize_bluetooth_data_filter_init(
     bdfi: &BluetoothDataFilterInit,
 ) -> Fallible<(Vec<u8>, Vec<u8>)> {
     // Step 1.
-    let data_prefix = match bdfi.dataPrefix {
-        Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref avb)) => avb.to_vec(),
-        Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref ab)) => ab.to_vec(),
+    let data_prefix = match &bdfi.dataPrefix {
+        Some(buffer_source) => get_buffer_source_copy(buffer_source),
         None => vec![],
     };
 
     // Step 2.
     // If no mask present, mask will be a sequence of 0xFF bytes the same length as dataPrefix.
     // Masking dataPrefix with this, leaves dataPrefix untouched.
-    let mask = match bdfi.mask {
-        Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref avb)) => avb.to_vec(),
-        Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref ab)) => ab.to_vec(),
+    let mask = match &bdfi.mask {
+        Some(buffer_source) => get_buffer_source_copy(buffer_source),
         None => vec![0xFF; data_prefix.len()],
     };
 

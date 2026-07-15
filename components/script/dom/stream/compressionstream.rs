@@ -19,7 +19,7 @@ use js::typedarray::Uint8;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
-use crate::dom::bindings::buffer_source::create_buffer_source;
+use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_copy};
 use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::{
     CompressionFormat, CompressionStreamMethods,
 };
@@ -321,8 +321,5 @@ pub(crate) fn convert_chunk_to_vec(
     let buffer_source = conversion_result.get_success_value().ok_or_else(|| {
         Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
     })?;
-    match buffer_source {
-        ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => Ok(view.to_vec()),
-        ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => Ok(buffer.to_vec()),
-    }
+    Ok(get_buffer_source_copy(buffer_source))
 }

@@ -19,12 +19,15 @@ use style::stylesheets::{CssRuleType, FontFaceRule, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
 
 use crate::css::parser_context_for_document_with_reporter;
+use crate::dom::bindings::buffer_source::get_buffer_source_copy;
 use crate::dom::bindings::codegen::Bindings::FontFaceBinding::{
     FontFaceDescriptors, FontFaceLoadStatus, FontFaceMethods,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes;
-use crate::dom::bindings::codegen::UnionTypes::StringOrArrayBufferViewOrArrayBuffer;
+use crate::dom::bindings::codegen::UnionTypes::{
+    ArrayBufferViewOrArrayBuffer, StringOrArrayBufferViewOrArrayBuffer,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -323,8 +326,12 @@ impl FontFace {
             StringOrArrayBufferViewOrArrayBuffer::String(_) => {
                 return font_face;
             },
-            StringOrArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            StringOrArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+            StringOrArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => {
+                get_buffer_source_copy(&ArrayBufferViewOrArrayBuffer::ArrayBufferView(view))
+            },
+            StringOrArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => {
+                get_buffer_source_copy(&ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer))
+            },
         };
 
         let trusted_font_face = Trusted::new(&*font_face);
