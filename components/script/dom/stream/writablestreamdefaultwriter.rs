@@ -10,7 +10,7 @@ use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriterMethods;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
@@ -39,12 +39,15 @@ pub struct WritableStreamDefaultWriter {
 impl WritableStreamDefaultWriter {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-writer>
     /// The parts that create a new promise.
-    fn new_inherited(cx: &mut CurrentRealm) -> WritableStreamDefaultWriter {
+    fn new_inherited(
+        closed_promise: Rc<Promise>,
+        ready_promise: Rc<Promise>,
+    ) -> WritableStreamDefaultWriter {
         WritableStreamDefaultWriter {
             reflector_: Reflector::new(),
             stream: Default::default(),
-            closed_promise: RefCell::new(Promise::new_in_realm(cx)),
-            ready_promise: RefCell::new(Promise::new_in_realm(cx)),
+            closed_promise: RefCell::new(closed_promise),
+            ready_promise: RefCell::new(ready_promise),
         }
     }
 
@@ -53,11 +56,16 @@ impl WritableStreamDefaultWriter {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> DomRoot<WritableStreamDefaultWriter> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(WritableStreamDefaultWriter::new_inherited(cx)),
+        let closed_promise = Promise::new_in_realm(cx);
+        let ready_promise = Promise::new_in_realm(cx);
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(WritableStreamDefaultWriter::new_inherited(
+                closed_promise,
+                ready_promise,
+            )),
             global,
             proto,
-            cx,
         )
     }
 

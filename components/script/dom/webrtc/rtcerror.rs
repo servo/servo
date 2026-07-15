@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{
     RTCErrorDetailType, RTCErrorInit, RTCErrorMethods,
@@ -55,11 +55,11 @@ impl RTCError {
         init: &RTCErrorInit,
         message: DOMString,
     ) -> DomRoot<RTCError> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(RTCError::new_inherited(init, message)),
             window,
             proto,
-            cx,
         )
     }
 }

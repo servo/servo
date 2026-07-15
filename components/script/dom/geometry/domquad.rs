@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::id::{DomQuadId, DomQuadIndex};
 use servo_constellation_traits::{DomPoint, DomQuad};
 
@@ -63,11 +63,11 @@ impl DOMQuad {
         p3: &DOMPoint,
         p4: &DOMPoint,
     ) -> DomRoot<DOMQuad> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
             global,
             proto,
-            cx,
         )
     }
 }

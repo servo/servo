@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::abortsignal::AbortSignal;
 use crate::dom::bindings::codegen::Bindings::AbortControllerBinding::AbortControllerMethods;
@@ -43,11 +43,11 @@ impl AbortController {
         // Step 1. Let signal be a new AbortSignal object.
         let signal = AbortSignal::new_with_proto(cx, global, None);
         // Step 2. Set this’s signal to signal.
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(AbortController::new_inherited(&signal)),
             global,
             proto,
-            cx,
         )
     }
 

@@ -11,7 +11,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
@@ -62,11 +62,11 @@ impl ReportingObserver {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(Self::new_inherited(callback, options)),
             global,
             proto,
-            cx,
         )
     }
 

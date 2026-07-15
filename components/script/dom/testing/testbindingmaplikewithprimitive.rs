@@ -11,7 +11,7 @@ use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::like::Maplike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::TestBindingMaplikeWithPrimitiveBinding::TestBindingMaplikeWithPrimitiveMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -34,14 +34,14 @@ impl TestBindingMaplikeWithPrimitive {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<TestBindingMaplikeWithPrimitive> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(TestBindingMaplikeWithPrimitive {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(IndexMap::new()),
             }),
             global,
             proto,
-            cx,
         )
     }
 }

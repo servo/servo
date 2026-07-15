@@ -22,7 +22,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
 
@@ -119,11 +119,11 @@ impl CustomElementRegistry {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<CustomElementRegistry> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(CustomElementRegistry::new_inherited(window)),
             window,
             proto,
-            cx,
         )
     }
 

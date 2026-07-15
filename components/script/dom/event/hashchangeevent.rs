@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -47,11 +47,11 @@ impl HashChangeEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<HashChangeEvent> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
             window,
             proto,
-            cx,
         )
     }
 
@@ -80,11 +80,11 @@ impl HashChangeEvent {
         old_url: String,
         new_url: String,
     ) -> DomRoot<HashChangeEvent> {
-        let ev = reflect_dom_object_with_proto_and_cx(
+        let ev = reflect_dom_object_with_proto(
+            cx,
             Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
             window,
             proto,
-            cx,
         );
         {
             let event = ev.upcast::<Event>();

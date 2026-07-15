@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUOutOfMemoryError_Binding::GPUOutOfMemoryErrorMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -31,12 +31,7 @@ impl GPUOutOfMemoryError {
         proto: Option<HandleObject>,
         message: DOMString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(Self::new_inherited(message)),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(Self::new_inherited(message)), global, proto)
     }
 }
 

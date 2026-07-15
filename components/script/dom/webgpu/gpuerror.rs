@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use webgpu_traits::{Error, ErrorFilter};
 
 use crate::conversions::Convert;
@@ -44,11 +44,11 @@ impl GPUError {
         proto: Option<HandleObject>,
         message: DOMString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(GPUError::new_inherited(message)),
             global,
             proto,
-            cx,
         )
     }
 

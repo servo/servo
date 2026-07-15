@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::DOMMatrixBinding::DOMMatrix2DInit;
 use script_bindings::error::ErrorResult;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::str::DOMString;
 use servo_canvas_traits::canvas::Path;
 
@@ -196,7 +196,7 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Path2D> {
-        reflect_dom_object_with_proto_and_cx(Box::new(Self::new()), global, proto, cx)
+        reflect_dom_object_with_proto(cx, Box::new(Self::new()), global, proto)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-path2d-dev>
@@ -206,12 +206,7 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
         proto: Option<HandleObject>,
         other: &Path2D,
     ) -> DomRoot<Path2D> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(Self::new_with_path(other)),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(Self::new_with_path(other)), global, proto)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-path2d-dev>
@@ -221,11 +216,11 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
         proto: Option<HandleObject>,
         path_string: DOMString,
     ) -> DomRoot<Path2D> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(Self::new_with_str(&path_string.str())),
             global,
             proto,
-            cx,
         )
     }
 }

@@ -11,7 +11,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use net_traits::image_cache::Image;
 use script_bindings::cell::DomRefCell;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -71,11 +71,11 @@ impl DataTransfer {
     ) -> DomRoot<DataTransfer> {
         let item_list = DataTransferItemList::new(cx, window, Rc::clone(&data_store));
 
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(DataTransfer::new_inherited(data_store, &item_list)),
             window,
             proto,
-            cx,
         )
     }
 

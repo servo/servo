@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
     XPathResultConstants, XPathResultMethods,
@@ -131,11 +131,11 @@ impl XPathResult {
         result_type: XPathResultType,
         value: XPathResultValue,
     ) -> DomRoot<XPathResult> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(XPathResult::new_inherited(window, result_type, value)),
             window,
             proto,
-            cx,
         )
     }
 

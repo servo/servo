@@ -37,7 +37,7 @@ use net_traits::{
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::trace::RootedTraceableBox;
 use script_traits::DocumentActivity;
 use servo_constellation_traits::BlobImpl;
@@ -283,11 +283,11 @@ impl XMLHttpRequest {
         proto: Option<HandleObject>,
     ) -> DomRoot<XMLHttpRequest> {
         let upload = XMLHttpRequestUpload::new(cx, global);
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(XMLHttpRequest::new_inherited(global, &upload)),
             global,
             proto,
-            cx,
         )
     }
 

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::{
     RTCIceCandidateInit, RTCIceCandidateMethods,
@@ -68,7 +68,8 @@ impl RTCIceCandidate {
         sdp_m_line_index: Option<u16>,
         username_fragment: Option<DOMString>,
     ) -> DomRoot<RTCIceCandidate> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(RTCIceCandidate::new_inherited(
                 candidate,
                 sdp_m_id,
@@ -77,7 +78,6 @@ impl RTCIceCandidate {
             )),
             window,
             proto,
-            cx,
         )
     }
 }

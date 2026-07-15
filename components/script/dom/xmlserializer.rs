@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use xml5ever::serialize::{SerializeOpts, TraversalScope, serialize};
 
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
@@ -35,11 +35,11 @@ impl XMLSerializer {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<XMLSerializer> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(XMLSerializer::new_inherited(window)),
             window,
             proto,
-            cx,
         )
     }
 }

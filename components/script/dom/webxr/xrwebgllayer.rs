@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLTextureId};
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
@@ -90,7 +90,8 @@ impl XRWebGLLayer {
         framebuffer: Option<&WebGLFramebuffer>,
         layer_id: Option<LayerId>,
     ) -> DomRoot<XRWebGLLayer> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(XRWebGLLayer::new_inherited(
                 session,
                 context,
@@ -100,7 +101,6 @@ impl XRWebGLLayer {
             )),
             global,
             proto,
-            cx,
         )
     }
 

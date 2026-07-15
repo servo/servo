@@ -13,7 +13,7 @@ use js::rust::HandleObject;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::{CredentialsMode, Referrer};
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_base::generic_channel;
 use servo_constellation_traits::{MessagePortImpl, WorkerScriptLoadOrigin};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
@@ -344,11 +344,11 @@ impl SharedWorker {
         control_sender: Sender<SharedWorkerControlMsg>,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<SharedWorker> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(SharedWorker::new_inherited(port, control_sender)),
             global,
             proto,
-            cx,
         )
     }
 

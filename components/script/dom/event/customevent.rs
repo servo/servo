@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CustomEventBinding;
@@ -48,12 +48,7 @@ impl CustomEvent {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<CustomEvent> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(CustomEvent::new_inherited()),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(CustomEvent::new_inherited()), global, proto)
     }
 
     fn new(

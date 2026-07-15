@@ -16,7 +16,7 @@ use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
 use script_bindings::cell::DomRefCell;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -208,12 +208,7 @@ impl FileReader {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<FileReader> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(FileReader::new_inherited()),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(FileReader::new_inherited()), global, proto)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error-steps

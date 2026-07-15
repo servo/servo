@@ -45,7 +45,7 @@ use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterB
 use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
 use crate::dom::bindings::reflector::DomGlobal;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::stream::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTeePullAlgorithm, ByteTeeUnderlyingSource};
@@ -927,12 +927,7 @@ impl ReadableStream {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> DomRoot<ReadableStream> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(ReadableStream::new_inherited()),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(ReadableStream::new_inherited()), global, proto)
     }
 
     /// Used as part of

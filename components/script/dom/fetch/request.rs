@@ -21,7 +21,7 @@ use net_traits::request::{
 };
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_url::ServoUrl;
 
 use crate::body::{
@@ -78,11 +78,11 @@ impl Request {
         proto: Option<HandleObject>,
         url: ServoUrl,
     ) -> DomRoot<Request> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(Request::new_inherited(global, url)),
             global,
             proto,
-            cx,
         )
     }
 

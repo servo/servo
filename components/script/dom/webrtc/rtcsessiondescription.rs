@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit, RTCSessionDescriptionMethods,
@@ -38,11 +38,11 @@ impl RTCSessionDescription {
         ty: RTCSdpType,
         sdp: DOMString,
     ) -> DomRoot<RTCSessionDescription> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(RTCSessionDescription::new_inherited(ty, sdp)),
             window,
             proto,
-            cx,
         )
     }
 }

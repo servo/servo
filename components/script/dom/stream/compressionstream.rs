@@ -17,7 +17,7 @@ use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::Uint8;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_copy};
 use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::{
@@ -69,11 +69,11 @@ impl CompressionStream {
         transform: &TransformStream,
         format: CompressionFormat,
     ) -> DomRoot<CompressionStream> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(CompressionStream::new_inherited(transform, format)),
             global,
             proto,
-            cx,
         )
     }
 }
