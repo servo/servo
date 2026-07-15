@@ -2061,6 +2061,7 @@ impl Node {
     ///
     /// If the node and its parent have a flat tree relationship, this returns:
     ///  - The node's assigned slot.
+    ///  - The node's shadow host if the node is a shadow root.
     ///  - The parent node's shadow host if it's a shadow root.
     ///  - Or the node's parent.
     ///
@@ -2070,6 +2071,10 @@ impl Node {
     pub(crate) fn parent_in_flat_tree(&self) -> FlatTreeParent {
         if let Some(assigned_slot) = self.assigned_slot() {
             return FlatTreeParent::Parent(DomRoot::upcast(assigned_slot));
+        }
+
+        if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
+            return FlatTreeParent::Parent(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
         }
 
         let Some(parent) = self.GetParentNode() else {
