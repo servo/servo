@@ -130,12 +130,10 @@ impl App {
             user_content_manager,
             self.preferences.clone(),
             #[cfg(feature = "gamepad")]
-            ServoshellGamepadDelegate::maybe_new(
-                self.event_loop_proxy
-                    .clone()
-                    .expect("Must have event loop proxy"),
-            )
-            .map(Rc::new),
+            self.event_loop_proxy
+                .clone()
+                .map(ServoshellGamepadDelegate::new)
+                .map(Rc::new),
         ));
         running_state.open_window(platform_window, self.initial_url.as_url().clone());
 

@@ -29,7 +29,7 @@ pub(crate) struct ServoshellGamepadDelegate {
 }
 
 impl ServoshellGamepadDelegate {
-    pub(crate) fn maybe_new(event_loop_proxy: EventLoopProxy<AppEvent>) -> Option<Self> {
+    pub(crate) fn new(event_loop_proxy: EventLoopProxy<AppEvent>) -> Self {
         let (tx, rx) = channel::<GamepadHapticEffectRequest>();
 
         let _ = thread::Builder::new()
@@ -104,7 +104,7 @@ impl ServoshellGamepadDelegate {
                 }
             });
 
-        Some(Self { sender: tx })
+        Self { sender: tx }
     }
 
     /// Handle updates to connected gamepads from GilRs
