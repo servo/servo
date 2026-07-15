@@ -198,6 +198,8 @@ impl BoxTree {
             layout_context,
             &mut positioning_context,
             &(&initial_containing_block).into(),
+            &initial_containing_block.size.block.into(),
+            None,
         );
 
         let mut root_fragments = independent_layout.fragments;

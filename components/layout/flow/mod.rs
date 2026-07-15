@@ -29,7 +29,7 @@ use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BaseFragmentInfo, BlockLevelLayoutInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
-    Fragment, FragmentFlags,
+    Fragment, FragmentFlags, PositioningFragment,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
@@ -424,6 +424,8 @@ impl BlockFormattingContext {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
+        lazy_block_size: &LazySize,
+        base: Option<&LayoutBoxBase>,
     ) -> IndependentFormattingContextLayoutResult {
         let mut sequential_layout_state =
             if self.contains_floats || !layout_context.allow_parallel_layout {
@@ -437,7 +439,11 @@ impl BlockFormattingContext {
         // https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
         let ignore_block_margins_for_stretch = LogicalSides1D::new(false, false);
 
-        let flow_layout = self.contents.layout(
+        // Store the current length of the positioning context, because below we may need to
+        // adjust the static positions of the abspos within this BFC.
+        let previous_positioning_context_len = positioning_context.len();
+
+        let mut flow_layout = self.contents.layout(
             layout_context,
             positioning_context,
             containing_block,
@@ -458,11 +464,47 @@ impl BlockFormattingContext {
             sequential_layout_state.calculate_clearance(Clear::Both, &CollapsedMargin::zero())
         });
 
+        let content_block_size = flow_layout.content_block_size +
+            flow_layout.collapsible_margins_in_children.end.solve() +
+            clearance.unwrap_or_default();
+
+        // Buttons center their contents in the block axis. Therefore, create an `AnonymousFragment`
+        // that contains the fragments of the contents, and place it as desired.
+        // TODO: Use `align-content` instead, see https://github.com/w3c/csswg-drafts/issues/14190
+        if let Some(base) = base &&
+            base.base_fragment_info
+                .flags
+                .contains(FragmentFlags::IS_BUTTON)
+        {
+            flow_layout.depends_on_block_constraints = true;
+            let final_block_size = lazy_block_size.resolve(|| content_block_size);
+            let align_fragment_rect = LogicalRect {
+                start_corner: LogicalVec2 {
+                    inline: Au::zero(),
+                    block: Au::zero().max((final_block_size - content_block_size) / 2),
+                },
+                size: LogicalVec2 {
+                    inline: containing_block.size.inline,
+                    block: content_block_size,
+                },
+            }
+            .as_physical(Some(containing_block));
+            positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
+                &align_fragment_rect.origin.to_vector(),
+                previous_positioning_context_len,
+            );
+            let align_fragment = PositioningFragment::new_anonymous(
+                base.style.clone(),
+                align_fragment_rect,
+                flow_layout.fragments,
+                false, /* is_line_box */
+            );
+            flow_layout.fragments = vec![Fragment::Positioning(align_fragment)];
+        }
+
         IndependentFormattingContextLayoutResult {
             fragments: flow_layout.fragments,
-            content_block_size: flow_layout.content_block_size +
-                flow_layout.collapsible_margins_in_children.end.solve() +
-                clearance.unwrap_or_default(),
+            content_block_size,
             content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
             depends_on_block_constraints: flow_layout.depends_on_block_constraints,

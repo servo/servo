@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Block-level inside of a button gets centered vertically but not horizontally</title>
+<link rel="author" href="mailto:obrufau@igalia.com" title="Oriol Brufau">
+<link rel="help" href="https://html.spec.whatwg.org/#button-layout">
+<link rel="help" href="https://github.com/whatwg/html/issues/12701">
+<link rel="match" href="centering-003-ref.html">
+<style>
+button {
+  box-sizing: content-box;
+  width: 200px;
+  height: 200px;
+}
+button > div {
+  width: 100px;
+  border: solid;
+}
+</style>
+<button>
+  <div>ABC</div>
+</button>
