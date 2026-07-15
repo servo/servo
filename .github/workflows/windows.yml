@@ -126,7 +126,7 @@ jobs:
         # copied from https://chocolatey.org/install
         run: |
           Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-
+          echo "C:\\ProgramData\\chocolatey\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       # To be removed once we update to WiX 7.
       - name: Add WiX to PATH (self-hosted)
         if: ${{ runner.environment == 'self-hosted' }}
