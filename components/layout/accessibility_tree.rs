@@ -9,8 +9,6 @@ use std::sync::{LazyLock, atomic};
 
 use accesskit::{NodeId, Role};
 use bitflags::bitflags;
-use itertools::EitherOrBoth::Both;
-use itertools::Itertools;
 use layout_api::{AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -574,37 +572,39 @@ impl AccessibilityNode {
 
         let mut damage_from_children = LocalAccessibilityDamage::empty();
 
-        let dom_children = dom_node.flat_tree_children();
-        let mut matching_nodes = 0usize;
+        let mut remaining_dom_children = dom_node.flat_tree_children().peekable();
+        let mut old_child_ids = self.child_ids().iter().peekable();
+        let mut unchanged_count = 0usize;
 
-        let mut zip = self.child_ids().iter().zip_longest(dom_children).peekable();
-        while zip
-            .next_if(|either| match either {
-                Both(old_id, dom_child) => {
-                    tree.existing_id_for_opaque(dom_child.opaque()) == Some(**old_id)
-                },
-                _ => false,
-            })
-            .is_some()
+        // For the first `unchanged_count` children, no action is necessary.
+        while let Some(&old_id) = old_child_ids.peek() &&
+            let Some(dom_child) = remaining_dom_children.peek()
         {
-            matching_nodes += 1;
+            if tree.existing_id_for_opaque(dom_child.opaque()) == Some(*old_id) {
+                unchanged_count += 1;
+                old_child_ids.next();
+                remaining_dom_children.next();
+            } else {
+                break;
+            }
         }
 
-        if zip.peek().is_none() {
+        // If we iterated over all the dom children without finding any changes, we're done.
+        if old_child_ids.peek().is_none() && remaining_dom_children.peek().is_none() {
             return damage_from_children;
         }
 
+        // Remove all child nodes after the first `unchanged_count`.
+        self.child_nodes.truncate(unchanged_count);
         let mut new_child_ids = Vec::from(self.child_ids());
-        let removed_child_ids = new_child_ids.split_off(matching_nodes);
-        let _removed_children = self.child_nodes.split_off(matching_nodes);
-
-        for removed_child_id in removed_child_ids {
-            dbg!(removed_child_id);
+        for removed_child_id in new_child_ids.split_off(unchanged_count) {
             update.set_tree_state_change(removed_child_id, TreeChange::Removed);
         }
 
-        for dom_child in dom_node.flat_tree_children().skip(matching_nodes) {
-            dbg!(dom_child);
+        // Then, (re-)add all the remaining DOM children. Note that this means that some children
+        // may end up being "Moved" even though they haven't changed parents, and may even be in the
+        // same position as previously.
+        for dom_child in remaining_dom_children {
             let (new_id, new_child) = tree.get_or_create_node(&dom_child, update);
             if update.is_new(&new_id) {
                 let child_damage = tree.update_node_and_descendants_from_dom_node(
@@ -617,12 +617,17 @@ impl AccessibilityNode {
             } else {
                 update.set_tree_state_change(new_id, TreeChange::PendingMove);
             }
+
+            // Update self.child_nodes in place.
             self.child_nodes.push(new_child.clone());
             new_child_ids.push(new_id);
+
             let mut new_child = new_child.borrow_mut();
             new_child.parent_node = Some(weak_self.clone());
         }
 
+        // We can't update the AccessKit node's `children` in place, so we build up the full list
+        // and then set it here.
         self.accesskit_node.set_children(new_child_ids);
         self.updated = true;
 
