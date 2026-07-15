@@ -374,6 +374,9 @@ impl From<ElementTypeIdWrapper> for LayoutElementType {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement) => {
                 LayoutElementType::HTMLBodyElement
             },
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement) => {
+                LayoutElementType::HTMLButtonElement
+            },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBRElement) => {
                 LayoutElementType::HTMLBRElement
             },

@@ -124,7 +124,9 @@ impl IndependentFormattingContext {
             Display::None | Display::Contents => {
                 unreachable!("Should never try to rebuild IndependentFormattingContext with no box")
             },
-            Display::GeneratingBox(display) => display.used_value_for_contents(&contents),
+            Display::GeneratingBox(display) => {
+                display.used_value_for_contents(&contents, node_and_style_info)
+            },
         };
 
         // This ensures that the `FragmentFlags` of this `BaseFragmentInfo` reflect the

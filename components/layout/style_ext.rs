@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use layout_api::AxesOverflow;
+use layout_api::{AxesOverflow, LayoutElementType, LayoutNode, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::color::AbsoluteColor;
@@ -36,7 +36,7 @@ use unicode_bidi::Level;
 use webrender_api as wr;
 use webrender_api::units::LayoutTransform;
 
-use crate::dom_traversal::Contents;
+use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalSides,
@@ -72,7 +72,11 @@ impl DisplayGeneratingBox {
         }
     }
 
-    pub(crate) fn used_value_for_contents(&self, contents: &Contents) -> Self {
+    pub(crate) fn used_value_for_contents(
+        &self,
+        contents: &Contents,
+        info: &NodeAndStyleInfo,
+    ) -> Self {
         // From <https://www.w3.org/TR/css-display-3/#layout-specific-display>:
         // > When the display property of a replaced element computes to one of
         // > the layout-internal values, it is handled as having a used value of
@@ -85,10 +89,21 @@ impl DisplayGeneratingBox {
                 },
             }
         } else if matches!(contents, Contents::Widget(_)) {
-            // If it's a widget, make sure the display-inside is flow-root.
             // <https://html.spec.whatwg.org/multipage/#form-controls>
-            // TODO: Do we want flow-root, or just an independent formatting context?
-            if let DisplayGeneratingBox::OutsideInside { outside, .. } = self {
+            // Widgets should establish an independent formatting context. Therefore,
+            // replace a `flow` inner display type with `flow-root`, or just use
+            // `flow-root` unconditionally, depending on the element.
+            // Also, prevent it from being a list item, like Blink and WebKit, but
+            // unlike Gecko. See https://github.com/w3c/csswg-drafts/issues/14187
+            if let DisplayGeneratingBox::OutsideInside { outside, inside } = self &&
+                (matches!(
+                    inside,
+                    DisplayInside::Flow { .. } | DisplayInside::FlowRoot { .. }
+                ) || info.node.type_id() !=
+                    Some(LayoutNodeType::Element(
+                        LayoutElementType::HTMLButtonElement,
+                    )))
+            {
                 DisplayGeneratingBox::OutsideInside {
                     outside: *outside,
                     inside: DisplayInside::FlowRoot {
