@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
@@ -499,16 +500,24 @@ impl FontContext {
         }
     }
 
+    /// Adds the provided new web font request to the list of pending downloads.
+    ///
+    /// Returns a boolean indicating whether a new download should be started. If there is
+    /// already a pending request for the same URL then there is no need to start a new one.
     pub(crate) fn handle_web_font_request_started(
         &self,
         url: ServoUrl,
         state: WebFontDownloadState,
-    ) {
-        self.currently_downloading_fonts
-            .lock()
-            .entry(url)
-            .or_default()
-            .push(state);
+    ) -> bool {
+        let mut downloading_fonts = self.currently_downloading_fonts.lock();
+        let entry = downloading_fonts.entry(url);
+
+        // If there is no request for that URL yet then we need to start a new one.
+        let needs_new_fetch_request = matches!(entry, Entry::Vacant(_));
+
+        entry.or_default().push(state);
+
+        needs_new_fetch_request
     }
 
     /// Handle a web font load finishing, adding the new font to the [`FontStore`]. If the web font
@@ -1056,10 +1065,16 @@ impl RemoteWebFontDownloader {
             None => return,
         };
 
-        let document_context = &state.document_context;
+        let webview_id = state.webview_id;
+        let document_context = state.document_context.clone();
+        if !font_context.handle_web_font_request_started(url.clone().into(), state) {
+            // This URL is already being fetched for another font, and we will be
+            // notified when that request completes.
+            return;
+        }
 
         let request = RequestBuilder::new(
-            state.webview_id,
+            webview_id,
             UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone().into()),
             Referrer::ReferrerUrl(document_context.document_url.clone()),
         )
@@ -1074,15 +1089,14 @@ impl RemoteWebFontDownloader {
 
         debug!("Loading @font-face {} from {}", web_font_family_name, url);
         let mut downloader = Self {
-            url: url.clone(),
+            url,
             web_font_family_name,
             response_valid: false,
             response_data: Vec::new(),
-            document_context: document_context.clone(),
+            document_context,
             font_context: font_context.clone(),
         };
 
-        font_context.handle_web_font_request_started(url.into(), state);
         fetch_async(
             &core_resource_thread_clone,
             request,
