@@ -645,11 +645,17 @@ impl Service<Destination> for ProxyConnector {
 
     fn call(&mut self, req: Destination) -> Self::Future {
         match self.matcher.intercept(&req) {
-            Some(intercept) => Box::pin(
-                Tunnel::new(intercept.uri().clone(), self.client.clone())
-                    .call(req)
-                    .map_err(|e| ConnectionError::ProxyError(format!("{e}"))),
-            ),
+            Some(intercept) => {
+                let mut tunnel = Tunnel::new(intercept.uri().clone(), self.client.clone());
+                let final_tunnel = if let Some(auth) = intercept.basic_auth() {
+                    tunnel.with_auth(auth.clone())
+                } else {
+                    tunnel
+                }
+                .call(req)
+                .map_err(|e| ConnectionError::ProxyError(format!("{e}")));
+                Box::pin(final_tunnel)
+            },
             None => Box::pin(
                 self.client
                     .call(req)
