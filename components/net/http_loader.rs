@@ -907,6 +907,11 @@ pub(crate) async fn http_fetch(
 
         // Step 4.4. If request’s response tainting is "cors" and a CORS check for request
         // and response returns failure, then return a network error.
+        if fetch_result.is_network_error() {
+            // If the response is already a network error (e.g. Cronet upload failure),
+            // return it directly instead of wrapping it in a misleading CorsGeneral error.
+            return fetch_result;
+        }
         if cors_flag && cors_check(&fetch_params.request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::CorsGeneral);
         }
