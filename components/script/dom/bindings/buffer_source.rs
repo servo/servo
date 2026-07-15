@@ -971,8 +971,19 @@ impl DataBlock {
         Arc::get_mut(&mut self.data).unwrap()
     }
 
-    pub(crate) fn clear_views(&mut self) {
-        self.data_views.clear()
+    #[cfg_attr(
+        crown,
+        expect(
+            crown::unrooted_must_root,
+            reason = "Underlying content is rooted when GC can happen"
+        )
+    )]
+    pub(crate) fn clear_views(&mut self, cx: &mut JSContext) {
+        // we need to pop one by one so we can root one by one for detach
+        while let Some(DataView { buffer, .. }) = self.data_views.pop() {
+            rooted!(&in(cx) let b = unsafe { buffer.underlying_object().get() });
+            assert!(unsafe { DetachArrayBuffer(cx, b.handle()) })
+        }
     }
 
     /// Returns error if requested range is already mapped
@@ -1027,6 +1038,8 @@ impl DataBlock {
     }
 }
 
+/// DataView are created from `NewExternalArrayBuffer`,
+/// so SM will detach the underlying buffer when the DataView is GCed.
 #[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -1042,21 +1055,6 @@ impl DataView {
     pub(crate) fn array_buffer(&self) -> RootedTraceableBox<HeapArrayBuffer> {
         RootedTraceableBox::new(unsafe {
             HeapArrayBuffer::from(self.buffer.underlying_object().get()).unwrap()
-        })
-    }
-}
-
-#[cfg(feature = "webgpu")]
-impl Drop for DataView {
-    #[expect(unsafe_code)]
-    fn drop(&mut self) {
-        // TODO: https://github.com/servo/servo/issues/44640
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        assert!(unsafe {
-            DetachArrayBuffer(
-                &mut cx,
-                Handle::from_raw(self.buffer.underlying_object().handle()),
-            )
         })
     }
 }
