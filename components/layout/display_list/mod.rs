@@ -241,7 +241,7 @@ impl DisplayListBuilder<'_> {
         self.webrender_display_list_builder
     }
 
-    fn pipeline_id(&mut self) -> wr::PipelineId {
+    fn pipeline_id(&self) -> wr::PipelineId {
         self.paint_info.pipeline_id
     }
 
@@ -912,7 +912,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             }
         }
 
-        let mut fragment_builder = BuilderForBoxFragment::new(
+        let fragment_builder = BuilderForBoxFragment::new(
             &fragment,
             self.fragment_tree.initial_containing_block.origin,
         );
@@ -948,7 +948,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 impl InspectorHighlight {
     fn register_fragment_of_highlighted_dom_node(
         &mut self,
-        builder: &mut DisplayListBuilder,
+        builder: &DisplayListBuilder,
         traversal_state: &TraversalState,
         fragment: &Arc<BoxFragment>,
     ) {
@@ -1641,7 +1641,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_background_image(
-        &mut self,
+        &self,
         builder: &mut DisplayListBuilder,
         state: &TraversalState,
         painter: &BackgroundPainter,
@@ -1852,7 +1852,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
     }
 
-    fn build_border_side(&mut self, style_color: BorderStyleColor) -> wr::BorderSide {
+    fn build_border_side(&self, style_color: BorderStyleColor) -> wr::BorderSide {
         wr::BorderSide {
             color: rgba(style_color.color),
             style: match style_color.style {
@@ -1871,7 +1871,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_collapsed_table_borders(
-        &mut self,
+        &self,
         builder: &mut DisplayListBuilder,
         state: &TraversalState,
     ) {
@@ -2113,7 +2113,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         true
     }
 
-    fn build_outline(&mut self, builder: &mut DisplayListBuilder, state: &TraversalState) {
+    fn build_outline(&self, builder: &mut DisplayListBuilder, state: &TraversalState) {
         let style = self.fragment.style();
         let outline = style.get_outline();
         if outline.outline_style.none_or_hidden() {

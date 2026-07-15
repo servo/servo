@@ -158,9 +158,11 @@ impl PaintTraversalHandler for HitTest<'_> {
             self.collected_reference_frame_clips.pop();
         }
     }
+
     fn visit_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>) {
         Fragment::Box(fragment.box_fragment.clone()).hit_test(state, self);
     }
+
     fn visit_text(
         &mut self,
         state: &TraversalState,

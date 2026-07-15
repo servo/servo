@@ -167,7 +167,7 @@ impl<'a> BackgroundPainter<'a> {
 }
 
 pub(super) fn layout_layer(
-    fragment_builder: &mut super::BuilderForBoxFragment,
+    fragment_builder: &super::BuilderForBoxFragment,
     painter: &BackgroundPainter,
     builder: &mut DisplayListBuilder,
     state: &TraversalState,
