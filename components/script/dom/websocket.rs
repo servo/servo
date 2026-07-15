@@ -5,6 +5,7 @@
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr::{self, NonNull};
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
@@ -25,7 +26,7 @@ use net_traits::{
 use profile_traits::ipc as ProfiledIpc;
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{DomObject, reflect_weak_referenceable_dom_object_with_proto};
 use servo_base::generic_channel::{LazyCallback, lazy_callback};
 use servo_constellation_traits::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -136,11 +137,11 @@ impl WebSocket {
         url: ServoUrl,
         sender: LazyCallback<WebSocketDomAction>,
     ) -> DomRoot<WebSocket> {
-        let websocket = reflect_dom_object_with_proto_and_cx(
-            Box::new(WebSocket::new_inherited(url, sender)),
+        let websocket = reflect_weak_referenceable_dom_object_with_proto(
+            cx,
+            Rc::new(WebSocket::new_inherited(url, sender)),
             global,
             proto,
-            cx,
         );
         if let Some(window) = global.downcast::<Window>() {
             window.Document().track_websocket(&websocket);

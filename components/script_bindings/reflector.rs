@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use js::context::JSContext;
 use js::jsapi::{AddAssociatedMemory, Heap, JSObject, MemoryUse, RemoveAssociatedMemory};
@@ -239,6 +240,20 @@ pub trait DomObjectWrap<D: DomTypes>: Sized + DomObject + DomGlobalGeneric<D> {
     ) -> Root<Dom<Self>>;
 }
 
+/// A trait to provide a function pointer to wrap function for DOM objects.
+pub trait WeakReferenceableDomObjectWrap<D: DomTypes>:
+    Sized + DomObject + DomGlobalGeneric<D>
+{
+    /// Function pointer to the general wrap function type
+    #[expect(clippy::type_complexity)]
+    const WRAP: unsafe fn(
+        &mut js::context::JSContext,
+        &D::GlobalScope,
+        Option<HandleObject>,
+        Rc<Self>,
+    ) -> Root<Dom<Self>>;
+}
+
 /// A trait to provide a function pointer to wrap function for
 /// DOM iterator interfaces.
 pub trait DomObjectIteratorWrap<D: DomTypes>: DomObjectWrap<D> + JSTraceable + Iterable {
@@ -308,6 +323,37 @@ pub fn reflect_dom_object_with_proto_and_cx<D, T, U>(
 where
     D: DomTypes,
     T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(cx, global_scope, proto, obj) }
+}
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub fn reflect_weak_referenceable_dom_object<D, T, U>(
+    cx: &mut JSContext,
+    obj: Rc<T>,
+    global: &U,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + WeakReferenceableDomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(cx, global_scope, None, obj) }
+}
+
+pub fn reflect_weak_referenceable_dom_object_with_proto<D, T, U>(
+    cx: &mut JSContext,
+    obj: Rc<T>,
+    global: &U,
+    proto: Option<HandleObject>,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + WeakReferenceableDomObjectWrap<D>,
     U: DerivedFrom<D::GlobalScope>,
 {
     let global_scope = global.upcast();

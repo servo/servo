@@ -16,7 +16,7 @@ use js::rust::wrappers2::JS_SetPendingException;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
@@ -108,11 +108,11 @@ impl AbortSignal {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<AbortSignal> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(AbortSignal::new_inherited()),
+        reflect_weak_referenceable_dom_object_with_proto(
+            cx,
+            Rc::new(AbortSignal::new_inherited()),
             global,
             proto,
-            cx,
         )
     }
 

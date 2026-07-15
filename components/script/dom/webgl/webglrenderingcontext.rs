@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-#[cfg(feature = "webxr")]
 use std::rc::Rc;
 use std::{cmp, ptr};
 
@@ -23,7 +22,9 @@ use js::typedarray::{
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{AssociatedMemory, Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{
+    AssociatedMemory, Reflector, reflect_weak_referenceable_dom_object,
+};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};
@@ -301,7 +302,11 @@ impl WebGLRenderingContext {
             size,
             attrs,
         ) {
-            Ok(ctx) => Some(reflect_dom_object_with_cx(Box::new(ctx), window, cx)),
+            Ok(ctx) => Some(reflect_weak_referenceable_dom_object(
+                cx,
+                Rc::new(ctx),
+                window,
+            )),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(

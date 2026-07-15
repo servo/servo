@@ -9,6 +9,7 @@ use std::cmp::Ordering;
 use std::default::Default;
 use std::f64::consts::PI;
 use std::ops::Deref;
+use std::rc::Rc;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -36,7 +37,10 @@ use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use script_bindings::codegen::InheritTypes::{DocumentFragmentTypeId, TextTypeId};
-use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{
+    DomObject, DomObjectWrap, WeakReferenceableDomObjectWrap, reflect_dom_object_with_proto_and_cx,
+    reflect_weak_referenceable_dom_object_with_proto,
+};
 use script_traits::DocumentActivity;
 use servo_base::id::PipelineId;
 use servo_config::pref;
@@ -2236,6 +2240,19 @@ impl Node {
     {
         let window = document.window();
         reflect_dom_object_with_proto_and_cx(node, window, proto, cx)
+    }
+
+    pub(crate) fn reflect_weak_referenceable_node_with_proto<N>(
+        cx: &mut JSContext,
+        node: Rc<N>,
+        document: &Document,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<N>
+    where
+        N: DerivedFrom<Node> + DomObject + WeakReferenceableDomObjectWrap<crate::DomTypeHolder>,
+    {
+        let window = document.window();
+        reflect_weak_referenceable_dom_object_with_proto(cx, node, window, proto)
     }
 
     pub(crate) fn new_inherited(doc: &Document) -> Node {

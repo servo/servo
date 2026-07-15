@@ -5,13 +5,14 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 use std::os::raw::c_int;
+use std::rc::Rc;
 use std::sync::Once;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion, WebGLShaderId,
@@ -119,10 +120,10 @@ impl WebGLShader {
         id: WebGLShaderId,
         shader_type: u32,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
-            Box::new(WebGLShader::new_inherited(context, id, shader_type)),
-            &*context.global(),
+        reflect_weak_referenceable_dom_object(
             cx,
+            Rc::new(WebGLShader::new_inherited(context, id, shader_type)),
+            &*context.global(),
         )
     }
 }

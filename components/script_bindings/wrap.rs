@@ -22,7 +22,6 @@ use crate::import::module::JS_GetReservedSlot;
 use crate::proxyhandler::ensure_expando_object;
 use crate::root::{DomRoot, MaybeUnreflectedDom, Root};
 use crate::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT;
-use crate::weakref::DOM_WEAK_SLOT;
 use crate::{DomObject, DomTypes, MutDomObject};
 
 type ProtoObjectFn = fn(&mut js::context::JSContext, HandleObject, MutableHandleObject);
@@ -31,7 +30,6 @@ type ProtoObjectFn = fn(&mut js::context::JSContext, HandleObject, MutableHandle
 pub(crate) struct WrapConfig {
     pub(crate) is_maybe_cross_origin_object: bool,
     pub(crate) is_proxy: bool,
-    pub(crate) weak_referenceable: bool,
     pub(crate) proxy_handler: Option<*const c_void>,
     pub(crate) prototype_id: PrototypeList::ID,
     pub(crate) class: Option<&'static JSClass>,
@@ -46,12 +44,10 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
     cx: &mut JSContext,
     scope: &D::GlobalScope,
     given_proto: Option<js::rust::Handle<*mut JSObject>>,
-    object: Box<T>,
+    raw: Root<MaybeUnreflectedDom<T>>,
     config: WrapConfig,
 ) -> DomRoot<T> {
     unsafe {
-        let raw = Root::new(MaybeUnreflectedDom::from_box(object));
-
         let scope = scope.reflector().get_jsobject();
         assert!(!scope.get().is_null());
         assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
@@ -113,11 +109,6 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
                 &PrivateValue(raw.as_ptr() as *const libc::c_void),
             );
         };
-
-        if config.weak_referenceable {
-            let val = PrivateValue(ptr::null());
-            JS_SetReservedSlot(obj.get(), DOM_WEAK_SLOT, &val);
-        }
 
         let root = raw.reflect_with(obj.get());
         root.reflector().set_proto_id(config.prototype_id as u16);

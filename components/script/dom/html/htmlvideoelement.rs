@@ -95,9 +95,9 @@ impl HTMLVideoElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLVideoElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLVideoElement::new_inherited(
+            Rc::new(HTMLVideoElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

@@ -14,7 +14,7 @@ use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_weak_referenceable_dom_object_with_proto};
 use servo_base::id::{BlobId, BlobIndex};
 use servo_constellation_traits::{BlobData, BlobImpl};
 use uuid::Uuid;
@@ -57,11 +57,11 @@ impl Blob {
         proto: Option<HandleObject>,
         blob_impl: BlobImpl,
     ) -> DomRoot<Blob> {
-        let dom_blob = reflect_dom_object_with_proto_and_cx(
-            Box::new(Blob::new_inherited(&blob_impl)),
+        let dom_blob = reflect_weak_referenceable_dom_object_with_proto(
+            cx,
+            Rc::new(Blob::new_inherited(&blob_impl)),
             global,
             proto,
-            cx,
         );
         global.track_blob(&dom_blob, blob_impl);
         dom_blob

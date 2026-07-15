@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::mem;
+use std::rc::Rc;
 use std::str::{Chars, FromStr};
 use std::time::Duration;
 
@@ -20,7 +21,7 @@ use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, 
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
@@ -531,11 +532,11 @@ impl EventSource {
         url: ServoUrl,
         with_credentials: bool,
     ) -> DomRoot<EventSource> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(EventSource::new_inherited(url, with_credentials)),
+        reflect_weak_referenceable_dom_object_with_proto(
+            cx,
+            Rc::new(EventSource::new_inherited(url, with_credentials)),
             global,
             proto,
-            cx,
         )
     }
 

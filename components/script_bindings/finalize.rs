@@ -5,17 +5,16 @@
 //! Generic finalizer implementations for DOM binding implementations.
 
 use std::any::type_name;
-use std::{mem, ptr};
+use std::ptr;
+use std::rc::Rc;
 
-use js::glue::JS_GetReservedSlot;
 use js::jsapi::JSObject;
-use js::jsval::UndefinedValue;
 use js::rust::GCMethods;
 
 use crate::DomObject;
 use crate::codegen::PrototypeList::PROTO_OR_IFACE_LENGTH;
 use crate::utils::{ProtoOrIfaceArray, get_proto_or_iface_array};
-use crate::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable};
+use crate::weakref::WeakReferenceable;
 
 /// Drop the resources held by reserved slots of a global object
 unsafe fn do_finalize_global(obj: *mut JSObject) {
@@ -53,28 +52,12 @@ pub(crate) unsafe fn finalize_global<T: DomObject>(obj: *mut JSObject, this: *co
 }
 
 /// # Safety
-/// `obj` must point to a valid, non-null JS object.
-/// `this` must point to a valid, non-null instance of T.
-pub(crate) unsafe fn finalize_weak_referenceable<T: WeakReferenceable>(
-    obj: *mut JSObject,
-    this: *const T,
-) {
-    let mut slot = UndefinedValue();
-    unsafe { JS_GetReservedSlot(obj, DOM_WEAK_SLOT, &mut slot) };
-    let weak_box_ptr = slot.to_private() as *mut WeakBox<T>;
-    if !weak_box_ptr.is_null() {
-        let count = {
-            let weak_box = unsafe { &*weak_box_ptr };
-            assert!(weak_box.value.get().is_some());
-            assert!(weak_box.count.get() > 0);
-            weak_box.value.set(None);
-            let count = weak_box.count.get() - 1;
-            weak_box.count.set(count);
-            count
-        };
-        if count == 0 {
-            mem::drop(unsafe { Box::from_raw(weak_box_ptr) });
-        }
+/// `this` must point to a Rced valid, non-null instance of T.
+pub(crate) unsafe fn finalize_weak_referenceable<T: WeakReferenceable>(this: *const T) {
+    if !this.is_null() {
+        // The pointer can be null if the object is the unforgeable holder of that interface.
+        let this = unsafe { Rc::from_raw(this) };
+        this.reflector().drop_memory(&*this);
     }
-    unsafe { finalize_common::<T>(this) };
+    debug!("{} finalize: {:p}", type_name::<T>(), this);
 }

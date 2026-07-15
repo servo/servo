@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::default::Default;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -13,7 +14,7 @@ use net_traits::filemanager_thread::FileManagerThreadMsg;
 use profile_traits::generic_channel;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_weak_referenceable_dom_object_with_proto};
 use servo_base::generic_channel::GenericSend;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use url::Url;
@@ -58,7 +59,12 @@ impl URL {
         proto: Option<HandleObject>,
         url: ServoUrl,
     ) -> DomRoot<URL> {
-        reflect_dom_object_with_proto_and_cx(Box::new(URL::new_inherited(url)), global, proto, cx)
+        reflect_weak_referenceable_dom_object_with_proto(
+            cx,
+            Rc::new(URL::new_inherited(url)),
+            global,
+            proto,
+        )
     }
 
     pub(crate) fn query_pairs(&self) -> Vec<(String, String)> {
