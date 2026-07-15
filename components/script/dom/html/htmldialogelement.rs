@@ -304,28 +304,28 @@ impl HTMLDialogElement {
         // TODO: Step 1. If the allow focus steps given subject's node document return false, then return.
 
         // Step 2. Let control be null.
-        let mut control = None;
+        rooted!(&in(cx) let mut control = None);
 
         // Step 3. If subject has the autofocus attribute, then set control to subject.
         if self.upcast::<HTMLElement>().Autofocus() {
-            control = self.upcast::<Node>().get_the_focusable_area(cx.no_gc());
+            control.set(self.upcast::<Node>().get_the_focusable_area(cx));
         }
 
         // Step 4. If control is null, then set control to the focus delegate of subject.
         if control.is_none() {
-            control = self.upcast::<Node>().focus_delegate(cx.no_gc());
+            control.set(self.upcast::<Node>().focus_delegate(cx));
         }
 
         // Step 5. If control is null, then set control to subject.
         if control.is_none() {
-            control = self.upcast::<Node>().get_the_focusable_area(cx.no_gc());
+            control.set(self.upcast::<Node>().get_the_focusable_area(cx));
         }
 
         // Step 6. Run the focusing steps for control.
         // FIXME: Use the focusing step once they support a focusable area as an argument
-        if let Some(control) = control {
+        if control.is_some() {
             let document = self.owner_document();
-            document.focus_handler().focus(cx, control);
+            document.focus_handler().focus(cx, control.take().unwrap());
         }
 
         // TODO: Step 7. Let topDocument be control's node navigable's top-level traversable's active document.

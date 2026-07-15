@@ -999,7 +999,7 @@ impl DocumentEventHandler {
                     // See documentation for [`Node::find_click_focusable_area`].
                     document
                         .focus_handler()
-                        .focus(cx, node.find_click_focusable_area(cx.no_gc()));
+                        .focus(cx, node.find_click_focusable_area(cx));
                 }
 
                 // Step 9. If mbutton is the secondary mouse button, then

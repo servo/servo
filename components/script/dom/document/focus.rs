@@ -53,20 +53,23 @@ bitflags! {
 
 /// <https://html.spec.whatwg.org/multipage/#focusable-area>
 #[derive(Clone, Default, JSTraceable, MallocSizeOf, PartialEq)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum FocusableArea {
     Node {
-        node: DomRoot<Node>,
+        node: Dom<Node>,
         kind: FocusableAreaKind,
     },
     /// The viewport of an `<iframe>` element in its containing `Document`. `<iframe>`s
     /// are focusable areas, but have special behavior when focusing.
     IFrameViewport {
-        iframe_element: DomRoot<HTMLIFrameElement>,
+        iframe_element: Dom<HTMLIFrameElement>,
         kind: FocusableAreaKind,
     },
     #[default]
     Viewport,
 }
+
+impl js::gc::Rootable for FocusableArea {}
 
 impl std::fmt::Debug for FocusableArea {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -114,7 +117,7 @@ impl FocusableArea {
     /// <https://html.spec.whatwg.org/multipage/#dom-anchor>
     pub(crate) fn dom_anchor(&self, document: &Document) -> DomRoot<Node> {
         match self {
-            Self::Node { node, .. } => node.clone(),
+            Self::Node { node, .. } => node.as_rooted(),
             Self::IFrameViewport { iframe_element, .. } => {
                 DomRoot::from_ref(iframe_element.upcast())
             },
@@ -183,6 +186,7 @@ impl DocumentFocusHandler {
     /// set element (if any) and the new one, as well as the new one. This will not do anything if
     /// the new element is the same as the previous one. Note that this *will not* fire any focus
     /// events. If that is necessary the [`DocumentFocusHandler::focus`] should be used.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set_focused_area(&self, new_focusable_area: FocusableArea) {
         if new_focusable_area == *self.focused_area.borrow() {
             return;
@@ -255,10 +259,14 @@ impl DocumentFocusHandler {
 
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn focus(&self, cx: &mut JSContext, new_focus_target: FocusableArea) {
-        let old_focus_chain = self.current_focus_chain();
-        let new_focus_chain = new_focus_target.focus_chain();
-        self.focus_update_steps(cx, new_focus_chain, old_focus_chain, &new_focus_target);
+        self.focus_update_steps(
+            cx,
+            new_focus_target.focus_chain(),
+            self.current_focus_chain(),
+            &new_focus_target,
+        );
 
         // Advertise the change in the focus chain.
         // <https://html.spec.whatwg.org/multipage/#focus-chain>
@@ -283,9 +291,9 @@ impl DocumentFocusHandler {
         // >     `new focus target` to the nested browsing context's
         // >     active document.
         let child_browsing_context_id = match new_focus_target {
-            FocusableArea::IFrameViewport { iframe_element, .. } => {
-                iframe_element.browsing_context_id()
-            },
+            FocusableArea::IFrameViewport {
+                ref iframe_element, ..
+            } => iframe_element.browsing_context_id(),
             _ => None,
         };
         let sequence = self.increment_fetch_focus_sequence();
@@ -304,6 +312,7 @@ impl DocumentFocusHandler {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-update-steps>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn focus_update_steps(
         &self,
         cx: &mut JSContext,

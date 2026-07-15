@@ -2945,23 +2945,22 @@ impl ScriptThread {
                 .get(browsing_context_id)
                 .map(|iframe| iframe.element.as_rooted())
         });
-        let focusable_area = iframe_element
-            .map(|iframe_element| {
-                let kind = iframe_element
+
+        rooted!(&in(cx) let focusable_area = iframe_element
+            .map(|iframe_element| FocusableArea::IFrameViewport {
+                iframe_element: iframe_element.as_traced(),
+                kind: iframe_element
                     .upcast::<Element>()
-                    .focusable_area_kind(cx.no_gc());
-                FocusableArea::IFrameViewport {
-                    iframe_element,
-                    kind,
-                }
+                    .focusable_area_kind(cx.no_gc()),
             })
-            .unwrap_or(FocusableArea::Viewport);
+            .unwrap_or(FocusableArea::Viewport)
+        );
 
         focus_handler.focus_update_steps(
             cx,
             focusable_area.focus_chain(),
             focus_handler.current_focus_chain(),
-            &focusable_area,
+            &*focusable_area,
         );
     }
 
