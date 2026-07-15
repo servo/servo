@@ -2712,8 +2712,6 @@ impl Window {
 
         document.update_animations_post_reflow();
 
-        document.switch_font_face_set_to_loading_if_needed(cx);
-
         (
             reflow_result.reflow_phases_run,
             reflow_result.reflow_statistics,
@@ -3598,6 +3596,8 @@ impl Window {
         }
 
         if !changed_web_fonts.added_font_faces.is_empty() {
+            fonts.switch_to_loading(cx);
+
             let shared_locks = document.shared_style_locks();
             let guards = StylesheetGuards {
                 author: &shared_locks.author.read(),
