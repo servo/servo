@@ -2027,9 +2027,7 @@ impl Node {
         // Step 8. If fix collapsed space is true, then while (start node, start offset)
         // is before (end node, end offset):
         if fix_collapsed_space {
-            while bp_position(&start_node, start_offset, &end_node, end_offset) ==
-                Some(Ordering::Less)
-            {
+            while bp_position(&start_node, start_offset, &end_node, end_offset) == Ordering::Less {
                 // Step 8.1. If end node has a child in the same editing host with index end offset − 1,
                 // set end node to that child, then set end offset to end node's length.
                 if end_offset > 0 &&
@@ -2089,8 +2087,7 @@ impl Node {
         );
         let mut replacement_whitespace_chars = replacement_whitespace.chars();
         // Step 10. While (start node, start offset) is before (end node, end offset):
-        while bp_position(&start_node, start_offset, &end_node, end_offset) == Some(Ordering::Less)
-        {
+        while bp_position(&start_node, start_offset, &end_node, end_offset) == Ordering::Less {
             // Step 10.1. If start node has a child with index start offset, set start node to that child, then set start offset to zero.
             if let Some(child) = start_node.children().nth(start_offset as usize) {
                 start_node = child;

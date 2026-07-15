@@ -84,7 +84,7 @@ pub(crate) struct BoundaryPoint {
 }
 
 impl BoundaryPoint {
-    fn new(node: &Node, offset: u32) -> BoundaryPoint {
+    pub(crate) fn new(node: &Node, offset: u32) -> BoundaryPoint {
         debug_assert!(!node.is_doctype());
         BoundaryPoint {
             node: MutDom::new(node),
@@ -108,12 +108,12 @@ impl BoundaryPoint {
 
 impl PartialOrd for BoundaryPoint {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        bp_position(
+        Some(bp_position(
             &self.node.get(),
             self.offset.get(),
             &other.node.get(),
             other.offset.get(),
-        )
+        ))
     }
 }
 
@@ -126,42 +126,47 @@ impl PartialEq for BoundaryPoint {
 }
 
 /// <https://dom.spec.whatwg.org/#concept-range-bp-position>
-pub(crate) fn bp_position(
-    a_node: &Node,
-    a_offset: u32,
-    b_node: &Node,
-    b_offset: u32,
-) -> Option<Ordering> {
+pub(crate) fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset: u32) -> Ordering {
+    // Step 1: Assert: nodeA and nodeB have the same root.
+    debug_assert!(
+        a_node.GetRootNode(&Default::default()) == b_node.GetRootNode(&Default::default())
+    );
+
+    // Step 2: If nodeA is nodeB, then return equal if offsetA is offsetB, before if
+    // offsetA is less than offsetB, and after if offsetA is greater than offsetB.
     if std::ptr::eq(a_node, b_node) {
-        // Step 1.
-        return Some(a_offset.cmp(&b_offset));
+        return a_offset.cmp(&b_offset);
     }
+
     let position = b_node.CompareDocumentPosition(a_node);
-    if position & NodeConstants::DOCUMENT_POSITION_DISCONNECTED != 0 {
-        // No order is defined for nodes not in the same tree.
-        None
-    } else if position & NodeConstants::DOCUMENT_POSITION_FOLLOWING != 0 {
-        // Step 2.
-        match bp_position(b_node, b_offset, a_node, a_offset).unwrap() {
-            Ordering::Less => Some(Ordering::Greater),
-            Ordering::Greater => Some(Ordering::Less),
-            Ordering::Equal => unreachable!(),
-        }
+    assert!(
+        position & NodeConstants::DOCUMENT_POSITION_DISCONNECTED == 0,
+        "Nodes should be in the same tree"
+    );
+    if position & NodeConstants::DOCUMENT_POSITION_FOLLOWING != 0 {
+        // Step 3: If nodeA is following nodeB, then if the position of (nodeB, offsetB)
+        // relative to (nodeA, offsetA) is before, return after, and if it is after,
+        // return before.
+        return match bp_position(b_node, b_offset, a_node, a_offset) {
+            Ordering::Less => Ordering::Greater,
+            Ordering::Greater => Ordering::Less,
+            Ordering::Equal => unreachable!("Should be impossible due to Step 2."),
+        };
     } else if position & NodeConstants::DOCUMENT_POSITION_CONTAINS != 0 {
-        // Step 3-1, 3-2.
+        // Step 4: If nodeA is an ancestor of nodeB:
+        // Step 4.1: Let child be nodeB.
+        // Step 4.2: While child is not a child of nodeA, set child to its parent.
         let mut b_ancestors = b_node.inclusive_ancestors(ShadowIncluding::No);
         let child = b_ancestors
             .find(|child| &*child.GetParentNode().unwrap() == a_node)
             .unwrap();
-        // Step 3-3.
+
+        // Step 4.3: If child’s index is less than offsetA, then return after.
         if child.index() < a_offset {
-            Some(Ordering::Greater)
-        } else {
-            // Step 4.
-            Some(Ordering::Less)
+            return Ordering::Greater;
         }
-    } else {
-        // Step 4.
-        Some(Ordering::Less)
     }
+
+    // Step 5: Return before.
+    Ordering::Less
 }
