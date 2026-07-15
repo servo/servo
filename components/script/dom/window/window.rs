@@ -29,7 +29,10 @@ use embedder_traits::{
     WebDriverJSResult, WebDriverLoadStatus,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
-use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
+use fonts::{
+    CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext,
+    WebFontSetDifference,
+};
 use js::context::{JSContext, NoGC};
 use js::glue::DumpJSStack;
 use js::jsapi::{GCReason, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
@@ -66,6 +69,7 @@ use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
+use script_bindings::like::Setlike;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
@@ -90,6 +94,7 @@ use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::PseudoElement;
+use style::shared_lock::StylesheetGuards;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::UrlExtraData;
 use style_traits::CSSPixel;
@@ -176,7 +181,7 @@ use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::{ImageBitmap, MouseEvent, SVGSVGElement, UIEvent};
+use crate::dom::types::{FontFace, ImageBitmap, MouseEvent, SVGSVGElement, UIEvent};
 use crate::dom::useractivation::UserActivationTimestamp;
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
 #[cfg(feature = "webgpu")]
@@ -2690,6 +2695,8 @@ impl Window {
             self.emit_timeline_marker(marker.end());
         }
 
+        self.handle_new_or_removed_web_fonts_post_reflow(cx, reflow_result.changed_web_fonts);
+
         self.handle_pending_images_post_reflow(
             cx,
             reflow_result.pending_images,
@@ -3572,6 +3579,38 @@ impl Window {
     #[cfg(not(feature = "webxr"))]
     pub(crate) fn in_immersive_xr_session(&self) -> bool {
         false
+    }
+
+    /// Adds and removes entries from `document.fonts` as needed after a reflow.
+    fn handle_new_or_removed_web_fonts_post_reflow(
+        &self,
+        cx: &mut JSContext,
+        changed_web_fonts: WebFontSetDifference,
+    ) {
+        if changed_web_fonts.is_empty() {
+            return;
+        }
+
+        let document = self.Document();
+        let fonts = document.Fonts(cx);
+        if !changed_web_fonts.removed_font_faces.is_empty() {
+            fonts.notify_font_face_rules_removed(&changed_web_fonts.removed_font_faces);
+        }
+
+        if !changed_web_fonts.added_font_faces.is_empty() {
+            let shared_locks = document.shared_style_locks();
+            let guards = StylesheetGuards {
+                author: &shared_locks.author.read(),
+                ua_or_user: &shared_locks.ua_or_user.read(),
+            };
+            for new_web_font in changed_web_fonts.added_font_faces {
+                if let Some(font_face) =
+                    FontFace::new_for_web_font(cx, self.upcast(), new_web_font, &guards)
+                {
+                    fonts.add(cx, font_face);
+                }
+            }
+        }
     }
 
     #[expect(unsafe_code)]

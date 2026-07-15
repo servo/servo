@@ -18,7 +18,10 @@ pub use font_template::*;
 use malloc_size_of_derive::MallocSizeOf;
 use num_derive::{NumOps, One, Zero};
 use serde::{Deserialize, Serialize};
+use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSharedMemory;
+use style::shared_lock::StylesheetGuards;
+use style::stylesheets::{FontFaceRule, LockedFontFaceRule, Origin};
 pub use system_font_service_proxy::*;
 use webrender_api::euclid::num::One;
 
@@ -164,4 +167,44 @@ pub struct FontDataAndIndex {
 #[derive(Copy, Clone, PartialEq)]
 pub enum FontDataError {
     FailedToLoad,
+}
+
+/// Describes how the set of active `@font-face` rules was changed after a call to `FontContext::rebuild_font_face_set`.
+#[derive(Clone, Default)]
+pub struct WebFontSetDifference {
+    /// A list of `@font-face` rules that were added in this update.
+    pub added_font_faces: Vec<FontFaceRuleWithOrigin>,
+    /// A list of `@font-face` rules that were removed in this update.
+    pub removed_font_faces: Vec<FontFaceRuleWithOrigin>,
+}
+
+impl WebFontSetDifference {
+    /// Returns `true` iff the font face set remained unchanged by the update.
+    pub fn is_empty(&self) -> bool {
+        self.added_font_faces.is_empty() && self.removed_font_faces.is_empty()
+    }
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub struct FontFaceRuleWithOrigin {
+    #[conditional_malloc_size_of]
+    rule: ServoArc<LockedFontFaceRule>,
+    origin: Origin,
+}
+
+impl FontFaceRuleWithOrigin {
+    pub fn new(rule: ServoArc<LockedFontFaceRule>, origin: Origin) -> Self {
+        Self { rule, origin }
+    }
+
+    pub fn ptr_eq(first: &Self, second: &Self) -> bool {
+        ServoArc::ptr_eq(&first.rule, &second.rule)
+    }
+
+    pub fn read_with<'a>(&'a self, guards: &'a StylesheetGuards) -> &'a FontFaceRule {
+        match self.origin {
+            Origin::Author => self.rule.read_with(guards.author),
+            Origin::UserAgent | Origin::User => self.rule.read_with(guards.ua_or_user),
+        }
+    }
 }

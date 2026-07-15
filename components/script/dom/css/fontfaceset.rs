@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use fonts::FontFaceRuleWithOrigin;
 use js::context::JSContext;
 use js::gc::Handle;
 use js::jsapi::Value;
@@ -153,6 +154,33 @@ impl FontFaceSet {
             }
         }
     }
+
+    /// Marks the entries corresponding to removed `@font-face` rules as not [css-connected].
+    ///
+    /// [css-connected]: https://drafts.csswg.org/css-font-loading/#css-connected
+    pub(crate) fn notify_font_face_rules_removed(
+        &self,
+        removed_font_face_rules: &[FontFaceRuleWithOrigin],
+    ) {
+        let entries = self.set_entries.borrow_mut();
+        for removed_font_face_rule in removed_font_face_rules {
+            let Some(matching_font_face_object) = entries
+                .iter()
+                .find(|entry| entry.is_connected_to_font_face_rule(removed_font_face_rule))
+            else {
+                if cfg!(debug_assertions) {
+                    unreachable!("Removed @font-face that was not previously present");
+                }
+                log::warn!("Removed @font-face that was not previously present");
+                continue;
+            };
+
+            // https://drafts.csswg.org/css-font-loading/#font-face-css-connection:
+            // > If a @font-face rule is removed from the document, its corresponding FontFace object is no longer CSS-connected.
+            // > The connection is not restorable by any means.
+            matching_font_face_object.disconnect_from_css();
+        }
+    }
 }
 
 impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
@@ -203,7 +231,9 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-clear>
-    fn Clear(&self) {
+    fn Clear(&self, cx: &mut JSContext) {
+        self.flush_author_font_set(cx);
+
         // Step 1. Remove all non-CSS-connected items from the FontFaceSet’s set entries,
         // its [[LoadedFonts]] list, and its [[FailedFonts]] list.
         self.set_entries.borrow_mut().clear();
@@ -278,8 +308,8 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#customstateset>
-    fn Size(&self) -> u32 {
-        self.set_entries.borrow().len() as u32
+    fn Size(&self, cx: &mut JSContext) -> u32 {
+        self.size(cx)
     }
 }
 

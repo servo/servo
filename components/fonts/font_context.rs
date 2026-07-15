@@ -12,8 +12,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use app_units::Au;
 use content_security_policy::Violation;
 use fonts_traits::{
-    CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
-    FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
+    CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleWithOrigin, FontIdentifier, FontTemplate,
+    FontTemplateRef, FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
+    WebFontSetDifference,
 };
 use log::{debug, trace};
 use malloc_size_of::MallocSizeOf;
@@ -41,8 +42,8 @@ use style::font_face::{
 };
 use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::properties::style_structs::Font as FontStyleStruct;
-use style::shared_lock::{Locked, StylesheetGuards};
-use style::stylesheets::{FontFaceRule, Origin};
+use style::shared_lock::StylesheetGuards;
+use style::stylesheets::FontFaceRule;
 use style::stylist::Stylist;
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use url::Url;
@@ -644,7 +645,7 @@ pub trait FontContextWebFontMethods {
         guards: &StylesheetGuards<'_>,
         callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
-    );
+    ) -> WebFontSetDifference;
     fn load_single_font_face_rule(
         &self,
         font_face_rule: &FontFaceRule,
@@ -697,38 +698,38 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         guards: &StylesheetGuards<'_>,
         callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
-    ) {
-        let mut removed_any = false;
-
-        self.known_font_face_rules
+    ) -> WebFontSetDifference {
+        let difference = self
+            .known_font_face_rules
             .lock()
-            .diff_old_and_new_font_face_rules(
-                stylist,
-                guards,
-                |new_rule| {
-                    self.load_single_font_face_rule(
-                        new_rule,
-                        webview_id,
-                        callback.clone(),
-                        document_context,
-                    );
-                },
-                |stale_rule| {
-                    self.remove_single_font_face_rule(
-                        &stale_rule.descriptors,
-                        &mut self.web_fonts.write(),
-                    );
-                    removed_any = true;
-                },
-            );
+            .diff_old_and_new_font_face_rules(stylist, guards);
 
-        if removed_any {
+        for added_rule in &difference.added_font_faces {
+            let added_rule = added_rule.read_with(guards);
+            self.load_single_font_face_rule(
+                added_rule,
+                webview_id,
+                callback.clone(),
+                document_context,
+            );
+        }
+        for removed_rule in &difference.removed_font_faces {
+            let removed_rule = removed_rule.read_with(guards);
+            self.remove_single_font_face_rule(
+                &removed_rule.descriptors,
+                &mut self.web_fonts.write(),
+            );
+        }
+
+        if !difference.removed_font_faces.is_empty() {
             // We modified the list of available fonts, so invalidate resolved font groups.
             self.resolved_font_groups.write().clear();
 
             // Ensure that we clean up any WebRender resources on the next display list update.
             self.have_removed_web_fonts.store(true, Ordering::Relaxed);
         }
+
+        difference
     }
 
     fn load_web_font_for_script(
@@ -1237,36 +1238,16 @@ struct KnownFontFaceRule {
     generation: bool,
 }
 
-#[derive(MallocSizeOf)]
-struct FontFaceRuleWithOrigin {
-    #[conditional_malloc_size_of]
-    rule: ServoArc<Locked<FontFaceRule>>,
-    origin: Origin,
-}
-
-impl FontFaceRuleWithOrigin {
-    fn read_with<'a>(&'a self, guards: &'a StylesheetGuards) -> &'a FontFaceRule {
-        match self.origin {
-            Origin::Author => self.rule.read_with(guards.author),
-            Origin::UserAgent | Origin::User => self.rule.read_with(guards.ua_or_user),
-        }
-    }
-}
-
 impl KnownFontFaceRules {
     /// Computes the difference between the `@font-face `rules that are currently in effect
     /// and the ones that the `Stylist` knows about. The caller is notified about new or removed rules
     /// with callbacks.
-    fn diff_old_and_new_font_face_rules<NewRuleCallback, StaleRuleCallback>(
+    fn diff_old_and_new_font_face_rules(
         &mut self,
         stylist: &Stylist,
         guards: &StylesheetGuards<'_>,
-        mut new_rule_callback: NewRuleCallback,
-        mut stale_rule_callback: StaleRuleCallback,
-    ) where
-        NewRuleCallback: FnMut(&FontFaceRule),
-        StaleRuleCallback: FnMut(&FontFaceRule),
-    {
+    ) -> WebFontSetDifference {
+        let mut difference = WebFontSetDifference::default();
         self.generation = !self.generation;
 
         let font_face_rules_in_cascade_order = stylist
@@ -1274,10 +1255,7 @@ impl KnownFontFaceRules {
             .flat_map(|(extra_data, origin)| {
                 extra_data.font_faces.iter().rev().zip(iter::repeat(origin))
             })
-            .map(|((rule, _layer), origin)| FontFaceRuleWithOrigin {
-                rule: rule.clone(),
-                origin,
-            });
+            .map(|((rule, _layer), origin)| FontFaceRuleWithOrigin::new(rule.clone(), origin));
 
         // First, find any *new* font families that were not defined previously
         let mut number_of_unchanged_rules = 0;
@@ -1308,9 +1286,9 @@ impl KnownFontFaceRules {
             let mut index_of_existing_entry_for_this_rule = None;
             for (index, known_font_face) in known_font_faces_for_family.iter().enumerate() {
                 // See if this is a entry for this @font-face that existed prior to the current update
-                if ServoArc::ptr_eq(
-                    &known_font_face.rule_with_origin.rule,
-                    &rule_with_origin.rule,
+                if FontFaceRuleWithOrigin::ptr_eq(
+                    &known_font_face.rule_with_origin,
+                    &rule_with_origin,
                 ) {
                     index_of_existing_entry_for_this_rule = Some(index);
                 }
@@ -1345,7 +1323,9 @@ impl KnownFontFaceRules {
                 if conflicting_declaration_with_higher_priority_exists {
                     let stale_rule =
                         known_font_faces_for_family.remove(index_of_existing_entry_for_this_rule);
-                    stale_rule_callback(stale_rule.rule_with_origin.read_with(guards));
+                    difference
+                        .removed_font_faces
+                        .push(stale_rule.rule_with_origin);
                 } else {
                     number_of_unchanged_rules += 1;
                     known_font_faces_for_family[index_of_existing_entry_for_this_rule].generation =
@@ -1357,7 +1337,7 @@ impl KnownFontFaceRules {
                 continue;
             } else {
                 // This is a new rule that does not conflict with anything that previously existed, so insert it.
-                new_rule_callback(borrowed_rule);
+                difference.added_font_faces.push(rule_with_origin.clone());
                 known_font_faces_for_family.push(KnownFontFaceRule {
                     rule_with_origin,
                     generation: self.generation,
@@ -1369,7 +1349,7 @@ impl KnownFontFaceRules {
             // This is the common case, where the new set of known @font-face rules is a superset of
             // the old one after applying the cascade. In this case there is nothing more to do,
             // because all old @font-face rules are still present.
-            return;
+            return difference;
         }
 
         // Remove all `@font-face` rules that were not updated - those no longer exist on the stylist.
@@ -1377,11 +1357,15 @@ impl KnownFontFaceRules {
             known_font_faces_for_family
                 .extract_if(.., |rule| rule.generation != self.generation)
                 .for_each(|removed_rule| {
-                    stale_rule_callback(removed_rule.rule_with_origin.read_with(guards))
+                    difference
+                        .removed_font_faces
+                        .push(removed_rule.rule_with_origin);
                 });
 
             !known_font_faces_for_family.is_empty()
         });
+
+        difference
     }
 }
 
