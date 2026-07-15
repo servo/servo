@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-#[cfg(feature = "webxr")]
 use std::rc::Rc;
 use std::{cmp, ptr};
 
