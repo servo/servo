@@ -194,6 +194,10 @@ impl WorkletGlobalScope {
             },
         }
     }
+
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        self.task_manager.clone()
+    }
 }
 
 /// Resources required by workletglobalscopes
