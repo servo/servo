@@ -385,23 +385,28 @@ class PackageCommands(CommandBase):
             dir_to_installer = path.join(dir_to_msi, "Installer.msi")
             print("Packaged Servo into " + dir_to_installer)
 
-            # Register the WiX extension used by the bundle below.
+            # Register the WiX extension used by the bundle below. The extension is fetched
+            # from NuGet and cached under %USERPROFILE%\.wix\extensions. Pin the version to
+            # match the WiX toolset so the cache can be pre-populated on offline runners.
             print("Registering WiX extensions")
-            try:
-                subprocess.check_call(
-                    [
-                        "wix",
-                        "extension",
-                        "add",
-                        "-acceptEula",
-                        "wix7",
-                        "-g",
-                        "WixToolset.BootstrapperApplications.wixext",
-                    ]
+            extension = "WixToolset.BootstrapperApplications.wixext/7.0.0"
+            result = subprocess.run(
+                ["wix", "extension", "add", "-acceptEula", "wix7", "-g", extension],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                # `wix extension add` fails silently (exit code 2 with no output) when the
+                # extension cannot be resolved from NuGet.
+                print(result.stdout)
+                print(result.stderr)
+                print(
+                    f"WiX extension add exited with return value {result.returncode}. "
+                    f"The extension '{extension}' could not be added to the cache, most likely "
+                    "because it could not be downloaded from NuGet. Ensure the runner can reach "
+                    "nuget.org, or pre-populate the WiX extension cache (%USERPROFILE%\\.wix\\extensions)."
                 )
-            except subprocess.CalledProcessError as e:
-                print("WiX extension add exited with return value %d" % e.returncode)
-                return e.returncode
+                return result.returncode
 
             # Generate bundle with Servo installer.
             print("Creating bundle")
