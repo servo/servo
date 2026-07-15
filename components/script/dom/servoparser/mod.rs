@@ -65,7 +65,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
 use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
-use crate::dom::customelementregistry::CustomElementReactionStack;
+use crate::dom::customelementregistry::{CustomElementReactionStack, CustomElementRegistry};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
@@ -2079,7 +2079,12 @@ fn create_element_for_token(
 
     // Step 7. Let definition be the result of looking up a custom element definition
     // given registry, namespace, localName, and is.
-    let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
+    let definition = CustomElementRegistry::lookup_custom_element_definition(
+        document.custom_element_registry().as_deref(),
+        &name.ns,
+        &name.local,
+        is.as_ref(),
+    );
 
     // Step 8. Let willExecuteScript be true if definition is non-null and the parser was
     // not created as part of the HTML fragment parsing algorithm; otherwise false.

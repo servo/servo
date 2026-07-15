@@ -36,7 +36,9 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
-use crate::dom::customelementregistry::{CallbackReaction, CustomElementState};
+use crate::dom::customelementregistry::{
+    CallbackReaction, CustomElementRegistry, CustomElementState,
+};
 use crate::dom::document::Document;
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::document_event_handler::character_to_code;
@@ -719,11 +721,25 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         // Step 2: Let definition be the result of looking up a custom element definition
-        // Note: the element can pass this check without yet being a custom
-        // element, as long as there is a registered definition
-        // that could upgrade it to one later.
-        let registry = self.owner_window().CustomElements(cx);
-        let definition = registry.lookup_definition(self.as_element().local_name(), None);
+        let lookup_registry = {
+            // TODO: Remove this fallback when Node::adopt is aligned according to specs.
+            //       Currently elements carry stale global registry from another document.
+            let registry = self.as_element().custom_element_registry();
+            if registry
+                .as_ref()
+                .is_some_and(|registry| registry.is_scoped())
+            {
+                registry
+            } else {
+                self.upcast::<Node>().owner_doc().custom_element_registry()
+            }
+        };
+        let definition = CustomElementRegistry::lookup_custom_element_definition(
+            lookup_registry.as_deref(),
+            self.upcast::<Element>().namespace(),
+            self.as_element().local_name(),
+            None,
+        );
 
         // Step 3: If definition is null, then throw an "NotSupportedError" DOMException
         let definition = match definition {

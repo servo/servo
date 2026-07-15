@@ -135,8 +135,13 @@ fn create_html_element(
     let registry = CustomElementRegistry::lookup_a_custom_element_registry(document.upcast());
 
     // Step 3. Let definition be the result of looking up a custom element
-    // definition given document, namespace, localName, and is.
-    let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
+    // definition given registry, namespace, localName, and is.
+    let definition = CustomElementRegistry::lookup_custom_element_definition(
+        registry.as_deref(),
+        &name.ns,
+        &name.local,
+        is.as_ref(),
+    );
 
     // Step 4. If definition is non-null...
     if let Some(definition) = definition {
