@@ -29,7 +29,7 @@ use net_traits::{
 };
 use paint_api::CrossProcessPaintApi;
 use parking_lot::{Mutex, RwLock};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PainterId, WebViewId};
 use servo_config::pref;
@@ -570,7 +570,7 @@ pub(crate) struct WebFontDownloadState {
     webview_id: Option<WebViewId>,
     css_font_face_descriptors: CSSFontFaceDescriptors,
     remaining_sources: Vec<Source>,
-    local_fonts: HashMap<Atom, Option<FontTemplateRef>>,
+    local_fonts: FxHashMap<Atom, Option<FontTemplateRef>>,
     #[conditional_malloc_size_of]
     pub(crate) font_context: Arc<FontContext>,
     initiator: WebFontLoadInitiator,
@@ -584,7 +584,7 @@ impl WebFontDownloadState {
         css_font_face_descriptors: CSSFontFaceDescriptors,
         initiator: WebFontLoadInitiator,
         sources: Vec<Source>,
-        local_fonts: HashMap<Atom, Option<FontTemplateRef>>,
+        local_fonts: FxHashMap<Atom, Option<FontTemplateRef>>,
         document_context: WebFontDocumentContext,
     ) -> WebFontDownloadState {
         WebFontDownloadState {
@@ -931,23 +931,28 @@ impl FontContext {
         // TODO: This is completely wrong. The specification says that `local()` font-family should match
         // against full PostScript names, but this is matching against font family names. This works...
         // sometimes.
-        let mut local_fonts = HashMap::new();
-        for source in sources.iter() {
-            if let Source::Local(family_name) = source {
-                local_fonts
-                    .entry(family_name.name.clone())
-                    .or_insert_with(|| {
-                        let family = SingleFontFamily::FamilyName(FamilyName {
-                            name: family_name.name.clone(),
-                            syntax: FontFamilyNameSyntax::Quoted,
-                        });
-                        self.system_font_service_proxy
-                            .find_matching_font_templates(None, &family)
-                            .first()
-                            .cloned()
-                    });
-            }
-        }
+        let sources_transformed = sources
+            .iter()
+            .filter_map(|source| {
+                if let Source::Local(family_name) = source {
+                    Some(family_name)
+                } else {
+                    None
+                }
+            })
+            .map(|family_name| {
+                let family = SingleFontFamily::FamilyName(FamilyName {
+                    name: family_name.name.clone(),
+                    syntax: FontFamilyNameSyntax::Quoted,
+                });
+                let matching_font_templates = self
+                    .system_font_service_proxy
+                    .find_matching_font_templates(None, &family);
+                let value = matching_font_templates.first();
+                (family_name.name.clone(), value.cloned())
+            });
+
+        let local_fonts = FxHashMap::from_iter(sources_transformed);
 
         self.process_next_web_font_source(WebFontDownloadState::new(
             webview_id,
