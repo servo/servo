@@ -121,6 +121,12 @@ jobs:
         run: |
           echo CCACHE=ccache >> $GITHUB_ENV
 
+      # To be removed once we update to WiX 7.
+      - name: Add WiX to PATH (self-hosted)
+        if: ${{ runner.environment == 'self-hosted' }}
+        run: echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
+
+
       # Install missing tools in a GitHub-hosted runner.
       - name: Setup Python
         if: ${{ runner.environment != 'self-hosted' }}
