@@ -124,7 +124,9 @@ jobs:
       # To be removed once we update to WiX 7.
       - name: Add WiX to PATH (self-hosted)
         if: ${{ runner.environment == 'self-hosted' }}
-        run: echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
+        run: |
+          choco install wixtoolset
+          echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
 
       # Install missing tools in a GitHub-hosted runner.
