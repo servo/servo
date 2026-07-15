@@ -29,6 +29,7 @@ use crate::dom::execcommand::commands::fontsize::{
 };
 use crate::dom::execcommand::commands::forecolor::execute_forecolor_command;
 use crate::dom::execcommand::commands::hilitecolor::execute_hilitecolor_command;
+use crate::dom::execcommand::commands::insertimage::execute_insert_image_command;
 use crate::dom::execcommand::commands::insertparagraph::execute_insert_paragraph_command;
 use crate::dom::execcommand::commands::italic::execute_italic_command;
 use crate::dom::execcommand::commands::removeformat::execute_removeformat_command;
@@ -741,6 +742,9 @@ impl CommandName {
             CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
             CommandName::ForeColor => execute_forecolor_command(cx, document, selection, value),
             CommandName::HiliteColor => execute_hilitecolor_command(cx, document, selection, value),
+            CommandName::InsertImage => {
+                execute_insert_image_command(cx, document, selection, value)
+            },
             CommandName::InsertParagraph => {
                 execute_insert_paragraph_command(cx, document, selection)
             },
