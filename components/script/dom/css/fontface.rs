@@ -165,6 +165,8 @@ fn parse_font_face_descriptors(
     }
 }
 
+/// Converts the descriptors of a `@font-face` rule (as defined by stylo) to
+/// the the IDL `FontFaceDescriptors` dictionary used by the JS interface.
 fn serialize_parsed_descriptors(descriptors: &Descriptors) -> FontFaceDescriptors {
     FontFaceDescriptors {
         ascentOverride: descriptors.ascent_override.to_css_string().into(),
@@ -407,8 +409,7 @@ impl FontFace {
         // > The FontFace object corresponding to a @font-face rule has its family, style, weight, stretch,
         // > unicodeRange, variant, and featureSettings attributes set to the same value as the corresponding
         // > descriptors in the @font-face rule.
-        // FIXME: Serializing these attributes is not trivial, so we don't do it for now.
-        let descriptors = FontFaceDescriptors::default();
+        let descriptors = serialize_parsed_descriptors(&new_web_font_ref.descriptors);
 
         Some(reflect_dom_object_with_proto_and_cx(
             Box::new(Self::new_inherited_for_web_font(
