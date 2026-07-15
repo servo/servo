@@ -948,10 +948,13 @@ fn test_accessibility_update_add_some_nodes_twice() {
         (id, node)
     })
     .collect();
-    let (child_node_ids, child_nodes) = nodes.iter().cloned().unzip();
-    let mut root_node = root_node.borrow_mut();
-    root_node.accesskit_node.set_children(child_node_ids);
-    root_node.child_nodes = child_nodes;
+
+    {
+        let (child_node_ids, child_nodes): (Vec<_>, Vec<_>) = nodes.iter().cloned().unzip();
+        let mut root_node = root_node.borrow_mut();
+        root_node.accesskit_node.set_children(child_node_ids);
+        root_node.child_nodes = child_nodes;
+    }
 
     let mut update = AccessibilityUpdate::new(None);
 
