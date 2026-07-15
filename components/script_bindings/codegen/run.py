@@ -6,12 +6,12 @@
 
 from __future__ import annotations
 
-import os
-import sys
 import json
+import os
 import re
-from typing import TYPE_CHECKING
+import sys
 from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SCRIPT_BINDINGS_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
@@ -37,7 +37,6 @@ def main() -> None:
 
     import WebIDL
     from configuration import Configuration
-    from codegen import CGBindingRoot, CGConcreteBindingRoot
 
     parser = WebIDL.Parser(make_dir(os.path.join(out_dir, "cache")))
     webidls = [name for name in os.listdir(webidls_dir) if name.endswith(".webidl")]
@@ -79,7 +78,12 @@ def main() -> None:
         generate(config, name, os.path.join(out_dir, filename))
     make_dir(doc_servo)
     generate(config, "SupportedDomApis", os.path.join(doc_servo, "apis.html"))
+    generate_concrete_bindings(config, out_dir, webidls_dir, webidls)
+    generate_bindings(config, out_dir, webidls_dir, webidls)
 
+
+def generate_bindings(config: Configuration, out_dir: str, webidls_dir: str, webidls: list[str]) -> None:
+    from codegen import CGBindingRoot
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
         prefix = "Bindings/%sBinding" % webidl[:-len(".webidl")]
@@ -87,12 +91,16 @@ def main() -> None:
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))
+
+def generate_concrete_bindings(config: Configuration, out_dir: str, webidls_dir: str, webidls: list[str]) -> None:
+    from codegen import CGConcreteBindingRoot
+    for webidl in webidls:
+        filename = os.path.join(webidls_dir, webidl)
         prefix = "ConcreteBindings/%sBinding" % webidl[:-len(".webidl")]
         module = CGConcreteBindingRoot(config, prefix, filename).define()
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))
-
 
 def make_dir(path: str)-> str:
     if not os.path.exists(path):
