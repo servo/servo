@@ -30,7 +30,7 @@ use script_bindings::codegen::GenericUnionTypes::UnrestrictedDoubleOrKeyframeEff
 use script_bindings::conversions::StringificationBehavior;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::str::DOMString;
 use style::parser::ParserContext;
@@ -87,12 +87,7 @@ impl KeyframeEffect {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(Self::new_inherited(window)),
-            window,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(Self::new_inherited(window)), window, proto)
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<Self> {

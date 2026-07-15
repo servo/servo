@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::{HandleObject, HandleValue};
 use net_traits::pub_domains::is_same_site;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::OriginBinding::OriginMethods;
@@ -45,12 +45,7 @@ impl Origin {
         proto: Option<HandleObject>,
         origin: ImmutableOrigin,
     ) -> DomRoot<Origin> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(Origin::new_inherited(origin)),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(Origin::new_inherited(origin)), global, proto)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#extract-an-origin>

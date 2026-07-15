@@ -13,7 +13,7 @@ use js::rust::{HandleObject, HandleValue};
 use net_traits::http_status::HttpStatus;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_url::ServoUrl;
 use url::Position;
 
@@ -64,13 +64,7 @@ pub(crate) struct Response {
 }
 
 impl Response {
-    pub(crate) fn new_inherited(cx: &mut js::context::JSContext, global: &GlobalScope) -> Response {
-        let stream = ReadableStream::new_with_external_underlying_source(
-            cx,
-            global,
-            UnderlyingSourceType::FetchResponse,
-        )
-        .expect("Failed to create ReadableStream with external underlying source");
+    pub(crate) fn new_inherited(stream: DomRoot<ReadableStream>) -> Response {
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
@@ -95,12 +89,13 @@ impl Response {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Response> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(Response::new_inherited(cx, global)),
-            global,
-            proto,
+        let stream = ReadableStream::new_with_external_underlying_source(
             cx,
+            global,
+            UnderlyingSourceType::FetchResponse,
         )
+        .expect("Failed to create ReadableStream with external underlying source");
+        reflect_dom_object_with_proto(cx, Box::new(Response::new_inherited(stream)), global, proto)
     }
 
     pub(crate) fn error_stream(&self, cx: &mut js::context::JSContext, error: Error) {

@@ -10,7 +10,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::like::Setlike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use wgpu_types::Features;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -92,7 +92,8 @@ impl GPUSupportedFeatures {
         }
         */
 
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(GPUSupportedFeatures {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(set),
@@ -100,7 +101,6 @@ impl GPUSupportedFeatures {
             }),
             global,
             proto,
-            cx,
         )
     }
 

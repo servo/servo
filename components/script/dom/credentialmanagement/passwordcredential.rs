@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::gc::HandleObject;
 use script_bindings::codegen::GenericBindings::PasswordCredentialBinding::PasswordCredentialData;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::str::USVString;
 
 use crate::dom::bindings::codegen::Bindings::PasswordCredentialBinding::PasswordCredentialMethods;
@@ -42,11 +42,11 @@ impl PasswordCredential {
         origin: USVString,
         password: USVString,
     ) -> DomRoot<PasswordCredential> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(PasswordCredential::new_inherited(id, origin, password)),
             global,
             proto,
-            cx,
         )
     }
 }

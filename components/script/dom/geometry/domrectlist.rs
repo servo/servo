@@ -4,7 +4,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -35,11 +35,11 @@ impl DOMRectList {
         window: &Window,
         rects: Vec<DomRoot<DOMRect>>,
     ) -> DomRoot<DOMRectList> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(DOMRectList::new_inherited(rects)),
             window,
             None,
-            cx,
         )
     }
 

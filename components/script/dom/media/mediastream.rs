@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 
@@ -45,12 +45,7 @@ impl MediaStream {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<MediaStream> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(MediaStream::new_inherited()),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(MediaStream::new_inherited()), global, proto)
     }
 
     pub(crate) fn new_single(

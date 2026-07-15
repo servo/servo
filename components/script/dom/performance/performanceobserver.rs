@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use super::performanceentry::{EntryType, PerformanceEntry};
 use super::performanceobserverentrylist::PerformanceObserverEntryList;
@@ -55,11 +55,11 @@ impl PerformanceObserver {
         proto: Option<HandleObject>,
         callback: Rc<PerformanceObserverCallback>,
     ) -> DomRoot<PerformanceObserver> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(PerformanceObserver::new_inherited(callback)),
             global,
             proto,
-            cx,
         )
     }
 

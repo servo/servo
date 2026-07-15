@@ -8,7 +8,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use js::typedarray::{Float32, HeapFloat32Array};
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
@@ -59,11 +59,11 @@ impl XRRigidTransform {
         proto: Option<HandleObject>,
         transform: ApiRigidTransform,
     ) -> DomRoot<XRRigidTransform> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(XRRigidTransform::new_inherited(transform)),
             window,
             proto,
-            cx,
         )
     }
 

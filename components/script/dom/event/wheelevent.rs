@@ -9,7 +9,7 @@ use euclid::Point2D;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use style::Atom;
 use style_traits::CSSPixel;
 
@@ -51,12 +51,7 @@ impl WheelEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<WheelEvent> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(WheelEvent::new_inherited()),
-            window,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(WheelEvent::new_inherited()), window, proto)
     }
 
     #[allow(clippy::too_many_arguments)]

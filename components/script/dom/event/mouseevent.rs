@@ -13,7 +13,7 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_traits::ConstellationInputEvent;
 use style::Atom;
 use style_traits::CSSPixel;
@@ -105,12 +105,7 @@ impl MouseEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<MouseEvent> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(MouseEvent::new_inherited()),
-            window,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(MouseEvent::new_inherited()), window, proto)
     }
 
     #[allow(clippy::too_many_arguments)]

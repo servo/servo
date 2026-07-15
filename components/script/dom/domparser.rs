@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_traits::DocumentActivity;
 
 use crate::document_loader::DocumentLoader;
@@ -42,11 +42,11 @@ impl DOMParser {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<DOMParser> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(DOMParser::new_inherited(window)),
             window,
             proto,
-            cx,
         )
     }
 }

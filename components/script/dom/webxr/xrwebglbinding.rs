@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::codegen::Bindings::XRWebGLBindingBinding::XRWebGLBinding_Binding::XRWebGLBindingMethods;
@@ -56,11 +56,11 @@ impl XRWebGLBinding {
         session: &XRSession,
         context: &WebGLRenderingContext,
     ) -> DomRoot<XRWebGLBinding> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(XRWebGLBinding::new_inherited(session, context)),
             global,
             proto,
-            cx,
         )
     }
 }

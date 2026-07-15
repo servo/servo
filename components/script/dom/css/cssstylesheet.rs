@@ -12,9 +12,7 @@ use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::StyleSheetBinding::StyleSheetMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{
-    reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
-};
+use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
@@ -142,7 +140,8 @@ impl CSSStyleSheet {
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
     ) -> DomRoot<CSSStyleSheet> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(CSSStyleSheet::new_inherited(
                 owner,
                 type_,
@@ -153,7 +152,6 @@ impl CSSStyleSheet {
             )),
             window,
             proto,
-            cx,
         )
     }
 

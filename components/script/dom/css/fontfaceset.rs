@@ -17,7 +17,7 @@ use script_bindings::codegen::GenericBindings::FontFaceBinding::{
     FontFaceLoadStatus, FontFaceMethods,
 };
 use script_bindings::like::Setlike;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::FontFaceSetMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -47,10 +47,10 @@ pub(crate) struct FontFaceSet {
 }
 
 impl FontFaceSet {
-    fn new_inherited(cx: &mut JSContext, global: &GlobalScope) -> Self {
+    fn new_inherited(promise: Rc<Promise>) -> Self {
         FontFaceSet {
             target: EventTarget::new_inherited(),
-            promise: Promise::new(cx, global).into(),
+            promise: promise.into(),
             set_entries: Default::default(),
         }
     }
@@ -60,11 +60,12 @@ impl FontFaceSet {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(FontFaceSet::new_inherited(cx, global)),
+        let promise = Promise::new(cx, global);
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(FontFaceSet::new_inherited(promise)),
             global,
             proto,
-            cx,
         )
     }
 

@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use xpath::{Expression, evaluate_parsed_xpath};
 
 use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpressionMethods;
@@ -41,11 +41,11 @@ impl XPathExpression {
         proto: Option<HandleObject>,
         parsed_expression: Expression,
     ) -> DomRoot<XPathExpression> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(XPathExpression::new_inherited(window, parsed_expression)),
             window,
             proto,
-            cx,
         )
     }
 
