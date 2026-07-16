@@ -47,6 +47,7 @@ use webgpu::canvas_context::WebGpuExternalImageMap;
 use webrender::{CaptureBits, MemoryReport};
 use webrender_api::units::{DevicePixel, DevicePoint};
 use webrender_api::{FontInstanceKey, FontKey, ImageKey};
+#[cfg(feature = "webxr")]
 use webxr::WebXrRegistry;
 
 use crate::InitialPaintState;
