@@ -92,9 +92,7 @@ impl PaintTimingHandler {
             return;
         }
 
-        let id = tag
-            .map(|tag| LCPCandidateID(tag.node.id()))
-            .unwrap_or(LCPCandidateID(0));
+        let id = tag.map(|tag| LCPCandidateID(tag.node.id()));
 
         // Set newCandidate to be a new largest contentful paint candidate
         self.lcp_candidate = Some(LCPCandidate::new(id, size as usize, url));

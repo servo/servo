@@ -131,7 +131,12 @@ pub enum UserContentManagerAction {
 pub enum PaintMetricEvent {
     FirstPaint(CrossProcessInstant, bool /* first_reflow */),
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),
-    LargestContentfulPaint(CrossProcessInstant, usize /* area */, Option<ServoUrl>),
+    LargestContentfulPaint(
+        CrossProcessInstant,
+        usize,            /* area */
+        Option<ServoUrl>, /* url */
+        Option<usize>,    /* candidate_id: OpaqueNode pointer for DOM lookup */
+    ),
 }
 
 impl fmt::Debug for EmbedderToConstellationMessage {

@@ -122,6 +122,8 @@ pub enum ProgressiveWebMetricType {
         area: usize,
         /// The URL of the largest contentful element, if any.
         url: Option<ServoUrl>,
+        /// The opaque node ID used to look up the DOM element in script, if any.
+        candidate_id: Option<usize>,
     },
     /// Time to interactive
     TimeToInteractive,

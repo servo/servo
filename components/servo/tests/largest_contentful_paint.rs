@@ -66,6 +66,7 @@ fn test_largest_contentful_paint_js_api() {
         assert_eq!(obj.get("size"), Some(JSValue::Number(2500.0)).as_ref());
         assert!(obj.get("renderTime").is_some());
         assert!(obj.get("loadTime").is_some());
+        assert!(obj.get("id").is_some());
     } else {
         panic!("No entries for Largest Contentful Paint were recorded.");
     }

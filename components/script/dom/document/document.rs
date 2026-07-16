@@ -3409,13 +3409,18 @@ impl Document {
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance(cx).queue_entry(entry);
             },
-            ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
+            ProgressiveWebMetricType::LargestContentfulPaint {
+                area,
+                url,
+                candidate_id,
+            } => {
                 let binding = LargestContentfulPaint::new(
                     cx,
                     self.window.as_global_scope(),
                     metric_value,
                     area,
                     url,
+                    candidate_id,
                 );
                 metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
