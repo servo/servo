@@ -89,7 +89,7 @@ env_logger = "0.11"
 euclid = "0.22"
 flate2 = "1.1"
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
-fontsan = "0.6.1"
+fontsan = { version = "0.7", default-features = false, features = ["libz-sys", "wuff"] }
 freetype-sys = "0.23"
 fst = "0.4"
 futures = { version = "0.3", default-features = false }
