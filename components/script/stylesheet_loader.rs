@@ -300,7 +300,7 @@ impl StylesheetContext {
                 //
                 // Note that even in the failure case, we should create an empty stylesheet.
                 // That's why `set_stylesheet` also removes the previous stylesheet
-                link.set_stylesheet(cx, stylesheet);
+                link.set_stylesheet(stylesheet);
             },
             StylesheetContextSource::Import(import_rule) => {
                 let mut guard = document.style_shared_author_lock().write();

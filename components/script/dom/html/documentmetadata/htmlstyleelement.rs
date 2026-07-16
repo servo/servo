@@ -210,7 +210,7 @@ impl HTMLStyleElement {
 
         // Finally, update our stylesheet, regardless of which scenario we ran into
         self.clean_stylesheet_ownership();
-        self.set_stylesheet(cx, sheet, cache_key);
+        self.set_stylesheet(sheet, cache_key);
     }
 
     // FIXME(emilio): This is duplicated with HTMLLinkElement::set_stylesheet.
@@ -219,24 +219,23 @@ impl HTMLStyleElement {
     // this function has a bit difference with `HTMLLinkElement::set_stylesheet` now.
     pub(crate) fn set_stylesheet(
         &self,
-        cx: &mut JSContext,
         s: Arc<Stylesheet>,
         cache_key: Option<StylesheetContentsCacheKey>,
     ) {
         *self.stylesheet.borrow_mut() = Some(s.clone());
         *self.stylesheetcontents_cache_key.borrow_mut() = cache_key;
         self.stylesheet_list_owner()
-            .add_owned_stylesheet(cx, self.upcast(), s);
+            .add_owned_stylesheet(self.upcast(), s);
     }
 
-    pub(crate) fn will_modify_stylesheet(&self, cx: &mut JSContext) {
+    pub(crate) fn will_modify_stylesheet(&self) {
         if let Some(stylesheet_with_owned_contents) = self.create_owned_contents_stylesheet() {
             self.remove_stylesheet();
             if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
                 let guard = stylesheet_with_owned_contents.shared_lock.read();
                 cssom_stylesheet.update_style_stylesheet(&stylesheet_with_owned_contents, &guard);
             }
-            self.set_stylesheet(cx, stylesheet_with_owned_contents, None);
+            self.set_stylesheet(stylesheet_with_owned_contents, None);
         }
     }
 
