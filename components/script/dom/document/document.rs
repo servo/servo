@@ -3936,12 +3936,17 @@ impl Document {
         self.delayed_tasks.borrow_mut().push(Box::new(task));
     }
 
+    /// Returns true if the DOM is in a state that will allow running content JS or
+    /// performing a layout operation.
+    pub(crate) fn is_safe_to_run_script_or_layout(&self) -> bool {
+        self.script_and_layout_blockers.get() == 0
+    }
+
     /// Assert that the DOM is in a state that will allow running content JS or
     /// performing a layout operation.
     pub(crate) fn ensure_safe_to_run_script_or_layout(&self) {
-        assert_eq!(
-            self.script_and_layout_blockers.get(),
-            0,
+        assert!(
+            self.is_safe_to_run_script_or_layout(),
             "Attempt to use script or layout while DOM not in a stable state"
         );
     }
