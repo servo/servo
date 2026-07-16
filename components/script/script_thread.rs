@@ -51,7 +51,7 @@ use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader
 use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::router::ROUTER;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{GCReason, JSContext as UnsafeJSContext};
 use js::jsval::UndefinedValue;
@@ -1319,13 +1319,14 @@ impl ScriptThread {
     /// responsible for scheduling animation ticks.
     fn maybe_schedule_rendering_opportunity_after_ipc_message(
         &self,
+        no_gc: &NoGC,
         built_any_display_lists: bool,
     ) {
         let needs_rendering_update = self
             .documents
             .borrow()
             .iter()
-            .any(|(_, document)| document.needs_rendering_update());
+            .any(|(_, document)| document.needs_rendering_update(no_gc));
         let running_animations = self.documents.borrow().iter().any(|(_, document)| {
             document.is_fully_active() &&
                 !document.window().throttled() &&
@@ -1573,7 +1574,10 @@ impl ScriptThread {
         self.maybe_resolve_pending_screenshot_readiness_requests(cx);
 
         // This must happen last to detect if any change above makes a rendering update necessary.
-        self.maybe_schedule_rendering_opportunity_after_ipc_message(built_any_display_lists);
+        self.maybe_schedule_rendering_opportunity_after_ipc_message(
+            cx.no_gc(),
+            built_any_display_lists,
+        );
 
         true
     }
@@ -1893,7 +1897,7 @@ impl ScriptThread {
                 self.handle_webdriver_msg(pipeline_id, msg, cx)
             },
             ScriptThreadMessage::WebFontLoaded(pipeline_id) => {
-                self.handle_web_font_loaded(pipeline_id)
+                self.handle_web_font_loaded(cx.no_gc(), pipeline_id)
             },
             ScriptThreadMessage::DispatchIFrameLoadEvent {
                 target: browsing_context_id,
@@ -2930,7 +2934,9 @@ impl ScriptThread {
         });
         let focusable_area = iframe_element
             .map(|iframe_element| {
-                let kind = iframe_element.upcast::<Element>().focusable_area_kind();
+                let kind = iframe_element
+                    .upcast::<Element>()
+                    .focusable_area_kind(cx.no_gc());
                 FocusableArea::IFrameViewport {
                     iframe_element,
                     kind,
@@ -3329,14 +3335,14 @@ impl ScriptThread {
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
-    fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
+    fn handle_web_font_loaded(&self, no_gc: &NoGC, pipeline_id: PipelineId) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Web font loaded in closed pipeline {}.", pipeline_id);
             return;
         };
 
         // TODO: This should only dirty nodes that are waiting for a web font to finish loading!
-        document.dirty_all_nodes();
+        document.dirty_all_nodes(no_gc);
     }
 
     /// Handles a worklet being loaded by triggering a relayout of the page. Does nothing if the

@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use app_units::Au;
 use euclid::{Rect, Vector2D};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use layout_api::{AxesOverflow, ScrollContainerQueryFlags};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
 use script_bindings::inheritance::Castable;
@@ -128,13 +128,15 @@ impl ScrollingBox {
         content_size
     }
 
-    pub(crate) fn size(&self) -> LayoutSize {
+    pub(crate) fn size(&self, no_gc: &NoGC) -> LayoutSize {
         if let Some(size) = self.cached_size.get() {
             return size;
         }
 
         let size = match &self.target {
-            ScrollingBoxSource::Element(element) => element.client_rect().size.to_f32().cast_unit(),
+            ScrollingBoxSource::Element(element) => {
+                element.client_rect(no_gc).size.to_f32().cast_unit()
+            },
             ScrollingBoxSource::Viewport(document) => {
                 document.window().viewport_details().size.cast_unit()
             },
@@ -179,7 +181,7 @@ impl ScrollingBox {
         }
     }
 
-    pub(crate) fn can_keyboard_scroll_in_axis(&self, axis: ScrollingBoxAxis) -> bool {
+    pub(crate) fn can_keyboard_scroll_in_axis(&self, no_gc: &NoGC, axis: ScrollingBoxAxis) -> bool {
         let overflow = match axis {
             ScrollingBoxAxis::X => self.overflow.x,
             ScrollingBoxAxis::Y => self.overflow.y,
@@ -188,14 +190,15 @@ impl ScrollingBox {
             return false;
         }
         match axis {
-            ScrollingBoxAxis::X => self.content_size().width > self.size().width,
-            ScrollingBoxAxis::Y => self.content_size().height > self.size().height,
+            ScrollingBoxAxis::X => self.content_size().width > self.size(no_gc).width,
+            ScrollingBoxAxis::Y => self.content_size().height > self.size(no_gc).height,
         }
     }
 
     /// <https://drafts.csswg.org/cssom-view/#determine-the-scroll-into-view-position>
     pub(crate) fn determine_scroll_into_view_position(
         &self,
+        no_gc: &NoGC,
         block: ScrollAxisState,
         inline: ScrollAxisState,
         target_rect: Rect<Au, CSSPixel>,
@@ -230,7 +233,7 @@ impl ScrollingBox {
             },
         };
 
-        let size = self.size();
+        let size = self.size(no_gc);
         let current_scroll_position = self.scroll_position();
         Vector2D::new(
             Self::calculate_scroll_position_one_axis(

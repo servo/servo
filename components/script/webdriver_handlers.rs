@@ -14,7 +14,7 @@ use embedder_traits::{
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::conversions::{FromJSValConvertible, jsstr_to_string};
 use js::jsapi::{HandleValueArray, JSITER_OWNONLY, JSType, PropertyDescriptor};
 use js::jsval::UndefinedValue;
@@ -1139,8 +1139,8 @@ pub(crate) fn handle_get_element_shadow_root(
 
 impl Element {
     /// <https://w3c.github.io/webdriver/#dfn-keyboard-interactable>
-    fn is_keyboard_interactable(&self) -> bool {
-        self.is_focusable_area() || self.is::<HTMLBodyElement>() || self.is_document_element()
+    fn is_keyboard_interactable(&self, no_gc: &NoGC) -> bool {
+        self.is_focusable_area(no_gc) || self.is::<HTMLBodyElement>() || self.is_document_element()
     }
 }
 
@@ -1269,7 +1269,7 @@ pub(crate) fn handle_will_send_keys(
 
         // Step 7.6. If element is not keyboard-interactable,
         // return ErrorStatus::ElementNotInteractable.
-        if !element.is_keyboard_interactable() {
+        if !element.is_keyboard_interactable(cx.no_gc()) {
             let _ = reply.send(Err(ErrorStatus::ElementNotInteractable));
             return;
         }
@@ -1877,7 +1877,7 @@ pub(crate) fn handle_element_clear(
 
                 // Step 10. If element is not keyboard-interactable or not pointer-interactable,
                 // return error with error code element not interactable.
-                if !element.is_keyboard_interactable() {
+                if !element.is_keyboard_interactable(cx.no_gc()) {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
