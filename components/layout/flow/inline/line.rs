@@ -1123,6 +1123,10 @@ pub(super) struct FloatLineItem {
     /// do not fit on a line need to be placed after the hypothetical block start
     /// of the next line.
     pub needs_placement: bool,
+    /// The range of indices of the absolutes that escaped this `FloatBox`.
+    /// This is used to adjust their static positioning rect once the final
+    /// position of this float is known.
+    pub range: Range<PositioningContextLength>,
 }
 
 /// Sort a mutable slice by the given indices array in place, reording the slice so that final

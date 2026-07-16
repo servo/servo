@@ -130,7 +130,7 @@ use crate::flow::{
 };
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
+    BaseFragmentInfo, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
 };
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
@@ -1382,7 +1382,7 @@ impl InlineFormattingContextLayout<'_> {
         (adjusted_line_start, justification_adjustment)
     }
 
-    fn place_float_fragment(&mut self, fragment: &BoxFragment) {
+    fn place_float_fragment(&mut self, float: &FloatLineItem) {
         let state = self
             .sequential_layout_state
             .as_mut()
@@ -1392,11 +1392,16 @@ impl InlineFormattingContextLayout<'_> {
             .current_block_position_including_margins() -
             state.current_containing_block_offset();
         state.place_float_fragment(
-            fragment,
+            &float.fragment,
             self.placement_state.containing_block,
             CollapsedMargin::zero(),
             block_offset_from_containining_block_top,
         );
+        self.positioning_context
+            .adjust_static_position_of_hoisted_fragments_in_range(
+                &float.fragment.base.rect().origin.to_vector(),
+                &float.range,
+            )
     }
 
     /// Place a FloatLineItem. This is done when an unbreakable segment is committed to
@@ -1438,7 +1443,7 @@ impl InlineFormattingContextLayout<'_> {
         if needs_placement_later {
             self.current_line.has_floats_waiting_to_be_placed = true;
         } else {
-            self.place_float_fragment(float_fragment);
+            self.place_float_fragment(float_item);
             float_item.needs_placement = false;
         }
 
@@ -2691,11 +2696,13 @@ impl IndependentFormattingContext {
 
 impl FloatBox {
     fn layout_into_line_items(&self, layout: &mut InlineFormattingContextLayout) {
+        let old_len = layout.positioning_context.len();
         let fragment = Arc::new(self.layout(
             layout.layout_context,
             layout.positioning_context,
             layout.placement_state.containing_block,
         ));
+        let new_len = layout.positioning_context.len();
 
         self.contents
             .base
@@ -2705,6 +2712,7 @@ impl FloatBox {
             FloatLineItem {
                 fragment,
                 needs_placement: true,
+                range: old_len..new_len,
             },
         ));
     }
@@ -2715,7 +2723,7 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &[L
         if let LineItem::Float(_, float_line_item) = item &&
             float_line_item.needs_placement
         {
-            ifc.place_float_fragment(&float_line_item.fragment);
+            ifc.place_float_fragment(float_line_item);
         }
     }
 }
