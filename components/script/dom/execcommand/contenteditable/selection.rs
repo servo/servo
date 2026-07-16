@@ -40,6 +40,7 @@ pub(crate) enum SelectionDeletionBlockMerging {
 pub(crate) enum SelectionDeletionStripWrappers {
     #[default]
     Strip,
+    NoStrip,
 }
 
 #[derive(Default, PartialEq)]
