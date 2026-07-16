@@ -6,6 +6,7 @@
 
 mod font;
 mod font_context;
+pub mod font_feature_values;
 mod font_store;
 mod glyph;
 #[expect(unsafe_code)]
@@ -17,8 +18,8 @@ pub(crate) use font::*;
 // These items are not meant to be part of the public API but are used for integration tests
 pub use font::{Font, FontFamilyDescriptor, FontSearchScope, PlatformFontMethods};
 pub use font::{
-    FontBaseline, FontGroup, FontMetrics, FontRef, LAST_RESORT_GLYPH_ADVANCE,
-    ResolvedFontVariantAlternates, ShapingFlags, ShapingOptions,
+    FontBaseline, FontGroup, FontMetrics, FontRef, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags,
+    ShapingOptions,
 };
 pub use font_context::{
     CspViolationHandler, FontContext, FontContextWebFontMethods, NetworkTimingHandler,

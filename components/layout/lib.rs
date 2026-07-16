@@ -15,7 +15,6 @@ mod dom;
 mod dom_traversal;
 mod flexbox;
 pub mod flow;
-mod font_feature_value;
 mod formatting_contexts;
 mod fragment_tree;
 pub mod geom;

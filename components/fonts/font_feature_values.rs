@@ -4,12 +4,13 @@
 
 use std::collections::HashMap;
 
+use malloc_size_of_derive::MallocSizeOf;
 use style::Atom;
 use style::stylesheets::FontFeatureValuesRule;
 use style::stylesheets::font_feature_values_rule::{PairValues, SingleValue, VectorValues};
 
 /// A key for looking up identifiers inside a [FontFeatureValueMap].
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 struct HashKey {
     /// The name of the font that the feature name is defined for
     family_name: Atom,
@@ -19,7 +20,7 @@ struct HashKey {
 }
 
 /// Different kinds of values that identifiers inside `font-variant-alternates` can resolve to.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) enum FontFeatureValue {
     Single(SingleValue),
     Pair(PairValues),
@@ -29,7 +30,7 @@ pub(crate) enum FontFeatureValue {
 /// Stores accumulated data of all active [`@font-feature-value`] rules.
 ///
 /// [`@font-feature-value`]: https://drafts.csswg.org/css-fonts/#font-feature-values
-#[derive(Debug, Default)]
+#[derive(Debug, Default, MallocSizeOf)]
 pub(crate) struct FontFeatureValueMap {
     map: HashMap<HashKey, FontFeatureValue>,
 }
@@ -38,8 +39,8 @@ pub(crate) struct FontFeatureValueMap {
 /// one or more identifiers.
 ///
 /// [`font-variant-alternates`]: https://drafts.csswg.org/css-fonts/#font-variant-alternates-prop
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub(crate) enum AlternateKindRequiringResolution {
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub enum AlternateKindRequiringResolution {
     /// <https://drafts.csswg.org/css-fonts/#stylistic>
     Stylistic,
     /// <https://drafts.csswg.org/css-fonts/#styleset>
@@ -146,4 +147,26 @@ impl FontFeatureValueMap {
             }
         }
     }
+}
+
+/// Stores the value of the [`font-variant-alternates`] property, with identifiers
+/// resolved to font-specific values.
+///
+/// [`font-variant-alternates`]: https://drafts.csswg.org/css-fonts/#font-variant-alternates-prop
+#[derive(Clone, Debug, Default, Eq, Hash, MallocSizeOf, PartialEq)]
+pub struct ResolvedFontVariantAlternates {
+    /// <https://drafts.csswg.org/css-fonts/#valdef-font-variant-alternates-historical-forms>
+    pub historical_forms: bool,
+    /// <https://drafts.csswg.org/css-fonts/#stylistic>
+    pub stylistic: Option<SingleValue>,
+    /// <https://drafts.csswg.org/css-fonts/#styleset>
+    pub styleset: Vec<u32>,
+    /// <https://drafts.csswg.org/css-fonts/#character-variant>
+    pub character_variant: Vec<PairValues>,
+    /// <https://drafts.csswg.org/css-fonts/#swash>
+    pub swash: Option<SingleValue>,
+    /// <https://drafts.csswg.org/css-fonts/#ornaments>
+    pub ornaments: Option<SingleValue>,
+    /// <https://drafts.csswg.org/css-fonts/#annotation>
+    pub annotation: Option<SingleValue>,
 }

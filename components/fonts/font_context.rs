@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleWithOrigin, FontIdentifier, FontTemplate,
@@ -46,12 +47,18 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::StylesheetGuards;
 use style::stylesheets::FontFaceRule;
 use style::stylist::Stylist;
+use style::values::computed::FontVariantAlternates;
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
+use style::values::specified::font::VariantAlternates;
 use url::Url;
 use uuid::Uuid;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
 use crate::font::{Font, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope};
+use crate::font_feature_values::{
+    AlternateKindRequiringResolution, FontFeatureValue, FontFeatureValueMap,
+    ResolvedFontVariantAlternates,
+};
 use crate::font_store::{CrossThreadFontStore, FontStore};
 use crate::platform::font::PlatformFont;
 use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontServiceProxy};
@@ -116,6 +123,9 @@ pub struct FontContext {
     /// equivalent to the rules that actually apply to the page, because rules that are invalid or not
     /// yet downloaded are also included.
     known_font_face_rules: Mutex<KnownFontFaceRules>,
+
+    /// A lazily-computed map of feature names from `@font-feature-value` rules.
+    font_feature_value_map: AtomicRefCell<Option<FontFeatureValueMap>>,
 }
 
 /// A callback that will be invoked on the Fetch thread if a web font download
@@ -174,6 +184,7 @@ impl FontContext {
             font_data: RwLock::default(),
             currently_downloading_fonts: Default::default(),
             known_font_face_rules: Default::default(),
+            font_feature_value_map: Default::default(),
         }
     }
 
@@ -1012,6 +1023,163 @@ impl FontContext {
                 }
             },
         }
+    }
+
+    /// Resolves the value of `font-variant-alternates` to a set of OpenType features to apply.
+    pub fn resolve_font_variant_alternate_identifiers_for(
+        &self,
+        font: &FontRef,
+        alternates: &FontVariantAlternates,
+        stylist: &Stylist,
+    ) -> ResolvedFontVariantAlternates {
+        let mut resolved_alternates = ResolvedFontVariantAlternates::default();
+        if alternates.is_empty() {
+            return resolved_alternates;
+        }
+        let Some(family_name) = font.family_name() else {
+            return resolved_alternates;
+        };
+
+        for alternate in alternates.iter() {
+            match alternate {
+                VariantAlternates::Stylistic(stylistic) => {
+                    let Some(FontFeatureValue::Single(value)) = self
+                        .look_up_font_feature_alternate_name(
+                            family_name.clone(),
+                            AlternateKindRequiringResolution::Stylistic,
+                            stylistic.0.clone(),
+                            stylist,
+                        )
+                    else {
+                        continue;
+                    };
+
+                    resolved_alternates.stylistic = Some(value);
+                },
+                VariantAlternates::Styleset(styleset_list) => {
+                    for styleset in styleset_list.iter() {
+                        let Some(FontFeatureValue::Vector(value)) = self
+                            .look_up_font_feature_alternate_name(
+                                family_name.clone(),
+                                AlternateKindRequiringResolution::Styleset,
+                                styleset.0.clone(),
+                                stylist,
+                            )
+                        else {
+                            continue;
+                        };
+
+                        resolved_alternates.styleset.extend(value.0.iter());
+                    }
+                },
+                VariantAlternates::CharacterVariant(character_variant_list) => {
+                    for character_variant in character_variant_list.iter() {
+                        let Some(FontFeatureValue::Pair(value)) = self
+                            .look_up_font_feature_alternate_name(
+                                family_name.clone(),
+                                AlternateKindRequiringResolution::CharacterVariant,
+                                character_variant.0.clone(),
+                                stylist,
+                            )
+                        else {
+                            continue;
+                        };
+
+                        resolved_alternates.character_variant.push(value);
+                    }
+                },
+                VariantAlternates::Swash(swash) => {
+                    let Some(FontFeatureValue::Single(value)) = self
+                        .look_up_font_feature_alternate_name(
+                            family_name.clone(),
+                            AlternateKindRequiringResolution::Swash,
+                            swash.0.clone(),
+                            stylist,
+                        )
+                    else {
+                        continue;
+                    };
+
+                    resolved_alternates.swash = Some(value);
+                },
+                VariantAlternates::Ornaments(ornaments) => {
+                    let Some(FontFeatureValue::Single(value)) = self
+                        .look_up_font_feature_alternate_name(
+                            family_name.clone(),
+                            AlternateKindRequiringResolution::Ornaments,
+                            ornaments.0.clone(),
+                            stylist,
+                        )
+                    else {
+                        continue;
+                    };
+
+                    resolved_alternates.ornaments = Some(value);
+                },
+                VariantAlternates::Annotation(annotation) => {
+                    let Some(FontFeatureValue::Single(value)) = self
+                        .look_up_font_feature_alternate_name(
+                            family_name.clone(),
+                            AlternateKindRequiringResolution::Annotation,
+                            annotation.0.clone(),
+                            stylist,
+                        )
+                    else {
+                        continue;
+                    };
+
+                    resolved_alternates.annotation = Some(value);
+                },
+                VariantAlternates::HistoricalForms => {
+                    resolved_alternates.historical_forms = true;
+                },
+            }
+        }
+
+        resolved_alternates
+    }
+
+    /// Resolves a single component of `font-variant-alternates`, like `stylistic(foobar)` to a font-specific
+    /// set of OpenType features to apply.
+    ///
+    /// If the map of `@font-feature-values` rules has not yet been computed then this method
+    /// will compute it.
+    fn look_up_font_feature_alternate_name(
+        &self,
+        family_name: Atom,
+        kind: AlternateKindRequiringResolution,
+        name: Atom,
+        stylist: &Stylist,
+    ) -> Option<FontFeatureValue> {
+        // First, check if the map was initialized previously.
+        let read_guard = self.font_feature_value_map.borrow();
+        if let Some(map) = &*read_guard {
+            // This is the cheap case, we just need to read from the map
+            map.lookup(family_name, kind, name)
+        } else {
+            // Map was not initialized yet - need to acquire a mutable guard and initialize it.
+            drop(read_guard);
+            let mut write_guard = self.font_feature_value_map.borrow_mut();
+            if let Some(map) = &*write_guard {
+                // We lost a race, some other thread initialized the map while we were waiting
+                // on the lock.
+                return map.lookup(family_name, kind, name);
+            }
+
+            log::debug!("Initializing @font-feature-values map");
+            let mut map = FontFeatureValueMap::default();
+            stylist
+                .iter_extra_data_origins_rev()
+                .flat_map(|(extra_data, _)| extra_data.font_feature_values.iter())
+                .for_each(|(rule, _)| map.add_rule(rule));
+            let map = &*write_guard.insert(map);
+            // Finally, perform the actual lookup
+            map.lookup(family_name, kind, name)
+        }
+    }
+
+    pub fn invalidate_font_feature_values_map(&self) {
+        self.font_feature_value_map.borrow_mut().take();
     }
 }
 

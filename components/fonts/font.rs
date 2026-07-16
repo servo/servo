@@ -34,7 +34,6 @@ use style::Atom;
 use style::computed_values::font_variant_caps;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::properties::style_structs::Font as FontStyleStruct;
-use style::stylesheets::font_feature_values_rule::{PairValues, SingleValue};
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
@@ -45,6 +44,7 @@ use style::values::computed::{
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
+use crate::font_feature_values::ResolvedFontVariantAlternates;
 use crate::platform::font::{FontTable, PlatformFont};
 use crate::platform::font_list::fallback_font_families;
 use crate::{
@@ -421,28 +421,6 @@ bitflags! {
         /// Set if word-break is set to keep-all.
         const KEEP_ALL_FLAG = 1 << 5;
     }
-}
-
-/// Stores the value of the [`font-variant-alternates`] property, with identifiers
-/// resolved to font-specific values.
-///
-/// [`font-variant-alternates`]: https://drafts.csswg.org/css-fonts/#font-variant-alternates-prop
-#[derive(Clone, Debug, Default, Eq, Hash, MallocSizeOf, PartialEq)]
-pub struct ResolvedFontVariantAlternates {
-    /// <https://drafts.csswg.org/css-fonts/#valdef-font-variant-alternates-historical-forms>
-    pub historical_forms: bool,
-    /// <https://drafts.csswg.org/css-fonts/#stylistic>
-    pub stylistic: Option<SingleValue>,
-    /// <https://drafts.csswg.org/css-fonts/#styleset>
-    pub styleset: Vec<u32>,
-    /// <https://drafts.csswg.org/css-fonts/#character-variant>
-    pub character_variant: Vec<PairValues>,
-    /// <https://drafts.csswg.org/css-fonts/#swash>
-    pub swash: Option<SingleValue>,
-    /// <https://drafts.csswg.org/css-fonts/#ornaments>
-    pub ornaments: Option<SingleValue>,
-    /// <https://drafts.csswg.org/css-fonts/#annotation>
-    pub annotation: Option<SingleValue>,
 }
 
 /// Various options that control text shaping.

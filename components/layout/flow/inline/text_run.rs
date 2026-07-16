@@ -7,9 +7,9 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
+use fonts::font_feature_values::ResolvedFontVariantAlternates;
 use fonts::{
-    FontContext, FontRef, ResolvedFontVariantAlternates, ShapedTextSlice, ShapedTextSlicer,
-    ShapingFlags, ShapingOptions,
+    FontContext, FontRef, ShapedTextSlice, ShapedTextSlicer, ShapingFlags, ShapingOptions,
 };
 use icu_locid::subtags::Language;
 use icu_properties::{self, LineBreak};
@@ -603,8 +603,13 @@ impl TextRun {
                 continue;
             };
 
-            let alternates =
-                layout_context.resolve_font_variant_alternate_identifiers_for(&font, &alternates);
+            let alternates = layout_context
+                .font_context
+                .resolve_font_variant_alternate_identifiers_for(
+                    &font,
+                    &alternates,
+                    layout_context.style_context.stylist,
+                );
             let info = FontAndScriptInfo {
                 font,
                 script,
