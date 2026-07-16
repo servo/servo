@@ -77,6 +77,7 @@ use servo_wakelock::DefaultWakeLockDelegate;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
+#[cfg(feature = "webxr")]
 use webxr::WebXrRegistry;
 
 use crate::clipboard_delegate::StringRequest;
