@@ -13,35 +13,41 @@ import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
 import android.view.View
-import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.selectAll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
 import androidx.preference.PreferenceManager
+import kotlinx.coroutines.launch
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoView
 
 class MainActivity : AppCompatActivity(), Servo.Client {
     private lateinit var servoView: ServoView
 
-    private lateinit var urlField: EditText
-
+    private val urlTextFieldState = TextFieldState()
     private var canGoBackState = mutableStateOf(false)
     private var canGoForwardState = mutableStateOf(false)
     private var isRefreshingState = mutableStateOf(false)
@@ -61,7 +67,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         setContentView(R.layout.activity_main)
 
         servoView = findViewById(R.id.servoview)
-        urlField = findViewById(R.id.urlfield)
 
         historyManager = HistoryManager(this)
 
@@ -172,6 +177,38 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             }
         }
 
+        @OptIn(ExperimentalMaterial3Api::class)
+        findViewById<ComposeView>(R.id.urlfield).setContent {
+            val searchBarState = rememberSearchBarState()
+
+            SearchBar(
+                state = searchBarState,
+                inputField = {
+                    val coroutineScope = rememberCoroutineScope()
+
+                    SearchBarDefaults.InputField(
+                        textFieldState = urlTextFieldState,
+                        searchBarState = searchBarState,
+                        onSearch = { search ->
+                            loadUrl(search)
+                            servoView.requestFocus()
+                        },
+                        modifier = Modifier
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    coroutineScope.launch {
+                                        urlTextFieldState.edit { selectAll() }
+                                    }
+                                }
+                            },
+                        placeholder = { Text(stringResource(R.string.url_or_search)) },
+                    )
+                },
+                modifier = Modifier
+                    .padding(end = 10.dp),
+            )
+        }
+
         servoView.setClient(this)
         servoView.requestFocus()
 
@@ -191,7 +228,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         if (Intent.ACTION_VIEW == intent.action) {
             servoView.loadUri(intent.data.toString())
         }
-        setupUrlField()
     }
 
     override fun onDestroy() {
@@ -235,25 +271,8 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         startActivityForResult(Intent(this, HistoryActivity::class.java), HISTORY_REQUEST_CODE)
     }
 
-    private fun setupUrlField() {
-        urlField.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                loadUrlFromField()
-                servoView.requestFocus()
-                true
-            } else {
-                false
-            }
-        }
-        urlField.setOnFocusChangeListener { v, hasFocus ->
-            if (v.id == R.id.urlfield && !hasFocus) {
-                getSystemService<InputMethodManager>()?.hideSoftInputFromWindow(v.windowToken, 0)
-            }
-        }
-    }
-
-    private fun loadUrlFromField() {
-        servoView.loadUri(urlField.getText().toString().trim { it <= ' ' })
+    private fun loadUrl(search: String) {
+        servoView.loadUri(search.trim { it <= ' ' })
     }
 
     override fun onImeShow() {
@@ -294,8 +313,9 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     }
 
     override fun onUrlChanged(url: String?) {
-        urlField.setText(url)
-        currentUrl = url.orEmpty()
+        val url = url.orEmpty()
+        urlTextFieldState.edit { replace(0, length, url) }
+        currentUrl = url
     }
 
     override fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean) {
@@ -333,8 +353,8 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         if (requestCode == HISTORY_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             val url = data.getStringExtra("url")
             if (!url.isNullOrEmpty()) {
-                urlField.setText(url)
-                loadUrlFromField()
+                urlTextFieldState.edit { replace(0, length, url) }
+                loadUrl(urlTextFieldState.text.toString())
             }
         }
     }
