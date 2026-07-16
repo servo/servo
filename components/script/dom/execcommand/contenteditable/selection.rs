@@ -197,8 +197,7 @@ impl Selection {
             (active_range.end_container(), active_range.end_offset()).first_equivalent_point();
 
         // Step 6. If (end node, end offset) is not after (start node, start offset):
-        if bp_position(&end_node, end_offset, &start_node, start_offset) != Some(Ordering::Greater)
-        {
+        if bp_position(&end_node, end_offset, &start_node, start_offset) != Ordering::Greater {
             // Step 6.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
                 self.collapse_current_range(

@@ -147,17 +147,25 @@ impl Range {
         range
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-range-root>
+    ///
+    /// > The root of a live range is the root of its start node.
+    pub(crate) fn root(&self) -> DomRoot<Node> {
+        self.start_container().GetRootNode(&Default::default())
+    }
+
     /// <https://dom.spec.whatwg.org/#contained>
     pub(crate) fn contains(&self, node: &Node) -> bool {
         // > A node node is contained in a live range range if node’s root is range’s root,
         // > and (node, 0) is after range’s start, and (node, node’s length) is before range’s end.
-        matches!(
-            (
-                bp_position(node, 0, &self.start_container(), self.start_offset()),
-                bp_position(node, node.len(), &self.end_container(), self.end_offset()),
-            ),
-            (Some(Ordering::Greater), Some(Ordering::Less))
-        )
+        node.GetRootNode(&Default::default()) == self.root() &&
+            matches!(
+                (
+                    bp_position(node, 0, &self.start_container(), self.start_offset()),
+                    bp_position(node, node.len(), &self.end_container(), self.end_offset()),
+                ),
+                (Ordering::Greater, Ordering::Less)
+            )
     }
 
     /// <https://dom.spec.whatwg.org/#partially-contained>
@@ -255,39 +263,33 @@ impl Range {
 
     /// <https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset>
     fn compare_point(&self, node: &Node, offset: u32) -> Fallible<Ordering> {
-        let start_node = self.start_container();
-        let start_node_root = start_node
-            .inclusive_ancestors(ShadowIncluding::No)
-            .last()
-            .unwrap();
-        let node_root = node
-            .inclusive_ancestors(ShadowIncluding::No)
-            .last()
-            .unwrap();
-        if start_node_root != node_root {
-            // Step 1.
+        // Step 1. If node’s root is not this’s root, then throw a "WrongDocumentError"
+        // DOMException.
+        if node.GetRootNode(&Default::default()) != self.root() {
             return Err(Error::WrongDocument(None));
         }
+        // Step 2. If node is a doctype, then throw an "InvalidNodeTypeError"
+        // DOMException.
         if node.is_doctype() {
-            // Step 2.
             return Err(Error::InvalidNodeType(None));
         }
+        // Step 3. If offset is greater than node’s length, then throw an "IndexSizeError"
+        // DOMException.
         if offset > node.len() {
-            // Step 3.
             return Err(Error::IndexSize(None));
         }
-        if let Ordering::Less = bp_position(node, offset, &start_node, self.start_offset()).unwrap()
-        {
-            // Step 4.
+        // Step 4. If (node, offset) is before start, then return −1.
+        let start_node = self.start_container();
+        if let Ordering::Less = bp_position(node, offset, &start_node, self.start_offset()) {
             return Ok(Ordering::Less);
         }
+        // Step 5. If (node, offset) is after end, then return 1.
         if let Ordering::Greater =
-            bp_position(node, offset, &self.end_container(), self.end_offset()).unwrap()
+            bp_position(node, offset, &self.end_container(), self.end_offset())
         {
-            // Step 5.
             return Ok(Ordering::Greater);
         }
-        // Step 6.
+        // Step 6. Return 0.
         Ok(Ordering::Equal)
     }
 
@@ -363,46 +365,54 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
-    #[expect(clippy::neg_cmp_op_on_partial_ord)]
     fn set_the_start_or_end(
         &self,
         node: &Node,
         offset: u32,
         start_or_end: StartOrEnd,
     ) -> ErrorResult {
-        // Step 1. If node is a doctype, then throw an "InvalidNodeTypeError" DOMException.
+        // Step 1. If node is a doctype, then throw an "InvalidNodeTypeError"
+        // DOMException.
         if node.is_doctype() {
             return Err(Error::InvalidNodeType(None));
         }
 
-        // Step 2. If offset is greater than node’s length, then throw an "IndexSizeError" DOMException.
+        // Step 2. If offset is greater than node’s length, then throw an "IndexSizeError"
+        // DOMException.
         if offset > node.len() {
             return Err(Error::IndexSize(None));
         }
 
         // Step 3. Let bp be the boundary point (node, offset).
         // NOTE: We don't need this part.
-
         match start_or_end {
             // If these steps were invoked as "set the start"
             StartOrEnd::Start => {
-                // Step 4.1  If range’s root is not equal to node’s root, or if bp is after the range’s end,
-                // set range’s end to bp.
-                // Step 4.2 Set range’s start to bp.
-                self.set_start(node, offset);
-                if !(self.start() <= self.end()) {
+                // Step 4.1. If range’s root is not equal to node’s root, or if bp is after
+                // the range’s end, set range’s end to bp.
+                if self.root() != node.GetRootNode(&Default::default()) ||
+                    bp_position(node, offset, &self.end_container(), self.end_offset()) ==
+                        Ordering::Greater
+                {
                     self.set_end(node, offset);
                 }
+
+                // Step 4.2. Set range’s start to bp.
+                self.set_start(node, offset);
             },
             // If these steps were invoked as "set the end"
             StartOrEnd::End => {
-                // Step 4.1 If range’s root is not equal to node’s root, or if bp is before the range’s start,
-                // set range’s start to bp.
-                // Step 4.2 Set range’s end to bp.
-                self.set_end(node, offset);
-                if !(self.end() >= self.start()) {
+                // Step 4.1. If range’s root is not equal to node’s root, or if bp is
+                // before the range’s start, set range’s start to bp.
+                if self.root() != node.GetRootNode(&Default::default()) ||
+                    bp_position(node, offset, &self.start_container(), self.start_offset()) ==
+                        Ordering::Less
+                {
                     self.set_start(node, offset);
                 }
+
+                // Step 4.2. Set range’s end to bp.
+                self.set_end(node, offset);
             },
         }
 
@@ -518,35 +528,46 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-compareboundarypoints>
-    fn CompareBoundaryPoints(&self, how: u16, other: &Range) -> Fallible<i16> {
+    fn CompareBoundaryPoints(&self, how: u16, source_range: &Range) -> Fallible<i16> {
+        // Step 1. If how is not one of
+        //    * START_TO_START,
+        //    * START_TO_END,
+        //    * END_TO_END, and
+        //    * END_TO_START,
+        // then throw a "NotSupportedError" DOMException.
         if how > RangeConstants::END_TO_START {
-            // Step 1.
             return Err(Error::NotSupported(None));
         }
-        let this_root = self
-            .start_container()
-            .inclusive_ancestors(ShadowIncluding::No)
-            .last()
-            .unwrap();
-        let other_root = other
-            .start_container()
-            .inclusive_ancestors(ShadowIncluding::No)
-            .last()
-            .unwrap();
-        if this_root != other_root {
-            // Step 2.
+        // Step 2. If this’s root is not sourceRange’s root, then throw a
+        // "WrongDocumentError" DOMException.
+        if self.root() != source_range.root() {
             return Err(Error::WrongDocument(None));
         }
-        // Step 3.
-        let (this_point, other_point) = match how {
-            RangeConstants::START_TO_START => (self.start(), other.start()),
-            RangeConstants::START_TO_END => (self.end(), other.start()),
-            RangeConstants::END_TO_END => (self.end(), other.end()),
-            RangeConstants::END_TO_START => (self.start(), other.end()),
+        // Step 3. Let thisPoint and sourcePoint be null.
+        // Step 4.  Switch on how:
+        //  ↪ START_TO_START:
+        //     Set thisPoint to this’s start and sourcePoint to sourceRange’s start.
+        //  ↪ START_TO_END:
+        //     Set thisPoint to this’s end and sourcePoint to sourceRange’s start.
+        //  ↪ END_TO_END:
+        //     Set thisPoint to this’s end and sourcePoint to sourceRange’s end.
+        //  ↪ END_TO_START:
+        //     Set thisPoint to this’s start and sourcePoint to sourceRange’s end.
+        let (this_point, source_point) = match how {
+            RangeConstants::START_TO_START => (self.start(), source_range.start()),
+            RangeConstants::START_TO_END => (self.end(), source_range.start()),
+            RangeConstants::END_TO_END => (self.end(), source_range.end()),
+            RangeConstants::END_TO_START => (self.start(), source_range.end()),
             _ => unreachable!(),
         };
-        // step 4.
-        match this_point.partial_cmp(other_point).unwrap() {
+        // Step 5. Switch on the position of thisPoint relative to sourcePoint:
+        //  ↪ before
+        //      Return −1.
+        //  ↪ equal
+        //      Return 0.
+        //  ↪ after
+        //      Return 1.
+        match this_point.partial_cmp(source_point).unwrap() {
             Ordering::Less => Ok(-1),
             Ordering::Equal => Ok(0),
             Ordering::Greater => Ok(1),
@@ -574,7 +595,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             Ok(Ordering::Equal) => Ok(true),
             Ok(Ordering::Greater) => Ok(false),
             Err(Error::WrongDocument(None)) => {
-                // Step 2.
+                // Step 2.  If node’s root is not this’s root, then return false.
+                // Note: This is the only step that differs from `Self::compare_point`.
                 Ok(false)
             },
             Err(error) => Err(error),
@@ -592,35 +614,24 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
     /// <https://dom.spec.whatwg.org/#dom-range-intersectsnode>
     fn IntersectsNode(&self, node: &Node) -> bool {
-        let start_node = self.start_container();
-        let start_node_root = self
-            .start_container()
-            .inclusive_ancestors(ShadowIncluding::No)
-            .last()
-            .unwrap();
-        let node_root = node
-            .inclusive_ancestors(ShadowIncluding::No)
-            .last()
-            .unwrap();
-        if start_node_root != node_root {
-            // Step 1.
+        // Step 1. If node’s root is not this’s root, then return false.
+        if self.root() != node.GetRootNode(&Default::default()) {
             return false;
         }
-        let parent = match node.GetParentNode() {
-            Some(parent) => parent,
-            None => {
-                // Step 3.
-                return true;
-            },
+        // Step 2. Let parent be node’s parent.
+        let Some(parent) = node.GetParentNode() else {
+            // Step 3. If parent is null, then return true.
+            return true;
         };
-        // Step 4.
+        // Step 4. Let offset be node’s index.
         let offset = node.index();
-        // Step 5.
-        Ordering::Greater ==
-            bp_position(&parent, offset + 1, &start_node, self.start_offset()).unwrap() &&
+        // Step 5. If (parent, offset) is before end and (parent, offset + 1) is after
+        // start, then return true.
+        // Step 6. Return false.
+        let start_node = self.start_container();
+        Ordering::Greater == bp_position(&parent, offset + 1, &start_node, self.start_offset()) &&
             Ordering::Less ==
                 bp_position(&parent, offset, &self.end_container(), self.end_offset())
-                    .unwrap()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-clonecontents>

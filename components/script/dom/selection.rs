@@ -126,8 +126,12 @@ impl Selection {
             );
     }
 
-    fn is_same_root(&self, node: &Node) -> bool {
-        &*node.GetRootNode(&GetRootNodeOptions::empty()) == self.document.upcast::<Node>()
+    fn is_in_document_of_range(&self, node: &Node) -> bool {
+        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
+        // not just the same tree), but this requires more work to allow `Selection` to cross
+        // shadow tree boundaries.
+        &*node.GetRootNode(&GetRootNodeOptions { composed: false }) ==
+            self.document.upcast::<Node>()
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#active-range>
@@ -308,7 +312,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     fn AddRange(&self, range: &Range) {
         // Step 1. If the root of the range's boundary points are not the document
         // associated with this, abort these steps.
-        if !self.is_same_root(&range.start_container()) {
+        if !self.is_in_document_of_range(&range.start_container()) {
             return;
         }
 
@@ -374,9 +378,12 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 4. If document associated with this is not a shadow-including inclusive
         // ancestor of node, abort these steps.
         //
-        // TODO: `is_same_root` does reach beyond shadow root boundaries, so this check is
-        // wrong.
-        if !self.is_same_root(node) {
+        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
+        // not just the same tree), but this requires more work to allow `Selection` to cross
+        // shadow tree boundaries.
+        if &*node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
+            self.document.upcast::<Node>()
+        {
             return Ok(());
         }
 
@@ -429,9 +436,12 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 1. If the document associated with this is not a shadow-including
         // inclusive ancestor of node, abort these steps.
         //
-        // TODO: `is_same_root` does reach beyond shadow root boundaries, so this check is
-        // wrong.
-        if !self.is_same_root(node) {
+        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
+        // not just the same tree), but this requires more work to allow `Selection` to cross
+        // shadow tree boundaries.
+        if &*node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
+            self.document.upcast::<Node>()
+        {
             return Ok(());
         }
 
@@ -467,13 +477,13 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 5. If node's root is not the same as the this's range's root, set the
         // start newRange's start and end to newFocus.
-        if !self.is_same_root(&range.start_container()) {
+        if !self.is_in_document_of_range(&range.start_container()) {
             new_range = Range::new(cx, &self.document, node, offset, node, offset);
             direction = Direction::Forwards;
         } else {
             let is_old_anchor_before_or_equal = matches!(
                 bp_position(old_anchor_node, old_anchor_offset, node, offset),
-                Some(Ordering::Less) | Some(Ordering::Equal)
+                Ordering::Less | Ordering::Equal
             );
             if is_old_anchor_before_or_equal {
                 // Step 6. Otherwise, if oldAnchor is before or equal to newFocus, set the start
@@ -537,9 +547,17 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 2. If document associated with this is not a shadow-including inclusive
         // ancestor of anchorNode or focusNode, abort these steps.
         //
-        // TODO: `is_same_root` does reach beyond shadow root boundaries, so this check is
-        // wrong.
-        if !self.is_same_root(anchor_node) || !self.is_same_root(focus_node) {
+        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
+        // not just the same tree), but this requires more work to allow `Selection` to cross
+        // shadow tree boundaries.
+        if &*anchor_node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
+            self.document.upcast::<Node>()
+        {
+            return Ok(());
+        }
+        if &*focus_node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
+            self.document.upcast::<Node>()
+        {
             return Ok(());
         }
 
@@ -556,8 +574,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // and its end to focus. Otherwise, set the start them to focus and anchor
         // respectively.
         let is_anchor_before_focus =
-            bp_position(anchor_node, anchor_offset, focus_node, focus_offset) ==
-                Some(Ordering::Less);
+            bp_position(anchor_node, anchor_offset, focus_node, focus_offset) == Ordering::Less;
         if is_anchor_before_focus {
             new_range = Range::new(
                 cx,
@@ -600,7 +617,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 2. If node's root is not the document associated with this, abort these
         // steps.
-        if !self.is_same_root(node) {
+        if !self.is_in_document_of_range(node) {
             return Ok(());
         }
 
@@ -650,15 +667,14 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > end of its range is after or visually equivalent to the first boundary point in the
         // > node.
 
-        if !self.is_same_root(node) {
+        if !self.is_in_document_of_range(node) {
             return false;
         }
         let Some(range) = self.range.get() else {
             return false;
         };
         let start_node = &*range.start_container();
-        if !self.is_same_root(start_node) {
-            // node can't be contained in a range with a different root
+        if !self.is_in_document_of_range(start_node) {
             return false;
         }
         let end_node = &*range.end_container();
@@ -676,10 +692,10 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // For now it is simplified to "position is equal".
         matches!(
             bp_position(start_node, range.start_offset(), node, compare_start_to),
-            Some(Ordering::Less) | Some(Ordering::Equal)
+            Ordering::Less | Ordering::Equal
         ) && matches!(
             bp_position(end_node, range.end_offset(), node, compare_end_to),
-            Some(Ordering::Greater) | Some(Ordering::Equal)
+            Ordering::Greater | Ordering::Equal
         )
     }
 
