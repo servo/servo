@@ -208,14 +208,14 @@ read-fonts = "0.41.0"
 regex = "1.12"
 resvg = "0.47.0"
 rsa = "=0.10.0-rc.18"
-rusqlite = "0.37"
+rusqlite = "0.38"
 rustc-demangle = "0.1"
 rustc-hash = "2.1.2"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.7.0"
-sea-query = { version = "=1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
-sea-query-rusqlite = "=0.8.0-rc.15"
+sea-query = { version = "1.0.1", default-features = false, features = ["backend-sqlite", "derive"] }
+sea-query-rusqlite = "0.8.0"
 selectors = { git = "https://github.com/servo/stylo", rev = "a64923b5d5c67313c81c5056f5e30ec0babb04d6" }
 seq-macro = "0.3.6"
 serde = "1.0.228"
