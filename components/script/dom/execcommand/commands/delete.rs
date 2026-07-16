@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use html5ever::local_name;
+use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -240,7 +241,20 @@ pub(crate) fn execute_delete_command(
     }
 
     // Step 12. If start node has a child with index start offset − 1, and that child is a table:
-    // TODO
+    if start_node
+        .children_unrooted(cx.no_gc())
+        .nth((start_offset - 1) as usize)
+        .is_some_and(|child| child.is::<HTMLTableElement>())
+    {
+        // Step 12.1. Call collapse(start node, start offset − 1) on the context object's selection.
+        let _ = selection.Collapse(cx, Some(&start_node), start_offset - 1);
+
+        // Step 12.2. Call extend(start node, start offset) on the context object's selection.
+        let _ = selection.Extend(cx, &start_node, start_offset);
+
+        // Step 12.3. Return true.
+        return true;
+    }
 
     // Step 13. If offset is zero; and either the child of start node with index start offset
     // minus one is an hr, or the child is a br whose previousSibling is either a br or not an inline node:

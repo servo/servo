@@ -15,7 +15,7 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{
-    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
 };
 
 use super::byteteereadrequest::ByteTeeReadRequest;
@@ -348,20 +348,21 @@ impl ReadableStreamDefaultReader {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> DomRoot<ReadableStreamDefaultReader> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(ReadableStreamDefaultReader::new_inherited(cx, global)),
+        let closed_promise = Promise::new(cx, global);
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(ReadableStreamDefaultReader::new_inherited(closed_promise)),
             global,
             proto,
-            cx,
         )
     }
 
-    fn new_inherited(cx: &mut JSContext, global: &GlobalScope) -> ReadableStreamDefaultReader {
+    fn new_inherited(promise: Rc<Promise>) -> ReadableStreamDefaultReader {
         ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_requests: DomRefCell::new(Default::default()),
-            closed_promise: DomRefCell::new(Promise::new(cx, global)),
+            closed_promise: DomRefCell::new(promise),
         }
     }
 
@@ -369,7 +370,8 @@ impl ReadableStreamDefaultReader {
         cx: &mut JSContext,
         global: &GlobalScope,
     ) -> DomRoot<ReadableStreamDefaultReader> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(cx, global)), global, cx)
+        let closed_promise = Promise::new(cx, global);
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(closed_promise)), global, cx)
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-reader>

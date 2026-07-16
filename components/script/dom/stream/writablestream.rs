@@ -21,7 +21,7 @@ use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
 
@@ -193,12 +193,7 @@ impl WritableStream {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> DomRoot<WritableStream> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(WritableStream::new_inherited()),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(WritableStream::new_inherited()), global, proto)
     }
 
     /// Used as part of

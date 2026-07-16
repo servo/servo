@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -43,12 +43,7 @@ impl PopStateEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<PopStateEvent> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(PopStateEvent::new_inherited()),
-            window,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(PopStateEvent::new_inherited()), window, proto)
     }
 
     fn new(

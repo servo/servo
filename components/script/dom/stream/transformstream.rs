@@ -15,7 +15,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
 use rustc_hash::FxHashMap;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::TransformStreamData;
 
@@ -425,11 +425,11 @@ impl TransformStream {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> DomRoot<TransformStream> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(TransformStream::new_inherited()),
             global,
             proto,
-            cx,
         )
     }
 

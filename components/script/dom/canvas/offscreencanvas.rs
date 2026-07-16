@@ -14,7 +14,7 @@ use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto};
 use script_bindings::weakref::WeakRef;
 use servo_base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
@@ -86,11 +86,11 @@ impl OffscreenCanvas {
         height: u64,
         placeholder: Option<WeakRef<HTMLCanvasElement>>,
     ) -> DomRoot<OffscreenCanvas> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(OffscreenCanvas::new_inherited(width, height, placeholder)),
             global,
             proto,
-            cx,
         )
     }
 

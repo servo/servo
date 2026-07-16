@@ -12,7 +12,6 @@ import android.os.Bundle
 import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
-import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -42,7 +41,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
     private lateinit var servoView: ServoView
 
     private lateinit var urlField: EditText
-    private var urlFieldIsFocused = false
 
     private var canGoBackState = mutableStateOf(false)
     private var canGoForwardState = mutableStateOf(false)
@@ -248,11 +246,8 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             }
         }
         urlField.setOnFocusChangeListener { v, hasFocus ->
-            if (v.id == R.id.urlfield) {
-                urlFieldIsFocused = hasFocus
-                if (!hasFocus) {
-                    getSystemService<InputMethodManager>()?.hideSoftInputFromWindow(v.windowToken, 0)
-                }
+            if (v.id == R.id.urlfield && !hasFocus) {
+                getSystemService<InputMethodManager>()?.hideSoftInputFromWindow(v.windowToken, 0)
             }
         }
     }
@@ -267,20 +262,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
     override fun onImeHide() {
         getSystemService<InputMethodManager>()?.hideSoftInputFromWindow(servoView.windowToken, InputMethodManager.SHOW_IMPLICIT)
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (urlFieldIsFocused) {
-            return true
-        }
-        return servoView.onKeyDown(keyCode, event)
-    }
-
-    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        if (urlFieldIsFocused) {
-            return true
-        }
-        return servoView.onKeyUp(keyCode, event)
     }
 
     override fun onAlert(message: String?) {

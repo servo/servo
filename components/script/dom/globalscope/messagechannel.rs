@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::MessageChannelBinding::MessageChannelMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -39,11 +39,11 @@ impl MessageChannel {
         incumbent.entangle_ports(*port1.message_port_id(), *port2.message_port_id());
 
         // Steps 4-6
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(MessageChannel::new_inherited(&port1, &port2)),
             incumbent,
             proto,
-            cx,
         )
     }
 

@@ -17,7 +17,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{
-    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
 };
 use script_bindings::root::Dom;
 
@@ -202,20 +202,21 @@ impl ReadableStreamBYOBReader {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
     ) -> DomRoot<ReadableStreamBYOBReader> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(ReadableStreamBYOBReader::new_inherited(cx, global)),
+        let closed_promise = Promise::new(cx, global);
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(ReadableStreamBYOBReader::new_inherited(closed_promise)),
             global,
             proto,
-            cx,
         )
     }
 
-    fn new_inherited(cx: &mut JSContext, global: &GlobalScope) -> ReadableStreamBYOBReader {
+    fn new_inherited(promise: Rc<Promise>) -> ReadableStreamBYOBReader {
         ReadableStreamBYOBReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
             read_into_requests: DomRefCell::new(Default::default()),
-            closed_promise: DomRefCell::new(Promise::new(cx, global)),
+            closed_promise: DomRefCell::new(promise),
         }
     }
 
@@ -223,7 +224,8 @@ impl ReadableStreamBYOBReader {
         cx: &mut JSContext,
         global: &GlobalScope,
     ) -> DomRoot<ReadableStreamBYOBReader> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(cx, global)), global, cx)
+        let closed_promise = Promise::new(cx, global);
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(closed_promise)), global, cx)
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-byob-reader>

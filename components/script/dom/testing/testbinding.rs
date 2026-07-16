@@ -23,7 +23,7 @@ use js::typedarray::{self, HeapUint8ClampedArray};
 use script_bindings::cformat;
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_config::prefs;
 use servo_constellation_traits::BlobImpl;
 
@@ -79,12 +79,7 @@ impl TestBinding {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<TestBinding> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(TestBinding::new_inherited()),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(TestBinding::new_inherited()), global, proto)
     }
 }
 

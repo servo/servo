@@ -28,7 +28,7 @@ use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
-use fonts::{FontContext, TextByteRange, WebFontDocumentContext};
+use fonts::{FontContext, TextByteRange, WebFontDocumentContext, WebFontSetDifference};
 pub use layout_damage::{AccessibilityDamage, LayoutDamage};
 pub use layout_dom::{
     DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
@@ -606,7 +606,7 @@ impl RestyleReason {
 }
 
 /// Information derived from a layout pass that needs to be returned to the script thread.
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct ReflowResult {
     /// The phases that were run during this reflow.
     pub reflow_phases_run: ReflowPhasesRun,
@@ -625,6 +625,8 @@ pub struct ReflowResult {
     /// finished before reaching this stage of the layout. I.e., no update
     /// required.
     pub iframe_sizes: Option<IFrameSizes>,
+    /// Enumerates web fonts that were added or removed as part of restyling.
+    pub changed_web_fonts: WebFontSetDifference,
 }
 
 bitflags! {

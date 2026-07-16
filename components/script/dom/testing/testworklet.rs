@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
@@ -44,11 +44,11 @@ impl TestWorklet {
         proto: Option<HandleObject>,
     ) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(cx, window, WorkletGlobalScopeType::Test);
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(TestWorklet::new_inherited(&worklet)),
             window,
             proto,
-            cx,
         )
     }
 }

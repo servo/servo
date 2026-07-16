@@ -11,7 +11,7 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray;
 use js::typedarray::HeapUint8Array;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -41,12 +41,7 @@ impl TextEncoder {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<TextEncoder> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(TextEncoder::new_inherited()),
-            global,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(TextEncoder::new_inherited()), global, proto)
     }
 }
 

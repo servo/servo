@@ -14,7 +14,7 @@ use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::Uint8;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::CompressionFormat;
@@ -64,11 +64,11 @@ impl DecompressionStream {
         transform: &TransformStream,
         format: CompressionFormat,
     ) -> DomRoot<DecompressionStream> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(DecompressionStream::new_inherited(transform, format)),
             global,
             proto,
-            cx,
         )
     }
 }

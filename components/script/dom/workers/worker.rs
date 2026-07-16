@@ -15,7 +15,7 @@ use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_base::generic_channel;
 use servo_constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use uuid::Uuid;
@@ -81,11 +81,11 @@ impl Worker {
         sender: Sender<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
     ) -> DomRoot<Worker> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(Worker::new_inherited(sender, closing)),
             global,
             proto,
-            cx,
         )
     }
 

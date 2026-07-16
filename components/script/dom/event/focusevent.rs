@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::FocusEventBinding;
@@ -49,12 +49,7 @@ impl FocusEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<FocusEvent> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(FocusEvent::new_inherited()),
-            window,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(FocusEvent::new_inherited()), window, proto)
     }
 
     #[expect(clippy::too_many_arguments)]

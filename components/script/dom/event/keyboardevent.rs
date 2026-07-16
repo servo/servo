@@ -10,7 +10,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::{Code, Key, Modifiers, NamedKey};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding;
@@ -68,12 +68,7 @@ impl KeyboardEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<KeyboardEvent> {
-        reflect_dom_object_with_proto_and_cx(
-            Box::new(KeyboardEvent::new_inherited()),
-            window,
-            proto,
-            cx,
-        )
+        reflect_dom_object_with_proto(cx, Box::new(KeyboardEvent::new_inherited()), window, proto)
     }
 
     pub(crate) fn new_with_platform_keyboard_event(
