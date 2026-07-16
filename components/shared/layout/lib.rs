@@ -113,6 +113,7 @@ pub enum LayoutNodeType {
 pub enum LayoutElementType {
     Element,
     HTMLBodyElement,
+    HTMLButtonElement,
     HTMLBRElement,
     HTMLCanvasElement,
     HTMLHtmlElement,

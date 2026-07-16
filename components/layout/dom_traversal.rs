@@ -160,7 +160,7 @@ fn traverse_element<'dom>(
         },
         Display::GeneratingBox(display) => {
             let contents = Contents::for_element(element, context);
-            let display = display.used_value_for_contents(&contents);
+            let display = display.used_value_for_contents(&contents, &info);
             let box_slot = element.box_slot();
             handler.handle_element(&info, display, contents, box_slot);
         },
@@ -254,7 +254,8 @@ impl Contents {
         let is_widget = matches!(
             node.type_id(),
             Some(LayoutNodeType::Element(
-                LayoutElementType::HTMLInputElement |
+                LayoutElementType::HTMLButtonElement |
+                    LayoutElementType::HTMLInputElement |
                     LayoutElementType::HTMLSelectElement |
                     LayoutElementType::HTMLTextAreaElement
             ))
