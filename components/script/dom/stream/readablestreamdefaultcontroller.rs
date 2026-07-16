@@ -369,16 +369,12 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    pub(crate) fn setup(
-        &self,
-        cx: &mut JSContext,
-        stream: DomRoot<ReadableStream>,
-    ) -> Result<(), Error> {
+    pub(crate) fn setup(&self, cx: &mut JSContext, stream: &ReadableStream) -> Result<(), Error> {
         // Assert: stream.[[controller]] is undefined
         stream.assert_no_controller();
 
         // Set controller.[[stream]] to stream.
-        self.stream.set(Some(&stream));
+        self.stream.set(Some(stream));
 
         let global = &*self.global();
         let rooted_default_controller = DomRoot::from_ref(self);
