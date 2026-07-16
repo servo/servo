@@ -32,6 +32,11 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
+use crate::dom::svg::svgcircleelement::SVGCircleElement;
+use crate::dom::svg::svgellipseelement::SVGEllipseElement;
+use crate::dom::svg::svgimageelement::SVGImageElement;
+use crate::dom::svg::svgpathelement::SVGPathElement;
+use crate::dom::svg::svgrectelement::SVGRectElement;
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
 
 #[dom_struct]
@@ -122,7 +127,20 @@ impl VirtualMethods for SVGElement {
                 &local_name!("stroke-dasharray") |
                 &local_name!("stroke-dashoffset") |
                 &local_name!("stroke-miterlimit") |
-                &local_name!("stroke-opacity")
+                &local_name!("stroke-opacity") |
+                &local_name!("display") |
+                &local_name!("visibility") |
+                &local_name!("opacity") |
+                &local_name!("cx") |
+                &local_name!("cy") |
+                &local_name!("r") |
+                &local_name!("rx") |
+                &local_name!("ry") |
+                &local_name!("x") |
+                &local_name!("y") |
+                &local_name!("width") |
+                &local_name!("height") |
+                &local_name!("d")
         ) || self
             .super_type()
             .unwrap()
@@ -339,6 +357,101 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
             longhands::stroke_opacity::parse_declared,
             push,
         );
+        self.parse_svg_attribute(
+            &parser_context,
+            "display",
+            longhands::display::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "visibility",
+            longhands::visibility::parse_declared,
+            push,
+        );
+        self.parse_svg_attribute(
+            &parser_context,
+            "opacity",
+            longhands::opacity::parse_declared,
+            push,
+        );
+
+        // Parse geometry attributes based on element type
+        // <circle>: https://svgwg.org/svg2-draft/shapes.html#CircleElement
+        if element.downcast::<SVGCircleElement>().is_some() {
+            self.parse_svg_attribute(&parser_context, "cx", longhands::cx::parse_declared, push);
+            self.parse_svg_attribute(&parser_context, "cy", longhands::cy::parse_declared, push);
+            self.parse_svg_attribute(&parser_context, "r", longhands::r::parse_declared, push);
+        }
+        // <ellipse>: https://svgwg.org/svg2-draft/shapes.html#EllipseElement
+        if element.downcast::<SVGEllipseElement>().is_some() {
+            self.parse_svg_attribute(&parser_context, "cx", longhands::cx::parse_declared, push);
+            self.parse_svg_attribute(&parser_context, "cy", longhands::cy::parse_declared, push);
+            self.parse_svg_attribute(&parser_context, "rx", longhands::rx::parse_declared, push);
+            self.parse_svg_attribute(&parser_context, "ry", longhands::ry::parse_declared, push);
+        }
+        // <rect>: https://svgwg.org/svg2-draft/shapes.html#RectElement
+        if element.downcast::<SVGRectElement>().is_some() {
+            self.parse_svg_attribute(&parser_context, "x", longhands::x::parse_declared, push);
+            self.parse_svg_attribute(&parser_context, "y", longhands::y::parse_declared, push);
+            self.parse_svg_attribute(
+                &parser_context,
+                "width",
+                longhands::width::parse_declared,
+                push,
+            );
+            self.parse_svg_attribute(
+                &parser_context,
+                "height",
+                longhands::height::parse_declared,
+                push,
+            );
+            self.parse_svg_attribute(&parser_context, "rx", longhands::rx::parse_declared, push);
+            self.parse_svg_attribute(&parser_context, "ry", longhands::ry::parse_declared, push);
+        }
+        // <image>: https://svgwg.org/svg2-draft/embedded.html#ImageElement
+        if element.downcast::<SVGImageElement>().is_some() {
+            self.parse_svg_attribute(&parser_context, "x", longhands::x::parse_declared, push);
+            self.parse_svg_attribute(&parser_context, "y", longhands::y::parse_declared, push);
+            self.parse_svg_attribute(
+                &parser_context,
+                "width",
+                longhands::width::parse_declared,
+                push,
+            );
+            self.parse_svg_attribute(
+                &parser_context,
+                "height",
+                longhands::height::parse_declared,
+                push,
+            );
+        }
+        // <path>: https://svgwg.org/svg2-draft/paths.html#PathElement
+        if element.downcast::<SVGPathElement>().is_some() {
+            // The d CSS property only accepts `none` or `path(<string>)`,
+            // but the SVG presentation attribute uses raw path data (e.g. "M0,0 L1,1").
+            // Wrap the raw path data in `path("...")` so the CSS parser can handle it.
+            if let Some(value) = element.get_attr_val_for_layout(&ns!(), &local_name!("d")) {
+                if value.eq_ignore_ascii_case("none") {
+                    let mut input = cssparser::ParserInput::new(value);
+                    let mut parser = cssparser::Parser::new(&mut input);
+                    if let Ok(property) =
+                        parser.parse_entirely(|i| longhands::d::parse_declared(&parser_context, i))
+                    {
+                        push(property);
+                    }
+                } else {
+                    let wrapped = format!("path(\"{}\")", value);
+                    let mut input = cssparser::ParserInput::new(&wrapped);
+                    let mut parser = cssparser::Parser::new(&mut input);
+                    if let Ok(property) = parser.parse_entirely(|parse_input| {
+                        longhands::d::parse_declared(&parser_context, parse_input)
+                    }) {
+                        push(property);
+                    }
+                }
+            }
+        }
     }
 
     fn parse_svg_attribute<F>(
