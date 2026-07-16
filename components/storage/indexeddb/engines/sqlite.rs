@@ -706,7 +706,7 @@ impl KvsEngine for SqliteEngine {
     ) -> Result<(), Self::Error> {
         let object_store = self.connection.query_row(
             "SELECT * FROM object_store WHERE name = ?",
-            params![store_name.to_string()],
+            params![store_name],
             |row| object_store_model::Model::try_from(row),
         )?;
 
