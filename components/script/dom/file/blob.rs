@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
@@ -200,8 +200,8 @@ fn convert_line_endings_to_native(s: &[u8]) -> Vec<u8> {
 }
 
 /// <https://w3c.github.io/FileAPI/#process-blob-parts>
-#[expect(unsafe_code)]
 pub(crate) fn process_blob_parts(
+    no_gc: &NoGC,
     blobparts: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
     endings: BlobBinding::EndingType,
 ) -> Result<Vec<u8>, ()> {
@@ -229,11 +229,11 @@ pub(crate) fn process_blob_parts(
             // and append those bytes to bytes.
             ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBuffer(a) => {
                 let array_buffer = ArrayBufferViewOrArrayBuffer::ArrayBuffer(a);
-                bytes.extend_from_slice(unsafe { get_buffer_source_slice(&array_buffer) });
+                bytes.extend_from_slice(get_buffer_source_slice(&array_buffer, no_gc));
             },
             ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBufferView(a) => {
                 let array_view = ArrayBufferViewOrArrayBuffer::ArrayBufferView(a);
-                bytes.extend_from_slice(unsafe { get_buffer_source_slice(&array_view) });
+                bytes.extend_from_slice(get_buffer_source_slice(&array_view, no_gc));
             },
             // Step 2.3. If element is a Blob, append the bytes it represents to bytes.
             ArrayBufferOrArrayBufferViewOrBlobOrString::Blob(b) => {
@@ -259,9 +259,11 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     ) -> Fallible<DomRoot<Blob>> {
         let bytes: Vec<u8> = match blobParts {
             None => Vec::new(),
-            Some(blobparts) => match process_blob_parts(blobparts, blobPropertyBag.endings) {
-                Ok(bytes) => bytes,
-                Err(_) => return Err(Error::InvalidCharacter(None)),
+            Some(blobparts) => {
+                match process_blob_parts(cx.no_gc(), blobparts, blobPropertyBag.endings) {
+                    Ok(bytes) => bytes,
+                    Err(_) => return Err(Error::InvalidCharacter(None)),
+                }
             },
         };
 

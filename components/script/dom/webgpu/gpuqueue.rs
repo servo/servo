@@ -111,9 +111,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer>
-    #[expect(unsafe_code)]
     fn WriteBuffer(
         &self,
+        cx: &mut JSContext,
         buffer: &GPUBuffer,
         buffer_offset: GPUSize64,
         data: BufferSource,
@@ -150,9 +150,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
         // Step 5&6
         let byte_start = (data_offset as usize) * sizeof_element;
         let byte_end = ((data_offset + content_size) as usize) * sizeof_element;
-        let contents = GenericSharedMemory::from_bytes(unsafe {
-            &get_buffer_source_slice(&data)[byte_start..byte_end]
-        });
+        let contents = GenericSharedMemory::from_bytes(
+            &get_buffer_source_slice(&data, cx.no_gc())[byte_start..byte_end],
+        );
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
             device_id: self.device.borrow().as_ref().unwrap().id().0,
             queue_id: self.queue.0,
@@ -168,15 +168,15 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writetexture>
-    #[expect(unsafe_code)]
     fn WriteTexture(
         &self,
+        cx: &mut JSContext,
         destination: &GPUTexelCopyTextureInfo,
         data: BufferSource,
         data_layout: &GPUTexelCopyBufferLayout,
         size: GPUExtent3D,
     ) -> Fallible<()> {
-        let bytes = unsafe { get_buffer_source_slice(&data) };
+        let bytes = get_buffer_source_slice(&data, cx.no_gc());
         let len = bytes.len() as u64;
         let valid = data_layout.offset <= len;
 

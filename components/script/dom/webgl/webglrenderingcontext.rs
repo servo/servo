@@ -1339,10 +1339,9 @@ impl WebGLRenderingContext {
         &self.extension_manager
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn buffer_data(
         &self,
-        _no_gc: &NoGC,
+        no_gc: &NoGC,
         target: u32,
         data: Option<ArrayBufferViewOrArrayBuffer>,
         usage: u32,
@@ -1352,7 +1351,7 @@ impl WebGLRenderingContext {
         let bound_buffer =
             handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
-        let data = unsafe { get_buffer_source_slice(&data) };
+        let data = get_buffer_source_slice(&data, no_gc);
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
     }
 
@@ -1376,10 +1375,9 @@ impl WebGLRenderingContext {
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn buffer_sub_data(
         &self,
-        _no_gc: &NoGC,
+        no_gc: &NoGC,
         target: u32,
         offset: i64,
         data: ArrayBufferViewOrArrayBuffer,
@@ -1392,7 +1390,7 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        let data = unsafe { get_buffer_source_slice(&data) };
+        let data = get_buffer_source_slice(&data, no_gc);
         if (offset as u64) + data.len() as u64 > bound_buffer.capacity() as u64 {
             return self.webgl_error(InvalidValue);
         }
