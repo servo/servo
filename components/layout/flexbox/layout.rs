@@ -673,7 +673,6 @@ impl FlexContainer {
                 }
             })
             .collect::<Vec<_>>();
-
         let flex_item_boxes = flex_items.iter().map(|child| &**child);
         let flex_items = flex_item_boxes
             .map(|flex_item_box| FlexItem::new(&flex_context, flex_item_box))
@@ -815,10 +814,8 @@ impl FlexContainer {
         let inline_axis_is_main_axis = self.config.flex_axis == FlexAxis::Row;
         let mut baseline_alignment_participating_baselines = Baselines::default();
         let mut all_baselines = Baselines::default();
-        let flex_item_fragments: Vec<_> = initial_line_layouts
-            .into_iter()
-            .enumerate()
-            .flat_map(|(index, initial_line_layout)| {
+        let mut flex_item_fragments = initial_line_layouts.into_iter().enumerate().flat_map(
+            |(index, initial_line_layout)| {
                 // We call `allocate_free_cross_space_for_flex_line` for each line to avoid having
                 // leftover space when the number of lines doesn't evenly divide the total free space,
                 // considering the precision of app units.
@@ -898,10 +895,9 @@ impl FlexContainer {
                     fragment.base.translate_rect(physical_line_position);
                 }
                 final_line_layout.item_fragments
-            })
-            .collect();
+            },
+        );
 
-        let mut flex_item_fragments = flex_item_fragments.into_iter();
         let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
             .map(|child_as_abspos| match child_as_abspos {
