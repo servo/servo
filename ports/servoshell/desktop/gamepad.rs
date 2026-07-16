@@ -2,17 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::mpsc::{Sender, channel};
+use std::thread;
+use std::time::Duration;
 
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
-use gilrs::{EventType, Gilrs};
+use gilrs::{Event, EventType, GamepadId, Gilrs};
 use log::{debug, warn};
 use servo::{
     GamepadDelegate, GamepadEvent, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
     GamepadHapticEffectType, GamepadIndex, GamepadInputBounds, GamepadSupportedHapticEffects,
     GamepadUpdateType, InputEvent, WebView,
 };
+use winit::event_loop::EventLoopProxy;
+
+use crate::desktop::event_loop::AppEvent;
 
 pub struct HapticEffect {
     pub effect: Effect,
@@ -20,116 +25,169 @@ pub struct HapticEffect {
 }
 
 pub(crate) struct ServoshellGamepadDelegate {
-    handle: RefCell<Gilrs>,
-    haptic_effects: RefCell<HashMap<usize, HapticEffect>>,
+    sender: Sender<GamepadHapticEffectRequest>,
 }
 
 impl ServoshellGamepadDelegate {
-    pub(crate) fn maybe_new() -> Option<Self> {
-        let handle = match Gilrs::new() {
-            Ok(handle) => handle,
-            Err(error) => {
-                warn!("Error creating gamepad input connection ({error})");
-                return None;
-            },
-        };
-        Some(Self {
-            handle: RefCell::new(handle),
-            haptic_effects: RefCell::new(Default::default()),
-        })
+    pub(crate) fn new(event_loop_proxy: EventLoopProxy<AppEvent>) -> Self {
+        let (tx, rx) = channel::<GamepadHapticEffectRequest>();
+
+        let _ = thread::Builder::new()
+            .name(String::from("GamepadThread"))
+            .spawn(move || {
+                let mut haptic_effects: HashMap<usize, HapticEffect> = HashMap::new();
+                let mut handle = match Gilrs::new() {
+                    Ok(handle) => handle,
+                    Err(error) => {
+                        warn!("Error creating gamepad input connection ({error})");
+                        return;
+                    },
+                };
+
+                let mut connected_gamepads: Vec<GamepadId> =
+                    handle.gamepads().map(|(id, _)| id).collect();
+
+                loop {
+                    while let Some(event) =
+                        handle.next_event_blocking(Some(Duration::from_millis(100)))
+                    {
+                        let id: usize = event.id.into();
+                        let gamepad = handle.gamepad(event.id);
+                        let name = gamepad.name();
+                        let index = GamepadIndex(id);
+
+                        if let Some(index) = connected_gamepads
+                            .iter()
+                            .position(|&gamepad_id| event.id == gamepad_id)
+                        {
+                            handle.insert_event(Event::new(event.id, EventType::Connected));
+                            handle.insert_event(event);
+
+                            connected_gamepads.swap_remove(index);
+
+                            continue;
+                        }
+
+                        if matches!(&event.event, EventType::ForceFeedbackEffectCompleted) {
+                            match haptic_effects.remove(&id) {
+                                Some(haptic_effect) => haptic_effect.request.succeeded(),
+                                None => warn!("Failed to find haptic effect for id {id}"),
+                            }
+
+                            continue;
+                        }
+
+                        if event_loop_proxy
+                            .send_event(AppEvent::Gamepad(event, name.to_owned(), index))
+                            .is_err()
+                        {
+                            warn!("Error sending gamepad event to event loop proxy");
+                            return;
+                        }
+                    }
+
+                    while let Ok(request) = rx.try_recv() {
+                        match request.request_type() {
+                            GamepadHapticEffectRequestType::Play(effect_type) => {
+                                Self::play_haptic_effect(
+                                    &mut haptic_effects,
+                                    &effect_type.clone(),
+                                    request,
+                                    &mut handle,
+                                );
+                            },
+                            GamepadHapticEffectRequestType::Stop => {
+                                Self::stop_haptic_effect(&mut haptic_effects, request);
+                            },
+                        }
+                    }
+                }
+            });
+
+        Self { sender: tx }
     }
 
     /// Handle updates to connected gamepads from GilRs
-    pub(crate) fn handle_gamepad_events(&self, active_webview: WebView) {
-        let mut handle = self.handle.borrow_mut();
-        while let Some(event) = handle.next_event() {
-            let gamepad = handle.gamepad(event.id);
-            let name = gamepad.name();
-            let index = GamepadIndex(event.id.into());
-            let mut gamepad_event: Option<GamepadEvent> = None;
-            match event.event {
-                EventType::ButtonPressed(button, _) => {
-                    let mapped_index = Self::map_gamepad_button(button);
-                    // We only want to send this for a valid digital button, aka on/off only
-                    if !matches!(mapped_index, 6 | 7 | 17) {
-                        let update_type = GamepadUpdateType::Button(mapped_index, 1.0);
-                        gamepad_event = Some(GamepadEvent::Updated(index, update_type));
-                    }
-                },
-                EventType::ButtonReleased(button, _) => {
-                    let mapped_index = Self::map_gamepad_button(button);
-                    // We only want to send this for a valid digital button, aka on/off only
-                    if !matches!(mapped_index, 6 | 7 | 17) {
-                        let update_type = GamepadUpdateType::Button(mapped_index, 0.0);
-                        gamepad_event = Some(GamepadEvent::Updated(index, update_type));
-                    }
-                },
-                EventType::ButtonChanged(button, value, _) => {
-                    let mapped_index = Self::map_gamepad_button(button);
-                    // We only want to send this for a valid non-digital button, aka the triggers
-                    if matches!(mapped_index, 6 | 7) {
-                        let update_type = GamepadUpdateType::Button(mapped_index, value as f64);
-                        gamepad_event = Some(GamepadEvent::Updated(index, update_type));
-                    }
-                },
-                EventType::AxisChanged(axis, value, _) => {
-                    // Map axis index and value to represent Standard Gamepad axis
-                    // <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
-                    let mapped_axis: usize = match axis {
-                        gilrs::Axis::LeftStickX => 0,
-                        gilrs::Axis::LeftStickY => 1,
-                        gilrs::Axis::RightStickX => 2,
-                        gilrs::Axis::RightStickY => 3,
-                        _ => 4, // Other axes do not map to "standard" gamepad mapping and are ignored
+    pub(crate) fn handle_gamepad_events(
+        &self,
+        event: Event,
+        name: String,
+        index: GamepadIndex,
+        active_webview: WebView,
+    ) {
+        let mut gamepad_event: Option<GamepadEvent> = None;
+        match event.event {
+            EventType::ButtonPressed(button, _) => {
+                let mapped_index = Self::map_gamepad_button(button);
+                // We only want to send this for a valid digital button, aka on/off only
+                if !matches!(mapped_index, 6 | 7 | 17) {
+                    let update_type = GamepadUpdateType::Button(mapped_index, 1.0);
+                    gamepad_event = Some(GamepadEvent::Updated(index, update_type));
+                }
+            },
+            EventType::ButtonReleased(button, _) => {
+                let mapped_index = Self::map_gamepad_button(button);
+                // We only want to send this for a valid digital button, aka on/off only
+                if !matches!(mapped_index, 6 | 7 | 17) {
+                    let update_type = GamepadUpdateType::Button(mapped_index, 0.0);
+                    gamepad_event = Some(GamepadEvent::Updated(index, update_type));
+                }
+            },
+            EventType::ButtonChanged(button, value, _) => {
+                let mapped_index = Self::map_gamepad_button(button);
+                // We only want to send this for a valid non-digital button, aka the triggers
+                if matches!(mapped_index, 6 | 7) {
+                    let update_type = GamepadUpdateType::Button(mapped_index, value as f64);
+                    gamepad_event = Some(GamepadEvent::Updated(index, update_type));
+                }
+            },
+            EventType::AxisChanged(axis, value, _) => {
+                // Map axis index and value to represent Standard Gamepad axis
+                // <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
+                let mapped_axis: usize = match axis {
+                    gilrs::Axis::LeftStickX => 0,
+                    gilrs::Axis::LeftStickY => 1,
+                    gilrs::Axis::RightStickX => 2,
+                    gilrs::Axis::RightStickY => 3,
+                    _ => 4, // Other axes do not map to "standard" gamepad mapping and are ignored
+                };
+                if mapped_axis < 4 {
+                    // The Gamepad spec designates down as positive and up as negative.
+                    // GilRs does the inverse of this, so correct for it here.
+                    let axis_value = match mapped_axis {
+                        0 | 2 => value,
+                        1 | 3 => -value,
+                        _ => 0., // Should not reach here
                     };
-                    if mapped_axis < 4 {
-                        // The Gamepad spec designates down as positive and up as negative.
-                        // GilRs does the inverse of this, so correct for it here.
-                        let axis_value = match mapped_axis {
-                            0 | 2 => value,
-                            1 | 3 => -value,
-                            _ => 0., // Should not reach here
-                        };
-                        let update_type = GamepadUpdateType::Axis(mapped_axis, axis_value as f64);
-                        gamepad_event = Some(GamepadEvent::Updated(index, update_type));
-                    }
-                },
-                EventType::Connected => {
-                    let name = String::from(name);
-                    let bounds = GamepadInputBounds {
-                        axis_bounds: (-1.0, 1.0),
-                        button_bounds: (0.0, 1.0),
-                    };
-                    // GilRs does not yet support trigger rumble
-                    let supported_haptic_effects = GamepadSupportedHapticEffects {
-                        supports_dual_rumble: true,
-                        supports_trigger_rumble: false,
-                    };
-                    gamepad_event = Some(GamepadEvent::Connected(
-                        index,
-                        name,
-                        bounds,
-                        supported_haptic_effects,
-                    ));
-                },
-                EventType::Disconnected => {
-                    gamepad_event = Some(GamepadEvent::Disconnected(index));
-                },
-                EventType::ForceFeedbackEffectCompleted => {
-                    if let Some(haptic_effect) =
-                        self.haptic_effects.borrow_mut().remove(&event.id.into())
-                    {
-                        haptic_effect.request.succeeded();
-                    } else {
-                        warn!("Failed to find haptic effect for id {}", event.id);
-                    }
-                },
-                _ => {},
-            }
+                    let update_type = GamepadUpdateType::Axis(mapped_axis, axis_value as f64);
+                    gamepad_event = Some(GamepadEvent::Updated(index, update_type));
+                }
+            },
+            EventType::Connected => {
+                let bounds = GamepadInputBounds {
+                    axis_bounds: (-1.0, 1.0),
+                    button_bounds: (0.0, 1.0),
+                };
+                // GilRs does not yet support trigger rumble
+                let supported_haptic_effects = GamepadSupportedHapticEffects {
+                    supports_dual_rumble: true,
+                    supports_trigger_rumble: false,
+                };
+                gamepad_event = Some(GamepadEvent::Connected(
+                    index,
+                    name,
+                    bounds,
+                    supported_haptic_effects,
+                ));
+            },
+            EventType::Disconnected => {
+                gamepad_event = Some(GamepadEvent::Disconnected(index));
+            },
+            _ => {},
+        }
 
-            if let Some(event) = gamepad_event {
-                active_webview.notify_input_event(InputEvent::Gamepad(event));
-            }
+        if let Some(event) = gamepad_event {
+            active_webview.notify_input_event(InputEvent::Gamepad(event));
         }
     }
 
@@ -159,14 +217,14 @@ impl ServoshellGamepadDelegate {
     }
 
     fn play_haptic_effect(
-        &self,
+        haptic_effects: &mut HashMap<usize, HapticEffect>,
         effect_type: &GamepadHapticEffectType,
         request: GamepadHapticEffectRequest,
+        handle: &mut Gilrs,
     ) {
         let index = request.gamepad_index();
         let GamepadHapticEffectType::DualRumble(params) = effect_type;
 
-        let mut handle = self.handle.borrow_mut();
         let Some(connected_gamepad) = handle
             .gamepads()
             .find(|gamepad| usize::from(gamepad.0) == index)
@@ -203,12 +261,11 @@ impl ServoshellGamepadDelegate {
             })
             .repeat(Repeat::For(start_delay + duration))
             .add_gamepad(&connected_gamepad.1)
-            .finish(&mut handle)
+            .finish(handle)
             .expect(
                 "Failed to create haptic effect, ensure connected gamepad supports force feedback.",
             );
 
-        let mut haptic_effects = self.haptic_effects.borrow_mut();
         haptic_effects.insert(index, HapticEffect { effect, request });
         haptic_effects[&index]
             .effect
@@ -216,10 +273,12 @@ impl ServoshellGamepadDelegate {
             .expect("Failed to play haptic effect.");
     }
 
-    fn stop_haptic_effect(&self, request: GamepadHapticEffectRequest) {
+    fn stop_haptic_effect(
+        haptic_effects: &mut HashMap<usize, HapticEffect>,
+        request: GamepadHapticEffectRequest,
+    ) {
         let index = request.gamepad_index();
 
-        let mut haptic_effects = self.haptic_effects.borrow_mut();
         let Some(haptic_effect) = haptic_effects.get(&index) else {
             request.failed();
             return;
@@ -244,13 +303,8 @@ impl ServoshellGamepadDelegate {
 
 impl GamepadDelegate for ServoshellGamepadDelegate {
     fn handle_haptic_effect_request(&self, request: GamepadHapticEffectRequest) {
-        match request.request_type() {
-            GamepadHapticEffectRequestType::Play(effect_type) => {
-                self.play_haptic_effect(&effect_type.clone(), request);
-            },
-            GamepadHapticEffectRequestType::Stop => {
-                self.stop_haptic_effect(request);
-            },
+        if self.sender.send(request).is_err() {
+            warn!("Haptic effect couldn't be played!")
         }
     }
 }

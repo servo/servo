@@ -7,10 +7,10 @@
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
+use gilrs::Event;
 use log::warn;
-use servo::EventLoopWaker;
+use servo::{EventLoopWaker, GamepadIndex};
 use winit::event_loop::{EventLoop, EventLoop as WinitEventLoop, EventLoopProxy};
-use winit::window::WindowId;
 
 use super::app::App;
 
@@ -19,20 +19,12 @@ pub enum AppEvent {
     /// Another process or thread has kicked the OS event loop with EventLoopWaker.
     Waker,
     Accessibility(egui_winit::accesskit_winit::Event),
+    Gamepad(Event, String, GamepadIndex),
 }
 
 impl From<egui_winit::accesskit_winit::Event> for AppEvent {
     fn from(event: egui_winit::accesskit_winit::Event) -> AppEvent {
         AppEvent::Accessibility(event)
-    }
-}
-
-impl AppEvent {
-    pub(crate) fn window_id(&self) -> Option<WindowId> {
-        match self {
-            AppEvent::Waker => None,
-            AppEvent::Accessibility(event) => Some(event.window_id),
-        }
     }
 }
 
