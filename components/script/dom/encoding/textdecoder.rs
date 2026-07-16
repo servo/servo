@@ -108,6 +108,7 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
     fn Decode(
         &self,
+        cx: &mut JSContext,
         input: Option<ArrayBufferViewOrArrayBuffer>,
         options: &TextDecodeOptions,
     ) -> Fallible<USVString> {
@@ -142,7 +143,7 @@ impl TextDecoderMethods<crate::DomTypeHolder> for TextDecoder {
         // Step 5.3.2 If result is finished, then return the result of running serialize I/O
         //      queue with this and output.
         self.decoder
-            .decode(input.as_ref(), !options.stream)
+            .decode(cx.no_gc(), input.as_ref(), !options.stream)
             .map(USVString)
     }
 }

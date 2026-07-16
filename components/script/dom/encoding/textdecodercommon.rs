@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 
 use encoding_rs::{Decoder, DecoderResult, Encoding};
+use js::context::NoGC;
 
 use crate::dom::bindings::buffer_source::get_buffer_source_slice;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
@@ -91,9 +92,9 @@ impl TextDecoderCommon {
     ///
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
     /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
-    #[expect(unsafe_code)]
     pub(crate) fn decode(
         &self,
+        no_gc: &NoGC,
         input: Option<&ArrayBufferViewOrArrayBuffer>,
         last: bool,
     ) -> Fallible<String> {
@@ -107,7 +108,7 @@ impl TextDecoderCommon {
         let mut io_queue = self.io_queue.borrow_mut();
         let input = match input {
             Some(input) => {
-                let slice = unsafe { get_buffer_source_slice(input) };
+                let slice = get_buffer_source_slice(input, no_gc);
                 if io_queue.is_empty() {
                     slice
                 } else {
