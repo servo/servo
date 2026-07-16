@@ -709,3 +709,69 @@ fn test_svg_rasterization_do_not_double_rasterize() {
     );
     assert_eq!(cache.number_of_rasterize_tasks(), 1);
 }
+
+#[test]
+fn test_svg_not_rasterize_zero_size() {
+    let (cache, key_receiver) = create_test_image_cache();
+    let url = ServoUrl::parse("http://example.com/image.svg").unwrap();
+    let origin = mock_origin();
+
+    let id = match cache.get_cached_image_status(url.clone(), origin.clone(), None) {
+        ImageCacheResult::ReadyForRequest(id) => id,
+        _ => panic!("Expected ReadyForRequest"),
+    };
+
+    cache.notify_pending_response(
+        id,
+        FetchResponseMsg::ProcessResponse(
+            create_request_id(),
+            Ok(create_test_metadata(Some(mime::IMAGE_SVG))),
+        ),
+    );
+
+    let svg_bytes = svg_image_bytes();
+    cache.notify_pending_response(
+        id,
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(svg_bytes)),
+    );
+
+    cache.notify_pending_response(
+        id,
+        FetchResponseMsg::ProcessResponseEOF(create_request_id(), Ok(()), create_timing()),
+    );
+
+    let vec_img = loop {
+        handle_pending_key_requests(&cache, &key_receiver);
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let result = cache.get_cached_image_status(url.clone(), origin.clone(), None);
+        let ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable { image, .. }) =
+            result
+        else {
+            continue;
+        };
+
+        let net_traits::image_cache::Image::Vector(vec_img) = image else {
+            panic!("Expected vector image");
+        };
+        break vec_img;
+    };
+
+    let size = webrender_api::units::DeviceIntSize::new(0, 100);
+    assert!(
+        cache
+            .rasterize_vector_image(vec_img.id, size, None)
+            .is_none()
+    );
+    let size = webrender_api::units::DeviceIntSize::new(100, 0);
+    assert!(
+        cache
+            .rasterize_vector_image(vec_img.id, size, None)
+            .is_none()
+    );
+    let size = webrender_api::units::DeviceIntSize::new(0, 0);
+    assert!(
+        cache
+            .rasterize_vector_image(vec_img.id, size, None)
+            .is_none()
+    );
+}
