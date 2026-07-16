@@ -597,7 +597,7 @@ impl ReadableStreamDefaultReader {
     pub(crate) fn process_read_requests(
         &self,
         cx: &mut js::context::JSContext,
-        controller: DomRoot<ReadableByteStreamController>,
+        controller: &ReadableByteStreamController,
     ) -> Fallible<()> {
         // While reader.[[readRequests]] is not empty,
         while !self.read_requests.borrow().is_empty() {

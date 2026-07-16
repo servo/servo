@@ -1525,7 +1525,7 @@ impl ReadableByteStreamController {
         let reader = self.stream.get().unwrap().get_default_reader();
 
         // Step 3
-        reader.process_read_requests(cx, DomRoot::from_ref(self))
+        reader.process_read_requests(cx, self)
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
@@ -1703,7 +1703,7 @@ impl ReadableByteStreamController {
         &self,
         cx: &mut JSContext,
         global: &GlobalScope,
-        stream: DomRoot<ReadableStream>,
+        stream: &ReadableStream,
     ) -> Fallible<()> {
         // Assert: stream.[[controller]] is undefined.
         stream.assert_no_controller();
@@ -1715,7 +1715,7 @@ impl ReadableByteStreamController {
         }
 
         // Set controller.[[stream]] to stream.
-        self.stream.set(Some(&stream));
+        self.stream.set(Some(stream));
 
         // Set controller.[[pullAgain]] and controller.[[pulling]] to false.
         self.pull_again.set(false);

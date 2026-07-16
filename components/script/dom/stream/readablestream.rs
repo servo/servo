@@ -856,7 +856,7 @@ pub(crate) fn create_readable_stream(
     // Perform ? SetUpReadableStreamDefaultController(stream, controller, startAlgorithm,
     // pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm).
     controller
-        .setup(cx, stream.clone())
+        .setup(cx, &stream)
         .expect("Setup of default controller cannot fail");
 
     // Return stream.
@@ -878,7 +878,7 @@ fn readable_byte_stream_tee(
 
     // Perform ? SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, 0, undefined).
     controller
-        .setup(cx, global, tee_stream.clone())
+        .setup(cx, global, &tee_stream)
         .expect("Setup of byte stream controller cannot fail");
 
     // Return stream.
@@ -1020,7 +1020,7 @@ impl ReadableStream {
         let strategy_size = extract_size_algorithm(cx, &QueuingStrategy::empty());
         let controller =
             ReadableStreamDefaultController::new(cx, global, source, 1.0, strategy_size);
-        controller.setup(cx, stream.clone())?;
+        controller.setup(cx, &stream)?;
         Ok(stream)
     }
 
@@ -1033,7 +1033,7 @@ impl ReadableStream {
         assert!(source.is_native());
         let stream = ReadableStream::new_with_proto(cx, global, None);
         let controller = ReadableByteStreamController::new(cx, source, 0.0, global);
-        controller.setup(cx, global, stream.clone())?;
+        controller.setup(cx, global, &stream)?;
         Ok(stream)
     }
 
@@ -2020,7 +2020,7 @@ impl ReadableStream {
         global: &GlobalScope,
         underlying_source_dict: JsUnderlyingSource,
         underlying_source_handle: SafeHandleObject,
-        stream: DomRoot<ReadableStream>,
+        stream: &ReadableStream,
         strategy_hwm: f64,
     ) -> Fallible<()> {
         // Let pullAlgorithm be an algorithm that returns a promise resolved with undefined.
@@ -2096,7 +2096,7 @@ impl ReadableStream {
 
         // Perform ! SetUpReadableStreamDefaultController
         controller
-            .setup(cx, DomRoot::from_ref(self))
+            .setup(cx, self)
             .expect("Setting up controller for transfer cannot fail.");
     }
 }
@@ -2150,7 +2150,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
                 global,
                 underlying_source_dict,
                 underlying_source_obj.handle(),
-                stream.clone(),
+                &stream,
                 strategy_hwm,
             )?;
         } else {
@@ -2173,7 +2173,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             controller.set_underlying_source_this_object(underlying_source_obj.handle());
 
             // Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource
-            controller.setup(cx, stream.clone())?;
+            controller.setup(cx, &stream)?;
         };
 
         Ok(stream)
