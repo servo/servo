@@ -43,11 +43,50 @@ use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 
+/// Heap-safe equivalent of the WebIDL `(Element or Document)` union.
+///
+/// The codegen type [`ElementOrDocument`] wraps [`DomRoot`], which is only safe as a
+/// temporary. Storing those roots on a DOM object can create uncollectible GC cycles.
+/// This enum uses [`Dom`] so it can live as a field on [`IntersectionObserver`].
+///
+/// <https://github.com/servo/servo/issues/45630>
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
+enum ElementOrDocumentDom {
+    Element(Dom<Element>),
+    Document(Dom<Document>),
+}
+
+impl ElementOrDocumentDom {
+    /// Convert a temporary WebIDL union into a heap-safe value for DOM storage.
+    fn from_webidl(value: &ElementOrDocument) -> Self {
+        match value {
+            ElementOrDocument::Element(element) => {
+                ElementOrDocumentDom::Element(element.as_traced())
+            },
+            ElementOrDocument::Document(document) => {
+                ElementOrDocumentDom::Document(document.as_traced())
+            },
+        }
+    }
+
+    fn to_webidl(&self) -> ElementOrDocument {
+        match self {
+            ElementOrDocumentDom::Element(element) => {
+                ElementOrDocument::Element(element.as_rooted())
+            },
+            ElementOrDocumentDom::Document(document) => {
+                ElementOrDocument::Document(document.as_rooted())
+            },
+        }
+    }
+}
+
 /// > The intersection root for an IntersectionObserver is the value of its root attribute if the attribute is non-null;
 /// > otherwise, it is the top-level browsing context’s document node, referred to as the implicit root.
 ///
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-intersection-root>
-pub type IntersectionRoot = Option<ElementOrDocument>;
+type IntersectionRoot = Option<ElementOrDocumentDom>;
 
 /// The Intersection Observer interface
 ///
@@ -105,6 +144,8 @@ pub(crate) struct IntersectionObserver {
 }
 
 impl IntersectionObserver {
+    /// `root` is unrooted only until it is stored on the new observer.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
         window: &Window,
         callback: Rc<IntersectionObserverCallback>,
@@ -129,6 +170,8 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
+    /// Temporary `root` is unrooted only until it is stored on the new observer.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new(
         cx: &mut JSContext,
         window: &Window,
@@ -159,11 +202,12 @@ impl IntersectionObserver {
         // > 2. Set this’s internal [[callback]] slot to callback.
         // > 3. ... set this’s internal [[rootMargin]] slot to that.
         // > 4. ... set this’s internal [[scrollMargin]] slot to that.
+        let root = init.root.as_ref().map(ElementOrDocumentDom::from_webidl);
         let observer = reflect_dom_object_with_proto_and_cx(
             Box::new(Self::new_inherited(
                 window,
                 callback,
-                init.root.clone(),
+                root,
                 root_margin,
                 scroll_margin,
             )),
@@ -468,7 +512,7 @@ impl IntersectionObserver {
     // TODO: Currently we are unable to get the cross `ScriptThread` document.
     fn concrete_root(&self) -> Option<ElementOrDocument> {
         match &self.root {
-            Some(root) => Some(root.clone()),
+            Some(root) => Some(root.to_webidl()),
             None => self
                 .owner_doc
                 .window()
@@ -497,10 +541,12 @@ impl IntersectionObserver {
         // > If the intersection root is an Element, and target is not a descendant of
         // > the intersection root in the containing block chain, skip to step 11.
         match &self.root {
-            Some(ElementOrDocument::Document(document)) if document != &target.owner_document() => {
+            Some(ElementOrDocumentDom::Document(document))
+                if *document != &*target.owner_document() =>
+            {
                 return IntersectionObservationOutput::default_skipped();
             },
-            Some(ElementOrDocument::Element(element)) => {
+            Some(ElementOrDocumentDom::Element(element)) => {
                 // To ensure consistency, we also check for elements right now, but we can depend on the
                 // layout query later.
                 if element.owner_document() != target.owner_document() {
@@ -711,7 +757,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-root>
     fn GetRoot(&self) -> Option<ElementOrDocument> {
-        self.root.clone()
+        self.root.as_ref().map(ElementOrDocumentDom::to_webidl)
     }
 
     /// > Offsets applied to the root intersection rectangle, effectively growing or
