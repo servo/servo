@@ -176,11 +176,7 @@ impl HTMLLinkElement {
     // FIXME(emilio): These methods are duplicated with
     // HTMLStyleElement::set_stylesheet.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn set_stylesheet(
-        &self,
-        cx: &mut js::context::JSContext,
-        new_stylesheet: Arc<Stylesheet>,
-    ) {
+    pub(crate) fn set_stylesheet(&self, new_stylesheet: Arc<Stylesheet>) {
         let owner = self.stylesheet_list_owner();
         if let Some(old_stylesheet) = self.stylesheet.borrow_mut().replace(new_stylesheet.clone()) {
             owner.remove_stylesheet(
@@ -188,7 +184,7 @@ impl HTMLLinkElement {
                 &old_stylesheet,
             );
         }
-        owner.add_owned_stylesheet(cx, self.upcast(), new_stylesheet);
+        owner.add_owned_stylesheet(self.upcast(), new_stylesheet);
     }
 
     pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {

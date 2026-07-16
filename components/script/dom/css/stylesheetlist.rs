@@ -46,30 +46,19 @@ impl StyleSheetListOwner {
         }
     }
 
-    pub(crate) fn add_owned_stylesheet(
-        &self,
-        cx: &mut js::context::JSContext,
-        owner_node: &Element,
-        sheet: Arc<Stylesheet>,
-    ) {
+    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
         match *self {
-            StyleSheetListOwner::Document(ref doc) => {
-                doc.add_owned_stylesheet(cx, owner_node, sheet)
-            },
+            StyleSheetListOwner::Document(ref doc) => doc.add_owned_stylesheet(owner_node, sheet),
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
                 shadow_root.add_owned_stylesheet(owner_node, sheet)
             },
         }
     }
 
-    pub(crate) fn append_constructed_stylesheet(
-        &self,
-        cx: &mut js::context::JSContext,
-        cssom_stylesheet: &CSSStyleSheet,
-    ) {
+    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
         match *self {
             StyleSheetListOwner::Document(ref doc) => {
-                doc.append_constructed_stylesheet(cx, cssom_stylesheet)
+                doc.append_constructed_stylesheet(cssom_stylesheet)
             },
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
                 shadow_root.append_constructed_stylesheet(cssom_stylesheet)

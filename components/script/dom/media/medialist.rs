@@ -156,8 +156,8 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
-    fn SetMediaText(&self, cx: &mut JSContext, value: DOMString) {
-        self.parent_stylesheet.will_modify(cx);
+    fn SetMediaText(&self, value: DOMString) {
+        self.parent_stylesheet.will_modify();
         let global = self.global();
         let mut guard = self.shared_lock().write();
         let media_queries_borrowed = self.media_queries.borrow();
@@ -193,7 +193,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-appendmedium>
-    fn AppendMedium(&self, cx: &mut JSContext, medium: DOMString) {
+    fn AppendMedium(&self, medium: DOMString) {
         // Step 1
         let global = self.global();
         let medium = medium.str();
@@ -218,7 +218,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             }
         }
         // Step 4
-        self.parent_stylesheet.will_modify(cx);
+        self.parent_stylesheet.will_modify();
         let mut guard = self.shared_lock().write();
         self.media_queries
             .borrow()
@@ -229,7 +229,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-deletemedium>
-    fn DeleteMedium(&self, cx: &mut JSContext, medium: DOMString) {
+    fn DeleteMedium(&self, medium: DOMString) {
         // Step 1
         let global = self.global();
         let medium = medium.str();
@@ -239,7 +239,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             return;
         }
         // Step 3
-        self.parent_stylesheet.will_modify(cx);
+        self.parent_stylesheet.will_modify();
         let m_serialized = m.unwrap().to_css_string();
         let mut guard = self.shared_lock().write();
         let media_queries_borrowed = self.media_queries.borrow();

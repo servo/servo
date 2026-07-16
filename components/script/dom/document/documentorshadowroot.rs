@@ -372,7 +372,6 @@ impl DocumentOrShadowRoot {
     // TODO: Handle duplicated adoptedstylesheet correctly, Stylo is preventing duplicates inside a
     //       Stylesheet Set. But this is not ideal. https://bugzilla.mozilla.org/show_bug.cgi?id=1978755
     fn set_adopted_stylesheet(
-        cx: &mut JSContext,
         adopted_stylesheets: &mut Vec<Dom<CSSStyleSheet>>,
         incoming_stylesheets: &[Dom<CSSStyleSheet>],
         owner: &StyleSheetListOwner,
@@ -431,7 +430,7 @@ impl DocumentOrShadowRoot {
                 sheet.add_adopter(owner.clone());
             }
 
-            owner.append_constructed_stylesheet(cx, sheet);
+            owner.append_constructed_stylesheet(sheet);
         }
 
         *adopted_stylesheets = incoming_stylesheets.to_vec();
@@ -456,7 +455,6 @@ impl DocumentOrShadowRoot {
                 rooted_vec!(let stylesheets <- stylesheets.iter().map(|s| s.as_traced()));
 
                 DocumentOrShadowRoot::set_adopted_stylesheet(
-                    cx,
                     adopted_stylesheets,
                     &stylesheets,
                     owner,

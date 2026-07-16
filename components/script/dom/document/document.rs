@@ -4450,12 +4450,7 @@ impl Document {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
-    pub(crate) fn add_owned_stylesheet(
-        &self,
-        cx: &mut JSContext,
-        owner_node: &Element,
-        sheet: Arc<Stylesheet>,
-    ) {
+    pub(crate) fn add_owned_stylesheet(&self, owner_node: &Element, sheet: Arc<Stylesheet>) {
         let insertion_point = {
             let stylesheets = &mut *self.stylesheets.borrow_mut();
 
@@ -4478,7 +4473,6 @@ impl Document {
 
         if self.has_browsing_context() {
             self.add_stylesheet_to_stylist(
-                cx,
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
             );
@@ -4499,11 +4493,7 @@ impl Document {
     ///
     /// <https://drafts.csswg.org/cssom/#documentorshadowroot-final-css-style-sheets>
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn append_constructed_stylesheet(
-        &self,
-        cx: &mut JSContext,
-        cssom_stylesheet: &CSSStyleSheet,
-    ) {
+    pub(crate) fn append_constructed_stylesheet(&self, cssom_stylesheet: &CSSStyleSheet) {
         debug_assert!(cssom_stylesheet.is_constructed());
 
         let sheet = cssom_stylesheet.style_stylesheet().clone();
@@ -4519,7 +4509,6 @@ impl Document {
 
         if self.has_browsing_context() {
             self.add_stylesheet_to_stylist(
-                cx,
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
             );
@@ -4535,24 +4524,14 @@ impl Document {
         );
     }
 
-    pub(crate) fn switch_font_face_set_to_loading_if_needed(&self, cx: &mut JSContext) {
-        if self.window.font_context().web_fonts_still_loading() != 0 &&
-            let Some(font_face_set) = self.fonts.get()
-        {
-            font_face_set.switch_to_loading(cx);
-        }
-    }
-
     pub(crate) fn add_stylesheet_to_stylist(
         &self,
-        cx: &mut JSContext,
         stylesheet: Arc<Stylesheet>,
         before_stylesheet: Option<Arc<Stylesheet>>,
     ) {
         self.window
             .layout_mut()
             .add_stylesheet(stylesheet, before_stylesheet);
-        self.switch_font_face_set_to_loading_if_needed(cx);
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
