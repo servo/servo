@@ -153,6 +153,24 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         self.as_element().nonce_value().into()
     }
 
+    /// <https://svgwg.org/svg2-draft/types.html#__svg__SVGElement__ownerSVGElement>
+    fn GetOwnerSVGElement(&self) -> Option<DomRoot<SVGSVGElement>> {
+        let mut ancestor = self.upcast::<Node>().parent_in_flat_tree();
+        while let Some(node) = ancestor {
+            let element = DomRoot::downcast::<Element>(node.clone())?;
+            if element.namespace() != &ns!(svg) ||
+                element.local_name() == &local_name!("foreignObject")
+            {
+                return None;
+            }
+            if let Some(svg) = DomRoot::downcast::<SVGSVGElement>(node.clone()) {
+                return Some(svg);
+            }
+            ancestor = node.parent_in_flat_tree();
+        }
+        None
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
     fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
         self.as_element()
