@@ -99,17 +99,17 @@ impl App {
             .event_loop_waker(self.waker.clone());
 
         let url = self.initial_url.as_url().clone();
+
+        let servo = servo_builder.build();
         let platform_window = self.create_platform_window(url, active_event_loop);
 
         #[cfg(feature = "webxr")]
-        let servo_builder =
-            servo_builder.webxr_registry(super::webxr::XrDiscoveryWebXrRegistry::new_boxed(
-                platform_window.clone(),
-                active_event_loop,
-                &self.preferences,
-            ));
+        servo.register_webxr_registry(super::webxr::XrDiscoveryWebXrRegistry::new_boxed(
+            platform_window.clone(),
+            active_event_loop,
+            &self.preferences,
+        ));
 
-        let servo = servo_builder.build();
         servo.setup_logging();
 
         let user_content_manager = Rc::new(UserContentManager::new(&servo));

@@ -310,10 +310,9 @@ impl App {
             .opts(init.opts)
             .preferences(init.preferences.clone())
             .event_loop_waker(init.event_loop_waker.clone());
-        #[cfg(feature = "webxr")]
-        let servo_builder = servo_builder
-            .webxr_registry(Box::new(XrDiscoveryWebXrRegistry::new(init.xr_discovery)));
         let servo = servo_builder.build();
+        #[cfg(feature = "webxr")]
+        servo.register_webxr_registry(Box::new(XrDiscoveryWebXrRegistry::new(init.xr_discovery)));
 
         let initial_url = init.initial_url.and_then(|string| Url::parse(&string).ok());
         let initial_url = initial_url
