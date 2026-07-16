@@ -30,7 +30,7 @@ use num_traits::ToPrimitive;
 use pixels::{CorsStatus, ImageMetadata, Snapshot};
 use regex::Regex;
 use rustc_hash::FxHashSet;
-use script_bindings::cell::{DomRefCell, RefMut};
+use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
@@ -897,18 +897,21 @@ impl HTMLImageElement {
 
     fn init_image_request(
         &self,
-        request: &mut RefMut<'_, ImageRequest>,
+        request: &DomRefCell<ImageRequest>,
         url: &ServoUrl,
         src: &USVString,
         cx: &mut js::context::JSContext,
     ) {
-        request.parsed_url = Some(url.clone());
-        request.source_url = Some(src.clone());
-        request.image = None;
-        request.metadata = None;
+        {
+            let mut request = request.borrow_mut();
+            request.parsed_url = Some(url.clone());
+            request.source_url = Some(src.clone());
+            request.image = None;
+            request.metadata = None;
+        }
         let document = self.owner_document();
-        LoadBlocker::terminate(&request.blocker, cx);
-        *request.blocker.borrow_mut() =
+        LoadBlocker::terminate(&request.borrow().blocker, cx);
+        *request.borrow_mut().blocker.borrow_mut() =
             Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
 
@@ -939,18 +942,19 @@ impl HTMLImageElement {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending, cx);
 
                 // Step 17. Set image request to a new image request whose current URL is urlString.
+                let (current_request_url, current_request_state) = {
+                    let current_request = self.current_request.borrow();
+                    (current_request.parsed_url.clone(), current_request.state)
+                };
 
-                let mut current_request = self.current_request.borrow_mut();
-                let mut pending_request = self.pending_request.borrow_mut();
-
-                match (current_request.parsed_url.as_ref(), current_request.state) {
+                match (current_request_url, current_request_state) {
                     (Some(parsed_url), State::PartiallyAvailable) => {
                         // Step 15. If urlString is the same as the current request's current URL
                         // and the current request's state is partially available, then abort the
                         // image request for the pending request, queue an element task on the DOM
                         // manipulation task source given the img element to restart the animation
                         // if restart animation is set, and return.
-                        if *parsed_url == *image_url {
+                        if parsed_url == *image_url {
                             // TODO: queue a task to restart animation, if restart-animation is set
                             return;
                         }
@@ -960,24 +964,26 @@ impl HTMLImageElement {
                         // request to image request.
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(
-                            &mut pending_request,
+                            &self.pending_request,
                             image_url,
                             selected_source,
                             cx,
                         );
-                        pending_request.current_pixel_density = Some(selected_pixel_density);
+                        self.pending_request.borrow_mut().current_pixel_density =
+                            Some(selected_pixel_density);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 18. If the current request's state is unavailable or broken, then
                         // set the current request to image request. Otherwise, set the pending
                         // request to image request.
                         self.init_image_request(
-                            &mut current_request,
+                            &self.current_request,
                             image_url,
                             selected_source,
                             cx,
                         );
-                        current_request.current_pixel_density = Some(selected_pixel_density);
+                        self.current_request.borrow_mut().current_pixel_density =
+                            Some(selected_pixel_density);
                         self.reject_image_decode_promises();
                     },
                     (_, _) => {
@@ -986,12 +992,13 @@ impl HTMLImageElement {
                         // request to image request.
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(
-                            &mut pending_request,
+                            &self.pending_request,
                             image_url,
                             selected_source,
                             cx,
                         );
-                        pending_request.current_pixel_density = Some(selected_pixel_density);
+                        self.pending_request.borrow_mut().current_pixel_density =
+                            Some(selected_pixel_density);
                     },
                 }
             },
@@ -1293,12 +1300,7 @@ impl HTMLImageElement {
 
         // Step 13. Set the element's pending request to image request.
         self.image_request.set(ImageRequestPhase::Pending);
-        self.init_image_request(
-            &mut self.pending_request.borrow_mut(),
-            &image_url,
-            &selected_source,
-            cx,
-        );
+        self.init_image_request(&self.pending_request, &image_url, &selected_source, cx);
 
         // Step 15. If the list of available images contains an entry for key, then set image
         // request's image data to that of the entry. Continue to the next step.
