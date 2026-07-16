@@ -1,0 +1,61 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<section>
+  <h1 id="h1">This is an h1</h1>
+</section>
+
+<script>
+  setup({ explicit_done: true });
+  window.onload = () => {
+    test((t) => {
+      ServoTestUtils.ensureAccessibilityActive();
+      let initial = ServoTestUtils.forceAccessibilityUpdate();
+
+      assert_equals(
+        initial.accessibilityNodesUpdatedFromDom,
+        16,
+        "accessibilityNodesUpdatedFromDom",
+      );
+      assert_equals(
+        initial.accessibilityNodesUpdatedFromTree,
+        16,
+        "accessibilityNodesUpdatedFromTree",
+      );
+      assert_equals(
+        initial.accessibilityNodesInTreeUpdate,
+        16,
+        "accessibilityNodesInTreeUpdate",
+      );
+
+      h1.firstChild.appendData(", now with more text");
+      let incremental = window.ServoTestUtils.forceAccessibilityUpdate();
+
+      // Just the text node has changed
+      assert_equals(
+        incremental.accessibilityNodesUpdatedFromDom,
+        1,
+        "accessibilityNodesUpdatedFromDom",
+      );
+
+      // The document, <body>, <section>, <h1> and the text node.
+      assert_equals(
+        incremental.accessibilityNodesUpdatedFromTree,
+        5,
+        "accessibilityNodesUpdatedFromTree",
+      );
+
+      //  updated nodes:
+      // - <h1>, computed label changed
+      // - text child of <h1>, value changed
+      assert_equals(
+        incremental.accessibilityNodesInTreeUpdate,
+        2,
+        "accessibilityNodesInTreeUpdate",
+      );
+    }, "Append data to text node should update 2 nodes");
+
+    done();
+  };
+</script>
