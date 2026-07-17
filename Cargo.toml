@@ -71,6 +71,7 @@ crypto-bigint = "0.7"
 cshake = "0.2"
 cssparser = { version = "0.37", features = ["serde"] }
 ctr = { version = "0.10", features = ["zeroize"] }
+ctutils = "0.4"
 data-url = "0.3"
 dirs = "6.0"
 dpi = "0.1"

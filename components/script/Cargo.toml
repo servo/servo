@@ -65,6 +65,7 @@ crypto-bigint = { workspace = true }
 cshake = { workspace = true }
 cssparser = { workspace = true }
 ctr = { workspace = true }
+ctutils = { workspace = true }
 data-url = { workspace = true }
 deny_public_fields = { workspace = true }
 devtools_traits = { workspace = true }

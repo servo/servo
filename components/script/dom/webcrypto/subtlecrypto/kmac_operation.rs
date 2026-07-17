@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use cshake::CShake;
+use cshake::digest::{ExtendableOutput, Update};
+use ctutils::CtEq;
 use js::context::JSContext;
 use rand::TryRng;
 use zeroize::Zeroizing;
@@ -17,8 +20,133 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleKmacImportParams, SubtleKmacKeyAlgorithm, SubtleKmacKeyGenParams,
+    SubtleKmacImportParams, SubtleKmacKeyAlgorithm, SubtleKmacKeyGenParams, SubtleKmacParams,
 };
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-sign>
+pub(crate) fn sign(
+    normalized_algorithm: &SubtleKmacParams,
+    key: &CryptoKey,
+    message: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. Let customization be the customization member of normalizedAlgorithm if present or
+    // the empty octet string otherwise.
+    let customization = normalized_algorithm
+        .customization
+        .as_deref()
+        .unwrap_or_default();
+
+    // Step 2.
+    // If the name member of normalizedAlgorithm is a case-sensitive string match for "KMAC128":
+    //     Let mac be the result of performing the KMAC128 function defined in Section 4 of
+    //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
+    //     input parameter, message as the X input parameter, the outputLength member of
+    //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
+    // If the name member of normalizedAlgorithm is a case-sensitive string match for "KMAC256":
+    //     Let mac be the result of performing the KMAC256 function defined in Section 4 of
+    //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
+    //     input parameter, message as the X input parameter, the outputLength member of
+    //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
+    let Handle::KmacKey(kmac_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not a KMAC key".into(),
+        )));
+    };
+    let KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm) = key.algorithm() else {
+        return Err(Error::Operation(Some(
+            "[[algorithm]] internal slot of key is not a KmacKeyAlgorithm".into(),
+        )));
+    };
+    let mac = match normalized_algorithm.name {
+        CryptoAlgorithm::Kmac128 => kmac128(
+            kmac_key,
+            algorithm.length,
+            message,
+            normalized_algorithm.output_length,
+            customization,
+        ),
+        CryptoAlgorithm::Kmac256 => kmac256(
+            kmac_key,
+            algorithm.length,
+            message,
+            normalized_algorithm.output_length,
+            customization,
+        ),
+        algorithm_name => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not supported",
+                algorithm_name.as_str()
+            ))));
+        },
+    };
+
+    // Step 3. Return a byte sequence containing mac.
+    Ok(mac)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-verify>
+pub(crate) fn verify(
+    normalized_algorithm: &SubtleKmacParams,
+    key: &CryptoKey,
+    message: &[u8],
+    signature: &[u8],
+) -> Result<bool, Error> {
+    // Step 1. Let customization be the customization member of normalizedAlgorithm if present or
+    // the empty octet string otherwise.
+    let customization = normalized_algorithm
+        .customization
+        .as_deref()
+        .unwrap_or_default();
+
+    // Step 2.
+    // If the name member of normalizedAlgorithm is a case-sensitive string match for "KMAC128":
+    //     Let mac be the result of performing the KMAC128 function defined in Section 4 of
+    //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
+    //     input parameter, message as the X input parameter, the outputLength member of
+    //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
+    // If the name member of normalizedAlgorithm is a case-sensitive string match for "KMAC256":
+    //     Let mac be the result of performing the KMAC256 function defined in Section 4 of
+    //     [NIST-SP800-185] using the key represented by [[handle]] internal slot of key as the K
+    //     input parameter, message as the X input parameter, the outputLength member of
+    //     normalizedAlgorithm as the L input parameter, and customization as the S input parameter.
+    // Step 3. Let computedMac be a byte sequence containing mac.
+    let Handle::KmacKey(kmac_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not a KMAC key".into(),
+        )));
+    };
+    let KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm) = key.algorithm() else {
+        return Err(Error::Operation(Some(
+            "[[algorithm]] internal slot of key is not a KmacKeyAlgorithm".into(),
+        )));
+    };
+    let computed_mac = match normalized_algorithm.name {
+        CryptoAlgorithm::Kmac128 => kmac128(
+            kmac_key,
+            algorithm.length,
+            message,
+            normalized_algorithm.output_length,
+            customization,
+        ),
+        CryptoAlgorithm::Kmac256 => kmac256(
+            kmac_key,
+            algorithm.length,
+            message,
+            normalized_algorithm.output_length,
+            customization,
+        ),
+        algorithm_name => {
+            return Err(Error::NotSupported(Some(format!(
+                "{} is not supported",
+                algorithm_name.as_str()
+            ))));
+        },
+    };
+
+    // Step 4. Return true if computedMac is equal to signature and false otherwise. This comparison
+    // must be performed in constant-time.
+    Ok(computed_mac.ct_eq(signature).into())
+}
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-generate-key>
 pub(crate) fn generate_key(
@@ -370,4 +498,122 @@ pub(crate) fn get_key_length(
 
     // Step 2. Return length.
     Ok(Some(length))
+}
+
+/// The KMAC128 function defined in Section 4 of [NIST-SP800-185], using `key` as the K input
+/// parameter, `message` as the X input parameter, `output_length` as the L input parameter, and
+/// `customization` as the S input parameter, where `key_length` is the key length in bits.
+/// <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-185.pdf>
+///
+/// Since the key is represented as a byte sequence, and the key length in bits might not be a
+/// muliple of 8, callers need to provide the actual key length in bits via the function argument
+/// `key_length`, and the excess bits at the end of the byte sequence must be zeros.
+fn kmac128(
+    key: &[u8],
+    key_length: u32,
+    message: &[u8],
+    output_length: u32,
+    customization: &[u8],
+) -> Vec<u8> {
+    kmac::<168>(key, key_length, message, output_length, customization)
+}
+
+/// The KMAC256 function defined in Section 4 of [NIST-SP800-185], using `key` as the K input
+/// parameter, `message` as the X input parameter, `output_length` as the L input parameter, and
+/// `customization` as the S input parameter, where `key_length` is the key length in bits.
+/// <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-185.pdf>
+///
+/// Since the key is represented as a byte sequence, and the key length in bits might not be a
+/// muliple of 8, callers need to provide the actual key length in bits via the function argument
+/// `key_length`, and the excess bits at the end of the byte sequence must be zeros.
+fn kmac256(
+    key: &[u8],
+    key_length: u32,
+    message: &[u8],
+    output_length: u32,
+    customization: &[u8],
+) -> Vec<u8> {
+    kmac::<136>(key, key_length, message, output_length, customization)
+}
+
+/// A shared implementation for both the KMAC128 function and KMAC256 function defined in Section 4
+/// of [NIST-SP800-185], using `key` as the K input parameter, `message` as the X input parameter,
+/// `output_length` as the L input parameter, and `customization` as the S input parameter, where
+/// `key_length` is the key length in bits.
+/// <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-185.pdf>
+///
+/// To be specific, this function implements the following algorithm, where RATE must be either 168
+/// or 136 for KMAC128 and KMAC256 respectively.
+///
+/// 1. newX = bytepad(encode_string(K), RATE) || X || right_encode(L).
+/// 2. return cSHAKE128(newX, L, “KMAC”, S).
+///
+/// Since the key is represented as a byte sequence, and the key length in bits might not be a
+/// muliple of 8, callers need to provide the actual key length in bits via the function argument
+/// `key_length`, and the excess bits at the end of the byte sequence must be zeros.
+fn kmac<const RATE: usize>(
+    key: &[u8],
+    key_length: u32,
+    message: &[u8],
+    output_length: u32,
+    customization: &[u8],
+) -> Vec<u8> {
+    let mut buffer = [0u8; 5];
+    let zeros = [0u8; RATE];
+
+    // Initialize cSHAKE.
+    let mut cshake = CShake::<RATE>::new_with_function_name(b"KMAC", customization);
+
+    // Hash bytepad(encode_string(K), RATE).
+    let update_and_return_written = |cshake: &mut CShake<RATE>, input: &[u8]| -> usize {
+        cshake.update(input);
+        input.len()
+    };
+    let mut written = update_and_return_written(&mut cshake, left_encode(RATE as u32, &mut buffer));
+    written += update_and_return_written(&mut cshake, left_encode(key_length, &mut buffer));
+    written += update_and_return_written(&mut cshake, key);
+    cshake.update(&zeros[0..RATE - written % RATE]);
+
+    // Hash X.
+    cshake.update(message);
+
+    // Hash right_encode(L).
+    cshake.update(right_encode(output_length, &mut buffer));
+
+    // Finalize cSHAKE.
+    let mut result = vec![0u8; output_length.div_ceil(8) as usize];
+    cshake.finalize_xof_into(&mut result);
+    if !output_length.is_multiple_of(8) {
+        // Clean excess bits in the last byte of result.
+        let mask = u8::MAX << (8 - output_length % 8);
+        if let Some(last_byte) = result.last_mut() {
+            *last_byte &= mask;
+        }
+    }
+
+    result
+}
+
+/// The right_encode function defined in Section 2.3.1 of [NIST-SP800-185], using `value` as the x
+/// input parameter. <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-185.pdf>
+///
+/// Callers need to provide `buffer` for internal operations. The buffer can be reused afterwards in
+/// separate calls of [`right_encode`] and [`left_encode`].
+fn right_encode(value: u32, buffer: &mut [u8; 5]) -> &[u8] {
+    buffer[0..4].copy_from_slice(&value.to_be_bytes());
+    let leading_zero = buffer[0..3].iter().take_while(|byte| **byte == 0).count();
+    buffer[4] = u8::try_from(4 - leading_zero).expect("The number must be 1..=4");
+    &buffer[leading_zero..5]
+}
+
+/// The left_encode function defined in Section 2.3.1 of [NIST-SP800-185], using `value` as the x
+/// input parameter. <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-185.pdf>
+///
+/// Callers need to provide `buffer` for internal operations. The buffer can be reused afterwards in
+/// separate calls of [`right_encode`] and [`left_encode`].
+fn left_encode(value: u32, buffer: &mut [u8; 5]) -> &[u8] {
+    buffer[1..5].copy_from_slice(&value.to_be_bytes());
+    let leading_zero = buffer[1..4].iter().take_while(|byte| **byte == 0).count();
+    buffer[leading_zero] = u8::try_from(4 - leading_zero).expect("The number must be 1..=4");
+    &buffer[leading_zero..5]
 }

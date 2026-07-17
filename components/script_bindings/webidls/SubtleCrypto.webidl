@@ -369,6 +369,13 @@ dictionary KmacKeyAlgorithm : KeyAlgorithm {
   required unsigned long length;
 };
 
+// https://wicg.github.io/webcrypto-modern-algos/#kmac-params
+
+dictionary KmacParams : Algorithm {
+  required [EnforceRange] unsigned long outputLength;
+  BufferSource customization;
+};
+
 // https://wicg.github.io/webcrypto-modern-algos/#argon2-params
 
 dictionary Argon2Params : Algorithm {
