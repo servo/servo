@@ -20,7 +20,7 @@ use embedder_traits::{
     Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Scale, Size2D};
-use fonts_traits::SystemFontServiceProxySender;
+use fonts_traits::{SystemFontServiceProxySender, WebFontLoadEvent};
 use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
@@ -247,9 +247,12 @@ pub enum ScriptThreadMessage {
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
     TickAllAnimations(Vec<WebViewId>),
-    /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
-    /// reflowed.
-    WebFontLoaded(PipelineId),
+    /// Notifies the script thread that a web font has finished loading.
+    ///
+    /// This is sent if either the web font loaded successfully, or to notify the script thread
+    /// that it should try to resolve `document.fonts.ready` because the font was the last one
+    /// loading.
+    WebFontLoadFinished(PipelineId, WebFontLoadEvent),
     /// Cause a `load` event to be dispatched at the appropriate iframe element.
     DispatchIFrameLoadEvent {
         /// The frame that has been marked as loaded.

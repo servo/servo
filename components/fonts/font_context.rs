@@ -16,7 +16,7 @@ use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleWithOrigin, FontIdentifier, FontTemplate,
     FontTemplateRef, FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
-    WebFontSetDifference,
+    WebFontLoadEvent, WebFontSetDifference,
 };
 use log::{debug, trace};
 use malloc_size_of::MallocSizeOf;
@@ -564,7 +564,6 @@ impl FontContext {
         self.font_data.write().insert(identifier.clone(), font_data);
         let descriptor = handle.descriptor();
         for download_state in download_states {
-            // See if the download has been cancelled while we waited for the font to load
             let mut descriptor = descriptor.clone();
             descriptor.override_values_with_css_font_template_descriptors(
                 &download_state.css_font_face_descriptors,
@@ -588,7 +587,7 @@ impl FontContext {
             .fetch_sub(1, Ordering::SeqCst);
     }
 
-    /// Returns true iff a `@font-face` rule is part of the active set,
+    /// Returns true iff a `@font-face` rule is part of the active set.
     ///
     /// A font face rule might be removed from this set if its stylesheet is removed for example.
     pub(crate) fn is_font_face_rule_active(
@@ -648,14 +647,19 @@ impl WebFontDownloadState {
                     .is_font_face_rule_active(&initiator.created_by)
                 {
                     // This font load was cancelled.
-                    self.font_context.decrement_count_of_loading_fonts_by_one();
+                    if self
+                        .font_context
+                        .number_of_loading_web_fonts
+                        .fetch_sub(1, Ordering::SeqCst) ==
+                        1
+                    {
+                        // This was the last loading font - we must inform the script thread that the load
+                        // has finished because this an opportunity to resolve document.fonts.ready.
+                        (initiator.callback)(WebFontLoadEvent::UnblockedFontReadyPromise);
+                    }
                     return;
                 }
 
-                // FIXME: There are likely (mostly theoretical) race conditions here.
-                // We should be enforcing some sort of critical section to ensure that the font
-                // does not get cancelled in the time after the check above and the addition of the
-                // new template below.
                 self.font_context
                     .web_fonts
                     .write()
@@ -666,7 +670,7 @@ impl WebFontDownloadState {
                 // Note: We intentionally do not call decrement_count_of_loading_fonts_by_one here.
                 // That is handled in the callback, which avoids document.fonts.ready being resolved
                 // prematurely.
-                (initiator.callback)(true);
+                (initiator.callback)(WebFontLoadEvent::LoadedSuccessfully);
             },
             WebFontLoadInitiator::Script(callback) => {
                 self.font_context.decrement_count_of_loading_fonts_by_one();
@@ -680,8 +684,16 @@ impl WebFontDownloadState {
         let family_name = self.css_font_face_descriptors.family_name.clone();
         match self.initiator {
             WebFontLoadInitiator::Stylesheet(initiator) => {
-                self.font_context.decrement_count_of_loading_fonts_by_one();
-                (initiator.callback)(false);
+                if self
+                    .font_context
+                    .number_of_loading_web_fonts
+                    .fetch_sub(1, Ordering::SeqCst) ==
+                    1
+                {
+                    // This was the last loading font - we must inform the script thread that the load
+                    // has finished because this an opportunity to resolve document.fonts.ready.
+                    (initiator.callback)(WebFontLoadEvent::UnblockedFontReadyPromise);
+                }
             },
             WebFontLoadInitiator::Script(callback) => {
                 self.font_context.decrement_count_of_loading_fonts_by_one();
@@ -820,7 +832,15 @@ impl FontContextWebFontMethods for Arc<FontContext> {
                 !self.is_font_face_rule_active(&stylesheet_initiator.created_by)
             {
                 // This font load was cancelled.
-                self.decrement_count_of_loading_fonts_by_one();
+                if self
+                    .number_of_loading_web_fonts
+                    .fetch_sub(1, Ordering::SeqCst) ==
+                    1
+                {
+                    // This was the last loading font - we must inform the script thread that the load
+                    // has finished because this an opportunity to resolve document.fonts.ready.
+                    (stylesheet_initiator.callback)(WebFontLoadEvent::UnblockedFontReadyPromise);
+                }
                 return;
             }
 

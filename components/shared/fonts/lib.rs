@@ -128,7 +128,14 @@ impl TextByteRange {
     }
 }
 
-pub type StylesheetWebFontLoadFinishedCallback = Arc<dyn Fn(bool) + Send + Sync + 'static>;
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum WebFontLoadEvent {
+    LoadedSuccessfully,
+    UnblockedFontReadyPromise,
+}
+
+pub type StylesheetWebFontLoadFinishedCallback =
+    Arc<dyn Fn(WebFontLoadEvent) + Send + Sync + 'static>;
 
 /// A data structure to store data for fonts. Data is stored internally in an
 /// [`GenericSharedMemory`] handle, so that it can be sent without serialization
