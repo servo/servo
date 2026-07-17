@@ -17,19 +17,11 @@
             android:layout_height="match_parent"
             android:gravity="center">
 
-            <EditText
+            <androidx.compose.ui.platform.ComposeView
                 android:id="@+id/urlfield"
-                style="@android:style/Widget.Material.EditText"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:autofillHints="url"
-                android:hint="@string/url_or_search"
-                android:imeOptions="actionDone"
-                android:inputType="textUri"
-                android:selectAllOnFocus="true"
-                android:singleLine="true"
-                android:layout_marginEnd="10dp" />
+                android:layout_weight="1" />
 
             <androidx.compose.ui.platform.ComposeView
                 android:id="@+id/progressbar"
