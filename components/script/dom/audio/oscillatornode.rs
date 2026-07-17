@@ -8,7 +8,7 @@ use std::f32;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::oscillator_node::{
     OscillatorNodeMessage, OscillatorNodeOptions as ServoMediaOscillatorOptions,
@@ -111,11 +111,11 @@ impl OscillatorNode {
         options: &OscillatorOptions,
     ) -> Fallible<DomRoot<OscillatorNode>> {
         let node = OscillatorNode::new_inherited(cx, window, context, options)?;
-        Ok(reflect_dom_object_with_proto_and_cx(
+        Ok(reflect_dom_object_with_proto(
+            cx,
             Box::new(node),
             window,
             proto,
-            cx,
         ))
     }
 }

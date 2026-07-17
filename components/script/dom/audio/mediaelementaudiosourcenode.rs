@@ -7,7 +7,7 @@ use std::sync::mpsc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::media_element_source_node::MediaElementSourceNodeMessage;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 
@@ -73,11 +73,11 @@ impl MediaElementAudioSourceNode {
         media_element: &HTMLMediaElement,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
         let node = MediaElementAudioSourceNode::new_inherited(cx, context, media_element)?;
-        Ok(reflect_dom_object_with_proto_and_cx(
+        Ok(reflect_dom_object_with_proto(
+            cx,
             Box::new(node),
             window,
             proto,
-            cx,
         ))
     }
 }

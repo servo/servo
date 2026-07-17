@@ -18,7 +18,7 @@ use js::rust::{
 };
 use js::typedarray::Uint8;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
@@ -342,11 +342,11 @@ impl TextEncoderStream {
         transform.set_up(cx, global, transformer_type)?;
 
         // Step 6. Set this’s transform to transformStream.
-        Ok(reflect_dom_object_with_proto_and_cx(
+        Ok(reflect_dom_object_with_proto(
+            cx,
             Box::new(TextEncoderStream::new_inherited(&transform)),
             global,
             proto,
-            cx,
         ))
     }
 }

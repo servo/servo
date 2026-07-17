@@ -14,7 +14,7 @@ use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, HeapUint8ClampedArray, TypedArray, Uint8ClampedArray};
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{ImageDataId, ImageDataIndex};
@@ -139,7 +139,8 @@ impl ImageData {
             // 8. Otherwise, initialize the colorSpace attribute of imageData to "srgb".
             .unwrap_or(PredefinedColorSpace::Srgb);
 
-        Ok(reflect_dom_object_with_proto_and_cx(
+        Ok(reflect_dom_object_with_proto(
+            cx,
             Box::new(ImageData {
                 reflector_: Reflector::new(),
                 width,
@@ -150,7 +151,6 @@ impl ImageData {
             }),
             global,
             proto,
-            cx,
         ))
     }
 

@@ -8,7 +8,7 @@ use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::{
-    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
+    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
 };
 use servo_base::id::{DomExceptionId, DomExceptionIndex};
 use servo_constellation_traits::DomException;
@@ -221,11 +221,11 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
         message: DOMString,
         name: DOMString,
     ) -> Result<DomRoot<DOMException>, Error> {
-        Ok(reflect_dom_object_with_proto_and_cx(
+        Ok(reflect_dom_object_with_proto(
+            cx,
             Box::new(DOMException::new_inherited(message, name)),
             global,
             proto,
-            cx,
         ))
     }
 
