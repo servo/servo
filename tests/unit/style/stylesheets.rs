@@ -127,8 +127,8 @@ fn test_report_error_stylesheet() {
         (7, 28, "Invalid media rule"),
         // When @counter-style is supported, this should be replaced with two errors
         (9, 19, "Invalid rule: '@counter-style "),
-        // When @font-feature-values is supported, this should be replaced with two errors
-        (10, 25, "Invalid rule: '@font-feature-values "),
+        (10, 42, "Unsupported rule: '@foo ', @ rule invalid"),
+        (10, 61, "Unsupported property declaration: 'foo: 1 invalid 2 ', found unexpected identifier invalid"),
         (11, 13, "Invalid rule: '@invalid'"),
         (12, 29, "Invalid rule: '@invalid'"),
         (13, 34, "Invalid rule: '@supports "),

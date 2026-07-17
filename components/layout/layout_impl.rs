@@ -1101,10 +1101,11 @@ impl LayoutThread {
 
         let invalidation_set = self.stylist.flush(guards);
 
-        // Load new @font-face rules and remove old ones if necessary.
-        // TODO: Can we make the invalidation set tell us whether any @font-face rules changed?
         let changed_web_fonts =
             if need_user_agent_stylesheet_addition || reflow_request.stylesheets_changed() {
+                self.font_context.invalidate_font_feature_values_map();
+                // Load new @font-face rules and remove old ones if necessary.
+                // TODO: Can we make the invalidation set tell us whether any @font-face rules changed?
                 self.font_context.rebuild_font_face_set(
                     self.webview_id,
                     &self.stylist,

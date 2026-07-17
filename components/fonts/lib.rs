@@ -6,6 +6,7 @@
 
 mod font;
 mod font_context;
+pub mod font_feature_values;
 mod font_store;
 mod glyph;
 #[expect(unsafe_code)]
