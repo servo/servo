@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use js::context::JSContext;
+use rand::TryRng;
 use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -16,8 +17,91 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleKmacImportParams, SubtleKmacKeyAlgorithm,
+    SubtleKmacImportParams, SubtleKmacKeyAlgorithm, SubtleKmacKeyGenParams,
 };
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-generate-key>
+pub(crate) fn generate_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    normalized_algorithm: &SubtleKmacKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
+    // SyntaxError.
+    if usages
+        .iter()
+        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+    {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
+        )));
+    }
+
+    // Step 2.
+    // If the length member of normalizedAlgorithm is present:
+    //     Let length be equal to the length member of normalizedAlgorithm.
+    // Otherwise, if the name member of normalizedAlgorithm is a case-sensitive string match for
+    // "KMAC128":
+    //     Let length be 128.
+    // Otherwise, if the name member of normalizedAlgorithm is a case-sensitive string match for
+    // "KMAC256":
+    //     Let length be 256.
+    let length = if let Some(normalized_algorithm_length) = normalized_algorithm.length {
+        normalized_algorithm_length
+    } else if normalized_algorithm.name == CryptoAlgorithm::Kmac128 {
+        128
+    } else if normalized_algorithm.name == CryptoAlgorithm::Kmac256 {
+        256
+    } else {
+        return Err(Error::Data(Some(
+            "Unable to determine the length of KMAC key".into(),
+        )));
+    };
+
+    // Step 3. Generate a key of length length bits.
+    // Step 4. If the key generation step fails, then throw an OperationError.
+    //
+    // NOTE: We store the KMAC key bits as the byte sequence containing bits.
+    // <https://w3c.github.io/webcrypto/#dfn-byte-sequence-containing>
+    let mut rng = rand::rng();
+    let mut bits = vec![0u8; length.div_ceil(8) as usize];
+    rng.try_fill_bytes(&mut bits)
+        .map_err(|_| Error::Operation(Some("Failed to generate KMAC key".into())))?;
+    if !length.is_multiple_of(8) {
+        // Clean excess bits in the last byte of result.
+        let mask = u8::MAX << (8 - length % 8);
+        if let Some(last_byte) = bits.last_mut() {
+            *last_byte &= mask;
+        }
+    }
+
+    // Step 5. Let key be a new CryptoKey object representing the generated key.
+    // Step 6. Set the [[type]] internal slot of key to "secret".
+    // Step 7. Let algorithm be a new KmacKeyAlgorithm.
+    // Step 8. Set the name attribute of algorithm to the name member of normalizedAlgorithm.
+    // Step 9. Set the length attribute of algorithm to length.
+    // Step 10. Set the [[algorithm]] internal slot of key to algorithm.
+    // Step 11. Set the [[extractable]] internal slot of key to be extractable.
+    // Step 12. Set the [[usages]] internal slot of key to be usages.
+    let algorithm = SubtleKmacKeyAlgorithm {
+        name: normalized_algorithm.name,
+        length,
+    };
+    let key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Secret,
+        extractable,
+        KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm),
+        usages,
+        Handle::KmacKey(bits.into()),
+    );
+
+    // Step 13. Return key.
+    Ok(key)
+}
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-import-key>
 pub(crate) fn import_key(
@@ -257,4 +341,33 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
     // Step 5. Return result.
     Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-get-key-length>
+pub(crate) fn get_key_length(
+    normalized_algorithm: &SubtleKmacImportParams,
+) -> Result<Option<u32>, Error> {
+    // Step 1.
+    // If the length member of normalizedAlgorithm is present:
+    //     Let length be equal to the length member of normalizedAlgorithm.
+    // Otherwise, if the name member of normalizedAlgorithm is a case-sensitive string match for
+    // "KMAC128":
+    //     Let length be 128.
+    // Otherwise, if the name member of normalizedAlgorithm is a case-sensitive string match for
+    // "KMAC256":
+    //     Let length be 256.
+    let length = if let Some(normalized_algorithm_length) = normalized_algorithm.length {
+        normalized_algorithm_length
+    } else if normalized_algorithm.name == CryptoAlgorithm::Kmac128 {
+        128
+    } else if normalized_algorithm.name == CryptoAlgorithm::Kmac256 {
+        256
+    } else {
+        return Err(Error::Data(Some(
+            "Unable to determine the length of KMAC key".into(),
+        )));
+    };
+
+    // Step 2. Return length.
+    Ok(Some(length))
 }
