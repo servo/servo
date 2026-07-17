@@ -52,7 +52,7 @@ use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::trace::CustomTraceable;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
@@ -4028,7 +4028,8 @@ impl Document {
         image_cache: StdArc<dyn ImageCache>,
     ) -> DomRoot<Document> {
         let timeline = DocumentTimeline::new(cx, window);
-        let document = reflect_dom_object_with_proto_and_cx(
+        let document = reflect_dom_object_with_proto(
+            cx,
             Box::new(Document::new_inherited(
                 window,
                 has_browsing_context,
@@ -4056,7 +4057,6 @@ impl Document {
             )),
             window,
             proto,
-            cx,
         );
         {
             let node = document.upcast::<Node>();

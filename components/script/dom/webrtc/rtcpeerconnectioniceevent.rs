@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -59,11 +59,11 @@ impl RTCPeerConnectionIceEvent {
         url: Option<DOMString>,
         trusted: bool,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
-        let e = reflect_dom_object_with_proto_and_cx(
+        let e = reflect_dom_object_with_proto(
+            cx,
             Box::new(RTCPeerConnectionIceEvent::new_inherited(candidate, url)),
             window,
             proto,
-            cx,
         );
         let evt = e.upcast::<Event>();
         evt.init_event(ty, false, false); // XXXManishearth bubbles/cancelable?

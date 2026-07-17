@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -53,11 +53,11 @@ impl RTCDataChannelEvent {
         cancelable: bool,
         channel: &RTCDataChannel,
     ) -> DomRoot<RTCDataChannelEvent> {
-        let event = reflect_dom_object_with_proto_and_cx(
+        let event = reflect_dom_object_with_proto(
+            cx,
             Box::new(RTCDataChannelEvent::new_inherited(channel)),
             window,
             proto,
-            cx,
         );
         {
             let event = event.upcast::<Event>();

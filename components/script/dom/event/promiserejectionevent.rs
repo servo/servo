@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -74,11 +74,11 @@ impl PromiseRejectionEvent {
         promise: HandleObject,
         reason: HandleValue,
     ) -> DomRoot<Self> {
-        let ev = reflect_dom_object_with_proto_and_cx(
+        let ev = reflect_dom_object_with_proto(
+            cx,
             Box::new(PromiseRejectionEvent::new_inherited()),
             global,
             proto,
-            cx,
         );
         ev.promise.set(promise.get());
 

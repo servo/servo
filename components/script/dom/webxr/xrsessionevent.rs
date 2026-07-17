@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -52,11 +52,11 @@ impl XRSessionEvent {
         cancelable: bool,
         session: &XRSession,
     ) -> DomRoot<XRSessionEvent> {
-        let trackevent = reflect_dom_object_with_proto_and_cx(
+        let trackevent = reflect_dom_object_with_proto(
+            cx,
             Box::new(XRSessionEvent::new_inherited(session)),
             window,
             proto,
-            cx,
         );
         {
             let event = trackevent.upcast::<Event>();
