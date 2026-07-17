@@ -158,7 +158,7 @@ impl Element {
     }
 
     /// Returns true if any attribute in the tokenlist fulfill `f`. Equivalent to
-    /// ```get_tokenlist_attribute(name).iiter().any(f)```.
+    /// `get_tokenlist_attribute(name).iter().any(f)`.
     pub(crate) fn any_tokenlist_attribute(
         &self,
         local_name: &LocalName,
