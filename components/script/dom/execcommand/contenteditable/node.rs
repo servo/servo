@@ -476,7 +476,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
         return;
     }
     // Step 7. If the first child of original parent is not in node list:
-    if first_child_is_in_node_list {
+    if !first_child_is_in_node_list {
         // Step 7.1. Let cloned parent be the result of calling cloneNode(false) on original parent.
         let Ok(cloned_parent) = original_parent.CloneNode(cx, false) else {
             unreachable!("Must always be able to clone node");
