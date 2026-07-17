@@ -157,6 +157,19 @@ impl Element {
         }
     }
 
+    /// Returns true if any attribute in the tokenlist fulfill `f`. Equivalent to
+    /// ```get_tokenlist_attribute(name).iiter().any(f)```.
+    pub(crate) fn any_tokenlist_attribute(
+        &self,
+        local_name: &LocalName,
+        f: impl Fn(&Atom) -> bool,
+    ) -> bool {
+        self.with_attribute(&ns!(), local_name, |attribute| {
+            attribute.value().as_tokens().iter().any(f)
+        })
+        .unwrap_or(false)
+    }
+
     pub(crate) fn get_tokenlist_attribute(&self, local_name: &LocalName) -> Vec<Atom> {
         self.with_attribute(&ns!(), local_name, |attribute| {
             attribute.value().as_tokens().to_vec()

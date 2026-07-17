@@ -2299,9 +2299,9 @@ impl Element {
     }
 
     pub(crate) fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_tokenlist_attribute(&local_name!("class"))
-            .iter()
-            .any(|atom| case_sensitivity.eq_atom(name, atom))
+        self.any_tokenlist_attribute(&local_name!("class"), |atom| {
+            case_sensitivity.eq_atom(name, atom)
+        })
     }
 
     pub(crate) fn has_attribute(&self, local_name: &LocalName) -> bool {
