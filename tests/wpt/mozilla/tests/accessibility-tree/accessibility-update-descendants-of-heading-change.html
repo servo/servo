@@ -1,0 +1,63 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<h2>
+  We really <em>really <strong>really</strong></em> like owls
+</h2>
+
+<script>
+  setup({ explicit_done: true });
+  window.onload = () => {
+    test((t) => {
+      ServoTestUtils.ensureAccessibilityActive();
+      let initial = ServoTestUtils.forceAccessibilityUpdate();
+
+      assert_equals(
+        initial.accessibilityNodesUpdatedFromDom,
+        18,
+        "accessibilityNodesUpdatedFromDom",
+      );
+      assert_equals(
+        initial.accessibilityNodesUpdatedFromTree,
+        18,
+        "accessibilityNodesUpdatedFromTree",
+      );
+      assert_equals(
+        initial.accessibilityNodesInTreeUpdate,
+        18,
+        "accessibilityNodesInTreeUpdate",
+      );
+
+      document.querySelector("strong").remove();
+
+      let incremental = ServoTestUtils.forceAccessibilityUpdate();
+
+      // Updated nodes:
+      // - em (<strong> removed)
+      assert_equals(
+        incremental.accessibilityNodesUpdatedFromDom,
+        1,
+        "accessibilityNodesUpdatedFromDom",
+      );
+
+      // <html>, <body>, <h2>, <em>
+      assert_equals(
+        incremental.accessibilityNodesUpdatedFromTree,
+        4,
+        "accessibilityNodesUpdatedFromTree",
+      );
+
+      // Changed nodes:
+      // - <h2>, label changed
+      // - <em>, children changed
+      assert_equals(
+        incremental.accessibilityNodesInTreeUpdate,
+        2,
+        "accessibilityNodesInTreeUpdate",
+      );
+    }, "");
+
+    done();
+  };
+</script>

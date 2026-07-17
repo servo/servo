@@ -429,8 +429,7 @@ fn test_accessibility_partial_subtree_move_and_delete() {
         "div3.moveBefore(div2, h2);\
          div3.moveBefore(h1, div2);\
          p.remove();\
-         div1.remove();\
-         window.ServoTestUtils.forceAccessibilityUpdate();",
+         div1.remove();",
     );
     let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
     assert_eq!(updates.len(), 1);
@@ -452,6 +451,95 @@ fn test_accessibility_partial_subtree_move_and_delete() {
     assert_eq!(h2.role(), Role::Heading);
     assert_eq!(h2.label(), Some("This is an h2".to_owned()));
 }
+
+#[test]
+fn test_accessibility_children_of_heading_change() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <h2>Activating accessibility for a <code>WebView</code></h2>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 1);
+    let heading = children[0];
+    assert_eq!(heading.role(), Role::Heading);
+    assert_eq!(
+        heading.label(),
+        Some("Activating accessibility for a WebView".to_owned())
+    );
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 2);
+    assert_eq!(heading_children[0].role(), Role::TextRun);
+    assert_eq!(heading_children[1].role(), Role::GenericContainer);
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('code').remove();",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Heading should still be in the tree");
+    assert_eq!(
+        heading.label(),
+        Some("Activating accessibility for a".to_owned())
+    );
+}
+
+#[test]
+fn test_accessibility_descendants_of_heading_change() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <h1>We really <em>really <strong>really</strong></em> like owls</h1>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 1);
+    let heading = children[0];
+    assert_eq!(heading.role(), Role::Heading);
+    assert_eq!(
+        heading.label(),
+        Some("We really really really like owls".to_owned())
+    );
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    assert_eq!(heading_children[0].role(), Role::TextRun);
+    assert_eq!(heading_children[1].role(), Role::GenericContainer);
+    assert_eq!(heading_children[2].role(), Role::TextRun);
+
+    let em = heading_children[1];
+    assert_eq!(em.children().collect::<Vec<_>>().len(), 2);
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('strong').remove();",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Heading should still be in the tree");
+    assert_eq!(
+        heading.label(),
+        Some("We really really  like owls".to_owned())
+    );
+}
+
+// ************************************************************************************************
+// If you're adding a new test here, consider adding a matching test in
+// tests/wpt/mozilla/tests/accessibility-tree/
+// ************************************************************************************************
 
 fn build_test() -> ServoTest {
     let servo_test = ServoTest::new_with_builder(|builder| {
