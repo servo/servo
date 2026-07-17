@@ -537,6 +537,14 @@ pub enum SyncOperation {
         bool,    // unique flag
         bool,    // multientry flag
     ),
+    /// Rename an index
+    RenameIndex(
+        ImmutableOrigin,
+        String, // Database
+        String, // Store
+        String, // Index name
+        String, // New name
+    ),
     /// Delete an index
     DeleteIndex(
         ImmutableOrigin,
