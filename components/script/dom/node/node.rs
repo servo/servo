@@ -555,6 +555,7 @@ impl Node {
 
     fn move_child(&self, cx: &mut JSContext, child: &Node) {
         assert!(child.parent_node.get().as_deref() == Some(self));
+        self.dirty(NodeDamage::ContentOrHeritage);
         self.note_dirty_descendants();
         self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
