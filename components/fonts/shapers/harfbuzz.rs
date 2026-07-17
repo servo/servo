@@ -225,15 +225,15 @@ impl Shaper {
                 }
             }
 
-            // Create subfont before setting font-funcs so that we can
-            // inherit the default font-funcs for the funcs we don't set
+            // Create a subfont before setting font-funcs so that we can
+            // inherit the default font-funcs for the funcs we don't set.
             let hb_font = {
                 let sub_font = hb_font_create_sub_font(hb_font);
                 hb_font_destroy(hb_font);
                 sub_font
             };
 
-            // configure static function callbacks.
+            // Now configure the subset of function callbacks that we do implement.
             hb_font_set_funcs(
                 hb_font,
                 HB_FONT_FUNCS.0,
