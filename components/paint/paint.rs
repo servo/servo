@@ -47,6 +47,8 @@ use webgpu::canvas_context::WebGpuExternalImageMap;
 use webrender::{CaptureBits, MemoryReport};
 use webrender_api::units::{DevicePixel, DevicePoint};
 use webrender_api::{FontInstanceKey, FontKey, ImageKey};
+#[cfg(feature = "webxr")]
+use webxr::WebXrRegistry;
 
 use crate::InitialPaintState;
 use crate::painter::Painter;
@@ -187,19 +189,11 @@ impl Paint {
 
         // Create the WebXR main thread
         #[cfg(feature = "webxr")]
-        let webxr_main_thread = {
-            use servo_config::pref;
-
-            let mut webxr_main_thread = webxr::MainThreadRegistry::new(
-                state.event_loop_waker.clone(),
-                webxr_layer_grand_manager,
-            )
-            .expect("Failed to create WebXR device registry");
-            if pref!(dom_webxr_enabled) {
-                state.webxr_registry.register(&mut webxr_main_thread);
-            }
-            webxr_main_thread
-        };
+        let webxr_main_thread = webxr::MainThreadRegistry::new(
+            state.event_loop_waker.clone(),
+            webxr_layer_grand_manager,
+        )
+        .expect("Failed to create WebXR device registry");
 
         Rc::new(RefCell::new(Paint {
             painters: Default::default(),
@@ -221,6 +215,12 @@ impl Paint {
             #[cfg(feature = "webgpu")]
             webgpu_image_map: Default::default(),
         }))
+    }
+
+    #[cfg(feature = "webxr")]
+    pub fn register_webxr_registry(&self, registry: Box<dyn WebXrRegistry>) {
+        let mut webxr_main_thread = self.webxr_main_thread.borrow_mut();
+        registry.register(&mut webxr_main_thread)
     }
 
     pub fn register_rendering_context(

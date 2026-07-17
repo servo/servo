@@ -77,6 +77,8 @@ use servo_wakelock::DefaultWakeLockDelegate;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
+#[cfg(feature = "webxr")]
+use webxr::WebXrRegistry;
 
 use crate::clipboard_delegate::StringRequest;
 #[cfg(feature = "gamepad")]
@@ -956,8 +958,6 @@ impl Servo {
             mem_profiler_chan: mem_profiler_chan.clone(),
             shutdown_state: shutdown_state.clone(),
             event_loop_waker: event_loop_waker.clone(),
-            #[cfg(feature = "webxr")]
-            webxr_registry: builder.webxr_registry,
         });
 
         let protocols = Arc::new(protocols);
@@ -1124,6 +1124,12 @@ impl Servo {
             .pending_handled_input_events
             .borrow_mut()
             .push(residue_event);
+    }
+
+    #[cfg(feature = "webxr")]
+    /// Registers a [`WebXrRegistry`]
+    pub fn register_webxr_registry(&self, registry: Box<dyn WebXrRegistry>) {
+        self.0.paint.borrow().register_webxr_registry(registry);
     }
 }
 
@@ -1403,19 +1409,12 @@ impl EventLoopWaker for DefaultEventLoopWaker {
     fn wake(&self) {}
 }
 
-#[cfg(feature = "webxr")]
-struct DefaultWebXrRegistry;
-#[cfg(feature = "webxr")]
-impl webxr::WebXrRegistry for DefaultWebXrRegistry {}
-
 /// Builder for [`Servo`].
 pub struct ServoBuilder {
     opts: Option<Box<Opts>>,
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     protocol_registry: ProtocolRegistry,
-    #[cfg(feature = "webxr")]
-    webxr_registry: Box<dyn webxr::WebXrRegistry>,
 }
 
 impl Default for ServoBuilder {
@@ -1425,8 +1424,6 @@ impl Default for ServoBuilder {
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             protocol_registry: Default::default(),
-            #[cfg(feature = "webxr")]
-            webxr_registry: Box::new(DefaultWebXrRegistry),
         }
     }
 }
@@ -1453,12 +1450,6 @@ impl ServoBuilder {
 
     pub fn protocol_registry(mut self, protocol_registry: ProtocolRegistry) -> Self {
         self.protocol_registry = protocol_registry;
-        self
-    }
-
-    #[cfg(feature = "webxr")]
-    pub fn webxr_registry(mut self, webxr_registry: Box<dyn webxr::WebXrRegistry>) -> Self {
-        self.webxr_registry = webxr_registry;
         self
     }
 }

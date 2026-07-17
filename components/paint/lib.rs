@@ -13,8 +13,6 @@ use paint_api::{PaintMessage, PaintProxy};
 use profile_traits::{mem, time};
 use servo_base::generic_channel::RoutedReceiver;
 use servo_constellation_traits::EmbedderToConstellationMessage;
-#[cfg(feature = "webxr")]
-use webxr::WebXrRegistry;
 
 pub use crate::paint::{Paint, WebRenderDebugOption};
 
@@ -52,7 +50,4 @@ pub struct InitialPaintState {
     /// An [`EventLoopWaker`] used in order to wake up the embedder when it is
     /// time to paint.
     pub event_loop_waker: Box<dyn EventLoopWaker>,
-    /// If WebXR is enabled, a [`WebXrRegistry`] to register WebXR threads.
-    #[cfg(feature = "webxr")]
-    pub webxr_registry: Box<dyn WebXrRegistry>,
 }
