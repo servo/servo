@@ -11,7 +11,10 @@ pub(crate) mod gpuadapterinfo {
 pub(crate) mod gpubindgroup;
 pub(crate) mod gpubindgrouplayout;
 pub(crate) mod gpubuffer;
-pub(crate) mod gpubufferusage;
+pub(crate) mod gpubufferusage {
+    pub(crate) type GPUBufferUsage =
+        script_webgpu::gpubufferusage::GPUBufferUsage<crate::DomTypeHolder>;
+}
 pub(crate) mod gpucanvascontext;
 pub(crate) mod gpucolorwrite;
 pub(crate) mod gpucommandbuffer;

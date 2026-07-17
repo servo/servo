@@ -7,6 +7,8 @@
 #![cfg_attr(crown, register_tool(crown))]
 
 pub mod gpuadapterinfo;
+pub mod gpubufferusage;
+
 pub(crate) use js::gc::Traceable as JSTraceable;
 pub(crate) use jstraceable_derive::JSTraceable;
 pub(crate) use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
@@ -37,7 +39,8 @@ pub(crate) mod codegen {
         use script_bindings::root::{Dom, DomRoot, Root};
         use script_bindings::utils::DOMClass;
 
-        pub(crate) use crate::gpuadapterinfo::GPUAdapterInfo;
+        use crate::gpuadapterinfo::GPUAdapterInfo;
+        use crate::gpubufferusage::GPUBufferUsage;
         include!(concat!(
             env!("OUT_DIR"),
             "/ConcreteBindings/WebGPUBinding.rs"
