@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -72,11 +72,11 @@ impl XRInputSourcesChangeEvent {
         added: &[DomRoot<XRInputSource>],
         removed: &[DomRoot<XRInputSource>],
     ) -> DomRoot<XRInputSourcesChangeEvent> {
-        let changeevent = reflect_dom_object_with_proto_and_cx(
+        let changeevent = reflect_dom_object_with_proto(
+            cx,
             Box::new(XRInputSourcesChangeEvent::new_inherited(session)),
             window,
             proto,
-            cx,
         );
         {
             let event = changeevent.upcast::<Event>();

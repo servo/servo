@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -46,14 +46,14 @@ impl FormDataEvent {
         cancelable: EventCancelable,
         form_data: &FormData,
     ) -> DomRoot<FormDataEvent> {
-        let ev = reflect_dom_object_with_proto_and_cx(
+        let ev = reflect_dom_object_with_proto(
+            cx,
             Box::new(FormDataEvent {
                 event: Event::new_inherited(),
                 form_data: Dom::from_ref(form_data),
             }),
             window,
             proto,
-            cx,
         );
 
         {

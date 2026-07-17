@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::str::DOMString;
 use style::Atom;
 
@@ -64,11 +64,11 @@ impl ClipboardEvent {
         cancelable: EventCancelable,
         clipboard_data: Option<&DataTransfer>,
     ) -> DomRoot<ClipboardEvent> {
-        let ev = reflect_dom_object_with_proto_and_cx(
+        let ev = reflect_dom_object_with_proto(
+            cx,
             Box::new(ClipboardEvent::new_inherited()),
             window,
             proto,
-            cx,
         );
         ev.upcast::<Event>()
             .init_event(event_type, bool::from(can_bubble), bool::from(cancelable));

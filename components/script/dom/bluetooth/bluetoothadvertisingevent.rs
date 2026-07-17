@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::{
@@ -65,13 +65,13 @@ impl BluetoothAdvertisingEvent {
         txPower: Option<i8>,
         rssi: Option<i8>,
     ) -> DomRoot<BluetoothAdvertisingEvent> {
-        let ev = reflect_dom_object_with_proto_and_cx(
+        let ev = reflect_dom_object_with_proto(
+            cx,
             Box::new(BluetoothAdvertisingEvent::new_inherited(
                 device, name, appearance, txPower, rssi,
             )),
             global,
             proto,
-            cx,
         );
         {
             let event = ev.upcast::<Event>();

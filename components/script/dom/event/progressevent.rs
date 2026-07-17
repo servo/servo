@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::num::Finite;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -77,7 +77,8 @@ impl ProgressEvent {
         loaded: Finite<f64>,
         total: Finite<f64>,
     ) -> DomRoot<ProgressEvent> {
-        let ev = reflect_dom_object_with_proto_and_cx(
+        let ev = reflect_dom_object_with_proto(
+            cx,
             Box::new(ProgressEvent::new_inherited(
                 length_computable,
                 loaded,
@@ -85,7 +86,6 @@ impl ProgressEvent {
             )),
             global,
             proto,
-            cx,
         );
         {
             let event = ev.upcast::<Event>();

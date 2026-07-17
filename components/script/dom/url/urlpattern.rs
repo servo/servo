@@ -9,7 +9,7 @@ use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::URLPatternBinding::URLPatternResult;
 use script_bindings::codegen::GenericUnionTypes::USVStringOrURLPatternInit;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::root::DomRoot;
 use script_bindings::str::USVString;
 
@@ -59,11 +59,11 @@ impl URLPattern {
         let pattern = urlpattern::UrlPattern::parse(pattern_init, options)
             .map_err(|error| Error::Type(cformat!("{error}")))?;
 
-        let url_pattern = reflect_dom_object_with_proto_and_cx(
+        let url_pattern = reflect_dom_object_with_proto(
+            cx,
             Box::new(URLPattern::new_inherited(pattern)),
             global,
             proto,
-            cx,
         );
         Ok(url_pattern)
     }

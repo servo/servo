@@ -5,9 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{
-    reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
-};
+use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CompositionEventBinding::{
@@ -69,14 +67,14 @@ impl CompositionEvent {
         detail: i32,
         data: DOMString,
     ) -> DomRoot<CompositionEvent> {
-        let ev = reflect_dom_object_with_proto_and_cx(
+        let ev = reflect_dom_object_with_proto(
+            cx,
             Box::new(CompositionEvent {
                 uievent: UIEvent::new_inherited(),
                 data,
             }),
             window,
             proto,
-            cx,
         );
         ev.uievent
             .init_event(event_type, can_bubble, cancelable, view, detail);

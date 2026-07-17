@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -69,14 +69,14 @@ impl IDBVersionChangeEvent {
         old_version: u64,
         new_version: Option<u64>,
     ) -> DomRoot<Self> {
-        let ev = reflect_dom_object_with_proto_and_cx(
+        let ev = reflect_dom_object_with_proto(
+            cx,
             Box::new(IDBVersionChangeEvent::new_inherited(
                 old_version,
                 new_version,
             )),
             global,
             proto,
-            cx,
         );
         {
             let event = ev.upcast::<Event>();

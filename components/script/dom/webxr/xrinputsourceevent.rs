@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -60,11 +60,11 @@ impl XRInputSourceEvent {
         frame: &XRFrame,
         source: &XRInputSource,
     ) -> DomRoot<XRInputSourceEvent> {
-        let trackevent = reflect_dom_object_with_proto_and_cx(
+        let trackevent = reflect_dom_object_with_proto(
+            cx,
             Box::new(XRInputSourceEvent::new_inherited(frame, source)),
             window,
             proto,
-            cx,
         );
         {
             let event = trackevent.upcast::<Event>();

@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -51,11 +51,11 @@ impl RTCTrackEvent {
         cancelable: bool,
         track: &MediaStreamTrack,
     ) -> DomRoot<RTCTrackEvent> {
-        let trackevent = reflect_dom_object_with_proto_and_cx(
+        let trackevent = reflect_dom_object_with_proto(
+            cx,
             Box::new(RTCTrackEvent::new_inherited(track)),
             window,
             proto,
-            cx,
         );
         {
             let event = trackevent.upcast::<Event>();

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -55,11 +55,11 @@ impl TransitionEvent {
         type_: Atom,
         init: &TransitionEventInit,
     ) -> DomRoot<TransitionEvent> {
-        let ev = reflect_dom_object_with_proto_and_cx(
+        let ev = reflect_dom_object_with_proto(
+            cx,
             Box::new(TransitionEvent::new_inherited(init)),
             window,
             proto,
-            cx,
         );
         {
             let event = ev.upcast::<Event>();
