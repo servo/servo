@@ -72,6 +72,7 @@ pub(crate) enum Handle {
     MlDsa65PublicKey(ml_dsa::VerifyingKey<ml_dsa::MlDsa65>),
     MlDsa87PublicKey(ml_dsa::VerifyingKey<ml_dsa::MlDsa87>),
     ChaCha20Poly1305Key(chacha20poly1305::Key),
+    KmacKey(Zeroizing<Vec<u8>>),
     Argon2Password(Zeroizing<Vec<u8>>),
 }
 
@@ -338,6 +339,7 @@ impl MallocSizeOf for Handle {
             Handle::MlDsa65PublicKey(public_key) => public_key.size_of(ops),
             Handle::MlDsa87PublicKey(public_key) => public_key.size_of(ops),
             Handle::ChaCha20Poly1305Key(key) => key.size_of(ops),
+            Handle::KmacKey(key) => key.size_of(ops),
             Handle::Argon2Password(password) => password.size_of(ops),
         }
     }
@@ -483,6 +485,7 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
             SerializableCryptoKeyHandle::ChaCha20Poly1305Key(key) => Ok(
                 Handle::ChaCha20Poly1305Key(chacha20poly1305::Key::try_from(key).map_err(|_| ())?),
             ),
+            SerializableCryptoKeyHandle::KmacKey(key) => Ok(Handle::KmacKey(key.clone().into())),
             SerializableCryptoKeyHandle::Argon2Password(password) => {
                 Ok(Handle::Argon2Password(password.clone().into()))
             },
@@ -636,6 +639,7 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
             Handle::ChaCha20Poly1305Key(key) => Ok(
                 SerializableCryptoKeyHandle::ChaCha20Poly1305Key(key.as_slice().to_vec()),
             ),
+            Handle::KmacKey(key) => Ok(SerializableCryptoKeyHandle::KmacKey(key.to_vec())),
             Handle::Argon2Password(password) => Ok(SerializableCryptoKeyHandle::Argon2Password(
                 password.to_vec(),
             )),

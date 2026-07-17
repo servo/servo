@@ -19,6 +19,7 @@ mod ed448_operation;
 mod hkdf_operation;
 mod hmac_operation;
 mod kangarootwelve_operation;
+mod kmac_operation;
 mod ml_dsa_operation;
 mod ml_kem_operation;
 mod pbkdf2_operation;
@@ -51,8 +52,8 @@ use servo_constellation_traits::{
     SerializableAesKeyAlgorithm, SerializableAlgorithm, SerializableCShakeParams,
     SerializableDigestAlgorithm, SerializableEcKeyAlgorithm, SerializableHmacKeyAlgorithm,
     SerializableKangarooTwelveParams, SerializableKeyAlgorithm,
-    SerializableKeyAlgorithmAndDerivatives, SerializableRsaHashedKeyAlgorithm,
-    SerializableTurboShakeParams,
+    SerializableKeyAlgorithmAndDerivatives, SerializableKmacKeyAlgorithm,
+    SerializableRsaHashedKeyAlgorithm, SerializableTurboShakeParams,
 };
 use strum::{EnumString, IntoStaticStr, VariantArray};
 use zeroize::Zeroizing;
@@ -63,8 +64,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesKeyAlgorithm, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EncapsulatedBits,
-    EncapsulatedKey, HmacKeyAlgorithm, JsonWebKey, KeyAlgorithm, KeyFormat, RsaHashedKeyAlgorithm,
-    RsaKeyAlgorithm, SubtleCryptoMethods,
+    EncapsulatedKey, HmacKeyAlgorithm, JsonWebKey, KeyAlgorithm, KeyFormat, KmacKeyAlgorithm,
+    RsaHashedKeyAlgorithm, RsaKeyAlgorithm, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -165,6 +166,10 @@ enum CryptoAlgorithm {
     Kt128,
     #[strum(serialize = "KT256")]
     Kt256,
+    #[strum(serialize = "KMAC128")]
+    Kmac128,
+    #[strum(serialize = "KMAC256")]
+    Kmac256,
     #[strum(serialize = "Argon2d")]
     Argon2D,
     #[strum(serialize = "Argon2i")]
@@ -2720,6 +2725,7 @@ pub(crate) fn check_support_for_algorithm(
                 ImportKeyAlgorithm::MlDsa(_) |
                 ImportKeyAlgorithm::AesOcb(_) |
                 ImportKeyAlgorithm::ChaCha20Poly1305(_) |
+                ImportKeyAlgorithm::Kmac(_) |
                 ImportKeyAlgorithm::Argon2(_) => true,
             }
         },
@@ -2747,7 +2753,8 @@ pub(crate) fn check_support_for_algorithm(
                 ExportKeyAlgorithm::MlKem(_) |
                 ExportKeyAlgorithm::MlDsa(_) |
                 ExportKeyAlgorithm::AesOcb(_) |
-                ExportKeyAlgorithm::ChaCha20Poly1305(_) => true,
+                ExportKeyAlgorithm::ChaCha20Poly1305(_) |
+                ExportKeyAlgorithm::Kmac(_) => true,
             }
         },
         "get key length" => {
@@ -3891,6 +3898,74 @@ impl From<&SubtleKangarooTwelveParams> for SerializableKangarooTwelveParams {
     }
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacImportParams>
+#[derive(Clone, MallocSizeOf)]
+struct SubtleKmacImportParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: CryptoAlgorithm,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacImportParams-length>
+    length: Option<u32>,
+}
+
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKmacImportParams {
+    type Error = Error;
+
+    fn try_from_with_cx_and_name(
+        object: HandleObject,
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+    ) -> Result<Self, Self::Error> {
+        Ok(SubtleKmacImportParams {
+            name: algorithm_name,
+            length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
+        })
+    }
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacKeyAlgorithm>
+#[derive(Clone, MallocSizeOf)]
+pub(crate) struct SubtleKmacKeyAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
+    name: CryptoAlgorithm,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacKeyAlgorithm-length>
+    length: u32,
+}
+
+impl SafeToJSValConvertible for SubtleKmacKeyAlgorithm {
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
+        let parent = KeyAlgorithm {
+            name: self.name.as_str().into(),
+        };
+        let dictionary = KmacKeyAlgorithm {
+            parent,
+            length: self.length,
+        };
+        dictionary.safe_to_jsval(cx, rval);
+    }
+}
+
+impl TryFrom<SerializableKmacKeyAlgorithm> for SubtleKmacKeyAlgorithm {
+    type Error = ();
+
+    fn try_from(value: SerializableKmacKeyAlgorithm) -> Result<Self, Self::Error> {
+        Ok(SubtleKmacKeyAlgorithm {
+            name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
+            length: value.length,
+        })
+    }
+}
+
+impl From<&SubtleKmacKeyAlgorithm> for SerializableKmacKeyAlgorithm {
+    fn from(value: &SubtleKmacKeyAlgorithm) -> Self {
+        SerializableKmacKeyAlgorithm {
+            name: value.name.as_str().into(),
+            length: value.length,
+        }
+    }
+}
+
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params>
 #[derive(Clone, MallocSizeOf)]
 struct SubtleArgon2Params {
@@ -4110,6 +4185,7 @@ pub(crate) enum KeyAlgorithmAndDerivatives {
     EcKeyAlgorithm(SubtleEcKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
+    KmacKeyAlgorithm(SubtleKmacKeyAlgorithm),
 }
 
 impl KeyAlgorithmAndDerivatives {
@@ -4120,6 +4196,7 @@ impl KeyAlgorithmAndDerivatives {
             KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) => algorithm.name,
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) => algorithm.name,
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => algorithm.name,
+            KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm) => algorithm.name,
         }
     }
 }
@@ -4132,6 +4209,7 @@ impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
             KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
+            KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
         }
     }
 }
@@ -4156,6 +4234,9 @@ impl TryFrom<SerializableKeyAlgorithmAndDerivatives> for KeyAlgorithmAndDerivati
             SerializableKeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => Ok(
                 KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm.try_into()?),
             ),
+            SerializableKeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm) => Ok(
+                KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm.try_into()?),
+            ),
         }
     }
 }
@@ -4177,6 +4258,9 @@ impl From<&KeyAlgorithmAndDerivatives> for SerializableKeyAlgorithmAndDerivative
             },
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => {
                 SerializableKeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm.into())
+            },
+            KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm) => {
+                SerializableKeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm.into())
             },
         }
     }
@@ -5554,6 +5638,7 @@ enum ImportKeyAlgorithm {
     MlDsa(SubtleAlgorithm),
     AesOcb(SubtleAlgorithm),
     ChaCha20Poly1305(SubtleAlgorithm),
+    Kmac(SubtleKmacImportParams),
     Argon2(SubtleAlgorithm),
 }
 
@@ -5626,6 +5711,9 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
             CryptoAlgorithm::ChaCha20Poly1305 => Ok(ImportKeyAlgorithm::ChaCha20Poly1305(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
+            CryptoAlgorithm::Kmac128 | CryptoAlgorithm::Kmac256 => Ok(ImportKeyAlgorithm::Kmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::Argon2D | CryptoAlgorithm::Argon2I | CryptoAlgorithm::Argon2ID => Ok(
                 ImportKeyAlgorithm::Argon2(object.try_into_with_cx_and_name(cx, algorithm_name)?),
             ),
@@ -5658,6 +5746,7 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
             ImportKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
             ImportKeyAlgorithm::AesOcb(algorithm) => algorithm.name,
             ImportKeyAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::Kmac(algorithm) => algorithm.name,
             ImportKeyAlgorithm::Argon2(algorithm) => algorithm.name,
         }
     }
@@ -5791,6 +5880,15 @@ impl ImportKeyAlgorithm {
                     usages,
                 )
             },
+            ImportKeyAlgorithm::Kmac(algorithm) => kmac_operation::import_key(
+                cx,
+                global,
+                algorithm,
+                format,
+                key_data,
+                extractable,
+                usages,
+            ),
             ImportKeyAlgorithm::Argon2(algorithm) => argon2_operation::import_key(
                 cx,
                 global,
@@ -5832,6 +5930,7 @@ enum ExportKeyAlgorithm {
     MlDsa(SubtleAlgorithm),
     AesOcb(SubtleAlgorithm),
     ChaCha20Poly1305(SubtleAlgorithm),
+    Kmac(SubtleAlgorithm),
 }
 
 impl NormalizedAlgorithm for ExportKeyAlgorithm {
@@ -5897,6 +5996,9 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
             CryptoAlgorithm::ChaCha20Poly1305 => Ok(ExportKeyAlgorithm::ChaCha20Poly1305(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
+            CryptoAlgorithm::Kmac128 | CryptoAlgorithm::Kmac256 => Ok(ExportKeyAlgorithm::Kmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"exportKey\" operation",
                 algorithm_name.as_str()
@@ -5924,6 +6026,7 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
             ExportKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
             ExportKeyAlgorithm::AesOcb(algorithm) => algorithm.name,
             ExportKeyAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::Kmac(algorithm) => algorithm.name,
         }
     }
 }
@@ -5953,6 +6056,7 @@ impl ExportKeyAlgorithm {
             ExportKeyAlgorithm::ChaCha20Poly1305(_algorithm) => {
                 chacha20_poly1305_operation::export_key(format, key)
             },
+            ExportKeyAlgorithm::Kmac(_algorithm) => kmac_operation::export_key(format, key),
         }
     }
 }
