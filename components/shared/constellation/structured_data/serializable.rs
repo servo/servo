@@ -642,6 +642,13 @@ pub struct SerializableHmacKeyAlgorithm {
     pub length: u32,
 }
 
+/// A serializable version of the `KmacKeyAlgorithm` dictionary, used the `SubtleCrypto` interface.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct SerializableKmacKeyAlgorithm {
+    pub name: String,
+    pub length: u32,
+}
+
 /// A serializable version of the `KeyAlgorithmAndDerivatives` type, used by the `SubtleCrypto`
 /// interface.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -651,6 +658,7 @@ pub enum SerializableKeyAlgorithmAndDerivatives {
     EcKeyAlgorithm(SerializableEcKeyAlgorithm),
     AesKeyAlgorithm(SerializableAesKeyAlgorithm),
     HmacKeyAlgorithm(SerializableHmacKeyAlgorithm),
+    KmacKeyAlgorithm(SerializableKmacKeyAlgorithm),
 }
 
 /// A serializable version of the `Handle` type, used by the `CryptoKey` interface.
@@ -691,6 +699,7 @@ pub enum SerializableCryptoKeyHandle {
     MlDsa65PublicKey(Vec<u8>),
     MlDsa87PublicKey(Vec<u8>),
     ChaCha20Poly1305Key(Vec<u8>),
+    KmacKey(Vec<u8>),
     Argon2Password(Vec<u8>),
 }
 
