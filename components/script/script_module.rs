@@ -80,7 +80,7 @@ use crate::dom::window::Window;
 use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
 };
-use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
+use crate::network_listener::{FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
 use crate::task::NonSendTaskBox;
@@ -703,7 +703,7 @@ impl FetchResponseListener for ModuleContext {
         let global = self.owner.root();
         let (_url, module_type) = &self.module_request;
 
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        // network_listener::submit_timing(cx, &self, &response, &timing);
 
         let module_map = global.module_map();
 

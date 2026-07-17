@@ -35,6 +35,7 @@ use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopSender};
+use crate::microtask::MicrotaskQueue;
 use crate::realms::enter_auto_realm;
 use crate::task::TaskCanceller;
 use crate::task_manager::TaskManager;
@@ -62,6 +63,9 @@ pub(crate) struct WorkletGlobalScope {
     /// A [`TaskManager`] for this [`WorkerGlobalScope`].
     #[conditional_malloc_size_of]
     task_manager: Rc<TaskManager>,
+
+    #[conditional_malloc_size_of]
+    microtask_queue: Rc<MicrotaskQueue>,
 }
 
 impl WorkletGlobalScope {
@@ -75,6 +79,7 @@ impl WorkletGlobalScope {
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
         sender: Sender<WorkletControl>,
+        microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
@@ -86,6 +91,7 @@ impl WorkletGlobalScope {
                 init,
                 cx,
                 sender,
+                microtask_queue,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
                 pipeline_id,
@@ -95,6 +101,7 @@ impl WorkletGlobalScope {
                 init,
                 cx,
                 sender,
+                microtask_queue,
             )),
         };
 
@@ -114,6 +121,7 @@ impl WorkletGlobalScope {
         init: &WorkletGlobalScopeInit,
         event_loop_sender: Option<ScriptEventLoopSender>,
         closing: Arc<AtomicBool>,
+        microtask_queue: Rc<MicrotaskQueue>,
     ) -> Self {
         Self {
             globalscope: GlobalScope::new_inherited(
@@ -142,6 +150,7 @@ impl WorkletGlobalScope {
                 Some(TaskCanceller { cancelled: closing }),
             )),
             origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
+            microtask_queue,
         }
     }
 
@@ -197,6 +206,16 @@ impl WorkletGlobalScope {
 
     pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
         self.task_manager.clone()
+    }
+
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
+        // Only perform the checkpoint if we're not shutting down.
+        // if !self.is_closing() {
+        self.microtask_queue.checkpoint(
+            cx,
+            vec![DomRoot::from_ref(&self.globalscope)],
+        );
+        // }
     }
 }
 

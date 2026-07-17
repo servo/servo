@@ -56,6 +56,7 @@ use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType, WorkletTask,
 };
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
+use crate::microtask::MicrotaskQueue;
 use crate::realms::enter_auto_realm;
 use crate::script_module::fetch_a_module_worker_script_graph;
 use crate::script_runtime::{Runtime, ScriptThreadEventCategory};
@@ -567,21 +568,36 @@ impl WorkletThread {
                     return;
                 },
             }
+
+            println!(
+                "Right before entering cold backup; is_cold_backup: {}; thread_id: {:?}",
+                self.role.is_cold_backup,
+                std::thread::current().id()
+            );
+            for scope in self.global_scopes.values() {
+                scope.perform_a_microtask_checkpoint(cx);
+            }
+
             // Only process control messages if we're the cold backup,
             // otherwise if there are outstanding control messages,
             // try to become the cold backup.
             if self.role.is_cold_backup {
+                println!("Enters cold backup");
                 if let Some(control) = self.control_buffer.take() {
                     self.process_control(control, cx);
                 }
                 while let Ok(control) = self.control_receiver.try_recv() {
                     self.process_control(control, cx);
                 }
+
                 self.gc(cx);
             } else if self.control_buffer.is_none() &&
                 let Ok(control) = self.control_receiver.try_recv()
             {
                 self.control_buffer = Some(control);
+                let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
+                let _ = self.cold_backup_sender.send(msg);
+            } else if !self.runtime.microtask_queue.empty() {
                 let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
                 let _ = self.cold_backup_sender.send(msg);
             }
@@ -634,6 +650,7 @@ impl WorkletThread {
         global_type: WorkletGlobalScopeType,
         base_url: ServoUrl,
         cx: &mut JSContext,
+        microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<WorkletGlobalScope> {
         match self.global_scopes.entry(worklet_id) {
             hash_map::Entry::Occupied(entry) => DomRoot::from_ref(entry.get()),
@@ -649,6 +666,7 @@ impl WorkletThread {
                     &self.global_init,
                     cx,
                     self.control_sender.clone(),
+                    microtask_queue,
                 );
                 entry.insert(Dom::from_ref(&*result));
                 result
@@ -709,6 +727,8 @@ impl WorkletThread {
             referrer,
             credentials_mode,
             move |cx, module_tree| {
+                println!("Step 1. we go inside the closure");
+
                 // Step 4.
                 // NOTE: the spec parses and executes the script in separate steps,
                 // but our JS API doesn't separate these, so we do the steps out of order.
@@ -717,6 +737,7 @@ impl WorkletThread {
                 // https://github.com/w3c/css-houdini-drafts/issues/407
                 match module_tree {
                     None => {
+                        println!("Step 2. None Branch of module_tree");
                         // Step 3.
                         debug!("Failed to load script.");
                         let old_counter = pending_tasks_struct.set_counter_to(-1);
@@ -740,6 +761,7 @@ impl WorkletThread {
                         }
                     },
                     Some(script) => {
+                        println!("Step 2. Script Branch of module_tree");
                         let mut realm = enter_auto_realm(cx, &*rooted_global);
                         let cx = &mut realm.current_realm();
 
@@ -761,10 +783,13 @@ impl WorkletThread {
                         }
 
                         // Step 5.
-                        debug!("Finished adding script.");
                         let old_counter = pending_tasks_struct.decrement_counter_by(1);
+                        println!(
+                            "Finished adding script; old_counter's value: {}",
+                            old_counter
+                        );
                         if old_counter == 1 {
-                            debug!("Resolving promise.");
+                            println!("Resolving promise.");
                             let msg = MainThreadScriptMsg::WorkletLoaded(pipeline_id);
                             script_thread_sender
                                 .send(msg)
@@ -827,6 +852,7 @@ impl WorkletThread {
                     global_type,
                     base_url,
                     cx,
+                    self.runtime.microtask_queue.clone(),
                 );
                 self.fetch_and_invoke_a_worklet_script(
                     &global,

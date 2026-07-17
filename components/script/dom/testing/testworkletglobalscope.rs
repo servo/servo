@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
@@ -23,6 +24,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
 use crate::messaging::ScriptEventLoopSender;
+use crate::microtask::MicrotaskQueue;
 
 // check-tidy: no specs after this line
 
@@ -43,6 +45,7 @@ impl TestWorkletGlobalScope {
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
         own_sender: Sender<WorkletControl>,
+        microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<TestWorkletGlobalScope> {
         debug!(
             "Creating test worklet global scope for pipeline {}.",
@@ -57,8 +60,9 @@ impl TestWorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
-                Some(ScriptEventLoopSender::Worklet(own_sender.clone())),
+                Some(ScriptEventLoopSender::Worklet(own_sender)),
                 closing,
+                microtask_queue,
             ),
             lookup_table: Default::default(),
         });

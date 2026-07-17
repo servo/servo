@@ -3084,6 +3084,8 @@ impl GlobalScope {
             window.perform_a_microtask_checkpoint(cx);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             worker.perform_a_microtask_checkpoint(cx);
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            worklet.perform_a_microtask_checkpoint(cx);
         }
     }
 
@@ -3177,7 +3179,8 @@ impl GlobalScope {
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.Performance(cx);
         }
-        unreachable!();
+        println!("{:?}", std::backtrace::Backtrace::capture());
+        unreachable!()
     }
 
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>

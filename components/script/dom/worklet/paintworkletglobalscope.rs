@@ -53,6 +53,7 @@ use crate::dom::paintsize::PaintSize;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit, WorkletTask};
 use crate::messaging::ScriptEventLoopSender;
+use crate::microtask::MicrotaskQueue;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
@@ -96,6 +97,7 @@ impl PaintWorkletGlobalScope {
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
         own_sender: Sender<WorkletControl>,
+        microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<PaintWorkletGlobalScope> {
         debug!(
             "Creating paint worklet global scope for pipeline {}.",
@@ -111,6 +113,7 @@ impl PaintWorkletGlobalScope {
                 init,
                 Some(ScriptEventLoopSender::Worklet(own_sender.clone())),
                 closing,
+                microtask_queue,
             ),
             image_cache: init.image_cache.clone(),
             paint_definitions: Default::default(),
