@@ -565,36 +565,69 @@ impl AccessibilityNode {
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
-        let mut local_damage = LocalAccessibilityDamage::empty();
         if !dom_damage.contains(AccessibilityDamage::Children) {
-            return local_damage;
+            return LocalAccessibilityDamage::empty();
         }
 
-        let dom_children: Vec<ServoLayoutNode> = dom_node.flat_tree_children().collect();
+        let mut remaining_dom_children = dom_node.flat_tree_children().peekable();
+        let mut old_child_ids = self.child_ids().iter().peekable();
+        let mut unchanged_count = 0usize;
 
-        let mut damage_from_children = LocalAccessibilityDamage::empty();
-        let mut new_child_ids = vec![];
-        let mut new_child_nodes = vec![];
-        for dom_child in dom_children {
-            let (child_id, child_node) = tree.get_or_create_node(&dom_child, update);
-            if update.is_new(&child_id) {
-                let child_damage = tree.update_node_and_descendants_from_dom_node(
-                    child_node.clone(),
+        // For the first `unchanged_count` children, no action is necessary.
+        while let Some(&old_id) = old_child_ids.peek() &&
+            let Some(dom_child) = remaining_dom_children.peek()
+        {
+            if tree.existing_id_for_opaque(dom_child.opaque()) == Some(*old_id) {
+                unchanged_count += 1;
+                old_child_ids.next();
+                remaining_dom_children.next();
+            } else {
+                break;
+            }
+        }
+
+        // If we iterated over all the dom children without finding any changes, we're done.
+        if old_child_ids.peek().is_none() && remaining_dom_children.peek().is_none() {
+            return LocalAccessibilityDamage::empty();
+        }
+
+        // Remove all child nodes after the first `unchanged_count`.
+        self.child_nodes.truncate(unchanged_count);
+        let mut new_child_ids = Vec::from(self.child_ids());
+        for removed_child_id in new_child_ids.split_off(unchanged_count) {
+            update.set_tree_state_change(removed_child_id, TreeChange::Removed);
+        }
+
+        // Then, (re-)add all the remaining DOM children. Note that this means that some children
+        // may end up being "Moved" even though they haven't changed parents, and may even be in the
+        // same position as previously.
+        for dom_child in remaining_dom_children {
+            let (new_id, new_child) = tree.get_or_create_node(&dom_child, update);
+            if update.is_new(&new_id) {
+                tree.update_node_and_descendants_from_dom_node(
+                    new_child.clone(),
                     &dom_child,
                     AccessibilityDamage::Rebuild,
                     update,
                 );
-                damage_from_children.insert(child_damage);
+            } else {
+                update.set_tree_state_change(new_id, TreeChange::PendingMove);
             }
-            new_child_ids.push(child_id);
-            new_child_nodes.push(child_node);
-        }
-        if !damage_from_children.is_empty() {
-            local_damage.insert(LocalAccessibilityDamage::SubtreeChanged);
+
+            // Update self.child_nodes in place.
+            self.child_nodes.push(new_child.clone());
+            new_child_ids.push(new_id);
+
+            let mut new_child = new_child.borrow_mut();
+            new_child.parent_node = Some(weak_self.clone());
         }
 
-        local_damage.insert(self.set_children(weak_self, new_child_ids, new_child_nodes, update));
-        local_damage
+        // We can't update the AccessKit node's `children` in place, so we build up the full list
+        // and then set it here.
+        self.accesskit_node.set_children(new_child_ids);
+        self.updated = true;
+
+        LocalAccessibilityDamage::SubtreeChanged
     }
 
     /// Update this node's properties from its corresponding DOM node.
@@ -693,50 +726,6 @@ impl AccessibilityNode {
 
     fn child_ids(&self) -> &[NodeId] {
         self.accesskit_node.children()
-    }
-
-    /// Set the children for this node, and set the subtree state change for any moved or removed
-    /// children.
-    fn set_children(
-        &mut self,
-        weak_self: WeakRefCell<Self>,
-        new_child_ids: Vec<NodeId>,
-        new_child_nodes: Vec<ArcRefCell<AccessibilityNode>>,
-        update: &mut AccessibilityUpdate,
-    ) -> LocalAccessibilityDamage {
-        if new_child_ids == self.child_ids() {
-            return LocalAccessibilityDamage::empty();
-        }
-
-        let old_child_ids = self.child_ids();
-
-        for (old_id, old_child) in old_child_ids.iter().zip(self.children().iter()) {
-            if !new_child_ids.contains(old_id) {
-                let mut removed_child = old_child.borrow_mut();
-                update.set_tree_state_change(*old_id, TreeChange::Removed);
-                if let Some(parent_node) = removed_child.parent_node.clone() &&
-                    parent_node.ptr_eq(&weak_self)
-                {
-                    removed_child.parent_node = None;
-                }
-            }
-        }
-
-        for (new_id, new_child) in new_child_ids.iter().zip(new_child_nodes.iter()) {
-            if !old_child_ids.contains(new_id) {
-                let mut new_child = new_child.borrow_mut();
-                new_child.parent_node = Some(weak_self.clone());
-                if !update.is_new(new_id) {
-                    update.set_tree_state_change(*new_id, TreeChange::PendingMove);
-                }
-            }
-        }
-
-        self.child_nodes = new_child_nodes;
-        self.accesskit_node.set_children(new_child_ids);
-        self.updated = true;
-
-        LocalAccessibilityDamage::SubtreeChanged
     }
 
     fn role(&self) -> Role {
@@ -951,13 +940,13 @@ fn test_accessibility_update_add_some_nodes_twice() {
         (id, node)
     })
     .collect();
-    let (child_node_ids, child_nodes) = nodes.iter().cloned().unzip();
-    root_node.borrow_mut().set_children(
-        root_node.downgrade(),
-        child_node_ids,
-        child_nodes,
-        &mut root_update,
-    );
+
+    {
+        let (child_node_ids, child_nodes): (Vec<_>, Vec<_>) = nodes.iter().cloned().unzip();
+        let mut root_node = root_node.borrow_mut();
+        root_node.accesskit_node.set_children(child_node_ids);
+        root_node.child_nodes = child_nodes;
+    }
 
     let mut update = AccessibilityUpdate::new(None);
 
