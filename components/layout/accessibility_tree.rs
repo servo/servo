@@ -565,12 +565,9 @@ impl AccessibilityNode {
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
-        let mut local_damage = LocalAccessibilityDamage::empty();
         if !dom_damage.contains(AccessibilityDamage::Children) {
-            return local_damage;
+            return LocalAccessibilityDamage::empty();
         }
-
-        let mut damage_from_children = LocalAccessibilityDamage::empty();
 
         let mut remaining_dom_children = dom_node.flat_tree_children().peekable();
         let mut old_child_ids = self.child_ids().iter().peekable();
@@ -591,7 +588,7 @@ impl AccessibilityNode {
 
         // If we iterated over all the dom children without finding any changes, we're done.
         if old_child_ids.peek().is_none() && remaining_dom_children.peek().is_none() {
-            return damage_from_children;
+            return LocalAccessibilityDamage::empty();
         }
 
         // Remove all child nodes after the first `unchanged_count`.
@@ -607,13 +604,12 @@ impl AccessibilityNode {
         for dom_child in remaining_dom_children {
             let (new_id, new_child) = tree.get_or_create_node(&dom_child, update);
             if update.is_new(&new_id) {
-                let child_damage = tree.update_node_and_descendants_from_dom_node(
+                tree.update_node_and_descendants_from_dom_node(
                     new_child.clone(),
                     &dom_child,
                     AccessibilityDamage::Rebuild,
                     update,
                 );
-                damage_from_children.insert(child_damage);
             } else {
                 update.set_tree_state_change(new_id, TreeChange::PendingMove);
             }
@@ -631,11 +627,7 @@ impl AccessibilityNode {
         self.accesskit_node.set_children(new_child_ids);
         self.updated = true;
 
-        if !damage_from_children.is_empty() {
-            local_damage.insert(LocalAccessibilityDamage::SubtreeChanged);
-        }
-
-        local_damage
+        LocalAccessibilityDamage::SubtreeChanged
     }
 
     /// Update this node's properties from its corresponding DOM node.
