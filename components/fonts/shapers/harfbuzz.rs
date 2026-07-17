@@ -20,11 +20,12 @@ use harfbuzz_sys::{
     hb_buffer_get_glyph_infos, hb_buffer_get_glyph_positions, hb_buffer_get_length,
     hb_buffer_set_cluster_level, hb_buffer_set_direction, hb_buffer_set_language,
     hb_buffer_set_script, hb_buffer_t, hb_codepoint_t, hb_face_create_for_tables, hb_face_destroy,
-    hb_face_t, hb_feature_t, hb_font_create, hb_font_destroy, hb_font_funcs_create,
-    hb_font_funcs_set_glyph_h_advance_func, hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t,
-    hb_font_set_funcs, hb_font_set_ppem, hb_font_set_scale, hb_font_set_variations, hb_font_t,
-    hb_glyph_info_t, hb_glyph_position_t, hb_language_from_string, hb_ot_layout_get_baseline,
-    hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t, hb_variation_t,
+    hb_face_t, hb_feature_t, hb_font_create, hb_font_create_sub_font, hb_font_destroy,
+    hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
+    hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
+    hb_font_set_scale, hb_font_set_variations, hb_font_t, hb_glyph_info_t, hb_glyph_position_t,
+    hb_language_from_string, hb_ot_layout_get_baseline, hb_position_t, hb_script_from_iso15924_tag,
+    hb_shape, hb_tag_t, hb_variation_t,
 };
 use num_traits::Zero;
 use read_fonts::types::Tag;
@@ -47,12 +48,12 @@ pub(crate) struct HarfbuzzGlyphShapingResult {
 }
 
 impl HarfbuzzGlyphShapingResult {
-    /// Create a new [`ShapedGlyphData`] from the given HarfBuzz buffer.
+    /// Create a new [`HarfbuzzGlyphShapingResult`] from the given HarfBuzz buffer.
     ///
     /// # Safety
     ///
     /// - Passing an invalid buffer pointer to this function results in undefined behavior.
-    /// - This function takes ownership of the buffer and the ShapedGlyphData destroys the buffer when dropped
+    /// - This function takes ownership of the buffer and the HarfbuzzGlyphShapingResult destroys the buffer when dropped
     ///   so the pointer must an owned pointer and must not be used after being passed to this function
     unsafe fn new(buffer: *mut hb_buffer_t) -> HarfbuzzGlyphShapingResult {
         let mut glyph_count = 0;
@@ -208,14 +209,6 @@ impl Shaper {
                 Shaper::float_to_fixed(pt_size) as c_int,
             );
 
-            // configure static function callbacks.
-            hb_font_set_funcs(
-                hb_font,
-                HB_FONT_FUNCS.0,
-                font as *const Font as *mut c_void,
-                None,
-            );
-
             if servo_config::pref!(layout_variable_fonts_enabled) {
                 let variations = &font.variations();
                 if !variations.is_empty() {
@@ -232,6 +225,22 @@ impl Shaper {
                 }
             }
 
+            // Create subfont before setting font-funcs so that we can
+            // inherit the default font-funcs for the funcs we don't set
+            let hb_font = {
+                let sub_font = hb_font_create_sub_font(hb_font);
+                hb_font_destroy(hb_font);
+                sub_font
+            };
+
+            // configure static function callbacks.
+            hb_font_set_funcs(
+                hb_font,
+                HB_FONT_FUNCS.0,
+                font as *const Font as *mut c_void,
+                None,
+            );
+
             Shaper {
                 hb_face,
                 hb_font,
@@ -241,7 +250,7 @@ impl Shaper {
     }
 
     /// Calculate the layout metrics associated with the given text with the [`Shaper`]s font.
-    fn shaped_glyph_data(
+    pub(crate) fn shaped_glyph_data(
         &self,
         text: &str,
         options: &ShapingOptions,
@@ -298,6 +307,7 @@ impl Shaper {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn shape_text(
         &self,
         text: &str,
@@ -309,6 +319,11 @@ impl Shaper {
             options,
             &self.shaped_glyph_data(text, options, font_features),
         )
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn font(&self) -> &Font {
+        unsafe { &(*self.font) }
     }
 
     pub(crate) fn baseline(&self) -> Option<FontBaseline> {
