@@ -369,7 +369,7 @@ type WrapFn<D, AbstractType> = unsafe fn(
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object_with_proto_and_cx_and_wrap<D, AbstractType, GlobalType>(
+pub fn reflect_dom_object_with_proto_and_wrap<D, AbstractType, GlobalType>(
     obj: Box<AbstractType>,
     global: &GlobalType,
     proto: Option<HandleObject>,
@@ -389,7 +389,7 @@ where
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object_with_cx_and_wrap<D, AbstractType, GlobalType>(
+pub fn reflect_dom_object_with_wrap<D, AbstractType, GlobalType>(
     obj: Box<AbstractType>,
     global: &GlobalType,
     cx: &mut js::context::JSContext,

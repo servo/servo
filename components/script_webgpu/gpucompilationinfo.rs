@@ -10,7 +10,7 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUCompilationInfoMethods, GPUCompilationInfoWrap,
 };
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx_and_wrap};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_wrap};
 use script_bindings::utils::to_frozen_array;
 use webgpu_traits::ShaderCompilationInfo;
 
@@ -44,7 +44,7 @@ where
         global: &D::GlobalScope,
         msg: Vec<DomRoot<GPUCompilationMessage<D>>>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx_and_wrap::<D, _, _>(
+        reflect_dom_object_with_proto_and_wrap::<D, _, _>(
             Box::new(Self::new_inherited(msg)),
             global,
             None,

@@ -11,7 +11,7 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUCompilationMessageMethods, GPUCompilationMessageType, GPUCompilationMessageWrap,
 };
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx_and_wrap};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::ShaderCompilationInfo;
 
 use crate::JSTraceable;
@@ -66,7 +66,7 @@ where
         offset: u64,
         length: u64,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx_and_wrap::<D, _, _>(
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(Self::new_inherited(
                 message, mtype, line_num, line_pos, offset, length,
             )),

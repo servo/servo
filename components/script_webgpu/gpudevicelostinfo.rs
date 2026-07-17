@@ -11,7 +11,7 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUDeviceLostInfoMethods, GPUDeviceLostInfoWrap, GPUDeviceLostReason,
 };
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx_and_wrap};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
@@ -45,7 +45,7 @@ where
         message: DOMString,
         reason: GPUDeviceLostReason,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx_and_wrap::<D, _, _>(
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUDeviceLostInfo::new_inherited(message, reason)),
             global,
             cx,
