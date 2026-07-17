@@ -120,7 +120,13 @@ impl LayerManagerAPI<SurfmanGL> for SurfmanLayerManager {
         };
         self.layers.retain(|&ids| ids != (context_id, layer_id));
         let _ = self.swap_chains.destroy(layer_id, &device, context);
-        self.surface_textures.remove(&layer_id);
+
+        if let Some(surface_texture) = self.surface_textures.remove(&layer_id) &&
+            let Ok(mut surface) = device.destroy_surface_texture(context, surface_texture)
+        {
+            let _ = device.destroy_surface(context, &mut surface);
+        }
+
         if let Some(depth_stencil_texture) = self.depth_stencil_textures.remove(&layer_id) {
             let gl = contexts.bindings(context_id).unwrap();
             if let Some(depth_stencil_texture) = depth_stencil_texture {
