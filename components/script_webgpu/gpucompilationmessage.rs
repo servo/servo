@@ -2,20 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUCompilationMessageMethods, GPUCompilationMessageType, GPUCompilationMessageWrap,
+};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx_and_wrap};
 use webgpu_traits::ShaderCompilationInfo;
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUCompilationMessageMethods, GPUCompilationMessageType,
-};
+use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::types::GlobalScope;
 
 #[dom_struct]
-pub(crate) struct GPUCompilationMessage {
+pub struct GPUCompilationMessage<D: DomTypes> {
     reflector_: Reflector,
     message: DOMString,
     mtype: GPUCompilationMessageType,
@@ -23,9 +27,14 @@ pub(crate) struct GPUCompilationMessage {
     line_pos: u64,
     offset: u64,
     length: u64,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl GPUCompilationMessage {
+impl<D> GPUCompilationMessage<D>
+where
+    D: DomTypes<GPUCompilationMessage = GPUCompilationMessage<D>>,
+{
     fn new_inherited(
         message: DOMString,
         mtype: GPUCompilationMessageType,
@@ -42,13 +51,14 @@ impl GPUCompilationMessage {
             line_pos,
             offset,
             length,
+            phantom: PhantomData,
         }
     }
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         message: DOMString,
         mtype: GPUCompilationMessageType,
         line_num: u64,
@@ -56,18 +66,19 @@ impl GPUCompilationMessage {
         offset: u64,
         length: u64,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object_with_cx_and_wrap::<D, _, _>(
             Box::new(Self::new_inherited(
                 message, mtype, line_num, line_pos, offset, length,
             )),
             global,
             cx,
+            GPUCompilationMessageWrap::<D>,
         )
     }
 
     pub(crate) fn from(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         info: ShaderCompilationInfo,
     ) -> DomRoot<Self> {
         GPUCompilationMessage::new(
@@ -83,7 +94,7 @@ impl GPUCompilationMessage {
     }
 }
 
-impl GPUCompilationMessageMethods<crate::DomTypeHolder> for GPUCompilationMessage {
+impl<D: DomTypes> GPUCompilationMessageMethods<D> for GPUCompilationMessage<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-message>
     fn Message(&self) -> DOMString {
         self.message.to_owned()

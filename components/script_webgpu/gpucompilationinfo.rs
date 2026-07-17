@@ -5,24 +5,34 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUCompilationInfoMethods, GPUCompilationInfoWrap,
+};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx_and_wrap};
+use script_bindings::utils::to_frozen_array;
 use webgpu_traits::ShaderCompilationInfo;
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUCompilationInfoMethods;
+use crate::JSTraceable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::utils::to_frozen_array;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::types::GPUCompilationMessage;
+use crate::gpucompilationmessage::GPUCompilationMessage;
 
 #[dom_struct]
-pub(crate) struct GPUCompilationInfo {
+pub struct GPUCompilationInfo<D: DomTypes> {
     reflector_: Reflector,
     // currently we only get one message from wgpu
-    msg: Vec<Dom<GPUCompilationMessage>>,
+    msg: Vec<Dom<GPUCompilationMessage<D>>>,
 }
 
-impl GPUCompilationInfo {
-    pub(crate) fn new_inherited(msg: Vec<DomRoot<GPUCompilationMessage>>) -> Self {
+impl<D> GPUCompilationInfo<D>
+where
+    D: DomTypes<
+            GPUCompilationInfo = GPUCompilationInfo<D>,
+            GPUCompilationMessage = GPUCompilationMessage<D>,
+        >,
+{
+    pub(crate) fn new_inherited(msg: Vec<DomRoot<GPUCompilationMessage<D>>>) -> Self {
         Self {
             reflector_: Reflector::new(),
             msg: msg.into_iter().map(|event| event.as_traced()).collect(),
@@ -31,15 +41,21 @@ impl GPUCompilationInfo {
 
     pub(crate) fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
-        msg: Vec<DomRoot<GPUCompilationMessage>>,
+        global: &D::GlobalScope,
+        msg: Vec<DomRoot<GPUCompilationMessage<D>>>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(Box::new(Self::new_inherited(msg)), global, None, cx)
+        reflect_dom_object_with_proto_and_cx_and_wrap::<D, _, _>(
+            Box::new(Self::new_inherited(msg)),
+            global,
+            None,
+            cx,
+            GPUCompilationInfoWrap::<D>,
+        )
     }
 
-    pub(crate) fn from(
+    pub fn from(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         error: Option<ShaderCompilationInfo>,
     ) -> DomRoot<Self> {
         let msg = error
@@ -49,10 +65,10 @@ impl GPUCompilationInfo {
     }
 }
 
-impl GPUCompilationInfoMethods<crate::DomTypeHolder> for GPUCompilationInfo {
+impl<D: DomTypes> GPUCompilationInfoMethods<D> for GPUCompilationInfo<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationinfo-messages>
     fn Messages(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        let messages: Vec<DomRoot<GPUCompilationMessage>> =
+        let messages: Vec<DomRoot<GPUCompilationMessage<D>>> =
             self.msg.iter().map(|msg| msg.as_rooted()).collect();
         to_frozen_array(cx, messages.as_slice(), retval)
     }

@@ -19,8 +19,14 @@ pub(crate) mod gpucanvascontext;
 pub(crate) mod gpucolorwrite;
 pub(crate) mod gpucommandbuffer;
 pub(crate) mod gpucommandencoder;
-pub(crate) mod gpucompilationinfo;
-pub(crate) mod gpucompilationmessage;
+pub(crate) mod gpucompilationinfo {
+    pub(crate) type GPUCompilationInfo =
+        script_webgpu::gpucompilationinfo::GPUCompilationInfo<crate::DomTypeHolder>;
+}
+pub(crate) mod gpucompilationmessage {
+    pub(crate) type GPUCompilationMessage =
+        script_webgpu::gpucompilationmessage::GPUCompilationMessage<crate::DomTypeHolder>;
+}
 pub(crate) mod gpucomputepassencoder;
 pub(crate) mod gpucomputepipeline;
 pub(crate) mod gpuconvert;

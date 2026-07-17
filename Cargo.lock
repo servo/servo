@@ -9131,6 +9131,7 @@ dependencies = [
  "servo-jstraceable-derive",
  "servo-malloc-size-of",
  "servo-script-bindings",
+ "servo-webgpu-traits",
 ]
 
 [[package]]

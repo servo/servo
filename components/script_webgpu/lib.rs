@@ -8,6 +8,8 @@
 
 pub mod gpuadapterinfo;
 pub mod gpubufferusage;
+pub mod gpucompilationinfo;
+pub mod gpucompilationmessage;
 
 pub(crate) use js::gc::Traceable as JSTraceable;
 pub(crate) use jstraceable_derive::JSTraceable;
@@ -41,6 +43,8 @@ pub(crate) mod codegen {
 
         use crate::gpuadapterinfo::GPUAdapterInfo;
         use crate::gpubufferusage::GPUBufferUsage;
+        use crate::gpucompilationinfo::GPUCompilationInfo;
+        use crate::gpucompilationmessage::GPUCompilationMessage;
         include!(concat!(
             env!("OUT_DIR"),
             "/ConcreteBindings/WebGPUBinding.rs"

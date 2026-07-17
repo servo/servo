@@ -8,12 +8,10 @@ use std::cell::RefCell;
 use std::thread::LocalKey;
 
 use js::context::JSContext;
-use js::conversions::ToJSValConvertible;
 use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, DOMCallbacks, JSObject};
 use js::realm::CurrentRealm;
-use js::rust::wrappers2::JS_FreezeObject;
-use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
+use js::rust::{HandleObject, get_object_class, is_dom_class};
 use script_bindings::interfaces::{DomHelpers, Interface};
 use script_bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_cx};
 use script_bindings::settings_stack::StackEntry;
@@ -48,22 +46,6 @@ impl GlobalStaticData {
 }
 
 pub(crate) use script_bindings::utils::*;
-
-/// Returns a JSVal representing the frozen JavaScript array
-pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
-    cx: &mut JSContext,
-    convertibles: &[T],
-    mut rval: MutableHandleValue,
-) {
-    script_bindings::conversions::SafeToJSValConvertible::safe_to_jsval(
-        convertibles,
-        cx,
-        rval.reborrow(),
-    );
-
-    rooted!(&in(cx) let obj = rval.to_object());
-    unsafe { JS_FreezeObject(cx, obj.handle()) };
-}
 
 /// Returns wether `obj` is a platform object using static unwrap
 /// <https://heycam.github.io/webidl/#dfn-platform-object>
