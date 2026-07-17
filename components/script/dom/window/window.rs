@@ -2617,7 +2617,7 @@ impl Window {
             .ensure_safe_to_run_script_or_layout();
 
         // Explicitly match, so that a variant addition (unlikely but possible)
-        // would break here, and force consider if parents are already layed out
+        // would break here, and force considering if parents are already laid out
         // or need a flush.
         match reflow_goal {
             ReflowGoal::LayoutQuery(_) | ReflowGoal::UpdateScrollNode(..) => {
@@ -2888,7 +2888,7 @@ impl Window {
         }
         parent_window.flush_ancestor_layouts_if_necessary(cx);
         if parent_window
-            .Document()
+            .document_unrooted(cx.no_gc())
             .restyle_reason(cx.no_gc())
             .needs_restyle()
         {
