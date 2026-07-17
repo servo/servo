@@ -40,7 +40,11 @@ pub(crate) unsafe extern "C" fn write_jsprincipal(
     };
 
     unsafe {
-        if !js::jsapi::JS_WriteUint32Pair(writer, StructuredCloneTags::Principals as u32, len) {
+        if !js::jsapi::JS_WriteUint32PairUnchecked(
+            writer,
+            StructuredCloneTags::Principals as u32,
+            len,
+        ) {
             return false;
         }
         if !js::jsapi::JS_WriteBytes(writer, bytes_of_origin.as_ptr() as _, len as usize) {
