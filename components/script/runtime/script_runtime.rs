@@ -931,7 +931,6 @@ impl Runtime {
         } else {
             AsmJSOption::DisabledByAsmJSPref
         };
-        cx_opts.compileOptions_.set_importAttributes_(true);
         let wasm_enabled = pref!(js_wasm_enabled);
         cx_opts.set_wasm_(wasm_enabled);
         if wasm_enabled {
