@@ -10,7 +10,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use itertools::izip;
 use rayon::iter::{
-    IndexedParallelIterator, IntoParallelRefIterator, ParallelDrainRange, ParallelIterator,
+    IndexedParallelIterator, IntoParallelIterator, ParallelDrainRange, ParallelIterator,
 };
 use style::Zero;
 use style::computed_values::position::T as Position;
@@ -1227,34 +1227,41 @@ impl InitialFlexLineLayout<'_> {
         );
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-item
-        let layout_results: Vec<_> = if flex_context
+        let items: Vec<_> = if flex_context
             .layout_context
             .should_parallelize_layout(items.iter().map(FlexItem::subtree_size))
         {
             items
-                .par_iter()
+                .into_par_iter()
                 .zip(&item_used_main_sizes)
-                .map(|(item, used_main_size)| item.layout(*used_main_size, flex_context, None))
+                .map(|(item, used_main_size)| {
+                    let layout_result = item.layout(*used_main_size, flex_context, None);
+                    (item, layout_result, used_main_size)
+                })
+                .map(|(item, layout_result, used_main_size)| FlexLineItem {
+                    item,
+                    layout_result,
+                    used_main_size: *used_main_size,
+                })
                 .collect()
         } else {
-            items
+            let flex_item_layout_results: Vec<_> = items
                 .iter()
                 .zip(&item_used_main_sizes)
                 .map(|(item, used_main_size)| item.layout(*used_main_size, flex_context, None))
-                .collect()
+                .collect();
+            izip!(
+                items.into_iter(),
+                flex_item_layout_results.into_iter(),
+                item_used_main_sizes.into_iter()
+            )
+            .map(|(item, layout_result, used_main_size)| FlexLineItem {
+                item,
+                layout_result,
+                used_main_size,
+            })
+            .collect()
         };
-
-        let items: Vec<_> = izip!(
-            items.into_iter(),
-            layout_results.into_iter(),
-            item_used_main_sizes.into_iter()
-        )
-        .map(|(item, layout_result, used_main_size)| FlexLineItem {
-            item,
-            layout_result,
-            used_main_size,
-        })
-        .collect();
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-line
         let line_cross_size = Self::cross_size(&items, flex_context);
