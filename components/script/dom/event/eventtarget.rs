@@ -21,6 +21,7 @@ use js::rust::wrappers2::CompileFunction;
 use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text};
 use libc::c_char;
 use rustc_hash::{FxBuildHasher, FxHashSet};
+use script_bindings::callback::OwnerWindow;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto_and_cx};
@@ -1147,5 +1148,11 @@ impl Convert<EventListenerOptions> for EventListenerOptionsOrBoolean {
             EventListenerOptionsOrBoolean::EventListenerOptions(options) => options,
             EventListenerOptionsOrBoolean::Boolean(capture) => EventListenerOptions { capture },
         }
+    }
+}
+
+impl OwnerWindow<crate::DomTypeHolder> for EventTarget {
+    fn owner_window(&self) -> Option<DomRoot<Window>> {
+        self.downcast::<Node>().map(|node| node.owner_window())
     }
 }

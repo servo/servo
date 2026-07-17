@@ -425,3 +425,5 @@ fn calculate_box_size(
         },
     }
 }
+
+impl script_bindings::callback::OwnerWindow<crate::DomTypeHolder> for ResizeObserver {}

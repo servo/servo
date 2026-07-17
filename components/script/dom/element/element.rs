@@ -175,6 +175,7 @@ use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
+use crate::dom::window::Window;
 use crate::layout_dom::ServoDangerousStyleElement;
 use crate::realms::enter_auto_realm;
 use crate::script_thread::ScriptThread;
@@ -5385,4 +5386,10 @@ pub(crate) fn is_element_affected_by_legacy_background_presentational_hint(
                 local_name!("td") |
                 local_name!("th")
         )
+}
+
+impl script_bindings::callback::OwnerWindow<crate::DomTypeHolder> for Element {
+    fn owner_window(&self) -> Option<DomRoot<Window>> {
+        Some(NodeTraits::owner_window(self))
+    }
 }

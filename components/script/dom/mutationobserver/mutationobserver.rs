@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::callback::OwnerWindow;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
@@ -378,3 +379,5 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
         self.record_queue.borrow_mut().clear();
     }
 }
+
+impl OwnerWindow<crate::DomTypeHolder> for MutationObserver {}

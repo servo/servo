@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::callback::OwnerWindow;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::dom::bindings::callback::ExceptionHandling::Rethrow;
@@ -232,3 +233,5 @@ pub(crate) enum Filter {
     None,
     Callback(#[ignore_malloc_size_of = "callbacks are hard"] Rc<NodeFilter>),
 }
+
+impl OwnerWindow<crate::DomTypeHolder> for NodeIterator {}

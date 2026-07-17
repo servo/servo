@@ -17,6 +17,7 @@ use js::rust::wrappers2::JS_GetScriptedCallerPrivate;
 use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::ParserMetadata;
 use rustc_hash::FxHashMap;
+use script_bindings::callback::OwnerWindow;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::DomObject;
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,7 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use timers::{BoxedTimerCallback, TimerEventRequest};
 
+use crate::DomTypeHolder;
 use crate::dom::bindings::callback::ExceptionHandling::Report;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
@@ -148,7 +150,12 @@ pub(crate) enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers, cx: &mut JSContext) {
+    fn invoke<T: DomObject + OwnerWindow<DomTypeHolder>>(
+        self,
+        this: &T,
+        js_timers: &JsTimers,
+        cx: &mut JSContext,
+    ) {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(cx),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
@@ -784,7 +791,12 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, cx: &mut JSContext) {
+    fn invoke<T: DomObject + OwnerWindow<DomTypeHolder>>(
+        self,
+        this: &T,
+        timers: &JsTimers,
+        cx: &mut JSContext,
+    ) {
         // step 9.2 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 

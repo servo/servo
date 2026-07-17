@@ -54,6 +54,7 @@ use profile_traits::{
     time as profile_time,
 };
 use rustc_hash::{FxBuildHasher, FxHashMap};
+use script_bindings::callback::OwnerWindow;
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use script_bindings::reflector::DomObject;
@@ -3615,3 +3616,5 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         self.is_secure_context()
     }
 }
+
+impl OwnerWindow<DomTypeHolder> for GlobalScope {}

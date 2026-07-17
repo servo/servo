@@ -8,6 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
+use script_bindings::callback::OwnerWindow;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 
@@ -214,3 +215,5 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         taken
     }
 }
+
+impl OwnerWindow<crate::DomTypeHolder> for PerformanceObserver {}
