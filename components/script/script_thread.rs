@@ -3351,6 +3351,11 @@ impl ScriptThread {
 
         // TODO: This should only dirty nodes that are waiting for a web font to finish loading!
         document.dirty_all_nodes(no_gc);
+
+        document
+            .window()
+            .font_context()
+            .decrement_count_of_loading_fonts_by_one();
     }
 
     /// Handles a worklet being loaded by triggering a relayout of the page. Does nothing if the

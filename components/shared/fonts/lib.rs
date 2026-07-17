@@ -188,7 +188,7 @@ impl WebFontSetDifference {
 #[derive(Clone, MallocSizeOf)]
 pub struct FontFaceRuleWithOrigin {
     #[conditional_malloc_size_of]
-    rule: ServoArc<LockedFontFaceRule>,
+    pub rule: ServoArc<LockedFontFaceRule>,
     origin: Origin,
 }
 
