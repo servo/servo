@@ -27,6 +27,7 @@ testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
 webgpu = [
+    "dep:script_webgpu",
     "dep:webgpu_traits",
     "dep:wgpu-core",
     "dep:wgpu-types",
@@ -128,6 +129,7 @@ resvg = { workspace = true }
 rsa = { workspace = true }
 rustc-hash = { workspace = true }
 script_bindings = { workspace = true }
+script_webgpu = { workspace = true, optional = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
 seq-macro = { workspace = true }

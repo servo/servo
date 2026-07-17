@@ -4,7 +4,10 @@
 
 pub(crate) mod gpu;
 pub(crate) mod gpuadapter;
-pub(crate) mod gpuadapterinfo;
+pub(crate) mod gpuadapterinfo {
+    pub(crate) type GPUAdapterInfo =
+        script_webgpu::gpuadapterinfo::GPUAdapterInfo<crate::DomTypeHolder>;
+}
 pub(crate) mod gpubindgroup;
 pub(crate) mod gpubindgrouplayout;
 pub(crate) mod gpubuffer;

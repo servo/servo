@@ -162,12 +162,15 @@ pub(crate) use script_bindings::{callback, iterable, num};
 
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]
+#[expect(unused)]
 pub(crate) mod codegen {
     pub(crate) mod DomTypeHolder {
         include!(concat!(env!("OUT_DIR"), "/DomTypeHolder.rs"));
     }
     pub(crate) use script_bindings::codegen::GenericBindings;
     #[expect(dead_code)]
+    #[allow(non_camel_case_types)]
+    #[allow(clippy::upper_case_acronyms)]
     pub(crate) mod Bindings {
         include!(concat!(env!("OUT_DIR"), "/ConcreteBindings/mod.rs"));
     }

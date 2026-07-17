@@ -49,6 +49,7 @@ class Configuration:
     typedefs: list[IDLTypedef]
     dictionaries: list[IDLDictionary]
     callbacks: list[IDLCallback]
+    sub_crates: dict[str,list[str]]
 
     def __init__(self, filename: str, parseData: list[IDLObjectWithIdentifier]) -> None:
         # Read the configuration file.
@@ -58,6 +59,7 @@ class Configuration:
         self.enumConfig = glbl['Enums']
         self.dictConfig = glbl['Dictionaries']
         self.unionConfig = glbl['Unions']
+        self.sub_crates = glbl['SubCrates']
 
         # Build descriptors for all the interfaces we have in the parse data.
         # This allows callers to specify a subset of interfaces by filtering
