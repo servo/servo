@@ -34,6 +34,7 @@ use script_bindings::settings_stack::run_a_script;
 use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId};
 use webdriver::error::ErrorStatus;
+use servo_config::pref;
 
 use crate::DomTypeHolder;
 use crate::dom::Promise;
@@ -520,6 +521,7 @@ fn clone_an_object(
                         JavaScriptEvaluationResultSerializationError::UnknownType,
                     ));
                 },
+
             },
             Err(error) => {
                 throw_dom_exception(cx, global_scope, error);
@@ -1392,16 +1394,48 @@ pub(crate) fn handle_get_computed_role(
     node_id: String,
     reply: GenericSender<Result<Option<String>, ErrorStatus>>,
 ) {
-    reply
-        .send(
-            get_known_element(documents, pipeline, node_id)
-                // FIXME: Actually compute the role instead of using WAI-ARIA role.
-                // <https://github.com/servo/servo/issues/43734>
-                // The logic can then be shared with devtools accessibility inspector.
-                .map(|element| element.get_computed_role().map(String::from)),
-        )
-        .unwrap();
+    if pref!(accessibility_enabled){
+        reply
+            .send(
+
+                get_known_element(documents, pipeline, node_id)
+                    // WIP: Actually compute the role instead of using WAI-ARIA role.
+                    // <https://github.com/servo/servo/issues/43734>
+                    // The logic can then be shared with devtools accessibility inspector.
+                    .map(|element| {
+                        let document = element.upcast::<Node>().owner_doc();
+                        let window = document.window();
+                        let epoch = document.current_rendering_epoch();
+                        window.layout().set_accessibility_active(true, epoch);
+                       element.get_computed_role().map(String::from)
+                    }),
+            )
+            .unwrap();
+    } else {
+        reply.send(Err(ErrorStatus::UnsupportedOperation)).unwrap()
+    }
+
 }
+// pub(crate) fn handle_computed_role(documents: &DocumentCollection,
+//                                    pipeline: PipelineId,
+//                                    reply: GenericSender<Option<String>>,) {
+//     // ... existing browsing context checks ...
+//
+//     // Activate accessibility and wait for the tree to be built
+//     let (sender, receiver) = generic_channel::channel().unwrap();
+//     self.send_message_to_embedder(WebDriverCommandMsg::SetAccessibilityActive(
+//         self.webview_id()?, true, sender
+//     ))?;
+//     wait_for_ipc_response_flatten(receiver)?;  // blocks until reflow done
+//
+//     // Now query
+//     let (sender, receiver) = generic_channel::channel().unwrap();
+//     let cmd = WebDriverScriptCommand::GetComputedRole(element.to_string(), sender);
+//     self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+//     Ok(WebDriverResponse::Generic(ValueResponse(
+//         serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
+//     )))
+// }
 
 pub(crate) fn handle_get_page_source(
     cx: &mut JSContext,

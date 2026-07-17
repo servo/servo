@@ -524,12 +524,12 @@ impl Layout for LayoutThread {
     }
 
     fn query_accesskit_node(&self, node: TrustedNodeAddress) -> Option<Node> {
-        // TODO: enable accessibility pref accessibility_enabled (in prefernces)
-        // & set_accessibility_active (see: alice's comment on GH)
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let mut accessibility_tree = self.accessibility_tree.borrow_mut();
-        let mut accessibility_tree = accessibility_tree.as_mut()?;
-        accessibility_tree.accesskit_node_for_dom_node(&node)
+        with_layout_state (|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let mut accessibility_tree = self.accessibility_tree.borrow_mut();
+            let accessibility_tree = accessibility_tree.as_mut()?;
+            accessibility_tree.accesskit_node_for_dom_node(&node)
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
