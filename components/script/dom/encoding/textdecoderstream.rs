@@ -9,7 +9,7 @@ use encoding_rs::Encoding;
 use js::conversions::{FromJSValConvertible, ToJSValConvertible};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::DomTypes;
 use crate::dom::bindings::codegen::Bindings::TextDecoderBinding;
@@ -131,11 +131,11 @@ impl TextDecoderStream {
         let transform_stream = TransformStream::new_with_proto(cx, global, None);
         transform_stream.set_up(cx, global, transformer_type)?;
 
-        Ok(reflect_dom_object_with_proto_and_cx(
+        Ok(reflect_dom_object_with_proto(
+            cx,
             Box::new(TextDecoderStream::new_inherited(decoder, &transform_stream)),
             global,
             proto,
-            cx,
         ))
     }
 }

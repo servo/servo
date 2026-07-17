@@ -10,7 +10,7 @@ use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::rust::HandleObject;
 use js::typedarray::Float32Array;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::iir_filter_node::{IIRFilterNode as IIRFilter, IIRFilterNodeOptions};
 use servo_media::audio::node::AudioNodeInit;
 
@@ -91,11 +91,11 @@ impl IIRFilterNode {
         options: &IIRFilterOptions,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
         let node = IIRFilterNode::new_inherited(cx, window, context, options)?;
-        Ok(reflect_dom_object_with_proto_and_cx(
+        Ok(reflect_dom_object_with_proto(
+            cx,
             Box::new(node),
             window,
             proto,
-            cx,
         ))
     }
 }

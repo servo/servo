@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
@@ -98,11 +98,11 @@ impl StereoPannerNode {
         options: &StereoPannerOptions,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
         let node = StereoPannerNode::new_inherited(cx, window, context, options)?;
-        Ok(reflect_dom_object_with_proto_and_cx(
+        Ok(reflect_dom_object_with_proto(
+            cx,
             Box::new(node),
             window,
             proto,
-            cx,
         ))
     }
 }
