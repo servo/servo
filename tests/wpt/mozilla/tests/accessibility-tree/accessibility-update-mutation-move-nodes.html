@@ -16,35 +16,19 @@
       ServoTestUtils.ensureAccessibilityActive();
       let initial = ServoTestUtils.forceAccessibilityUpdate();
 
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromDom,
-        23,
-        "accessibilityNodesUpdatedFromDom",
-      );
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromTree,
-        23,
-        "accessibilityNodesUpdatedFromTree",
-      );
-      assert_equals(
-        initial.accessibilityNodesInTreeUpdate,
-        23,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(initial.nodesUpdatedFromDom, 23, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 23, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 23, "nodesInTreeUpdate");
 
       div1.moveBefore(h1, null);
       div2.appendChild(h2);
-      let incremental = window.ServoTestUtils.forceAccessibilityUpdate();
+      let update = window.ServoTestUtils.forceAccessibilityUpdate();
 
       // Nodes updated from DOM:
       // - div1 (child added)
       // - div2 (child added)
       // - <section> (children removed)
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromDom,
-        3,
-        "accessibilityNodesUpdatedFromDom",
-      );
+      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
 
       // Nodes checked for changes based on the tree:
       // - the document
@@ -52,21 +36,13 @@
       // - <section>
       // - div1
       // - div2
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromTree,
-        5,
-        "accessibilityNodesUpdatedFromTree",
-      );
+      assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
 
       //  updated nodes:
       // - <section>, which had 2 children removed
       // - div1, which had 1 node (<h1>) added
       // - div2, which had 1 node (<h2>) added
-      assert_equals(
-        incremental.accessibilityNodesInTreeUpdate,
-        3,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(update.nodesInTreeUpdate, 3, "nodesInTreeUpdate");
     }, "Moving two nodes should update 3 nodes");
 
     done();

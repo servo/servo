@@ -19,56 +19,32 @@
       ServoTestUtils.ensureAccessibilityActive();
       let initial = ServoTestUtils.forceAccessibilityUpdate();
 
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromDom,
-        29,
-        "accessibilityNodesUpdatedFromDom",
-      );
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromTree,
-        29,
-        "accessibilityNodesUpdatedFromTree",
-      );
-      assert_equals(
-        initial.accessibilityNodesInTreeUpdate,
-        29,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(initial.nodesUpdatedFromDom, 29, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 29, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 29, "nodesInTreeUpdate");
 
       div3.moveBefore(div2, h2);
       div3.moveBefore(h1, div2);
       p.remove();
       div1.remove();
 
-      let incremental = ServoTestUtils.forceAccessibilityUpdate();
+      let update = ServoTestUtils.forceAccessibilityUpdate();
 
       // Updated nodes:
       // - div1 (div2 removed - redundant update, since div1 is removed!)
       // - <section> (div1 removed)
       // - div2 (<p> and <h1> removed)
       // - div3 (new children)
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromDom,
-        4,
-        "accessibilityNodesUpdatedFromDom",
-      );
+      assert_equals(update.nodesUpdatedFromDom, 4, "nodesUpdatedFromDom");
 
       // <html>, <body>, <section>, div3, div2
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromTree,
-        5,
-        "accessibilityNodesUpdatedFromTree",
-      );
+      assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
 
       // Changed nodes:
       // - <section>, children changed
       // - div2, children changed
       // - div3, children changed
-      assert_equals(
-        incremental.accessibilityNodesInTreeUpdate,
-        3,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(update.nodesInTreeUpdate, 3, "nodesInTreeUpdate");
     }, "");
 
     done();

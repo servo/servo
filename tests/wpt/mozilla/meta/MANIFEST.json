@@ -11381,42 +11381,42 @@
   "testharness": {
    "accessibility-tree": {
     "accessibility-update-basic-mutation.html": [
-     "a1d9dab44d95dc6ee217d277ff9555266fcd91cd",
+     "c5a01a3e528caa3d3925140ea8f575865c549c26",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-children-of-heading-change.html": [
-     "4ba4201f4dd4e8d00d5bb7e968ce68a49d2249fb",
+     "ab99aa03cc40917d5d57159d73ac137db37900b8",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-descendants-of-heading-change.html": [
-     "87c9b0284bf5b4ccd7d1cb9d56a4186ca81fa36f",
+     "93eb71919ef1055271731d9b2aa476cb43dc3b42",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-mutation-move-nodes.html": [
-     "bef5853f9bbfcbcb766cfc69052ed67f2bac8ef4",
+     "37da877ec1f10341d26cd9f6701c304af8ae5952",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-partial-subtree-move-and-delete.html": [
-     "ef369037f48a72fa21ab232fcb7e04c8c056aec9",
+     "5c9a9b12f7fcc87955cc6418c0789320666d5abf",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-text-change.html": [
-     "ebb377d1467e9b734cd325f3c34e17bedf820c2f",
+     "86b2ff626306b6d4aab36baef7fdeed7296fa97d",
      [
       null,
       {}

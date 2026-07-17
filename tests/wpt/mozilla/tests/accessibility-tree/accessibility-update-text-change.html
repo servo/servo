@@ -13,47 +13,23 @@
       ServoTestUtils.ensureAccessibilityActive();
       let initial = ServoTestUtils.forceAccessibilityUpdate();
 
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromDom,
-        16,
-        "accessibilityNodesUpdatedFromDom",
-      );
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromTree,
-        16,
-        "accessibilityNodesUpdatedFromTree",
-      );
-      assert_equals(
-        initial.accessibilityNodesInTreeUpdate,
-        16,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(initial.nodesUpdatedFromDom, 16, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 16, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 16, "nodesInTreeUpdate");
 
       h1.firstChild.appendData(", now with more text");
-      let incremental = window.ServoTestUtils.forceAccessibilityUpdate();
+      let update = window.ServoTestUtils.forceAccessibilityUpdate();
 
       // Just the text node has changed
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromDom,
-        1,
-        "accessibilityNodesUpdatedFromDom",
-      );
+      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
 
       // The document, <body>, <section>, <h1> and the text node.
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromTree,
-        5,
-        "accessibilityNodesUpdatedFromTree",
-      );
+      assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
 
       //  updated nodes:
       // - <h1>, computed label changed
       // - text child of <h1>, value changed
-      assert_equals(
-        incremental.accessibilityNodesInTreeUpdate,
-        2,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(update.nodesInTreeUpdate, 2, "nodesInTreeUpdate");
     }, "Append data to text node should update 2 nodes");
 
     done();

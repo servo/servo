@@ -11,48 +11,24 @@
       ServoTestUtils.ensureAccessibilityActive();
       let initial = ServoTestUtils.forceAccessibilityUpdate();
 
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromDom,
-        15,
-        "accessibilityNodesUpdatedFromDom",
-      );
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromTree,
-        15,
-        "accessibilityNodesUpdatedFromTree",
-      );
-      assert_equals(
-        initial.accessibilityNodesInTreeUpdate,
-        15,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(initial.nodesUpdatedFromDom, 15, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 15, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 15, "nodesInTreeUpdate");
 
       document.querySelector("code").remove();
 
-      let incremental = ServoTestUtils.forceAccessibilityUpdate();
+      let update = ServoTestUtils.forceAccessibilityUpdate();
 
       // Updated nodes:
       // - h2 (<code> removed)
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromDom,
-        1,
-        "accessibilityNodesUpdatedFromDom",
-      );
+      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
 
       // <html>, <body>, <h2>
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromTree,
-        3,
-        "accessibilityNodesUpdatedFromTree",
-      );
+      assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
 
       // Changed nodes:
       // - <h2>, children and label changed
-      assert_equals(
-        incremental.accessibilityNodesInTreeUpdate,
-        1,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
     }, "");
 
     done();

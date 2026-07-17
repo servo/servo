@@ -14,46 +14,22 @@
       ServoTestUtils.ensureAccessibilityActive();
       let initial = ServoTestUtils.forceAccessibilityUpdate();
 
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromDom,
-        19,
-        "accessibilityNodesUpdatedFromDom",
-      );
-      assert_equals(
-        initial.accessibilityNodesUpdatedFromTree,
-        19,
-        "accessibilityNodesUpdatedFromTree",
-      );
-      assert_equals(
-        initial.accessibilityNodesInTreeUpdate,
-        19,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(initial.nodesUpdatedFromDom, 19, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 19, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 19, "nodesInTreeUpdate");
 
       document.getElementById("h2").remove();
-      let incremental = ServoTestUtils.forceAccessibilityUpdate();
+      let update = ServoTestUtils.forceAccessibilityUpdate();
 
       // Only the <section> is updated from the DOM
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromDom,
-        1,
-        "accessibilityNodesUpdatedFromDom",
-      );
+      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
 
       // The <section>, its parent <body> and the document are checked for changes as their subtrees
       // changed
-      assert_equals(
-        incremental.accessibilityNodesUpdatedFromTree,
-        3,
-        "accessibilityNodesUpdatedFromTree",
-      );
+      assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
 
       // The only node in the tree update should be the parent <section> of the removed <h2>
-      assert_equals(
-        incremental.accessibilityNodesInTreeUpdate,
-        1,
-        "accessibilityNodesInTreeUpdate",
-      );
+      assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
     }, "Remove h2 should update one node");
 
     done();

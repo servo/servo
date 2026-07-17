@@ -962,10 +962,10 @@ impl LayoutThread {
                 ));
         }
 
-        reflow_statistics.accessibility_nodes_updated_from_dom =
+        reflow_statistics.nodes_updated_from_dom =
             counters.update_node_and_descendants_from_dom_node;
-        reflow_statistics.accessibility_nodes_updated_from_tree = counters.update_node_local;
-        reflow_statistics.accessibility_nodes_in_tree_update = counters.nodes_in_tree_update;
+        reflow_statistics.nodes_updated_from_tree = counters.update_node_local;
+        reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
         self.needs_accessibility_update.set(false);
         true
