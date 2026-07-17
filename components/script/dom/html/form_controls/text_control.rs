@@ -12,16 +12,17 @@ use std::cell::Ref;
 use script_bindings::cell::DomRefCell;
 use servo_base::text::Utf16CodeUnitLength;
 
-use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::text_input::{
+    EmbedderClipboardProvider, SelectionDirection, SelectionState, TextInput,
+};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::Element;
-use crate::textinput::{SelectionDirection, SelectionState, TextInput};
 
 pub(crate) trait TextControlElement:
     DerivedFrom<EventTarget> + DerivedFrom<Node> + DerivedFrom<Element>

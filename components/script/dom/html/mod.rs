@@ -4,6 +4,7 @@
 
 pub(crate) mod documentmetadata;
 pub(crate) use self::documentmetadata::*;
+pub(crate) mod form_controls;
 pub(crate) mod htmlanchorelement;
 pub(crate) mod htmlareaelement;
 pub(crate) mod htmlaudioelement;

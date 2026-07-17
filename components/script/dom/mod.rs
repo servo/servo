@@ -327,7 +327,6 @@ pub(crate) use self::svg::*;
 mod testing;
 #[cfg(feature = "testbinding")]
 pub(crate) use self::testing::*;
-pub(crate) mod textcontrol;
 pub(crate) mod timeranges;
 pub(crate) mod touch;
 pub(crate) use self::touch::*;

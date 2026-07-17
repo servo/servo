@@ -26,7 +26,6 @@ mod script_window_proxies;
 #[macro_use]
 mod task;
 mod body;
-pub(crate) mod clipboard_provider;
 pub(crate) mod conversions;
 mod devtools;
 pub(crate) mod document_loader;
@@ -65,7 +64,6 @@ mod task_manager;
 mod task_queue;
 mod task_source;
 pub mod test;
-pub mod textinput;
 mod timers;
 mod webdriver_handlers;
 mod window_named_properties;

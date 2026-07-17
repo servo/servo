@@ -9,8 +9,9 @@
 
 use keyboard_types::{Key, Modifiers, NamedKey};
 use script::test::DOMString;
-use script::test::textinput::{ClipboardProvider, Direction, SelectionDirection, TextInput};
-use script::textinput::Lines;
+use script::test::text_input::{
+    ClipboardProvider, Direction, Lines, SelectionDirection, TextInput,
+};
 use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use servo_base::{RopeIndex, RopeMovement};
 
