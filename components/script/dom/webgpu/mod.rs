@@ -31,7 +31,10 @@ pub(crate) mod gpucomputepassencoder;
 pub(crate) mod gpucomputepipeline;
 pub(crate) mod gpuconvert;
 pub(crate) mod gpudevice;
-pub(crate) mod gpudevicelostinfo;
+pub(crate) mod gpudevicelostinfo {
+    pub(crate) type GPUDeviceLostInfo =
+        script_webgpu::gpudevicelostinfo::GPUDeviceLostInfo<crate::DomTypeHolder>;
+}
 pub(crate) mod gpuerror;
 pub(crate) mod gpuexternaltexture;
 pub(crate) mod gpuinternalerror;
