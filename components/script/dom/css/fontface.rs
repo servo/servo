@@ -14,7 +14,7 @@ use fonts::{
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use style::error_reporting::ParseErrorReporter;
 use style::font_face::SourceList;
 use style::properties::font_face::Descriptors;
@@ -200,7 +200,11 @@ impl ParseErrorReporter for FontFaceErrorReporter {
 impl FontFace {
     /// Construct a [`FontFace`] to be used in the case of failure in parsing the
     /// font face descriptors.
-    fn new_failed_font_face(cx: &mut JSContext, global: &GlobalScope) -> Self {
+    fn new_failed_font_face(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<Self> {
         let font_status_promise = Promise::new(cx, global);
         // If any of them fail to parse correctly, reject font face’s [[FontStatusPromise]] with a
         // DOMException named "SyntaxError"
@@ -208,61 +212,42 @@ impl FontFace {
 
         // set font face’s corresponding attributes to the empty string, and set font face’s status
         // attribute to "error"
-        Self {
-            reflector: Reflector::new(),
-            font_face_set: MutNullableDom::default(),
-            font_status_promise,
-            family_name: DomRefCell::default(),
-            urls: Default::default(),
-            descriptors: DomRefCell::new(FontFaceDescriptors {
-                ascentOverride: DOMString::new(),
-                descentOverride: DOMString::new(),
-                display: DOMString::new(),
-                featureSettings: DOMString::new(),
-                lineGapOverride: DOMString::new(),
-                stretch: DOMString::new(),
-                style: DOMString::new(),
-                unicodeRange: DOMString::new(),
-                variationSettings: DOMString::new(),
-                weight: DOMString::new(),
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(Self {
+                reflector: Reflector::new(),
+                font_face_set: MutNullableDom::default(),
+                font_status_promise,
+                family_name: DomRefCell::default(),
+                urls: Default::default(),
+                descriptors: DomRefCell::new(FontFaceDescriptors {
+                    ascentOverride: DOMString::new(),
+                    descentOverride: DOMString::new(),
+                    display: DOMString::new(),
+                    featureSettings: DOMString::new(),
+                    lineGapOverride: DOMString::new(),
+                    stretch: DOMString::new(),
+                    style: DOMString::new(),
+                    unicodeRange: DOMString::new(),
+                    variationSettings: DOMString::new(),
+                    weight: DOMString::new(),
+                }),
+                status: Cell::new(FontFaceLoadStatus::Error),
+                template: RefCell::default(),
+                css_font_face_rule: Default::default(),
             }),
-            status: Cell::new(FontFaceLoadStatus::Error),
-            template: RefCell::default(),
-            css_font_face_rule: Default::default(),
-        }
+            global,
+            proto,
+        )
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#font-face-constructor>
-    ///
-    /// If `source` is none then the `FontFace` is being constructed from an `ArrayBuffer`.
-    /// The `ArrayBuffer` itself is not relevant for this function.
     fn new_inherited(
-        cx: &mut JSContext,
-        global: &GlobalScope,
         family_name: DOMString,
-        source: Option<&DOMString>,
-        descriptors: &FontFaceDescriptors,
+        urls: Option<SourceList>,
+        descriptors: &Descriptors,
+        font_status_promise: Rc<Promise>,
     ) -> Self {
-        // Step 1. Parse the family argument, and the members of the descriptors argument,
-        // according to the grammars of the corresponding descriptors of the CSS @font-face rule If
-        // the source argument is a CSSOMString, parse it according to the grammar of the CSS src
-        // descriptor of the @font-face rule.
-        let parse_result = parse_font_face_descriptors(global, &family_name, source, descriptors);
-
-        let Ok(ref parsed_font_face_rule) = parse_result else {
-            // If any of them fail to parse correctly, reject font face’s
-            // [[FontStatusPromise]] with a DOMException named "SyntaxError", set font face’s
-            // corresponding attributes to the empty string, and set font face’s status attribute
-            // to "error".
-            return Self::new_failed_font_face(cx, global);
-        };
-
-        // Set its internal [[FontStatusPromise]] slot to a fresh pending Promise object.
-        let font_status_promise = Promise::new(cx, global);
-
-        let sources = parsed_font_face_rule.descriptors.src.clone();
-
-        // Let font face be a fresh FontFace object.
         Self {
             reflector: Reflector::new(),
 
@@ -270,13 +255,11 @@ impl FontFace {
             status: Cell::new(FontFaceLoadStatus::Unloaded),
 
             // Set font face’s corresponding attributes to the serialization of the parsed values.
-            descriptors: DomRefCell::new(serialize_parsed_descriptors(
-                &parsed_font_face_rule.descriptors,
-            )),
+            descriptors: DomRefCell::new(serialize_parsed_descriptors(descriptors)),
 
             font_face_set: MutNullableDom::default(),
             family_name: DomRefCell::new(family_name),
-            urls: DomRefCell::new(sources),
+            urls: DomRefCell::new(urls),
             template: RefCell::default(),
             font_status_promise,
             css_font_face_rule: Default::default(),
@@ -289,89 +272,29 @@ impl FontFace {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         font_family: DOMString,
-        source: StringOrArrayBufferViewOrArrayBuffer,
-        descriptors: &FontFaceDescriptors,
+        urls: Option<SourceList>,
+        descriptors: &Descriptors,
+        font_status_promise: Rc<Promise>,
     ) -> DomRoot<Self> {
-        let url_source = if let StringOrArrayBufferViewOrArrayBuffer::String(source) = &source {
-            Some(source)
-        } else {
-            None
-        };
-
-        // Step 1: Let font face be a fresh FontFace object. Set font face’s status attribute to
-        // "unloaded", Set its internal [[FontStatusPromise]] slot to a fresh pending Promise
-        // object.
-        //
-        // Parse the family argument, and the members of the descriptors argument, according to
-        // the grammars of the corresponding descriptors of the CSS @font-face rule. If the
-        // source argument is a CSSOMString, parse it according to the grammar of the CSS src
-        // descriptor of the @font-face rule. If any of them fail to parse correctly, reject
-        // font face’s [[FontStatusPromise]] with a DOMException named "SyntaxError", set font
-        // face’s corresponding attributes to the empty string, and set font face’s status
-        // attribute to "error". Otherwise, set font face’s corresponding attributes to the
-        // serialization of the parsed values.
-        //
-        // Return font face. If font face’s status is "error", terminate this algorithm;
-        // otherwise, complete the rest of these steps asynchronously.
-        //
-        // TODO: The rest of the algorithm is run synchronously currently.
-        let font_face = reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(Self::new_inherited(
-                cx,
-                global,
                 font_family,
-                url_source,
+                urls,
                 descriptors,
+                font_status_promise,
             )),
             global,
             proto,
-            cx,
-        );
-
-        if font_face.Status() == FontFaceLoadStatus::Error {
-            return font_face;
-        }
-
-        // Step 2. If the source argument was a BufferSource, set font face’s internal
-        // [[Data]] slot to the passed argument.
-        // Step 3. If font face’s [[Data]] slot is not null, queue a task to run the following steps
-        // synchronously:
-        let font_face_bytes = match source {
-            StringOrArrayBufferViewOrArrayBuffer::String(_) => {
-                return font_face;
-            },
-            StringOrArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => {
-                get_buffer_source_copy(&ArrayBufferViewOrArrayBuffer::ArrayBufferView(view))
-            },
-            StringOrArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => {
-                get_buffer_source_copy(&ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer))
-            },
-        };
-
-        let trusted_font_face = Trusted::new(&*font_face);
-        let trusted_global = Trusted::new(global);
-        global
-            .task_manager()
-            .font_loading_task_source()
-            .queue(task!(
-                load_font_from_arraybuffer: move |cx| {
-                    let font_face = trusted_font_face.root();
-                    let global = trusted_global.root();
-
-                    font_face.load_from_data(cx, &global, font_face_bytes);
-                }
-            ));
-
-        font_face
+        )
     }
 
     /// Constructs a unrooted `FontFace` object for a font that is backed by a `@font-face` rule.
     pub(crate) fn new_inherited_for_web_font(
-        cx: &mut JSContext,
-        global: &GlobalScope,
         family_name: DOMString,
         descriptors: FontFaceDescriptors,
         src: Option<SourceList>,
+        font_status_promise: Rc<Promise>,
         font_face_rule: FontFaceRuleWithOrigin,
     ) -> Self {
         Self {
@@ -382,7 +305,7 @@ impl FontFace {
             family_name: DomRefCell::new(family_name),
             urls: DomRefCell::new(src),
             template: RefCell::default(),
-            font_status_promise: Promise::new(cx, global),
+            font_status_promise,
             css_font_face_rule: DomRefCell::new(Some(font_face_rule)),
         }
     }
@@ -411,18 +334,18 @@ impl FontFace {
         // > descriptors in the @font-face rule.
         let descriptors = serialize_parsed_descriptors(&new_web_font_ref.descriptors);
 
-        Some(reflect_dom_object_with_proto_and_cx(
+        let font_status_promise = Promise::new(cx, global);
+        Some(reflect_dom_object_with_proto(
+            cx,
             Box::new(Self::new_inherited_for_web_font(
-                cx,
-                global,
                 family_name,
                 descriptors,
                 new_web_font_ref.descriptors.src.clone(),
+                font_status_promise,
                 font_face_rule,
             )),
             global,
             None,
-            cx,
         ))
     }
 
@@ -796,7 +719,81 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         source: UnionTypes::StringOrArrayBufferViewOrArrayBuffer,
         descriptors: &FontFaceDescriptors,
     ) -> DomRoot<FontFace> {
+        // Step 2. If the source argument was a CSSOMString, set font face’s internal [[Urls]] slot to the string.
+        let url_source = if let StringOrArrayBufferViewOrArrayBuffer::String(source) = &source {
+            Some(source)
+        } else {
+            None
+        };
+        // All the rest of the comments are part of step 1:
+
+        // Parse the family argument, and the members of the descriptors argument,
+        // according to the grammars of the corresponding descriptors of the CSS @font-face rule If
+        // the source argument is a CSSOMString, parse it according to the grammar of the CSS src
+        // descriptor of the @font-face rule.
         let global = window.as_global_scope();
-        FontFace::new(cx, global, proto, family, source, descriptors)
+        let parse_result = parse_font_face_descriptors(global, &family, url_source, descriptors);
+
+        let Ok(ref parsed_font_face_rule) = parse_result else {
+            // If any of them fail to parse correctly, reject font face’s
+            // [[FontStatusPromise]] with a DOMException named "SyntaxError", set font face’s
+            // corresponding attributes to the empty string, and set font face’s status attribute
+            // to "error".
+            return Self::new_failed_font_face(cx, global, proto);
+        };
+
+        // Set its internal [[FontStatusPromise]] slot to a fresh pending Promise object.
+        let font_status_promise = Promise::new(cx, global);
+
+        let sources = parsed_font_face_rule.descriptors.src.clone();
+        // Let font face be a fresh FontFace object.
+        let font_face = FontFace::new(
+            cx,
+            global,
+            proto,
+            family,
+            sources,
+            &parsed_font_face_rule.descriptors,
+            font_status_promise,
+        );
+
+        // If font face’s status is "error", terminate this algorithm;
+        // otherwise, complete the rest of these steps asynchronously.
+        if font_face.Status() == FontFaceLoadStatus::Error {
+            return font_face;
+        }
+
+        // Step 2. If the source argument was a BufferSource, set font face’s internal
+        // [[Data]] slot to the passed argument.
+        // Step 3. If font face’s [[Data]] slot is not null, queue a task to run the following steps
+        // synchronously:
+        let font_face_bytes = match source {
+            StringOrArrayBufferViewOrArrayBuffer::String(_) => {
+                // Return font face.
+                return font_face;
+            },
+            StringOrArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => {
+                get_buffer_source_copy(&ArrayBufferViewOrArrayBuffer::ArrayBufferView(view))
+            },
+            StringOrArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => {
+                get_buffer_source_copy(&ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer))
+            },
+        };
+        let trusted_font_face = Trusted::new(&*font_face);
+        let trusted_global = Trusted::new(global);
+        global
+            .task_manager()
+            .font_loading_task_source()
+            .queue(task!(
+                load_font_from_arraybuffer: move |cx| {
+                    let font_face = trusted_font_face.root();
+                    let global = trusted_global.root();
+
+                    font_face.load_from_data(cx, &global, font_face_bytes);
+                }
+            ));
+
+        // Return font face.
+        font_face
     }
 }
