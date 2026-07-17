@@ -82,4 +82,4 @@ project-excludes = [
 ]
 
 [tool.uv]
-native-tls = true
+system-certs = true
