@@ -254,42 +254,44 @@ pub(crate) struct ErrorInfo {
 }
 
 impl ErrorInfo {
-    fn from_native_error(cx: &mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
-        let report = unsafe { JS_ErrorFromException(cx, object) };
-        if report.is_null() {
-            return None;
-        }
-
-        let filename = {
-            let filename = unsafe { (*report)._base.filename.data_ as *const u8 };
-            if !filename.is_null() {
-                let filename = unsafe {
-                    let length = (0..).find(|idx| *filename.offset(*idx) == 0).unwrap();
-                    from_raw_parts(filename, length as usize)
-                };
-                String::from_utf8_lossy(filename).into_owned()
-            } else {
-                "none".to_string()
+    fn from_native_error(cx: &JSContext, object: HandleObject) -> Option<ErrorInfo> {
+        js::rust::borrowed_error_report(cx, |cx, report| {
+            let success = unsafe { JS_ErrorFromException(cx, object, report) };
+            if !success {
+                return None;
             }
-        };
-
-        let lineno = unsafe { (*report)._base.lineno };
-        let column = unsafe { (*report)._base.column._base };
-
-        let message = {
-            let message = unsafe { (*report)._base.message_.data_ as *const u8 };
-            let message = unsafe {
-                let length = (0..).find(|idx| *message.offset(*idx) == 0).unwrap();
-                from_raw_parts(message, length as usize)
+            let report = report.report_;
+            let filename = {
+                let filename = unsafe { (*report)._base.filename.data_ as *const u8 };
+                if !filename.is_null() {
+                    let filename = unsafe {
+                        let length = (0..).find(|idx| *filename.offset(*idx) == 0).unwrap();
+                        from_raw_parts(filename, length as usize)
+                    };
+                    String::from_utf8_lossy(filename).into_owned()
+                } else {
+                    "none".to_string()
+                }
             };
-            String::from_utf8_lossy(message).into_owned()
-        };
 
-        Some(ErrorInfo {
-            filename,
-            message,
-            lineno,
-            column,
+            let lineno = unsafe { (*report)._base.lineno };
+            let column = unsafe { (*report)._base.column._base };
+
+            let message = {
+                let message = unsafe { (*report)._base.message_.data_ as *const u8 };
+                let message = unsafe {
+                    let length = (0..).find(|idx| *message.offset(*idx) == 0).unwrap();
+                    from_raw_parts(message, length as usize)
+                };
+                String::from_utf8_lossy(message).into_owned()
+            };
+
+            Some(ErrorInfo {
+                filename,
+                message,
+                lineno,
+                column,
+            })
         })
     }
 
