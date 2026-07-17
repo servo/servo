@@ -1,28 +1,17 @@
 <!doctype html>
-<html>
+<html contentEditable="true">
 <head>
 <meta charset="utf-8">
+<title>ForwardDelete should not crash when trying to forwardDelete at the end of the document, outside of body.</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const slot = document.createElement("slot");
-  document.documentElement.appendChild(slot);
-  const anchor = document.querySelector("a[contenteditable]");
-  const selection = document.getSelection()
-  getSelection().collapse(anchor, 0);
-  getSelection().setBaseAndExtent(
-    document, 0,
-    document.documentElement, document.documentElement.childNodes.length
-  );
-  const range = selection.getRangeAt(0);
-  document.documentElement.contentEditable = true;
-  document.documentElement.contentEditable = false;
-  range.collapse(false);
-  getSelection().removeAllRanges();
-  getSelection().addRange(range);
-  document.documentElement.contentEditable = true;
+  getSelection().selectAllChildren(document.documentElement);
+  getSelection().collapseToEnd();
   document.execCommand("forwardDelete");
 });
 </script>
-</head><body>
-<a contenteditable></a>
-</body></html>
+</head>
+<body></body>
+<slot></slot>
+</html>

@@ -10,6 +10,7 @@ pub(crate) mod delete;
 pub(crate) mod fontname;
 pub(crate) mod fontsize;
 pub(crate) mod forecolor;
+pub(crate) mod forwarddelete;
 pub(crate) mod hilitecolor;
 pub(crate) mod insertimage;
 pub(crate) mod insertparagraph;
