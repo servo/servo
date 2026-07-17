@@ -25,3 +25,4 @@ jstraceable_derive = { workspace = true }
 script_bindings = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+webgpu_traits = { workspace = true }

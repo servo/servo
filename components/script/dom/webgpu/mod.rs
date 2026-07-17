@@ -11,18 +11,30 @@ pub(crate) mod gpuadapterinfo {
 pub(crate) mod gpubindgroup;
 pub(crate) mod gpubindgrouplayout;
 pub(crate) mod gpubuffer;
-pub(crate) mod gpubufferusage;
+pub(crate) mod gpubufferusage {
+    pub(crate) type GPUBufferUsage =
+        script_webgpu::gpubufferusage::GPUBufferUsage<crate::DomTypeHolder>;
+}
 pub(crate) mod gpucanvascontext;
 pub(crate) mod gpucolorwrite;
 pub(crate) mod gpucommandbuffer;
 pub(crate) mod gpucommandencoder;
-pub(crate) mod gpucompilationinfo;
-pub(crate) mod gpucompilationmessage;
+pub(crate) mod gpucompilationinfo {
+    pub(crate) type GPUCompilationInfo =
+        script_webgpu::gpucompilationinfo::GPUCompilationInfo<crate::DomTypeHolder>;
+}
+pub(crate) mod gpucompilationmessage {
+    pub(crate) type GPUCompilationMessage =
+        script_webgpu::gpucompilationmessage::GPUCompilationMessage<crate::DomTypeHolder>;
+}
 pub(crate) mod gpucomputepassencoder;
 pub(crate) mod gpucomputepipeline;
 pub(crate) mod gpuconvert;
 pub(crate) mod gpudevice;
-pub(crate) mod gpudevicelostinfo;
+pub(crate) mod gpudevicelostinfo {
+    pub(crate) type GPUDeviceLostInfo =
+        script_webgpu::gpudevicelostinfo::GPUDeviceLostInfo<crate::DomTypeHolder>;
+}
 pub(crate) mod gpuerror;
 pub(crate) mod gpuexternaltexture;
 pub(crate) mod gpuinternalerror;

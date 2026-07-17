@@ -12,7 +12,7 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUAdapterInfoMethods, GPUAdapterInfoWrap,
 };
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx_and_wrap};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -69,7 +69,7 @@ where
         subgroup_max_size: u32,
         is_fallback_adapter: bool,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx_and_wrap::<D, _, _>(
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(Self::new_inherited(
                 vendor,
                 architecture,
