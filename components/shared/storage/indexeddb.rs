@@ -359,12 +359,57 @@ impl AsyncReadWriteOperation {
     }
 }
 
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum AsyncSchemaOperation {
+    /// Creates a new index for the database
+    CreateIndex {
+        index_name: String,
+        key_path: KeyPath,
+        unique: bool,
+        multi_entry: bool,
+    },
+    /// Rename an index
+    RenameIndex {
+        index_name: String,
+        new_name: String,
+    },
+    /// Delete an index
+    DeleteIndex { index_name: String },
+    /// Creates a new store for the database
+    CreateObjectStore {
+        callback: GenericSender<BackendResult<CreateObjectResult>>,
+        key_path: Option<KeyPath>,
+        auto_increment: bool,
+    },
+    /// Delete an existing object store in the database
+    DeleteObjectStore {
+        callback: GenericSender<BackendResult<()>>,
+    },
+}
+
+impl AsyncSchemaOperation {
+    pub fn notify_error(&self, error: BackendError) {
+        match self {
+            AsyncSchemaOperation::CreateIndex { .. } |
+            AsyncSchemaOperation::RenameIndex { .. } |
+            AsyncSchemaOperation::DeleteIndex { .. } => {},
+            AsyncSchemaOperation::CreateObjectStore { callback, .. } => {
+                let _ = callback.send(Err(error));
+            },
+            AsyncSchemaOperation::DeleteObjectStore { callback, .. } => {
+                let _ = callback.send(Err(error));
+            },
+        };
+    }
+}
+
 /// Operations that are not executed instantly, but rather added to a
 /// queue that is eventually run.
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum AsyncOperation {
     ReadOnly(AsyncReadOnlyOperation),
     ReadWrite(AsyncReadWriteOperation),
+    Schema(AsyncSchemaOperation),
 }
 
 impl AsyncOperation {
@@ -372,6 +417,7 @@ impl AsyncOperation {
         match self {
             Self::ReadOnly(operation) => operation.notify_error(error),
             Self::ReadWrite(operation) => operation.notify_error(error),
+            Self::Schema(operation) => operation.notify_error(error),
         }
     }
 }
@@ -527,49 +573,6 @@ pub enum SyncOperation {
         txn: u64,
     },
 
-    /// Creates a new index for the database
-    CreateIndex(
-        ImmutableOrigin,
-        String,  // Database
-        String,  // Store
-        String,  // Index name
-        KeyPath, // key path
-        bool,    // unique flag
-        bool,    // multientry flag
-    ),
-    /// Rename an index
-    RenameIndex(
-        ImmutableOrigin,
-        String, // Database
-        String, // Store
-        String, // Index name
-        String, // New name
-    ),
-    /// Delete an index
-    DeleteIndex(
-        ImmutableOrigin,
-        String, // Database
-        String, // Store
-        String, // Index name
-    ),
-
-    /// Creates a new store for the database
-    CreateObjectStore(
-        GenericSender<BackendResult<CreateObjectResult>>,
-        ImmutableOrigin,
-        String,          // Database
-        String,          // Store
-        Option<KeyPath>, // Key Path
-        bool,
-    ),
-
-    DeleteObjectStore(
-        GenericSender<BackendResult<()>>,
-        ImmutableOrigin,
-        String, // Database
-        String, // Store
-    ),
-
     CloseDatabase(
         ImmutableOrigin,
         Uuid,
@@ -639,6 +642,13 @@ pub enum IndexedDBThreadMsg {
         IndexedDBTxnMode,
         AsyncOperation,
     ),
+    AsyncSchemaOperation {
+        origin: ImmutableOrigin,
+        database_name: String,
+        store_name: String,
+        operation: AsyncSchemaOperation,
+        transaction_serial_number: u64,
+    },
     EngineTxnBatchComplete {
         origin: ImmutableOrigin,
         db_name: String,

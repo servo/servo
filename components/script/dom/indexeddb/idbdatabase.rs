@@ -10,7 +10,7 @@ use profile_traits::generic_channel::channel;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::generic_channel::{GenericSend, GenericSender};
-use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
+use storage_traits::indexeddb::{AsyncSchemaOperation, IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
@@ -333,17 +333,21 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                 KeyPath::Sequence(s.iter().map(|s| s.to_string()).collect())
             },
         });
-        let operation = SyncOperation::CreateObjectStore(
-            sender,
-            self.global().origin().immutable().clone(),
-            self.name.to_string(),
-            name.to_string(),
-            key_paths,
+
+        let operation = AsyncSchemaOperation::CreateObjectStore {
+            callback: sender,
+            key_path: key_paths,
             auto_increment,
-        );
+        };
 
         self.get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(operation))
+            .send(IndexedDBThreadMsg::AsyncSchemaOperation {
+                origin: self.global().origin().immutable().clone(),
+                database_name: self.name.to_string(),
+                store_name: name.to_string(),
+                operation,
+                transaction_serial_number: transaction.get_serial_number(),
+            })
             .unwrap();
 
         if receiver
@@ -392,15 +396,16 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // Step 7
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        let operation = SyncOperation::DeleteObjectStore(
-            sender,
-            self.global().origin().immutable().clone(),
-            self.name.to_string(),
-            String::from(name),
-        );
+        let operation = AsyncSchemaOperation::DeleteObjectStore { callback: sender };
 
         self.get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(operation))
+            .send(IndexedDBThreadMsg::AsyncSchemaOperation {
+                origin: self.global().origin().immutable().clone(),
+                database_name: self.name.to_string(),
+                store_name: name.to_string(),
+                operation,
+                transaction_serial_number: transaction.get_serial_number(),
+            })
             .unwrap();
 
         if receiver
