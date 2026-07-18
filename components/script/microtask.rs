@@ -21,13 +21,6 @@ use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlimageelement::ImageElementMicrotask;
-use crate::dom::html::htmlmediaelement::MediaElementMicrotask;
-use crate::dom::html::htmltrackelement::TrackElementMicrotask;
-use crate::dom::promise::WaitForAllSuccessStepsMicrotask;
-use crate::dom::stream::byteteereadintorequest::ByteTeeReadIntoRequestMicrotask;
-use crate::dom::stream::byteteereadrequest::ByteTeeReadRequestMicrotask;
-use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequestMicrotask;
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::notify_about_rejected_promises;
 use crate::script_thread::ScriptThread;
@@ -36,24 +29,39 @@ use crate::script_thread::ScriptThread;
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub(crate) struct MicrotaskQueue {
     /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
-    microtask_queue: DomRefCell<Vec<Microtask>>,
+    microtask_queue: DomRefCell<Vec<Box<dyn MicrotaskRunnable>>>,
     /// <https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint>
     performing_a_microtask_checkpoint: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub(crate) enum Microtask {
-    Promise(EnqueuedPromiseCallback),
-    User(UserMicrotask),
-    MediaElement(MediaElementMicrotask),
-    ImageElement(ImageElementMicrotask),
-    TrackElement(TrackElementMicrotask),
-    ReadableStreamTeeReadRequest(DefaultTeeReadRequestMicrotask),
-    WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask),
-    ReadableStreamByteTeeReadRequest(ByteTeeReadRequestMicrotask),
-    ReadableStreamByteTeeReadIntoRequest(ByteTeeReadIntoRequestMicrotask),
-    CustomElementReaction,
-    NotifyMutationObservers,
+pub struct NotifyMutationObserversMicrotask;
+
+impl NotifyMutationObserversMicrotask {
+    pub(crate) fn new() -> Self {
+        Self
+    }
+}
+
+impl MicrotaskRunnable for NotifyMutationObserversMicrotask {
+    fn handler(&self, cx: &mut JSContext) {
+        ScriptThread::mutation_observers().notify_mutation_observers(cx);
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct CustomElementReactionMicrotask;
+
+impl CustomElementReactionMicrotask {
+    pub(crate) fn new() -> Self {
+        Self
+    }
+}
+
+impl MicrotaskRunnable for CustomElementReactionMicrotask {
+    fn handler(&self, cx: &mut JSContext) {
+        ScriptThread::invoke_backup_element_queue(cx);
+    }
 }
 
 pub(crate) trait MicrotaskRunnable: JSTraceable + MallocSizeOf {
@@ -104,8 +112,8 @@ impl MicrotaskQueue {
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
     #[expect(unsafe_code)]
-    pub(crate) fn enqueue(&self, cx: &JSContext, job: Microtask) {
-        self.microtask_queue.borrow_mut().push(job);
+    pub(crate) fn enqueue(&self, cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
+        self.microtask_queue.borrow_mut().push(task);
         unsafe { JobQueueMayNotBeEmpty(cx) };
     }
 
@@ -133,37 +141,7 @@ impl MicrotaskQueue {
                     unsafe { js::rust::wrappers2::JobQueueIsEmpty(cx) };
                 }
 
-                match *job {
-                    Microtask::Promise(ref task) => {
-                        task.handler(cx);
-                    },
-                    Microtask::User(ref task) => {
-                        task.handler(cx);
-                    },
-                    Microtask::MediaElement(ref task) => {
-                        task.handler(cx);
-                    },
-                    Microtask::ImageElement(ref task) => {
-                        task.handler(cx);
-                    },
-                    Microtask::TrackElement(ref task) => {
-                        task.handler(cx);
-                    },
-                    Microtask::ReadableStreamTeeReadRequest(ref task) => {
-                        task.handler(cx);
-                    },
-                    Microtask::WaitForAllSuccessSteps(ref task) => {
-                        task.handler(cx);
-                    },
-                    Microtask::CustomElementReaction => {
-                        ScriptThread::invoke_backup_element_queue(cx);
-                    },
-                    Microtask::NotifyMutationObservers => {
-                        ScriptThread::mutation_observers().notify_mutation_observers(cx);
-                    },
-                    Microtask::ReadableStreamByteTeeReadRequest(ref task) => task.handler(cx),
-                    Microtask::ReadableStreamByteTeeReadIntoRequest(ref task) => task.handler(cx),
-                }
+                job.handler(cx);
             }
         }
 

@@ -41,7 +41,7 @@ use crate::dom::texttrack::TextTrack;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::{AttributeMutation, cors_setting_for_element};
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
-use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::microtask::MicrotaskRunnable;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::{ScriptThread, network_listener};
@@ -163,7 +163,7 @@ impl HTMLTrackElement {
         };
         self.is_running_processing_model_algorithm.set(true);
 
-        ScriptThread::await_stable_state(cx, Microtask::TrackElement(task));
+        ScriptThread::await_stable_state(cx, Box::new(task));
     }
 
     fn check_if_track_parent_element_changed(&self, cx: &mut JSContext) {

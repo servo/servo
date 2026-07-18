@@ -23,7 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::microtask::MicrotaskRunnable;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -110,10 +110,7 @@ impl ByteTeeReadRequest {
             chunk: Heap::boxed(*chunk.handle()),
             tee_read_request: Dom::from_ref(self),
         };
-        global.enqueue_microtask(
-            cx,
-            Microtask::ReadableStreamByteTeeReadRequest(byte_tee_read_request_chunk),
-        );
+        global.enqueue_microtask(cx, Box::new(byte_tee_read_request_chunk));
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A3>

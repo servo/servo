@@ -44,7 +44,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::microtask::MicrotaskRunnable;
 use crate::realms::enter_auto_realm;
 use crate::script_thread::ScriptThread;
 
@@ -534,7 +534,7 @@ fn wait_for_all(
         // Queue a microtask to perform successSteps given « ».
         global.enqueue_microtask(
             cx,
-            Microtask::WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask {
+            Box::new(WaitForAllSuccessStepsMicrotask {
                 global: DomRoot::from_ref(global),
                 success_steps,
             }),

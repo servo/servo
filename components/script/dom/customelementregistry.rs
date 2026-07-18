@@ -54,7 +54,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::promise::Promise;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
-use crate::microtask::Microtask;
+use crate::microtask::CustomElementReactionMicrotask;
 use crate::realms::enter_auto_realm;
 use crate::script_thread::ScriptThread;
 
@@ -1316,7 +1316,7 @@ impl CustomElementReactionStack {
                 .set(BackupElementQueueFlag::Processing);
 
             // Step 4
-            ScriptThread::enqueue_microtask(cx, Microtask::CustomElementReaction);
+            ScriptThread::enqueue_microtask(cx, Box::new(CustomElementReactionMicrotask::new()));
         }
     }
 

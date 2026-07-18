@@ -21,7 +21,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::microtask::MicrotaskRunnable;
 use crate::realms::enter_auto_realm;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -115,10 +115,9 @@ impl DefaultTeeReadRequest {
             chunk: Heap::boxed(*chunk.handle()),
             tee_read_request: Dom::from_ref(self),
         };
-        self.stream.global().enqueue_microtask(
-            cx,
-            Microtask::ReadableStreamTeeReadRequest(tee_read_request_chunk),
-        );
+        self.stream
+            .global()
+            .enqueue_microtask(cx, Box::new(tee_read_request_chunk));
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     #[expect(clippy::borrowed_box)]

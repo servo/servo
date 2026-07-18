@@ -145,7 +145,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::Microtask;
+use crate::microtask::MicrotaskRunnable;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::enter_auto_realm;
 use crate::script_module::{
@@ -3068,7 +3068,11 @@ impl GlobalScope {
     }
 
     /// Enqueue a microtask for subsequent execution.
-    pub(crate) fn enqueue_microtask(&self, cx: &js::context::JSContext, job: Microtask) {
+    pub(crate) fn enqueue_microtask(
+        &self,
+        cx: &js::context::JSContext,
+        job: Box<dyn MicrotaskRunnable>,
+    ) {
         if self.is::<Window>() {
             ScriptThread::enqueue_microtask(cx, job);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {

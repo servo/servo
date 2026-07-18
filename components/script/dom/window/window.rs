@@ -191,7 +191,7 @@ use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::{Microtask, UserMicrotask};
+use crate::microtask::UserMicrotask;
 use crate::network_listener::{ResourceTimingListener, submit_timing};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::Runtime;
@@ -1669,7 +1669,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn QueueMicrotask(&self, cx: &JSContext, callback: Rc<VoidFunction>) {
         ScriptThread::enqueue_microtask(
             cx,
-            Microtask::User(UserMicrotask {
+            Box::new(UserMicrotask {
                 callback,
                 global: self.global(),
             }),

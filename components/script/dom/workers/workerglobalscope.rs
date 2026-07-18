@@ -86,7 +86,7 @@ use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch::{CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
+use crate::microtask::{MicrotaskQueue, MicrotaskRunnable, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::realms::enter_auto_realm;
 use crate::script_module::ScriptFetchOptions;
@@ -430,7 +430,7 @@ impl WorkerGlobalScope {
             .get_or_init(|| OneshotTimers::new(self.upcast()))
     }
 
-    pub(crate) fn enqueue_microtask(&self, cx: &JSContext, job: Microtask) {
+    pub(crate) fn enqueue_microtask(&self, cx: &JSContext, job: Box<dyn MicrotaskRunnable>) {
         self.microtask_queue.enqueue(cx, job);
     }
 
@@ -949,7 +949,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     fn QueueMicrotask(&self, cx: &mut JSContext, callback: Rc<VoidFunction>) {
         self.enqueue_microtask(
             cx,
-            Microtask::User(UserMicrotask {
+            Box::new(UserMicrotask {
                 callback,
                 global: self.global(),
             }),

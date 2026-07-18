@@ -95,7 +95,7 @@ use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
+use crate::microtask::{EnqueuedPromiseCallback, MicrotaskQueue};
 use crate::realms::enter_auto_realm;
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::task_source::TaskSourceName;
@@ -417,7 +417,7 @@ unsafe extern "C" fn enqueue_promise_job(
             interaction == PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
         microtask_queue.enqueue(
             cx,
-            Microtask::Promise(EnqueuedPromiseCallback {
+            Box::new(EnqueuedPromiseCallback {
                 callback: unsafe { PromiseJobCallback::new(cx, job.get()) },
                 global,
                 is_user_interacting,
