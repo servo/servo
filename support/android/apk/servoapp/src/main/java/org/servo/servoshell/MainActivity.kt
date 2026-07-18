@@ -28,6 +28,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -132,21 +133,24 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             }
         }
 
-        findViewById<ComposeView>(R.id.toolbar)?.setContent {
+        findViewById<ComposeView>(R.id.toolbar).setContent {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
-                    Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
-                }
-                IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
-                    Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
-                }
-                IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
-                    if (isRefreshingState.value) {
-                        Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
-                    } else {
-                        Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
+                val isWindowWidthAtLeastMedium = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(600)
+                if (isWindowWidthAtLeastMedium) {
+                    IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
+                        Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
+                    }
+                    IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
+                        Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
+                    }
+                    IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
+                        if (isRefreshingState.value) {
+                            Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
+                        } else {
+                            Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
+                        }
                     }
                 }
                 Omnibox(
@@ -166,35 +170,15 @@ class MainActivity : AppCompatActivity(), Servo.Client {
                             .size(20.dp),
                     )
                 }
-                IconButton(onClick = ::onSettingsMenuItemClicked) {
-                    Icon(painterResource(R.drawable.settings), stringResource(R.string.options))
-                }
-                IconButton(onClick = ::onHistoryMenuItemClicked) {
-                    Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
+                if (isWindowWidthAtLeastMedium) {
+                    IconButton(onClick = ::onSettingsMenuItemClicked) {
+                        Icon(painterResource(R.drawable.settings), stringResource(R.string.options))
+                    }
+                    IconButton(onClick = ::onHistoryMenuItemClicked) {
+                        Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
+                    }
                 }
             }
-        }
-
-        findViewById<ComposeView>(R.id.progressbar)?.setContent {
-            if (isRefreshingState.value) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .padding(end = 10.dp)
-                        .size(20.dp),
-                )
-            }
-        }
-
-        findViewById<ComposeView>(R.id.urlfield)?.setContent {
-            Omnibox(
-                urlTextFieldState,
-                onSearch = { search ->
-                    loadUrl(search)
-                    servoView.requestFocus()
-                },
-                modifier = Modifier
-                    .padding(end = 10.dp),
-            )
         }
 
         servoView.setClient(this)
