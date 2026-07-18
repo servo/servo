@@ -70,6 +70,17 @@ pub(crate) struct EnqueuedPromiseCallback {
     pub(crate) is_user_interacting: bool,
 }
 
+impl MicrotaskRunnable for EnqueuedPromiseCallback {
+    fn handler(&self, cx: &mut JSContext) {
+        let _guard = ScriptThread::user_interacting_guard();
+        let mut realm = enter_auto_realm(cx, &*self.global);
+        let cx = &mut realm;
+        let _ = self
+            .callback
+            .Call_(cx, &*self.global, ExceptionHandling::Report);
+    }
+}
+
 /// A microtask that comes from a queueMicrotask() Javascript call,
 /// identical to EnqueuedPromiseCallback once it's on the queue
 #[derive(JSTraceable, MallocSizeOf)]
@@ -77,6 +88,16 @@ pub(crate) struct UserMicrotask {
     #[conditional_malloc_size_of]
     pub(crate) callback: Rc<VoidFunction>,
     pub(crate) global: DomRoot<GlobalScope>,
+}
+
+impl MicrotaskRunnable for UserMicrotask {
+    fn handler(&self, cx: &mut JSContext) {
+        let mut realm = enter_auto_realm(cx, &*self.global);
+        let cx = &mut realm;
+        let _ = self
+            .callback
+            .Call_(cx, &*self.global, ExceptionHandling::Report);
+    }
 }
 
 impl MicrotaskQueue {
@@ -113,20 +134,11 @@ impl MicrotaskQueue {
                 }
 
                 match *job {
-                    Microtask::Promise(ref job) => {
-                        let _guard = ScriptThread::user_interacting_guard();
-                        let mut realm = enter_auto_realm(cx, &*job.global);
-                        let cx = &mut realm;
-                        let _ = job
-                            .callback
-                            .Call_(cx, &*job.global, ExceptionHandling::Report);
+                    Microtask::Promise(ref task) => {
+                        task.handler(cx);
                     },
-                    Microtask::User(ref job) => {
-                        let mut realm = enter_auto_realm(cx, &*job.global);
-                        let cx = &mut realm;
-                        let _ = job
-                            .callback
-                            .Call_(cx, &*job.global, ExceptionHandling::Report);
+                    Microtask::User(ref task) => {
+                        task.handler(cx);
                     },
                     Microtask::MediaElement(ref task) => {
                         task.handler(cx);
