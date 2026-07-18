@@ -4329,11 +4329,7 @@ impl ScriptThread {
                 .map(|(_id, document)| DomRoot::from_ref(document.window().upcast()))
                 .collect();
 
-            self.microtask_queue.checkpoint(
-                cx,
-                |id| self.documents.borrow().find_global(id),
-                globals,
-            )
+            self.microtask_queue.checkpoint(cx, globals)
         }
     }
 

@@ -13,9 +13,10 @@ use std::rc::Rc;
 use js::context::JSContext;
 use js::realm::AutoRealm;
 use js::rust::wrappers2::JobQueueMayNotBeEmpty;
+use malloc_size_of::MallocSizeOf;
 use script_bindings::cell::DomRefCell;
-use servo_base::id::PipelineId;
 
+use crate::JSTraceable;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
@@ -56,7 +57,7 @@ pub(crate) enum Microtask {
     NotifyMutationObservers,
 }
 
-pub(crate) trait MicrotaskRunnable {
+pub(crate) trait MicrotaskRunnable: JSTraceable + MallocSizeOf {
     fn handler(&self, _cx: &mut JSContext) {}
     fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx>;
 }
@@ -66,8 +67,7 @@ pub(crate) trait MicrotaskRunnable {
 pub(crate) struct EnqueuedPromiseCallback {
     #[conditional_malloc_size_of]
     pub(crate) callback: Rc<PromiseJobCallback>,
-    #[no_trace]
-    pub(crate) pipeline: PipelineId,
+    pub(crate) global: DomRoot<GlobalScope>,
     pub(crate) is_user_interacting: bool,
 }
 
@@ -77,8 +77,7 @@ pub(crate) struct EnqueuedPromiseCallback {
 pub(crate) struct UserMicrotask {
     #[conditional_malloc_size_of]
     pub(crate) callback: Rc<VoidFunction>,
-    #[no_trace]
-    pub(crate) pipeline: PipelineId,
+    pub(crate) global: DomRoot<GlobalScope>,
 }
 
 impl MicrotaskQueue {
@@ -93,14 +92,7 @@ impl MicrotaskQueue {
     /// <https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint>
     /// Perform a microtask checkpoint, executing all queued microtasks until the queue is empty.
     #[expect(unsafe_code)]
-    pub(crate) fn checkpoint<F>(
-        &self,
-        cx: &mut JSContext,
-        target_provider: F,
-        globalscopes: Vec<DomRoot<GlobalScope>>,
-    ) where
-        F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>,
-    {
+    pub(crate) fn checkpoint(&self, cx: &mut JSContext, globalscopes: Vec<DomRoot<GlobalScope>>) {
         // Step 1. If the event loop's performing a microtask checkpoint is true, then return.
         if self.performing_a_microtask_checkpoint.get() {
             return;
@@ -123,19 +115,19 @@ impl MicrotaskQueue {
 
                 match *job {
                     Microtask::Promise(ref job) => {
-                        if let Some(target) = target_provider(job.pipeline) {
-                            let _guard = ScriptThread::user_interacting_guard();
-                            let mut realm = enter_auto_realm(cx, &*target);
-                            let cx = &mut realm;
-                            let _ = job.callback.Call_(cx, &*target, ExceptionHandling::Report);
-                        }
+                        let _guard = ScriptThread::user_interacting_guard();
+                        let mut realm = enter_auto_realm(cx, &*job.global);
+                        let cx = &mut realm;
+                        let _ = job
+                            .callback
+                            .Call_(cx, &*job.global, ExceptionHandling::Report);
                     },
                     Microtask::User(ref job) => {
-                        if let Some(target) = target_provider(job.pipeline) {
-                            let mut realm = enter_auto_realm(cx, &*target);
-                            let cx = &mut realm;
-                            let _ = job.callback.Call_(cx, &*target, ExceptionHandling::Report);
-                        }
+                        let mut realm = enter_auto_realm(cx, &*job.global);
+                        let cx = &mut realm;
+                        let _ = job
+                            .callback
+                            .Call_(cx, &*job.global, ExceptionHandling::Report);
                     },
                     Microtask::MediaElement(ref task) => {
                         let mut realm = task.enter_realm(cx);

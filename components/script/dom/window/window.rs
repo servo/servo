@@ -1671,7 +1671,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             cx,
             Microtask::User(UserMicrotask {
                 callback,
-                pipeline: self.pipeline_id(),
+                global: self.global(),
             }),
         );
     }
