@@ -1289,6 +1289,14 @@ impl ScriptThread {
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
+            // See <https://github.com/whatwg/html/issues/12704>.
+            // Unspecified, but necessary: Any of the previous callbacks may have put the
+            // document into a render-blocked state. If that's the case, then abort the
+            // rendering process now.
+            if document.is_render_blocked() {
+                continue;
+            }
+
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
             if document.update_the_rendering(cx).0.needs_frame() {
