@@ -1,0 +1,127 @@
+<!doctype html>
+<title>Pointer event `buttons` attribute on chorded button state changes</title>
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="text/javascript" src="pointerevent_support.js"></script>
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    touch-action: none;
+    user-select: none;
+  }
+</style>
+<body>
+  <div id="done"></div>
+  <div id="target"></div>
+</body>
+<script>
+  "use strict";
+
+  let target = null;
+  let done = null;
+
+  promise_setup(async () => {
+    await new Promise((resolve) => {
+      window.addEventListener('load', resolve, { once: true });
+    });
+    target = document.getElementById("target");
+    done = document.getElementById("done");
+  });
+
+  function generatePointerSequence(expected, actions) {
+    const pointerSequence = [];
+    if ((expected & ButtonsBitfield.LEFT_MOUSE) > 0) {
+      pointerSequence.push(actions.ButtonType.LEFT);
+    }
+    if ((expected & ButtonsBitfield.RIGHT_MOUSE) > 0) {
+      pointerSequence.push(actions.ButtonType.RIGHT);
+    }
+    if ((expected & ButtonsBitfield.MIDDLE_MOUSE) > 0) {
+      pointerSequence.push(actions.ButtonType.MIDDLE);
+    }
+    if ((expected & ButtonsBitfield.X1_MOUSE) > 0) {
+      pointerSequence.push(actions.ButtonType.BACK);
+    }
+    if ((expected & ButtonsBitfield.X2_MOUSE) > 0) {
+      pointerSequence.push(actions.ButtonType.FORWARD);
+    }
+    return pointerSequence;
+  }
+
+  async function testButtonsBasic(expected) {
+    let max = 0;
+    const handler = (event) => (max = Math.max(max, event.buttons));
+    target.onpointerdown = handler;
+    target.onpointermove = handler;
+    const doneClickPromise = new Promise(res => (done.onclick = res));
+    let actions = new test_driver.Actions();
+    const pointerSequence = generatePointerSequence(expected, actions);
+    actions = actions.pointerMove(0, 0, { origin: target });
+    for (const button of pointerSequence) {
+      actions = actions.pointerDown({ button });
+    }
+    for (const button of pointerSequence) {
+      actions = actions.pointerUp({ button });
+    }
+    actions = actions
+      .pointerMove(0, 0, { origin: done })
+      .pointerDown()
+      .pointerUp();
+
+    await actions.send();
+    await doneClickPromise;
+
+    assert_equals(max, expected, "buttons attribute matched");
+  }
+
+  async function testButtonsCaptureBoundary(expected) {
+    let pointerId;
+    const pointerLeavePromise = new Promise(res => target.onpointerleave = (event) => res(event.buttons));
+    target.onpointerdown = (event) => {
+      pointerId = event.pointerId;
+      target.setPointerCapture(pointerId);
+    };
+    const doneClickPromise = new Promise(res => (done.onclick = res));
+    let actions = new test_driver.Actions();
+    const pointerSequence = generatePointerSequence(expected, actions);
+    let count = 0;
+    target.onpointermove = (event) => {
+      if (count === pointerSequence.length) done.setPointerCapture(pointerId);
+      count++;
+    };
+    actions = actions.pointerMove(0, 0, { origin: target });
+    for (const button of pointerSequence) {
+      actions = actions.pointerDown({ button });
+    }
+    actions = actions.pointerMove(0, 0, { origin: done });
+    await actions.send();
+
+    const output = await pointerLeavePromise;
+
+    actions = new test_driver.Actions();
+    for (const button of pointerSequence) {
+      actions = actions.pointerUp({ button });
+    }
+    actions = actions
+      .pointerMove(0, 0, { origin: done })
+      .pointerDown()
+      .pointerUp();
+
+    await actions.send();
+    await doneClickPromise;
+
+    assert_equals(output, expected, "buttons attribute matched");
+  }
+
+  promise_test((test) => testButtonsBasic(0b10101), "left mouse + middle mouse + forward mouse properly sets buttons");
+  promise_test((test) => testButtonsBasic(0b01010), "right mouse + back mouse properly sets buttons");
+
+  promise_test((test) => testButtonsCaptureBoundary(0b10101), "left mouse + middle mouse + forward mouse properly sets buttons on pointer capture boundaries");
+  promise_test((test) => testButtonsCaptureBoundary(0b01010), "right mouse + back mouse properly sets buttons on pointer capture boundaries");
+</script>
