@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::jsapi::{Heap, JSObject, Type};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8, HeapArrayBufferView, TypedArray};
@@ -48,10 +48,11 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
             .or_init(|| SubtleCrypto::new(cx, &self.global()))
     }
 
-    #[expect(unsafe_code, deprecated)]
+    #[expect(unsafe_code)]
     /// <https://w3c.github.io/webcrypto/#Crypto-method-getRandomValues>
     fn GetRandomValues(
         &self,
+        no_gc: &NoGC,
         mut input: CustomAutoRooterGuard<ArrayBufferView>,
     ) -> Fallible<RootedTraceableBox<HeapArrayBufferView>> {
         let array_type = input.get_array_type();
@@ -59,7 +60,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
         if !is_integer_buffer(array_type) {
             Err(Error::TypeMismatch(None))
         } else {
-            let data = unsafe { input.as_mut_slice() };
+            let data = input.as_mut_slice_safe(no_gc);
             if data.len() > 65536 {
                 return Err(Error::QuotaExceeded {
                     quota: None,

@@ -5,7 +5,7 @@
 use std::sync::{Arc, OnceLock};
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Uint8Array};
 use script_bindings::cell::DomRefCell;
@@ -147,39 +147,35 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         AnalyserNode::new_with_proto(cx, window, proto, context, options)
     }
 
-    #[expect(unsafe_code, deprecated)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloatfrequencydata>
-    fn GetFloatFrequencyData(&self, mut array: CustomAutoRooterGuard<Float32Array>) {
+    fn GetFloatFrequencyData(&self, no_gc: &NoGC, mut array: CustomAutoRooterGuard<Float32Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
-        let dest = unsafe { array.as_mut_slice() };
+        let dest = array.as_mut_slice_safe(no_gc);
         self.engine.borrow_mut().fill_frequency_data(dest);
     }
 
-    #[expect(unsafe_code, deprecated)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytefrequencydata>
-    fn GetByteFrequencyData(&self, mut array: CustomAutoRooterGuard<Uint8Array>) {
+    fn GetByteFrequencyData(&self, no_gc: &NoGC, mut array: CustomAutoRooterGuard<Uint8Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
-        let dest = unsafe { array.as_mut_slice() };
+        let dest = array.as_mut_slice_safe(no_gc);
         self.engine.borrow_mut().fill_byte_frequency_data(dest);
     }
 
-    #[expect(unsafe_code, deprecated)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloattimedomaindata>
-    fn GetFloatTimeDomainData(&self, mut array: CustomAutoRooterGuard<Float32Array>) {
+    fn GetFloatTimeDomainData(&self, no_gc: &NoGC, mut array: CustomAutoRooterGuard<Float32Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
-        let dest = unsafe { array.as_mut_slice() };
+        let dest = array.as_mut_slice_safe(no_gc);
         self.engine.borrow().fill_time_domain_data(dest);
     }
 
-    #[expect(unsafe_code, deprecated)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytetimedomaindata>
-    fn GetByteTimeDomainData(&self, mut array: CustomAutoRooterGuard<Uint8Array>) {
+    fn GetByteTimeDomainData(&self, no_gc: &NoGC, mut array: CustomAutoRooterGuard<Uint8Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
-        let dest = unsafe { array.as_mut_slice() };
+        let dest = array.as_mut_slice_safe(no_gc);
         self.engine.borrow().fill_byte_time_domain_data(dest);
     }
 

@@ -5,7 +5,7 @@
 use std::ptr;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -70,9 +70,9 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encodeinto>
-    #[expect(unsafe_code, deprecated)]
     fn EncodeInto(
         &self,
+        no_gc: &NoGC,
         source: USVString,
         mut destination: CustomAutoRooterGuard<typedarray::Uint8Array>,
     ) -> TextEncoderEncodeIntoResult {
@@ -89,7 +89,7 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
         let mut read = 0;
         let mut written = 0;
 
-        let dest = unsafe { destination.as_mut_slice() };
+        let dest = destination.as_mut_slice_safe(no_gc);
 
         // Step 3, 4, 5, 6
         // Turn the source into a queue of scalar values.

@@ -36,7 +36,7 @@ use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
 
 // https://www.w3.org/TR/IndexedDB-3/#convert-key-to-value
-#[expect(unsafe_code, deprecated)]
+#[expect(unsafe_code)]
 pub fn key_type_to_jsval(
     cx: &mut JSContext,
     key: &IndexedDBKeyType,
@@ -86,7 +86,9 @@ pub fn key_type_to_jsval(
             // entries in value.
             let mut array_buffer = ArrayBuffer::from(buffer.get())
                 .expect("ArrayBuffer::create should create an ArrayBuffer object");
-            array_buffer.as_mut_slice().copy_from_slice(b);
+            array_buffer
+                .as_mut_slice_safe(cx.no_gc())
+                .copy_from_slice(b);
 
             // Step 3.5. Return buffer.
             result.set(ObjectValue(buffer.get()));
