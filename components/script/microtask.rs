@@ -149,12 +149,8 @@ impl MicrotaskQueue {
                     Microtask::NotifyMutationObservers => {
                         ScriptThread::mutation_observers().notify_mutation_observers(cx);
                     },
-                    Microtask::ReadableStreamByteTeeReadRequest(ref task) => {
-                        task.microtask_chunk_steps(cx)
-                    },
-                    Microtask::ReadableStreamByteTeeReadIntoRequest(ref task) => {
-                        task.microtask_chunk_steps(cx)
-                    },
+                    Microtask::ReadableStreamByteTeeReadRequest(ref task) => task.handler(cx),
+                    Microtask::ReadableStreamByteTeeReadIntoRequest(ref task) => task.handler(cx),
                 }
             }
         }
