@@ -325,6 +325,12 @@ pub(crate) struct Window {
     #[no_trace]
     unhandled_resize_event: DomRefCell<Option<(ViewportDetails, WindowSizeType)>>,
 
+    /// The viewport at the time of the last "run the resize steps".
+    ///
+    /// This allows us to detect ABA changes, and suppress firing the event in that case.
+    #[no_trace]
+    viewport_details_at_last_resize_steps: Cell<ViewportDetails>,
+
     /// Platform theme.
     #[no_trace]
     theme: Cell<Theme>,
@@ -2610,6 +2616,16 @@ impl Window {
         self.document_unrooted(cx.no_gc())
             .ensure_safe_to_run_script_or_layout();
 
+        // Explicitly match, so that a variant addition (unlikely but possible)
+        // would break here, and force considering if parents are already laid out
+        // or need a flush.
+        match reflow_goal {
+            ReflowGoal::LayoutQuery(_) | ReflowGoal::UpdateScrollNode(..) => {
+                self.flush_ancestor_layouts_if_necessary(cx);
+            },
+            ReflowGoal::UpdateTheRendering => { /* Parents will have already been processed */ },
+        }
+
         // If layouts are blocked, we block all layouts that are for display only. Other
         // layouts (for queries and scrolling) are not blocked, as they do not display
         // anything and script expects the layout to be up-to-date after they run.
@@ -2636,6 +2652,15 @@ impl Window {
             self.layout_marker.borrow().set(false);
             // Create a new layout caching token.
             *self.layout_marker.borrow_mut() = Rc::new(Cell::new(true));
+
+            // If the viewport changed and viewport units were used, all nodes need
+            // to be restyled, because we currently do not track which ones rely on
+            // viewport units.
+            if restyle_reason.contains(RestyleReason::ViewportChanged) &&
+                self.layout().device().used_viewport_size()
+            {
+                document.dirty_all_nodes(cx.no_gc());
+            }
 
             let stylesheets_changed = document.flush_stylesheets_for_reflow();
             let pending_restyles = document.drain_pending_restyles();
@@ -2842,6 +2867,36 @@ impl Window {
 
     pub(crate) fn layout_blocked(&self) -> bool {
         self.layout_blocker.get().layout_blocked()
+    }
+
+    fn flush_ancestor_layouts_if_necessary(&self, cx: &mut JSContext) {
+        let Some(parent_pipeline_id) = self.parent_info else {
+            return;
+        };
+        let Some(parent_window) = ScriptThread::find_window(parent_pipeline_id) else {
+            return;
+        };
+        // If we can't run layout we need to abort, otherwise we'd run into the same check but as an assert
+        // later.
+        if !parent_window.Document().is_safe_to_run_script_or_layout() {
+            return;
+        }
+        // This avoids unneccessary (work and) flashes of unstyled content according to:
+        // <https://github.com/mozilla-firefox/firefox/blob/446c6e609dbd7c355c2fb27209dfe4833211991f/dom/base/Document.cpp#L11827-L11851>
+        if parent_window.Document().is_render_blocked() {
+            return;
+        }
+        parent_window.flush_ancestor_layouts_if_necessary(cx);
+        if parent_window
+            .document_unrooted(cx.no_gc())
+            .restyle_reason(cx.no_gc())
+            .needs_restyle()
+        {
+            parent_window.reflow(
+                cx,
+                ReflowGoal::LayoutQuery(QueryMsg::FlushForUpdateTheRenderingQuery),
+            );
+        }
     }
 
     /// Trigger a reflow that is required by a certain queries.
@@ -3309,6 +3364,13 @@ impl Window {
     }
 
     pub(crate) fn add_resize_event(&self, event: ViewportDetails, event_type: WindowSizeType) {
+        if self.viewport_details() == event {
+            return;
+        }
+
+        // Apply the new viewport, since the new size needs to be observable immediately.
+        self.set_viewport_details(event);
+
         // Whenever we receive a new resize event we forget about all the ones that came before
         // it, to avoid unnecessary relayouts
         *self.unhandled_resize_event.borrow_mut() = Some((event, event_type))
@@ -3416,33 +3478,24 @@ impl Window {
             return false;
         };
 
-        if self.viewport_details() == new_size {
+        // The viewport was already updated in `add_resize_event`, so these steps
+        // only fire the event, and only if the viewport differs from the last one.
+        let current_viewport = self.viewport_details();
+        if current_viewport == self.viewport_details_at_last_resize_steps.get() {
             return false;
         }
+        self.viewport_details_at_last_resize_steps
+            .set(current_viewport);
 
-        let mut realm = enter_auto_realm(cx, self);
-        let cx = &mut realm.current_realm();
         debug!(
-            "Resizing Window for pipeline {:?} from {:?} to {new_size:?}",
+            "Running resize steps for pipeline {:?} with viewport {new_size:?}",
             self.pipeline_id(),
-            self.viewport_details(),
         );
-        self.set_viewport_details(new_size);
-
-        // The document needs to be repainted, because the initial containing
-        // block is now a different size. This should be triggered before the
-        // event is fired below so that any script queries trigger a restyle.
-        self.Document()
-            .add_restyle_reason(RestyleReason::ViewportChanged);
-
-        // If viewport units were used, all nodes need to be restyled, because
-        // we currently do not track which ones rely on viewport units.
-        if self.layout().device().used_viewport_size() {
-            self.Document().dirty_all_nodes(cx.no_gc());
-        }
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
+            let mut realm = enter_auto_realm(cx, self);
+            let cx = &mut realm.current_realm();
             let uievent = UIEvent::new(
                 cx,
                 self,
@@ -3832,6 +3885,7 @@ impl Window {
             #[cfg(feature = "bluetooth")]
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             unhandled_resize_event: Default::default(),
+            viewport_details_at_last_resize_steps: Cell::new(viewport_details),
             viewport_details: Cell::new(viewport_details),
             layout_blocker: Cell::new(LayoutBlocker::WaitingForParse),
             current_state: Cell::new(WindowState::Alive),
