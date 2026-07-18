@@ -14,6 +14,7 @@ use js::context::JSContext;
 use js::rust::wrappers2::JobQueueMayNotBeEmpty;
 use malloc_size_of::MallocSizeOf;
 use script_bindings::cell::DomRefCell;
+use script_bindings::root::Dom;
 
 use crate::JSTraceable;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -71,10 +72,11 @@ pub(crate) trait MicrotaskRunnable: JSTraceable + MallocSizeOf {
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct EnqueuedPromiseCallback {
     #[conditional_malloc_size_of]
     pub(crate) callback: Rc<PromiseJobCallback>,
-    pub(crate) global: DomRoot<GlobalScope>,
+    pub(crate) global: Dom<GlobalScope>,
     pub(crate) is_user_interacting: bool,
 }
 
@@ -92,10 +94,11 @@ impl MicrotaskRunnable for EnqueuedPromiseCallback {
 /// A microtask that comes from a queueMicrotask() Javascript call,
 /// identical to EnqueuedPromiseCallback once it's on the queue
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct UserMicrotask {
     #[conditional_malloc_size_of]
     pub(crate) callback: Rc<VoidFunction>,
-    pub(crate) global: DomRoot<GlobalScope>,
+    pub(crate) global: Dom<GlobalScope>,
 }
 
 impl MicrotaskRunnable for UserMicrotask {

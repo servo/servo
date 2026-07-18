@@ -951,7 +951,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             cx,
             Box::new(UserMicrotask {
                 callback,
-                global: self.global(),
+                global: Dom::from_ref(&self.globalscope),
             }),
         );
     }

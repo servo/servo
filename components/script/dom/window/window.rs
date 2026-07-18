@@ -1671,7 +1671,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             cx,
             Box::new(UserMicrotask {
                 callback,
-                global: self.global(),
+                global: Dom::from_ref(&self.globalscope),
             }),
         );
     }

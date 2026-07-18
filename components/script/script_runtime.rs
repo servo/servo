@@ -419,7 +419,7 @@ unsafe extern "C" fn enqueue_promise_job(
             cx,
             Box::new(EnqueuedPromiseCallback {
                 callback: unsafe { PromiseJobCallback::new(cx, job.get()) },
-                global,
+                global: global.as_traced(),
                 is_user_interacting,
             }),
         );
