@@ -12,7 +12,6 @@ import android.os.Bundle
 import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
-import android.view.View
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Row
@@ -33,6 +32,7 @@ import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.ComposeView
@@ -132,43 +132,50 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             }
         }
 
-        findViewById<View>(R.id.toolbar)?.apply {
-            findViewById<ComposeView>(R.id.toolbarButtons).apply {
-                setContent {
-                    Row {
-                        IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
-                            Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
-                        }
-                        IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
-                            Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
-                        }
-                        IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
-                            if (isRefreshingState.value) {
-                                Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
-                            } else {
-                                Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
-                            }
-                        }
+        findViewById<ComposeView>(R.id.toolbar)?.setContent {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
+                    Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
+                }
+                IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
+                    Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
+                }
+                IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
+                    if (isRefreshingState.value) {
+                        Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
+                    } else {
+                        Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
                     }
                 }
-            }
-            findViewById<ComposeView>(R.id.settings_menu_item).apply {
-                setContent {
-                    IconButton(onClick = ::onSettingsMenuItemClicked) {
-                        Icon(painterResource(R.drawable.settings), stringResource(R.string.options))
-                    }
+                Omnibox(
+                    urlTextFieldState,
+                    onSearch = { search ->
+                        loadUrl(search)
+                        servoView.requestFocus()
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 10.dp),
+                )
+                if (isRefreshingState.value) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .padding(end = 10.dp)
+                            .size(20.dp),
+                    )
                 }
-            }
-            findViewById<ComposeView>(R.id.history_menu_item).apply {
-                setContent {
-                    IconButton(onClick = ::onHistoryMenuItemClicked) {
-                        Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
-                    }
+                IconButton(onClick = ::onSettingsMenuItemClicked) {
+                    Icon(painterResource(R.drawable.settings), stringResource(R.string.options))
+                }
+                IconButton(onClick = ::onHistoryMenuItemClicked) {
+                    Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
                 }
             }
         }
 
-        findViewById<ComposeView>(R.id.progressbar).setContent {
+        findViewById<ComposeView>(R.id.progressbar)?.setContent {
             if (isRefreshingState.value) {
                 CircularProgressIndicator(
                     modifier = Modifier
@@ -178,7 +185,7 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             }
         }
 
-        findViewById<ComposeView>(R.id.urlfield).setContent {
+        findViewById<ComposeView>(R.id.urlfield)?.setContent {
             Omnibox(
                 urlTextFieldState,
                 onSearch = { search ->

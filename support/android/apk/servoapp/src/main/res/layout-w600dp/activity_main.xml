@@ -6,48 +6,11 @@
     tools:context="org.servo.servoshell.MainActivity"
     android:orientation="vertical">
 
-    <com.google.android.material.appbar.MaterialToolbar
+    <androidx.compose.ui.platform.ComposeView
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        >
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center">
-
-            <androidx.compose.ui.platform.ComposeView
-                android:id="@+id/toolbarButtons"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                />
-
-            <androidx.compose.ui.platform.ComposeView
-                android:id="@+id/urlfield"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1" />
-
-            <androidx.compose.ui.platform.ComposeView
-                android:id="@+id/progressbar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <androidx.compose.ui.platform.ComposeView
-                android:id="@+id/settings_menu_item"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                />
-
-            <androidx.compose.ui.platform.ComposeView
-                android:id="@+id/history_menu_item"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                />
-
-        </LinearLayout>
-    </com.google.android.material.appbar.MaterialToolbar>
+        />
 
     <org.servo.servoview.ServoView
         android:id="@+id/servoview"
