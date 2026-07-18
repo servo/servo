@@ -325,7 +325,7 @@ impl OneshotTimers {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
-    pub(crate) fn fire_timer(&self, id: TimerEventId, global: &GlobalScope, cx: &mut JSContext) {
+    pub(crate) fn fire_timer(&self, id: TimerEventId, cx: &mut JSContext) {
         // Step 9.2. If id does not exist in global's map of setTimeout and setInterval IDs, then abort these steps.
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
@@ -365,7 +365,7 @@ impl OneshotTimers {
             // this loop can keep running, including after an interrupt of the JS,
             // and prevent a clean-shutdown of a JS-running thread.
             // This check prevents such a situation.
-            if !global.can_continue_running() {
+            if !self.global_scope.can_continue_running() {
                 return;
             }
             match &timer.callback {
@@ -409,7 +409,7 @@ impl OneshotTimers {
                     // (No additional delay applied.)
 
                     // Step 4.4 Perform completionSteps.
-                    (completion)(cx, global);
+                    (completion)(cx, &self.global_scope);
 
                     // Step 4.5 Remove global's map of active timers[timerKey].
                     self.map_of_active_timers.borrow_mut().remove(&timer_key);
