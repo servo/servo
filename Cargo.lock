@@ -823,7 +823,7 @@ dependencies = [
  "bitflags 2.13.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "regex",
@@ -5224,9 +5224,9 @@ dependencies = [
 
 [[package]]
 name = "mozjs"
-version = "0.18.3"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1010e76ba206fc91295b355d5924f6c632772e5646915a223e3c650e996023ef"
+checksum = "944a45d394b89149fac577c90c5011043ecda76d41b383a305e68678f4c4039f"
 dependencies = [
  "bindgen",
  "cc",

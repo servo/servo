@@ -152,7 +152,9 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
         let dest = array.as_mut_slice_safe(no_gc);
-        self.engine.borrow_mut().fill_frequency_data(dest);
+        self.engine
+            .borrow_mut()
+            .fill_frequency_data(dest.unwrap_or(&mut []));
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytefrequencydata>
@@ -160,7 +162,9 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
         let dest = array.as_mut_slice_safe(no_gc);
-        self.engine.borrow_mut().fill_byte_frequency_data(dest);
+        self.engine
+            .borrow_mut()
+            .fill_byte_frequency_data(dest.unwrap_or(&mut []));
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloattimedomaindata>
@@ -168,7 +172,9 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
         let dest = array.as_mut_slice_safe(no_gc);
-        self.engine.borrow().fill_time_domain_data(dest);
+        self.engine
+            .borrow()
+            .fill_time_domain_data(dest.unwrap_or(&mut []));
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytetimedomaindata>
@@ -176,7 +182,9 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
         let dest = array.as_mut_slice_safe(no_gc);
-        self.engine.borrow().fill_byte_time_domain_data(dest);
+        self.engine
+            .borrow()
+            .fill_byte_time_domain_data(dest.unwrap_or(&mut []));
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize>

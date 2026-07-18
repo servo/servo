@@ -124,7 +124,12 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float32Array>,
     ) -> Fallible<DomRoot<DOMMatrix>> {
-        let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
+        let vec: Vec<f64> = array
+            .to_vec()
+            .unwrap_or_default()
+            .iter()
+            .map(|&x| x as f64)
+            .collect();
         DOMMatrix::Constructor(
             cx,
             global,
@@ -139,7 +144,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float64Array>,
     ) -> Fallible<DomRoot<DOMMatrix>> {
-        let vec: Vec<f64> = array.to_vec();
+        let vec: Vec<f64> = array.to_vec().unwrap_or_default();
         DOMMatrix::Constructor(
             cx,
             global,

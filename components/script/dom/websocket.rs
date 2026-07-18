@@ -416,7 +416,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket-send>
     fn Send__(&self, array: CustomAutoRooterGuard<ArrayBuffer>) -> ErrorResult {
-        let bytes = array.to_vec();
+        let bytes = array.to_vec().unwrap_or_default();
         let data_byte_len = bytes.len();
         let send_data = self.send_impl(data_byte_len as u64)?;
 
@@ -430,7 +430,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket-send>
     fn Send___(&self, array: CustomAutoRooterGuard<ArrayBufferView>) -> ErrorResult {
-        let bytes = array.to_vec();
+        let bytes = array.to_vec().unwrap_or_default();
         let data_byte_len = bytes.len();
         let send_data = self.send_impl(data_byte_len as u64)?;
 

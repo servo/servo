@@ -176,7 +176,7 @@ impl ImageData {
         // because the array may be manipulated from JS while the reference
         // is live.
         unsafe {
-            let ptr: *const [u8] = internal_data.as_slice() as *const _;
+            let ptr: *const [u8] = internal_data.as_slice().unwrap_or(&[]) as *const _;
             &*ptr
         }
     }

@@ -60,7 +60,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
         if !is_integer_buffer(array_type) {
             Err(Error::TypeMismatch(None))
         } else {
-            let data = input.as_mut_slice_safe(no_gc);
+            let data = input.as_mut_slice_safe(no_gc).unwrap_or(&mut []);
             if data.len() > 65536 {
                 return Err(Error::QuotaExceeded {
                     quota: None,

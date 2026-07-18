@@ -76,7 +76,9 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
         source: USVString,
         mut destination: CustomAutoRooterGuard<typedarray::Uint8Array>,
     ) -> TextEncoderEncodeIntoResult {
-        let available = destination.len();
+        let dest = destination.as_mut_slice_safe(no_gc).unwrap_or(&mut []);
+
+        let available = dest.len();
 
         // Bail out if the destination has no space available.
         if available == 0 {
@@ -88,8 +90,6 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
 
         let mut read = 0;
         let mut written = 0;
-
-        let dest = destination.as_mut_slice_safe(no_gc);
 
         // Step 3, 4, 5, 6
         // Turn the source into a queue of scalar values.

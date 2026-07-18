@@ -2966,7 +2966,8 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedKeyGenParams 
                 c"publicExponent",
                 (),
             )?
-            .to_vec(),
+            .to_vec()
+            .unwrap_or_default(),
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
         })
     }
