@@ -786,12 +786,10 @@ impl LayoutThread {
 
         let locked_script_channel = Mutex::new(config.script_chan.clone());
         let pipeline_id = config.id;
-        let web_font_finished_loading_callback = move |succeeded: bool| {
-            if succeeded {
-                let _ = locked_script_channel
-                    .lock()
-                    .send(ScriptThreadMessage::WebFontLoaded(pipeline_id));
-            }
+        let web_font_finished_loading_callback = move |event| {
+            let _ = locked_script_channel
+                .lock()
+                .send(ScriptThreadMessage::WebFontLoadFinished(pipeline_id, event));
         };
 
         LayoutThread {

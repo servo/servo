@@ -8,7 +8,7 @@ use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::iter;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
@@ -16,7 +16,7 @@ use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleWithOrigin, FontIdentifier, FontTemplate,
     FontTemplateRef, FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
-    WebFontSetDifference,
+    WebFontLoadEvent, WebFontSetDifference,
 };
 use log::{debug, trace};
 use malloc_size_of::MallocSizeOf;
@@ -45,7 +45,7 @@ use style::font_face::{
 use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::StylesheetGuards;
-use style::stylesheets::FontFaceRule;
+use style::stylesheets::LockedFontFaceRule;
 use style::stylist::Stylist;
 use style::values::computed::FontVariantAlternates;
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
@@ -126,6 +126,9 @@ pub struct FontContext {
 
     /// A lazily-computed map of feature names from `@font-feature-value` rules.
     font_feature_value_map: AtomicRefCell<Option<FontFeatureValueMap>>,
+
+    /// The number of fonts that are currently loading.
+    number_of_loading_web_fonts: AtomicUsize,
 }
 
 /// A callback that will be invoked on the Fetch thread if a web font download
@@ -185,11 +188,12 @@ impl FontContext {
             currently_downloading_fonts: Default::default(),
             known_font_face_rules: Default::default(),
             font_feature_value_map: Default::default(),
+            number_of_loading_web_fonts: Default::default(),
         }
     }
 
     pub fn web_fonts_still_loading(&self) -> usize {
-        self.currently_downloading_fonts.lock().len()
+        self.number_of_loading_web_fonts.load(Ordering::SeqCst)
     }
 
     fn get_font_data(&self, identifier: &FontIdentifier) -> Option<FontData> {
@@ -577,10 +581,25 @@ impl FontContext {
         true
     }
 
-    pub(crate) fn has_pending_font_requests_for_url(&self, url: ServoArc<Url>) -> bool {
-        self.currently_downloading_fonts
+    /// Decrement the count of font loads blocking the `document.fonts.ready` promise by one.
+    pub fn decrement_count_of_loading_fonts_by_one(&self) {
+        self.number_of_loading_web_fonts
+            .fetch_sub(1, Ordering::SeqCst);
+    }
+
+    /// Returns true iff a `@font-face` rule is part of the active set.
+    ///
+    /// A font face rule might be removed from this set if its stylesheet is removed for example.
+    pub(crate) fn is_font_face_rule_active(
+        &self,
+        target_rule: &ServoArc<LockedFontFaceRule>,
+    ) -> bool {
+        self.known_font_face_rules
             .lock()
-            .contains_key(&url.into())
+            .contents
+            .values()
+            .flat_map(|bucket| bucket.iter())
+            .any(|known_rule| ServoArc::ptr_eq(&known_rule.rule_with_origin.rule, target_rule))
     }
 }
 
@@ -623,15 +642,38 @@ impl WebFontDownloadState {
         let family_name = self.css_font_face_descriptors.family_name.clone();
         match self.initiator {
             WebFontLoadInitiator::Stylesheet(initiator) => {
+                if !self
+                    .font_context
+                    .is_font_face_rule_active(&initiator.created_by)
+                {
+                    // This font load was cancelled.
+                    if self
+                        .font_context
+                        .number_of_loading_web_fonts
+                        .fetch_sub(1, Ordering::SeqCst) ==
+                        1
+                    {
+                        // This was the last loading font - we must inform the script thread that the load
+                        // has finished because this an opportunity to resolve document.fonts.ready.
+                        (initiator.callback)(WebFontLoadEvent::UnblockedFontReadyPromise);
+                    }
+                    return;
+                }
+
                 self.font_context
                     .web_fonts
                     .write()
                     .add_new_template(family_name, new_template);
                 self.font_context
                     .invalidate_font_groups_after_web_font_load();
-                (initiator.callback)(true);
+
+                // Note: We intentionally do not call decrement_count_of_loading_fonts_by_one here.
+                // That is handled in the callback, which avoids document.fonts.ready being resolved
+                // prematurely.
+                (initiator.callback)(WebFontLoadEvent::LoadedSuccessfully);
             },
             WebFontLoadInitiator::Script(callback) => {
+                self.font_context.decrement_count_of_loading_fonts_by_one();
                 callback(family_name, Some(new_template));
             },
         }
@@ -642,18 +684,22 @@ impl WebFontDownloadState {
         let family_name = self.css_font_face_descriptors.family_name.clone();
         match self.initiator {
             WebFontLoadInitiator::Stylesheet(initiator) => {
-                (initiator.callback)(false);
+                if self
+                    .font_context
+                    .number_of_loading_web_fonts
+                    .fetch_sub(1, Ordering::SeqCst) ==
+                    1
+                {
+                    // This was the last loading font - we must inform the script thread that the load
+                    // has finished because this an opportunity to resolve document.fonts.ready.
+                    (initiator.callback)(WebFontLoadEvent::UnblockedFontReadyPromise);
+                }
             },
             WebFontLoadInitiator::Script(callback) => {
+                self.font_context.decrement_count_of_loading_fonts_by_one();
                 callback(family_name, None);
             },
         }
-    }
-
-    fn was_created_for_font_face_rule(&self, font_face_rule: &FontFaceRuleDescriptors) -> bool {
-        self.initiator
-            .font_face_rule()
-            .is_some_and(|initiating_rule| initiating_rule == font_face_rule)
     }
 }
 
@@ -668,8 +714,9 @@ pub trait FontContextWebFontMethods {
     ) -> WebFontSetDifference;
     fn load_single_font_face_rule(
         &self,
-        font_face_rule: &FontFaceRule,
         webview_id: WebViewId,
+        locked_font_face_rule: &FontFaceRuleWithOrigin,
+        guards: &StylesheetGuards<'_>,
         callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
     );
@@ -687,11 +734,13 @@ pub trait FontContextWebFontMethods {
 impl FontContextWebFontMethods for Arc<FontContext> {
     fn load_single_font_face_rule(
         &self,
-        font_face_rule: &FontFaceRule,
         webview_id: WebViewId,
+        locked_font_face_rule: &FontFaceRuleWithOrigin,
+        guards: &StylesheetGuards<'_>,
         callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
     ) {
+        let font_face_rule = locked_font_face_rule.read_with(guards);
         let Some(ref sources) = font_face_rule.descriptors.src else {
             return;
         };
@@ -699,6 +748,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         let css_font_face_descriptors = font_face_rule.into();
 
         let initiator = FontFaceRuleInitiator {
+            created_by: locked_font_face_rule.rule.clone(),
             font_face_rule: font_face_rule.descriptors.clone(),
             callback: callback.clone(),
         };
@@ -725,10 +775,10 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             .diff_old_and_new_font_face_rules(stylist, guards);
 
         for added_rule in &difference.added_font_faces {
-            let added_rule = added_rule.read_with(guards);
             self.load_single_font_face_rule(
-                added_rule,
                 webview_id,
+                added_rule,
+                guards,
                 callback.clone(),
                 document_context,
             );
@@ -777,6 +827,23 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         };
 
         for subscriber in subscribers {
+            // See if the font load was cancelled in the meantime
+            if let WebFontLoadInitiator::Stylesheet(stylesheet_initiator) = &subscriber.initiator &&
+                !self.is_font_face_rule_active(&stylesheet_initiator.created_by)
+            {
+                // This font load was cancelled.
+                if self
+                    .number_of_loading_web_fonts
+                    .fetch_sub(1, Ordering::SeqCst) ==
+                    1
+                {
+                    // This was the last loading font - we must inform the script thread that the load
+                    // has finished because this an opportunity to resolve document.fonts.ready.
+                    (stylesheet_initiator.callback)(WebFontLoadEvent::UnblockedFontReadyPromise);
+                }
+                return;
+            }
+
             self.process_next_web_font_source(subscriber);
         }
     }
@@ -860,17 +927,6 @@ impl FontContext {
             return false;
         };
 
-        // Mark any ongoing load operations for this font as cancelled.
-        self.currently_downloading_fonts
-            .lock()
-            .retain(|_, download_states| {
-                download_states.retain(|download_state| {
-                    !download_state.was_created_for_font_face_rule(font_face_rule)
-                });
-
-                !download_states.is_empty()
-            });
-
         let lowercase_family_name: LowercaseFontFamilyName = family.name.clone().into();
         let Some(known_family) = font_store.families.get_mut(&lowercase_family_name) else {
             return false;
@@ -934,6 +990,9 @@ impl FontContext {
         completion_handler: WebFontLoadInitiator,
         document_context: &WebFontDocumentContext,
     ) {
+        self.number_of_loading_web_fonts
+            .fetch_add(1, Ordering::SeqCst);
+
         let sources: Vec<Source> = source_list
             .0
             .iter()
@@ -1188,6 +1247,13 @@ pub(crate) type ScriptWebFontLoadFinishedCallback =
 
 #[derive(MallocSizeOf)]
 pub(crate) struct FontFaceRuleInitiator {
+    /// A reference to the `@font-face` rule that created this web font load.
+    /// This is only used to identify the font in case it is
+    // TODO: It is awkward that we have to carry both the locked font face rule and the
+    // unlocked copy around. Perhaps the FontContext should have access to the shared
+    // lock in the future.
+    #[conditional_malloc_size_of]
+    created_by: ServoArc<LockedFontFaceRule>,
     font_face_rule: FontFaceRuleDescriptors,
     #[ignore_malloc_size_of = "dyn Fn"]
     callback: StylesheetWebFontLoadFinishedCallback,
@@ -1291,15 +1357,6 @@ impl RemoteWebFontDownloader {
     /// After a download finishes, try to process the downloaded data, returning true if
     /// the font is added successfully to the [`FontContext`] or false if it isn't.
     fn process_downloaded_font_and_signal_completion(&mut self) {
-        // Check if we still need this web font. If the stylesheet has been removed in the meantime
-        // then there is no need to process it any further.
-        if !self
-            .font_context
-            .has_pending_font_requests_for_url(self.url.clone())
-        {
-            return;
-        }
-
         let font_data = std::mem::take(&mut self.response_data);
         trace!(
             "Downloaded @font-face {} ({} bytes)",

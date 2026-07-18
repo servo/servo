@@ -83,7 +83,7 @@ impl MixedMessage {
                 ScriptThreadMessage::FocusDocument(id, ..) => Some(*id),
                 ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(*id),
                 ScriptThreadMessage::TickAllAnimations(..) => None,
-                ScriptThreadMessage::WebFontLoaded(id) => Some(*id),
+                ScriptThreadMessage::WebFontLoadFinished(id, ..) => Some(*id),
                 ScriptThreadMessage::DispatchIFrameLoadEvent {
                     target: _,
                     parent: id,

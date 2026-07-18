@@ -46,7 +46,7 @@ use embedder_traits::{
     Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use encoding_rs::Encoding;
-use fonts::{FontContext, SystemFontServiceProxy};
+use fonts::{FontContext, SystemFontServiceProxy, WebFontLoadEvent};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
 use hyper_serde::Serde;
@@ -1904,8 +1904,13 @@ impl ScriptThread {
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, cx)
             },
-            ScriptThreadMessage::WebFontLoaded(pipeline_id) => {
-                self.handle_web_font_loaded(cx.no_gc(), pipeline_id)
+            ScriptThreadMessage::WebFontLoadFinished(pipeline_id, event) => {
+                // If the font load did not succeed then this message only serves to bump the script thread
+                // so it attempts to resolve the document.fonts.ready promise. This happens as a result
+                // of processing this message, so there's nothing more to do.
+                if event == WebFontLoadEvent::LoadedSuccessfully {
+                    self.handle_web_font_loaded(cx.no_gc(), pipeline_id)
+                }
             },
             ScriptThreadMessage::DispatchIFrameLoadEvent {
                 target: browsing_context_id,
@@ -3351,6 +3356,11 @@ impl ScriptThread {
 
         // TODO: This should only dirty nodes that are waiting for a web font to finish loading!
         document.dirty_all_nodes(no_gc);
+
+        document
+            .window()
+            .font_context()
+            .decrement_count_of_loading_fonts_by_one();
     }
 
     /// Handles a worklet being loaded by triggering a relayout of the page. Does nothing if the
