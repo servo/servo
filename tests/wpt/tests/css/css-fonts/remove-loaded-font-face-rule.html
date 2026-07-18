@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+    <head>
+        <title>Removing a loaded @font-face rule updates layout</title>
+        <meta name="assert" content="Removing a loaded @font-face rule updates layout" />
+        <link rel="author" title="Simon Wülker" href="simon.wuelker@arcor.de">
+        <link rel="stylesheet" href="/fonts/ahem.css">
+        <link rel="match" href="remove-loaded-font-face-rule-ref.html">
+        <link rel="help" href="https://github.com/servo/servo/issues/46372>"
+    </head>
+    <body>
+        <div style="font-family: Lato, Ahem">This text should be rendered using Ahem</div>
+        <style id="target">
+            @font-face {
+                font-family: Lato;
+                src: url("/fonts/Lato-Medium.ttf");
+            }
+        </style>
+        <script>
+          document.fonts.ready.then(() => {
+            target.remove();
+
+            document.fonts.ready.then(() => {
+              document.documentElement.classList.remove("reftest-wait");
+            });
+          });
+        </script>
+    </body>
+</html>

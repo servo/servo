@@ -3593,6 +3593,10 @@ impl Window {
         let fonts = document.Fonts(cx);
         if !changed_web_fonts.removed_font_faces.is_empty() {
             fonts.notify_font_face_rules_removed(&changed_web_fonts.removed_font_faces);
+
+            // TODO: This should only dirty nodes that are rendered using any of the removed
+            // web fonts!
+            document.dirty_all_nodes(cx.no_gc());
         }
 
         if !changed_web_fonts.added_font_faces.is_empty() {
