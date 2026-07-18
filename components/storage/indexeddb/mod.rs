@@ -179,22 +179,37 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     fn scopes_overlap(a: &TxnInfo, b: &TxnInfo) -> bool {
+        // From <https://w3c.github.io/IndexedDB/#upgrade-transaction-construct>
+        // > An upgrade transaction is exclusive. The steps to open a database connection
+        // > ensure that only one connection to the database is open when an upgrade
+        // > transaction is live.
+        //
+        // This mean that versionupgrade transactions are always overlapping with others.
+        // They are defined to contain all of the object stores in the database.
+        if a.mode == IndexedDBTxnMode::Versionchange || b.mode == IndexedDBTxnMode::Versionchange {
+            return true;
+        }
+
         a.scope
             .iter()
             .any(|store| b.scope.iter().any(|other| other.name == store.name))
     }
 
-    fn earlier_overlapping_live_exists<F>(&self, txn: u64, predicate: F) -> bool
+    fn earlier_overlapping_live_exists<F>(&self, transaction: u64, predicate: F) -> bool
     where
         F: Fn(&TxnInfo) -> bool,
     {
-        let Some(current) = self.txn_info.get(&txn) else {
+        let Some(current) = self.txn_info.get(&transaction) else {
             return false;
         };
-        self.txn_info.iter().any(|(other_txn, other)| {
-            *other_txn != txn &&
-                other.live &&
-                other.created_seq < current.created_seq &&
+
+        let comes_before = |other_transaction: &TxnInfo| {
+            other_transaction.live && other_transaction.created_seq < current.created_seq
+        };
+
+        self.txn_info.iter().any(|(other_transaction, other)| {
+            *other_transaction != transaction &&
+                comes_before(other) &&
                 Self::scopes_overlap(current, other) &&
                 predicate(other)
         })
