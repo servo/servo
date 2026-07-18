@@ -27,7 +27,7 @@ use servo_base::generic_channel::GenericSharedMemory;
 use servo_constellation_traits::BlobImpl;
 use url::form_urlencoded;
 
-use crate::dom::bindings::buffer_source::create_buffer_source;
+use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_copy};
 use crate::dom::bindings::codegen::Bindings::BlobBinding::Blob_Binding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
@@ -526,7 +526,8 @@ impl Extractable for BodyInit {
             BodyInit::Blob(b) => b.extract(cx, global, keep_alive),
             BodyInit::FormData(formdata) => formdata.extract(cx, global, keep_alive),
             BodyInit::ArrayBuffer(typedarray) => {
-                let bytes = typedarray.to_vec();
+                // Set source to a copy of the bytes held by object.
+                let bytes = get_buffer_source_copy(typedarray.into());
                 let total_bytes = bytes.len();
                 let stream = stream_from_body_init_bytes(cx, global, bytes)?;
                 Ok(ExtractedBody {
@@ -537,7 +538,8 @@ impl Extractable for BodyInit {
                 })
             },
             BodyInit::ArrayBufferView(typedarray) => {
-                let bytes = typedarray.to_vec();
+                // Set source to a copy of the bytes held by object.
+                let bytes = get_buffer_source_copy(typedarray.into());
                 let total_bytes = bytes.len();
                 let stream = stream_from_body_init_bytes(cx, global, bytes)?;
                 Ok(ExtractedBody {

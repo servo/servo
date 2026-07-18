@@ -321,5 +321,5 @@ pub(crate) fn convert_chunk_to_vec(
     let buffer_source = conversion_result.get_success_value().ok_or_else(|| {
         Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
     })?;
-    Ok(get_buffer_source_copy(buffer_source))
+    Ok(get_buffer_source_copy(buffer_source.into()))
 }
