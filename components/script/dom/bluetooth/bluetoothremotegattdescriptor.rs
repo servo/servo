@@ -145,7 +145,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
         }
 
         // Step 2 - 3.
-        let vec = get_buffer_source_copy(&value);
+        let vec = get_buffer_source_copy((&value).into());
         if vec.len() > MAXIMUM_ATTRIBUTE_LENGTH {
             p.reject_error(cx, InvalidModification(None));
             return p;

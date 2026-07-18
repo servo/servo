@@ -29,9 +29,7 @@ use crate::dom::bindings::codegen::Bindings::FontFaceBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes;
-use crate::dom::bindings::codegen::UnionTypes::{
-    ArrayBufferViewOrArrayBuffer, StringOrArrayBufferViewOrArrayBuffer,
-};
+use crate::dom::bindings::codegen::UnionTypes::StringOrArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -767,16 +765,16 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         // [[Data]] slot to the passed argument.
         // Step 3. If font face’s [[Data]] slot is not null, queue a task to run the following steps
         // synchronously:
-        let font_face_bytes = match source {
+        let font_face_bytes = match &source {
             StringOrArrayBufferViewOrArrayBuffer::String(_) => {
                 // Return font face.
                 return font_face;
             },
             StringOrArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => {
-                get_buffer_source_copy(&ArrayBufferViewOrArrayBuffer::ArrayBufferView(view))
+                get_buffer_source_copy(view.into())
             },
             StringOrArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => {
-                get_buffer_source_copy(&ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer))
+                get_buffer_source_copy(buffer.into())
             },
         };
         let trusted_font_face = Trusted::new(&*font_face);

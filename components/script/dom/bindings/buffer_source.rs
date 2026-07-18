@@ -77,6 +77,36 @@ impl Clone for BufferSource {
     }
 }
 
+pub(crate) enum ArrayBufferViewOrArrayBufferRef<'a> {
+    ArrayBufferView(&'a RootedTypedArray<ArrayBufferViewU8>),
+    ArrayBuffer(&'a RootedTypedArray<ArrayBufferU8>),
+}
+
+impl<'a> From<&'a RootedTypedArray<ArrayBufferViewU8>> for ArrayBufferViewOrArrayBufferRef<'a> {
+    fn from(view: &'a RootedTypedArray<ArrayBufferViewU8>) -> Self {
+        ArrayBufferViewOrArrayBufferRef::ArrayBufferView(view)
+    }
+}
+
+impl<'a> From<&'a RootedTypedArray<ArrayBufferU8>> for ArrayBufferViewOrArrayBufferRef<'a> {
+    fn from(buffer: &'a RootedTypedArray<ArrayBufferU8>) -> Self {
+        ArrayBufferViewOrArrayBufferRef::ArrayBuffer(buffer)
+    }
+}
+
+impl<'a> From<&'a ArrayBufferViewOrArrayBuffer> for ArrayBufferViewOrArrayBufferRef<'a> {
+    fn from(view_or_buffer: &'a ArrayBufferViewOrArrayBuffer) -> Self {
+        match view_or_buffer {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => {
+                ArrayBufferViewOrArrayBufferRef::ArrayBufferView(view)
+            },
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => {
+                ArrayBufferViewOrArrayBufferRef::ArrayBuffer(buffer)
+            },
+        }
+    }
+}
+
 /// <https://webidl.spec.whatwg.org/#dfn-get-buffer-source-copy>
 ///
 /// Spec steps and how they're covered:
@@ -97,10 +127,10 @@ impl Clone for BufferSource {
 ///
 /// - **SharedArrayBuffer**: Not applicable — `ArrayBufferViewOrArrayBuffer`
 ///   does not include a SharedArrayBuffer variant.
-pub(crate) fn get_buffer_source_copy(source: &ArrayBufferViewOrArrayBuffer) -> Vec<u8> {
+pub(crate) fn get_buffer_source_copy(source: ArrayBufferViewOrArrayBufferRef<'_>) -> Vec<u8> {
     match source {
-        ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-        ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        ArrayBufferViewOrArrayBufferRef::ArrayBufferView(view) => view.to_vec(),
+        ArrayBufferViewOrArrayBufferRef::ArrayBuffer(buffer) => buffer.to_vec(),
     }
 }
 

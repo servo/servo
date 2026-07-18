@@ -495,7 +495,7 @@ fn canonicalize_bluetooth_data_filter_init(
 ) -> Fallible<(Vec<u8>, Vec<u8>)> {
     // Step 1.
     let data_prefix = match &bdfi.dataPrefix {
-        Some(buffer_source) => get_buffer_source_copy(buffer_source),
+        Some(buffer_source) => get_buffer_source_copy(buffer_source.into()),
         None => vec![],
     };
 
@@ -503,7 +503,7 @@ fn canonicalize_bluetooth_data_filter_init(
     // If no mask present, mask will be a sequence of 0xFF bytes the same length as dataPrefix.
     // Masking dataPrefix with this, leaves dataPrefix untouched.
     let mask = match &bdfi.mask {
-        Some(buffer_source) => get_buffer_source_copy(buffer_source),
+        Some(buffer_source) => get_buffer_source_copy(buffer_source.into()),
         None => vec![0xFF; data_prefix.len()],
     };
 
