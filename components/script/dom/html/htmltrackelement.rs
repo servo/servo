@@ -8,7 +8,6 @@ use content_security_policy::Destination;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
-use js::realm::AutoRealm;
 use js::rust::HandleObject;
 use net_traits::request::{CorsSettings, RequestId};
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
@@ -357,7 +356,10 @@ pub(crate) enum TrackElementMicrotask {
 }
 
 impl MicrotaskRunnable for TrackElementMicrotask {
-    fn handler(&self, _cx: &mut JSContext) {
+    fn handler(&self, cx: &mut JSContext) {
+        let _realm = match self {
+            TrackElementMicrotask::ProcessingModel { elem, .. } => enter_auto_realm(cx, &**elem),
+        };
         match self {
             // https://html.spec.whatwg.org/multipage/#start-the-track-processing-model
             TrackElementMicrotask::ProcessingModel {
@@ -405,12 +407,6 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                 // Step 13. Jump to the step labeled top.
                 // TODO
             },
-        }
-    }
-
-    fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx> {
-        match self {
-            TrackElementMicrotask::ProcessingModel { elem, .. } => enter_auto_realm(cx, &**elem),
         }
     }
 }

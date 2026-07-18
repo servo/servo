@@ -14,7 +14,6 @@ use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::context::JSContext;
-use js::realm::AutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::http_status::HttpStatus;
@@ -1648,6 +1647,12 @@ pub(crate) enum ImageElementMicrotask {
 
 impl MicrotaskRunnable for ImageElementMicrotask {
     fn handler(&self, cx: &mut js::context::JSContext) {
+        let mut realm = match self {
+            &ImageElementMicrotask::UpdateImageData { ref elem, .. } |
+            &ImageElementMicrotask::EnvironmentChanges { ref elem, .. } |
+            &ImageElementMicrotask::Decode { ref elem, .. } => enter_auto_realm(cx, &**elem),
+        };
+        let cx = &mut realm;
         match *self {
             ImageElementMicrotask::UpdateImageData {
                 ref elem,
@@ -1672,14 +1677,6 @@ impl MicrotaskRunnable for ImageElementMicrotask {
             } => {
                 elem.react_to_decode_image_sync_steps(cx, promise.clone());
             },
-        }
-    }
-
-    fn enter_realm<'cx>(&self, cx: &'cx mut js::context::JSContext) -> AutoRealm<'cx> {
-        match self {
-            &ImageElementMicrotask::UpdateImageData { ref elem, .. } |
-            &ImageElementMicrotask::EnvironmentChanges { ref elem, .. } |
-            &ImageElementMicrotask::Decode { ref elem, .. } => enter_auto_realm(cx, &**elem),
         }
     }
 }

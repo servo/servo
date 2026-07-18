@@ -11,7 +11,6 @@ use std::mem;
 use std::rc::Rc;
 
 use js::context::JSContext;
-use js::realm::AutoRealm;
 use js::rust::wrappers2::JobQueueMayNotBeEmpty;
 use malloc_size_of::MallocSizeOf;
 use script_bindings::cell::DomRefCell;
@@ -58,8 +57,8 @@ pub(crate) enum Microtask {
 }
 
 pub(crate) trait MicrotaskRunnable: JSTraceable + MallocSizeOf {
+    // must also take care of entering the realm
     fn handler(&self, _cx: &mut JSContext) {}
-    fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx>;
 }
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
@@ -130,28 +129,18 @@ impl MicrotaskQueue {
                             .Call_(cx, &*job.global, ExceptionHandling::Report);
                     },
                     Microtask::MediaElement(ref task) => {
-                        let mut realm = task.enter_realm(cx);
-                        let cx = &mut realm;
                         task.handler(cx);
                     },
                     Microtask::ImageElement(ref task) => {
-                        let mut realm = task.enter_realm(cx);
-                        let cx = &mut realm;
                         task.handler(cx);
                     },
                     Microtask::TrackElement(ref task) => {
-                        let mut realm = task.enter_realm(cx);
-                        let cx = &mut realm;
                         task.handler(cx);
                     },
                     Microtask::ReadableStreamTeeReadRequest(ref task) => {
-                        let mut realm = task.enter_realm(cx);
-                        let cx = &mut realm;
                         task.handler(cx);
                     },
                     Microtask::WaitForAllSuccessSteps(ref task) => {
-                        let mut realm = task.enter_realm(cx);
-                        let cx = &mut realm;
                         task.handler(cx);
                     },
                     Microtask::CustomElementReaction => {

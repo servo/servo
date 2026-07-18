@@ -18,7 +18,7 @@ use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use http::StatusCode;
 use http::header::{self, HeaderMap, HeaderValue};
 use js::context::JSContext;
-use js::realm::{AutoRealm, CurrentRealm};
+use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
@@ -3597,6 +3597,16 @@ pub(crate) enum MediaElementMicrotask {
 
 impl MicrotaskRunnable for MediaElementMicrotask {
     fn handler(&self, cx: &mut JSContext) {
+        let mut realm = match self {
+            &MediaElementMicrotask::ResourceSelection { ref elem, .. } |
+            &MediaElementMicrotask::PauseIfNotInDocument { ref elem } |
+            &MediaElementMicrotask::Seeked { ref elem, .. } |
+            &MediaElementMicrotask::SelectNextSourceChild { ref elem, .. } |
+            &MediaElementMicrotask::SelectNextSourceChildAfterWait { ref elem, .. } => {
+                enter_auto_realm(cx, &**elem)
+            },
+        };
+        let cx = &mut realm;
         match self {
             &MediaElementMicrotask::ResourceSelection {
                 ref elem,
@@ -3639,18 +3649,6 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 if generation_id == elem.generation_id.get() {
                     elem.select_next_source_child_after_wait(cx);
                 }
-            },
-        }
-    }
-
-    fn enter_realm<'cx>(&self, cx: &'cx mut js::context::JSContext) -> AutoRealm<'cx> {
-        match self {
-            &MediaElementMicrotask::ResourceSelection { ref elem, .. } |
-            &MediaElementMicrotask::PauseIfNotInDocument { ref elem } |
-            &MediaElementMicrotask::Seeked { ref elem, .. } |
-            &MediaElementMicrotask::SelectNextSourceChild { ref elem, .. } |
-            &MediaElementMicrotask::SelectNextSourceChildAfterWait { ref elem, .. } => {
-                enter_auto_realm(cx, &**elem)
             },
         }
     }

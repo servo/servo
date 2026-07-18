@@ -9,7 +9,6 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use js::realm::AutoRealm;
 use js::rust::HandleValue as SafeHandleValue;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
@@ -35,11 +34,8 @@ pub(crate) struct DefaultTeeReadRequestMicrotask {
 
 impl MicrotaskRunnable for DefaultTeeReadRequestMicrotask {
     fn handler(&self, cx: &mut JSContext) {
-        self.tee_read_request.chunk_steps(cx, &self.chunk);
-    }
-
-    fn enter_realm<'cx>(&self, cx: &'cx mut js::context::JSContext) -> AutoRealm<'cx> {
-        enter_auto_realm(cx, &*self.tee_read_request)
+        let mut realm = enter_auto_realm(cx, &*self.tee_read_request);
+        self.tee_read_request.chunk_steps(&mut realm, &self.chunk);
     }
 }
 

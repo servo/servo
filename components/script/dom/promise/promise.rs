@@ -25,7 +25,7 @@ use js::jsapi::{
     SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::realm::{AutoRealm, CurrentRealm};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     AddPromiseReactions, AddRawValueRoot, CallOriginalPromiseReject, CallOriginalPromiseResolve,
     GetPromiseIsHandled, GetPromiseState, IsPromiseObject, JS_ClearPendingException,
@@ -496,11 +496,8 @@ pub(crate) struct WaitForAllSuccessStepsMicrotask {
 
 impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
     fn handler(&self, cx: &mut JSContext) {
-        (self.success_steps)(cx, vec![]);
-    }
-
-    fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx> {
-        enter_auto_realm(cx, &*self.global)
+        let mut realm = enter_auto_realm(cx, &*self.global);
+        (self.success_steps)(&mut realm, vec![]);
     }
 }
 
