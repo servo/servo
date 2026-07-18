@@ -150,25 +150,18 @@ pub(crate) enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke<T: DomObject + OwnerWindow<DomTypeHolder>>(
-        self,
-        this: &T,
-        js_timers: &JsTimers,
-        cx: &mut JSContext,
-    ) {
+    fn invoke(self, global: &GlobalScope, js_timers: &JsTimers, cx: &mut JSContext) {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(cx),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
-            OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, cx),
+            OneshotTimerCallback::JsTimer(task) => task.invoke(global, js_timers, cx),
             #[cfg(feature = "testbinding")]
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(cx),
-            OneshotTimerCallback::RefreshRedirectDue(callback) => {
-                callback.invoke(cx, &this.global())
-            },
+            OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(cx, global),
             OneshotTimerCallback::RunStepsAfterTimeout { completion, .. } => {
                 // <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
                 // Step 4.4 Perform completionSteps.
-                completion(cx, &this.global());
+                completion(cx, global);
             },
         }
     }
@@ -435,7 +428,7 @@ impl OneshotTimers {
                 },
                 _ => {
                     let cb = timer.callback;
-                    cb.invoke(global, &self.js_timers, cx);
+                    cb.invoke(&self.global_scope, &self.js_timers, cx);
                 },
             }
         }
