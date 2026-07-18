@@ -30,6 +30,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSearchBarState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -177,32 +178,12 @@ class MainActivity : AppCompatActivity(), Servo.Client {
             }
         }
 
-        @OptIn(ExperimentalMaterial3Api::class)
         findViewById<ComposeView>(R.id.urlfield).setContent {
-            val searchBarState = rememberSearchBarState()
-
-            SearchBar(
-                state = searchBarState,
-                inputField = {
-                    val coroutineScope = rememberCoroutineScope()
-
-                    SearchBarDefaults.InputField(
-                        textFieldState = urlTextFieldState,
-                        searchBarState = searchBarState,
-                        onSearch = { search ->
-                            loadUrl(search)
-                            servoView.requestFocus()
-                        },
-                        modifier = Modifier
-                            .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
-                                    coroutineScope.launch {
-                                        urlTextFieldState.edit { selectAll() }
-                                    }
-                                }
-                            },
-                        placeholder = { Text(stringResource(R.string.url_or_search)) },
-                    )
+            Omnibox(
+                urlTextFieldState,
+                onSearch = { search ->
+                    loadUrl(search)
+                    servoView.requestFocus()
                 },
                 modifier = Modifier
                     .padding(end = 10.dp),
@@ -408,4 +389,37 @@ class MainActivity : AppCompatActivity(), Servo.Client {
         // than one
         private const val HISTORY_REQUEST_CODE = 1
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun Omnibox(
+    textFieldState: TextFieldState,
+    onSearch: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val searchBarState = rememberSearchBarState()
+
+    SearchBar(
+        state = searchBarState,
+        inputField = {
+            val coroutineScope = rememberCoroutineScope()
+
+            SearchBarDefaults.InputField(
+                textFieldState = textFieldState,
+                searchBarState = searchBarState,
+                onSearch = onSearch,
+                modifier = Modifier
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused) {
+                            coroutineScope.launch {
+                                textFieldState.edit { selectAll() }
+                            }
+                        }
+                    },
+                placeholder = { Text(stringResource(R.string.url_or_search)) },
+            )
+        },
+        modifier = modifier,
+    )
 }
