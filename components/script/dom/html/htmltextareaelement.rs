@@ -24,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
@@ -180,7 +180,7 @@ impl HTMLTextAreaElement {
             self.owner_document()
                 .embedder_controls()
                 .show_embedder_control(
-                    ControlElement::Ime(DomRoot::from_ref(self.upcast())),
+                    ControlElement::Ime(Dom::from_ref(self.upcast())),
                     EmbedderControlRequest::InputMethod(InputMethodRequest {
                         input_method_type: InputMethodType::Text,
                         text: String::from(self.Value()),
