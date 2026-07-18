@@ -351,6 +351,12 @@ dictionary KangarooTwelveParams : Algorithm {
   BufferSource customization;
 };
 
+// https://wicg.github.io/webcrypto-modern-algos/#kmac-keygen-params
+
+dictionary KmacKeyGenParams : Algorithm {
+  [EnforceRange] unsigned long length;
+};
+
 // https://wicg.github.io/webcrypto-modern-algos/#kmac-importparams
 
 dictionary KmacImportParams : Algorithm {

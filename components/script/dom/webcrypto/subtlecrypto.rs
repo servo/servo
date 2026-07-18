@@ -2695,7 +2695,7 @@ pub(crate) fn check_support_for_algorithm(
                 GenerateKeyAlgorithm::AesOcb(normalized_algorithm) => {
                     matches!(normalized_algorithm.length, 128 | 192 | 256)
                 },
-                GenerateKeyAlgorithm::ChaCha20Poly1305(_) => true,
+                GenerateKeyAlgorithm::ChaCha20Poly1305(_) | GenerateKeyAlgorithm::Kmac(_) => true,
             }
         },
         "importKey" => {
@@ -2780,9 +2780,9 @@ pub(crate) fn check_support_for_algorithm(
                 GetKeyLengthAlgorithm::AesOcb(normalized_derived_key_algorithm) => {
                     matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256)
                 },
-                GetKeyLengthAlgorithm::ChaCha20Poly1305(_) | GetKeyLengthAlgorithm::Argon2(_) => {
-                    true
-                },
+                GetKeyLengthAlgorithm::ChaCha20Poly1305(_) |
+                GetKeyLengthAlgorithm::Kmac(_) |
+                GetKeyLengthAlgorithm::Argon2(_) => true,
             }
         },
         "encapsulate" => {
@@ -3895,6 +3895,31 @@ impl From<&SubtleKangarooTwelveParams> for SerializableKangarooTwelveParams {
             output_length: value.output_length,
             customization: value.customization.clone(),
         }
+    }
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacKeyGenParams>
+#[derive(Clone, MallocSizeOf)]
+struct SubtleKmacKeyGenParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: CryptoAlgorithm,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacKeyGenParams-length>
+    length: Option<u32>,
+}
+
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKmacKeyGenParams {
+    type Error = Error;
+
+    fn try_from_with_cx_and_name(
+        object: HandleObject,
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+    ) -> Result<Self, Self::Error> {
+        Ok(SubtleKmacKeyGenParams {
+            name: algorithm_name,
+            length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
+        })
     }
 }
 
@@ -5421,6 +5446,7 @@ enum GenerateKeyAlgorithm {
     MlDsa(SubtleAlgorithm),
     AesOcb(SubtleAesKeyGenParams),
     ChaCha20Poly1305(SubtleAlgorithm),
+    Kmac(SubtleKmacKeyGenParams),
 }
 
 impl NormalizedAlgorithm for GenerateKeyAlgorithm {
@@ -5486,6 +5512,9 @@ impl NormalizedAlgorithm for GenerateKeyAlgorithm {
             CryptoAlgorithm::ChaCha20Poly1305 => Ok(GenerateKeyAlgorithm::ChaCha20Poly1305(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
+            CryptoAlgorithm::Kmac128 | CryptoAlgorithm::Kmac256 => Ok(GenerateKeyAlgorithm::Kmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"generateKey\" operation",
                 algorithm_name.as_str()
@@ -5513,6 +5542,7 @@ impl NormalizedAlgorithm for GenerateKeyAlgorithm {
             GenerateKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
             GenerateKeyAlgorithm::AesOcb(algorithm) => algorithm.name,
             GenerateKeyAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::Kmac(algorithm) => algorithm.name,
         }
     }
 }
@@ -5602,6 +5632,10 @@ impl GenerateKeyAlgorithm {
             },
             GenerateKeyAlgorithm::ChaCha20Poly1305(_algorithm) => {
                 chacha20_poly1305_operation::generate_key(cx, global, extractable, usages)
+                    .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
+            },
+            GenerateKeyAlgorithm::Kmac(algorithm) => {
+                kmac_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
         }
@@ -6080,6 +6114,7 @@ enum GetKeyLengthAlgorithm {
     Pbkdf2(SubtleAlgorithm),
     AesOcb(SubtleAesDerivedKeyParams),
     ChaCha20Poly1305(SubtleAlgorithm),
+    Kmac(SubtleKmacImportParams),
     Argon2(SubtleAlgorithm),
 }
 
@@ -6117,6 +6152,9 @@ impl NormalizedAlgorithm for GetKeyLengthAlgorithm {
             CryptoAlgorithm::ChaCha20Poly1305 => Ok(GetKeyLengthAlgorithm::ChaCha20Poly1305(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
+            CryptoAlgorithm::Kmac128 | CryptoAlgorithm::Kmac256 => Ok(GetKeyLengthAlgorithm::Kmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::Argon2D | CryptoAlgorithm::Argon2I | CryptoAlgorithm::Argon2ID => {
                 Ok(GetKeyLengthAlgorithm::Argon2(
                     object.try_into_with_cx_and_name(cx, algorithm_name)?,
@@ -6140,6 +6178,7 @@ impl NormalizedAlgorithm for GetKeyLengthAlgorithm {
             GetKeyLengthAlgorithm::Pbkdf2(algorithm) => algorithm.name,
             GetKeyLengthAlgorithm::AesOcb(algorithm) => algorithm.name,
             GetKeyLengthAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::Kmac(algorithm) => algorithm.name,
             GetKeyLengthAlgorithm::Argon2(algorithm) => algorithm.name,
         }
     }
@@ -6167,6 +6206,7 @@ impl GetKeyLengthAlgorithm {
             GetKeyLengthAlgorithm::ChaCha20Poly1305(_algorithm) => {
                 chacha20_poly1305_operation::get_key_length()
             },
+            GetKeyLengthAlgorithm::Kmac(algorithm) => kmac_operation::get_key_length(algorithm),
             GetKeyLengthAlgorithm::Argon2(_algorithm) => argon2_operation::get_key_length(),
         }
     }
