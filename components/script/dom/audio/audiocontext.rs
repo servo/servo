@@ -24,6 +24,7 @@ use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContext_Binding::BaseAudioContextMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::AudioContextLatencyCategoryOrDouble;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -142,22 +143,29 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend>
     fn Suspend(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        // Step 1.
-        let promise = Promise::new_in_realm(cx);
+        // Step 1. If this’s relevant global object’s associated Document is not fully active then return a promise rejected with "InvalidStateError" DOMException.
+        if !self.global().as_window().Document().is_fully_active() {
+            let promise = Promise::new_in_realm(cx);
+            promise.reject_error(cx, Error::InvalidState(None));
+            return promise;
+        }
 
         // Step 2.
+        let promise = Promise::new_in_realm(cx);
+
+        // Step 3.
         if self.context.control_thread_state() == ProcessingState::Closed {
             promise.reject_error(cx, Error::InvalidState(None));
             return promise;
         }
 
-        // Step 3.
+        // Step 4.
         if self.context.State() == AudioContextState::Suspended {
             promise.resolve_native(cx, &());
             return promise;
         }
 
-        // Steps 4 and 5.
+        // Steps 5 and 6.
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().lock().unwrap().suspend() {
             Some(_) => {
@@ -192,28 +200,35 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
             },
         };
 
-        // Step 6.
+        // Step 7.
         promise
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-close>
     fn Close(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        // Step 1.
-        let promise = Promise::new_in_realm(cx);
+        // Step 1. If this’s relevant global object’s associated Document is not fully active then return a promise rejected with "InvalidStateError" DOMException.
+        if !self.global().as_window().Document().is_fully_active() {
+            let promise = Promise::new_in_realm(cx);
+            promise.reject_error(cx, Error::InvalidState(None));
+            return promise;
+        }
 
         // Step 2.
+        let promise = Promise::new_in_realm(cx);
+
+        // Step 3.
         if self.context.control_thread_state() == ProcessingState::Closed {
             promise.reject_error(cx, Error::InvalidState(None));
             return promise;
         }
 
-        // Step 3.
+        // Step 4.
         if self.context.State() == AudioContextState::Closed {
             promise.resolve_native(cx, &());
             return promise;
         }
 
-        // Steps 4 and 5.
+        // Steps 5 and 6.
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().lock().unwrap().close() {
             Some(_) => {
@@ -248,7 +263,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
             },
         };
 
-        // Step 6.
+        // Step 7.
         promise
     }
 

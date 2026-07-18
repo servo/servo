@@ -933,7 +933,8 @@ impl Document {
     }
 
     pub(crate) fn is_fully_active(&self) -> bool {
-        self.activity.get() == DocumentActivity::FullyActive
+        // A document is fully active when its `activity` is still FullyActive, but also has browsing context.
+        self.activity.get() == DocumentActivity::FullyActive && self.browsing_context().is_some()
     }
 
     pub(crate) fn is_active(&self) -> bool {
