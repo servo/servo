@@ -25,6 +25,13 @@
     ]
    },
    "mozilla": {
+    "adopt-node-with-event-handler-crash.html": [
+     "7c8773c9184bb18bf4760ee5ea2df3e8bc91d02c",
+     [
+      null,
+      {}
+     ]
+    ],
     "async-html-meta-charset-crash.html": [
      "8743acb152daa256af34bc938f688561abd313c1",
      [

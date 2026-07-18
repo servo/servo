@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::callback::OwnerWindow;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::script_runtime::temp_cx;
 
@@ -504,3 +505,5 @@ pub(crate) enum Filter {
     None,
     Dom(Rc<NodeFilter>),
 }
+
+impl OwnerWindow<crate::DomTypeHolder> for TreeWalker {}

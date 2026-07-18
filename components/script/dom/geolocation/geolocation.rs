@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::gc::HandleValue;
 use js::jsapi::IsCallable;
 use rustc_hash::FxHashSet;
-use script_bindings::callback::ExceptionHandling;
+use script_bindings::callback::{ExceptionHandling, OwnerWindow};
 use script_bindings::codegen::GenericBindings::GeolocationBinding::Geolocation_Binding::GeolocationMethods;
 use script_bindings::codegen::GenericBindings::GeolocationBinding::{
     PositionCallback, PositionErrorCallback, PositionOptions,
@@ -199,3 +199,5 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
         }
     }
 }
+
+impl OwnerWindow<crate::DomTypeHolder> for Geolocation {}

@@ -1075,3 +1075,5 @@ impl IntersectionObservationOutput {
         }
     }
 }
+
+impl script_bindings::callback::OwnerWindow<crate::DomTypeHolder> for IntersectionObserver {}

@@ -8585,7 +8585,8 @@ class CGCallback(CGClass):
         argsWithoutThis.insert(0, Argument(None, "&self"))
 
         bodyWithThis = (
-            "call_setup(cx, self, aExceptionHandling, |cx| {\n"
+            "let owner_window = thisObj.owner_window();\n"
+            "call_setup(cx, self, owner_window.as_deref(), aExceptionHandling, |cx| {\n"
             "    rooted!(&in(cx) let mut thisValue: JSVal);\n"
             "    let wrap_result = wrap_call_this_value(cx, thisObj, thisValue.handle_mut());\n"
             "    if !wrap_result {\n"
@@ -8594,12 +8595,12 @@ class CGCallback(CGClass):
             f"    unsafe {{ self.{method.name}({', '.join(argnamesWithThis)}) }}"
             "})")
         bodyWithoutThis = (
-            "call_setup(cx, self, aExceptionHandling, |cx| {\n"
+            "call_setup(cx, self, None, aExceptionHandling, |cx| {\n"
             f"    unsafe {{ self.{method.name}({', '.join(argnamesWithoutThis)}) }}"
             "})")
         return [ClassMethod(f'{method.name}_', method.returnType, args,
                             bodyInHeader=True,
-                            templateArgs=["T: ThisReflector"],
+                            templateArgs=["T: ThisReflector + OwnerWindow<D>"],
                             body=bodyWithThis,
                             visibility='pub'),
                 ClassMethod(f'{method.name}__', method.returnType, argsWithoutThis,
