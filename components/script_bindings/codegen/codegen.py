@@ -20,19 +20,37 @@ from collections.abc import Callable, Generator, Iterable, Iterator
 from enum import IntEnum
 from itertools import groupby
 from re import Match
-from typing import Any, Generic, Optional, TypeGuard, TypeVar, cast
+from typing import Any, Generic, Optional, TypeVar, cast
 
+from cgthings.cgbase import (
+    CGGeneric,
+    CGIndenter,
+    CGRecord,
+    CGThing,
+    CGWrapper,
+    lineStartDetector,
+    stripTrailingWhitespace,
+)
+from cgthings.helpers import (
+    containsDomInterface,
+    firstCap,
+    genericsForType,
+    innerContainerType,
+    isIDLType,
+    toBindingModuleFile,
+    toBindingModuleFileFromDescriptor,
+    toBindingNamespace,
+    toStringBool,
+    union_native_type,
+)
+from cgthings.utils import MakeNativeName, getModuleFromObject, getTypesFromCallback, getTypesFromDictionary
 from configuration import (
     Configuration,
     Descriptor,
     DescriptorProvider,
-    MakeNativeName,
     MemberIsLegacyUnforgeable,
     assert_type,
-    getModuleFromObject,
-    getTypesFromCallback,
     getTypesFromDescriptor,
-    getTypesFromDictionary,
     iteratorNativeType,
 )
 from WebIDL import (
@@ -62,7 +80,6 @@ from WebIDL import (
     IDLSequenceType,
     IDLType,
     IDLTypedef,
-    IDLTypedefType,
     IDLUndefinedValue,
     IDLUnionType,
     IDLUnresolvedIdentifier,
@@ -164,116 +181,6 @@ EVENT_HANDLER_CALLBACKS = {
     "OnBeforeUnloadEventHandlerNonNull",
 }
 
-def isIDLType(obj: IDLObject) -> TypeGuard[IDLType]:
-    if obj.isType():
-        assert isinstance(obj, IDLType)
-        return True
-    return False
-
-def genericsForType(t: IDLObject) -> tuple[str, str]:
-    if containsDomInterface(t):
-        return ("<D: DomTypes>", "<D>")
-    return ("", "")
-
-
-def isDomInterface(t: IDLObject, logging: bool = False) -> bool:
-    while isinstance(t, IDLNullableType) or isinstance(t, IDLWrapperType):
-        t = t.inner
-    if isinstance(t, IDLInterface):
-        return True
-    assert isinstance(t, IDLType)
-    if t.isCallback() or t.isPromise():
-        return True
-    return t.isInterface() and (t.isSpiderMonkeyInterface() and not t.isBufferSource())
-
-
-def containsDomInterface(t: IDLObject, logging: bool = False) -> bool:
-    if isinstance(t, IDLArgument):
-        t = t.type
-    if isinstance(t, IDLTypedefType):
-        t = t.inner
-    while isinstance(t, IDLNullableType) or isinstance(t, IDLWrapperType):
-        t = t.inner
-    if t.isEnum():
-        return False
-    if t.isUnion():
-        # pyrefly: ignore  # missing-attribute
-        return any(map(lambda x: containsDomInterface(x), t.flatMemberTypes))
-    if t.isDictionary():
-        # pyrefly: ignore  # missing-attribute, bad-argument-type
-        return any(map(lambda x: containsDomInterface(x), t.members)) or (t.parent and containsDomInterface(t.parent))
-    if isDomInterface(t):
-        return True
-    assert isinstance(t, IDLType)
-    if t.isSequence():
-        assert isinstance(t, IDLSequenceType)
-        return containsDomInterface(t.inner)
-    if t.isRecord():
-        assert isinstance(t, IDLRecordType)
-        return containsDomInterface(t.inner)
-    return False
-
-
-def toStringBool(arg: bool) -> str:
-    return str(not not arg).lower()
-
-
-def toBindingNamespace(arg: str) -> str:
-    """
-    Namespaces are *_Bindings
-
-    actual path is `codegen::Bindings::{toBindingModuleFile(name)}::{toBindingNamespace(name)}`
-    """
-    return re.sub("((_workers)?$)", "_Binding\\1", MakeNativeName(arg))
-
-
-def toBindingModuleFile(arg: str) -> str:
-    """
-    Module files are *Bindings
-
-    actual path is `codegen::Bindings::{toBindingModuleFile(name)}::{toBindingNamespace(name)}`
-    """
-    return re.sub("((_workers)?$)", "Binding\\1", MakeNativeName(arg))
-
-
-def toBindingModuleFileFromDescriptor(desc: Descriptor) -> str:
-    isSuperModule = desc.maybeGetSuperModule()
-    if isSuperModule is not None:
-        return toBindingModuleFile(isSuperModule)
-    else:
-        return toBindingModuleFile(desc.name)
-
-
-def stripTrailingWhitespace(text: str) -> str:
-    tail = '\n' if text.endswith('\n') else ''
-    lines = text.splitlines()
-    for i in range(len(lines)):
-        lines[i] = lines[i].rstrip()
-    joined_lines = '\n'.join(lines)
-    return f"{joined_lines}{tail}"
-
-
-def innerContainerType(type: IDLType) -> IDLType:
-    assert type.isSequence() or type.isRecord()
-    assert isinstance(type, (IDLSequenceType, IDLRecordType, IDLNullableType))
-    return type.inner.inner if type.nullable() else type.inner
-
-
-def wrapInNativeContainerType(type: IDLType, inner: CGThing) -> CGThing:
-    if type.isSequence():
-        return CGWrapper(inner, pre="Vec<", post=">")
-    elif type.isRecord():
-        if type.nullable():
-            assert isinstance(type, IDLNullableType)
-            key = type.inner.keyType
-        else:
-            assert isinstance(type, IDLRecordType)
-            key = type.keyType
-        return CGRecord(key, inner)
-    else:
-        raise TypeError(f"Unexpected container type {type}")
-
-
 builtinNames = {
     IDLType.Tags.bool: 'bool',
     IDLType.Tags.int8: 'i8',
@@ -309,19 +216,6 @@ numericTags = [
     IDLType.Tags.unrestricted_float,
     IDLType.Tags.unrestricted_double
 ]
-
-
-# We'll want to insert the indent at the beginnings of lines, but we
-# don't want to indent empty lines.  So only indent lines that have a
-# non-newline character on them.
-lineStartDetector = re.compile("^(?=[^\n#])", re.MULTILINE)
-
-
-# We'll want to insert the indent at the beginnings of lines, but we
-# don't want to indent empty lines.  So only indent lines that have a
-# non-newline character on them.
-lineStartDetector = re.compile("^(?=[^\n])", re.MULTILINE)
-
 
 def indent(s: str, indentLevel: int = 2) -> str:
     """
@@ -429,20 +323,6 @@ def fill(template: str, **args: str) -> str:
         args[modified_name] = indent(args[name], depth)
 
     return t.substitute(args)
-
-
-class CGThing():
-    """
-    Abstract base class for things that spit out code.
-    """
-    def __init__(self) -> None:
-        pass  # Nothing for now
-
-    @abstractmethod
-    def define(self) -> str:
-        """Produce code for a Rust file."""
-        raise NotImplementedError
-
 
 class CGMethodCall(CGThing):
     """
@@ -686,48 +566,6 @@ class CGMethodCall(CGThing):
 
     def define(self) -> str:
         return self.cgRoot.define()
-
-
-def dictionaryHasSequenceMember(dictionary: IDLDictionary) -> bool:
-    for member in dictionary.members:
-        if typeIsSequenceOrHasSequenceMember(member.type):
-            return True
-
-    if dictionary.parent:
-        # pyrefly: ignore  # bad-argument-type
-        return dictionaryHasSequenceMember(dictionary.parent)
-
-    return False
-
-
-def typeIsSequenceOrHasSequenceMember(type: IDLType) -> bool:
-    if type.nullable():
-        assert isinstance(type, IDLNullableType)
-        type = type.inner
-    if type.isSequence():
-        return True
-    if type.isDictionary():
-        # pyrefly: ignore  # missing-attribute
-        return dictionaryHasSequenceMember(type.inner)
-    if type.isUnion():
-        assert isinstance(type, IDLUnionType)
-        assert type.flatMemberTypes is not None
-        return any(typeIsSequenceOrHasSequenceMember(m.type) for m in
-                   type.flatMemberTypes)
-    return False
-
-
-def union_native_type(t: IDLType) -> str:
-    name = t.unroll().name
-    generic = "::<D>" if containsDomInterface(t) else ""
-    return f'GenericUnionTypes::{name}{generic}'
-
-
-# Unfortunately, .capitalize() on a string will lowercase things inside the
-# string, which we do not want.
-def firstCap(string: str) -> str:
-    return f"{string[0].upper()}{string[1:]}"
-
 
 class JSToNativeConversionInfo():
     """
@@ -2335,77 +2173,21 @@ class ConstDefiner(PropertyDefiner[IDLConst]):
             'ConstantSpec',
             PropertyDefiner.getControllingCondition, specData)
 
-
-class CGIndenter(CGThing):
-    """
-    A class that takes another CGThing and generates code that indents that
-    CGThing by some number of spaces.  The default indent is two spaces.
-    """
-    def __init__(self, child: CGThing, indentLevel: int = 4) -> None:
-        CGThing.__init__(self)
-        self.child = child
-        self.indent = " " * indentLevel
-
-    def define(self) -> str:
-        defn = self.child.define()
-        if defn != "":
-            return re.sub(lineStartDetector, self.indent, defn)
-        else:
-            return defn
-
-
-class CGWrapper(CGThing):
-    """
-    Generic CGThing that wraps other CGThings with pre and post text.
-    """
-    child: CGThing
-    pre: str
-    post: str
-    reindent: bool
-
-    def __init__(self, child: CGThing, pre: str = "", post: str= "", reindent: bool = False) -> None:
-        CGThing.__init__(self)
-        self.child = child
-        self.pre = pre
-        self.post = post
-        self.reindent = reindent
-
-    def define(self) -> str:
-        defn = self.child.define()
-        if self.reindent:
-            # We don't use lineStartDetector because we don't want to
-            # insert whitespace at the beginning of our _first_ line.
-            defn = stripTrailingWhitespace(
-                defn.replace("\n", f"\n{' ' * len(self.pre)}"))
-        return f"{self.pre}{defn}{self.post}"
-
-
-class CGRecord(CGThing):
-    """
-    CGThing that wraps value CGThing in record with key type equal to keyType parameter
-    """
-    def __init__(self, keyType: IDLType, value: CGThing) -> None:
-        CGThing.__init__(self)
-        assert keyType.isString()
-        self.keyType = keyType
-        self.value = value
-
-    def define(self) -> str:
-        if self.keyType.isByteString():
-            keyDef = "ByteString"
-        elif self.keyType.isDOMString():
-            keyDef = "DOMString"
-        elif self.keyType.isUSVString():
-            keyDef = "USVString"
-        else:
-            assert False
-
-        defn = f"{keyDef}, {self.value.define()}"
-        return f"Record<{defn}>"
-
-
 TopLevelType = IDLInterfaceOrNamespace | IDLDictionary | IDLEnum | IDLType
 
+def wrapInNativeContainerType(type: IDLType, inner: CGThing) -> CGThing:
+    if type.isSequence():
+        return CGWrapper(inner, pre="Vec<", post=">")
+    elif type.isRecord():
+        if type.nullable():
+            assert isinstance(type, IDLNullableType)
+            key = type.inner.keyType
+        else:
+            assert isinstance(type, IDLRecordType)
+            key = type.keyType
+        return CGRecord(key, inner)
+    else:
+        raise TypeError(f"Unexpected container type {type}")
 
 class CGImports(CGWrapper):
     """
@@ -2846,20 +2628,6 @@ class CGIfElseWrapper(CGList):
             elseBranch = CGWrapper(CGIndenter(ifFalse), pre=" else {\n", post="\n}")
         kids = [CGIfWrapper(condition, ifTrue), elseBranch]
         CGList.__init__(self, kids)
-
-
-class CGGeneric(CGThing):
-    """
-    A class that spits out a fixed string into the codegen.  Can spit out a
-    separate string for the declaration too.
-    """
-    text: str
-    def __init__(self, text: str) -> None:
-        self.text = text
-
-    def define(self) -> str:
-        return self.text
-
 
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name: str) -> None:
