@@ -234,6 +234,10 @@ pub fn grid_auto_flow(input: stylo::GridAutoFlow) -> taffy::GridAutoFlow {
     }
 }
 
+fn as_clamped_i16(input: i32) -> i16 {
+    input.clamp(i16::MIN as i32, i16::MAX as i32) as i16
+}
+
 #[inline]
 pub fn grid_line(input: &stylo::GridLine) -> taffy::GridPlacement<Atom> {
     if input.is_auto() {
@@ -242,15 +246,15 @@ pub fn grid_line(input: &stylo::GridLine) -> taffy::GridPlacement<Atom> {
         if input.ident.0 != atom!("") {
             taffy::GridPlacement::NamedSpan(
                 input.ident.0.clone(),
-                input.line_num.try_into().unwrap(),
+                as_clamped_i16(input.line_num) as u16,
             )
         } else {
             taffy::GridPlacement::Span(input.line_num as u16)
         }
     } else if input.ident.0 != atom!("") {
-        taffy::GridPlacement::NamedLine(input.ident.0.clone(), input.line_num as i16)
+        taffy::GridPlacement::NamedLine(input.ident.0.clone(), as_clamped_i16(input.line_num))
     } else if input.line_num != 0 {
-        taffy::style_helpers::line(input.line_num as i16)
+        taffy::style_helpers::line(as_clamped_i16(input.line_num))
     } else {
         taffy::GridPlacement::Auto
     }
@@ -259,7 +263,9 @@ pub fn grid_line(input: &stylo::GridLine) -> taffy::GridPlacement<Atom> {
 #[inline]
 pub fn track_repeat(input: stylo::RepeatCount<i32>) -> taffy::RepetitionCount {
     match input {
-        stylo::RepeatCount::Number(val) => taffy::RepetitionCount::Count(val.try_into().unwrap()),
+        stylo::RepeatCount::Number(count) => {
+            taffy::RepetitionCount::Count(as_clamped_i16(count) as u16)
+        },
         stylo::RepeatCount::AutoFill => taffy::RepetitionCount::AutoFill,
         stylo::RepeatCount::AutoFit => taffy::RepetitionCount::AutoFit,
     }
