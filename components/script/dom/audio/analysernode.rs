@@ -151,7 +151,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     fn GetFloatFrequencyData(&self, no_gc: &NoGC, mut array: CustomAutoRooterGuard<Float32Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
-        let dest = { array.as_mut_slice_safe(no_gc) };
+        let dest = array.as_mut_slice_safe(no_gc);
         self.engine.borrow_mut().fill_frequency_data(dest);
     }
 
@@ -159,7 +159,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     fn GetByteFrequencyData(&self, no_gc: &NoGC, mut array: CustomAutoRooterGuard<Uint8Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
-        let dest = { array.as_mut_slice_safe(no_gc) };
+        let dest = array.as_mut_slice_safe(no_gc);
         self.engine.borrow_mut().fill_byte_frequency_data(dest);
     }
 
@@ -167,7 +167,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     fn GetFloatTimeDomainData(&self, no_gc: &NoGC, mut array: CustomAutoRooterGuard<Float32Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
-        let dest = { array.as_mut_slice_safe(no_gc) };
+        let dest = array.as_mut_slice_safe(no_gc);
         self.engine.borrow().fill_time_domain_data(dest);
     }
 
@@ -175,7 +175,7 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     fn GetByteTimeDomainData(&self, no_gc: &NoGC, mut array: CustomAutoRooterGuard<Uint8Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
-        let dest = { array.as_mut_slice_safe(no_gc) };
+        let dest = array.as_mut_slice_safe(no_gc);
         self.engine.borrow().fill_byte_time_domain_data(dest);
     }
 
