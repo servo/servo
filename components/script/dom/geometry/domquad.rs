@@ -200,7 +200,7 @@ impl Serializable for DOMQuad {
     type Data = DomQuad;
 
     fn serialize(&self) -> Result<(DomQuadId, Self::Data), ()> {
-        let make_point = |src: DomRoot<DOMPoint>| -> DomPoint {
+        let make_point = |src: &DOMPoint| -> DomPoint {
             DomPoint {
                 x: src.X(),
                 y: src.Y(),
@@ -209,10 +209,10 @@ impl Serializable for DOMQuad {
             }
         };
         let serialized = DomQuad {
-            p1: make_point(self.P1()),
-            p2: make_point(self.P2()),
-            p3: make_point(self.P3()),
-            p4: make_point(self.P4()),
+            p1: make_point(&self.p1),
+            p2: make_point(&self.p2),
+            p3: make_point(&self.p3),
+            p4: make_point(&self.p4),
         };
         Ok((DomQuadId::new(), serialized))
     }
