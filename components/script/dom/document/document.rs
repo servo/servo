@@ -243,14 +243,16 @@ impl FireMouseEventType {
 pub(crate) struct RefreshRedirectDue {
     #[no_trace]
     pub(crate) url: ServoUrl,
-    #[ignore_malloc_size_of = "non-owning"]
-    pub(crate) window: DomRoot<Window>,
     /// Whether the refresh originated from a `<meta>` element.
     pub(crate) from_meta_element: bool,
 }
 impl RefreshRedirectDue {
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
-    pub(crate) fn invoke(self, cx: &mut JSContext) {
+    pub(crate) fn invoke(self, cx: &mut JSContext, global: &GlobalScope) {
+        let window = global
+            .downcast::<Window>()
+            .expect("Queued a RefreshRedirectDue on a non Window globalscope");
+
         // After the refresh has come due (as defined below),
         // if the user has not canceled the redirect and, if meta is given,
         // document's active sandboxing flag set does not have the sandboxed
@@ -258,18 +260,16 @@ impl RefreshRedirectDue {
         // then navigate document's node navigable to urlRecord using document,
         // with historyHandling set to "replace".
         if self.from_meta_element &&
-            self.window.Document().has_active_sandboxing_flag(
+            window.Document().has_active_sandboxing_flag(
                 SandboxingFlagSet::SANDBOXED_AUTOMATIC_FEATURES_BROWSING_CONTEXT_FLAG,
             )
         {
             return;
         }
-        let load_data = self
-            .window
-            .load_data_for_document(self.url.clone(), self.window.pipeline_id());
+        let load_data = window.load_data_for_document(self.url.clone(), window.pipeline_id());
         navigate(
             cx,
-            &self.window,
+            &window,
             NavigationHistoryBehavior::Replace,
             false,
             load_data,
@@ -2258,7 +2258,6 @@ impl Document {
         {
             self.window.as_global_scope().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
-                    window: DomRoot::from_ref(self.window()),
                     url: url.clone(),
                     from_meta_element: *from_meta_element,
                 }),
@@ -4734,7 +4733,6 @@ impl Document {
         if self.completely_loaded() {
             self.window.as_global_scope().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
-                    window: DomRoot::from_ref(self.window()),
                     url: url_record,
                     from_meta_element,
                 }),
