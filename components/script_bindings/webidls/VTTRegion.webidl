@@ -6,7 +6,7 @@
 
 enum ScrollSetting { "" /* none */, "up"};
 
-[Pref="dom_webvtt_enabled", Exposed=Window]
+[Exposed=Window]
 interface VTTRegion {
   [Throws] constructor();
   attribute DOMString id;
