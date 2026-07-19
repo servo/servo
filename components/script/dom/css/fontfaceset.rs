@@ -22,6 +22,7 @@ use script_bindings::reflector::reflect_dom_object_with_proto;
 
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::FontFaceSetMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -196,15 +197,20 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-add>
-    fn Add(&self, cx: &mut JSContext, font_face: &FontFace) -> DomRoot<FontFaceSet> {
+    fn Add(&self, cx: &mut JSContext, font_face: &FontFace) -> Fallible<DomRoot<FontFaceSet>> {
         // Step 1. If font is already in the FontFaceSet’s set entries,
         // skip to the last step of this algorithm immediately.
         if self.contains_face(font_face) {
-            return DomRoot::from_ref(self);
+            return Ok(DomRoot::from_ref(self));
         }
 
-        // TODO: Step 2. If font is CSS-connected, throw an InvalidModificationError
+        // Step 2. If font is CSS-connected, throw an InvalidModificationError
         // exception and exit this algorithm immediately.
+        if font_face.is_css_connected() {
+            return Err(Error::InvalidModification(Some(
+                "Cannot add CSS-connected FontFace to FontFaceSet".to_owned(),
+            )));
+        }
 
         // Step 3. Add the font argument to the FontFaceSet’s set entries.
         self.set_entries.borrow_mut().push(Dom::from_ref(font_face));
@@ -216,12 +222,15 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
         self.handle_font_face_status_changed(cx, font_face);
 
         // Step 5. Return the FontFaceSet.
-        DomRoot::from_ref(self)
+        Ok(DomRoot::from_ref(self))
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-delete>
     fn Delete(&self, to_delete: &FontFace) -> bool {
-        // TODO Step 1. If font is CSS-connected, return false and exit this algorithm immediately.
+        // Step 1. If font is CSS-connected, return false and exit this algorithm immediately.
+        if to_delete.is_css_connected() {
+            return false;
+        }
 
         // Step 2. Let deleted be the result of removing font from the FontFaceSet’s set entries.
         // TODO: Step 3. If font is present in the FontFaceSet’s [[LoadedFonts]], or [[FailedFonts]] lists, remove it.
