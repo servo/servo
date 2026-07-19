@@ -469,6 +469,8 @@ impl IndependentFormattingContext {
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
+                lazy_block_size,
+                Some(&self.base),
             ),
             IndependentFormattingContextContents::Flex(fc) => fc.layout(
                 layout_context,

@@ -17,7 +17,8 @@ use servo_arc::Arc as ServoArc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use web_atoms::local_name;
+use stylo_atoms::atom;
+use web_atoms::{local_name, ns};
 
 use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
@@ -213,6 +214,20 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                 },
                 &local_name!("input") => {
                     flags.insert(FragmentFlags::IS_INPUT_ELEMENT);
+                    if element
+                        .attribute(&ns!(), &local_name!("type"))
+                        .is_some_and(|attr| {
+                            matches!(
+                                attr.as_atom().to_ascii_lowercase(),
+                                atom!("button") | atom!("color") | atom!("reset") | atom!("submit")
+                            )
+                        })
+                    {
+                        flags.insert(FragmentFlags::IS_BUTTON);
+                    }
+                },
+                &local_name!("button") => {
+                    flags.insert(FragmentFlags::IS_BUTTON);
                 },
                 _ => {},
             }
@@ -267,7 +282,8 @@ bitflags! {
         const IS_COLLAPSED = 1 << 11;
         /// Whether or not the node that created this Fragment is a `<input>` element.
         const IS_INPUT_ELEMENT = 1 << 12;
-
+        /// Whether this is a <button> element, or an <input> that uses button layout.
+        const IS_BUTTON = 1 << 13;
     }
 }
 
