@@ -587,7 +587,7 @@ impl IDBTransaction {
                 event.fire(cx, this.upcast());
                 if this.mode == IDBTransactionMode::Versionchange {
                     this.global()
-                        .get_indexeddb(cx)
+                        .ensure_indexeddb_factory(cx)
                         .clear_open_request_transaction_for_txn(&this);
                     let origin = this.global().origin().immutable().clone();
                     let db_name = String::from(this.db.get_name());
@@ -608,7 +608,7 @@ impl IDBTransaction {
                 this.version_change_old_object_store_names.borrow_mut().take();
                 this.notify_backend_transaction_finished();
                 if this.registered_in_global.get() {
-                    this.global().get_indexeddb(cx).unregister_indexeddb_transaction(&this);
+                    this.global().ensure_indexeddb_factory(cx).unregister_indexeddb_transaction(&this);
                 }
             }));
     }
@@ -657,7 +657,7 @@ impl IDBTransaction {
                     //  Step 5.1: If transaction is an upgrade transaction, then let request be the request
                     // associated with transaction and set request’s transaction to null.
                     this.global()
-                        .get_indexeddb(cx)
+                        .ensure_indexeddb_factory(cx)
                         .clear_open_request_transaction_for_txn(&this);
                     let origin = this.global().origin().immutable().clone();
                     let db_name = String::from(this.db.get_name());
@@ -673,7 +673,7 @@ impl IDBTransaction {
                 }
                 this.notify_backend_transaction_finished();
                 if this.registered_in_global.get() {
-                    this.global().get_indexeddb(cx).unregister_indexeddb_transaction(&this);
+                    this.global().ensure_indexeddb_factory(cx).unregister_indexeddb_transaction(&this);
                 }
             }),
         );

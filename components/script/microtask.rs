@@ -161,7 +161,9 @@ impl MicrotaskQueue {
         // “These steps are invoked by [HTML]. They ensure that transactions created by a script call
         // to transaction() are deactivated once the task that invoked the script has completed.”
         for global in globalscopes.iter() {
-            let _ = global.get_indexeddb(cx).cleanup_indexeddb_transactions(cx);
+            if let Some(factory) = global.indexeddb_factory() {
+                let _ = factory.cleanup_indexeddb_transactions(cx);
+            }
         }
 
         // TODO: Step 6. Perform ClearKeptObjects().

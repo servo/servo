@@ -704,7 +704,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
     fn IndexedDB(&self, cx: &mut JSContext) -> DomRoot<IDBFactory> {
-        self.upcast::<GlobalScope>().get_indexeddb(cx)
+        self.upcast::<GlobalScope>().ensure_indexeddb_factory(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location>
@@ -1083,8 +1083,13 @@ impl WorkerGlobalScope {
         self.upcast::<GlobalScope>()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
-        if let Some(factory) = self.upcast::<GlobalScope>().get_existing_indexeddb() {
-            factory.abort_pending_upgrades();
+
+        // From <https://w3c.github.io/IndexedDB/#database-connection>
+        // > The connection can be closed through several means. If the execution context where
+        // > the connection was created is destroyed (for example due to the user navigating away
+        // > from that page), the connection is closed.
+        if let Some(factory) = self.upcast::<GlobalScope>().indexeddb_factory() {
+            factory.abort_pending_upgrades_and_close_databases();
         }
     }
 

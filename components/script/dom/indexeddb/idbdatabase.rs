@@ -177,6 +177,23 @@ impl IDBDatabase {
             new_version,
         );
     }
+
+    /// <https://w3c.github.io/IndexedDB/#close-a-database-connection>
+    pub(crate) fn close_a_database_connection(&self, _forced: bool) {
+        // Step 1: Set connection’s close pending flag to true.
+        self.close_pending.set(true);
+
+        // Note: rest of the steps run in the storage backend.
+        // TODO: `_forced` either needs to be used here or passed to the backend.
+        let operation = SyncOperation::CloseDatabase(
+            self.global().origin().immutable().clone(),
+            self.id,
+            self.name.to_string(),
+        );
+        let _ = self
+            .get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(operation));
+    }
 }
 
 impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
@@ -243,7 +260,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction optionally has a cleanup event loop which is an event loop.
         self.global()
-            .get_indexeddb(cx)
+            .ensure_indexeddb_factory(cx)
             .register_indexeddb_transaction(&transaction);
 
         // Step 9. Return an IDBTransaction object representing transaction.
@@ -431,21 +448,8 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-close>
     fn Close(&self) {
-        // Step 1: Run close a database connection with this connection.
-
-        // <https://w3c.github.io/IndexedDB/#close-a-database-connection>
-        // Step 1: Set connection’s close pending flag to true.
-        self.close_pending.set(true);
-
-        // Note: rest of algo runs in-parallel.
-        let operation = SyncOperation::CloseDatabase(
-            self.global().origin().immutable().clone(),
-            self.id,
-            self.name.to_string(),
-        );
-        let _ = self
-            .get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(operation));
+        // Step 1. Run close a database connection with this connection.
+        self.close_a_database_connection(false);
     }
 
     // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-onabort
