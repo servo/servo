@@ -1,0 +1,36 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<h2 id="h2">Activating accessibility for a <code>WebView</code></h2>
+
+<script>
+  setup({ explicit_done: true });
+  window.onload = () => {
+    test((t) => {
+      ServoTestUtils.ensureAccessibilityActive();
+      let initial = ServoTestUtils.forceAccessibilityUpdate();
+
+      assert_equals(initial.nodesUpdatedFromDom, 15, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 15, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 15, "nodesInTreeUpdate");
+
+      document.querySelector("code").remove();
+
+      let update = ServoTestUtils.forceAccessibilityUpdate();
+
+      // Updated nodes:
+      // - h2 (<code> removed)
+      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+
+      // <html>, <body>, <h2>
+      assert_equals(update.nodesUpdatedFromTree, 3, "nodesUpdatedFromTree");
+
+      // Changed nodes:
+      // - <h2>, children and label changed
+      assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
+    }, "");
+
+    done();
+  };
+</script>

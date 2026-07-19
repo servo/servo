@@ -46,11 +46,12 @@ struct AccessibilityUpdate {
     tree_changes: FxHashMap<NodeId, TreeChange>,
     /// Damage to nodes caused by changes in the accessibility tree.
     unresolved_local_damage: FxHashMap<NodeId, LocalAccessibilityDamage>,
+    /// Counters to track how many nodes we've checked for changes or updated in this tree update.
+    counters: UpdateCounters,
     /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
     /// `AccessibilityData`. Only set if `pref::expensive_accessibility_test_assertions_enabled`
     /// is set.
     rooted_nodes: Option<FxHashSet<OpaqueNode>>,
-    counters: UpdateCounters,
 }
 
 #[derive(Debug, Default)]
@@ -838,8 +839,8 @@ impl AccessibilityUpdate {
             changed_nodes: FxHashSet::default(),
             tree_changes: FxHashMap::default(),
             unresolved_local_damage: FxHashMap::default(),
-            rooted_nodes,
             counters: UpdateCounters::default(),
+            rooted_nodes,
         }
     }
 
@@ -896,19 +897,21 @@ impl AccessibilityUpdate {
         }
 
         let changed_nodes = std::mem::take(&mut self.changed_nodes);
-
         let mut counters = std::mem::take(&mut self.counters);
-        counters.nodes_in_tree_update = changed_nodes.len().try_into().unwrap_or_default();
 
         tree.drop_removed_nodes(self);
+
+        let changed_nodes: Vec<_> = changed_nodes
+            .into_iter()
+            .filter_map(|id| Some((id, tree.node_for_id(id)?.borrow().accesskit_node.clone())))
+            .collect();
+
+        counters.nodes_in_tree_update = changed_nodes.len().try_into().unwrap_or_default();
 
         let accesskit_tree = accesskit::Tree::new(root_node_id);
         let tree_update = accesskit::TreeUpdate {
             // Filter out any nodes which were both changed and removed.
-            nodes: changed_nodes
-                .into_iter()
-                .filter_map(|id| Some((id, tree.node_for_id(id)?.borrow().accesskit_node.clone())))
-                .collect(),
+            nodes: changed_nodes,
             tree: Some(accesskit_tree),
             focus: NodeId(1),
             tree_id: tree.tree_id,

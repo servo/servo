@@ -12,37 +12,37 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub(crate) struct AccessibilityUpdateResult {
     reflector_: Reflector,
-    accessibility_nodes_updated_from_dom: u32,
-    accessibility_nodes_updated_from_tree: u32,
-    accessibility_nodes_in_tree_update: u32,
+    nodes_updated_from_dom: u32,
+    nodes_updated_from_tree: u32,
+    nodes_in_tree_update: u32,
 }
 
 impl AccessibilityUpdateResult {
     pub(crate) fn new_inherited(
-        accessibility_nodes_updated_from_dom: u32,
-        accessibility_nodes_updated_from_tree: u32,
-        accessibility_nodes_in_tree_update: u32,
+        nodes_updated_from_dom: u32,
+        nodes_updated_from_tree: u32,
+        nodes_in_tree_update: u32,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            accessibility_nodes_updated_from_dom,
-            accessibility_nodes_updated_from_tree,
-            accessibility_nodes_in_tree_update,
+            nodes_updated_from_dom,
+            nodes_updated_from_tree,
+            nodes_in_tree_update,
         }
     }
 
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        accessibility_nodes_updated_from_dom: u32,
-        accessibility_nodes_updated_from_tree: u32,
-        accessibility_nodes_in_tree_update: u32,
+        nodes_updated_from_dom: u32,
+        nodes_updated_from_tree: u32,
+        nodes_in_tree_update: u32,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(
-                accessibility_nodes_updated_from_dom,
-                accessibility_nodes_updated_from_tree,
-                accessibility_nodes_in_tree_update,
+                nodes_updated_from_dom,
+                nodes_updated_from_tree,
+                nodes_in_tree_update,
             )),
             global,
             cx,
@@ -51,15 +51,15 @@ impl AccessibilityUpdateResult {
 }
 
 impl AccessibilityUpdateResultMethods<crate::DomTypeHolder> for AccessibilityUpdateResult {
-    fn AccessibilityNodesUpdatedFromDom(&self) -> u32 {
-        self.accessibility_nodes_updated_from_dom
+    fn NodesUpdatedFromDom(&self) -> u32 {
+        self.nodes_updated_from_dom
     }
 
-    fn AccessibilityNodesUpdatedFromTree(&self) -> u32 {
-        self.accessibility_nodes_updated_from_tree
+    fn NodesUpdatedFromTree(&self) -> u32 {
+        self.nodes_updated_from_tree
     }
 
-    fn AccessibilityNodesInTreeUpdate(&self) -> u32 {
-        self.accessibility_nodes_in_tree_update
+    fn NodesInTreeUpdate(&self) -> u32 {
+        self.nodes_in_tree_update
     }
 }

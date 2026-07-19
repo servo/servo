@@ -666,12 +666,12 @@ pub struct ReflowStatistics {
     pub only_descendants_changed_count: u32,
     /// A count of the number of accessibility nodes which were checked for changes based on their
     /// corresponding DOM nodes (whether the check resulted in changes or not).
-    pub accessibility_nodes_updated_from_dom: u32,
+    pub nodes_updated_from_dom: u32,
     /// A count of the number of accessibility nodes which were checked for changes based on data
     /// already in the accessibility tree (whether the check resulted in changes or not).
-    pub accessibility_nodes_updated_from_tree: u32,
+    pub nodes_updated_from_tree: u32,
     /// A count of the number of accessibility nodes actually serialized to the TreeUpdate.
-    pub accessibility_nodes_in_tree_update: u32,
+    pub nodes_in_tree_update: u32,
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle

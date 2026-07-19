@@ -95,9 +95,9 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         AccessibilityUpdateResult::new(
             cx,
             global,
-            statistics.accessibility_nodes_updated_from_dom,
-            statistics.accessibility_nodes_updated_from_tree,
-            statistics.accessibility_nodes_in_tree_update,
+            statistics.nodes_updated_from_dom,
+            statistics.nodes_updated_from_tree,
+            statistics.nodes_in_tree_update,
         )
     }
 }
