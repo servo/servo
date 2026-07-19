@@ -16,7 +16,7 @@ macro_rules! include_vtt_file {
 
 #[test]
 fn test_simple_cue_file() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("track.vtt")),
         Ok(())
@@ -34,7 +34,7 @@ fn test_simple_cue_file() {
 
 #[test]
 fn test_multiple_different_ids() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("cue-id.vtt")),
         Ok(())
@@ -76,7 +76,7 @@ fn test_multiple_different_ids() {
 
 #[test]
 fn test_too_short_input() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("header-too-short.vtt")),
         Err(WebVttParserError::InvalidHeader)
@@ -85,7 +85,7 @@ fn test_too_short_input() {
 
 #[test]
 fn test_header_exactly_six_characters() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("header-empty-after.vtt")),
         Ok(())
@@ -94,7 +94,7 @@ fn test_header_exactly_six_characters() {
 
 #[test]
 fn test_header_only_newlines_after() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("header-newlines-after.vtt")),
         Ok(())
@@ -103,7 +103,7 @@ fn test_header_only_newlines_after() {
 
 #[test]
 fn test_invalid_header_exactly_six_characters() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("header-invalid-equal.vtt")),
         Err(WebVttParserError::InvalidHeader)
@@ -112,7 +112,7 @@ fn test_invalid_header_exactly_six_characters() {
 
 #[test]
 fn test_invalid_header_with_cues() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("no-webvtt.vtt")),
         Err(WebVttParserError::InvalidHeader)
@@ -121,7 +121,7 @@ fn test_invalid_header_with_cues() {
 
 #[test]
 fn test_ignore_bom_character() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("bom.vtt")),
         Ok(())
@@ -130,7 +130,7 @@ fn test_ignore_bom_character() {
 
 #[test]
 fn test_parses_vertical_alignment() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("valign.vtt")),
         Ok(())
@@ -179,7 +179,7 @@ for the cue box and the text within, text from top to bottom, growing left."
 
 #[test]
 fn test_parses_text_alignment() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("alignment.vtt")),
         Ok(())
@@ -233,7 +233,7 @@ Default is middle alignment."
 
 #[test]
 fn test_parses_bad_text_alignment() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("alignment-bad.vtt")),
         Ok(())
@@ -279,7 +279,7 @@ Erroneous alignment value -> middle."
 
 #[test]
 fn test_parses_line_position() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("line-position.vtt")),
         Ok(())
@@ -373,7 +373,7 @@ even though the line will likely not be within the video viewport."
 
 #[test]
 fn test_parses_size() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("cue-size.vtt")),
         Ok(())
@@ -419,7 +419,7 @@ Cue text box size of 0 is acceptable, even if not visible."
 
 #[test]
 fn test_parses_bad_size() {
-    let parser = parser_with_dummy_sink();
+    let mut parser = parser_with_dummy_sink();
     assert_eq!(
         parser.parse_sync(&mut (), include_vtt_file!("cue-size-bad.vtt")),
         Ok(())
