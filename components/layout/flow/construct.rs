@@ -566,7 +566,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             self.handle_list_item_marker_inside(&marker_info, marker_contents)
         }
 
-        // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
         non_replaced_contents.traverse(self.context, info, self);
 
         self.finish_anonymous_table_if_needed();
