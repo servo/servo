@@ -107,7 +107,6 @@ mime_guess = { workspace = true }
 ml-dsa = { workspace = true }
 ml-kem = { workspace = true }
 net_traits = { workspace = true }
-net = { workspace = true }
 nom-rfc8288 = { workspace = true }
 num-traits = { workspace = true }
 num_cpus = { workspace = true }
